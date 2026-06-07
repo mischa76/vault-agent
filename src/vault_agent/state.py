@@ -1,6 +1,6 @@
+"""Shared state passed through the LangGraph nodes."""
 from typing import Any
 
-"""Shared state passed through the LangGraph nodes."""
 from pydantic import BaseModel, Field
 
 
@@ -13,6 +13,14 @@ class ParsedRequirement(BaseModel):
     action: str | None = None
     obj: str | None = None  # 'object' is reserved
 
+
+class BusinessKeyCandidate(BaseModel):
+    entity: str
+    field: str
+    score: float
+    rationale: str
+
+
 class DVModel(BaseModel):
     hubs: list[dict[str, Any]] = Field(default_factory=list)
     links: list[dict[str, Any]] = Field(default_factory=list)
@@ -21,7 +29,7 @@ class DVModel(BaseModel):
 
 class Artifacts(BaseModel):
     automatedv_yaml: dict[str, Any] = Field(default_factory=dict)
-    dbt_models: dict[str, str] = Field(default_factory=dict)  # bleibt
+    dbt_models: dict[str, str] = Field(default_factory=dict)
     contracts: list[dict[str, Any]] = Field(default_factory=list)
 
 
@@ -33,8 +41,8 @@ class ValidationReport(BaseModel):
 class VaultAgentState(BaseModel):
     """Single state object shared across all agents in the graph."""
     # Inputs
-    input_documents: list[str] = Field(default_factory=list)  # paths
-    source_schemas: list[str] = Field(default_factory=list)   # paths or DSN
+    input_documents: list[str] = Field(default_factory=list)
+    source_schemas: list[str] = Field(default_factory=list)
     # Working state
     requirements: list[ParsedRequirement] = Field(default_factory=list)
     business_keys: list[BusinessKeyCandidate] = Field(default_factory=list)
@@ -45,10 +53,3 @@ class VaultAgentState(BaseModel):
     # Audit
     decisions: list[dict[str, Any]] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
-
-
-class BusinessKeyCandidate(BaseModel):
-    entity: str
-    field: str
-    score: float
-    rationale: str
