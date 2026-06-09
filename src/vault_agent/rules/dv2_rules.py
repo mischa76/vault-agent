@@ -30,4 +30,12 @@ DV_MODELING_RULES = [
     "Do not model a stand-alone object as a link, and do not model a relationship as a hub",
 ]
 
+# Physical naming conventions the code generator uses when rendering AutomateDV/dbt
+# models. Kept here so naming stays a single source of truth across modeler/generator.
+LOAD_DATETIME_COLUMN = "LOAD_DATETIME"
+RECORD_SOURCE_COLUMN = "RECORD_SOURCE"
+HASHKEY_SUFFIX = "_HK"
+HASHDIFF_SUFFIX = "_HASHDIFF"
+STAGING_PREFIX = "stg_"
+
 # TODO: populate further from CDVP 2.1 material

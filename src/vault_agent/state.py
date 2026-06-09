@@ -1,5 +1,5 @@
 """Shared state passed through the LangGraph nodes."""
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -35,6 +35,9 @@ class Link(BaseModel):
     name: str  # e.g. "link_account_customer"
     connected_hubs: list[str]  # hub names this link connects (>= 2)
     description: str
+    # Discriminator the code generator dispatches on (standard -> automate_dv.link,
+    # transactional -> automate_dv.t_link).
+    link_type: Literal["standard", "transactional"] = "standard"
     requirement_ids: list[str] = Field(default_factory=list)
 
 
@@ -44,6 +47,9 @@ class Satellite(BaseModel):
     parent: str  # the hub or link name this satellite describes
     attributes: list[str] = Field(default_factory=list)  # descriptive payload columns
     description: str
+    # Discriminator the code generator dispatches on (standard -> automate_dv.sat,
+    # multi_active -> automate_dv.ma_sat, effectivity -> automate_dv.eff_sat).
+    sat_type: Literal["standard", "multi_active", "effectivity"] = "standard"
     requirement_ids: list[str] = Field(default_factory=list)
 
 
