@@ -21,10 +21,36 @@ class BusinessKeyCandidate(BaseModel):
     rationale: str
 
 
+class Hub(BaseModel):
+    """A Data Vault hub: one business concept, anchored on its business key."""
+    name: str  # e.g. "hub_customer"
+    business_key: str  # the natural key field this hub is built on
+    source_entity: str  # the business object, e.g. "customer"
+    description: str
+    requirement_ids: list[str] = Field(default_factory=list)
+
+
+class Link(BaseModel):
+    """A Data Vault link: a relationship connecting two or more hubs."""
+    name: str  # e.g. "link_account_customer"
+    connected_hubs: list[str]  # hub names this link connects (>= 2)
+    description: str
+    requirement_ids: list[str] = Field(default_factory=list)
+
+
+class Satellite(BaseModel):
+    """A Data Vault satellite: descriptive attributes hanging off one parent."""
+    name: str  # e.g. "sat_customer_details"
+    parent: str  # the hub or link name this satellite describes
+    attributes: list[str] = Field(default_factory=list)  # descriptive payload columns
+    description: str
+    requirement_ids: list[str] = Field(default_factory=list)
+
+
 class DVModel(BaseModel):
-    hubs: list[dict[str, Any]] = Field(default_factory=list)
-    links: list[dict[str, Any]] = Field(default_factory=list)
-    satellites: list[dict[str, Any]] = Field(default_factory=list)
+    hubs: list[Hub] = Field(default_factory=list)
+    links: list[Link] = Field(default_factory=list)
+    satellites: list[Satellite] = Field(default_factory=list)
 
 
 class Artifacts(BaseModel):
