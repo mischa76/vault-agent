@@ -17,4 +17,17 @@ BUSINESS_KEY_CRITERIA = [
     "Not nullable — every instance of the object carries a value",
 ]
 
+# Structural rules the DV2.0 Modeler applies when turning business objects and keys
+# into hubs, links, and satellites. Injected into the modeler prompt at runtime so the
+# rule set stays a single source of truth (see CLAUDE.md).
+DV_MODELING_RULES = [
+    "Create exactly one hub per business key — one hub is one concept with one natural key",
+    "Hubs hold only the business key plus DV technical columns; never descriptive attributes",
+    "Create a link for each relationship between objects; a link connects two or more hubs",
+    "Links hold only references to their hubs — no descriptive attributes, no business keys",
+    "Put descriptive, changing attributes in satellites; each satellite hangs off one parent",
+    "Group attributes that change together (same rate of change or source) into one satellite",
+    "Do not model a stand-alone object as a link, and do not model a relationship as a hub",
+]
+
 # TODO: populate further from CDVP 2.1 material
