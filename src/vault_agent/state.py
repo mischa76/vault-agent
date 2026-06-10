@@ -36,7 +36,7 @@ class Link(BaseModel):
     connected_hubs: list[str]  # hub names this link connects (>= 2)
     description: str
     # Discriminator the code generator dispatches on (standard -> automate_dv.link,
-    # transactional -> automate_dv.t_link).
+    # transactional -> automate_dv.nh_link, the non-historized link).
     link_type: Literal["standard", "transactional"] = "standard"
     requirement_ids: list[str] = Field(default_factory=list)
 
@@ -50,6 +50,9 @@ class Satellite(BaseModel):
     # Discriminator the code generator dispatches on (standard -> automate_dv.sat,
     # multi_active -> automate_dv.ma_sat, effectivity -> automate_dv.eff_sat).
     sat_type: Literal["standard", "multi_active", "effectivity"] = "standard"
+    # Child dependent key(s) that distinguish concurrently-active rows of a multi-active
+    # satellite (automate_dv.ma_sat's src_cdk). Required to generate a ma_sat.
+    child_dependent_key: list[str] = Field(default_factory=list)
     requirement_ids: list[str] = Field(default_factory=list)
 
 
