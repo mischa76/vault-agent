@@ -134,7 +134,11 @@ class ValidatorAgent(BaseAgent):
         issues: list[dict[str, Any]] = []
         for (section, kind), required in _REQUIRED_COLUMNS.items():
             for name, meta in metadata.get(section, {}).items():
-                for logical in required:
+                effective = required
+                # Effectivity satellites are date-driven and carry no hash_diff/payload.
+                if section == "satellites" and "src_start_date" in meta:
+                    effective = required - {"hash_diff"}
+                for logical in effective:
                     key = _LOGICAL_TO_META[logical]
                     if not meta.get(key):
                         issues.append(

@@ -40,7 +40,18 @@ record-source columns (those are added downstream by the code generator).
 - Link: `name`, `connected_hubs` (the hub `name`s it connects, two or more),
   `description`, `requirement_ids`.
 - Satellite: `name`, `parent` (the hub or link `name` it describes), `attributes`
-  (the descriptive payload columns), `description`, `requirement_ids`.
+  (the descriptive payload columns), `description`, `requirement_ids`, and optionally
+  `sat_type` and `child_dependent_key`.
+
+### Satellite types
+
+- `standard` (default) — ordinary descriptive satellite on a hub.
+- `effectivity` — tracks the active period of a relationship; set `parent` to a **link**
+  and make `attributes` exactly the start and end date columns, in that order
+  (e.g. `["effective_from", "effective_to"]`).
+- `multi_active` — several rows are valid at once for one parent (e.g. multiple addresses).
+  Set `child_dependent_key` to the attribute(s) that distinguish the concurrent rows
+  (e.g. `["address_type"]`); without it the satellite cannot be generated.
 
 ## Guardrails
 

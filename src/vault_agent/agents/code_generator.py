@@ -27,9 +27,9 @@ from vault_agent.state import Hub, Link, Satellite, VaultAgentState
 
 _CONSTRUCT_PREFIXES = ("hub_", "link_", "sat_")
 
-# Macro a non-standard construct type would need once templated (used in flag messages).
-_LINK_MACRO = {"transactional": "t_link"}
-_SAT_MACRO = {"effectivity": "eff_sat", "multi_active": "ma_sat"}
+# Macro a not-yet-templated construct type would need (used in flag messages).
+# t_link is deprecated in AutomateDV (>= v0.11.5) in favour of nh_link.
+_LINK_MACRO = {"transactional": "nh_link"}
 
 
 def _to_column(label: str) -> str:
@@ -148,6 +148,81 @@ def _render_sat(sat: Satellite, parent_hashkey: str) -> tuple[str, dict[str, Any
     return sql, meta
 
 
+def _render_ma_sat(sat: Satellite, parent_hashkey: str) -> tuple[str, dict[str, Any]]:
+    payload = [_to_column(attr) for attr in sat.attributes]
+    cdk = [_to_column(key) for key in sat.child_dependent_key]
+    src_hashdiff = _to_column(_base_name(sat.name)) + HASHDIFF_SUFFIX
+    meta: dict[str, Any] = {
+        "source_model": _staging_model(sat.parent),
+        "src_pk": parent_hashkey,
+        "src_cdk": cdk,
+        "src_hashdiff": src_hashdiff,
+        "src_payload": payload,
+        "src_ldts": LOAD_DATETIME_COLUMN,
+        "src_source": RECORD_SOURCE_COLUMN,
+    }
+    sql = (
+        "{{ config(materialized='incremental') }}\n\n"
+        + _set_block(
+            [
+                ("source_model", f'"{meta["source_model"]}"'),
+                ("src_pk", f'"{parent_hashkey}"'),
+                ("src_cdk", _sql_list(cdk)),
+                ("src_hashdiff", f'"{src_hashdiff}"'),
+                ("src_payload", _sql_list(payload)),
+                ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
+                ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
+            ]
+        )
+        + "\n{{ automate_dv.ma_sat(src_pk=src_pk, src_cdk=src_cdk, "
+        + "src_hashdiff=src_hashdiff,\n"
+        + "                      src_payload=src_payload, src_ldts=src_ldts, "
+        + "src_source=src_source, source_model=source_model) }}\n"
+    )
+    return sql, meta
+
+
+def _render_eff_sat(
+    sat: Satellite, link_hashkey: str, hub_fks: list[str]
+) -> tuple[str, dict[str, Any]]:
+    dates = [_to_column(attr) for attr in sat.attributes]
+    start_date, end_date = dates[0], dates[1]
+    driving_fk = hub_fks[0]
+    secondary_fk = hub_fks[1:]
+    meta: dict[str, Any] = {
+        "source_model": _staging_model(sat.parent),
+        "src_pk": link_hashkey,
+        "src_dfk": driving_fk,
+        "src_sfk": secondary_fk,
+        "src_start_date": start_date,
+        "src_end_date": end_date,
+        "src_eff": start_date,
+        "src_ldts": LOAD_DATETIME_COLUMN,
+        "src_source": RECORD_SOURCE_COLUMN,
+    }
+    sql = (
+        "{{ config(materialized='incremental') }}\n\n"
+        + _set_block(
+            [
+                ("source_model", f'"{meta["source_model"]}"'),
+                ("src_pk", f'"{link_hashkey}"'),
+                ("src_dfk", f'"{driving_fk}"'),
+                ("src_sfk", _sql_list(secondary_fk)),
+                ("src_start_date", f'"{start_date}"'),
+                ("src_end_date", f'"{end_date}"'),
+                ("src_eff", f'"{start_date}"'),
+                ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
+                ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
+            ]
+        )
+        + "\n{{ automate_dv.eff_sat(src_pk=src_pk, src_dfk=src_dfk, src_sfk=src_sfk,\n"
+        + "                       src_start_date=src_start_date, src_end_date=src_end_date,\n"
+        + "                       src_eff=src_eff, src_ldts=src_ldts, "
+        + "src_source=src_source, source_model=source_model) }}\n"
+    )
+    return sql, meta
+
+
 class CodeGeneratorAgent(BaseAgent):
     """Renders the Data Vault model into AutomateDV-compatible dbt models."""
 
@@ -163,6 +238,8 @@ class CodeGeneratorAgent(BaseAgent):
 
         hub_hashkeys = {hub.name: _hub_hashkey(hub) for hub in model.hubs}
         parent_hashkeys: dict[str, str] = dict(hub_hashkeys)
+        # link name -> the hub hashkeys it connects, in order (driving first). Used by eff_sat.
+        link_fks: dict[str, list[str]] = {}
 
         dbt_models: dict[str, str] = {}
         metadata: dict[str, dict[str, Any]] = {"hubs": {}, "links": {}, "satellites": {}}
@@ -191,22 +268,13 @@ class CodeGeneratorAgent(BaseAgent):
             dbt_models[link.name] = sql
             metadata["links"][link.name] = meta
             parent_hashkeys[link.name] = _link_hashkey(link)
+            link_fks[link.name] = [hub_hashkeys[h] for h in link.connected_hubs]
 
         for sat in model.satellites:
-            if sat.sat_type != "standard":
-                macro = _SAT_MACRO.get(sat.sat_type, "?")
-                state.errors.append(
-                    f"code_generator: satellite {sat.name!r} is {sat.sat_type!r}, not yet "
-                    f"templated (needs automate_dv.{macro}); flagged for human review"
-                )
+            rendered = self._render_satellite(sat, parent_hashkeys, link_fks, state)
+            if rendered is None:
                 continue
-            if sat.parent not in parent_hashkeys:
-                state.errors.append(
-                    f"code_generator: satellite {sat.name!r} has parent {sat.parent!r} "
-                    f"with no generated hub/link; skipped"
-                )
-                continue
-            sql, meta = _render_sat(sat, parent_hashkeys[sat.parent])
+            sql, meta = rendered
             dbt_models[sat.name] = sql
             metadata["satellites"][sat.name] = meta
 
@@ -222,3 +290,46 @@ class CodeGeneratorAgent(BaseAgent):
             }
         )
         return state
+
+    @staticmethod
+    def _render_satellite(
+        sat: Satellite,
+        parent_hashkeys: dict[str, str],
+        link_fks: dict[str, list[str]],
+        state: VaultAgentState,
+    ) -> tuple[str, dict[str, Any]] | None:
+        """Dispatch a satellite to the template for its type; flag what can't be generated."""
+        if sat.parent not in parent_hashkeys:
+            state.errors.append(
+                f"code_generator: satellite {sat.name!r} has parent {sat.parent!r} "
+                f"with no generated hub/link; skipped"
+            )
+            return None
+
+        if sat.sat_type == "standard":
+            return _render_sat(sat, parent_hashkeys[sat.parent])
+
+        if sat.sat_type == "multi_active":
+            if not sat.child_dependent_key:
+                state.errors.append(
+                    f"code_generator: multi-active satellite {sat.name!r} has no "
+                    f"child_dependent_key; cannot generate automate_dv.ma_sat, flagged "
+                    f"for human review"
+                )
+                return None
+            return _render_ma_sat(sat, parent_hashkeys[sat.parent])
+
+        # effectivity
+        if sat.parent not in link_fks:
+            state.errors.append(
+                f"code_generator: effectivity satellite {sat.name!r} must hang off a "
+                f"generated link; parent {sat.parent!r} is not one, flagged for human review"
+            )
+            return None
+        if len(sat.attributes) < 2:
+            state.errors.append(
+                f"code_generator: effectivity satellite {sat.name!r} needs start and end "
+                f"date attributes; flagged for human review"
+            )
+            return None
+        return _render_eff_sat(sat, parent_hashkeys[sat.parent], link_fks[sat.parent])

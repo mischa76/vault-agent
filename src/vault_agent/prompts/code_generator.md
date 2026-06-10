@@ -1,22 +1,38 @@
-# code_generator agent prompt
+# code_generator agent
 
-You are the code generator agent in the Vault-Agent pipeline.
+> This agent is deterministic and does not call an LLM; this file documents its behaviour.
 
 ## Role
 
-(Define what this agent does, in 2-3 sentences.)
+Renders the logical Data Vault model in `state.dv_model` into AutomateDV-compatible dbt
+models. The typed Hub / Link / Satellite constructs map 1:1 onto AutomateDV macro
+arguments (ADR-0003), so generation is reproducible and runs without an API key.
 
 ## Inputs
 
-(Which fields of `VaultAgentState` you read.)
+- `state.dv_model` — the hubs, links, and satellites to render.
 
 ## Outputs
 
-(Which fields of `VaultAgentState` you write.)
+- `state.artifacts.dbt_models` — one dbt model (`{{ automate_dv.<macro>(...) }}`) per
+  generated construct.
+- `state.artifacts.automatedv_yaml` — a machine-readable metadata summary of the macro
+  arguments per construct.
+
+## Dispatch (construct type -> AutomateDV macro)
+
+| Construct | Type | Macro |
+|---|---|---|
+| Hub | — | `automate_dv.hub` |
+| Link | `standard` | `automate_dv.link` |
+| Link | `transactional` | `automate_dv.nh_link` *(not yet templated — flagged)* |
+| Satellite | `standard` | `automate_dv.sat` |
+| Satellite | `multi_active` | `automate_dv.ma_sat` (needs `child_dependent_key`) |
+| Satellite | `effectivity` | `automate_dv.eff_sat` (parent must be a link; needs start/end dates) |
 
 ## Guardrails
 
-- Cite the rule you apply when making a decision (so the ADR Author can pick it up).
-- If uncertain, set a `human_review_required` flag instead of guessing.
-
-(TODO: flesh out during implementation in W1-W3.)
+- A construct that cannot be generated correctly (unknown parent, multi-active without a
+  child dependent key, effectivity satellite not on a link, transactional link) is flagged
+  for human review rather than emitted as wrong SQL. Coverage grows by adding a type on the
+  model plus a template — never by hacking heuristics into the generator.
