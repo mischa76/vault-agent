@@ -51,3 +51,6 @@ record-source columns (those are added downstream by the code generator).
 - Model only what the requirements support; do not invent entities, relationships, or
   attributes that are not present.
 - Apply the Data Vault modelling rules supplied below.
+- If the input contains `previous_validation_issues`, your previous model failed
+  validation: emit a corrected complete model that fixes exactly those issues while
+  preserving the parts that were already correct.
