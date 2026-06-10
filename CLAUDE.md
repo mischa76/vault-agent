@@ -60,7 +60,18 @@ Public GitHub from W4 onwards.
 - Eval framework: eval/
 
 ## Current milestone (update as we progress)
-W1 — Foundation: repo skeleton, vision doc, ADRs 0001-0003, requirements-parser PoC.
+Core pipeline runs end-to-end (as of 2026-06-11). Built: 6 agents
+(requirements_parser, business_key_identifier, dv2_modeler, code_generator, validator,
+adr_author) wired into a LangGraph state machine (graph.py) with a self-correcting
+validation loop (validation fails → re-model, bounded by MAX_MODELING_ATTEMPTS) and an
+ADR branch on success. Code generator emits AutomateDV dbt models for hubs, links,
+standard/multi-active/effectivity satellites, and non-historized links, plus metadata.
+CLI (`vault-agent run <doc> --out <dir>`) writes models, metadata, and the ADR to disk.
+Two demo datasets (bank, health insurance) run through the full pipeline. Tests green
+without an API key (LLM calls are injectable/stubbed); ruff + mypy strict clean.
+
+Still stubs: data_contract, orchestrator. Planned: checkpointing + human-in-the-loop
+(ADR-0002), transactional-link payload modeling improvements, LangSmith evals.
 
 ## References to nearby work
 - Learning plan: ../Lernplan_Mapping.xlsx
