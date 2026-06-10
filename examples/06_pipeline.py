@@ -47,6 +47,11 @@ async def main() -> None:
         for err in state.errors:
             console.print(f"  - {err}")
 
+    if state.adrs:
+        console.print("\n[bold]Finalized ADR (excerpt):[/bold]")
+        excerpt = "\n".join(state.adrs[0].splitlines()[:14])
+        console.print(excerpt)
+
 
 if __name__ == "__main__":
     asyncio.run(main())
