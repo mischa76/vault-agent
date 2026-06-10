@@ -1,9 +1,9 @@
 """LangGraph state machine wiring all agents together.
 
 The graph is intentionally thin — business logic stays in the agent nodes (see CLAUDE.md).
-This module only wires the implemented agents into a linear pipeline and turns each one
-into a node. Conditional routing (e.g. loop back to the modeler when validation fails) and
-the orchestrator/ADR-author/data-contract agents come later.
+This module wires the implemented agents into a pipeline, turns each into a node, and adds
+one conditional edge: when validation fails, route back to the modeler to re-model (with the
+validation issues fed back as guidance), bounded by a retry cap to avoid infinite loops.
 
 Agents are injectable so the graph can be tested with stubbed LLMs; the defaults construct
 the real agents. Construction needs no API key — the Anthropic client is built lazily on
@@ -31,6 +31,19 @@ PIPELINE: list[str] = [
 ]
 
 Node = Callable[[VaultAgentState], Awaitable[VaultAgentState]]
+
+# How many times the modeler may run before the pipeline gives up on a failing model.
+MAX_MODELING_ATTEMPTS = 3
+
+
+def route_after_validation(state: VaultAgentState) -> str:
+    """Loop back to the modeler while validation fails and the retry budget remains."""
+    if state.validation_report.passed:
+        return END
+    attempts = sum(1 for d in state.decisions if d.get("agent") == "dv2_modeler")
+    if attempts >= MAX_MODELING_ATTEMPTS:
+        return END
+    return "dv2_modeler"
 
 
 def default_agents() -> dict[str, BaseAgent]:
@@ -64,6 +77,12 @@ def build_graph(agents: dict[str, BaseAgent] | None = None) -> StateGraph[VaultA
     graph.set_entry_point(PIPELINE[0])
     for src, dst in zip(PIPELINE, PIPELINE[1:], strict=False):
         graph.add_edge(src, dst)
-    graph.add_edge(PIPELINE[-1], END)
+
+    # The validator either ends the run or sends the model back for another attempt.
+    graph.add_conditional_edges(
+        "validator",
+        route_after_validation,
+        {"dv2_modeler": "dv2_modeler", END: END},
+    )
 
     return graph

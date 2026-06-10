@@ -121,13 +121,15 @@ class Dv2ModelerAgent(BaseAgent):
             return state
 
         system_prompt = self._build_system_prompt()
-        payload_json = json.dumps(
-            {
-                "requirements": [req.model_dump() for req in state.requirements],
-                "business_keys": [bk.model_dump() for bk in state.business_keys],
-            },
-            indent=2,
-        )
+        payload: dict[str, Any] = {
+            "requirements": [req.model_dump() for req in state.requirements],
+            "business_keys": [bk.model_dump() for bk in state.business_keys],
+        }
+        # On a retry the validator has populated issues; feed them back so the model
+        # converges instead of repeating the same mistakes.
+        if state.validation_report.issues:
+            payload["previous_validation_issues"] = state.validation_report.issues
+        payload_json = json.dumps(payload, indent=2)
         extractor = self._get_extractor()
         raw = await extractor.model(system_prompt=system_prompt, payload_json=payload_json)
 
