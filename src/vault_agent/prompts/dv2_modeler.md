@@ -38,7 +38,10 @@ record-source columns (those are added downstream by the code generator).
 - Hub: `name`, `business_key` (the natural-key field), `source_entity`, `description`,
   `requirement_ids` (the requirements that justify it).
 - Link: `name`, `connected_hubs` (the hub `name`s it connects, two or more),
-  `description`, `requirement_ids`.
+  `description`, `requirement_ids`, and optionally `link_type`. For a `transactional`
+  link (an event/transaction that is recorded once and never updated), also set `payload`
+  (the transaction's data columns) and `event_timestamp` (the column holding the event
+  date/time); without `event_timestamp` the transactional link cannot be generated.
 - Satellite: `name`, `parent` (the hub or link `name` it describes), `attributes`
   (the descriptive payload columns), `description`, `requirement_ids`, and optionally
   `sat_type` and `child_dependent_key`.

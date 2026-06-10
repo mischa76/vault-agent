@@ -38,6 +38,11 @@ class Link(BaseModel):
     # Discriminator the code generator dispatches on (standard -> automate_dv.link,
     # transactional -> automate_dv.nh_link, the non-historized link).
     link_type: Literal["standard", "transactional"] = "standard"
+    # For a transactional link only: the transaction's data columns (automate_dv.nh_link's
+    # src_payload) and the event-date column used as src_eff. event_timestamp is required to
+    # generate a nh_link.
+    payload: list[str] = Field(default_factory=list)
+    event_timestamp: str | None = None
     requirement_ids: list[str] = Field(default_factory=list)
 
 

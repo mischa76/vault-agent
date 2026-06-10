@@ -25,7 +25,7 @@ arguments (ADR-0003), so generation is reproducible and runs without an API key.
 |---|---|---|
 | Hub | — | `automate_dv.hub` |
 | Link | `standard` | `automate_dv.link` |
-| Link | `transactional` | `automate_dv.nh_link` *(not yet templated — flagged)* |
+| Link | `transactional` | `automate_dv.nh_link` (needs `event_timestamp`) |
 | Satellite | `standard` | `automate_dv.sat` |
 | Satellite | `multi_active` | `automate_dv.ma_sat` (needs `child_dependent_key`) |
 | Satellite | `effectivity` | `automate_dv.eff_sat` (parent must be a link; needs start/end dates) |
@@ -33,6 +33,7 @@ arguments (ADR-0003), so generation is reproducible and runs without an API key.
 ## Guardrails
 
 - A construct that cannot be generated correctly (unknown parent, multi-active without a
-  child dependent key, effectivity satellite not on a link, transactional link) is flagged
-  for human review rather than emitted as wrong SQL. Coverage grows by adding a type on the
-  model plus a template — never by hacking heuristics into the generator.
+  child dependent key, effectivity satellite not on a link, transactional link without an
+  event timestamp) is flagged for human review rather than emitted as wrong SQL. Coverage
+  grows by adding a type on the model plus a template — never by hacking heuristics into
+  the generator.
