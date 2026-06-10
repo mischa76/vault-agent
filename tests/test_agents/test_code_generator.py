@@ -151,16 +151,33 @@ async def test_effectivity_satellite_on_hub_is_flagged() -> None:
     assert any("must hang off a generated link" in e for e in result.errors)
 
 
-async def test_transactional_link_is_flagged_with_nh_link() -> None:
+async def test_transactional_link_without_event_timestamp_is_flagged() -> None:
     model = _model()
     model.links.append(
         Link(name="link_transaction", connected_hubs=["hub_account", "hub_customer"],
-             description="a transaction", link_type="transactional")
+             description="a transaction", link_type="transactional")  # no event_timestamp
     )
     result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
 
     assert "link_transaction" not in result.artifacts.dbt_models
-    assert any("nh_link" in e and "human review" in e for e in result.errors)
+    assert any("event_timestamp" in e and "nh_link" in e for e in result.errors)
+
+
+async def test_transactional_link_generates_nh_link() -> None:
+    model = _model()
+    model.links.append(
+        Link(name="link_transaction", connected_hubs=["hub_account", "hub_customer"],
+             description="a transaction", link_type="transactional",
+             payload=["amount", "reference text"], event_timestamp="transaction timestamp")
+    )
+    result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
+    sql = result.artifacts.dbt_models["link_transaction"]
+
+    assert "automate_dv.nh_link(" in sql
+    assert '{%- set src_fk = ["ACCOUNT_HK", "CUSTOMER_HK"] -%}' in sql
+    assert '{%- set src_payload = ["AMOUNT", "REFERENCE_TEXT"] -%}' in sql
+    assert '{%- set src_eff = "TRANSACTION_TIMESTAMP" -%}' in sql
+    assert not result.errors
 
 
 async def test_no_hubs_short_circuits() -> None:

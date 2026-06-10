@@ -27,10 +27,6 @@ from vault_agent.state import Hub, Link, Satellite, VaultAgentState
 
 _CONSTRUCT_PREFIXES = ("hub_", "link_", "sat_")
 
-# Macro a not-yet-templated construct type would need (used in flag messages).
-# t_link is deprecated in AutomateDV (>= v0.11.5) in favour of nh_link.
-_LINK_MACRO = {"transactional": "nh_link"}
-
 
 def _to_column(label: str) -> str:
     """Normalise a business label into a SQL identifier (UPPER_SNAKE)."""
@@ -148,6 +144,40 @@ def _render_sat(sat: Satellite, parent_hashkey: str) -> tuple[str, dict[str, Any
     return sql, meta
 
 
+def _render_nh_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict[str, Any]]:
+    """Render a transactional (non-historized) link. Caller guarantees event_timestamp."""
+    src_fk = [hub_hashkeys[hub_name] for hub_name in link.connected_hubs]
+    payload = [_to_column(col) for col in link.payload]
+    src_eff = _to_column(link.event_timestamp or "")
+    meta: dict[str, Any] = {
+        "source_model": _staging_model(link.name),
+        "src_pk": _link_hashkey(link),
+        "src_fk": src_fk,
+        "src_payload": payload,
+        "src_eff": src_eff,
+        "src_ldts": LOAD_DATETIME_COLUMN,
+        "src_source": RECORD_SOURCE_COLUMN,
+    }
+    sql = (
+        "{{ config(materialized='incremental') }}\n\n"
+        + _set_block(
+            [
+                ("source_model", f'"{meta["source_model"]}"'),
+                ("src_pk", f'"{meta["src_pk"]}"'),
+                ("src_fk", _sql_list(src_fk)),
+                ("src_payload", _sql_list(payload)),
+                ("src_eff", f'"{src_eff}"'),
+                ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
+                ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
+            ]
+        )
+        + "\n{{ automate_dv.nh_link(src_pk=src_pk, src_fk=src_fk, src_payload=src_payload,\n"
+        + "                       src_eff=src_eff, src_ldts=src_ldts, "
+        + "src_source=src_source, source_model=source_model) }}\n"
+    )
+    return sql, meta
+
+
 def _render_ma_sat(sat: Satellite, parent_hashkey: str) -> tuple[str, dict[str, Any]]:
     payload = [_to_column(attr) for attr in sat.attributes]
     cdk = [_to_column(key) for key in sat.child_dependent_key]
@@ -250,13 +280,6 @@ class CodeGeneratorAgent(BaseAgent):
             metadata["hubs"][hub.name] = meta
 
         for link in model.links:
-            if link.link_type != "standard":
-                macro = _LINK_MACRO.get(link.link_type, "?")
-                state.errors.append(
-                    f"code_generator: link {link.name!r} is {link.link_type!r}, not yet "
-                    f"templated (needs automate_dv.{macro}); flagged for human review"
-                )
-                continue
             missing = [h for h in link.connected_hubs if h not in hub_hashkeys]
             if missing:
                 state.errors.append(
@@ -264,7 +287,17 @@ class CodeGeneratorAgent(BaseAgent):
                     f"{missing}; skipped"
                 )
                 continue
-            sql, meta = _render_link(link, hub_hashkeys)
+            if link.link_type == "transactional":
+                if link.event_timestamp is None:
+                    state.errors.append(
+                        f"code_generator: transactional link {link.name!r} has no "
+                        f"event_timestamp; cannot generate automate_dv.nh_link, flagged "
+                        f"for human review"
+                    )
+                    continue
+                sql, meta = _render_nh_link(link, hub_hashkeys)
+            else:
+                sql, meta = _render_link(link, hub_hashkeys)
             dbt_models[link.name] = sql
             metadata["links"][link.name] = meta
             parent_hashkeys[link.name] = _link_hashkey(link)
