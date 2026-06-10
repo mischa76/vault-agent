@@ -32,19 +32,23 @@ niche — and where this project lives.
 ## The approach
 
 Vault-Agent treats DV2.0 modeling as a pipeline of specialized agents, each responsible for one
-well-defined step, coordinated by a LangGraph supervisor with checkpointing and human-in-the-loop
-gates. The methodology rules live in code (not buried in prompts), code generation goes through
-the established AutomateDV dbt package rather than hand-written SQL, and every modeling decision
-the agents make is captured as an Architecture Decision Record — so the *reasoning* survives, not
-just the output.
+well-defined step, wired together as a LangGraph state machine. A self-correcting validation loop
+is already in place — when the generated model fails the DV2.0 rule checks it routes back to the
+modeler with the issues as feedback, bounded by a retry cap — while checkpointing and
+human-in-the-loop gates (per [ADR-0002](docs/architecture/adrs/ADR-0002-orchestration-langgraph.md))
+are the next step on the roadmap. The methodology rules live in code (not buried in prompts), code
+generation goes through the established AutomateDV dbt package rather than hand-written SQL, and
+every modeling decision the agents make is captured as an Architecture Decision Record — so the
+*reasoning* survives, not just the output.
 
 ```
   Requirements (PDF / DOCX / MD)  +  Source schemas (SQL / DDL)
                           │
                           ▼
         ┌──────────────────────────────────────┐
-        │   LangGraph supervisor + subgraphs    │
-        │   (checkpointed · human-in-the-loop)  │
+        │        LangGraph state machine        │
+        │   self-correcting loop (built)        │
+        │   checkpointing · HITL (planned)      │
         └──────────────────────────────────────┘
                           │
    ┌──────────────────────┼───────────────────────┐
@@ -63,22 +67,24 @@ just the output.
 
 ## The agents
 
-Eight specialized agents, orchestrated in LangGraph:
+Eight specialized agents, orchestrated in LangGraph — **six built, two planned**:
 
-| Agent | Responsibility |
-|---|---|
-| **Requirements Parser** | Extracts entities, relationships, and business rules from documents (IREB-aligned output) |
-| **Business-Key Identifier** | Scores key candidates against DV2.0 heuristics; flags ambiguity for review |
-| **DV2.0 Modeler** | Generates Hubs, Links, and Satellites under DV2.1 rules |
-| **Code Generator** | Emits AutomateDV-compatible YAML + dbt models |
-| **Data Contract Agent** | Generates source-to-staging data contracts |
-| **Validator** | Checks generated artifacts for DV2.0 compliance |
-| **ADR Author** | Turns the agents' implicit decisions into explicit ADRs |
-| **Orchestrator** | Plans agent order and handles human-in-the-loop pauses |
+| Agent | Responsibility | Status |
+|---|---|---|
+| **Requirements Parser** | Extracts entities, relationships, and business rules from documents (IREB-aligned output) | ✅ Built |
+| **Business-Key Identifier** | Scores key candidates against DV2.0 heuristics; flags ambiguity for review | ✅ Built |
+| **DV2.0 Modeler** | Generates Hubs, Links, and Satellites under DV2.1 rules | ✅ Built |
+| **Code Generator** | Emits AutomateDV dbt models — hubs, links, standard/multi-active/effectivity satellites, non-historized links — plus metadata | ✅ Built |
+| **Validator** | Checks the model and generated artifacts for DV2.0 compliance | ✅ Built |
+| **ADR Author** | Turns the agents' modeling decisions into an explicit, traceable ADR | ✅ Built |
+| **Data Contract Agent** | Generates source-to-staging data contracts | 🔜 Planned |
+| **Orchestrator** | Adds checkpointing and human-in-the-loop pauses on top of the pipeline | 🔜 Planned |
 
-The orchestrator stops for a human when business-key candidates score within 10% of each other,
-when the validator finds rule violations the modeler can't resolve, or when a generated artifact
-would overwrite user-modified files.
+Today the pipeline self-corrects automatically: a failing validation routes back to the modeler
+with the issues as feedback, bounded by a retry cap. The planned orchestrator will add
+human-in-the-loop pauses — e.g. when business-key candidates score within 10% of each other, when
+the validator finds rule violations the modeler can't resolve, or when a generated artifact would
+overwrite user-modified files.
 
 ## What you get
 
@@ -90,17 +96,30 @@ would overwrite user-modified files.
 
 ## Quick start
 
-> The end-to-end pipeline lands at the first implementation milestone. The commands below are
-> the intended entry point.
+The pipeline runs end-to-end today: a requirements document in, generated AutomateDV/dbt models,
+metadata, and an ADR out.
 
 ```bash
 git clone https://github.com/mischa76/vault-agent.git
 cd vault-agent
 uv sync
 cp .env.example .env          # then add your ANTHROPIC_API_KEY
-uv run vault-agent --help     # CLI entry point
-uv run python examples/01_simple_requirement.py
+
+# Run the full pipeline on a demo dataset and write artifacts to ./output
+uv run vault-agent run examples/inputs/health_insurance_requirements.md --out output
 ```
+
+This produces dbt models (`output/models/*.sql`), AutomateDV metadata
+(`output/metadata/automatedv.yml`), and a finalized ADR (`output/adrs/`).
+
+The `examples/` directory has step-by-step scripts that run each stage in isolation
+(`01_simple_requirement.py` … `06_pipeline.py`), plus `07_routing.py`, a deterministic demo of
+the self-correcting validation loop that needs **no API key**. The two demo domains
+(retail banking and health insurance) are described in [docs/demos/](docs/demos/README.md).
+
+> The requirements parser, business-key identifier, and modeler are LLM-driven (Claude); the code
+> generator, validator, and ADR author are deterministic, so the test suite (`uv run pytest`) runs
+> without an API key.
 
 ## Methodological foundations
 
@@ -119,15 +138,18 @@ Python 3.12+ · [uv](https://github.com/astral-sh/uv) · [LangGraph](https://lan
 
 ## Status & roadmap
 
-Actively built in the open over a 12-week arc. Currently **W1 — Foundation**: repo skeleton,
-architecture docs, ADRs, and the requirements-parser proof of concept.
+Actively built in the open. The **core pipeline runs end-to-end on two demo domains** today, via
+a CLI, with the methodology rules in code and a self-correcting validation loop.
 
 ```
-W1   Foundation        repo · architecture · ADRs · requirements-parser PoC   ◀ you are here
-W2+  Core pipeline     business-key id · DV2.0 modeler · AutomateDV codegen
-     Contracts & QA    data contracts · validator · ADR author
-     Demos             end-to-end on ≥2 datasets (bank + second domain)
-     Polish            evals · docs · public walkthrough
+Foundation        repo · architecture · ADRs                                  ✅ done
+Core pipeline     requirements parser · business-key id · DV2.0 modeler        ✅ done
+Code generation   AutomateDV: hubs · links · sat · ma_sat · eff_sat · nh_link  ✅ done
+Quality & docs    validator · ADR author · CLI · 2 demo datasets               ✅ done
+Routing           self-correcting validation loop (retry on failure)           ✅ done
+Contracts         data contract agent (source-to-staging)                      🔜 next
+Orchestration     checkpointing · human-in-the-loop gates                      🔜 next
+Polish            LangSmith evals · public walkthrough                         🔜 later
 ```
 
 ## Documentation
@@ -137,6 +159,7 @@ W2+  Core pipeline     business-key id · DV2.0 modeler · AutomateDV codegen
 - [Multi-agent design](docs/architecture/2-multi-agent-design.md)
 - [Architecture Decision Records](docs/architecture/adrs/)
 - [DV2.0 rules cheatsheet](docs/methodology/dv2-rules-cheatsheet.md)
+- [Demo datasets & walkthroughs](docs/demos/README.md)
 
 ## About
 
