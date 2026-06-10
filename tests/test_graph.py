@@ -7,7 +7,7 @@ per-agent unit tests.
 from vault_agent.agents.base import BaseAgent
 from vault_agent.graph import (
     MAX_MODELING_ATTEMPTS,
-    PIPELINE,
+    NODES,
     build_graph,
     default_agents,
 )
@@ -44,7 +44,7 @@ class _StubValidator(BaseAgent):
 
 
 def _stub_agents() -> dict[str, BaseAgent]:
-    agents: dict[str, BaseAgent] = {name: _RecordingAgent(name) for name in PIPELINE}
+    agents: dict[str, BaseAgent] = {name: _RecordingAgent(name) for name in NODES}
     agents["validator"] = _StubValidator([True])  # pass so the happy path ends in one go
     return agents
 
@@ -59,14 +59,14 @@ def _modeler_runs(state: VaultAgentState) -> int:
     return sum(1 for d in state.decisions if d["agent"] == "dv2_modeler")
 
 
-def test_default_agents_cover_the_pipeline() -> None:
+def test_default_agents_cover_all_nodes() -> None:
     agents = default_agents()
-    assert set(agents) == set(PIPELINE)
+    assert set(agents) == set(NODES)
 
 
-def test_graph_exposes_all_pipeline_nodes() -> None:
+def test_graph_exposes_all_nodes() -> None:
     compiled = build_graph(_stub_agents()).compile()
-    assert set(PIPELINE).issubset(set(compiled.nodes))
+    assert set(NODES).issubset(set(compiled.nodes))
 
 
 async def test_pipeline_runs_all_agents_in_order() -> None:
@@ -75,7 +75,8 @@ async def test_pipeline_runs_all_agents_in_order() -> None:
     out = await compiled.ainvoke(VaultAgentState(input_documents=["doc.md"]))
     result = VaultAgentState.model_validate(out)
 
-    assert [d["agent"] for d in result.decisions] == PIPELINE
+    # On success the ADR author runs after the validator.
+    assert [d["agent"] for d in result.decisions] == NODES
     # Input state flows through untouched.
     assert result.input_documents == ["doc.md"]
 
