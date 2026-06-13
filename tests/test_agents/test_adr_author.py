@@ -76,6 +76,17 @@ async def test_special_constructs_are_flagged_as_caveat() -> None:
     assert "specialised Data Vault types" in adr
 
 
+async def test_optional_rationale_fields_surface_in_adr() -> None:
+    state = _state()
+    state.dv_model.links[0].unit_of_work = "one account-ownership event per (account, customer)"
+    state.dv_model.satellites[0].split_rationale = "split from PII by rate of change"
+    result = await AdrAuthorAgent(today="2026-06-10").run(state)
+
+    adr = result.adrs[0]
+    assert "Unit of work: one account-ownership event per (account, customer)." in adr
+    assert "Split rationale: split from PII by rate of change." in adr
+
+
 async def test_no_model_reports_error_and_writes_no_adr() -> None:
     result = await AdrAuthorAgent(today="2026-06-10").run(VaultAgentState())
 

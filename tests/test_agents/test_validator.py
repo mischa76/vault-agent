@@ -106,6 +106,155 @@ async def test_hub_without_satellite_warns_but_passes() -> None:
     assert any(w["code"] == "W_HUB_NO_SAT" and w["construct"] == "hub_product" for w in warnings)
 
 
+def _effectivity_model() -> DVModel:
+    """A correct effectivity setup: a link with a driving key and a two-date eff sat."""
+    model = _valid_model()
+    model.links[0].driving_key = ["hub_account"]
+    model.satellites.append(
+        Satellite(name="sat_ownership_eff", parent="link_account_customer",
+                  attributes=["effective from", "effective to"],
+                  description="ownership effectivity", sat_type="effectivity")
+    )
+    return model
+
+
+async def test_valid_effectivity_setup_passes() -> None:
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=_effectivity_model()))
+
+    codes = _codes(result.validation_report.issues)
+    assert result.validation_report.passed is True
+    assert not codes & {
+        "E_EFFSAT_DATES", "E_EFFSAT_NO_DRIVING_KEY", "E_EFFSAT_PARENT_NOT_LINK",
+        "E_DRIVING_KEY_NOT_IN_LINK",
+    }
+
+
+async def test_transactional_link_without_timestamp_fails() -> None:
+    model = _valid_model()
+    model.links.append(
+        Link(name="link_payment", connected_hubs=["hub_account", "hub_customer"],
+             description="a payment event", link_type="transactional")  # no event_timestamp
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is False
+    assert "E_TXNLINK_NO_TIMESTAMP" in _codes(result.validation_report.issues)
+
+
+async def test_multi_active_satellite_without_cdk_fails() -> None:
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_phones", parent="hub_customer",
+                  attributes=["phone"], description="phone numbers",
+                  sat_type="multi_active")  # no child_dependent_key
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is False
+    assert "E_MASAT_NO_CDK" in _codes(result.validation_report.issues)
+
+
+async def test_effectivity_satellite_on_hub_fails() -> None:
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_eff", parent="hub_customer",
+                  attributes=["effective from", "effective to"],
+                  description="eff hung off a hub", sat_type="effectivity")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is False
+    assert "E_EFFSAT_PARENT_NOT_LINK" in _codes(result.validation_report.issues)
+
+
+async def test_effectivity_satellite_wrong_date_count_fails() -> None:
+    model = _effectivity_model()
+    model.satellites[-1].attributes = ["effective from"]  # only one date, not two
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is False
+    assert "E_EFFSAT_DATES" in _codes(result.validation_report.issues)
+
+
+async def test_effectivity_satellite_without_driving_key_fails() -> None:
+    model = _effectivity_model()
+    model.links[0].driving_key = []  # parent link declares no driving key
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is False
+    assert "E_EFFSAT_NO_DRIVING_KEY" in _codes(result.validation_report.issues)
+
+
+async def test_driving_key_not_subset_of_link_fails() -> None:
+    model = _valid_model()
+    model.links[0].driving_key = ["hub_ghost"]  # not among connected_hubs
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is False
+    assert "E_DRIVING_KEY_NOT_IN_LINK" in _codes(result.validation_report.issues)
+
+
+async def test_redundant_link_grain_warns() -> None:
+    model = _valid_model()
+    # A second link over the same hub set and type — same unit of work modeled twice.
+    model.links.append(
+        Link(name="link_customer_account_dup", connected_hubs=["hub_customer", "hub_account"],
+             description="duplicate grain")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    warnings = [i for i in result.validation_report.issues if i["severity"] == "warning"]
+    assert result.validation_report.passed is True  # warnings do not fail validation
+    assert any(w["code"] == "W_LINK_REDUNDANT_GRAIN" for w in warnings)
+
+
+async def test_attribute_overlap_across_satellites_fails() -> None:
+    model = _valid_model()
+    # 'name' already lives in sat_customer_details on hub_customer; repeat it elsewhere.
+    model.satellites.append(
+        Satellite(name="sat_customer_extra", parent="hub_customer",
+                  attributes=["name", "segment"], description="overlapping payload")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    codes = _codes(result.validation_report.issues)
+    assert result.validation_report.passed is False
+    assert "E_SAT_ATTR_OVERLAP" in codes
+
+
+async def test_wide_satellite_warns() -> None:
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_wide", parent="hub_customer",
+                  attributes=[f"attr_{i}" for i in range(31)],  # over the threshold of 30
+                  description="too wide")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    warnings = [i for i in result.validation_report.issues if i["severity"] == "warning"]
+    assert result.validation_report.passed is True  # warnings do not fail validation
+    assert any(w["code"] == "W_SAT_WIDE" and w["construct"] == "sat_customer_wide"
+               for w in warnings)
+
+
+async def test_business_key_collision_across_sources_warns() -> None:
+    model = _valid_model()
+    # Same business-key field ('account number') over a different source entity.
+    model.hubs.append(
+        Hub(name="hub_ledger_account", business_key="account number",
+            source_entity="ledger", description="ledger account, same key field")
+    )
+    model.satellites.append(
+        Satellite(name="sat_ledger_account_details", parent="hub_ledger_account",
+                  attributes=["ledger code"], description="ledger account attributes")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    warnings = [i for i in result.validation_report.issues if i["severity"] == "warning"]
+    assert result.validation_report.passed is True  # warnings do not fail validation
+    assert any(w["code"] == "W_BK_COLLISION_RISK" for w in warnings)
+
+
 async def test_generated_artifact_missing_column_fails() -> None:
     artifacts = Artifacts(
         automatedv_yaml={
