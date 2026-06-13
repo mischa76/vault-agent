@@ -60,7 +60,8 @@ async def test_finalized_adr_overwrites_any_preexisting_adrs() -> None:
     result = await AdrAuthorAgent(today="2026-06-10").run(state)
 
     assert len(result.adrs) == 1
-    assert result.adrs[0].startswith("# ADR-0004")
+    # Default start_number is 5 (repo ADRs occupy 0001–0004); the generated model ADR is 0005.
+    assert result.adrs[0].startswith("# ADR-0005")
 
 
 async def test_special_constructs_are_flagged_as_caveat() -> None:

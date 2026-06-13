@@ -2,6 +2,18 @@
 
 Keep in pure Python so they are unit-testable and not subject to LLM hallucination.
 """
+import re
+
+
+def normalize_identifier(label: str) -> str:
+    """Normalise a business label into a SQL identifier (UPPER_SNAKE).
+
+    Single source of truth for identifier normalisation: the code generator renders columns
+    with it, and source-schema grounding (ADR-0004) matches proposed keys/attributes to real
+    columns with it, so ``"national customer ID"`` grounds against a ``NATIONAL_CUSTOMER_ID``
+    column."""
+    return re.sub(r"[^0-9a-zA-Z]+", "_", label).strip("_").upper()
+
 
 REQUIRED_HUB_COLUMNS = {"hash_key", "business_key", "load_date_time", "record_source"}
 REQUIRED_LINK_COLUMNS = {"hash_key", "load_date_time", "record_source"}

@@ -17,6 +17,7 @@ from typing import Any, Protocol, cast
 from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.grounding import render_schema_prompt_section
 from vault_agent.rules.dv2_rules import BUSINESS_KEY_CRITERIA
 from vault_agent.state import BusinessKeyCandidate, VaultAgentState
 
@@ -102,11 +103,13 @@ class BusinessKeyIdentifierAgent(BaseAgent):
             self._extractor = AnthropicBusinessKeyExtractor()
         return self._extractor
 
-    def _build_system_prompt(self) -> str:
-        """Load the prompt template and inject the DV2 business-key criteria."""
+    def _build_system_prompt(self, state: VaultAgentState) -> str:
+        """Load the prompt template, inject the DV2 business-key criteria, and (when a source
+        schema is declared) the known source columns to ground candidates (ADR-0004)."""
         template = self.load_prompt()
         criteria = "\n".join(f"- {criterion}" for criterion in BUSINESS_KEY_CRITERIA)
-        return f"{template}\n\n## Business key criteria to apply\n\n{criteria}\n"
+        schema_section = render_schema_prompt_section(state.source_schemas)
+        return f"{template}\n\n## Business key criteria to apply\n\n{criteria}\n{schema_section}"
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         if not state.requirements:
@@ -116,7 +119,7 @@ class BusinessKeyIdentifierAgent(BaseAgent):
             )
             return state
 
-        system_prompt = self._build_system_prompt()
+        system_prompt = self._build_system_prompt(state)
         requirements_json = json.dumps(
             [req.model_dump() for req in state.requirements], indent=2
         )

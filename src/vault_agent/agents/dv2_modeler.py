@@ -21,6 +21,7 @@ from typing import Any, Protocol, cast
 from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.grounding import render_schema_prompt_section
 from vault_agent.rules.dv2_rules import DV_MODELING_RULES
 from vault_agent.state import DVModel, Hub, Link, Satellite, VaultAgentState
 
@@ -110,11 +111,13 @@ class Dv2ModelerAgent(BaseAgent):
             self._extractor = AnthropicDVModelExtractor()
         return self._extractor
 
-    def _build_system_prompt(self) -> str:
-        """Load the prompt template and inject the DV2 modelling rules."""
+    def _build_system_prompt(self, state: VaultAgentState) -> str:
+        """Load the prompt template, inject the DV2 modelling rules, and (when a source
+        schema is declared) the known source columns to ground attributes (ADR-0004)."""
         template = self.load_prompt()
         rules = "\n".join(f"- {rule}" for rule in DV_MODELING_RULES)
-        return f"{template}\n\n## Data Vault modelling rules to apply\n\n{rules}\n"
+        schema_section = render_schema_prompt_section(state.source_schemas)
+        return f"{template}\n\n## Data Vault modelling rules to apply\n\n{rules}\n{schema_section}"
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         if not state.business_keys:
@@ -126,7 +129,7 @@ class Dv2ModelerAgent(BaseAgent):
 
         # Count this modeling pass for the validation retry guard (route_after_validation).
         state.modeling_attempts += 1
-        system_prompt = self._build_system_prompt()
+        system_prompt = self._build_system_prompt(state)
         payload: dict[str, Any] = {
             "requirements": [req.model_dump() for req in state.requirements],
             "business_keys": [bk.model_dump() for bk in state.business_keys],

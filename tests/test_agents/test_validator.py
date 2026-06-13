@@ -12,6 +12,7 @@ from vault_agent.state import (
     Hub,
     Link,
     Satellite,
+    SourceTable,
     VaultAgentState,
 )
 
@@ -274,3 +275,68 @@ async def test_generated_artifact_missing_column_fails() -> None:
     missing = [i for i in result.validation_report.issues if i["code"] == "E_MISSING_COLUMN"]
     assert result.validation_report.passed is False
     assert any("business_key" in i["message"] for i in missing)
+
+
+def _grounded_schemas() -> list[SourceTable]:
+    # Columns match the _valid_model() business keys and attributes after normalisation:
+    # "national customer ID" -> NATIONAL_CUSTOMER_ID, "name" -> NAME, etc.
+    return [
+        SourceTable(table="customer",
+                    columns=["national_customer_id", "name"]),
+        SourceTable(table="account",
+                    columns=["account_number", "balance"]),
+    ]
+
+
+async def test_no_source_schema_emits_no_grounding_warnings() -> None:
+    # Regression guard: with no declared schema, grounding is inert — same verdict as before.
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=_valid_model()))
+
+    codes = _codes(result.validation_report.issues)
+    assert "W_BK_NOT_IN_SOURCE" not in codes
+    assert "W_ATTR_NOT_IN_SOURCE" not in codes
+
+
+async def test_grounded_model_emits_no_grounding_warnings() -> None:
+    state = VaultAgentState(dv_model=_valid_model(), source_schemas=_grounded_schemas())
+    result = await ValidatorAgent().run(state)
+
+    codes = _codes(result.validation_report.issues)
+    assert "W_BK_NOT_IN_SOURCE" not in codes
+    assert "W_ATTR_NOT_IN_SOURCE" not in codes
+
+
+async def test_business_key_absent_from_source_is_warned() -> None:
+    # Drop "national_customer_id" from the customer table: hub_customer's key is now ungrounded.
+    schemas = [
+        SourceTable(table="customer", columns=["name"]),
+        SourceTable(table="account", columns=["account_number", "balance"]),
+    ]
+    state = VaultAgentState(dv_model=_valid_model(), source_schemas=schemas)
+    result = await ValidatorAgent().run(state)
+
+    bk_warnings = [
+        i for i in result.validation_report.issues if i["code"] == "W_BK_NOT_IN_SOURCE"
+    ]
+    assert any(i["construct"] == "hub_customer" for i in bk_warnings)
+    # Warning only — the model still passes (no error-severity issue introduced).
+    assert result.validation_report.passed is True
+    assert all(i["severity"] == "warning" for i in bk_warnings)
+
+
+async def test_attribute_absent_from_source_is_warned() -> None:
+    # "name" is not a declared customer column, so sat_customer_details's payload is ungrounded.
+    schemas = [
+        SourceTable(table="customer", columns=["national_customer_id"]),
+        SourceTable(table="account", columns=["account_number", "balance"]),
+    ]
+    state = VaultAgentState(dv_model=_valid_model(), source_schemas=schemas)
+    result = await ValidatorAgent().run(state)
+
+    attr_warnings = [
+        i for i in result.validation_report.issues if i["code"] == "W_ATTR_NOT_IN_SOURCE"
+    ]
+    assert any(
+        i["construct"] == "sat_customer_details" and "'name'" in i["message"]
+        for i in attr_warnings
+    )
