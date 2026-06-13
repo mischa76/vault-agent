@@ -17,6 +17,20 @@ BUSINESS_KEY_CRITERIA = [
     "Not nullable — every instance of the object carries a value",
 ]
 
+# The axes attributes are grouped by (and split across) satellites. One satellite holds
+# attributes that belong together on ALL axes; split where they diverge. Canon: Linstedt &
+# Olschimke, satellite splitting.
+SATELLITE_SPLIT_AXES = [
+    "rate of change",
+    "source system",
+    "data classification (e.g. PII / sensitivity)",
+    "data type",
+]
+
+# Heuristic threshold: a satellite with more attributes than this is *flagged* (W_SAT_WIDE)
+# for possible splitting — a smell that prompts human review, never a hard failure.
+SAT_WIDE_ATTRIBUTE_THRESHOLD = 30
+
 # Structural rules the DV2.0 Modeler applies when turning business objects and keys
 # into hubs, links, and satellites. Injected into the modeler prompt at runtime so the
 # rule set stays a single source of truth (see CLAUDE.md).
@@ -26,8 +40,17 @@ DV_MODELING_RULES = [
     "Create a link for each relationship between objects; a link connects two or more hubs",
     "Links hold only references to their hubs — no descriptive attributes, no business keys",
     "Put descriptive, changing attributes in satellites; each satellite hangs off one parent",
-    "Group attributes that change together (same rate of change or source) into one satellite",
+    f"Split satellites along these axes — {', '.join(SATELLITE_SPLIT_AXES)}; one satellite "
+    f"holds attributes that belong together on all of them, split where they diverge",
     "Do not model a stand-alone object as a link, and do not model a relationship as a hub",
+    "A link represents exactly one Unit of Work — the business keys of one atomic business "
+    "event; never split one event across links nor merge unrelated relationships into one link",
+    "Degenerate attributes of the relationship itself (e.g. an order-line sequence number) may "
+    "sit on the link; descriptive attributes that change over time go in a satellite on the link",
+    "When an effectivity satellite tracks a relationship's active period, declare the link's "
+    "driving key — the hub reference(s) that stay fixed while the others rotate over time",
+    "When the same business-key value from different sources can mean different objects, add a "
+    "collision code (source differentiation) rather than silently merging them into one hub",
 ]
 
 # Physical naming conventions the code generator uses when rendering AutomateDV/dbt
@@ -38,4 +61,6 @@ HASHKEY_SUFFIX = "_HK"
 HASHDIFF_SUFFIX = "_HASHDIFF"
 STAGING_PREFIX = "stg_"
 
-# TODO: populate further from CDVP 2.1 material
+# Vos revisions (NBK over hash, insert-only over persisted end-dating, ELM relationship-hubs,
+# foreign-key links, PSA, PIT/Bridge) are deliberately out of scope here — they are ADR-gated
+# alternatives, never silent defaults, tracked in docs/methodology/dsaf-mapping.md.

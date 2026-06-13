@@ -38,6 +38,13 @@ class Link(BaseModel):
     # Discriminator the code generator dispatches on (standard -> automate_dv.link,
     # transactional -> automate_dv.nh_link, the non-historized link).
     link_type: Literal["standard", "transactional"] = "standard"
+    # Hub reference(s) that stay fixed while the others rotate over time (the "one at a
+    # time" side of a relationship). A non-empty subset of connected_hubs; required when an
+    # effectivity satellite hangs off this link so it can end-date per driving key.
+    driving_key: list[str] = Field(default_factory=list)
+    # Optional: the modeler's rationale for the link's Unit of Work — which business keys
+    # form the one atomic event this link captures. Surfaced in the ADR trail, not enforced.
+    unit_of_work: str | None = None
     # For a transactional link only: the transaction's data columns (automate_dv.nh_link's
     # src_payload) and the event-date column used as src_eff. event_timestamp is required to
     # generate a nh_link.
@@ -58,6 +65,9 @@ class Satellite(BaseModel):
     # Child dependent key(s) that distinguish concurrently-active rows of a multi-active
     # satellite (automate_dv.ma_sat's src_cdk). Required to generate a ma_sat.
     child_dependent_key: list[str] = Field(default_factory=list)
+    # Optional: why this satellite's attributes are grouped/split as they are (rate of
+    # change, source, classification). Surfaced in the ADR trail, not enforced.
+    split_rationale: str | None = None
     requirement_ids: list[str] = Field(default_factory=list)
 
 

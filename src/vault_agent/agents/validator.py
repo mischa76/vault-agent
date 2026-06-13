@@ -17,6 +17,7 @@ from vault_agent.rules.dv2_rules import (
     REQUIRED_HUB_COLUMNS,
     REQUIRED_LINK_COLUMNS,
     REQUIRED_SAT_COLUMNS,
+    SAT_WIDE_ATTRIBUTE_THRESHOLD,
 )
 from vault_agent.state import ValidationReport, VaultAgentState
 
@@ -51,6 +52,7 @@ class ValidatorAgent(BaseAgent):
 
         hub_names = {hub.name for hub in model.hubs}
         link_names = {link.name for link in model.links}
+        links_by_name = {link.name: link for link in model.links}
 
         if not model.hubs:
             issues.append(
@@ -96,6 +98,24 @@ class ValidatorAgent(BaseAgent):
                         f"link references unknown hubs: {unknown}",
                     )
                 )
+            # A declared driving key must be a subset of the hubs the link connects.
+            outside = [h for h in link.driving_key if h not in link.connected_hubs]
+            if outside:
+                issues.append(
+                    _issue(
+                        "error", "E_DRIVING_KEY_NOT_IN_LINK", link.name,
+                        f"driving key is not a subset of connected_hubs: {outside}",
+                    )
+                )
+            # Mirror the generator gate: a transactional (non-historized) link needs an
+            # event timestamp to drive automate_dv.nh_link's src_eff.
+            if link.link_type == "transactional" and not (link.event_timestamp or "").strip():
+                issues.append(
+                    _issue(
+                        "error", "E_TXNLINK_NO_TIMESTAMP", link.name,
+                        "transactional link has no event_timestamp",
+                    )
+                )
 
         valid_parents = hub_names | link_names
         for sat in model.satellites:
@@ -113,7 +133,55 @@ class ValidatorAgent(BaseAgent):
                         "satellite has no attributes (empty payload)",
                     )
                 )
+            # A very wide satellite is a smell (mixed rates of change / sources / PII) — flag
+            # for human review, never fail. Effectivity sats carry two dates and never trip it.
+            if len(sat.attributes) > SAT_WIDE_ATTRIBUTE_THRESHOLD:
+                issues.append(
+                    _issue(
+                        "warning", "W_SAT_WIDE", sat.name,
+                        f"satellite has {len(sat.attributes)} attributes "
+                        f"(> {SAT_WIDE_ATTRIBUTE_THRESHOLD}); consider splitting by rate of "
+                        f"change, source, or data classification",
+                    )
+                )
+            # Mirror the generator gate: a multi-active satellite needs a child dependent
+            # key to distinguish concurrently-active rows (automate_dv.ma_sat's src_cdk).
+            if sat.sat_type == "multi_active" and not sat.child_dependent_key:
+                issues.append(
+                    _issue(
+                        "error", "E_MASAT_NO_CDK", sat.name,
+                        "multi-active satellite has no child_dependent_key",
+                    )
+                )
+            # Mirror + extend the generator gates for effectivity satellites: parent must be
+            # a link, exactly two ordered date attributes, and the link must declare a
+            # driving key so relationships can be end-dated per driving key.
+            if sat.sat_type == "effectivity":
+                if len(sat.attributes) != 2:
+                    issues.append(
+                        _issue(
+                            "error", "E_EFFSAT_DATES", sat.name,
+                            "effectivity satellite must carry exactly two date attributes "
+                            f"(start, end) in order; has {len(sat.attributes)}",
+                        )
+                    )
+                if sat.parent in link_names:
+                    if not links_by_name[sat.parent].driving_key:
+                        issues.append(
+                            _issue(
+                                "error", "E_EFFSAT_NO_DRIVING_KEY", sat.name,
+                                f"parent link {sat.parent!r} declares no driving key",
+                            )
+                        )
+                elif sat.parent in hub_names:
+                    issues.append(
+                        _issue(
+                            "error", "E_EFFSAT_PARENT_NOT_LINK", sat.name,
+                            f"effectivity satellite parent {sat.parent!r} is a hub, not a link",
+                        )
+                    )
 
+        issues.extend(self._check_cross_construct(state))
         issues.extend(self._check_artifact_columns(state.artifacts.automatedv_yaml))
 
         errors = [issue for issue in issues if issue["severity"] == "error"]
@@ -127,6 +195,68 @@ class ValidatorAgent(BaseAgent):
             }
         )
         return state
+
+    @staticmethod
+    def _check_cross_construct(state: VaultAgentState) -> list[dict[str, Any]]:
+        """Checks that span several constructs: grain, attribute overlap, key collision."""
+        model = state.dv_model
+        issues: list[dict[str, Any]] = []
+
+        # W_LINK_REDUNDANT_GRAIN: two links over the same hub set with the same type likely
+        # model one Unit of Work twice (or are a grain error). Order-independent on hubs.
+        grain_groups: dict[tuple[tuple[str, ...], str], list[str]] = {}
+        for link in model.links:
+            key = (tuple(sorted(link.connected_hubs)), link.link_type)
+            grain_groups.setdefault(key, []).append(link.name)
+        for _key, names in sorted(grain_groups.items()):
+            if len(names) > 1:
+                joined = ", ".join(sorted(names))
+                issues.append(
+                    _issue(
+                        "warning", "W_LINK_REDUNDANT_GRAIN", joined,
+                        f"links {joined} connect the same hubs with the same link_type; "
+                        f"likely the same unit of work modeled twice or a grain error",
+                    )
+                )
+
+        # E_SAT_ATTR_OVERLAP: an attribute must live in at most one satellite per parent.
+        attr_owners: dict[str, dict[str, set[str]]] = {}
+        for sat in model.satellites:
+            per_parent = attr_owners.setdefault(sat.parent, {})
+            for attr in sat.attributes:
+                per_parent.setdefault(attr, set()).add(sat.name)
+        for parent, attrs in sorted(attr_owners.items()):
+            for attr, owners in sorted(attrs.items()):
+                if len(owners) > 1:
+                    joined = ", ".join(sorted(owners))
+                    issues.append(
+                        _issue(
+                            "error", "E_SAT_ATTR_OVERLAP", parent,
+                            f"attribute {attr!r} appears in multiple satellites of "
+                            f"{parent!r}: {joined}",
+                        )
+                    )
+
+        # W_BK_COLLISION_RISK: the same business-key field used by hubs over different source
+        # entities may denote different real-world objects (may need a collision code).
+        bk_sources: dict[str, set[str]] = {}
+        bk_hub_names: dict[str, list[str]] = {}
+        for hub in model.hubs:
+            bk_sources.setdefault(hub.business_key, set()).add(hub.source_entity)
+            bk_hub_names.setdefault(hub.business_key, []).append(hub.name)
+        for business_key, sources in sorted(bk_sources.items()):
+            if business_key.strip() and len(sources) > 1:
+                joined = ", ".join(sorted(bk_hub_names[business_key]))
+                issues.append(
+                    _issue(
+                        "warning", "W_BK_COLLISION_RISK", joined,
+                        f"hubs {joined} share business key {business_key!r} across different "
+                        f"source entities {sorted(sources)}; confirm whether a collision "
+                        f"code is needed",
+                    )
+                )
+
+        return issues
 
     @staticmethod
     def _check_artifact_columns(metadata: dict[str, Any]) -> list[dict[str, Any]]:

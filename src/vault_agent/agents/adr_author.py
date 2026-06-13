@@ -80,17 +80,19 @@ class AdrAuthorAgent(BaseAgent):
 
         lines += ["", f"### Links ({len(model.links)})", ""]
         for link in model.links:
+            uow = f" Unit of work: {link.unit_of_work}." if link.unit_of_work else ""
             lines.append(
                 f"- **{link.name}** — connects {', '.join(link.connected_hubs)}. "
-                f"{link.description} _(requirements: {_ids(link.requirement_ids)})_"
+                f"{link.description}{uow} _(requirements: {_ids(link.requirement_ids)})_"
             )
 
         lines += ["", f"### Satellites ({len(model.satellites)})", ""]
         for sat in model.satellites:
             payload = ", ".join(sat.attributes) if sat.attributes else "—"
+            split = f" Split rationale: {sat.split_rationale}." if sat.split_rationale else ""
             lines.append(
                 f"- **{sat.name}** — on {sat.parent}; payload: {payload}. "
-                f"{sat.description} _(requirements: {_ids(sat.requirement_ids)})_"
+                f"{sat.description}{split} _(requirements: {_ids(sat.requirement_ids)})_"
             )
 
         lines += [
