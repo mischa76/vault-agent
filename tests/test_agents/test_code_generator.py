@@ -230,6 +230,46 @@ async def test_transactional_link_generates_nh_link() -> None:
     assert not result.errors
 
 
+async def test_satellite_column_collision_is_warned() -> None:
+    # "customer-id" and "customer id" both normalise to CUSTOMER_ID — a silent overwrite
+    # in the payload. The generator still emits SQL but flags the collision (L-2).
+    model = _model()
+    model.satellites.append(
+        Satellite(name="sat_customer_ids", parent="hub_customer",
+                  attributes=["customer-id", "customer id"], description="colliding labels")
+    )
+    result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
+
+    assert "sat_customer_ids" in result.artifacts.dbt_models  # generation continues
+    assert any(
+        "collision" in e and "'customer-id'" in e and "'customer id'" in e
+        and "CUSTOMER_ID" in e and "sat_customer_ids" in e
+        for e in result.errors
+    )
+
+
+async def test_transactional_link_column_collision_is_warned() -> None:
+    model = _model()
+    model.links.append(
+        Link(name="link_transaction", connected_hubs=["hub_account", "hub_customer"],
+             description="a transaction", link_type="transactional",
+             payload=["ref no", "ref-no"], event_timestamp="ts")
+    )
+    result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
+
+    assert "link_transaction" in result.artifacts.dbt_models
+    assert any(
+        "collision" in e and "REF_NO" in e and "link_transaction" in e
+        for e in result.errors
+    )
+
+
+async def test_distinct_columns_do_not_warn() -> None:
+    # The happy-path model has no colliding labels; no spurious collision warnings.
+    result = await CodeGeneratorAgent().run(_state())
+    assert not any("collision" in e for e in result.errors)
+
+
 async def test_no_hubs_short_circuits() -> None:
     result = await CodeGeneratorAgent().run(VaultAgentState())
 

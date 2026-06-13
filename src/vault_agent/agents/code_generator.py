@@ -33,6 +33,27 @@ def _to_column(label: str) -> str:
     return re.sub(r"[^0-9a-zA-Z]+", "_", label).strip("_").upper()
 
 
+def _collision_warnings(labels: list[str], construct: str) -> list[str]:
+    """Warn when two *distinct* labels in one construct collapse to the same identifier.
+
+    ``_to_column`` is lossy (``"customer-id"`` and ``"customer id"`` both become
+    ``CUSTOMER_ID``), so two different source labels can silently overwrite each other in a
+    payload / key list. Generation continues — the point is visibility (L-2)."""
+    seen: dict[str, str] = {}
+    warnings: list[str] = []
+    for label in labels:
+        col = _to_column(label)
+        prior = seen.get(col)
+        if prior is None:
+            seen[col] = label
+        elif prior != label:
+            warnings.append(
+                f"code_generator: column-name collision in {construct}: "
+                f"{prior!r} and {label!r} both map to {col}"
+            )
+    return warnings
+
+
 def _base_name(name: str) -> str:
     """Strip the hub_/link_/sat_ prefix from a construct name."""
     for prefix in _CONSTRUCT_PREFIXES:
@@ -303,6 +324,7 @@ class CodeGeneratorAgent(BaseAgent):
                         f"for human review"
                     )
                     continue
+                state.errors.extend(_collision_warnings(link.payload, link.name))
                 sql, meta = _render_nh_link(link, hub_hashkeys)
             else:
                 sql, meta = _render_link(link, hub_hashkeys)
@@ -361,6 +383,12 @@ class CodeGeneratorAgent(BaseAgent):
                 f"with no generated hub/link; skipped"
             )
             return None
+
+        # Surface colliding labels across the satellite's full column set (payload plus any
+        # child-dependent key) — visibility only, generation still proceeds.
+        state.errors.extend(
+            _collision_warnings(sat.attributes + sat.child_dependent_key, sat.name)
+        )
 
         if sat.sat_type == "standard":
             return _render_sat(sat, parent_hashkeys[sat.parent])
