@@ -213,17 +213,20 @@ def _render_ma_sat(sat: Satellite, parent_hashkey: str) -> tuple[str, dict[str, 
 
 
 def _render_eff_sat(
-    sat: Satellite, link_hashkey: str, hub_fks: list[str]
+    sat: Satellite, link_hashkey: str, driving_fks: list[str], secondary_fks: list[str]
 ) -> tuple[str, dict[str, Any]]:
     dates = [_to_column(attr) for attr in sat.attributes]
     start_date, end_date = dates[0], dates[1]
-    driving_fk = hub_fks[0]
-    secondary_fk = hub_fks[1:]
+    # AutomateDV's src_dfk takes a bare key for a single driving hub, a list for several
+    # — mirror how src_fk / src_cdk are rendered elsewhere.
+    single_driver = len(driving_fks) == 1
+    src_dfk: str | list[str] = driving_fks[0] if single_driver else driving_fks
+    dfk_render = f'"{driving_fks[0]}"' if single_driver else _sql_list(driving_fks)
     meta: dict[str, Any] = {
         "source_model": _staging_model(sat.parent),
         "src_pk": link_hashkey,
-        "src_dfk": driving_fk,
-        "src_sfk": secondary_fk,
+        "src_dfk": src_dfk,
+        "src_sfk": secondary_fks,
         "src_start_date": start_date,
         "src_end_date": end_date,
         "src_eff": start_date,
@@ -236,8 +239,8 @@ def _render_eff_sat(
             [
                 ("source_model", f'"{meta["source_model"]}"'),
                 ("src_pk", f'"{link_hashkey}"'),
-                ("src_dfk", f'"{driving_fk}"'),
-                ("src_sfk", _sql_list(secondary_fk)),
+                ("src_dfk", dfk_render),
+                ("src_sfk", _sql_list(secondary_fks)),
                 ("src_start_date", f'"{start_date}"'),
                 ("src_end_date", f'"{end_date}"'),
                 ("src_eff", f'"{start_date}"'),
@@ -268,8 +271,13 @@ class CodeGeneratorAgent(BaseAgent):
 
         hub_hashkeys = {hub.name: _hub_hashkey(hub) for hub in model.hubs}
         parent_hashkeys: dict[str, str] = dict(hub_hashkeys)
-        # link name -> the hub hashkeys it connects, in order (driving first). Used by eff_sat.
+        # link name -> the hub hashkeys it connects, in declared order. Membership marks a
+        # parent as a generated link (eff_sat must hang off one).
         link_fks: dict[str, list[str]] = {}
+        # link name -> driving / secondary hub hashkeys, split per link.driving_key (the
+        # declared end-dating side). Populated only when driving_key is set; eff_sat uses it.
+        link_driving_fks: dict[str, list[str]] = {}
+        link_secondary_fks: dict[str, list[str]] = {}
 
         dbt_models: dict[str, str] = {}
         metadata: dict[str, dict[str, Any]] = {"hubs": {}, "links": {}, "satellites": {}}
@@ -302,9 +310,22 @@ class CodeGeneratorAgent(BaseAgent):
             metadata["links"][link.name] = meta
             parent_hashkeys[link.name] = _link_hashkey(link)
             link_fks[link.name] = [hub_hashkeys[h] for h in link.connected_hubs]
+            if link.driving_key:
+                # Driving keys in their declared order; secondaries = the remaining
+                # connected hubs in theirs. Order-independent of connected_hubs ordering.
+                link_driving_fks[link.name] = [
+                    hub_hashkeys[h] for h in link.driving_key if h in hub_hashkeys
+                ]
+                link_secondary_fks[link.name] = [
+                    hub_hashkeys[h]
+                    for h in link.connected_hubs
+                    if h not in link.driving_key
+                ]
 
         for sat in model.satellites:
-            rendered = self._render_satellite(sat, parent_hashkeys, link_fks, state)
+            rendered = self._render_satellite(
+                sat, parent_hashkeys, link_fks, link_driving_fks, link_secondary_fks, state
+            )
             if rendered is None:
                 continue
             sql, meta = rendered
@@ -329,6 +350,8 @@ class CodeGeneratorAgent(BaseAgent):
         sat: Satellite,
         parent_hashkeys: dict[str, str],
         link_fks: dict[str, list[str]],
+        link_driving_fks: dict[str, list[str]],
+        link_secondary_fks: dict[str, list[str]],
         state: VaultAgentState,
     ) -> tuple[str, dict[str, Any]] | None:
         """Dispatch a satellite to the template for its type; flag what can't be generated."""
@@ -365,4 +388,21 @@ class CodeGeneratorAgent(BaseAgent):
                 f"date attributes; flagged for human review"
             )
             return None
-        return _render_eff_sat(sat, parent_hashkeys[sat.parent], link_fks[sat.parent])
+        # The eff_sat end-dates by the link's declared driving key, never by whichever hub
+        # happens to come first. The validator gate (E_EFFSAT_NO_DRIVING_KEY) should already
+        # block an empty driving key, but the generator is an independent stage: flag and
+        # skip rather than silently fall back to the first hub.
+        driving_fks = link_driving_fks.get(sat.parent, [])
+        if not driving_fks:
+            state.errors.append(
+                f"code_generator: effectivity satellite {sat.name!r} on link "
+                f"{sat.parent!r} has no driving_key; cannot end-date by driving key, "
+                f"flagged for human review"
+            )
+            return None
+        return _render_eff_sat(
+            sat,
+            parent_hashkeys[sat.parent],
+            driving_fks,
+            link_secondary_fks.get(sat.parent, []),
+        )

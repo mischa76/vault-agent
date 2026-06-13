@@ -120,23 +120,73 @@ async def test_multi_active_satellite_generates_with_cdk() -> None:
     assert not result.errors
 
 
-async def test_effectivity_satellite_generates_on_link() -> None:
+def _eff_model(connected_hubs: list[str], driving_key: list[str]) -> DVModel:
+    """A model whose single link carries an effectivity satellite, parameterised by the
+    link's connected_hubs order and declared driving_key."""
     model = _model()
+    model.links[0].connected_hubs = connected_hubs
+    model.links[0].driving_key = driving_key
     model.satellites.append(
         Satellite(name="sat_ownership_eff", parent="link_account_customer",
                   attributes=["effective from", "effective to"], description="effectivity",
                   sat_type="effectivity")
     )
+    return model
+
+
+async def test_effectivity_satellite_applies_declared_driving_key() -> None:
+    # driving_key names hub_customer, which is *second* in connected_hubs: src_dfk must
+    # follow the declared driving key, not the connection order.
+    model = _eff_model(["hub_account", "hub_customer"], ["hub_customer"])
     result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
     sql = result.artifacts.dbt_models["sat_ownership_eff"]
 
     assert "automate_dv.eff_sat(" in sql
     assert '{%- set src_pk = "LINK_ACCOUNT_CUSTOMER_HK" -%}' in sql
-    assert '{%- set src_dfk = "ACCOUNT_HK" -%}' in sql  # driving = first connected hub
-    assert '{%- set src_sfk = ["CUSTOMER_HK"] -%}' in sql
+    assert '{%- set src_dfk = "CUSTOMER_HK" -%}' in sql  # declared driving key, not first hub
+    assert '{%- set src_sfk = ["ACCOUNT_HK"] -%}' in sql
     assert '{%- set src_start_date = "EFFECTIVE_FROM" -%}' in sql
     assert '{%- set src_end_date = "EFFECTIVE_TO" -%}' in sql
     assert not result.errors
+    meta = result.artifacts.automatedv_yaml["satellites"]["sat_ownership_eff"]
+    assert meta["src_dfk"] == "CUSTOMER_HK"
+    assert meta["src_sfk"] == ["ACCOUNT_HK"]
+
+
+async def test_effectivity_driving_key_is_order_independent() -> None:
+    # Reordering connected_hubs must not change src_dfk as long as driving_key is unchanged.
+    reordered = await CodeGeneratorAgent().run(
+        VaultAgentState(dv_model=_eff_model(["hub_customer", "hub_account"], ["hub_customer"]))
+    )
+    sql = reordered.artifacts.dbt_models["sat_ownership_eff"]
+
+    assert '{%- set src_dfk = "CUSTOMER_HK" -%}' in sql
+    assert '{%- set src_sfk = ["ACCOUNT_HK"] -%}' in sql
+    assert not reordered.errors
+
+
+async def test_effectivity_multi_hub_driving_key_renders_a_list() -> None:
+    # A driving key spanning several hubs renders src_dfk as a list, like src_fk / src_cdk.
+    model = _eff_model(["hub_account", "hub_customer"], ["hub_account", "hub_customer"])
+    result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
+    sql = result.artifacts.dbt_models["sat_ownership_eff"]
+
+    assert '{%- set src_dfk = ["ACCOUNT_HK", "CUSTOMER_HK"] -%}' in sql
+    assert '{%- set src_sfk = [] -%}' in sql
+    assert result.artifacts.automatedv_yaml["satellites"]["sat_ownership_eff"]["src_dfk"] == [
+        "ACCOUNT_HK", "CUSTOMER_HK",
+    ]
+    assert not result.errors
+
+
+async def test_effectivity_without_driving_key_is_flagged() -> None:
+    # Empty driving_key at generation time: flag for human review, emit no SQL — never
+    # silently fall back to the first connected hub.
+    model = _eff_model(["hub_account", "hub_customer"], [])
+    result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
+
+    assert "sat_ownership_eff" not in result.artifacts.dbt_models
+    assert any("no driving_key" in e and "sat_ownership_eff" in e for e in result.errors)
 
 
 async def test_effectivity_satellite_on_hub_is_flagged() -> None:
