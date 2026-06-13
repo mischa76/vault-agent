@@ -62,6 +62,13 @@ close out superseded relationships.
 - **[ENFORCE — new]** An `effectivity` satellite's parent link must declare a `driving_key`, and
   that driving key must be a non-empty **subset** of the link's `connected_hubs`
   → `E_EFFSAT_NO_DRIVING_KEY` / `E_DRIVING_KEY_NOT_IN_LINK`.
+- **[ENFORCE — new, codegen]** The code generator MUST *apply* the declared `driving_key` when
+  rendering `automate_dv.eff_sat`: `src_dfk` is the hash key(s) of the hubs named in
+  `link.driving_key`, and `src_sfk` is the hash keys of the remaining `connected_hubs`. It must
+  **not** default `src_dfk` to "the first connected hub." Declaring and validating the driving key
+  while the generator ignores it produces a satellite that end-dates by the wrong key yet passes
+  validation — see remediation finding **H-1** in
+  [review-2026-06-remediation-spec.md](../architecture/review-2026-06-remediation-spec.md).
 - **[GUIDE]** Choose the driving key from business semantics: which side of the relationship is
   "one at a time." If no side is single-valued over time, an effectivity satellite is the wrong
   construct — model it as a standard link + standard satellite instead.
