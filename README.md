@@ -128,7 +128,7 @@ This is not vibes-based modeling. The agents are grounded in established practic
 - **Data Vault 2.1** — Dan Linstedt / DataVaultAlliance (methodology and rules)
 - **DSAF** — Roelant Vos, Data Solutions Architecture Framework
 - **IREB CPRE** — requirements-engineering conventions for the parsing stage
-- **Data Contracts** — Andrew Jones, *Driving Data Quality with Data Contracts* (Manning)
+- **Data Contracts** — Chad Sanderson, Mark Freeman & B.E. Schmidt, *Data Contracts: Developing Production-Grade Pipelines at Scale* (O'Reilly, 2025)
 
 ## Tech stack
 

@@ -33,7 +33,7 @@ Public GitHub from W4 onwards.
 - Data Vault 2.1 (Dan Linstedt / DataVaultAlliance) – methodology and rules
 - DSAF (Roelant Vos) – Data Solutions Architecture Framework
 - IREB CPRE Foundation – Requirements Engineering conventions
-- Andrew Jones – Driving Data Quality with Data Contracts (Manning)
+- Chad Sanderson, Mark Freeman & B.E. Schmidt – Data Contracts: Developing Production-Grade Pipelines at Scale (O'Reilly, 2025)
 
 ## Code conventions
 - Type hints everywhere; pydantic for data models; mypy strict
