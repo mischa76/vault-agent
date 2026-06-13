@@ -13,6 +13,7 @@ no error-severity issues.
 from typing import Any
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.grounding import is_grounded, known_columns
 from vault_agent.rules.dv2_rules import (
     REQUIRED_HUB_COLUMNS,
     REQUIRED_LINK_COLUMNS,
@@ -182,6 +183,7 @@ class ValidatorAgent(BaseAgent):
                     )
 
         issues.extend(self._check_cross_construct(state))
+        issues.extend(self._check_source_grounding(state))
         issues.extend(self._check_artifact_columns(state.artifacts.automatedv_yaml))
 
         errors = [issue for issue in issues if issue["severity"] == "error"]
@@ -256,6 +258,37 @@ class ValidatorAgent(BaseAgent):
                     )
                 )
 
+        return issues
+
+    @staticmethod
+    def _check_source_grounding(state: VaultAgentState) -> list[dict[str, Any]]:
+        """Phase 1 grounding (ADR-0004): flag keys/attributes absent from the source schema.
+
+        No-ops when no schema is declared, so output is unchanged from today. When a schema
+        is present, unknowns are *warnings* (the schema may be partial), never errors."""
+        issues: list[dict[str, Any]] = []
+        if not state.source_schemas:
+            return issues
+        columns = known_columns(state.source_schemas)
+        for hub in state.dv_model.hubs:
+            if hub.business_key.strip() and not is_grounded(hub.business_key, columns):
+                issues.append(
+                    _issue(
+                        "warning", "W_BK_NOT_IN_SOURCE", hub.name,
+                        f"business key {hub.business_key!r} matches no column in the "
+                        f"declared source schema; verify the source or complete the schema",
+                    )
+                )
+        for sat in state.dv_model.satellites:
+            for attr in sat.attributes:
+                if not is_grounded(attr, columns):
+                    issues.append(
+                        _issue(
+                            "warning", "W_ATTR_NOT_IN_SOURCE", sat.name,
+                            f"attribute {attr!r} matches no column in the declared source "
+                            f"schema; verify the source or complete the schema",
+                        )
+                    )
         return issues
 
     @staticmethod

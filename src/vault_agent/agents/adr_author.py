@@ -25,7 +25,9 @@ class AdrAuthorAgent(BaseAgent):
 
     prompt_path = "adr_author.md"  # type: ignore[assignment]
 
-    def __init__(self, today: str | None = None, start_number: int = 4) -> None:
+    # Repo ADRs occupy 0001–0004 (0004 = source-schema grounding, ADR-0004); the generated
+    # per-run model ADR starts at the next free number so the two never collide.
+    def __init__(self, today: str | None = None, start_number: int = 5) -> None:
         self._today = today
         self._start_number = start_number
 

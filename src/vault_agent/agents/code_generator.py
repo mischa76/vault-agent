@@ -12,7 +12,6 @@ effectivity / multi-active satellites) are flagged for human review rather than 
 as wrong SQL, so coverage grows by adding (type on the model + a template), never by
 hacking heuristics into the generator.
 """
-import re
 from typing import Any
 
 from vault_agent.agents.base import BaseAgent
@@ -22,6 +21,7 @@ from vault_agent.rules.dv2_rules import (
     LOAD_DATETIME_COLUMN,
     RECORD_SOURCE_COLUMN,
     STAGING_PREFIX,
+    normalize_identifier,
 )
 from vault_agent.state import Hub, Link, Satellite, VaultAgentState
 
@@ -30,7 +30,7 @@ _CONSTRUCT_PREFIXES = ("hub_", "link_", "sat_")
 
 def _to_column(label: str) -> str:
     """Normalise a business label into a SQL identifier (UPPER_SNAKE)."""
-    return re.sub(r"[^0-9a-zA-Z]+", "_", label).strip("_").upper()
+    return normalize_identifier(label)
 
 
 def _collision_warnings(labels: list[str], construct: str) -> list[str]:

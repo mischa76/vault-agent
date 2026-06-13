@@ -21,6 +21,16 @@ class BusinessKeyCandidate(BaseModel):
     rationale: str
 
 
+class SourceTable(BaseModel):
+    """A declared source table the model can be grounded against (ADR-0004).
+
+    Optional input: when ``VaultAgentState.source_schemas`` is non-empty the validator
+    flags business keys / attributes that match no declared column, and the modeler and
+    business-key prompts are steered toward these real columns."""
+    table: str  # the source table / entity name
+    columns: list[str] = Field(default_factory=list)  # its column names, as in the source
+
+
 class Hub(BaseModel):
     """A Data Vault hub: one business concept, anchored on its business key."""
     name: str  # e.g. "hub_customer"
@@ -92,7 +102,8 @@ class VaultAgentState(BaseModel):
     """Single state object shared across all agents in the graph."""
     # Inputs
     input_documents: list[str] = Field(default_factory=list)
-    source_schemas: list[str] = Field(default_factory=list)
+    # Optional source-column metadata for grounding (ADR-0004); empty = no grounding.
+    source_schemas: list[SourceTable] = Field(default_factory=list)
     # Working state
     requirements: list[ParsedRequirement] = Field(default_factory=list)
     business_keys: list[BusinessKeyCandidate] = Field(default_factory=list)

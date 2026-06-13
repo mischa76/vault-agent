@@ -7,7 +7,12 @@ from typing import Any
 
 from vault_agent.agents.business_key_identifier import BusinessKeyIdentifierAgent
 from vault_agent.rules.dv2_rules import BUSINESS_KEY_CRITERIA
-from vault_agent.state import BusinessKeyCandidate, ParsedRequirement, VaultAgentState
+from vault_agent.state import (
+    BusinessKeyCandidate,
+    ParsedRequirement,
+    SourceTable,
+    VaultAgentState,
+)
 
 
 class StubExtractor:
@@ -125,3 +130,31 @@ async def test_no_requirements_short_circuits_without_calling_llm() -> None:
     assert len(result.errors) == 1
     assert "no requirements" in result.errors[0]
     assert stub.calls == []  # the LLM must not be called
+
+
+async def test_no_source_schema_keeps_prompt_ungrounded() -> None:
+    # Regression guard: with no declared schema the system prompt carries no schema section.
+    stub = StubExtractor(_valid_payload())
+    agent = BusinessKeyIdentifierAgent(extractor=stub)
+
+    await agent.run(_state_with_requirements())
+
+    system_prompt, _ = stub.calls[0]
+    assert "Known source columns" not in system_prompt
+
+
+async def test_source_schema_is_injected_into_prompt() -> None:
+    # Phase 2 grounding (ADR-0004): declared columns are rendered into the system prompt.
+    stub = StubExtractor(_valid_payload())
+    agent = BusinessKeyIdentifierAgent(extractor=stub)
+    state = _state_with_requirements()
+    state.source_schemas = [
+        SourceTable(table="customer", columns=["national_customer_id", "customer_name"]),
+    ]
+
+    await agent.run(state)
+
+    system_prompt, _ = stub.calls[0]
+    assert "Known source columns" in system_prompt
+    assert "national_customer_id" in system_prompt
+    assert "**customer**" in system_prompt

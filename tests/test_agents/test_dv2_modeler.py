@@ -7,7 +7,12 @@ from typing import Any
 
 from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
 from vault_agent.rules.dv2_rules import DV_MODELING_RULES
-from vault_agent.state import BusinessKeyCandidate, ParsedRequirement, VaultAgentState
+from vault_agent.state import (
+    BusinessKeyCandidate,
+    ParsedRequirement,
+    SourceTable,
+    VaultAgentState,
+)
 
 
 class StubExtractor:
@@ -158,3 +163,30 @@ async def test_no_business_keys_short_circuits_without_calling_llm() -> None:
     assert result.dv_model.hubs == []
     assert any("no business keys" in e for e in result.errors)
     assert stub.calls == []
+
+
+async def test_no_source_schema_keeps_modeler_prompt_ungrounded() -> None:
+    # Regression guard: no declared schema -> no schema section in the modeler prompt.
+    stub = StubExtractor(_valid_payload())
+    agent = Dv2ModelerAgent(extractor=stub)
+
+    await agent.run(_state())
+
+    system_prompt, _ = stub.calls[0]
+    assert "Known source columns" not in system_prompt
+
+
+async def test_source_schema_is_injected_into_modeler_prompt() -> None:
+    # Phase 2 grounding (ADR-0004): declared columns are rendered into the modeler prompt.
+    stub = StubExtractor(_valid_payload())
+    agent = Dv2ModelerAgent(extractor=stub)
+    state = _state()
+    state.source_schemas = [
+        SourceTable(table="customer", columns=["national_customer_id", "date_of_birth"]),
+    ]
+
+    await agent.run(state)
+
+    system_prompt, _ = stub.calls[0]
+    assert "Known source columns" in system_prompt
+    assert "date_of_birth" in system_prompt
