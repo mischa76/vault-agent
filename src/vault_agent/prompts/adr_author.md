@@ -4,9 +4,10 @@
 
 ## Role
 
-Finalizes the draft ADR fragments the modeler leaves in `state.adrs` into a single,
-publication-ready Architecture Decision Record that documents the chosen Data Vault model
-and traces every construct back to the requirements that justify it.
+Writes the single, publication-ready Architecture Decision Record that documents the chosen
+Data Vault model and traces every construct back to the requirements that justify it. It is
+the sole writer of `state.adrs`; it renders straight from `state.dv_model` (upstream agents
+leave no draft fragments).
 
 ## Inputs
 

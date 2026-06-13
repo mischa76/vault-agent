@@ -2,7 +2,10 @@
 
 Turns the parsed requirements and proposed business keys into a logical Data Vault model
 (hubs, links, satellites) in ``VaultAgentState.dv_model``. This is the pipeline's central
-modelling decision, so it also emits a draft ADR fragment into ``VaultAgentState.adrs``.
+modelling decision. It does not write to ``VaultAgentState.adrs`` — the ADR Author is the
+sole writer, rendering the finalized ADR from ``state.dv_model`` (which already carries each
+construct's rationale and ``requirement_ids``). Emitting a draft fragment per pass would
+leave stale fragments behind on an exhausted-retry run that never reaches the ADR Author.
 
 The DV2 modelling rules are NOT hard-coded in the prompt (see CLAUDE.md): they live in
 ``vault_agent.rules.dv2_rules`` and are injected into the system prompt at runtime.
@@ -146,7 +149,6 @@ class Dv2ModelerAgent(BaseAgent):
                 "satellites": len(model.satellites),
             }
         )
-        state.adrs.append(self._draft_adr_fragment(model))
         return state
 
     def _validate_model(self, raw: dict[str, Any], state: VaultAgentState) -> DVModel:
@@ -197,15 +199,3 @@ class Dv2ModelerAgent(BaseAgent):
                     f"dv2_modeler: dropped invalid {label}: {exc.error_count()} error(s)"
                 )
         return items
-
-    @staticmethod
-    def _draft_adr_fragment(model: DVModel) -> str:
-        return (
-            "## Draft ADR: Data Vault model derived from requirements\n"
-            f"- Hubs ({len(model.hubs)}): {', '.join(h.name for h in model.hubs) or '—'}\n"
-            f"- Links ({len(model.links)}): {', '.join(lk.name for lk in model.links) or '—'}\n"
-            f"- Satellites ({len(model.satellites)}): "
-            f"{', '.join(s.name for s in model.satellites) or '—'}\n"
-            "Per-construct rationale and requirement traceability are captured in "
-            "`requirement_ids` on each construct in `state.dv_model`."
-        )

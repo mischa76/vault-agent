@@ -1,9 +1,8 @@
 """ADR Author agent.
 
-Finalizes the draft ADR fragments produced upstream (the modeler appends one to
-``VaultAgentState.adrs`` on every modelling pass) into a single publication-ready ADR that
-documents the chosen Data Vault model and traces every construct back to the requirements
-that justify it.
+Writes the single publication-ready ADR that documents the chosen Data Vault model and
+traces every construct back to the requirements that justify it. It is the sole writer of
+``VaultAgentState.adrs`` — upstream agents no longer leave draft fragments (L-4).
 
 It is deterministic — it renders ``state.dv_model`` (the source of truth, which already
 carries each construct's description and ``requirement_ids``) into the project's ADR
@@ -39,7 +38,7 @@ class AdrAuthorAgent(BaseAgent):
 
         today = self._today or date.today().isoformat()
         adr = self._render(state.dv_model, state, number=self._start_number, today=today)
-        state.adrs = [adr]  # the finalized ADR supersedes the draft fragments
+        state.adrs = [adr]  # sole writer; overwrites defensively even if anything pre-set it
         state.decisions.append(
             {
                 "agent": "adr_author",
