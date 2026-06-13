@@ -96,7 +96,7 @@ def run(
     input_doc: Annotated[
         Path,
         typer.Argument(exists=True, readable=True, dir_okay=False,
-                       help="Requirements document (markdown/text)."),
+                       help="Requirements document (.md, .txt, .pdf, or .docx)."),
     ],
     out: Annotated[
         Path, typer.Option("--out", "-o", help="Output directory for generated artifacts."),

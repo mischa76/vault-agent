@@ -1,8 +1,9 @@
 """Requirements Parser agent.
 
-Reads the raw requirements documents listed in ``VaultAgentState.input_documents`` and
-extracts an atomic, IREB-aligned list of ``ParsedRequirement`` records into
-``VaultAgentState.requirements``.
+Reads the raw requirements documents listed in ``VaultAgentState.input_documents``
+(``.md``/``.txt`` plain text, ``.pdf`` via pypdf, ``.docx`` via python-docx; unknown
+extensions are flagged and skipped) and extracts an atomic, IREB-aligned list of
+``ParsedRequirement`` records into ``VaultAgentState.requirements``.
 
 Structured output is obtained via Anthropic tool-use: the model is forced to call the
 ``emit_requirements`` tool whose input schema is derived from ``ParsedRequirement`` itself,
@@ -21,6 +22,22 @@ from vault_agent.state import ParsedRequirement, VaultAgentState
 
 _TOOL_NAME = "emit_requirements"
 _MAX_TOKENS = 4096
+
+
+def _extract_pdf_text(path: Path) -> str:
+    """Extract text from a PDF, one page per line-group, via pypdf."""
+    from pypdf import PdfReader
+
+    reader = PdfReader(str(path))
+    return "\n".join(page.extract_text() or "" for page in reader.pages)
+
+
+def _extract_docx_text(path: Path) -> str:
+    """Extract text from a .docx, one paragraph per line, via python-docx."""
+    from docx import Document
+
+    document = Document(str(path))
+    return "\n".join(paragraph.text for paragraph in document.paragraphs)
 
 
 def _tool_schema() -> dict[str, Any]:
@@ -134,10 +151,26 @@ class RequirementsParserAgent(BaseAgent):
 
     @staticmethod
     def _read_document(doc_path: str, state: VaultAgentState) -> str | None:
+        """Dispatch by file extension to the matching text extractor.
+
+        Supports the charter's source formats (``.md``/``.txt`` plain text, ``.pdf`` via
+        pypdf, ``.docx`` via python-docx). An unknown extension is flagged on
+        ``state.errors`` and skipped — it never crashes the pipeline."""
         path = Path(doc_path)
         if not path.is_file():
             state.errors.append(
                 f"requirements_parser: input document not found: {doc_path!r}"
             )
             return None
-        return path.read_text(encoding="utf-8")
+        suffix = path.suffix.lower()
+        if suffix in ("", ".md", ".txt"):
+            return path.read_text(encoding="utf-8")
+        if suffix == ".pdf":
+            return _extract_pdf_text(path)
+        if suffix == ".docx":
+            return _extract_docx_text(path)
+        state.errors.append(
+            f"requirements_parser: unsupported document type {suffix or '(none)'!r} for "
+            f"{doc_path!r}; supported: .md, .txt, .pdf, .docx — skipped"
+        )
+        return None
