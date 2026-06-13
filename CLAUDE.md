@@ -70,6 +70,27 @@ CLI (`vault-agent run <doc> --out <dir>`) writes models, metadata, and the ADR t
 Two demo datasets (bank, health insurance) run through the full pipeline. Tests green
 without an API key (LLM calls are injectable/stubbed); ruff + mypy strict clean.
 
+DV2.0 modeling rules are now encoded (as of 2026-06-13) per the Linstedt/Olschimke
+canon (dv2-modeling-rules-spec.md), split into [ENFORCE] rules (validator gates) and
+[GUIDE] rules (modeler prompt). The validator has 10 independent gates with E_/W_ codes
+enforcing driving keys, grain, attribute overlap, wide-satellite splits, and BK
+collision; rules/dv2_rules.py holds the UoW/driving-key/splitting/collision guidance,
+SATELLITE_SPLIT_AXES, and SAT_WIDE_ATTRIBUTE_THRESHOLD. State carries Link.driving_key
+(required for effectivity), Link.unit_of_work, and Satellite.split_rationale for the ADR
+trail, which the adr_author surfaces when present.
+
+Architecture-review remediation worked end-to-end (as of 2026-06-13, see
+docs/architecture/review-2026-06-remediation-spec.md): the effectivity satellite now
+applies the link's declared driving_key (src_dfk); config is lazy via get_settings() with
+a valid heavy_model; the modeling retry cap reads an explicit state.modeling_attempts (not
+the audit log); the adr_author is the sole writer of state.adrs (no draft-fragment
+accumulation); the code generator flags UPPER_SNAKE column-name collisions. Requirements
+parser now reads .md/.txt/.pdf/.docx (pypdf + python-docx). source_schemas is now a typed
+list[SourceTable] consumed for grounding (ADR-0004): validator warns
+W_BK_NOT_IN_SOURCE/W_ATTR_NOT_IN_SOURCE and the modeler/business-key prompts are steered to
+real columns when a schema is declared — fully inert (no regression) when it is empty
+(grounding helpers in src/vault_agent/grounding.py).
+
 Still stubs: data_contract, orchestrator. Planned: checkpointing + human-in-the-loop
 (ADR-0002), transactional-link payload modeling improvements, LangSmith evals.
 
