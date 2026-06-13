@@ -53,3 +53,7 @@ traces/
 # Generated outputs
 output/
 generated_dbt/
+_fortbildung
+
+# Scratch / local helper files (converted PDFs/DOCX, study-set text dumps)
+_tmp/
