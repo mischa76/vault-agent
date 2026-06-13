@@ -21,6 +21,10 @@ class _RecordingAgent(BaseAgent):
         self.name = name
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
+        # Mirror the real modeler's counter increment so the retry guard, which now reads
+        # state.modeling_attempts rather than counting decisions, is exercised faithfully.
+        if self.name == "dv2_modeler":
+            state.modeling_attempts += 1
         state.decisions.append({"agent": self.name})
         return state
 
@@ -56,7 +60,8 @@ def _routing_agents(validator: BaseAgent) -> dict[str, BaseAgent]:
 
 
 def _modeler_runs(state: VaultAgentState) -> int:
-    return sum(1 for d in state.decisions if d["agent"] == "dv2_modeler")
+    # The retry cap is enforced via the explicit counter, not by counting decisions.
+    return state.modeling_attempts
 
 
 def test_default_agents_cover_all_nodes() -> None:
