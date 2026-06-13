@@ -80,12 +80,13 @@ async def test_builds_model_from_requirements_and_keys() -> None:
     assert "national customer ID" in payload_json
     assert "REQ-001" in payload_json
 
-    # Decision + draft ADR fragment recorded.
+    # Decision recorded. The modeler does not write ADRs — the ADR Author is the sole
+    # writer (L-4), so no draft fragment accumulates here.
     assert result.decisions[-1] == {
         "agent": "dv2_modeler", "hubs": 2, "links": 1, "satellites": 1,
     }
-    assert len(result.adrs) == 1
-    assert "hub_customer" in result.adrs[0]
+    assert result.adrs == []
+    assert result.modeling_attempts == 1
 
 
 async def test_dangling_link_is_dropped() -> None:

@@ -105,3 +105,5 @@ async def test_persistent_failure_stops_at_retry_cap() -> None:
 
     assert result.validation_report.passed is False
     assert _modeler_runs(result) == MAX_MODELING_ATTEMPTS  # bounded, no infinite loop
+    # L-4: the run ends without the ADR author, and the modeler accumulates no drafts.
+    assert result.adrs == []

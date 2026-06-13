@@ -52,9 +52,11 @@ async def test_renders_finalized_adr() -> None:
     }
 
 
-async def test_finalized_adr_supersedes_draft_fragments() -> None:
+async def test_finalized_adr_overwrites_any_preexisting_adrs() -> None:
+    # The ADR Author is the sole writer (L-4); it overwrites defensively, so even if
+    # anything had pre-populated state.adrs the result is a single finalized ADR.
     state = _state()
-    state.adrs = ["## Draft ADR: …", "## Draft ADR (retry): …"]
+    state.adrs = ["## stray pre-existing entry", "## another"]
     result = await AdrAuthorAgent(today="2026-06-10").run(state)
 
     assert len(result.adrs) == 1
