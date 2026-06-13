@@ -58,8 +58,9 @@ class AnthropicBusinessKeyExtractor:
         # Imported lazily so importing this module never requires an API key.
         from anthropic import AsyncAnthropic
 
-        from vault_agent.config import settings
+        from vault_agent.config import get_settings
 
+        settings = get_settings()
         self._client = AsyncAnthropic(api_key=settings.anthropic_api_key)
         self._model = model or settings.primary_model
 

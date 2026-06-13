@@ -66,8 +66,9 @@ class AnthropicDVModelExtractor:
         # Imported lazily so importing this module never requires an API key.
         from anthropic import AsyncAnthropic
 
-        from vault_agent.config import settings
+        from vault_agent.config import get_settings
 
+        settings = get_settings()
         self._client = AsyncAnthropic(api_key=settings.anthropic_api_key)
         # The modeller is the hardest reasoning step; allow the heavy model via config.
         self._model = model or settings.heavy_model
