@@ -100,6 +100,9 @@ class VaultAgentState(BaseModel):
     artifacts: Artifacts = Field(default_factory=Artifacts)
     validation_report: ValidationReport = Field(default_factory=ValidationReport)
     adrs: list[str] = Field(default_factory=list)
+    # Loop control: how many times the modeler has run. The validation retry guard reads
+    # this directly so control flow is decoupled from the audit log (decisions).
+    modeling_attempts: int = 0
     # Audit
     decisions: list[dict[str, Any]] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)

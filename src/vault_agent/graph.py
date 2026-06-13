@@ -46,8 +46,7 @@ def route_after_validation(state: VaultAgentState) -> str:
     """Document the model on success; loop back to the modeler while the budget remains."""
     if state.validation_report.passed:
         return POST_VALIDATION_NODE
-    attempts = sum(1 for d in state.decisions if d.get("agent") == "dv2_modeler")
-    if attempts >= MAX_MODELING_ATTEMPTS:
+    if state.modeling_attempts >= MAX_MODELING_ATTEMPTS:
         return END
     return "dv2_modeler"
 

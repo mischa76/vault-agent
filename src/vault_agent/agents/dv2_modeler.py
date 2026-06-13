@@ -121,6 +121,8 @@ class Dv2ModelerAgent(BaseAgent):
             )
             return state
 
+        # Count this modeling pass for the validation retry guard (route_after_validation).
+        state.modeling_attempts += 1
         system_prompt = self._build_system_prompt()
         payload: dict[str, Any] = {
             "requirements": [req.model_dump() for req in state.requirements],
