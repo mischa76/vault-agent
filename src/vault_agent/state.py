@@ -90,12 +90,28 @@ class DVModel(BaseModel):
 class Artifacts(BaseModel):
     automatedv_yaml: dict[str, Any] = Field(default_factory=dict)
     dbt_models: dict[str, str] = Field(default_factory=dict)
+    # One JSON-Schema-based data contract per source-to-staging asset (ADR-0005), each a
+    # plain JSON/YAML-round-trippable dict (DataContract.to_dict()).
     contracts: list[dict[str, Any]] = Field(default_factory=list)
+    # dbt schema-test YAML derived from the contracts, keyed by asset name (one properties
+    # file per asset). Prevention runs inside the existing dbt pipeline.
+    dbt_tests: dict[str, str] = Field(default_factory=dict)
 
 
 class ValidationReport(BaseModel):
     passed: bool = False
     issues: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ExecutionPlan(BaseModel):
+    """The orchestrator's record of what a run will execute (audit + observability).
+
+    Deterministic: the orchestrator writes it as the entry node so the trace shows the
+    planned stages, declared inputs, and whether source-schema grounding is active."""
+    stages: list[str] = Field(default_factory=list)  # node ids planned after planning
+    input_documents: int = 0
+    grounded: bool = False
+    notes: list[str] = Field(default_factory=list)  # planning observations, e.g. missing inputs
 
 
 class VaultAgentState(BaseModel):
@@ -110,6 +126,8 @@ class VaultAgentState(BaseModel):
     dv_model: DVModel = Field(default_factory=DVModel)
     artifacts: Artifacts = Field(default_factory=Artifacts)
     validation_report: ValidationReport = Field(default_factory=ValidationReport)
+    # The orchestrator's execution plan, written by the entry node (None until it runs).
+    plan: ExecutionPlan | None = None
     adrs: list[str] = Field(default_factory=list)
     # Loop control: how many times the modeler has run. The validation retry guard reads
     # this directly so control flow is decoupled from the audit log (decisions).

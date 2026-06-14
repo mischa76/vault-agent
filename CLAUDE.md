@@ -91,8 +91,51 @@ W_BK_NOT_IN_SOURCE/W_ATTR_NOT_IN_SOURCE and the modeler/business-key prompts are
 real columns when a schema is declared — fully inert (no regression) when it is empty
 (grounding helpers in src/vault_agent/grounding.py).
 
-Still stubs: data_contract, orchestrator. Planned: checkpointing + human-in-the-loop
-(ADR-0002), transactional-link payload modeling improvements, LangSmith evals.
+The data_contract agent is now implemented (as of 2026-06-14, ADR-0005) and wired into
+the pipeline after business_key_identifier (contracts describe source-to-staging assets,
+so they depend only on requirements/business_keys/source_schemas, not the DV model, and
+are unaffected by the validation re-model loop). It drafts a JSON-Schema-based contract
+per asset (one per SourceTable when a schema is declared, else one per business entity)
+into state.artifacts.contracts, plus dbt schema-tests into state.artifacts.dbt_tests; the
+CLI writes both under output/contracts/. Typed contract model in
+src/vault_agent/models/contract.py (DataContract with spec-version/schema aliases,
+hard/soft failure modes, union/enum types). Split mirrors the other agents: deterministic
+core (asset/field selection, business-key→primaryKey/not-null, failure modes, placeholder
+owner, dbt-test emission, serialization) is unit-tested without a key; an injectable
+ContractEnricher (Anthropic forced tool-use) supplies doc/descriptions/type-inference/
+semantics. Gaps are flagged for human review (placeholder owner, missing source schema,
+undetermined type), never guessed.
+
+The orchestrator is now implemented (as of 2026-06-14, ADR-0006) and is the graph entry
+node (START → orchestrator → requirements_parser → …), matching the multi-agent design
+topology. It is deterministic (no LLM): (1) it validates inputs and writes a typed
+ExecutionPlan (state.plan: planned stages, declared inputs, grounding on/off) for
+observability; (2) it owns the human-in-the-loop checkpoint as a deterministic review
+queue — assemble_review_queue(state) derives a categorized HumanReviewQueue (validation
+errors/warnings, contracts with placeholder owners, advisory review flags), with
+requires_signoff true when a validation error or unassigned contract owner blocks
+agreement. The CLI prints the checkpoint (blocking-first) and write_outputs writes
+review-queue.md. Per ADR-0006 this is the "what to review" half; live pause/resume
+(LangGraph interrupt() + checkpointer + CLI resume) is the deferred "how to pause" half.
+ContractOwner.PLACEHOLDER_NAME is the single source for the placeholder-owner marker.
+
+Live human-in-the-loop interrupt/resume now works (as of 2026-06-15, ADR-0006 second half).
+A human_checkpoint node sits on the validated path (validator --pass--> human_checkpoint -->
+adr_author): it assembles the review queue and, when requires_signoff (a validation error or
+unassigned contract owner), calls LangGraph interrupt() to pause — interrupt() is the node's
+first statement since the node re-executes from the top on resume. The graph is compiled with
+a persistent AsyncSqliteSaver (langgraph-checkpoint-sqlite) keyed by a per-run thread_id under
+<out>/.vault-agent/. CLI: `vault-agent run` detects the interrupt, writes artifacts-so-far +
+pending.json, and prints resume instructions; `vault-agent resume --owner "asset=Name <email>"
+[--accept]` continues the same thread via Command(resume=...). apply_human_decision writes
+owners onto the contracts and prunes resolved owner flags, then the ADR author finalizes. The
+checkpointer serde is configured with an allow-list of the state models (cli._checkpoint_serde)
+to avoid LangGraph's "unregistered type" deprecation warning. Tested without an API key via
+MemorySaver (graph interrupt/resume) + pure-function unit tests; AsyncSqliteSaver verified for
+cross-connection resume.
+
+No agents remain as stubs; the HITL loop is closed. Planned: transactional-link payload
+modeling improvements, LangSmith evals, and (when a UI lands) an interactive resume prompt.
 
 ## References to nearby work
 - Learning plan: ../Lernplan_Mapping.xlsx

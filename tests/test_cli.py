@@ -5,10 +5,19 @@ wiring is smoke-tested via Typer's CliRunner.
 """
 from pathlib import Path
 
+import pytest
 import yaml
 from typer.testing import CliRunner
 
-from vault_agent.cli import _adr_filename, app, write_outputs
+from vault_agent.cli import (
+    _adr_filename,
+    _build_decision,
+    _parse_owner,
+    _read_pending,
+    _write_pending,
+    app,
+    write_outputs,
+)
 from vault_agent.state import Artifacts, VaultAgentState
 
 runner = CliRunner()
@@ -34,7 +43,9 @@ def test_adr_filename_from_heading() -> None:
 def test_write_outputs_creates_files(tmp_path: Path) -> None:
     counts = write_outputs(_state_with_artifacts(), tmp_path)
 
-    assert counts == {"models": 2, "adrs": 1, "metadata": 1}
+    assert counts == {
+        "models": 2, "adrs": 1, "metadata": 1, "contracts": 0, "review_items": 0,
+    }
     assert (tmp_path / "models" / "hub_customer.sql").read_text() == "-- hub sql"
     assert (tmp_path / "models" / "sat_customer_details.sql").exists()
 
@@ -49,15 +60,60 @@ def test_write_outputs_creates_files(tmp_path: Path) -> None:
 def test_write_outputs_skips_empty_sections(tmp_path: Path) -> None:
     counts = write_outputs(VaultAgentState(), tmp_path)
 
-    assert counts == {"models": 0, "adrs": 0, "metadata": 0}
+    assert counts == {
+        "models": 0, "adrs": 0, "metadata": 0, "contracts": 0, "review_items": 0,
+    }
     assert not (tmp_path / "metadata").exists()
     assert not (tmp_path / "adrs").exists()
+    assert not (tmp_path / "contracts").exists()
+    assert not (tmp_path / "review-queue.md").exists()
 
 
-def test_cli_help_lists_run_command() -> None:
+def test_cli_help_lists_run_and_resume_commands() -> None:
     result = runner.invoke(app, ["--help"])
     assert result.exit_code == 0
     assert "run" in result.stdout
+    assert "resume" in result.stdout
+
+
+# --- Resume helpers (ADR-0006) -----------------------------------------------------------
+
+
+def test_parse_owner_with_email() -> None:
+    asset, owner = _parse_owner("customer=Data Team <data@x.io>")
+    assert asset == "customer"
+    assert owner == {"name": "Data Team", "email": "data@x.io"}
+
+
+def test_parse_owner_without_email() -> None:
+    asset, owner = _parse_owner("account=Risk Office")
+    assert asset == "account"
+    assert owner == {"name": "Risk Office", "email": None}
+
+
+@pytest.mark.parametrize("spec", ["", "noequals", "=onlyname", "customer="])
+def test_parse_owner_rejects_malformed(spec: str) -> None:
+    with pytest.raises(ValueError):
+        _parse_owner(spec)
+
+
+def test_build_decision_collects_owners() -> None:
+    decision = _build_decision(["customer=Data Team <d@x.io>", "account=Risk"], accept=True)
+    assert decision == {
+        "owners": {
+            "customer": {"name": "Data Team", "email": "d@x.io"},
+            "account": {"name": "Risk", "email": None},
+        },
+        "accept": True,
+    }
+
+
+def test_pending_roundtrip(tmp_path: Path) -> None:
+    assert _read_pending(tmp_path) is None
+    _write_pending(tmp_path, "thread-abc", Path("req.md"))
+    pending = _read_pending(tmp_path)
+    assert pending is not None
+    assert pending["thread_id"] == "thread-abc"
 
 
 def test_cli_run_requires_existing_file() -> None:
