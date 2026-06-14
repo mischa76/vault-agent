@@ -7,12 +7,13 @@ Two deterministic responsibilities, no LLM:
    on the state, so the trace shows the planned stages, declared inputs, and whether
    source-schema grounding is active.
 
-2. **Human-in-the-loop checkpoint collector.** :func:`assemble_review_queue` derives a
-   categorized :class:`HumanReviewQueue` from a finished run — the validation issues,
-   contracts still awaiting an owner, and the agents' review flags. Per ADR-0006 this is a
-   *deterministic* checkpoint surfaced to the human (CLI / file): the run does not yet pause
-   on a live LangGraph ``interrupt()``; that is a planned follow-up. Assembling the queue
-   structurally now means the interrupt later just delivers an already-defined payload.
+2. **Human-in-the-loop checkpoint.** :func:`assemble_review_queue` derives a categorized
+   :class:`HumanReviewQueue` from a finished run — the validation issues, contracts still
+   awaiting an owner, and the agents' review flags. Per ADR-0006 this deterministic queue is
+   surfaced to the human (CLI / file) and, when it blocks sign-off, the
+   :class:`HumanCheckpointAgent` pauses the graph on a live LangGraph ``interrupt()`` until a
+   human resumes with their decision. Keeping the queue a pure, separately-tested function
+   means the interrupt node just assembles it and delivers an already-defined payload.
 
 Being deterministic, the whole agent is unit-tested without an API key.
 """
