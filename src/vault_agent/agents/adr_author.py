@@ -10,14 +10,36 @@ template. No LLM is involved, so the architecture record is reproducible and nev
 to hallucination, matching how DV2.0 rules are kept in pure Python. The finalized ADR has
 status ``Proposed``: a human must review and accept it.
 """
+import re
 from datetime import date
+from pathlib import Path
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.state import DVModel, VaultAgentState
 
+# The repo's committed architecture ADRs. The generated per-run model ADR is numbered just
+# past the highest of these so it never collides with a real repo ADR (resolved at runtime
+# instead of hardcoded, so adding a repo ADR doesn't require touching this agent).
+_DEFAULT_ADR_DIR = Path(__file__).resolve().parents[3] / "docs" / "architecture" / "adrs"
+_ADR_NUMBER = re.compile(r"ADR-(\d+)", re.IGNORECASE)
+
 
 def _ids(requirement_ids: list[str]) -> str:
     return ", ".join(requirement_ids) if requirement_ids else "—"
+
+
+def _next_adr_number(adr_dir: Path) -> int:
+    """Highest ADR-NNNN number among ``adr_dir``'s ``ADR-*.md`` files, plus one.
+
+    Non-numbered files (e.g. ``ADR-template.md``) are ignored; a missing or ADR-free
+    directory yields 1, so the first generated ADR is ADR-0001."""
+    highest = 0
+    if adr_dir.is_dir():
+        for path in adr_dir.glob("ADR-*.md"):
+            match = _ADR_NUMBER.match(path.stem)
+            if match:
+                highest = max(highest, int(match.group(1)))
+    return highest + 1
 
 
 class AdrAuthorAgent(BaseAgent):
@@ -25,11 +47,17 @@ class AdrAuthorAgent(BaseAgent):
 
     prompt_path = "adr_author.md"  # type: ignore[assignment]
 
-    # Repo ADRs occupy 0001–0004 (0004 = source-schema grounding, ADR-0004); the generated
-    # per-run model ADR starts at the next free number so the two never collide.
-    def __init__(self, today: str | None = None, start_number: int = 5) -> None:
+    def __init__(
+        self,
+        today: str | None = None,
+        start_number: int | None = None,
+        adr_dir: Path | None = None,
+    ) -> None:
         self._today = today
+        # Explicit start_number wins (tests/overrides); otherwise derive from adr_dir at run
+        # time so the number tracks the repo's ADRs without a hardcoded constant.
         self._start_number = start_number
+        self._adr_dir = adr_dir or _DEFAULT_ADR_DIR
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         if not state.dv_model.hubs:
@@ -38,13 +66,18 @@ class AdrAuthorAgent(BaseAgent):
             )
             return state
 
+        number = (
+            self._start_number
+            if self._start_number is not None
+            else _next_adr_number(self._adr_dir)
+        )
         today = self._today or date.today().isoformat()
-        adr = self._render(state.dv_model, state, number=self._start_number, today=today)
+        adr = self._render(state.dv_model, state, number=number, today=today)
         state.adrs = [adr]  # sole writer; overwrites defensively even if anything pre-set it
         state.decisions.append(
             {
                 "agent": "adr_author",
-                "adr_number": self._start_number,
+                "adr_number": number,
                 "adrs_written": 1,
             }
         )
