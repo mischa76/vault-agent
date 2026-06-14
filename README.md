@@ -33,10 +33,10 @@ niche — and where this project lives.
 
 Vault-Agent treats DV2.0 modeling as a pipeline of specialized agents, each responsible for one
 well-defined step, wired together as a LangGraph state machine. A self-correcting validation loop
-is already in place — when the generated model fails the DV2.0 rule checks it routes back to the
-modeler with the issues as feedback, bounded by a retry cap — while checkpointing and
-human-in-the-loop gates (per [ADR-0002](docs/architecture/adrs/ADR-0002-orchestration-langgraph.md))
-are the next step on the roadmap. The methodology rules live in code (not buried in prompts), code
+routes a failing model back to the modeler with the issues as feedback (bounded by a retry cap), and
+a live human-in-the-loop checkpoint (per
+[ADR-0006](docs/architecture/adrs/ADR-0006-human-in-the-loop-review-queue.md)) pauses the run for
+sign-off — e.g. to assign a data-contract owner — then resumes from a persisted checkpoint. The methodology rules live in code (not buried in prompts), code
 generation goes through the established AutomateDV dbt package rather than hand-written SQL, and
 every modeling decision the agents make is captured as an Architecture Decision Record — so the
 *reasoning* survives, not just the output.
@@ -48,7 +48,7 @@ every modeling decision the agents make is captured as an Architecture Decision 
         ┌──────────────────────────────────────┐
         │        LangGraph state machine        │
         │   self-correcting loop (built)        │
-        │   checkpointing · HITL (planned)      │
+        │   checkpointing · HITL (built)        │
         └──────────────────────────────────────┘
                           │
    ┌──────────────────────┼───────────────────────┐
@@ -67,7 +67,7 @@ every modeling decision the agents make is captured as an Architecture Decision 
 
 ## The agents
 
-Eight specialized agents, orchestrated in LangGraph — **six built, two planned**:
+Eight specialized agents, orchestrated in LangGraph — **all eight built**:
 
 | Agent | Responsibility | Status |
 |---|---|---|
@@ -77,14 +77,14 @@ Eight specialized agents, orchestrated in LangGraph — **six built, two planned
 | **Code Generator** | Emits AutomateDV dbt models — hubs, links, standard/multi-active/effectivity satellites, non-historized links — plus metadata | ✅ Built |
 | **Validator** | Checks the model and generated artifacts for DV2.0 compliance | ✅ Built |
 | **ADR Author** | Turns the agents' modeling decisions into an explicit, traceable ADR | ✅ Built |
-| **Data Contract Agent** | Generates source-to-staging data contracts | 🔜 Planned |
-| **Orchestrator** | Adds checkpointing and human-in-the-loop pauses on top of the pipeline | 🔜 Planned |
+| **Data Contract Agent** | Drafts JSON-Schema source-to-staging contracts + dbt schema tests; flags gaps for human review | ✅ Built |
+| **Orchestrator** | Plans the run (entry node) and drives the live human-in-the-loop checkpoint (interrupt / resume) | ✅ Built |
 
-Today the pipeline self-corrects automatically: a failing validation routes back to the modeler
-with the issues as feedback, bounded by a retry cap. The planned orchestrator will add
-human-in-the-loop pauses — e.g. when business-key candidates score within 10% of each other, when
-the validator finds rule violations the modeler can't resolve, or when a generated artifact would
-overwrite user-modified files.
+The pipeline self-corrects automatically: a failing validation routes back to the modeler with the
+issues as feedback, bounded by a retry cap. On the validated path a human-in-the-loop checkpoint
+assembles a categorized review queue and pauses the run (LangGraph `interrupt()`) whenever something
+blocks sign-off — a validation error, or a data contract still awaiting an owner. `vault-agent resume`
+continues the same run from a persisted SQLite checkpoint once the human decides.
 
 ## What you get
 
@@ -92,12 +92,13 @@ overwrite user-modified files.
 - **Reproducible outputs** — reviewed dbt projects in git, never a no-code black box
 - **Warehouse-agnostic** — Snowflake, MS Fabric, and DuckDB for demos
 - **Knowledge capture** — every modeling decision documented as an ADR
+- **Human-in-the-loop sign-off** — the run pauses for owner assignment and approval, then resumes from a checkpoint
 - **A force multiplier, not a replacement** — the architect keeps judgment; the agents do the toil
 
 ## Quick start
 
-The pipeline runs end-to-end today: a requirements document in, generated AutomateDV/dbt models,
-metadata, and an ADR out.
+The pipeline runs end-to-end today: a requirements document in; generated AutomateDV/dbt models,
+metadata, data contracts, and an ADR out.
 
 ```bash
 git clone https://github.com/mischa76/vault-agent.git
@@ -110,7 +111,13 @@ uv run vault-agent run examples/inputs/health_insurance_requirements.md --out ou
 ```
 
 This produces dbt models (`output/models/*.sql`), AutomateDV metadata
-(`output/metadata/automatedv.yml`), and a finalized ADR (`output/adrs/`).
+(`output/metadata/automatedv.yml`), data contracts and their dbt tests (`output/contracts/`), and a
+finalized ADR (`output/adrs/`). When the run needs human sign-off (e.g. to assign a data-contract
+owner) it pauses at a checkpoint and writes `output/review-queue.md`; resume it once you've decided:
+
+```bash
+uv run vault-agent resume --out output --owner "customer=Data Team <data@acme.com>" --accept
+```
 
 The `examples/` directory has step-by-step scripts that run each stage in isolation
 (`01_simple_requirement.py` … `06_pipeline.py`), plus `07_routing.py`, a deterministic demo of
@@ -147,9 +154,10 @@ Core pipeline     requirements parser · business-key id · DV2.0 modeler       
 Code generation   AutomateDV: hubs · links · sat · ma_sat · eff_sat · nh_link  ✅ done
 Quality & docs    validator · ADR author · CLI · 2 demo datasets               ✅ done
 Routing           self-correcting validation loop (retry on failure)           ✅ done
-Contracts         data contract agent (source-to-staging)                      🔜 next
-Orchestration     checkpointing · human-in-the-loop gates                      🔜 next
-Polish            LangSmith evals · public walkthrough                         🔜 later
+Grounding         optional source-schema grounding (ADR-0004)                  ✅ done
+Contracts         data contract agent + dbt schema tests                       ✅ done
+Orchestration     orchestrator entry node · live HITL (interrupt/resume)       ✅ done
+Polish            LangSmith evals · public walkthrough                         🔜 next
 ```
 
 ## Documentation
