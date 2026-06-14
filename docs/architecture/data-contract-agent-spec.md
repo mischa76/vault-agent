@@ -1,9 +1,10 @@
 # Data Contract Agent — Design Spec
 
-> Status: **Planned agent** (currently a stub). This spec translates the methodology in
+> Status: **Implemented** (2026-06-14, see ADR-0005). This spec translates the methodology in
 > [docs/methodology/data-contracts-approach.md](../methodology/data-contracts-approach.md) into
 > concrete requirements for implementation. Source: Sanderson, Freeman & Schmidt, *Data Contracts*
-> (O'Reilly, 2025).
+> (O'Reilly, 2025). Spec-standard decision and the producer-draft inversion are recorded in
+> [ADR-0005](adrs/ADR-0005-data-contract-spec.md).
 
 ## Responsibility
 
