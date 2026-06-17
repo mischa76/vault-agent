@@ -21,4 +21,6 @@ data architecture wisdom with modern Agentic AI.
 
 - Not a replacement for an architect's judgment – it is a force multiplier
 - Not a no-code tool – outputs are reviewed dbt projects in git
-- Not tied to a single warehouse – plays with Snowflake, MS Fabric, PostgreSQL
+- Not tied to a single warehouse – focus on Snowflake & MS Fabric (DACH), but runs on any
+  AutomateDV-supported platform: Snowflake, BigQuery, Databricks, MS SQL Server, PostgreSQL
+  (PostgreSQL for the local demo)

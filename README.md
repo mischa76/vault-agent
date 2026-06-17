@@ -62,7 +62,8 @@ every modeling decision the agents make is captured as an Architecture Decision 
    Reviewed dbt project in git  ·  AutomateDV YAML  ·  Data contracts  ·  ADRs
                           │
                           ▼
-        Targets:  Snowflake  ·  MS Fabric  ·  PostgreSQL (demo)
+        Targets:  Snowflake & MS Fabric (focus) · runs on any AutomateDV platform
+                  (Snowflake · BigQuery · Databricks · SQL Server · Postgres demo)
                  Observability:  LangSmith traces + evals
 ```
 
@@ -91,7 +92,7 @@ continues the same run from a persisted SQLite checkpoint once the human decides
 
 - **Speed without sacrificing rigor** — collapse initial DV2.0 modeling from weeks toward hours
 - **Reproducible outputs** — reviewed dbt projects in git, never a no-code black box
-- **Warehouse-agnostic** — Snowflake and MS Fabric (targets); PostgreSQL for the local demo
+- **Warehouse-agnostic** — focus on Snowflake & MS Fabric (DACH), but runs on any AutomateDV-supported platform (Snowflake, BigQuery, Databricks, MS SQL Server, PostgreSQL); PostgreSQL for the local demo
 - **Knowledge capture** — every modeling decision documented as an ADR
 - **Human-in-the-loop sign-off** — the run pauses for owner assignment and approval, then resumes from a checkpoint
 - **A force multiplier, not a replacement** — the architect keeps judgment; the agents do the toil
