@@ -25,7 +25,7 @@ Public GitHub from W4 onwards.
 - Anthropic Claude API (Sonnet primary, Opus for hard reasoning)
 - Anthropic MCP for tool integration
 - AutomateDV (OSS dbt package) as the code-gen backend
-- dbt Core for transformations (Snowflake + MS Fabric as target platforms, DuckDB for demo)
+- dbt Core for transformations (Snowflake + MS Fabric as target platforms, PostgreSQL for the local demo — AutomateDV has no DuckDB support)
 - LangSmith for tracing/evaluation
 - pytest for tests, ruff + mypy for quality
 

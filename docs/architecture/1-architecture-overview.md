@@ -18,7 +18,7 @@
 |                     AutomateDV Writer  dbt Parser              |
 +---------------------------------------------------------------+
 |  Backends:  AutomateDV + dbt Core                              |
-|  Targets:   Snowflake / MS Fabric / DuckDB (demo)              |
+|  Targets:   Snowflake / MS Fabric / PostgreSQL (demo)          |
 +---------------------------------------------------------------+
 |  Observability:  LangSmith traces + evals                      |
 +---------------------------------------------------------------+

@@ -21,4 +21,4 @@ data architecture wisdom with modern Agentic AI.
 
 - Not a replacement for an architect's judgment – it is a force multiplier
 - Not a no-code tool – outputs are reviewed dbt projects in git
-- Not tied to a single warehouse – plays with Snowflake, MS Fabric, DuckDB
+- Not tied to a single warehouse – plays with Snowflake, MS Fabric, PostgreSQL
