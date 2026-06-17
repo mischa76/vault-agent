@@ -32,3 +32,11 @@ Digital, Betway). dbt Core is the runtime; Snowflake / Fabric / DuckDB are the t
 
 - AutomateDV docs: https://automate-dv.com
 - dbt Core: https://docs.getdbt.com
+
+## Amendment (2026-06-17)
+
+The platform list in the Context above is corrected: AutomateDV supports Snowflake, BigQuery,
+MS SQL Server, Databricks and PostgreSQL — **not DuckDB**. The AutomateDV decision itself is
+unchanged. Platform scope and the local-demo target (PostgreSQL) are governed by
+[ADR-0007](./ADR-0007-automation-scope-by-layer.md) and the
+[PoC spec](../poc-end-to-end-dbt-spec.md).
