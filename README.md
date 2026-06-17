@@ -4,9 +4,10 @@
 
 **Agentic AI for Data Vault 2.0 — from business requirements to compliant, contract-backed dbt code.**
 
-A multi-agent system that reads requirements documents and source schemas, then designs a
-Data Vault 2.1 model, generates AutomateDV-backed dbt code, and documents every decision it
-makes — keeping the rigor of the methodology while removing the repetitive parts.
+A multi-agent system that reads requirements documents — optionally grounding against a supplied
+source schema — then designs a Data Vault 2.1 model, generates AutomateDV-backed dbt code, and
+documents every decision it makes, keeping the rigor of the methodology while removing the
+repetitive parts.
 
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB.svg)](https://www.python.org/)
 [![Orchestration: LangGraph](https://img.shields.io/badge/orchestration-LangGraph-1C3C3C.svg)](https://langchain-ai.github.io/langgraph/)
@@ -166,6 +167,8 @@ Polish            LangSmith evals · public walkthrough                         
 - [Architecture overview](docs/architecture/1-architecture-overview.md)
 - [Multi-agent design](docs/architecture/2-multi-agent-design.md)
 - [Architecture Decision Records](docs/architecture/adrs/)
+- [Automation scope & ambition per layer (ADR-0007)](docs/architecture/adrs/ADR-0007-automation-scope-by-layer.md)
+- [Competitive landscape & differentiation](docs/competitive-landscape.md)
 - [DV2.0 rules cheatsheet](docs/methodology/dv2-rules-cheatsheet.md)
 - [Demo datasets & walkthroughs](docs/demos/README.md)
 

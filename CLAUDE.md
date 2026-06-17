@@ -50,6 +50,8 @@ Public GitHub from W4 onwards.
 - Don't bypass AutomateDV by writing dbt models from scratch
 - Don't introduce a new framework (e.g., crewAI, AutoGen) without an ADR
 - Don't add UI work until end-to-end pipeline works on at least 2 demo datasets
+- Don't generate Business Vault business logic or mart semantics as if authoritative; the agent
+  assists and flags those for human ratification only (automation scope per layer: ADR-0007)
 
 ## Where things live
 - Architecture docs and ADRs: docs/architecture/
