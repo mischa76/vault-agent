@@ -161,7 +161,10 @@ async def _run_pipeline(input_doc: Path, out_dir: Path) -> tuple[VaultAgentState
         saver.serde = _checkpoint_serde()
         compiled = build_graph().compile(checkpointer=saver)
         result = await compiled.ainvoke(
-            VaultAgentState(input_documents=[str(input_doc)]), config=config
+            # LangGraph's generic ainvoke doesn't infer our pydantic state as StateT;
+            # passing VaultAgentState is correct at runtime.
+            VaultAgentState(input_documents=[str(input_doc)]),  # type: ignore[arg-type]
+            config=config,
         )
     return _state_from_result(result), "__interrupt__" in result, thread_id
 

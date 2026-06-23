@@ -333,4 +333,4 @@ class DataContractAgent(BaseAgent):
             "version": 2,
             "models": [{"name": STAGING_PREFIX + name, "columns": columns}],
         }
-        return cast(str, yaml.safe_dump(doc, sort_keys=False))
+        return yaml.safe_dump(doc, sort_keys=False)
