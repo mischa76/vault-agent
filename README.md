@@ -167,6 +167,7 @@ Polish            LangSmith evals · public walkthrough                         
 - [Vision](docs/architecture/0-vision.md)
 - [Architecture overview](docs/architecture/1-architecture-overview.md)
 - [Multi-agent design](docs/architecture/2-multi-agent-design.md)
+- [How requirements become a model (behaviour, assumptions & target)](docs/how-requirements-become-a-model.md)
 - [Architecture Decision Records](docs/architecture/adrs/)
 - [Automation scope & ambition per layer (ADR-0007)](docs/architecture/adrs/ADR-0007-automation-scope-by-layer.md)
 - [Competitive landscape & differentiation](docs/competitive-landscape.md)
