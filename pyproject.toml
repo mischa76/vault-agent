@@ -36,6 +36,13 @@ dev = [
 eval = [
     "langsmith>=0.1",
 ]
+# Local Data Vault Durchstich (demo/bank_postgres). dbt + Postgres adapter; pulled in
+# only for the runnable demo so they don't bloat the core package. See
+# docs/architecture/poc-end-to-end-dbt-spec.md.
+demo = [
+    "dbt-core~=1.9.0",
+    "dbt-postgres~=1.9.0",
+]
 
 [project.scripts]
 vault-agent = "vault_agent.cli:app"

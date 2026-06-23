@@ -8,6 +8,11 @@ before any UI work — see CLAUDE.md).
 |---|---|---|
 | Retail banking | [`examples/inputs/bank_account_requirements.md`](../../examples/inputs/bank_account_requirements.md) | (see examples 01–07) |
 | Health insurance | [`examples/inputs/health_insurance_requirements.md`](../../examples/inputs/health_insurance_requirements.md) | [health-insurance-walkthrough.md](./health-insurance-walkthrough.md) |
+| Retail banking — **runnable vault** | [`examples/inputs/bank_account_requirements.md`](../../examples/inputs/bank_account_requirements.md) | [`demo/bank_postgres/`](../../demo/bank_postgres/README.md) — the generator's models built and loaded on local Postgres (dbt + AutomateDV) |
+
+The last row is the **end-to-end Durchstich**: it proves the generated AutomateDV/dbt models are
+not just plausible SQL but *operable* — `dbt build` populates real hub/link/satellite tables on a
+local PostgreSQL. See [`demo/bank_postgres/README.md`](../../demo/bank_postgres/README.md).
 
 Run either through the CLI:
 

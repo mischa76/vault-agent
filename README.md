@@ -126,6 +126,24 @@ The `examples/` directory has step-by-step scripts that run each stage in isolat
 the self-correcting validation loop that needs **no API key**. The two demo domains
 (retail banking and health insurance) are described in [docs/demos/](docs/demos/README.md).
 
+### Run the generated vault (local Postgres)
+
+The pipeline's output is not just plausible SQL — it is **operable**. The
+[`demo/bank_postgres/`](demo/bank_postgres/README.md) Durchstich takes the *real* code
+generator's AutomateDV/dbt models, loads toy data through a staging layer, and builds a running
+Data Vault (two hubs, a link, two standard satellites, and an effectivity satellite) on a local
+PostgreSQL 16 — no API key, no Docker required:
+
+```bash
+cd demo/bank_postgres
+uv sync --extra demo                        # dbt-core + dbt-postgres
+uv run python build_vault_models.py         # regenerate raw_vault/*.sql from the generator
+DBT_PROFILES_DIR=. uv run dbt deps          # pull AutomateDV
+DBT_PROFILES_DIR=. uv run dbt build --full-refresh   # seed + run + test, all green
+```
+
+See the [demo runbook](demo/bank_postgres/README.md) for prerequisites and verification.
+
 > The requirements parser, business-key identifier, and modeler are LLM-driven (Claude); the code
 > generator, validator, and ADR author are deterministic, so the test suite (`uv run pytest`) runs
 > without an API key.

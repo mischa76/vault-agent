@@ -1,0 +1,5 @@
+packages:
+  # AutomateDV (Datavault-UK) — the OSS dbt package whose hub/link/sat/eff_sat macros the
+  # generated raw-vault models call. Pinned per spec §1.
+  - package: Datavault-UK/automate_dv
+    version: 0.11.4

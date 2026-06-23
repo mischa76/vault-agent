@@ -1,0 +1,58 @@
+name: 'bank_postgres'
+version: '1.0.0'
+config-version: 2
+
+# Connection profile defined in profiles.yml (this directory) — native local Postgres.
+profile: 'bank_postgres'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  bank_postgres:
+    staging:
+      # Staging is a thin view layer (hash keys / hashdiffs); no need to persist it.
+      +materialized: view
+    raw_vault:
+      # The generated models already carry config(materialized='incremental'); this is a
+      # belt-and-braces default in case a model is added without it.
+      +materialized: incremental
+
+seeds:
+  bank_postgres:
+    # Keep seed column names UNQUOTED so Postgres folds the UPPER_SNAKE CSV headers to
+    # lowercase consistently with the (also unquoted) UPPER_SNAKE identifiers AutomateDV
+    # emits — the single most likely Postgres friction point (spec §8.1). Quoting the seed
+    # headers would store them upper-case and break the unquoted references downstream.
+    +quote_columns: false
+    raw_customer:
+      +column_types:
+        NATIONAL_CUSTOMER_ID: varchar
+        BANK_CUSTOMER_REFERENCE: varchar
+        CUSTOMER_NAME: varchar
+        DATE_OF_BIRTH: date
+        LOAD_DATETIME: timestamp
+        RECORD_SOURCE: varchar
+    raw_account:
+      +column_types:
+        ACCOUNT_NUMBER: varchar
+        BALANCE: numeric
+        STATUS: varchar
+        LOAD_DATETIME: timestamp
+        RECORD_SOURCE: varchar
+    raw_account_customer:
+      +column_types:
+        ACCOUNT_NUMBER: varchar
+        NATIONAL_CUSTOMER_ID: varchar
+        EFFECTIVE_FROM: timestamp
+        EFFECTIVE_TO: timestamp
+        LOAD_DATETIME: timestamp
+        RECORD_SOURCE: varchar

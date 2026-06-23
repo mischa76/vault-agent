@@ -1,0 +1,56 @@
+# Hand-authored test properties for the GENERATED raw-vault models (the .sql files in this
+# directory are written by build_vault_models.py — do not edit those). Column names are the
+# UPPER_SNAKE identifiers AutomateDV emits; Postgres folds the unquoted names to lower-case
+# and resolves them consistently (spec §8.1).
+version: 2
+
+models:
+  - name: hub_customer
+    description: "Customer hub — one row per national customer ID."
+    columns:
+      - name: CUSTOMER_HK
+        description: "Hash key of the business key."
+        data_tests: [not_null, unique]
+      - name: NATIONAL_CUSTOMER_ID
+        description: "Business key."
+        data_tests: [not_null, unique]
+
+  - name: hub_account
+    description: "Account hub — one row per account number."
+    columns:
+      - name: ACCOUNT_HK
+        data_tests: [not_null, unique]
+      - name: ACCOUNT_NUMBER
+        data_tests: [not_null, unique]
+
+  - name: sat_customer_details
+    description: "Descriptive customer attributes (standard satellite)."
+    columns:
+      - name: CUSTOMER_HK
+        data_tests: [not_null]
+      - name: CUSTOMER_DETAILS_HASHDIFF
+        data_tests: [not_null]
+
+  - name: sat_account_details
+    description: "Descriptive account attributes (standard satellite)."
+    columns:
+      - name: ACCOUNT_HK
+        data_tests: [not_null]
+      - name: ACCOUNT_DETAILS_HASHDIFF
+        data_tests: [not_null]
+
+  - name: link_account_customer
+    description: "Account-customer ownership link."
+    columns:
+      - name: LINK_ACCOUNT_CUSTOMER_HK
+        data_tests: [not_null, unique]
+      - name: ACCOUNT_HK
+        data_tests: [not_null]
+      - name: CUSTOMER_HK
+        data_tests: [not_null]
+
+  - name: sat_account_customer_eff
+    description: "Effectivity satellite tracking the active ownership period."
+    columns:
+      - name: LINK_ACCOUNT_CUSTOMER_HK
+        data_tests: [not_null]

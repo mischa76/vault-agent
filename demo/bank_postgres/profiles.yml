@@ -1,0 +1,23 @@
+# dbt connection profile for the bank Durchstich.
+#
+# Targets a NATIVE local PostgreSQL 16 (no Docker): the cluster runs on the host at
+# localhost:5432 with a `vault` role/database (password `vault`). To provision it on a
+# fresh machine:
+#
+#   sudo -u postgres psql -c "CREATE ROLE vault LOGIN PASSWORD 'vault';"
+#   sudo -u postgres psql -c "CREATE DATABASE vault OWNER vault;"
+#
+# dbt finds this file because the runbook runs dbt from this directory with
+# DBT_PROFILES_DIR=. (or copy it to ~/.dbt/profiles.yml).
+bank_postgres:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5432
+      user: vault
+      password: vault
+      dbname: vault
+      schema: public
+      threads: 4

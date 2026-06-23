@@ -141,6 +141,20 @@ cross-connection resume.
 No agents remain as stubs; the HITL loop is closed. Planned: transactional-link payload
 modeling improvements, LangSmith evals, and (when a UI lands) an interactive resume prompt.
 
+The generated models now run end-to-end on a real warehouse (as of 2026-06-23,
+docs/architecture/poc-end-to-end-dbt-spec.md): demo/bank_postgres/ is a runnable Durchstich
+that feeds a fixed bank DVModel through the *real* CodeGeneratorAgent (build_vault_models.py,
+no API key) and builds the output on a native local PostgreSQL 16 via dbt + AutomateDV 0.11.4.
+`dbt build --full-refresh` is green for two hubs, a standard link, two standard satellites and
+an effectivity satellite, all populated (verified). The staging layer (stg_* hash-key/hashdiff
+models) is hand-authored — the generator does not yet emit it (the biggest gap to a fully
+runnable project; see the demo README findings). Postgres casing works by keeping every
+identifier unquoted (seeds quote_columns=false) so UPPER_SNAKE folds consistently. Known
+finding: AutomateDV's eff_sat *incremental* path errors on Postgres (`column "effective_from"
+specified more than once`) because the generator maps src_eff and src_start_date to the same
+column; the eff_sat is green on full-refresh, the incremental re-run is the documented limit.
+dbt deps live in the `demo` optional-dependency extra (uv sync --extra demo).
+
 ## References to nearby work
 - Learning plan: ../Lernplan_Mapping.xlsx
 - Project charter: ../Vault-Agent_Projektkonzept.docx
