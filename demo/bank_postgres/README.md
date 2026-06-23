@@ -107,30 +107,59 @@ PGPASSWORD=vault psql -h localhost -U vault -d vault -c "
   where acc.account_number = 'ACC-503' order by eff.effective_from;"
 ```
 
-**Idempotency.** Re-running `dbt run` adds no duplicate rows for the hubs, the link, and the
-standard satellites (`INSERT 0 0`). The effectivity satellite is the one exception — see the
-finding below; re-run it with `--full-refresh`, or exclude it from a plain incremental re-run:
-`uv run dbt run --exclude sat_account_customer_eff`.
+**Idempotency.** Re-running `dbt run` adds no duplicate rows and changes no end-dates — every
+incremental model (hubs, link, standard satellites, **and the effectivity satellite**) reports
+`INSERT 0 0` on a second pass with unchanged seeds.
 
-### Demonstrating the effectivity satellite's end-dating
+### Phase B2 — demonstrate the effectivity satellite's end-dating
 
-On a single full load the eff_sat inserts every ownership row open-ended. To see AutomateDV
-**end-date** the transferred account's first owner, load the two ownership batches separately
-using the `load_date` window var (inert by default — see `models/staging/stg_account_customer.sql`):
+The eff_sat's signature feature is **auto end-dating**: when an account's owner changes, the
+old ownership record is closed at the transfer date. A single full load inserts every row
+open-ended (nothing to supersede yet), so the end-dating is shown across **two incremental
+batches**, each a *snapshot* of the ownership rows loaded on that date. The `load_batch` var
+(inert by default — see `models/staging/stg_account_customer.sql`) filters staging to one batch:
 
 ```bash
 export DBT_PROFILES_DIR="$PWD"
-# Batch 1 — state as of 2026-01-01 (ACC-503 owned by CH-1001, open)
+# Batch 1 — initial owners as of 2026-01-01 (ACC-503 owned by CH-1001, open)
 uv run dbt run --select stg_account_customer sat_account_customer_eff \
-  --vars '{load_date: "2026-01-01"}' --full-refresh
-# Batch 2 — the 2026-04-01 transfer arrives (incremental)
+  --vars '{load_batch: "2026-01-01"}' --full-refresh
+# Batch 2 — the 2026-04-01 transfer arrives (incremental — no --full-refresh)
 uv run dbt run --select stg_account_customer sat_account_customer_eff \
-  --vars '{load_date: "2026-04-01"}'
+  --vars '{load_batch: "2026-04-01"}'
 ```
 
-> **Heads-up:** batch 2 hits the eff_sat-on-Postgres incremental finding below. Batch 1 alone
-> demonstrates the initial open-ended load; the cross-load end-dating is blocked by the
-> documented AutomateDV/Postgres bug.
+> dbt re-parses fully whenever `--vars` changes ("Unable to do partial parsing…"), so each batch
+> takes ~1–2 min to start — this is normal, not a hang.
+
+Verify the end-dating (AutomateDV's eff_sat is append-only — it *inserts* a closing record, so
+the current state is the latest row per relationship; the query is in `analyses/verify_vault.sql`):
+
+```bash
+PGPASSWORD=vault psql -h localhost -U vault -d vault -c "
+  with ranked as (
+    select cust.national_customer_id, eff.effective_from, eff.effective_to,
+           row_number() over (partition by eff.account_hk, eff.customer_hk
+                              order by eff.load_datetime desc) rn
+    from sat_account_customer_eff eff
+    join hub_account  acc  on acc.account_hk  = eff.account_hk
+    join hub_customer cust on cust.customer_hk = eff.customer_hk
+    where acc.account_number = 'ACC-503')
+  select national_customer_id, effective_from, effective_to from ranked where rn=1
+  order by effective_from;"
+```
+
+Expected — the first owner is **closed at the transfer date**, the new owner stays open:
+
+```
+ national_customer_id | effective_from | effective_to
+----------------------+----------------+--------------
+ CH-1001              | 2026-01-01     | 2026-04-01      ← end-dated
+ CH-1002              | 2026-04-01     | 9999-12-31      ← open
+```
+
+Re-running batch 2 with unchanged data is idempotent (`INSERT 0 0`, no end-date change). To
+return to the canonical single-load state afterwards, run `uv run dbt build --full-refresh`.
 
 ## Findings
 
@@ -143,16 +172,23 @@ runnable project", and platform quirks worth recording (spec §9).
    feature, since the generator already knows every HK/HASHDIFF name and its source columns. A
    draft ADR for a **staging generator** is the recommended sequel.
 
-2. **AutomateDV `eff_sat` incremental path errors on Postgres.** `dbt build --full-refresh` is
-   green (the initial load uses simpler SQL), but a second, *incremental* run fails with
-   `column "effective_from" specified more than once`. Root cause: the generator maps both
-   `src_start_date` and `src_eff` to the same column (`EFFECTIVE_FROM`), and AutomateDV's
-   incremental eff_sat CTEs (`new_open_records` / `new_reopened_records` / `new_closed_records`)
-   project that column twice with an identical alias, which Postgres rejects. The hubs, link, and
-   standard satellites are fully idempotent; only the eff_sat incremental path is affected.
-   *Candidate fix (draft ADR):* give `eff_sat` a `src_eff` distinct from `src_start_date` — but
-   the bank model has no third date column, so this needs a modeling decision, not a one-liner.
-   Recorded as a finding per spec §3, not a blocker.
+2. **AutomateDV `eff_sat` incremental path on Postgres — RESOLVED**
+   ([eff-sat-incremental-fix-spec.md](../../docs/architecture/eff-sat-incremental-fix-spec.md)).
+   *Was:* an incremental `dbt run` failed with `column "effective_from" specified more than once`
+   because the generator mapped both `src_start_date` and `src_eff` to the same column, and
+   AutomateDV's incremental eff_sat CTEs project `src_eff` separately. *Fix:* the generator now
+   sets `src_eff` to a dedicated column (`APPLIED_DTS`, `rules.EFFECTIVITY_APPLIED_COLUMN`),
+   distinct from `src_start_date`; staging derives `APPLIED_DTS` from `EFFECTIVE_FROM`. The
+   incremental path is now green and idempotent.
+   Two further things were needed to make end-dating actually *fire* — recorded here because the
+   first is generic AutomateDV behaviour:
+   - **Auto end-dating is opt-in.** AutomateDV's `eff_sat` only closes superseded records when the
+     model config sets `is_auto_end_dating=true` (default `false`); otherwise it is insert-only.
+     The generator now emits this in the eff_sat's `config()` — closing old relationships is the
+     point of an effectivity satellite.
+   - **Each batch must be a snapshot, not cumulative.** End-dating fires only when the superseded
+     relationship is *absent* from the new source batch, so the demo loads one `load_batch`
+     (snapshot) at a time (see Phase B2), not a growing `<=` window.
 
 3. **Postgres identifier casing.** The generator emits UPPER_SNAKE names; Postgres folds unquoted
    identifiers to lower-case. The demo keeps **everything unquoted** — seeds use

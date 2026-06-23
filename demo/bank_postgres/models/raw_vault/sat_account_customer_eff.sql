@@ -1,4 +1,4 @@
-{{ config(materialized='incremental') }}
+{{ config(materialized='incremental', is_auto_end_dating=true) }}
 
 {%- set source_model = "stg_account_customer" -%}
 {%- set src_pk = "LINK_ACCOUNT_CUSTOMER_HK" -%}
@@ -6,7 +6,7 @@
 {%- set src_sfk = ["CUSTOMER_HK"] -%}
 {%- set src_start_date = "EFFECTIVE_FROM" -%}
 {%- set src_end_date = "EFFECTIVE_TO" -%}
-{%- set src_eff = "EFFECTIVE_FROM" -%}
+{%- set src_eff = "APPLIED_DTS" -%}
 {%- set src_ldts = "LOAD_DATETIME" -%}
 {%- set src_source = "RECORD_SOURCE" -%}
 

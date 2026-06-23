@@ -16,6 +16,7 @@ from typing import Any
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.rules.dv2_rules import (
+    EFFECTIVITY_APPLIED_COLUMN,
     HASHDIFF_SUFFIX,
     HASHKEY_SUFFIX,
     LOAD_DATETIME_COLUMN,
@@ -238,6 +239,12 @@ def _render_eff_sat(
 ) -> tuple[str, dict[str, Any]]:
     dates = [_to_column(attr) for attr in sat.attributes]
     start_date, end_date = dates[0], dates[1]
+    # src_eff must be a DEDICATED effectivity column, distinct from src_start_date /
+    # src_end_date / src_ldts: AutomateDV's incremental eff_sat SQL projects src_eff
+    # separately, so reusing the start-date column makes Postgres reject the query with
+    # "column ... specified more than once". The eff_sat parent's staging supplies this
+    # column carrying the start-date value (see EFFECTIVITY_APPLIED_COLUMN).
+    eff_column = EFFECTIVITY_APPLIED_COLUMN
     # AutomateDV's src_dfk takes a bare key for a single driving hub, a list for several
     # — mirror how src_fk / src_cdk are rendered elsewhere.
     single_driver = len(driving_fks) == 1
@@ -250,12 +257,16 @@ def _render_eff_sat(
         "src_sfk": secondary_fks,
         "src_start_date": start_date,
         "src_end_date": end_date,
-        "src_eff": start_date,
+        "src_eff": eff_column,
         "src_ldts": LOAD_DATETIME_COLUMN,
         "src_source": RECORD_SOURCE_COLUMN,
     }
+    # Enable AutomateDV's auto end-dating: closing a superseded relationship when a driving
+    # key's partner changes is the defining behaviour of an effectivity satellite. The macro
+    # gates it on the model config `is_auto_end_dating` (default false), so without this the
+    # generated eff_sat would be insert-only and never end-date.
     sql = (
-        "{{ config(materialized='incremental') }}\n\n"
+        "{{ config(materialized='incremental', is_auto_end_dating=true) }}\n\n"
         + _set_block(
             [
                 ("source_model", f'"{meta["source_model"]}"'),
@@ -264,7 +275,7 @@ def _render_eff_sat(
                 ("src_sfk", _sql_list(secondary_fks)),
                 ("src_start_date", f'"{start_date}"'),
                 ("src_end_date", f'"{end_date}"'),
-                ("src_eff", f'"{start_date}"'),
+                ("src_eff", f'"{eff_column}"'),
                 ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
                 ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
             ]

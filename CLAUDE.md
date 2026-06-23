@@ -149,11 +149,20 @@ no API key) and builds the output on a native local PostgreSQL 16 via dbt + Auto
 an effectivity satellite, all populated (verified). The staging layer (stg_* hash-key/hashdiff
 models) is hand-authored — the generator does not yet emit it (the biggest gap to a fully
 runnable project; see the demo README findings). Postgres casing works by keeping every
-identifier unquoted (seeds quote_columns=false) so UPPER_SNAKE folds consistently. Known
-finding: AutomateDV's eff_sat *incremental* path errors on Postgres (`column "effective_from"
-specified more than once`) because the generator maps src_eff and src_start_date to the same
-column; the eff_sat is green on full-refresh, the incremental re-run is the documented limit.
+identifier unquoted (seeds quote_columns=false) so UPPER_SNAKE folds consistently.
 dbt deps live in the `demo` optional-dependency extra (uv sync --extra demo).
+
+Incremental eff_sat fixed (as of 2026-06-23, docs/architecture/eff-sat-incremental-fix-spec.md):
+src_eff is now decoupled from src_start_date — the generator sets it to a dedicated
+EFFECTIVITY_APPLIED_COLUMN ("APPLIED_DTS", in rules/dv2_rules.py), which staging derives from
+EFFECTIVE_FROM. That clears the Postgres "column ... specified more than once" error, so the
+incremental eff_sat run is green and idempotent. The generated eff_sat also emits
+config(is_auto_end_dating=true) — AutomateDV's auto end-dating is opt-in (default false), and
+closing superseded relationships is the defining behaviour of an effectivity satellite.
+End-dating is demonstrated via a two-phase snapshot load (demo README → "Phase B2"): after the
+transfer batch, ACC-503's first owner row is closed to 2026-04-01 and the new owner stays open
+(verified). Test pins: test_code_generator asserts src_eff=="APPLIED_DTS" (≠ src_start_date) and
+is_auto_end_dating=true.
 
 ## References to nearby work
 - Learning plan: ../Lernplan_Mapping.xlsx

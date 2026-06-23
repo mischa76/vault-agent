@@ -142,14 +142,21 @@ async def test_effectivity_satellite_applies_declared_driving_key() -> None:
     sql = result.artifacts.dbt_models["sat_ownership_eff"]
 
     assert "automate_dv.eff_sat(" in sql
+    # Auto end-dating must be enabled — it is what closes a superseded relationship.
+    assert "is_auto_end_dating=true" in sql
     assert '{%- set src_pk = "LINK_ACCOUNT_CUSTOMER_HK" -%}' in sql
     assert '{%- set src_dfk = "CUSTOMER_HK" -%}' in sql  # declared driving key, not first hub
     assert '{%- set src_sfk = ["ACCOUNT_HK"] -%}' in sql
     assert '{%- set src_start_date = "EFFECTIVE_FROM" -%}' in sql
     assert '{%- set src_end_date = "EFFECTIVE_TO" -%}' in sql
+    # src_eff MUST be a dedicated column distinct from src_start_date — reusing EFFECTIVE_FROM
+    # breaks AutomateDV's incremental eff_sat SQL on Postgres ("specified more than once").
+    assert '{%- set src_eff = "APPLIED_DTS" -%}' in sql
     assert not result.errors
     meta = result.artifacts.automatedv_yaml["satellites"]["sat_ownership_eff"]
     assert meta["src_dfk"] == "CUSTOMER_HK"
+    assert meta["src_eff"] == "APPLIED_DTS"
+    assert meta["src_eff"] != meta["src_start_date"]  # the decoupling that fixes incremental
     assert meta["src_sfk"] == ["ACCOUNT_HK"]
 
 

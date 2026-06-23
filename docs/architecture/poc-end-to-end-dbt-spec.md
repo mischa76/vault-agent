@@ -116,6 +116,13 @@ self-referencing links). Keep the core Durchstich clean; document the rest as fi
 > during Phase B. If AutomateDV's `eff_sat` on Postgres needs behaviour the generator's plain
 > `incremental` config doesn't give, fall back to delivering Phase A (hubs/link/standard sats) as
 > the headline Durchstich and record the eff_sat result as a finding — do not block the PoC on it.
+>
+> **Update (2026-06-23): resolved** by
+> [eff-sat-incremental-fix-spec.md](./eff-sat-incremental-fix-spec.md). The incremental eff_sat
+> *did* need more than the plain config: `src_eff` had to be decoupled from `src_start_date` (the
+> generator now emits a dedicated `APPLIED_DTS` column), and auto end-dating had to be enabled in
+> the generated `config(is_auto_end_dating=true)`. The incremental run is now green and idempotent,
+> and end-dating is demonstrated via a two-phase load (demo README → "Phase B2").
 
 ---
 
@@ -266,7 +273,8 @@ uv run dbt test                           # AutomateDV/dbt tests (add not_null/u
    to lowercase. Confirm AutomateDV's Postgres adapter quoting makes `CUSTOMER_HK` etc. resolve;
    if not, align seed header case / set `quote_columns` consistently. This is the single most
    likely failure — budget time for it.
-2. **eff_sat on incremental** (see §3 note).
+2. **eff_sat on incremental** — resolved (see §3 note update + eff-sat-incremental-fix-spec.md):
+   needed `src_eff` ≠ `src_start_date` and `is_auto_end_dating=true` in the generated config.
 3. **Hash NULL handling** — AutomateDV has documented NULL-handling behaviour; seed non-null keys.
 
 ---

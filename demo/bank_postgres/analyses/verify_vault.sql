@@ -12,15 +12,25 @@ union all select 'sat_account_details',      count(*) from {{ ref('sat_account_d
 union all select 'sat_account_customer_eff', count(*) from {{ ref('sat_account_customer_eff') }}
 order by vault_table;
 
--- (2) Ownership history for the transferred account ACC-503 — join the effectivity
--- satellite back to the business keys via the link's hash keys.
--- select
---     acc.account_number,
---     cust.national_customer_id,
---     eff.effective_from,
---     eff.effective_to
--- from {{ ref('sat_account_customer_eff') }} eff
--- join {{ ref('hub_account') }}  acc  on acc.account_hk  = eff.account_hk
--- join {{ ref('hub_customer') }} cust on cust.customer_hk = eff.customer_hk
--- where acc.account_number = 'ACC-503'
--- order by eff.effective_from;
+-- (2) End-dating of the transferred account ACC-503 — the effectivity satellite's signature
+-- behaviour. After the two-phase load (README → "Phase B2"), the first owner (CH-1001) is
+-- closed to the transfer date and the new owner (CH-1002) stays open. AutomateDV's eff_sat is
+-- append-only, so it INSERTS a closing record rather than updating in place; the CURRENT view
+-- is the latest record per relationship (by LOAD_DATETIME).
+-- Expected after Phase B2:
+--   CH-1001 | 2026-01-01 | 2026-04-01   (closed at the transfer date)
+--   CH-1002 | 2026-04-01 | 9999-12-31   (open)
+-- with ranked as (
+--     select
+--         cust.national_customer_id,
+--         eff.effective_from,
+--         eff.effective_to,
+--         row_number() over (partition by eff.account_hk, eff.customer_hk
+--                            order by eff.load_datetime desc) as rn
+--     from {{ ref('sat_account_customer_eff') }} eff
+--     join {{ ref('hub_account') }}  acc  on acc.account_hk  = eff.account_hk
+--     join {{ ref('hub_customer') }} cust on cust.customer_hk = eff.customer_hk
+--     where acc.account_number = 'ACC-503'
+-- )
+-- select national_customer_id, effective_from, effective_to
+-- from ranked where rn = 1 order by effective_from;

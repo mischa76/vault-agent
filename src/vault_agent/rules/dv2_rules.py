@@ -72,6 +72,13 @@ RECORD_SOURCE_COLUMN = "RECORD_SOURCE"
 HASHKEY_SUFFIX = "_HK"
 HASHDIFF_SUFFIX = "_HASHDIFF"
 STAGING_PREFIX = "stg_"
+# Dedicated effectivity-tracking column for an effectivity satellite's AutomateDV `src_eff`.
+# It MUST be distinct from src_start_date / src_end_date / src_ldts: AutomateDV's incremental
+# eff_sat SQL projects src_eff separately, so reusing the start-date column makes Postgres
+# reject the query with "column ... specified more than once". The staging for an eff_sat
+# parent supplies this column carrying the same value as the start date, so end-dating closes
+# a superseded record to the business effective date of its successor (not a load timestamp).
+EFFECTIVITY_APPLIED_COLUMN = "APPLIED_DTS"
 
 # Vos revisions (NBK over hash, insert-only over persisted end-dating, ELM relationship-hubs,
 # foreign-key links, PSA, PIT/Bridge) are deliberately out of scope here — they are ADR-gated
