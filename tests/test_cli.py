@@ -3,6 +3,7 @@
 write_outputs is tested directly with a hand-built state (no graph, no API key); the CLI
 wiring is smoke-tested via Typer's CliRunner.
 """
+import re
 from pathlib import Path
 
 import pytest
@@ -127,9 +128,15 @@ def test_cli_run_requires_existing_file() -> None:
 
 
 def test_cli_run_help_lists_source_schema_flag() -> None:
-    result = runner.invoke(app, ["run", "--help"])
+    # Rich renders --help with ANSI styling and width-dependent wrapping; CI has no TTY
+    # (defaults to 80 cols), which split the option name and failed a raw-substring check.
+    # Force a wide, colour-free terminal and strip any residual ANSI before asserting.
+    result = runner.invoke(
+        app, ["run", "--help"], env={"COLUMNS": "200", "NO_COLOR": "1"}
+    )
     assert result.exit_code == 0
-    assert "--source-schema" in result.stdout
+    plain = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+    assert "--source-schema" in plain
 
 
 def test_loader_feeds_state_source_schemas(tmp_path: Path) -> None:
