@@ -167,7 +167,7 @@ See the [demo runbook](demo/bank_postgres/README.md) for prerequisites and verif
 This is not vibes-based modeling. The agents are grounded in established practice:
 
 - **Data Vault 2.1** — Dan Linstedt / DataVaultAlliance (methodology and rules)
-- **DSAF** — Roelant Vos, Data Solutions Architecture Framework
+- **DSAF** — Roelant Vos, Data Solutions Architecture Framework: a pragmatic architecture lens (an influence, not an implemented/selectable mode); adopted ideas and the ADR-gated Vos alternatives are critically mapped in [dsaf-mapping.md](docs/methodology/dsaf-mapping.md)
 - **IREB CPRE** — requirements-engineering conventions for the parsing stage
 - **Data Contracts** — Chad Sanderson, Mark Freeman & B.E. Schmidt, *Data Contracts: Developing Production-Grade Pipelines at Scale* (O'Reilly, 2025)
 

@@ -33,7 +33,9 @@ Public GitHub from W4 onwards.
 
 ## Methodological foundations (cite when relevant)
 - Data Vault 2.1 (Dan Linstedt / DataVaultAlliance) – methodology and rules
-- DSAF (Roelant Vos) – Data Solutions Architecture Framework
+- DSAF (Roelant Vos) – Data Solutions Architecture Framework: a pragmatic architecture lens
+  (influence, not an implemented/selectable mode). Adopted ideas and the ADR-gated Vos
+  alternatives are critically mapped in docs/methodology/dsaf-mapping.md
 - IREB CPRE Foundation – Requirements Engineering conventions
 - Chad Sanderson, Mark Freeman & B.E. Schmidt – Data Contracts: Developing Production-Grade Pipelines at Scale (O'Reilly, 2025)
 
