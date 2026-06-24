@@ -1,0 +1,20 @@
+# Declared source schema for the bank toy domain (source-schema-input spec, Phase 1).
+#
+# Feeds `state.source_schemas` via `vault-agent run --source-schema`, activating ADR-0004
+# grounding (validator W_*_NOT_IN_SOURCE warnings, prompt steering, one contract per table).
+# Columns mirror the `raw_*` seeds in demo/bank_postgres/seeds/ (the business columns; the
+# technical LOAD_DATETIME / RECORD_SOURCE audit columns are omitted on purpose).
+#
+#   vault-agent run examples/inputs/bank_account_requirements.md \
+#     --source-schema examples/inputs/bank_source_schema.yml --out output
+#
+# A faithful schema grounds cleanly (grounding: on, no spurious warnings). To *see*
+# grounding bite, drop or rename a column below (e.g. national_customer_id) and re-run:
+# the validator then emits a W_BK_NOT_IN_SOURCE warning in the checkpoint / review-queue.md.
+source_schemas:
+  - table: customer
+    columns: [national_customer_id, bank_customer_reference, customer_name, date_of_birth]
+  - table: account
+    columns: [account_number, balance, status]
+  - table: account_customer
+    columns: [account_number, national_customer_id, effective_from, effective_to]

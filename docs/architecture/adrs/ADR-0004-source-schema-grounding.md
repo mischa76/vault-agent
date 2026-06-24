@@ -4,6 +4,12 @@
 **Date:** 2026-06-13
 **Decision makers:** Mischa Eismann
 
+> **Amendment (2026-06-24):** the "Schema Inspector / Data Profiler" future tool now has a
+> first, minimal **producer** — a declared-file loader (`vault-agent run --source-schema
+> <file.yml/json>`, source-schema-input spec Phase 1) populates `source_schemas`, so this
+> grounding contract is no longer inert via the CLI. DDL parsing and live DB introspection
+> remain future producers; the grounding contract below is unchanged.
+
 ## Context
 
 Until now the pipeline derived hubs, business keys, and satellite attributes purely from

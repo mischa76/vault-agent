@@ -37,8 +37,10 @@ The data actually flows like this (grounded in `src/vault_agent/`):
 | `adr_author` | model | finalized ADR | no |
 
 \* *The optional source schema (`state.source_schemas`) is read by the grounding helpers, the
-modeler/business-key prompts, and the validator — but **no entry point populates it today** (the
-CLI never sets it), so in practice it is empty and grounding is inert.*
+modeler/business-key prompts, and the validator. It is now **fed** by a declared-file producer
+(`vault-agent run --source-schema <file.yml>`, source-schema-input spec Phase 1), so grounding
+activates when a schema is supplied; with no flag it stays empty and inert. Naming Stage/Raw Vault
+from the source schema (the two-input target) remains Phase 2.*
 
 ### Where the names come from today
 
@@ -113,8 +115,9 @@ mapping can be grounded.
 
 ## Gaps to close to reach the target
 
-1. **Source-schema input + producer** — a way to supply `source_schemas` (a `--source-schema`
-   loader for YAML/JSON/DDL, later a profiler). Per [ADR-0007](architecture/adrs/ADR-0007-automation-scope-by-layer.md)
+1. **Source-schema input + producer** — ✅ **done (Phase 1)**: `--source-schema` loads a declared
+   YAML/JSON file into `source_schemas`, activating grounding. Richer producers (DDL parsing, DB
+   profiler) remain future. Per [ADR-0007](architecture/adrs/ADR-0007-automation-scope-by-layer.md)
    this is **assist-level and selective** (a curated, requirements-scoped subset — not a full DB
    dump).
 2. **Mapping step** — business concept ↔ source column, agent-proposed, human-confirmed; feeds the
@@ -139,7 +142,7 @@ mapping can be grounded.
 | Source→target mapping | none (names invented from prose) | explicit, agent-proposed + human-confirmed |
 | Cross-source handling | single implied source | consolidate on business key; **per-source satellites** |
 | Fachsprache | (leaks into Raw Vault) | **downstream only** (Business Vault / Marts) |
-| `source_schemas` | declared but unfed → grounding inert | fed by the source-schema input/producer |
+| `source_schemas` | **fed** by `--source-schema` (declared file) → grounding active | richer producers (DDL parse, DB introspection) |
 
 ---
 

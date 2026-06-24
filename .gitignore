@@ -58,3 +58,4 @@ _fortbildung
 # Scratch / local helper files (converted PDFs/DOCX, study-set text dumps)
 _tmp/
 docs/handover/
+.claude/

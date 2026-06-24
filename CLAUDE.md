@@ -164,6 +164,18 @@ transfer batch, ACC-503's first owner row is closed to 2026-04-01 and the new ow
 (verified). Test pins: test_code_generator asserts src_eff=="APPLIED_DTS" (≠ src_start_date) and
 is_auto_end_dating=true.
 
+Source-schema input producer landed (as of 2026-06-24, docs/architecture/source-schema-input-spec.md):
+the declared-but-unfed ADR-0004 grounding now has a producer. `vault-agent run --source-schema
+<file.yml/json>` (or -s) loads a declared schema (src/vault_agent/source_schema.py: load_source_schemas
+— accepts a top-level `source_schemas:` key or a bare list; empty/null doc → [] = inert; malformed
+entry → clear attributable ValueError naming file + problem) into state.source_schemas, activating the
+existing consumers: validator W_BK_NOT_IN_SOURCE/W_ATTR_NOT_IN_SOURCE warnings, modeler/business-key
+prompt steering, and one data contract per source table. The run summary prints `grounding: on
+(N source table(s))` / `off`. Example schema: examples/inputs/bank_source_schema.yml (the bank raw_*
+business columns). Fully inert without the flag (byte-for-byte regression guard); resume needs no flag
+(persisted in the checkpoint). Phase 2/3 (source-dialect naming + business↔source mapping, staging
+generator, DDL/DB introspection) remain out of scope.
+
 ## References to nearby work
 - Learning plan: ../Lernplan_Mapping.xlsx
 - Project charter: ../Vault-Agent_Projektkonzept.docx

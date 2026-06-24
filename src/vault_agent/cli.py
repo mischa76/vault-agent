@@ -30,7 +30,8 @@ from vault_agent.agents.orchestrator import (
     render_review_queue_md,
 )
 from vault_agent.graph import build_graph
-from vault_agent.state import VaultAgentState
+from vault_agent.source_schema import load_source_schemas
+from vault_agent.state import SourceTable, VaultAgentState
 
 app = typer.Typer(help="Agentic AI for Data Vault 2.0 automation.", no_args_is_help=True)
 
@@ -151,9 +152,14 @@ def _state_from_result(result: dict[str, Any]) -> VaultAgentState:
     return VaultAgentState.model_validate(data)
 
 
-async def _run_pipeline(input_doc: Path, out_dir: Path) -> tuple[VaultAgentState, bool, str]:
+async def _run_pipeline(
+    input_doc: Path, out_dir: Path, source_schemas: list[SourceTable] | None = None
+) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
-    ``paused`` is true when the human-in-the-loop checkpoint interrupted the run."""
+    ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
+
+    ``source_schemas`` (from a declared ``--source-schema`` file) is set on the initial
+    state to activate ADR-0004 grounding; empty/``None`` leaves grounding inert."""
     thread_id = uuid4().hex
     _checkpoint_dir(out_dir).mkdir(parents=True, exist_ok=True)
     config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
@@ -163,7 +169,10 @@ async def _run_pipeline(input_doc: Path, out_dir: Path) -> tuple[VaultAgentState
         result = await compiled.ainvoke(
             # LangGraph's generic ainvoke doesn't infer our pydantic state as StateT;
             # passing VaultAgentState is correct at runtime.
-            VaultAgentState(input_documents=[str(input_doc)]),  # type: ignore[arg-type]
+            VaultAgentState(  # type: ignore[arg-type]
+                input_documents=[str(input_doc)],
+                source_schemas=source_schemas or [],
+            ),
             config=config,
         )
     return _state_from_result(result), "__interrupt__" in result, thread_id
@@ -209,9 +218,12 @@ def _print_summary(console: Console, state: VaultAgentState) -> None:
     model = state.dv_model
     report = state.validation_report
     verdict = "[bold green]PASSED[/bold green]" if report.passed else "[bold red]FAILED[/bold red]"
+    n_schemas = len(state.source_schemas)
+    grounding = f"on ({n_schemas} source table(s))" if n_schemas else "off"
     console.print(
         f"  requirements:  {len(state.requirements)}\n"
         f"  business keys: {len(state.business_keys)}\n"
+        f"  grounding:     {grounding}\n"
         f"  model:         {len(model.hubs)} hubs, {len(model.links)} links, "
         f"{len(model.satellites)} satellites\n"
         f"  dbt models:    {len(state.artifacts.dbt_models)}\n"
@@ -287,6 +299,13 @@ def run(
     out: Annotated[
         Path, typer.Option("--out", "-o", help="Output directory for generated artifacts."),
     ] = Path("output"),
+    source_schema: Annotated[
+        Path | None,
+        typer.Option(
+            "--source-schema", "-s", exists=True, dir_okay=False,
+            help="Optional declared source schema (YAML/JSON) to ground keys/attributes against.",
+        ),
+    ] = None,
     write: Annotated[
         bool, typer.Option("--write/--no-write", help="Write artifacts to disk."),
     ] = True,
@@ -295,7 +314,12 @@ def run(
     console = Console()
     console.print(f"[bold]Running Vault-Agent pipeline[/bold] on {input_doc} …\n")
     try:
-        state, paused, thread_id = asyncio.run(_run_pipeline(input_doc, out))
+        schemas = load_source_schemas(source_schema) if source_schema else []
+    except (ValueError, OSError) as exc:
+        console.print(f"[bold red]Could not load source schema:[/bold red] {exc}")
+        raise typer.Exit(code=1) from exc
+    try:
+        state, paused, thread_id = asyncio.run(_run_pipeline(input_doc, out, schemas))
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
         console.print(f"[bold red]Pipeline failed:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc

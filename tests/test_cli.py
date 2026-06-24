@@ -13,12 +13,14 @@ from vault_agent.cli import (
     _adr_filename,
     _build_decision,
     _parse_owner,
+    _print_summary,
     _read_pending,
     _write_pending,
     app,
     write_outputs,
 )
-from vault_agent.state import Artifacts, VaultAgentState
+from vault_agent.source_schema import load_source_schemas
+from vault_agent.state import Artifacts, SourceTable, VaultAgentState
 
 runner = CliRunner()
 
@@ -119,3 +121,47 @@ def test_pending_roundtrip(tmp_path: Path) -> None:
 def test_cli_run_requires_existing_file() -> None:
     result = runner.invoke(app, ["run", "does/not/exist.md"])
     assert result.exit_code != 0
+
+
+# --- Source-schema input (Phase 1) -------------------------------------------------------
+
+
+def test_cli_run_help_lists_source_schema_flag() -> None:
+    result = runner.invoke(app, ["run", "--help"])
+    assert result.exit_code == 0
+    assert "--source-schema" in result.stdout
+
+
+def test_loader_feeds_state_source_schemas(tmp_path: Path) -> None:
+    """The loader + state wiring: a declared file lands on VaultAgentState.source_schemas."""
+    path = tmp_path / "schema.yml"
+    path.write_text(
+        "source_schemas:\n"
+        "  - table: customer\n"
+        "    columns: [national_customer_id, customer_name]\n",
+        encoding="utf-8",
+    )
+    schemas = load_source_schemas(path)
+    state = VaultAgentState(input_documents=["doc.md"], source_schemas=schemas)
+    assert state.source_schemas == [
+        SourceTable(table="customer", columns=["national_customer_id", "customer_name"])
+    ]
+
+
+def test_summary_shows_grounding_on_with_schemas() -> None:
+    from rich.console import Console
+
+    console = Console(record=True, width=120)
+    state = VaultAgentState(
+        source_schemas=[SourceTable(table="customer", columns=["national_customer_id"])]
+    )
+    _print_summary(console, state)
+    assert "grounding:     on (1 source table(s))" in console.export_text()
+
+
+def test_summary_shows_grounding_off_without_schemas() -> None:
+    from rich.console import Console
+
+    console = Console(record=True, width=120)
+    _print_summary(console, VaultAgentState())
+    assert "grounding:     off" in console.export_text()

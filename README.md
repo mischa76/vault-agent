@@ -112,6 +112,20 @@ cp .env.example .env          # then add your ANTHROPIC_API_KEY
 uv run vault-agent run examples/inputs/health_insurance_requirements.md --out output
 ```
 
+Optionally ground the model against a **declared source schema** (YAML/JSON listing each
+source table and its columns) so proposed business keys and satellite attributes are
+cross-checked against columns that actually exist (ADR-0004). With a schema supplied,
+the run reports `grounding: on`, emits one data contract per source table, and flags any
+key/attribute absent from the schema as a non-blocking `W_*_NOT_IN_SOURCE` warning:
+
+```bash
+uv run vault-agent run examples/inputs/bank_account_requirements.md \
+  --source-schema examples/inputs/bank_source_schema.yml --out output
+```
+
+Without `--source-schema`, grounding stays inert and the output is unchanged. To see
+grounding bite, drop or rename a column in the schema file and re-run.
+
 This produces dbt models (`output/models/*.sql`), AutomateDV metadata
 (`output/metadata/automatedv.yml`), data contracts and their dbt tests (`output/contracts/`), and a
 finalized ADR (`output/adrs/`). When the run needs human sign-off (e.g. to assign a data-contract
