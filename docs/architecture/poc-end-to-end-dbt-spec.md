@@ -128,7 +128,7 @@ self-referencing links). Keep the core Durchstich clean; document the rest as fi
 
 ## 4. Deliverables — repository layout
 
-Create under `demo/bank_postgres/` (committed; becomes a public portfolio artifact):
+Create under `demo/bank_postgres/` (committed; a public demo artifact):
 
 ```
 demo/bank_postgres/

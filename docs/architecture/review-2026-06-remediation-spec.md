@@ -101,8 +101,8 @@ which is unchanged. This is purely a config correction.
 Reader" tool — implementation just catches up to the design).
 
 **Problem.** `_read_document` does `path.read_text(...)` only. `pypdf` is a dependency but unused; a
-PDF or DOCX is read as garbage. The project charter's source documents are `.docx`/`.pdf`
-(`Vault-Agent_Projektkonzept.docx`, `data_contracts_early_release.pdf`).
+PDF or DOCX is read as garbage. Real-world requirements documents commonly arrive as `.docx`/`.pdf`
+rather than plain text, so the parser must handle them.
 
 **Intended behaviour.** A small dispatch-by-extension reader inside the Requirements Parser:
 - `.md`, `.txt` → `read_text` (current path).

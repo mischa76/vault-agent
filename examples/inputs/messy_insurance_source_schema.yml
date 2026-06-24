@@ -1,4 +1,4 @@
-# Declared source schema for the messy HELVETIA-DWH reality test.
+# Declared source schema for the messy ATLAS-DWH reality test.
 #
 # Deliberately realistic: the physical column names are cryptic legacy/source names that do
 # NOT match the business prose in messy_insurance_requirements.md (e.g. the doc says

@@ -6,17 +6,8 @@ from business requirements documents. Target market: Swiss/DACH enterprises with
 DWH landscapes (banks, insurers, pharma, mid-market).
 
 ## Author
-Mischa Eismann (eismann.consulting). Holds CDVP² (Data Vault 2.0 Practitioner, 2015 –
-2.1 refresh in progress) and has 20+ years ICT experience. Hybrid Tech + Business
-profile, already builds LLM/agentic prototypes.
-
-## Strategic context
-This project is a "lighthouse" – it must serve simultaneously as:
-- a skill-build exercise (closes the visible Agentic-AI gap)
-- a portfolio asset (CV, pitches for senior architect / lead consultant roles)
-- a marketing asset for the eismann.consulting brand
-Implication: code quality, documentation quality, and reproducibility all matter.
-Public GitHub from W4 onwards.
+Mischa Eismann (eismann.consulting) — CDVP² (Data Vault 2.0 Practitioner, 2015; 2.1 refresh in
+progress), 20+ years in ICT.
 
 ## Technology stack (locked unless an ADR says otherwise)
 - Python 3.12+
@@ -178,8 +169,6 @@ business columns). Fully inert without the flag (byte-for-byte regression guard)
 (persisted in the checkpoint). Phase 2/3 (source-dialect naming + business↔source mapping, staging
 generator, DDL/DB introspection) remain out of scope.
 
-## References to nearby work
-- Learning plan: ../Lernplan_Mapping.xlsx
-- Project charter: ../Vault-Agent_Projektkonzept.docx
-- Roelant Vos DSAF workshop notes: ../Roelant Vos DSAF WS/
-- Data Contracts (Jones, early release): ../data_contracts_early_release.pdf
+## References
+- In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
+  mapping, data-contracts approach)

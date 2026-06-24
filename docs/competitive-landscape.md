@@ -2,9 +2,8 @@
 
 > **Purpose.** An honest map of where Vault-Agent sits relative to existing Data Vault
 > automation and the emerging "LLM-for-Data-Vault" work — what is already crowded, what is
-> emerging, and where the genuine niche is. Written to keep the project's positioning sharp
-> (and to be useful as pitch material). Based on public information; **snapshot: June 2026** —
-> this space moves fast.
+> emerging, and where the genuine niche is. Written to keep the project's positioning sharp.
+> Based on public information; **snapshot: June 2026** — this space moves fast.
 
 ## TL;DR
 

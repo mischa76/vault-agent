@@ -1,4 +1,4 @@
-# Fachkonzept (Auszug) — Projekt "HELVETIA-DWH": Partner- & Vertragsdaten-Integration
+# Fachkonzept (Auszug) — Projekt "ATLAS-DWH": Partner- & Vertragsdaten-Integration
 
 *Interne Vorlage v0.7 (Entwurf, teils noch in Abstimmung). Dieses Dokument ist bewusst so
 gehalten, wie reale Lastenhefte ankommen — unvollständig, teils widersprüchlich, gemischt

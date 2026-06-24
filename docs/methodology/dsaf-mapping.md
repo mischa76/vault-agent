@@ -24,8 +24,7 @@ All current open source lives under the **`data-solution-automation-engine`** Gi
 | **Agnostic Data Labs (ADL)** | Commercial, git-native successor to TEAM; non-opinionated (DV/ELM, Dimensional, Lakehouse). | agnosticdatalabs.com |
 
 His current umbrella synthesis is the 2025 book **Data Engine Thinking** (with Dirk Lerner,
-TEDAMOH), `dataenginethinking.com`. The **DSAF workshop sample** in the project library
-(`Fortbildung/Roelant Vos DSAF WS/`) is a concrete VDW+TEAM instance — Handlebars templates plus
+TEDAMOH), `dataenginethinking.com`. The **DSAF workshop sample** studied for this project is a concrete VDW+TEAM instance — Handlebars templates plus
 TEAM connection config.
 
 ## What Vault-Agent already embodies (credit, don't rebuild)

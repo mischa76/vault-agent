@@ -8,4 +8,4 @@
 - Business rules vs. constraints
 - Acceptance criteria
 
-(TODO: expand from IREB Foundation materials when refreshing for the exam)
+(TODO: expand from IREB CPRE Foundation materials.)

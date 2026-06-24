@@ -19,7 +19,7 @@ Digital, Betway). dbt Core is the runtime; Snowflake / Fabric / DuckDB are the t
 
 - **Custom SQL templates (Jinja)** – maximum control, but reinvents what AutomateDV solved
 - **Datavault4dbt** – similar concept; smaller user base and less complete docs
-- **VaultSpeed (commercial)** – mature but closed; doesn't fit OSS lighthouse positioning
+- **VaultSpeed (commercial)** – mature but closed; doesn't fit an open-source approach
 
 ## Consequences
 
