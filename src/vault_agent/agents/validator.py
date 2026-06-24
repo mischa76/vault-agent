@@ -19,6 +19,7 @@ from vault_agent.rules.dv2_rules import (
     REQUIRED_LINK_COLUMNS,
     REQUIRED_SAT_COLUMNS,
     SAT_WIDE_ATTRIBUTE_THRESHOLD,
+    effectivity_date_pair,
 )
 from vault_agent.state import ValidationReport, VaultAgentState
 
@@ -154,6 +155,23 @@ class ValidatorAgent(BaseAgent):
                         "multi-active satellite has no child_dependent_key",
                     )
                 )
+            # Heuristic: a *standard* satellite hanging off a link whose payload is a from/to
+            # date pair is likely a mis-modelled effectivity satellite (it should be
+            # sat_type=effectivity with the link's driving key, not a plain sat carrying the
+            # dates). Warning, not error — a legitimate sat may carry two dates.
+            if sat.sat_type == "standard" and sat.parent in link_names:
+                date_pair = effectivity_date_pair(sat.attributes)
+                if date_pair is not None:
+                    from_attr, to_attr = date_pair
+                    issues.append(
+                        _issue(
+                            "warning", "W_SAT_MAYBE_EFFECTIVITY", sat.name,
+                            f"standard satellite on link {sat.parent!r} carries a from/to "
+                            f"date pair ({from_attr!r}, {to_attr!r}); model it as an "
+                            f"effectivity satellite (sat_type=effectivity) with the link's "
+                            f"driving key?",
+                        )
+                    )
             # Mirror + extend the generator gates for effectivity satellites: parent must be
             # a link, exactly two ordered date attributes, and the link must declare a
             # driving key so relationships can be end-dated per driving key.

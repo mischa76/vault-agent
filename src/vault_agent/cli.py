@@ -26,6 +26,7 @@ from rich.console import Console
 from vault_agent import state as _state_module
 from vault_agent.agents.orchestrator import (
     HumanReviewQueue,
+    aggregate_review_flags,
     assemble_review_queue,
     render_review_queue_md,
 )
@@ -265,6 +266,8 @@ def _print_checkpoint(console: Console, queue: HumanReviewQueue) -> None:
         group = grouped.get(kind)
         if not group:
             continue
+        if kind == "review_flag":
+            group = aggregate_review_flags(group)
         console.print(f"  [bold]{_CHECKPOINT_HEADINGS[kind]}[/bold]")
         for item in group:
             detail = f" — {item.detail}" if item.detail else ""

@@ -172,3 +172,33 @@ def test_summary_shows_grounding_off_without_schemas() -> None:
     console = Console(record=True, width=120)
     _print_summary(console, VaultAgentState())
     assert "grounding:     off" in console.export_text()
+
+
+# --- Review-queue aggregation in the CLI checkpoint (finding #3) --------------------------
+
+
+def test_cli_checkpoint_collapses_noise_like_the_md() -> None:
+    from rich.console import Console
+
+    from vault_agent.agents.orchestrator import assemble_review_queue
+    from vault_agent.cli import _print_checkpoint
+    from vault_agent.state import ValidationReport
+
+    state = VaultAgentState(
+        validation_report=ValidationReport(
+            passed=True,
+            issues=[{"severity": "warning", "code": "W_LINK_REDUNDANT_GRAIN",
+                     "construct": "link_a, link_b", "message": "same unit of work twice"}],
+        ),
+        errors=[
+            f"data_contract: field VICTOR_PARTNER.'F{n}' has an undetermined type; review"
+            for n in range(39)
+        ],
+    )
+    console = Console(record=True, width=200)
+    _print_checkpoint(console, assemble_review_queue(state))
+    text = console.export_text()
+
+    assert "39× undetermined field type" in text  # collapsed, not 39 lines
+    assert "W_LINK_REDUNDANT_GRAIN" in text  # substantive warning still shown
+    assert text.index("W_LINK_REDUNDANT_GRAIN") < text.index("39× undetermined field type")

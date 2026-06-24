@@ -43,6 +43,37 @@ SATELLITE_SPLIT_AXES = [
 # for possible splitting — a smell that prompts human review, never a hard failure.
 SAT_WIDE_ATTRIBUTE_THRESHOLD = 30
 
+# Hint tokens marking the two ends of an active-period (from/to) date pair. Single source of
+# truth for the validator's W_SAT_MAYBE_EFFECTIVITY heuristic, which spots a *standard*
+# satellite on a link that carries such a pair (it should likely be an effectivity satellite).
+# Matched against normalize_identifier(attr): a single-word token matches one of the
+# underscore-separated stems (so "FROM" matches "EFFECTIVE_FROM"); a multi-word token matches
+# as a contiguous substring.
+EFFECTIVITY_FROM_TOKENS = {"FROM", "START", "BEGIN", "VALID_FROM", "EFFECTIVE_FROM"}
+EFFECTIVITY_TO_TOKENS = {"TO", "END", "VALID_TO", "EFFECTIVE_TO"}
+
+
+def _matches_tokens(attr: str, tokens: set[str]) -> bool:
+    """True if ``attr`` (normalised) matches one of ``tokens`` by stem or substring."""
+    norm = normalize_identifier(attr)
+    if norm in tokens or set(norm.split("_")) & tokens:
+        return True
+    return any("_" in token and token in norm for token in tokens)
+
+
+def effectivity_date_pair(attributes: list[str]) -> tuple[str, str] | None:
+    """Return the ``(from, to)`` attributes if these look like one active-period date pair.
+
+    A pair is exactly one "from"-token match and one "to"-token match across ``attributes``
+    (see :data:`EFFECTIVITY_FROM_TOKENS` / :data:`EFFECTIVITY_TO_TOKENS`); anything else
+    (zero, or ambiguous multiples) returns ``None``. Heuristic by design — used only to raise
+    a warning, never to fail a model."""
+    from_matches = [a for a in attributes if _matches_tokens(a, EFFECTIVITY_FROM_TOKENS)]
+    to_matches = [a for a in attributes if _matches_tokens(a, EFFECTIVITY_TO_TOKENS)]
+    if len(from_matches) == 1 and len(to_matches) == 1:
+        return from_matches[0], to_matches[0]
+    return None
+
 # Structural rules the DV2.0 Modeler applies when turning business objects and keys
 # into hubs, links, and satellites. Injected into the modeler prompt at runtime so the
 # rule set stays a single source of truth (see CLAUDE.md).

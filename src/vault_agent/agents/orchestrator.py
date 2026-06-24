@@ -17,6 +17,7 @@ Two deterministic responsibilities, no LLM:
 
 Being deterministic, the whole agent is unit-tested without an API key.
 """
+import re
 from typing import Any, Literal
 
 from langgraph.types import interrupt
@@ -34,6 +35,53 @@ ReviewKind = Literal[
     "contract_owner", "validation_error", "validation_warning", "review_flag"
 ]
 
+# Stable categories for routine, repetitive advisory ``review_flag`` items, derived from the
+# message. Used only to *aggregate* identical-shape flags at render time (finding #3) so they
+# don't bury the substantive items. ``"other"`` flags are always rendered individually.
+REVIEW_FLAG_GROUPS: dict[str, str] = {
+    "undetermined-type": "has an undetermined type",
+    "no-source-schema": "no source schema for",
+}
+_DEFAULT_GROUP = "other"
+# Above this many items in one group, the renderers collapse it to a single summarised line.
+AGGREGATE_THRESHOLD = 3
+
+
+def _classify_review_flag(message: str) -> str:
+    """Map a review-flag message to a stable group key (``"other"`` when none matches)."""
+    for group, needle in REVIEW_FLAG_GROUPS.items():
+        if needle in message:
+            return group
+    return _DEFAULT_GROUP
+
+
+# Human-readable noun phrase per aggregatable group, for the collapsed summary line.
+_GROUP_LABELS: dict[str, str] = {
+    "undetermined-type": "undetermined field type",
+    "no-source-schema": "contract(s) without a source schema",
+}
+# Per-group regex pulling a short representative term out of a flag message, for the sample
+# in a collapsed line (falls back to the whole summary when nothing matches).
+_SAMPLE_PATTERNS: dict[str, re.Pattern[str]] = {
+    "undetermined-type": re.compile(r"field (\S+) has an undetermined type"),
+    "no-source-schema": re.compile(r"no source schema for (\S+)"),
+}
+
+
+def _sample_term(item: "ReviewItem") -> str:
+    pattern = _SAMPLE_PATTERNS.get(item.group)
+    if pattern:
+        match = pattern.search(item.summary)
+        if match:
+            return match.group(1).replace("'", "").replace('"', "")
+    return item.summary
+
+
+def _sample_phrase(members: list["ReviewItem"], limit: int = 2) -> str:
+    terms = [_sample_term(member) for member in members[:limit]]
+    suffix = ", …" if len(members) > limit else ""
+    return ", ".join(terms) + suffix
+
 
 class ReviewItem(BaseModel):
     """One thing a human must look at before the model/contracts are considered agreed."""
@@ -42,6 +90,7 @@ class ReviewItem(BaseModel):
     summary: str
     detail: str = ""
     source: str = ""  # the agent / construct the item originates from
+    group: str = _DEFAULT_GROUP  # advisory-flag category, for render-time aggregation
 
 
 class HumanReviewQueue(BaseModel):
@@ -105,7 +154,12 @@ def assemble_review_queue(state: VaultAgentState) -> HumanReviewQueue:
     for err in state.errors:
         if _OWNER_FLAG_MARKER in err:
             continue
-        items.append(ReviewItem(kind="review_flag", summary=err, source="pipeline"))
+        items.append(
+            ReviewItem(
+                kind="review_flag", summary=err, source="pipeline",
+                group=_classify_review_flag(err),
+            )
+        )
 
     return HumanReviewQueue(items=items)
 
@@ -125,6 +179,35 @@ _KIND_ORDER = (
 )
 
 
+def aggregate_review_flags(flags: list[ReviewItem]) -> list[ReviewItem]:
+    """Collapse repetitive advisory flags for display (finding #3).
+
+    A group with more than :data:`AGGREGATE_THRESHOLD` items becomes one summarised
+    ``ReviewItem`` (count + a short sample); smaller groups and the catch-all ``"other"``
+    pass through individually. Presentation only — no data is lost, the per-item detail still
+    lives in the artifacts (e.g. the contracts). Groups render in first-appearance order."""
+    by_group: dict[str, list[ReviewItem]] = {}
+    for item in flags:
+        by_group.setdefault(item.group, []).append(item)
+
+    collapsed: list[ReviewItem] = []
+    for group, members in by_group.items():
+        if group != _DEFAULT_GROUP and len(members) > AGGREGATE_THRESHOLD:
+            label = _GROUP_LABELS.get(group, group)
+            collapsed.append(
+                ReviewItem(
+                    kind="review_flag",
+                    summary=f"{len(members)}× {label}",
+                    detail=f"e.g. {_sample_phrase(members)} — review before agreeing",
+                    source="data_contract",
+                    group=group,
+                )
+            )
+        else:
+            collapsed.extend(members)
+    return collapsed
+
+
 def render_review_queue_md(queue: HumanReviewQueue) -> str:
     """Render the queue as a Markdown checkpoint document (one artifact per run)."""
     lines = ["# Human-in-the-loop checkpoint", ""]
@@ -140,6 +223,8 @@ def render_review_queue_md(queue: HumanReviewQueue) -> str:
         group = grouped.get(kind)
         if not group:
             continue
+        if kind == "review_flag":
+            group = aggregate_review_flags(group)
         lines.append(f"## {_KIND_HEADINGS[kind]}")
         lines.append("")
         for item in group:

@@ -76,6 +76,9 @@ record-source columns (those are added downstream by the code generator).
   Author can trace the decision.
 - Model only what the requirements support; do not invent entities, relationships, or
   attributes that are not present.
+- When a relationship on a link has an active period (from/to dates), model it as an
+  effectivity satellite (sat_type=effectivity) declaring the link's driving key — not a
+  standard satellite carrying the dates as payload.
 - Apply the Data Vault modelling rules supplied below.
 - If the input contains `previous_validation_issues`, your previous model failed
   validation: emit a corrected complete model that fixes exactly those issues while

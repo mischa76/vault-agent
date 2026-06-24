@@ -195,6 +195,51 @@ async def test_driving_key_not_subset_of_link_fails() -> None:
     assert "E_DRIVING_KEY_NOT_IN_LINK" in _codes(result.validation_report.issues)
 
 
+async def test_standard_sat_on_link_with_date_pair_warns_maybe_effectivity() -> None:
+    # The reality-test slip: a *standard* sat on a link carrying [EFFECTIVE_FROM, EFFECTIVE_TO]
+    # — it should be an effectivity sat. Heuristic warning, never a hard failure.
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_ownership_effectivity", parent="link_account_customer",
+                  attributes=["effective from", "effective to"],
+                  description="ownership period as plain payload")  # sat_type defaults standard
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is True  # warning, not error
+    assert "W_SAT_MAYBE_EFFECTIVITY" in _codes(result.validation_report.issues)
+
+
+async def test_real_effectivity_sat_does_not_warn_maybe_effectivity() -> None:
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=_effectivity_model()))
+
+    assert "W_SAT_MAYBE_EFFECTIVITY" not in _codes(result.validation_report.issues)
+
+
+async def test_standard_sat_on_hub_with_date_pair_does_not_warn() -> None:
+    # Heuristic is scoped to links; a date pair on a hub sat is not flagged.
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_window", parent="hub_customer",
+                  attributes=["valid from", "valid to"], description="some hub-level window")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert "W_SAT_MAYBE_EFFECTIVITY" not in _codes(result.validation_report.issues)
+
+
+async def test_standard_sat_on_link_without_date_pair_does_not_warn() -> None:
+    # An ordinary degenerate-attribute sat on a link (no from/to pair) must not trip it.
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_ownership_notes", parent="link_account_customer",
+                  attributes=["sequence number", "note"], description="link payload")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert "W_SAT_MAYBE_EFFECTIVITY" not in _codes(result.validation_report.issues)
+
+
 async def test_redundant_link_grain_warns() -> None:
     model = _valid_model()
     # A second link over the same hub set and type — same unit of work modeled twice.

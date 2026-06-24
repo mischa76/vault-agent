@@ -5,8 +5,11 @@ cover the planning entry node (ExecutionPlan) and the human-in-the-loop review q
 (ADR-0006): categorization, blocking-vs-advisory, owner de-duplication, and rendering.
 """
 from vault_agent.agents.orchestrator import (
+    AGGREGATE_THRESHOLD,
     HumanCheckpointAgent,
     OrchestratorAgent,
+    ReviewItem,
+    aggregate_review_flags,
     apply_human_decision,
     assemble_review_queue,
     render_review_queue_md,
@@ -133,6 +136,74 @@ def test_render_markdown_groups_and_marks_status() -> None:
 def test_render_markdown_empty_queue() -> None:
     md = render_review_queue_md(assemble_review_queue(VaultAgentState()))
     assert "No items require human review" in md
+
+
+# --- Review-queue aggregation (finding #3) -----------------------------------------------
+
+
+def _noisy_state(n_type_flags: int) -> VaultAgentState:
+    """A run with one substantive validation warning and many identical-shape type flags."""
+    return VaultAgentState(
+        validation_report=ValidationReport(
+            passed=True,
+            issues=[{"severity": "warning", "code": "W_LINK_REDUNDANT_GRAIN",
+                     "construct": "link_a, link_b", "message": "same unit of work twice"}],
+        ),
+        errors=[
+            f"data_contract: field VICTOR_PARTNER.{i!r} has an undetermined type; "
+            f"review required before the contract is agreed"
+            for i in [f"PARTN_NR_{n}" for n in range(n_type_flags)]
+        ],
+    )
+
+
+def test_many_type_flags_collapse_to_one_line() -> None:
+    queue = assemble_review_queue(_noisy_state(39))
+    flags = queue.by_kind()["review_flag"]
+    collapsed = aggregate_review_flags(flags)
+
+    assert len(collapsed) == 1
+    assert collapsed[0].summary == "39× undetermined field type"
+    assert "VICTOR_PARTNER.PARTN_NR_0" in collapsed[0].detail
+    # No data lost: the underlying queue still carries all 39 items.
+    assert len(flags) == 39
+
+
+def test_render_markdown_collapses_noise_but_keeps_warnings_first() -> None:
+    md = render_review_queue_md(assemble_review_queue(_noisy_state(39)))
+
+    assert "39× undetermined field type" in md
+    # The substantive validation warning stays individual and is ordered before the
+    # aggregated advisory block.
+    assert "W_LINK_REDUNDANT_GRAIN" in md
+    assert md.index("W_LINK_REDUNDANT_GRAIN") < md.index("39× undetermined field type")
+    # The 39 individual lines are gone from the headline.
+    assert "PARTN_NR_1 " not in md
+
+
+def test_small_groups_are_not_aggregated() -> None:
+    flags = assemble_review_queue(_noisy_state(AGGREGATE_THRESHOLD)).by_kind()["review_flag"]
+    collapsed = aggregate_review_flags(flags)
+
+    assert len(collapsed) == AGGREGATE_THRESHOLD
+    assert all("undetermined type" in item.summary for item in collapsed)
+
+
+def test_other_group_flags_always_individual() -> None:
+    flags = [
+        ReviewItem(kind="review_flag", summary=f"miscellaneous advisory {i}", group="other")
+        for i in range(10)
+    ]
+    collapsed = aggregate_review_flags(flags)
+    assert len(collapsed) == 10
+
+
+def test_aggregation_preserves_signoff_and_item_count() -> None:
+    # Aggregation is presentation-only: requires_signoff and the underlying item count are
+    # driven by the queue, not the collapsed display.
+    queue = assemble_review_queue(_noisy_state(39))
+    assert queue.requires_signoff is False  # only advisory items here
+    assert len(queue.items) == 40  # 1 validation warning + 39 type flags
 
 
 # --- Human checkpoint apply / passthrough (ADR-0006) -------------------------------------
