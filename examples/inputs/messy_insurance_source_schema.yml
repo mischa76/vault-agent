@@ -1,0 +1,59 @@
+# Declared source schema for the messy HELVETIA-DWH reality test.
+#
+# Deliberately realistic: the physical column names are cryptic legacy/source names that do
+# NOT match the business prose in messy_insurance_requirements.md (e.g. the doc says
+# "AHV-Nummer" / "customer name" while VICTOR has AHV_NR / KD_NAME_1). Grounding should
+# therefore flag many proposed keys/attributes as W_BK_NOT_IN_SOURCE / W_ATTR_NOT_IN_SOURCE —
+# which is exactly the prose↔source naming gap the two-input target (Phase 2) is meant to close.
+source_schemas:
+  # --- VICTOR (Legacy AS/400 flatfile export) ---
+  - table: VICTOR_PARTNER
+    columns:
+      - PARTN_NR          # technical/legacy partner number
+      - PARTN_GUID        # the "technical ID" mentioned in 3.1
+      - AHV_NR            # present only for some rows
+      - UID_NR            # firms only
+      - PARTN_TYP         # P = Person, F = Firma
+      - KD_NAME_1
+      - KD_NAME_2
+      - KD_GEBDAT
+      - KD_STRASSE
+      - KD_PLZ
+      - KD_ORT
+      - MUT_DAT           # change date (overwritten, no history)
+  - table: VICTOR_VERTRAG
+    columns:
+      - VTG_NR
+      - PARTN_NR          # the policyholder, FK to VICTOR_PARTNER
+      - SPARTE
+      - VTG_STATUS
+      - PRAEMIE
+      - PRAEMIE_AB        # premium-valid-from (versioning hint)
+      - BEGINN_DAT
+      - MUT_DAT
+  # --- CRM (Salesforce) ---
+  - table: CRM_ACCOUNT
+    columns:
+      - AccountId         # 18-char Salesforce id
+      - ExternalCustomerNo # *should* map to VICTOR PARTN_NR (only ~70% populated)
+      - Name
+      - BillingStreet
+      - BillingPostalCode
+      - BillingCity
+      - LastModifiedDate
+  # --- ClaimsPro (claims) ---
+  - table: CLAIMSPRO_CLAIM
+    columns:
+      - ClaimNo
+      - PolicyNo          # different format than VICTOR VTG_NR
+      - ReportedDate
+      - ClaimStatus
+      - ClaimAmount
+  - table: CLAIMSPRO_PAYMENT
+    columns:
+      - PaymentRef
+      - ClaimNo
+      - Amount
+      - Currency
+      - ValueDate
+      - PayeePartnerNo
