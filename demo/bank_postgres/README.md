@@ -7,6 +7,11 @@ local PostgreSQL. No API key, no cloud warehouse.
 
 Implements [`docs/architecture/poc-end-to-end-dbt-spec.md`](../../docs/architecture/poc-end-to-end-dbt-spec.md).
 
+> **Last verified:** 2026-06-25 on PostgreSQL 16 + AutomateDV 0.11.4. `build_vault_models.py`
+> regenerated all 6 raw-vault models byte-identically (idempotent); `dbt build --full-refresh`
+> was green (`PASS=29 WARN=0 ERROR=0`); the Phase B2 end-dating demo closed ACC-503's first owner
+> at the transfer date and left the new owner open, idempotent on re-run.
+
 ## What it builds
 
 Three dbt layers — raw → staging → raw vault:
