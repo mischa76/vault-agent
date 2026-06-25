@@ -169,6 +169,22 @@ business columns). Fully inert without the flag (byte-for-byte regression guard)
 (persisted in the checkpoint). Phase 2/3 (source-dialect naming + business↔source mapping, staging
 generator, DDL/DB introspection) remain out of scope.
 
+Reality-test remediation batch 1 landed (as of 2026-06-25,
+docs/architecture/reality-test-remediation-spec.md), both deterministic (no LLM): (#2) a new
+validator gate W_SAT_MAYBE_EFFECTIVITY — a heuristic *warning* (never an error) when a standard
+satellite hangs off a link and carries a from/to date pair (likely a mis-modelled effectivity sat).
+The from/to hint tokens (EFFECTIVITY_FROM_TOKENS/EFFECTIVITY_TO_TOKENS) and the matching helper
+effectivity_date_pair() are the single source of truth in rules/dv2_rules.py; the modeler prompt
+gains a [GUIDE] line steering active-period relationships to sat_type=effectivity with the link's
+driving key. (#3) Review-queue aggregation — ReviewItem.group + aggregate_review_flags() collapse
+repetitive advisory flags (>AGGREGATE_THRESHOLD=3 per group: undetermined-type, no-source-schema)
+into one summarised line, shared by both renderers (orchestrator.render_review_queue_md and
+cli._print_checkpoint); blocking items and validation warnings stay individual and ordered first,
+the aggregated advisory block stays last. Aggregation is presentation-only: requires_signoff and the
+review_items count are unchanged (count reflects underlying items, not the collapsed display).
+Verified live on the messy grounded run (examples/inputs/messy_insurance_*): the 38 undetermined-type
+flags collapse to one line while the 5 owner items + 8 substantive warnings surface on top.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
