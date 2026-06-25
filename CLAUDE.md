@@ -184,6 +184,10 @@ the aggregated advisory block stays last. Aggregation is presentation-only: requ
 review_items count are unchanged (count reflects underlying items, not the collapsed display).
 Verified live on the messy grounded run (examples/inputs/messy_insurance_*): the 38 undetermined-type
 flags collapse to one line while the 5 owner items + 8 substantive warnings surface on top.
+The changes are validator/orchestrator/prompt only — they do not touch the code generator, and the
+bank Postgres Durchstich was re-verified green on 2026-06-25 (regenerated models byte-identical;
+`dbt build --full-refresh` PASS=29; Phase B2 eff_sat end-dating closes ACC-503's first owner and
+leaves the new owner open, idempotent on re-run) as a no-regression guard.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
