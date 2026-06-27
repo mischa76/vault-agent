@@ -146,12 +146,59 @@ mapping can be grounded.
 
 ---
 
+## Preconditions & premises for source-to-target mapping
+
+The two-input target above hinges on one fragile step: mapping each business concept to the physical
+source column that actually carries it. This is where the pipeline either earns trust or quietly
+manufactures it — so it is worth being explicit about what has to be true *before* the ingredients
+are poured in. The binding decisions live in
+[ADR-0008](architecture/adrs/ADR-0008-source-to-target-mapping.md); the reasoning behind them is
+here.
+
+**Output quality is capped by input quality.** Source documentation in the field is anything from a
+structured Erwin/DDL export with metadata to a PDF data-model diagram with none. The mapping cannot
+be better than what it is given: rich metadata (types, PK/FK, nullability, comments) yields
+confident candidates; a name-only diagram yields guesses a human must verify line by line. This is
+not a weakness of the agent — it is the physics of the task, and it is why a mapping run states the
+documentation level it worked from.
+
+**Statistics establish structure, not intent.** Profiling can prove a column is unique and non-null;
+it cannot prove it is *the* business key the business means. `KD_NR`, `PARTNER_ID`, and
+`LEGACY_CUST_NO` may all be valid candidate keys; which one is *the* customer identifier for *this*
+requirement is source-literate human knowledge. That irreducible judgement is the core the
+human-in-the-loop checkpoint exists to capture — it does not automate away.
+
+**The business rarely knows its own coverage.** A requirement is seen purpose-oriented, in the
+business's dialect, often already carrying formulas, enrichments, and manually maintained product
+hierarchies — without certainty whether the underlying data exists in a source system, or whether
+every Information-layer element is sourced at all. Much of that derived material has no OLTP origin;
+it is born downstream in the Business Vault or marts. So the mapping's job includes producing a
+**coverage-gap report**: elements with no source candidate, and source elements that are clearly
+derived rather than captured. A gap is an output to act on, not a failure to hide.
+
+**Live source access is governed, not free.** The tempting picture — an agent that logs into the
+production database, pulls DDL, runs profiling SQL, and proposes a mapping in real time — is the
+*least* realistic part operationally, even though each step is technically within reach. In a
+Swiss/DACH bank or insurer, production source access carries PII, audit, and access-governance
+weight; what is supplied in practice is a sanitised extract or a metadata export. Profiling is
+therefore a read-only, scoped, human-governed step that *feeds* the mapping, not an autonomous
+capability the pipeline exercises on its own.
+
+The net is a deliberately modest claim: **the agent compresses the mechanical toil of profiling and
+first-draft mapping and makes its reasoning reviewable — it does not replace the upstream
+elicitation and system analysis.** The stated preconditions (ADR-0008 §5) are the contract that
+keeps that claim honest; when they are not met, the agent runs in an explicit degraded mode and says
+so, rather than guessing.
+
+---
+
 ## Note
 
-The naming/inputs decision recorded here ("source-dialect Stage + Raw Vault; Fachsprache
-downstream; two-input target") is significant enough to promote to a dedicated **ADR** when the
-source-schema producer and staging generator are actually built. Until then this map is the agreed
-direction.
+The mapping scope and its preconditions are now recorded as
+[ADR-0008](architecture/adrs/ADR-0008-source-to-target-mapping.md). The remaining naming/inputs
+decision ("source-dialect Stage + Raw Vault; Fachsprache downstream; two-input target") is
+significant enough to promote to its own ADR when the source-schema producer and staging generator
+are actually built. Until then this map is the agreed direction.
 
 ## References
 
@@ -160,6 +207,7 @@ direction.
 - [ADR-0005: data contracts](architecture/adrs/ADR-0005-data-contract-spec.md)
 - [ADR-0006: human-in-the-loop review queue](architecture/adrs/ADR-0006-human-in-the-loop-review-queue.md)
 - [ADR-0007: automation scope per layer](architecture/adrs/ADR-0007-automation-scope-by-layer.md)
+- [ADR-0008: source-to-target mapping — scope, premises, the assist boundary](architecture/adrs/ADR-0008-source-to-target-mapping.md)
 - [PoC spec: end-to-end dbt + AutomateDV + Postgres](architecture/poc-end-to-end-dbt-spec.md)
 - Methodology: Linstedt & Olschimke, *Building a Scalable Data Warehouse with Data Vault 2.0*
   (hard/soft rules, Raw Vault source-alignment); Roelant Vos, DSAF.

@@ -101,5 +101,6 @@ Three governing principles:
 - Source-schema grounding (the source-scoping producer gap): [ADR-0004](./ADR-0004-source-schema-grounding.md)
 - Data contracts (attribute-level governance, gap-flagging): [ADR-0005](./ADR-0005-data-contract-spec.md)
 - Human-in-the-loop review queue (the ratification mechanism): [ADR-0006](./ADR-0006-human-in-the-loop-review-queue.md)
+- Source-to-target mapping — premises & the assist boundary (refines the source-identification row above): [ADR-0008](./ADR-0008-source-to-target-mapping.md)
 - Methodology: Linstedt & Olschimke, *Building a Scalable Data Warehouse with Data Vault 2.0*;
   Roelant Vos, DSAF; Sanderson, Freeman & Schmidt, *Data Contracts* (O'Reilly, 2025).

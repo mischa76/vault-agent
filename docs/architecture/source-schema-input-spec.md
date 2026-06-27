@@ -165,7 +165,8 @@ not in the LLM run.)
 
 - **Phase 2 — source-dialect naming + mapping:** name Stage/Raw Vault from the source schema (not
   the prose) with an agent-proposed, human-confirmed business↔source mapping (the decided target in
-  `how-requirements-become-a-model.md`).
+  `how-requirements-become-a-model.md`). Scope, preconditions, and the assist boundary are recorded
+  in [ADR-0008](adrs/ADR-0008-source-to-target-mapping.md).
 - **Phase 3 — staging generator:** emit the `stg_*` layer automatically (PoC Finding #1).
 - **Richer inputs:** DDL parsing (`CREATE TABLE`), live DB introspection (`information_schema`).
 
