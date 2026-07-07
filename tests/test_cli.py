@@ -194,13 +194,14 @@ def test_cli_checkpoint_collapses_noise_like_the_md() -> None:
 
     from vault_agent.agents.orchestrator import assemble_review_queue
     from vault_agent.cli import _print_checkpoint
-    from vault_agent.state import FlagKind, PipelineFlag, ValidationReport
+    from vault_agent.state import FlagKind, PipelineFlag, ValidationIssue, ValidationReport
 
     state = VaultAgentState(
         validation_report=ValidationReport(
             passed=True,
-            issues=[{"severity": "warning", "code": "W_LINK_REDUNDANT_GRAIN",
-                     "construct": "link_a, link_b", "message": "same unit of work twice"}],
+            issues=[ValidationIssue(severity="warning", code="W_LINK_REDUNDANT_GRAIN",
+                                    construct="link_a, link_b",
+                                    message="same unit of work twice")],
         ),
         flags=[
             PipelineFlag(

@@ -1,4 +1,5 @@
 """Shared state passed through the LangGraph nodes."""
+import warnings
 from typing import Any, Literal
 
 from pydantic import BaseModel, Field
@@ -142,9 +143,32 @@ class Artifacts(BaseModel):
     scaffolding: dict[str, str] = Field(default_factory=dict)
 
 
+IssueSeverity = Literal["error", "warning"]
+
+
+# The DV term of art is "construct" (hub/link/satellite); pydantic warns because it
+# shadows the *deprecated* classmethod ``BaseModel.construct`` (v1 alias of
+# ``model_construct``), which this project never calls. Suppress that one definition-time
+# warning rather than bending the domain vocabulary.
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message='Field name "construct" in "ValidationIssue"')
+
+    class ValidationIssue(BaseModel):
+        """A single validator finding, keyed by a stable machine code.
+
+        Consumers branch on ``severity``/``code``/``construct``; ``message`` is
+        human-readable presentation only and is never parsed."""
+        severity: IssueSeverity
+        code: str  # stable machine code, e.g. "E_NO_HUBS" / "W_SAT_WIDE"
+        # The construct (or comma-joined constructs) concerned. The ignore matches the
+        # runtime suppression above: the shadowed classmethod is deprecated and unused.
+        construct: str  # type: ignore[assignment]
+        message: str  # human-readable; presentation only, never parsed
+
+
 class ValidationReport(BaseModel):
     passed: bool = False
-    issues: list[dict[str, Any]] = Field(default_factory=list)
+    issues: list[ValidationIssue] = Field(default_factory=list)
 
 
 class ExecutionPlan(BaseModel):

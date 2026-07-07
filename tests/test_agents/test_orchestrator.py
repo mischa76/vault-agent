@@ -19,6 +19,7 @@ from vault_agent.state import (
     FlagKind,
     PipelineFlag,
     SourceTable,
+    ValidationIssue,
     ValidationReport,
     VaultAgentState,
 )
@@ -76,10 +77,10 @@ def _finished_state() -> VaultAgentState:
         validation_report=ValidationReport(
             passed=False,
             issues=[
-                {"severity": "error", "code": "E_NO_HUBS", "construct": "dv_model",
-                 "message": "model has no hubs"},
-                {"severity": "warning", "code": "W_SAT_WIDE", "construct": "sat_x",
-                 "message": "satellite is wide"},
+                ValidationIssue(severity="error", code="E_NO_HUBS", construct="dv_model",
+                                message="model has no hubs"),
+                ValidationIssue(severity="warning", code="W_SAT_WIDE", construct="sat_x",
+                                message="satellite is wide"),
             ],
         ),
         artifacts=Artifacts(
@@ -126,8 +127,8 @@ def test_requires_signoff_false_when_only_advisory() -> None:
     state = VaultAgentState(
         validation_report=ValidationReport(
             passed=True,
-            issues=[{"severity": "warning", "code": "W_HUB_NO_SAT",
-                     "construct": "hub_x", "message": "no satellite"}],
+            issues=[ValidationIssue(severity="warning", code="W_HUB_NO_SAT",
+                                    construct="hub_x", message="no satellite")],
         ),
         flags=[PipelineFlag(agent="pipeline", message="some advisory flag")],
     )
@@ -166,8 +167,9 @@ def _noisy_state(n_type_flags: int) -> VaultAgentState:
     return VaultAgentState(
         validation_report=ValidationReport(
             passed=True,
-            issues=[{"severity": "warning", "code": "W_LINK_REDUNDANT_GRAIN",
-                     "construct": "link_a, link_b", "message": "same unit of work twice"}],
+            issues=[ValidationIssue(severity="warning", code="W_LINK_REDUNDANT_GRAIN",
+                                    construct="link_a, link_b",
+                                    message="same unit of work twice")],
         ),
         flags=[
             _type_flag("VICTOR_PARTNER", f"PARTN_NR_{n}") for n in range(n_type_flags)

@@ -99,17 +99,16 @@ def assemble_review_queue(state: VaultAgentState) -> HumanReviewQueue:
 
     # Validation issues — severity maps to a blocking error vs an advisory warning.
     for issue in state.validation_report.issues:
-        severity = str(issue.get("severity", ""))
         kind: ReviewKind = (
-            "validation_error" if severity == "error" else "validation_warning"
+            "validation_error" if issue.severity == "error" else "validation_warning"
         )
-        code = str(issue.get("code", "")) or "issue"
-        construct = str(issue.get("construct", "")) or "model"
+        code = issue.code or "issue"
+        construct = issue.construct or "model"
         items.append(
             ReviewItem(
                 kind=kind,
                 summary=f"{code} on {construct}",
-                detail=str(issue.get("message", "")),
+                detail=issue.message,
                 source="validator",
             )
         )

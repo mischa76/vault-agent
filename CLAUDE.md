@@ -238,6 +238,20 @@ ownership to the successor's business date (2026-04-01) via the generated stagin
 APPLIED_DTS — the generated staging behaves exactly like the demo's hand-authored one.
 Seed type inference handled timestamps without declared column_types.
 
+Typed ValidationIssue landed (as of 2026-07-07, WP4 of backlog-2026-07,
+docs/architecture/backlog-2026-07/wp4-typed-validation-issue-spec.md):
+ValidationReport.issues is now list[ValidationIssue] (pydantic, in state.py: severity
+Literal["error","warning"], stable machine code, construct, presentation-only message)
+instead of list[dict[str, Any]]. The validator's _issue helper constructs the model, the
+orchestrator's assemble_review_queue reads attributes instead of defensive .get() parsing
+(fallbacks unchanged: empty code renders as "issue", empty construct as "model"), and the
+modeler's retry feedback serialises via issue.model_dump() (payload content unchanged).
+Pure refactor: same codes/severities/messages, rendered review queue byte-identical for
+the existing fixtures. The field name "construct" (DV term of art) shadows the deprecated
+BaseModel.construct classmethod; that single definition-time pydantic warning is
+suppressed in state.py with a matching targeted mypy ignore. state.decisions stays an
+untyped audit log by design. 169 tests green, ruff clean, mypy strict clean.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

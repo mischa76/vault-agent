@@ -6,9 +6,9 @@ if the code generator has already run, the generated artifacts) against the DV2.
 in CI without an API key. It is an independent gate: it re-checks structural invariants the
 modeler and generator already enforce, giving defense in depth across agents.
 
-Results land in ``VaultAgentState.validation_report`` as a list of issue dicts
-(``severity`` / ``code`` / ``construct`` / ``message``); ``passed`` is true when there are
-no error-severity issues.
+Results land in ``VaultAgentState.validation_report`` as a list of typed
+:class:`~vault_agent.state.ValidationIssue` records (``severity`` / ``code`` /
+``construct`` / ``message``); ``passed`` is true when there are no error-severity issues.
 """
 from typing import Any
 
@@ -21,7 +21,12 @@ from vault_agent.rules.dv2_rules import (
     SAT_WIDE_ATTRIBUTE_THRESHOLD,
     effectivity_date_pair,
 )
-from vault_agent.state import ValidationReport, VaultAgentState
+from vault_agent.state import (
+    IssueSeverity,
+    ValidationIssue,
+    ValidationReport,
+    VaultAgentState,
+)
 
 # Maps the logical DV column names in the rules to the AutomateDV metadata keys the code
 # generator emits, so the required-column rules can be checked against the artifacts.
@@ -39,8 +44,10 @@ _REQUIRED_COLUMNS = {
 }
 
 
-def _issue(severity: str, code: str, construct: str, message: str) -> dict[str, Any]:
-    return {"severity": severity, "code": code, "construct": construct, "message": message}
+def _issue(
+    severity: IssueSeverity, code: str, construct: str, message: str
+) -> ValidationIssue:
+    return ValidationIssue(severity=severity, code=code, construct=construct, message=message)
 
 
 class ValidatorAgent(BaseAgent):
@@ -50,7 +57,7 @@ class ValidatorAgent(BaseAgent):
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         model = state.dv_model
-        issues: list[dict[str, Any]] = []
+        issues: list[ValidationIssue] = []
 
         hub_names = {hub.name for hub in model.hubs}
         link_names = {link.name for link in model.links}
@@ -204,7 +211,7 @@ class ValidatorAgent(BaseAgent):
         issues.extend(self._check_source_grounding(state))
         issues.extend(self._check_artifact_columns(state.artifacts.automatedv_yaml))
 
-        errors = [issue for issue in issues if issue["severity"] == "error"]
+        errors = [issue for issue in issues if issue.severity == "error"]
         state.validation_report = ValidationReport(passed=not errors, issues=issues)
         state.decisions.append(
             {
@@ -217,10 +224,10 @@ class ValidatorAgent(BaseAgent):
         return state
 
     @staticmethod
-    def _check_cross_construct(state: VaultAgentState) -> list[dict[str, Any]]:
+    def _check_cross_construct(state: VaultAgentState) -> list[ValidationIssue]:
         """Checks that span several constructs: grain, attribute overlap, key collision."""
         model = state.dv_model
-        issues: list[dict[str, Any]] = []
+        issues: list[ValidationIssue] = []
 
         # W_LINK_REDUNDANT_GRAIN: two links over the same hub set with the same type likely
         # model one Unit of Work twice (or are a grain error). Order-independent on hubs.
@@ -279,12 +286,12 @@ class ValidatorAgent(BaseAgent):
         return issues
 
     @staticmethod
-    def _check_source_grounding(state: VaultAgentState) -> list[dict[str, Any]]:
+    def _check_source_grounding(state: VaultAgentState) -> list[ValidationIssue]:
         """Phase 1 grounding (ADR-0004): flag keys/attributes absent from the source schema.
 
         No-ops when no schema is declared, so output is unchanged from today. When a schema
         is present, unknowns are *warnings* (the schema may be partial), never errors."""
-        issues: list[dict[str, Any]] = []
+        issues: list[ValidationIssue] = []
         if not state.source_schemas:
             return issues
         columns = known_columns(state.source_schemas)
@@ -310,9 +317,9 @@ class ValidatorAgent(BaseAgent):
         return issues
 
     @staticmethod
-    def _check_artifact_columns(metadata: dict[str, Any]) -> list[dict[str, Any]]:
+    def _check_artifact_columns(metadata: dict[str, Any]) -> list[ValidationIssue]:
         """Check each generated construct carries every DV-required column (if generated)."""
-        issues: list[dict[str, Any]] = []
+        issues: list[ValidationIssue] = []
         for (section, kind), required in _REQUIRED_COLUMNS.items():
             for name, meta in metadata.get(section, {}).items():
                 effective = required

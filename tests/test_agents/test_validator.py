@@ -3,8 +3,6 @@
 The validator is deterministic (no LLM), so these tests assert exact verdicts and run in
 CI without an Anthropic API key.
 """
-from typing import Any
-
 from vault_agent.agents.validator import ValidatorAgent
 from vault_agent.state import (
     Artifacts,
@@ -13,6 +11,7 @@ from vault_agent.state import (
     Link,
     Satellite,
     SourceTable,
+    ValidationIssue,
     VaultAgentState,
 )
 
@@ -38,15 +37,15 @@ def _valid_model() -> DVModel:
     )
 
 
-def _codes(report_issues: list[dict[str, Any]]) -> set[str]:
-    return {issue["code"] for issue in report_issues}
+def _codes(report_issues: list[ValidationIssue]) -> set[str]:
+    return {issue.code for issue in report_issues}
 
 
 async def test_valid_model_passes() -> None:
     result = await ValidatorAgent().run(VaultAgentState(dv_model=_valid_model()))
 
     assert result.validation_report.passed is True
-    assert not [i for i in result.validation_report.issues if i["severity"] == "error"]
+    assert not [i for i in result.validation_report.issues if i.severity == "error"]
     assert result.decisions[-1] == {
         "agent": "validator", "passed": True, "errors": 0, "warnings": 0,
     }
@@ -102,9 +101,9 @@ async def test_hub_without_satellite_warns_but_passes() -> None:
     )
     result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
 
-    warnings = [i for i in result.validation_report.issues if i["severity"] == "warning"]
+    warnings = [i for i in result.validation_report.issues if i.severity == "warning"]
     assert result.validation_report.passed is True  # warnings do not fail validation
-    assert any(w["code"] == "W_HUB_NO_SAT" and w["construct"] == "hub_product" for w in warnings)
+    assert any(w.code == "W_HUB_NO_SAT" and w.construct == "hub_product" for w in warnings)
 
 
 def _effectivity_model() -> DVModel:
@@ -249,9 +248,9 @@ async def test_redundant_link_grain_warns() -> None:
     )
     result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
 
-    warnings = [i for i in result.validation_report.issues if i["severity"] == "warning"]
+    warnings = [i for i in result.validation_report.issues if i.severity == "warning"]
     assert result.validation_report.passed is True  # warnings do not fail validation
-    assert any(w["code"] == "W_LINK_REDUNDANT_GRAIN" for w in warnings)
+    assert any(w.code == "W_LINK_REDUNDANT_GRAIN" for w in warnings)
 
 
 async def test_attribute_overlap_across_satellites_fails() -> None:
@@ -277,9 +276,9 @@ async def test_wide_satellite_warns() -> None:
     )
     result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
 
-    warnings = [i for i in result.validation_report.issues if i["severity"] == "warning"]
+    warnings = [i for i in result.validation_report.issues if i.severity == "warning"]
     assert result.validation_report.passed is True  # warnings do not fail validation
-    assert any(w["code"] == "W_SAT_WIDE" and w["construct"] == "sat_customer_wide"
+    assert any(w.code == "W_SAT_WIDE" and w.construct == "sat_customer_wide"
                for w in warnings)
 
 
@@ -296,9 +295,9 @@ async def test_business_key_collision_across_sources_warns() -> None:
     )
     result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
 
-    warnings = [i for i in result.validation_report.issues if i["severity"] == "warning"]
+    warnings = [i for i in result.validation_report.issues if i.severity == "warning"]
     assert result.validation_report.passed is True  # warnings do not fail validation
-    assert any(w["code"] == "W_BK_COLLISION_RISK" for w in warnings)
+    assert any(w.code == "W_BK_COLLISION_RISK" for w in warnings)
 
 
 async def test_generated_artifact_missing_column_fails() -> None:
@@ -317,9 +316,9 @@ async def test_generated_artifact_missing_column_fails() -> None:
     state = VaultAgentState(dv_model=_valid_model(), artifacts=artifacts)
     result = await ValidatorAgent().run(state)
 
-    missing = [i for i in result.validation_report.issues if i["code"] == "E_MISSING_COLUMN"]
+    missing = [i for i in result.validation_report.issues if i.code == "E_MISSING_COLUMN"]
     assert result.validation_report.passed is False
-    assert any("business_key" in i["message"] for i in missing)
+    assert any("business_key" in i.message for i in missing)
 
 
 def _grounded_schemas() -> list[SourceTable]:
@@ -361,12 +360,12 @@ async def test_business_key_absent_from_source_is_warned() -> None:
     result = await ValidatorAgent().run(state)
 
     bk_warnings = [
-        i for i in result.validation_report.issues if i["code"] == "W_BK_NOT_IN_SOURCE"
+        i for i in result.validation_report.issues if i.code == "W_BK_NOT_IN_SOURCE"
     ]
-    assert any(i["construct"] == "hub_customer" for i in bk_warnings)
+    assert any(i.construct == "hub_customer" for i in bk_warnings)
     # Warning only — the model still passes (no error-severity issue introduced).
     assert result.validation_report.passed is True
-    assert all(i["severity"] == "warning" for i in bk_warnings)
+    assert all(i.severity == "warning" for i in bk_warnings)
 
 
 async def test_attribute_absent_from_source_is_warned() -> None:
@@ -379,9 +378,9 @@ async def test_attribute_absent_from_source_is_warned() -> None:
     result = await ValidatorAgent().run(state)
 
     attr_warnings = [
-        i for i in result.validation_report.issues if i["code"] == "W_ATTR_NOT_IN_SOURCE"
+        i for i in result.validation_report.issues if i.code == "W_ATTR_NOT_IN_SOURCE"
     ]
     assert any(
-        i["construct"] == "sat_customer_details" and "'name'" in i["message"]
+        i.construct == "sat_customer_details" and "'name'" in i.message
         for i in attr_warnings
     )

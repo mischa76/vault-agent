@@ -16,7 +16,7 @@ from vault_agent.graph import (
     build_graph,
     default_agents,
 )
-from vault_agent.state import Artifacts, ValidationReport, VaultAgentState
+from vault_agent.state import Artifacts, ValidationIssue, ValidationReport, VaultAgentState
 
 
 class _RecordingAgent(BaseAgent):
@@ -46,7 +46,11 @@ class _StubValidator(BaseAgent):
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         passed = self.verdicts[min(self.calls, len(self.verdicts) - 1)]
         self.calls += 1
-        issues = [] if passed else [{"severity": "error", "code": "X", "message": "m"}]
+        issues = (
+            []
+            if passed
+            else [ValidationIssue(severity="error", code="X", construct="model", message="m")]
+        )
         state.validation_report = ValidationReport(passed=passed, issues=issues)
         state.decisions.append({"agent": "validator", "passed": passed})
         return state
