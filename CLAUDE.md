@@ -252,6 +252,22 @@ BaseModel.construct classmethod; that single definition-time pydantic warning is
 suppressed in state.py with a matching targeted mypy ignore. state.decisions stays an
 untyped audit log by design. 169 tests green, ruff clean, mypy strict clean.
 
+The ADR author is remediated (as of 2026-07-07, WP2:
+docs/architecture/backlog-2026-07/wp2-adr-author-spec.md). The generated model ADR is now a
+per-output artifact: always ADR-0001 within its output directory, deterministic and idempotent
+(same state in → byte-identical ADR out); repo-level ADR numbering happens only when a human
+accepts the proposal and moves it into docs/architecture/adrs/. The repo-layout coupling is
+gone (_DEFAULT_ADR_DIR/_next_adr_number/adr_dir removed — the old scheme resolved
+parents[3] into site-packages when installed as a wheel and made numbers depend on the repo's
+ADR directory). The stale "specialised types … not yet generated" caveat (false since the
+nh_link/ma_sat/eff_sat templates landed) is replaced by a flag-derived one: constructs the
+code generator actually skipped carry FlagKind.GENERATION_GAP flags (matched on kind/asset,
+never message text; adr_author runs after code_generator on the validated path, so the flags
+are present), and the ADR lists exactly those as "N construct(s) could not be generated and
+are flagged for human review: …" — generated non-standard types get no caveat. The References
+section now counts raw-vault and staging models separately. 169 tests green, ruff clean,
+mypy strict clean.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

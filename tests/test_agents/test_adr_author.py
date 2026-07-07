@@ -1,11 +1,10 @@
 """Unit tests for the ADR Author agent (deterministic, no API key needed)."""
-from pathlib import Path
-
-from vault_agent.agents.adr_author import AdrAuthorAgent, _next_adr_number
+from vault_agent.agents.adr_author import AdrAuthorAgent
 from vault_agent.state import (
     Artifacts,
     BusinessKeyCandidate,
     DVModel,
+    FlagKind,
     Hub,
     Link,
     ParsedRequirement,
@@ -48,10 +47,27 @@ async def test_renders_finalized_adr() -> None:
     assert "_(requirements: REQ-009, REQ-010)_" in adr  # satellite traceability
     assert "payload: customer name, date of birth" in adr
     assert "examples/inputs/bank_account_requirements.md" in adr  # references
-    assert "Generated dbt models: 2" in adr
     assert result.decisions[-1] == {
         "agent": "adr_author", "adr_number": 4, "adrs_written": 1,
     }
+
+
+async def test_number_defaults_to_one_within_the_output() -> None:
+    # The generated ADR is a per-run output artifact: always ADR-0001 within its output
+    # directory, never derived from the repo's docs/architecture/adrs sequence.
+    result = await AdrAuthorAgent(today="2026-06-10").run(_state())
+
+    assert result.adrs[0].startswith("# ADR-0001: Data Vault model derived from requirements")
+    assert result.decisions[-1]["adr_number"] == 1
+
+
+async def test_same_state_yields_byte_identical_adr() -> None:
+    # Idempotency guarantee: same model in, byte-identical ADR out — consistent with the
+    # code generator, and safe for re-runs into the same output directory.
+    first = await AdrAuthorAgent(today="2026-06-10").run(_state())
+    second = await AdrAuthorAgent(today="2026-06-10").run(_state())
+
+    assert first.adrs == second.adrs
 
 
 async def test_finalized_adr_overwrites_any_preexisting_adrs() -> None:
@@ -65,53 +81,60 @@ async def test_finalized_adr_overwrites_any_preexisting_adrs() -> None:
     assert result.adrs[0].startswith("# ADR-0007")
 
 
-def test_next_adr_number_is_highest_plus_one(tmp_path: Path) -> None:
-    (tmp_path / "ADR-0001-x.md").write_text("# ADR-0001", encoding="utf-8")
-    (tmp_path / "ADR-0007-y.md").write_text("# ADR-0007", encoding="utf-8")
-    (tmp_path / "ADR-template.md").write_text("# template", encoding="utf-8")  # ignored
-    (tmp_path / "notes.md").write_text("not an adr", encoding="utf-8")  # ignored
+async def test_generated_special_constructs_get_no_caveat() -> None:
+    # A non-standard type that the generator handled (no GENERATION_GAP flag) works —
+    # the ADR must not claim otherwise.
+    state = _state()
+    state.dv_model.links[0].driving_key = ["hub_account"]
+    state.dv_model.satellites.append(
+        Satellite(name="eff_sat_account_customer", parent="link_account_customer",
+                  attributes=["effective_from", "effective_to"],
+                  description="Ownership validity.", sat_type="effectivity")
+    )
+    result = await AdrAuthorAgent(today="2026-06-10").run(state)
 
-    assert _next_adr_number(tmp_path) == 8
-
-
-def test_next_adr_number_defaults_to_one_when_empty(tmp_path: Path) -> None:
-    assert _next_adr_number(tmp_path) == 1  # no ADR-*.md
-    assert _next_adr_number(tmp_path / "missing") == 1  # dir does not exist
-
-
-async def test_start_number_derived_from_adr_dir(tmp_path: Path) -> None:
-    # No explicit start_number: the number is the next free one in the given adr_dir.
-    (tmp_path / "ADR-0001-a.md").write_text("# ADR-0001", encoding="utf-8")
-    (tmp_path / "ADR-0004-b.md").write_text("# ADR-0004", encoding="utf-8")
-    result = await AdrAuthorAgent(today="2026-06-10", adr_dir=tmp_path).run(_state())
-
-    assert result.adrs[0].startswith("# ADR-0005")
-    assert result.decisions[-1]["adr_number"] == 5
+    assert "Caveat" not in result.adrs[0]
 
 
-async def test_default_adr_dir_tracks_repo_adrs() -> None:
-    # The zero-arg default resolves to the repo's docs/architecture/adrs, which holds
-    # ADR-0001..0004 — so the generated model ADR is numbered at least 0005 (and tracks
-    # any further repo ADRs automatically, no hardcoded constant).
-    result = await AdrAuthorAgent(today="2026-06-10").run(_state())
-    number = result.decisions[-1]["adr_number"]
-    assert number >= 5
-    assert result.adrs[0].startswith(f"# ADR-{number:04d}")
-
-
-async def test_special_constructs_are_flagged_as_caveat() -> None:
+async def test_generation_gap_flags_produce_caveat_naming_the_construct() -> None:
+    # Constructs the generator skipped carry GENERATION_GAP flags (kind/asset matching,
+    # never message text); the caveat names exactly those, deduplicated.
     state = _state()
     state.dv_model.satellites.append(
         Satellite(name="sat_customer_addresses", parent="hub_customer",
                   attributes=["address"], description="multi-active",
                   sat_type="multi_active")
     )
+    state.flag(
+        "code_generator",
+        "multi-active satellite 'sat_customer_addresses' has no child_dependent_key; "
+        "cannot generate automate_dv.ma_sat, flagged for human review",
+        kind=FlagKind.GENERATION_GAP,
+        asset="sat_customer_addresses",
+    )
+    state.flag(  # duplicate asset — must not double-count
+        "code_generator", "second flag for the same construct",
+        kind=FlagKind.GENERATION_GAP, asset="sat_customer_addresses",
+    )
+    state.flag(  # different kind — must not leak into the caveat
+        "code_generator", "sat_customer_addresses vs SAT_CUSTOMER_ADDRESSES",
+        kind=FlagKind.COLUMN_COLLISION, asset="sat_customer_addresses",
+    )
     result = await AdrAuthorAgent(today="2026-06-10").run(state)
 
     adr = result.adrs[0]
-    assert "Caveat:" in adr
-    assert "sat_customer_addresses" in adr
-    assert "specialised Data Vault types" in adr
+    assert ("- Caveat: 1 construct(s) could not be generated and are flagged for "
+            "human review: sat_customer_addresses.") in adr
+    assert "not yet generated" not in adr  # the old false capability claim is gone
+
+
+async def test_reference_line_counts_raw_vault_and_staging_models() -> None:
+    state = _state()
+    state.artifacts.staging_models = {"stg_customer": "...", "stg_account_customer": "..."}
+    result = await AdrAuthorAgent(today="2026-06-10").run(state)
+
+    assert ("- Generated dbt models: 2 raw-vault model(s) + 2 staging model(s) "
+            "(see `state.artifacts`)") in result.adrs[0]
 
 
 async def test_optional_rationale_fields_surface_in_adr() -> None:

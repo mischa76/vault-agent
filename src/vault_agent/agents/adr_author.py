@@ -9,37 +9,25 @@ carries each construct's description and ``requirement_ids``) into the project's
 template. No LLM is involved, so the architecture record is reproducible and never subject
 to hallucination, matching how DV2.0 rules are kept in pure Python. The finalized ADR has
 status ``Proposed``: a human must review and accept it.
+
+Numbering: the generated ADR is a per-run output artifact documenting *one* pipeline run
+inside *one* output project, so it is numbered ADR-0001 within that output —
+deterministically, never derived from any repository directory. Same state in,
+byte-identical ADR out. Repo-level ADR numbering happens only when a human *accepts* the
+proposal and moves it into ``docs/architecture/adrs/``; the pipeline never numbers into
+the repo sequence.
 """
-import re
 from datetime import date
-from pathlib import Path
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.state import DVModel, FlagKind, VaultAgentState
 
-# The repo's committed architecture ADRs. The generated per-run model ADR is numbered just
-# past the highest of these so it never collides with a real repo ADR (resolved at runtime
-# instead of hardcoded, so adding a repo ADR doesn't require touching this agent).
-_DEFAULT_ADR_DIR = Path(__file__).resolve().parents[3] / "docs" / "architecture" / "adrs"
-_ADR_NUMBER = re.compile(r"ADR-(\d+)", re.IGNORECASE)
+# The generated ADR is always the first (and only) ADR of its output project.
+_OUTPUT_ADR_NUMBER = 1
 
 
 def _ids(requirement_ids: list[str]) -> str:
     return ", ".join(requirement_ids) if requirement_ids else "—"
-
-
-def _next_adr_number(adr_dir: Path) -> int:
-    """Highest ADR-NNNN number among ``adr_dir``'s ``ADR-*.md`` files, plus one.
-
-    Non-numbered files (e.g. ``ADR-template.md``) are ignored; a missing or ADR-free
-    directory yields 1, so the first generated ADR is ADR-0001."""
-    highest = 0
-    if adr_dir.is_dir():
-        for path in adr_dir.glob("ADR-*.md"):
-            match = _ADR_NUMBER.match(path.stem)
-            if match:
-                highest = max(highest, int(match.group(1)))
-    return highest + 1
 
 
 class AdrAuthorAgent(BaseAgent):
@@ -47,17 +35,12 @@ class AdrAuthorAgent(BaseAgent):
 
     prompt_path = "adr_author.md"  # type: ignore[assignment]
 
-    def __init__(
-        self,
-        today: str | None = None,
-        start_number: int | None = None,
-        adr_dir: Path | None = None,
-    ) -> None:
+    def __init__(self, today: str | None = None, start_number: int | None = None) -> None:
         self._today = today
-        # Explicit start_number wins (tests/overrides); otherwise derive from adr_dir at run
-        # time so the number tracks the repo's ADRs without a hardcoded constant.
+        # Explicit start_number wins (tests/overrides); the default is the per-output
+        # constant 1 — see the module docstring for why the repo's ADR sequence is never
+        # consulted.
         self._start_number = start_number
-        self._adr_dir = adr_dir or _DEFAULT_ADR_DIR
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         if not state.dv_model.hubs:
@@ -69,13 +52,18 @@ class AdrAuthorAgent(BaseAgent):
             )
             return state
 
-        number = (
-            self._start_number
-            if self._start_number is not None
-            else _next_adr_number(self._adr_dir)
-        )
+        number = self._start_number if self._start_number is not None else _OUTPUT_ADR_NUMBER
         today = self._today or date.today().isoformat()
-        adr = self._render(state.dv_model, state, number=number, today=today)
+        # The adr_author runs after the code generator on the validated path (graph:
+        # code_generator → validator → human_checkpoint → adr_author), so every construct
+        # the generator had to skip has already raised a GENERATION_GAP flag carrying the
+        # construct name as its asset. Matching is on kind/asset only — never message text.
+        generation_gaps = sorted(
+            {f.asset for f in state.flags if f.kind == FlagKind.GENERATION_GAP and f.asset}
+        )
+        adr = self._render(
+            state.dv_model, state, number=number, today=today, generation_gaps=generation_gaps
+        )
         state.adrs = [adr]  # sole writer; overwrites defensively even if anything pre-set it
         state.decisions.append(
             {
@@ -87,7 +75,13 @@ class AdrAuthorAgent(BaseAgent):
         return state
 
     @staticmethod
-    def _render(model: DVModel, state: VaultAgentState, number: int, today: str) -> str:
+    def _render(
+        model: DVModel,
+        state: VaultAgentState,
+        number: int,
+        today: str,
+        generation_gaps: list[str],
+    ) -> str:
         lines: list[str] = [
             f"# ADR-{number:04d}: Data Vault model derived from requirements",
             "",
@@ -148,14 +142,12 @@ class AdrAuthorAgent(BaseAgent):
             "- Neutral: status is Proposed — a human must review and accept this model.",
         ]
 
-        specials = [lk.name for lk in model.links if lk.link_type != "standard"] + [
-            s.name for s in model.satellites if s.sat_type != "standard"
-        ]
-        if specials:
+        # Only constructs the code generator actually skipped (GENERATION_GAP flags) are
+        # caveated; non-standard types that were generated get no caveat — they work.
+        if generation_gaps:
             lines.append(
-                f"- Caveat: {len(specials)} construct(s) use specialised Data Vault types "
-                f"that need dedicated AutomateDV macros not yet generated: "
-                f"{', '.join(specials)}."
+                f"- Caveat: {len(generation_gaps)} construct(s) could not be generated "
+                f"and are flagged for human review: {', '.join(generation_gaps)}."
             )
 
         lines += [
@@ -163,7 +155,8 @@ class AdrAuthorAgent(BaseAgent):
             "## References",
             "",
             f"- Source requirement document(s): {', '.join(state.input_documents) or '—'}",
-            f"- Generated dbt models: {len(state.artifacts.dbt_models)} "
+            f"- Generated dbt models: {len(state.artifacts.dbt_models)} raw-vault "
+            f"model(s) + {len(state.artifacts.staging_models)} staging model(s) "
             "(see `state.artifacts`)",
             "",
         ]
