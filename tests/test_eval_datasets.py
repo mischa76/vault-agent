@@ -1,0 +1,140 @@
+"""Tests for the golden-dataset loader (WP6 layer 1). Deterministic, no API key."""
+from pathlib import Path
+
+import pytest
+
+from eval.datasets import (
+    DATASETS_ROOT,
+    EvalCase,
+    load_all_cases,
+    load_eval_case,
+)
+
+_MINIMAL = """\
+name: toy
+input_document: requirements.md
+golden:
+  hubs:
+    - {name: hub_customer, business_key: national customer ID}
+  links: []
+  satellites: []
+"""
+
+
+def _write_case(tmp_path: Path, yaml_text: str = _MINIMAL) -> Path:
+    (tmp_path / "requirements.md").write_text("# reqs", encoding="utf-8")
+    path = tmp_path / "dataset.yml"
+    path.write_text(yaml_text, encoding="utf-8")
+    return path
+
+
+def test_loads_minimal_case_with_defaults(tmp_path: Path) -> None:
+    case = load_eval_case(_write_case(tmp_path))
+    assert case.name == "toy"
+    assert case.input_document == (tmp_path / "requirements.md").resolve()
+    assert case.source_schema is None
+    assert case.golden.hubs[0].business_key == "national customer ID"
+    assert case.expectations.validation_passed is True
+    assert case.expectations.max_validation_warnings is None
+    assert case.expectations.min_scores == {}
+
+
+def test_missing_file_raises_file_not_found(tmp_path: Path) -> None:
+    with pytest.raises(FileNotFoundError):
+        load_eval_case(tmp_path / "dataset.yml")
+
+
+def test_malformed_yaml_names_file(tmp_path: Path) -> None:
+    path = tmp_path / "dataset.yml"
+    path.write_text("name: [unclosed", encoding="utf-8")
+    with pytest.raises(ValueError, match=str(path).replace("\\", "\\\\")):
+        load_eval_case(path)
+
+
+def test_non_mapping_document_names_file_and_type(tmp_path: Path) -> None:
+    path = tmp_path / "dataset.yml"
+    path.write_text("- just\n- a list\n", encoding="utf-8")
+    with pytest.raises(ValueError, match="got list"):
+        load_eval_case(path)
+
+
+def test_invalid_case_is_attributable(tmp_path: Path) -> None:
+    path = _write_case(tmp_path, "name: toy\ngolden: {}\n")  # input_document missing
+    with pytest.raises(ValueError, match="invalid eval case"):
+        load_eval_case(path)
+
+
+def test_dangling_input_document_raises(tmp_path: Path) -> None:
+    path = tmp_path / "dataset.yml"
+    path.write_text(_MINIMAL.replace("requirements.md", "nope.md"), encoding="utf-8")
+    with pytest.raises(ValueError, match="input_document"):
+        load_eval_case(path)
+
+
+def test_dangling_source_schema_raises(tmp_path: Path) -> None:
+    path = _write_case(tmp_path, _MINIMAL + "source_schema: nope.yml\n")
+    with pytest.raises(ValueError, match="source_schema"):
+        load_eval_case(path)
+
+
+def test_load_all_cases_rejects_duplicate_names(tmp_path: Path) -> None:
+    for directory in ("a", "b"):
+        case_dir = tmp_path / directory
+        case_dir.mkdir()
+        _write_case(case_dir)
+    with pytest.raises(ValueError, match="duplicate case name 'toy'"):
+        load_all_cases(tmp_path)
+
+
+def test_load_all_cases_skips_dirs_without_dataset(tmp_path: Path) -> None:
+    (tmp_path / "empty").mkdir()
+    case_dir = tmp_path / "real"
+    case_dir.mkdir()
+    _write_case(case_dir)
+    cases = load_all_cases(tmp_path)
+    assert [case.name for case in cases] == ["toy"]
+
+
+# --- the shipped cases -------------------------------------------------------------
+
+
+def test_shipped_cases_load_with_unique_names() -> None:
+    cases = load_all_cases()
+    assert [case.name for case in cases] == ["bank", "health_insurance", "messy_insurance"]
+    for case in cases:
+        assert case.input_document.is_file()
+
+
+def _shipped(name: str) -> EvalCase:
+    return load_eval_case(DATASETS_ROOT / name / "dataset.yml")
+
+
+def test_bank_case_matches_the_durchstich_model() -> None:
+    case = _shipped("bank")
+    assert {hub.name for hub in case.golden.hubs} == {"hub_customer", "hub_account"}
+    (link,) = case.golden.links
+    assert link.driving_key == ["hub_account"]
+    assert {sat.sat_type for sat in case.golden.satellites} == {"standard", "effectivity"}
+    assert case.source_schema is not None and case.source_schema.is_file()
+    assert case.expectations.min_scores == {"construct_f1": 0.5}
+
+
+def test_health_insurance_case_shape() -> None:
+    case = _shipped("health_insurance")
+    assert len(case.golden.hubs) == 4
+    assert len(case.golden.links) == 3
+    assert len(case.golden.satellites) == 7
+    assert case.source_schema is None
+    by_name = {link.name: link for link in case.golden.links}
+    assert by_name["link_insured_person_policy"].driving_key == ["hub_policy"]
+    types = {sat.name: sat.sat_type for sat in case.golden.satellites}
+    assert types["sat_insured_person_address"] == "multi_active"
+    assert types["sat_insured_person_policy_effectivity"] == "effectivity"
+
+
+def test_messy_insurance_case_is_loose() -> None:
+    case = _shipped("messy_insurance")
+    assert case.source_schema is not None and case.source_schema.is_file()
+    assert case.expectations.min_scores == {}  # informational case, no gate
+    assert case.expectations.max_validation_warnings == 25
+    assert all(not link.driving_key for link in case.golden.links)

@@ -1,0 +1,30 @@
+# Golden case: retail banking toy domain (wp6-eval-harness-spec.md §3).
+#
+# The golden model is the *verified* fixed bank DV model from the Postgres Durchstich
+# (demo/bank_postgres/build_vault_models.py) — the one model in this repo that has been
+# built and loaded on a real warehouse. Deliberately conservative: the requirements also
+# mention transactions (a transactional-link candidate) and multiple customer addresses
+# (a multi-active-satellite candidate); both are known modeler weak spots and are NOT
+# golden, so a run that models them well loses a little precision rather than being
+# required to.
+name: bank
+input_document: ../../../examples/inputs/bank_account_requirements.md
+source_schema: ../../../examples/inputs/bank_source_schema.yml
+golden:
+  hubs:
+    - {name: hub_customer, business_key: national customer ID}
+    - {name: hub_account, business_key: account number}
+  links:
+    # The account is the fixed side; the owning customer rotates over time.
+    - {name: link_account_customer, connected_hubs: [hub_account, hub_customer],
+       driving_key: [hub_account]}
+  satellites:
+    - {name: sat_customer_details, parent: hub_customer, sat_type: standard}
+    - {name: sat_account_details, parent: hub_account, sat_type: standard}
+    - {name: sat_account_customer_eff, parent: link_account_customer, sat_type: effectivity}
+expectations:
+  validation_passed: true
+  max_validation_warnings: 8
+  # Manual pre-release gate (spec §5): conservative floor, not a target.
+  min_scores:
+    construct_f1: 0.5

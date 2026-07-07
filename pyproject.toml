@@ -66,6 +66,9 @@ select = ["E", "F", "I", "B", "UP", "N", "SIM"]
 python_version = "3.12"
 strict = true
 ignore_missing_imports = true
+# The eval harness (eval/) is typed and checked alongside the package (WP6): a bare
+# `uv run mypy` covers both. Explicit paths on the command line override this list.
+files = ["src/vault_agent", "eval"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

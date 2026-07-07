@@ -1,0 +1,40 @@
+# Golden case: health insurance toy domain, derived from the representative run in
+# docs/demos/health-insurance-walkthrough.md (4 hubs, 3 links; the walkthrough names 4 of
+# its 8 satellites — the golden list below keeps those plus the three uncontroversial
+# per-hub detail satellites, 7 in total; the exact split count is run-dependent).
+#
+# Golden-choice notes:
+# - driving_key of link_insured_person_policy is hub_policy (a policy has exactly one
+#   holder at any point in time; the holder rotates on transfer). The walkthrough's
+#   representative output showed INSURED_PERSON_HK as driving FK, but that predates the
+#   2026-06 remediation (the eff sat then simply used the first FK); the DV-correct
+#   driving key is the fixed side, the policy.
+# - Premium payments are NOT golden: they have no business key and are a documented
+#   modeler weak spot (the walkthrough shows them being dropped).
+name: health_insurance
+input_document: ../../../examples/inputs/health_insurance_requirements.md
+golden:
+  hubs:
+    - {name: hub_insured_person, business_key: national insured number}
+    - {name: hub_policy, business_key: policy number}
+    - {name: hub_claim, business_key: claim number}
+    - {name: hub_healthcare_provider, business_key: provider registration number}
+  links:
+    - {name: link_insured_person_policy, connected_hubs: [hub_insured_person, hub_policy],
+       driving_key: [hub_policy]}
+    - {name: link_policy_claim, connected_hubs: [hub_policy, hub_claim]}
+    - {name: link_claim_healthcare_provider,
+       connected_hubs: [hub_claim, hub_healthcare_provider]}
+  satellites:
+    - {name: sat_insured_person_details, parent: hub_insured_person, sat_type: standard}
+    - {name: sat_insured_person_address, parent: hub_insured_person, sat_type: multi_active}
+    - {name: sat_policy_coverage, parent: hub_policy, sat_type: standard}
+    - {name: sat_policy_status, parent: hub_policy, sat_type: standard}
+    - {name: sat_insured_person_policy_effectivity, parent: link_insured_person_policy,
+       sat_type: effectivity}
+    - {name: sat_claim_details, parent: hub_claim, sat_type: standard}
+    - {name: sat_healthcare_provider_details, parent: hub_healthcare_provider,
+       sat_type: standard}
+expectations:
+  validation_passed: true
+  max_validation_warnings: 8
