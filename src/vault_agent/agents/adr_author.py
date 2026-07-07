@@ -15,7 +15,7 @@ from datetime import date
 from pathlib import Path
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.state import DVModel, VaultAgentState
+from vault_agent.state import DVModel, FlagKind, VaultAgentState
 
 # The repo's committed architecture ADRs. The generated per-run model ADR is numbered just
 # past the highest of these so it never collides with a real repo ADR (resolved at runtime
@@ -61,8 +61,11 @@ class AdrAuthorAgent(BaseAgent):
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         if not state.dv_model.hubs:
-            state.errors.append(
-                "adr_author: no model to document; run the DV2.0 modeler first"
+            state.flag(
+                "adr_author",
+                "no model to document; run the DV2.0 modeler first",
+                severity="error",
+                kind=FlagKind.MISSING_INPUT,
             )
             return state
 

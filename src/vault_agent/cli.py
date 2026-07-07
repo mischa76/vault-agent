@@ -56,10 +56,23 @@ def _adr_filename(adr_text: str) -> str:
 
 def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
     """Write dbt models, AutomateDV metadata, and ADRs to ``out_dir``; return counts."""
-    models_dir = out_dir / "models"
+    models_dir = out_dir / "models" / "raw_vault"
     models_dir.mkdir(parents=True, exist_ok=True)
     for name, sql in state.artifacts.dbt_models.items():
         (models_dir / f"{name}.sql").write_text(sql, encoding="utf-8")
+
+    if state.artifacts.staging_models:
+        staging_dir = out_dir / "models" / "staging"
+        staging_dir.mkdir(parents=True, exist_ok=True)
+        for name, sql in state.artifacts.staging_models.items():
+            (staging_dir / f"{name}.sql").write_text(sql, encoding="utf-8")
+
+    # Project scaffolding (dbt_project.yml, packages.yml, sources.yml, README.md) —
+    # relative paths inside the output dir, so the output is a runnable dbt project.
+    for rel_path, content in state.artifacts.scaffolding.items():
+        target = out_dir / rel_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(content, encoding="utf-8")
 
     if state.artifacts.automatedv_yaml:
         meta_dir = out_dir / "metadata"
@@ -94,6 +107,8 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
 
     return {
         "models": len(state.artifacts.dbt_models),
+        "staging": len(state.artifacts.staging_models),
+        "scaffolding": len(state.artifacts.scaffolding),
         "adrs": len(state.adrs),
         "metadata": 1 if state.artifacts.automatedv_yaml else 0,
         "contracts": len(state.artifacts.contracts),
@@ -227,7 +242,8 @@ def _print_summary(console: Console, state: VaultAgentState) -> None:
         f"  grounding:     {grounding}\n"
         f"  model:         {len(model.hubs)} hubs, {len(model.links)} links, "
         f"{len(model.satellites)} satellites\n"
-        f"  dbt models:    {len(state.artifacts.dbt_models)}\n"
+        f"  dbt models:    {len(state.artifacts.dbt_models)} raw vault + "
+        f"{len(state.artifacts.staging_models)} staging\n"
         f"  contracts:     {len(state.artifacts.contracts)}\n"
         f"  validation:    {verdict} ({len(report.issues)} issue(s))"
     )
@@ -276,9 +292,11 @@ def _print_checkpoint(console: Console, queue: HumanReviewQueue) -> None:
 
 def _report_written(console: Console, counts: dict[str, int], out: Path) -> None:
     console.print(
-        f"\n[bold]Wrote[/bold] {counts['models']} model(s), {counts['contracts']} "
-        f"contract(s), {counts['adrs']} ADR(s), {counts['metadata']} metadata file(s), "
-        f"{counts['review_items']} review item(s) to [cyan]{out}/[/cyan]"
+        f"\n[bold]Wrote[/bold] {counts['models']} raw-vault model(s), "
+        f"{counts['staging']} staging model(s), {counts['scaffolding']} scaffolding "
+        f"file(s), {counts['contracts']} contract(s), {counts['adrs']} ADR(s), "
+        f"{counts['metadata']} metadata file(s), {counts['review_items']} review "
+        f"item(s) to [cyan]{out}/[/cyan]"
     )
 
 

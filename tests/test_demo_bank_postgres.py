@@ -10,6 +10,8 @@ from types import ModuleType
 
 import pytest
 
+from vault_agent.state import FlagKind
+
 _BUILDER_PATH = (
     Path(__file__).parent.parent / "demo" / "bank_postgres" / "build_vault_models.py"
 )
@@ -37,9 +39,16 @@ async def test_builder_emits_six_models_from_the_real_generator(tmp_path: Path) 
     builder = _load_builder()
     state = await builder.generate_models(builder.build_bank_dv_model())
 
-    # No generator errors/flags for this fixed, hand-checked model.
-    assert state.errors == []
+    # No generator errors for this fixed, hand-checked model. The demo runs ungrounded,
+    # so the staging generator's inferred raw_* source bindings are expected advisories —
+    # they name exactly the seeds the demo ships (raw_customer/raw_account/raw_account_customer).
+    assert [f for f in state.flags if f.severity == "error"] == []
+    assert {f.kind for f in state.flags} <= {FlagKind.SOURCE_BINDING}
     assert set(state.artifacts.dbt_models) == set(EXPECTED_MODELS)
+    # The generated staging layer mirrors the demo's hand-authored stg_* models.
+    assert set(state.artifacts.staging_models) == {
+        "stg_customer", "stg_account", "stg_account_customer",
+    }
 
     written = builder.write_models(state, tmp_path)
     assert len(written) == len(EXPECTED_MODELS)

@@ -58,7 +58,7 @@ async def test_parses_requirements_from_example_document() -> None:
     assert result.requirements[0].id == "REQ-001"
     assert result.requirements[0].actor == "customer"
     assert result.requirements[1].actor is None
-    assert not result.errors
+    assert not result.flags
 
     # The real document was read from disk and handed to the LLM, alongside the prompt.
     assert len(stub.calls) == 1
@@ -80,8 +80,8 @@ async def test_invalid_records_are_skipped_and_logged() -> None:
     result = await agent.run(state)
 
     assert len(result.requirements) == 2
-    assert len(result.errors) == 1
-    assert "dropped invalid record" in result.errors[0]
+    assert len(result.flags) == 1
+    assert "dropped invalid record" in result.flags[0].message
 
 
 async def test_missing_input_file_is_reported() -> None:
@@ -92,8 +92,8 @@ async def test_missing_input_file_is_reported() -> None:
     result = await agent.run(state)
 
     assert result.requirements == []
-    assert len(result.errors) == 1
-    assert "not found" in result.errors[0]
+    assert len(result.flags) == 1
+    assert "not found" in result.flags[0].message
     # Extractor must not be called when there is no document to parse.
     assert stub.calls == []
 
@@ -132,7 +132,7 @@ async def test_reads_pdf_document(tmp_path: Path) -> None:
 
     result = await agent.run(VaultAgentState(input_documents=[str(pdf_path)]))
 
-    assert not result.errors
+    assert not result.flags
     assert len(stub.calls) == 1
     _, document = stub.calls[0]
     assert "REQ-PDF-MARKER" in document  # PDF text was extracted and routed to the LLM
@@ -150,7 +150,7 @@ async def test_reads_docx_document(tmp_path: Path) -> None:
 
     result = await agent.run(VaultAgentState(input_documents=[str(docx_path)]))
 
-    assert not result.errors
+    assert not result.flags
     assert len(stub.calls) == 1
     _, document = stub.calls[0]
     assert "REQ-DOCX-MARKER" in document
@@ -166,6 +166,9 @@ async def test_unsupported_extension_is_skipped(tmp_path: Path) -> None:
     result = await agent.run(VaultAgentState(input_documents=[str(bad), str(good)]))
 
     # The unsupported file is flagged and skipped; the .md document still parses.
-    assert any("unsupported document type" in e and "reqs.csv" in e for e in result.errors)
+    assert any(
+        "unsupported document type" in e.message and "reqs.csv" in e.message
+        for e in result.flags
+    )
     assert len(stub.calls) == 1  # only the supported doc reached the extractor
     assert len(result.requirements) == 2

@@ -16,8 +16,8 @@ LLM vs deterministic split (see the design spec / ADR-0005):
   descriptions/examples, type inference from prose, and value-level semantic constraints.
 
 The enricher is injectable so the deterministic core is fully unit-tested without a key,
-consistent with the other agents. Gaps are **flagged for human review** (via
-``state.errors``), never guessed: a placeholder owner, a missing source schema, or a field
+consistent with the other agents. Gaps are **flagged for human review** (via typed
+``state.flags``), never guessed: a placeholder owner, a missing source schema, or a field
 whose type could not be determined each surface a flag.
 """
 import json
@@ -33,7 +33,7 @@ from vault_agent.models.contract import (
     SemanticConstraint,
 )
 from vault_agent.rules.dv2_rules import STAGING_PREFIX, normalize_identifier
-from vault_agent.state import VaultAgentState
+from vault_agent.state import FlagKind, VaultAgentState
 
 _TOOL_NAME = "emit_contract_enrichment"
 _MAX_TOKENS = 4096
@@ -97,38 +97,25 @@ class ContractEnricher(Protocol):
 
 
 class AnthropicContractEnricher:
-    """Default enricher backed by the Anthropic Messages API (forced tool-use)."""
+    """Default enricher backed by the shared forced-tool-use call path."""
 
     def __init__(self, model: str | None = None) -> None:
         # Imported lazily so importing this module never requires an API key.
-        from anthropic import AsyncAnthropic
-
         from vault_agent.config import get_settings
+        from vault_agent.llm import ForcedToolCaller
 
-        settings = get_settings()
-        self._client = AsyncAnthropic(api_key=settings.anthropic_api_key)
-        self._model = model or settings.primary_model
+        self._caller = ForcedToolCaller(model or get_settings().primary_model)
 
     async def enrich(self, *, system_prompt: str, assets_json: str) -> dict[str, Any]:
-        message = await self._client.messages.create(
-            model=self._model,
+        payload = await self._caller.call(
+            tool_name=_TOOL_NAME,
+            tool_description="Emit prose-derived enrichment for the data assets.",
+            input_schema=_tool_schema(),
+            system_prompt=system_prompt,
+            user_content=assets_json,
             max_tokens=_MAX_TOKENS,
-            system=system_prompt,
-            tools=[
-                {
-                    "name": _TOOL_NAME,
-                    "description": "Emit prose-derived enrichment for the data assets.",
-                    "input_schema": _tool_schema(),
-                }
-            ],
-            tool_choice={"type": "tool", "name": _TOOL_NAME},
-            messages=[{"role": "user", "content": assets_json}],
         )
-        for block in message.content:
-            if block.type == "tool_use" and block.name == _TOOL_NAME:
-                payload = cast(dict[str, Any], block.input)
-                return cast(dict[str, Any], payload.get("assets", {}))
-        return {}
+        return cast(dict[str, Any], payload.get("assets", {}))
 
 
 class DataContractAgent(BaseAgent):
@@ -167,9 +154,12 @@ class DataContractAgent(BaseAgent):
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         assets = self._assets(state)
         if not assets:
-            state.errors.append(
-                "data_contract: no source schemas and no business keys; nothing to "
-                "contract (run the requirements/business-key agents, or declare a schema)"
+            state.flag(
+                "data_contract",
+                "no source schemas and no business keys; nothing to contract (run the "
+                "requirements/business-key agents, or declare a schema)",
+                severity="error",
+                kind=FlagKind.MISSING_INPUT,
             )
             return state
 
@@ -252,9 +242,12 @@ class DataContractAgent(BaseAgent):
                 )
             )
             if data_type == "unknown":
-                state.errors.append(
-                    f"data_contract: field {name}.{label!r} has an undetermined type; "
-                    f"review required before the contract is agreed"
+                state.flag(
+                    "data_contract",
+                    f"field {name}.{label!r} has an undetermined type; review required "
+                    f"before the contract is agreed",
+                    kind=FlagKind.UNDETERMINED_TYPE,
+                    asset=f"{name}.{label}",
                 )
 
         owner = ContractOwner.placeholder()
@@ -273,14 +266,20 @@ class DataContractAgent(BaseAgent):
         contract.fields = fields
 
         # Always flag the placeholder owner — the agent never invents a real one.
-        state.errors.append(
-            f"data_contract: contract {name!r} has a placeholder owner; assign a real "
-            f"owner at the human-in-the-loop checkpoint"
+        state.flag(
+            "data_contract",
+            f"contract {name!r} has a placeholder owner; assign a real owner at the "
+            f"human-in-the-loop checkpoint",
+            kind=FlagKind.OWNER_PLACEHOLDER,
+            asset=name,
         )
         if not grounded:
-            state.errors.append(
-                f"data_contract: no source schema for {name!r}; field types/constraints "
-                f"were inferred from prose — review against the real source"
+            state.flag(
+                "data_contract",
+                f"no source schema for {name!r}; field types/constraints were inferred "
+                f"from prose — review against the real source",
+                kind=FlagKind.NO_SOURCE_SCHEMA,
+                asset=name,
             )
         return contract
 

@@ -4,7 +4,21 @@ The generator is deterministic (no LLM), so these tests assert exact output and 
 without an Anthropic API key.
 """
 from vault_agent.agents.code_generator import CodeGeneratorAgent
-from vault_agent.state import DVModel, Hub, Link, Satellite, VaultAgentState
+from vault_agent.state import (
+    DVModel,
+    FlagKind,
+    Hub,
+    Link,
+    PipelineFlag,
+    Satellite,
+    VaultAgentState,
+)
+
+
+def _unexpected_flags(state: VaultAgentState) -> list[PipelineFlag]:
+    """Every flag except the staging generator's expected source-binding advisories
+    (these fixtures run ungrounded, so inferred raw_* bindings are always flagged)."""
+    return [f for f in state.flags if f.kind != FlagKind.SOURCE_BINDING]
 
 
 def _model() -> DVModel:
@@ -37,10 +51,11 @@ async def test_generates_a_model_per_construct() -> None:
     assert set(result.artifacts.dbt_models) == {
         "hub_customer", "hub_account", "link_account_customer", "sat_customer_details",
     }
-    assert not result.errors
+    assert not _unexpected_flags(result)
     assert result.decisions[-1] == {
         "agent": "code_generator", "models_generated": 4,
         "hubs": 2, "links": 1, "satellites": 1,
+        "staging_models": 3, "scaffolding_files": 4,
     }
 
 
@@ -88,7 +103,7 @@ async def test_satellite_on_link_parent_resolves_link_hashkey() -> None:
     sql = result.artifacts.dbt_models["sat_ownership_effectivity"]
 
     assert '{%- set src_pk = "LINK_ACCOUNT_CUSTOMER_HK" -%}' in sql
-    assert not result.errors
+    assert not _unexpected_flags(result)
 
 
 async def test_multi_active_satellite_without_cdk_is_flagged() -> None:
@@ -101,7 +116,7 @@ async def test_multi_active_satellite_without_cdk_is_flagged() -> None:
     result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
 
     assert "sat_customer_addresses" not in result.artifacts.dbt_models
-    assert any("child_dependent_key" in e and "ma_sat" in e for e in result.errors)
+    assert any("child_dependent_key" in e.message and "ma_sat" in e.message for e in result.flags)
 
 
 async def test_multi_active_satellite_generates_with_cdk() -> None:
@@ -117,7 +132,7 @@ async def test_multi_active_satellite_generates_with_cdk() -> None:
     assert "automate_dv.ma_sat(" in sql
     assert '{%- set src_cdk = ["ADDRESS_TYPE"] -%}' in sql
     assert '{%- set src_payload = ["ADDRESS_LINE", "CITY"] -%}' in sql
-    assert not result.errors
+    assert not _unexpected_flags(result)
 
 
 def _eff_model(connected_hubs: list[str], driving_key: list[str]) -> DVModel:
@@ -152,7 +167,7 @@ async def test_effectivity_satellite_applies_declared_driving_key() -> None:
     # src_eff MUST be a dedicated column distinct from src_start_date — reusing EFFECTIVE_FROM
     # breaks AutomateDV's incremental eff_sat SQL on Postgres ("specified more than once").
     assert '{%- set src_eff = "APPLIED_DTS" -%}' in sql
-    assert not result.errors
+    assert not _unexpected_flags(result)
     meta = result.artifacts.automatedv_yaml["satellites"]["sat_ownership_eff"]
     assert meta["src_dfk"] == "CUSTOMER_HK"
     assert meta["src_eff"] == "APPLIED_DTS"
@@ -169,7 +184,7 @@ async def test_effectivity_driving_key_is_order_independent() -> None:
 
     assert '{%- set src_dfk = "CUSTOMER_HK" -%}' in sql
     assert '{%- set src_sfk = ["ACCOUNT_HK"] -%}' in sql
-    assert not reordered.errors
+    assert not _unexpected_flags(reordered)
 
 
 async def test_effectivity_multi_hub_driving_key_renders_a_list() -> None:
@@ -183,7 +198,7 @@ async def test_effectivity_multi_hub_driving_key_renders_a_list() -> None:
     assert result.artifacts.automatedv_yaml["satellites"]["sat_ownership_eff"]["src_dfk"] == [
         "ACCOUNT_HK", "CUSTOMER_HK",
     ]
-    assert not result.errors
+    assert not _unexpected_flags(result)
 
 
 async def test_effectivity_without_driving_key_is_flagged() -> None:
@@ -193,7 +208,10 @@ async def test_effectivity_without_driving_key_is_flagged() -> None:
     result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
 
     assert "sat_ownership_eff" not in result.artifacts.dbt_models
-    assert any("no driving_key" in e and "sat_ownership_eff" in e for e in result.errors)
+    assert any(
+        "no driving_key" in e.message and "sat_ownership_eff" in e.message
+        for e in result.flags
+    )
 
 
 async def test_effectivity_satellite_on_hub_is_flagged() -> None:
@@ -205,7 +223,7 @@ async def test_effectivity_satellite_on_hub_is_flagged() -> None:
     result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
 
     assert "sat_bad_eff" not in result.artifacts.dbt_models
-    assert any("must hang off a generated link" in e for e in result.errors)
+    assert any("must hang off a generated link" in e.message for e in result.flags)
 
 
 async def test_transactional_link_without_event_timestamp_is_flagged() -> None:
@@ -217,7 +235,7 @@ async def test_transactional_link_without_event_timestamp_is_flagged() -> None:
     result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
 
     assert "link_transaction" not in result.artifacts.dbt_models
-    assert any("event_timestamp" in e and "nh_link" in e for e in result.errors)
+    assert any("event_timestamp" in e.message and "nh_link" in e.message for e in result.flags)
 
 
 async def test_transactional_link_generates_nh_link() -> None:
@@ -234,7 +252,7 @@ async def test_transactional_link_generates_nh_link() -> None:
     assert '{%- set src_fk = ["ACCOUNT_HK", "CUSTOMER_HK"] -%}' in sql
     assert '{%- set src_payload = ["AMOUNT", "REFERENCE_TEXT"] -%}' in sql
     assert '{%- set src_eff = "TRANSACTION_TIMESTAMP" -%}' in sql
-    assert not result.errors
+    assert not _unexpected_flags(result)
 
 
 async def test_satellite_column_collision_is_warned() -> None:
@@ -249,9 +267,9 @@ async def test_satellite_column_collision_is_warned() -> None:
 
     assert "sat_customer_ids" in result.artifacts.dbt_models  # generation continues
     assert any(
-        "collision" in e and "'customer-id'" in e and "'customer id'" in e
-        and "CUSTOMER_ID" in e and "sat_customer_ids" in e
-        for e in result.errors
+        "collision" in e.message and "'customer-id'" in e.message and "'customer id'" in e.message
+        and "CUSTOMER_ID" in e.message and "sat_customer_ids" in e.message
+        for e in result.flags
     )
 
 
@@ -266,19 +284,19 @@ async def test_transactional_link_column_collision_is_warned() -> None:
 
     assert "link_transaction" in result.artifacts.dbt_models
     assert any(
-        "collision" in e and "REF_NO" in e and "link_transaction" in e
-        for e in result.errors
+        "collision" in e.message and "REF_NO" in e.message and "link_transaction" in e.message
+        for e in result.flags
     )
 
 
 async def test_distinct_columns_do_not_warn() -> None:
     # The happy-path model has no colliding labels; no spurious collision warnings.
     result = await CodeGeneratorAgent().run(_state())
-    assert not any("collision" in e for e in result.errors)
+    assert not any("collision" in e.message for e in result.flags)
 
 
 async def test_no_hubs_short_circuits() -> None:
     result = await CodeGeneratorAgent().run(VaultAgentState())
 
     assert result.artifacts.dbt_models == {}
-    assert any("no hubs" in e for e in result.errors)
+    assert any("no hubs" in e.message for e in result.flags)

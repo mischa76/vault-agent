@@ -21,7 +21,7 @@ Two jobs, both deterministic:
 ## Inputs
 
 - `state.input_documents`, `state.source_schemas` — to plan and validate the run.
-- For the checkpoint: `state.validation_report`, `state.artifacts.contracts`, `state.errors`.
+- For the checkpoint: `state.validation_report`, `state.artifacts.contracts`, `state.flags`.
 
 ## Outputs
 

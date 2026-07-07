@@ -16,10 +16,30 @@ from vault_agent.agents.orchestrator import (
 )
 from vault_agent.state import (
     Artifacts,
+    FlagKind,
+    PipelineFlag,
     SourceTable,
     ValidationReport,
     VaultAgentState,
 )
+
+
+def _owner_flag(asset: str) -> PipelineFlag:
+    return PipelineFlag(
+        agent="data_contract",
+        message=f"contract {asset!r} has a placeholder owner; assign a real owner",
+        kind=FlagKind.OWNER_PLACEHOLDER,
+        asset=asset,
+    )
+
+
+def _type_flag(asset: str, field: str) -> PipelineFlag:
+    return PipelineFlag(
+        agent="data_contract",
+        message=f"field {asset}.{field!r} has an undetermined type; review required",
+        kind=FlagKind.UNDETERMINED_TYPE,
+        asset=f"{asset}.{field}",
+    )
 
 _STAGES = ["requirements_parser", "dv2_modeler", "validator", "adr_author"]
 
@@ -48,7 +68,7 @@ async def test_plan_flags_missing_inputs() -> None:
     assert result.plan.input_documents == 0
     assert result.plan.grounded is False
     assert any("no input documents" in n for n in result.plan.notes)
-    assert any("no input documents" in e for e in result.errors)
+    assert any("no input documents" in e.message for e in result.flags)
 
 
 def _finished_state() -> VaultAgentState:
@@ -68,9 +88,9 @@ def _finished_state() -> VaultAgentState:
                 {"name": "account", "owner": {"name": "Data Team", "email": "d@x.io"}},
             ],
         ),
-        errors=[
-            "data_contract: contract 'customer' has a placeholder owner; assign a real owner",
-            "data_contract: field customer.'status' has an undetermined type; review required",
+        flags=[
+            _owner_flag("customer"),
+            _type_flag("customer", "status"),
         ],
     )
 
@@ -109,7 +129,7 @@ def test_requires_signoff_false_when_only_advisory() -> None:
             issues=[{"severity": "warning", "code": "W_HUB_NO_SAT",
                      "construct": "hub_x", "message": "no satellite"}],
         ),
-        errors=["some advisory flag"],
+        flags=[PipelineFlag(agent="pipeline", message="some advisory flag")],
     )
     queue = assemble_review_queue(state)
 
@@ -149,10 +169,8 @@ def _noisy_state(n_type_flags: int) -> VaultAgentState:
             issues=[{"severity": "warning", "code": "W_LINK_REDUNDANT_GRAIN",
                      "construct": "link_a, link_b", "message": "same unit of work twice"}],
         ),
-        errors=[
-            f"data_contract: field VICTOR_PARTNER.{i!r} has an undetermined type; "
-            f"review required before the contract is agreed"
-            for i in [f"PARTN_NR_{n}" for n in range(n_type_flags)]
+        flags=[
+            _type_flag("VICTOR_PARTNER", f"PARTN_NR_{n}") for n in range(n_type_flags)
         ],
     )
 
@@ -217,10 +235,10 @@ def _owner_state() -> VaultAgentState:
                 {"name": "account", "owner": {"name": "TODO: assign", "email": None}},
             ],
         ),
-        errors=[
-            "data_contract: contract 'customer' has a placeholder owner; assign a real owner",
-            "data_contract: contract 'account' has a placeholder owner; assign a real owner",
-            "data_contract: field customer.'status' has an undetermined type; review required",
+        flags=[
+            _owner_flag("customer"),
+            _owner_flag("account"),
+            _type_flag("customer", "status"),
         ],
     )
 
@@ -234,9 +252,9 @@ def test_apply_human_decision_assigns_and_prunes() -> None:
     assert assigned == ["customer"]
     assert state.artifacts.contracts[0]["owner"] == {"name": "Data Team", "email": "d@x.io"}
     # The resolved customer owner-flag is pruned; account's flag and the type flag remain.
-    assert not any("'customer' has a placeholder owner" in e for e in state.errors)
-    assert any("'account' has a placeholder owner" in e for e in state.errors)
-    assert any("undetermined type" in e for e in state.errors)
+    owner_assets = {f.asset for f in state.flags if f.kind == FlagKind.OWNER_PLACEHOLDER}
+    assert owner_assets == {"account"}
+    assert any(f.kind == FlagKind.UNDETERMINED_TYPE for f in state.flags)
 
 
 def test_apply_human_decision_ignores_unknown_and_empty() -> None:
@@ -252,7 +270,9 @@ def test_apply_human_decision_ignores_unknown_and_empty() -> None:
 async def test_checkpoint_passthrough_when_nothing_blocks() -> None:
     # No contracts, no validation errors → nothing blocks, so no interrupt is raised
     # (calling interrupt() outside a graph run would fail; passthrough must not).
-    result = await HumanCheckpointAgent().run(VaultAgentState(errors=["advisory only"]))
+    result = await HumanCheckpointAgent().run(
+        VaultAgentState(flags=[PipelineFlag(agent="pipeline", message="advisory only")])
+    )
 
     assert result.decisions[-1] == {
         "agent": "human_checkpoint", "interrupted": False, "assigned": [],

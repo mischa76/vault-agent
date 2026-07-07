@@ -149,7 +149,7 @@ async def test_owner_is_flagged_placeholder_never_invented() -> None:
 
     assert contract.owner.name == "TODO: assign"
     assert contract.owner.email is None
-    assert any("placeholder owner" in e for e in result.errors)
+    assert any("placeholder owner" in e.message for e in result.flags)
 
 
 async def test_unknown_type_is_flagged_not_guessed() -> None:
@@ -158,7 +158,7 @@ async def test_unknown_type_is_flagged_not_guessed() -> None:
     contract = DataContract.model_validate(result.artifacts.contracts[0])
 
     assert all(f.constraints.data_type == "unknown" for f in contract.fields)
-    assert any("undetermined type" in e for e in result.errors)
+    assert any("undetermined type" in e.message for e in result.flags)
 
 
 async def test_falls_back_to_business_entities_without_schema() -> None:
@@ -177,7 +177,7 @@ async def test_falls_back_to_business_entities_without_schema() -> None:
     assert pk.name == "account number"
     assert pk.constraints.primaryKey is True
     # Without a declared schema, types were inferred from prose → flagged for review.
-    assert any("no source schema" in e for e in result.errors)
+    assert any("no source schema" in e.message for e in result.flags)
 
 
 async def test_no_inputs_records_error_and_no_contracts() -> None:
@@ -185,7 +185,7 @@ async def test_no_inputs_records_error_and_no_contracts() -> None:
 
     assert result.artifacts.contracts == []
     assert result.artifacts.dbt_tests == {}
-    assert any("nothing to contract" in e for e in result.errors)
+    assert any("nothing to contract" in e.message for e in result.flags)
 
 
 async def test_decision_logged() -> None:

@@ -77,7 +77,7 @@ async def test_builds_model_from_requirements_and_keys() -> None:
     assert [lk.name for lk in result.dv_model.links] == ["link_account_customer"]
     assert [s.name for s in result.dv_model.satellites] == ["sat_customer_details"]
     assert result.dv_model.hubs[0].business_key == "national customer ID"
-    assert not result.errors
+    assert not result.flags
 
     # Modelling rules injected; both input arrays handed to the LLM.
     system_prompt, payload_json = stub.calls[0]
@@ -104,7 +104,7 @@ async def test_dangling_link_is_dropped() -> None:
     result = await Dv2ModelerAgent(extractor=stub).run(_state())
 
     assert [lk.name for lk in result.dv_model.links] == ["link_account_customer"]
-    assert any("dropped link 'link_account_ghost'" in e for e in result.errors)
+    assert any("dropped link 'link_account_ghost'" in e.message for e in result.flags)
 
 
 async def test_link_with_single_hub_is_dropped() -> None:
@@ -117,7 +117,7 @@ async def test_link_with_single_hub_is_dropped() -> None:
     result = await Dv2ModelerAgent(extractor=stub).run(_state())
 
     assert "link_lonely" not in [lk.name for lk in result.dv_model.links]
-    assert any("link_lonely" in e for e in result.errors)
+    assert any("link_lonely" in e.message for e in result.flags)
 
 
 async def test_dangling_satellite_is_dropped() -> None:
@@ -130,7 +130,7 @@ async def test_dangling_satellite_is_dropped() -> None:
     result = await Dv2ModelerAgent(extractor=stub).run(_state())
 
     assert [s.name for s in result.dv_model.satellites] == ["sat_customer_details"]
-    assert any("dropped satellite 'sat_orphan'" in e for e in result.errors)
+    assert any("dropped satellite 'sat_orphan'" in e.message for e in result.flags)
 
 
 async def test_satellite_on_link_parent_is_kept() -> None:
@@ -143,7 +143,7 @@ async def test_satellite_on_link_parent_is_kept() -> None:
     result = await Dv2ModelerAgent(extractor=stub).run(_state())
 
     assert "sat_ownership_effectivity" in [s.name for s in result.dv_model.satellites]
-    assert not result.errors
+    assert not result.flags
 
 
 async def test_invalid_hub_is_skipped_and_logged() -> None:
@@ -153,7 +153,7 @@ async def test_invalid_hub_is_skipped_and_logged() -> None:
     result = await Dv2ModelerAgent(extractor=stub).run(_state())
 
     assert "hub_broken" not in [h.name for h in result.dv_model.hubs]
-    assert any("dropped invalid hub" in e for e in result.errors)
+    assert any("dropped invalid hub" in e.message for e in result.flags)
 
 
 async def test_no_business_keys_short_circuits_without_calling_llm() -> None:
@@ -161,7 +161,7 @@ async def test_no_business_keys_short_circuits_without_calling_llm() -> None:
     result = await Dv2ModelerAgent(extractor=stub).run(VaultAgentState())
 
     assert result.dv_model.hubs == []
-    assert any("no business keys" in e for e in result.errors)
+    assert any("no business keys" in e.message for e in result.flags)
     assert stub.calls == []
 
 

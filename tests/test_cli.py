@@ -31,6 +31,11 @@ def _state_with_artifacts() -> VaultAgentState:
         artifacts=Artifacts(
             dbt_models={"hub_customer": "-- hub sql", "sat_customer_details": "-- sat sql"},
             automatedv_yaml={"hubs": {"hub_customer": {"src_pk": "CUSTOMER_HK"}}},
+            staging_models={"stg_customer": "-- stage sql"},
+            scaffolding={
+                "dbt_project.yml": "name: 'vault_project'\n",
+                "packages.yml": "packages: []\n",
+            },
         ),
         adrs=["# ADR-0004: Data Vault model derived from requirements\n\n**Status:** Proposed"],
     )
@@ -47,10 +52,14 @@ def test_write_outputs_creates_files(tmp_path: Path) -> None:
     counts = write_outputs(_state_with_artifacts(), tmp_path)
 
     assert counts == {
-        "models": 2, "adrs": 1, "metadata": 1, "contracts": 0, "review_items": 0,
+        "models": 2, "staging": 1, "scaffolding": 2, "adrs": 1, "metadata": 1,
+        "contracts": 0, "review_items": 0,
     }
-    assert (tmp_path / "models" / "hub_customer.sql").read_text() == "-- hub sql"
-    assert (tmp_path / "models" / "sat_customer_details.sql").exists()
+    assert (tmp_path / "models" / "raw_vault" / "hub_customer.sql").read_text() == "-- hub sql"
+    assert (tmp_path / "models" / "raw_vault" / "sat_customer_details.sql").exists()
+    assert (tmp_path / "models" / "staging" / "stg_customer.sql").read_text() == "-- stage sql"
+    assert (tmp_path / "dbt_project.yml").read_text() == "name: 'vault_project'\n"
+    assert (tmp_path / "packages.yml").exists()
 
     meta = yaml.safe_load((tmp_path / "metadata" / "automatedv.yml").read_text())
     assert meta["hubs"]["hub_customer"]["src_pk"] == "CUSTOMER_HK"
@@ -64,8 +73,11 @@ def test_write_outputs_skips_empty_sections(tmp_path: Path) -> None:
     counts = write_outputs(VaultAgentState(), tmp_path)
 
     assert counts == {
-        "models": 0, "adrs": 0, "metadata": 0, "contracts": 0, "review_items": 0,
+        "models": 0, "staging": 0, "scaffolding": 0, "adrs": 0, "metadata": 0,
+        "contracts": 0, "review_items": 0,
     }
+    assert not (tmp_path / "models" / "staging").exists()
+    assert not (tmp_path / "dbt_project.yml").exists()
     assert not (tmp_path / "metadata").exists()
     assert not (tmp_path / "adrs").exists()
     assert not (tmp_path / "contracts").exists()
@@ -182,7 +194,7 @@ def test_cli_checkpoint_collapses_noise_like_the_md() -> None:
 
     from vault_agent.agents.orchestrator import assemble_review_queue
     from vault_agent.cli import _print_checkpoint
-    from vault_agent.state import ValidationReport
+    from vault_agent.state import FlagKind, PipelineFlag, ValidationReport
 
     state = VaultAgentState(
         validation_report=ValidationReport(
@@ -190,8 +202,13 @@ def test_cli_checkpoint_collapses_noise_like_the_md() -> None:
             issues=[{"severity": "warning", "code": "W_LINK_REDUNDANT_GRAIN",
                      "construct": "link_a, link_b", "message": "same unit of work twice"}],
         ),
-        errors=[
-            f"data_contract: field VICTOR_PARTNER.'F{n}' has an undetermined type; review"
+        flags=[
+            PipelineFlag(
+                agent="data_contract",
+                message=f"field VICTOR_PARTNER.'F{n}' has an undetermined type; review",
+                kind=FlagKind.UNDETERMINED_TYPE,
+                asset=f"VICTOR_PARTNER.F{n}",
+            )
             for n in range(39)
         ],
     )

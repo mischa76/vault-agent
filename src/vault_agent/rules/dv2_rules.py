@@ -110,6 +110,13 @@ STAGING_PREFIX = "stg_"
 # parent supplies this column carrying the same value as the start date, so end-dating closes
 # a superseded record to the business effective date of its successor (not a load timestamp).
 EFFECTIVITY_APPLIED_COLUMN = "APPLIED_DTS"
+# Prefix for an *inferred* raw source relation when no declared source table matches a
+# staging model (e.g. stg_customer -> raw_customer). An inferred binding is always flagged
+# for human review (FlagKind.SOURCE_BINDING) — the generator names, it never guesses silently.
+RAW_SOURCE_PREFIX = "raw_"
+# AutomateDV package pin for the generated packages.yml — the version the Postgres
+# Durchstich (demo/bank_postgres) is verified against. Bump deliberately, re-verifying the demo.
+AUTOMATE_DV_VERSION = "0.11.4"
 
 # Vos revisions (NBK over hash, insert-only over persisted end-dating, ELM relationship-hubs,
 # foreign-key links, PSA, PIT/Bridge) are deliberately out of scope here — they are ADR-gated

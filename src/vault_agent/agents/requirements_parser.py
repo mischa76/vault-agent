@@ -13,12 +13,12 @@ The Anthropic client is only constructed lazily (and ``config.settings`` only im
 then), so unit tests can inject a stub extractor and run without an API key.
 """
 from pathlib import Path
-from typing import Any, Protocol, cast
+from typing import Any, Protocol
 
 from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.state import ParsedRequirement, VaultAgentState
+from vault_agent.state import FlagKind, ParsedRequirement, VaultAgentState
 
 _TOOL_NAME = "emit_requirements"
 _MAX_TOKENS = 4096
@@ -68,41 +68,27 @@ class RequirementExtractor(Protocol):
 
 
 class AnthropicRequirementExtractor:
-    """Default extractor backed by the Anthropic Messages API (forced tool-use)."""
+    """Default extractor backed by the shared forced-tool-use call path."""
 
     def __init__(self, model: str | None = None) -> None:
         # Imported lazily so importing this module never requires an API key.
-        from anthropic import AsyncAnthropic
-
         from vault_agent.config import get_settings
+        from vault_agent.llm import ForcedToolCaller
 
-        settings = get_settings()
-        self._client = AsyncAnthropic(api_key=settings.anthropic_api_key)
-        self._model = model or settings.primary_model
+        self._caller = ForcedToolCaller(model or get_settings().primary_model)
 
     async def extract(
         self, *, system_prompt: str, document: str
     ) -> list[dict[str, Any]]:
-        message = await self._client.messages.create(
-            model=self._model,
+        payload = await self._caller.call(
+            tool_name=_TOOL_NAME,
+            tool_description="Emit the structured requirements extracted from the document.",
+            input_schema=_tool_schema(),
+            system_prompt=system_prompt,
+            user_content=document,
             max_tokens=_MAX_TOKENS,
-            system=system_prompt,
-            tools=[
-                {
-                    "name": _TOOL_NAME,
-                    "description": "Emit the structured requirements extracted from the document.",
-                    "input_schema": _tool_schema(),
-                }
-            ],
-            tool_choice={"type": "tool", "name": _TOOL_NAME},
-            messages=[{"role": "user", "content": document}],
         )
-        for block in message.content:
-            if block.type == "tool_use" and block.name == _TOOL_NAME:
-                payload = cast(dict[str, Any], block.input)
-                records = payload.get("requirements", [])
-                return list(records)
-        return []
+        return list(payload.get("requirements", []))
 
 
 class RequirementsParserAgent(BaseAgent):
@@ -134,9 +120,12 @@ class RequirementsParserAgent(BaseAgent):
                 try:
                     requirements.append(ParsedRequirement.model_validate(record))
                 except ValidationError as exc:
-                    state.errors.append(
-                        f"requirements_parser: dropped invalid record from "
-                        f"{doc_path!r}: {exc.error_count()} error(s)"
+                    state.flag(
+                        "requirements_parser",
+                        f"dropped invalid record from {doc_path!r}: "
+                        f"{exc.error_count()} error(s)",
+                        kind=FlagKind.DROPPED_RECORD,
+                        asset=doc_path,
                     )
 
         state.requirements = requirements
@@ -155,11 +144,15 @@ class RequirementsParserAgent(BaseAgent):
 
         Supports the charter's source formats (``.md``/``.txt`` plain text, ``.pdf`` via
         pypdf, ``.docx`` via python-docx). An unknown extension is flagged on
-        ``state.errors`` and skipped — it never crashes the pipeline."""
+        ``state.flags`` and skipped — it never crashes the pipeline."""
         path = Path(doc_path)
         if not path.is_file():
-            state.errors.append(
-                f"requirements_parser: input document not found: {doc_path!r}"
+            state.flag(
+                "requirements_parser",
+                f"input document not found: {doc_path!r}",
+                severity="error",
+                kind=FlagKind.MISSING_INPUT,
+                asset=doc_path,
             )
             return None
         suffix = path.suffix.lower()
@@ -169,8 +162,12 @@ class RequirementsParserAgent(BaseAgent):
             return _extract_pdf_text(path)
         if suffix == ".docx":
             return _extract_docx_text(path)
-        state.errors.append(
-            f"requirements_parser: unsupported document type {suffix or '(none)'!r} for "
-            f"{doc_path!r}; supported: .md, .txt, .pdf, .docx — skipped"
+        state.flag(
+            "requirements_parser",
+            f"unsupported document type {suffix or '(none)'!r} for {doc_path!r}; "
+            f"supported: .md, .txt, .pdf, .docx — skipped",
+            severity="error",
+            kind=FlagKind.MISSING_INPUT,
+            asset=doc_path,
         )
         return None

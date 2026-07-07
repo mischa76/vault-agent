@@ -17,7 +17,6 @@ Two deterministic responsibilities, no LLM:
 
 Being deterministic, the whole agent is unit-tested without an API key.
 """
-import re
 from typing import Any, Literal
 
 from langgraph.types import interrupt
@@ -25,56 +24,36 @@ from pydantic import BaseModel, Field
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.models.contract import ContractOwner
-from vault_agent.state import ExecutionPlan, VaultAgentState
-
-# Review flags whose owner concern is already represented structurally as a
-# ``contract_owner`` item — filtered out of the advisory flags to avoid double-listing.
-_OWNER_FLAG_MARKER = "placeholder owner"
+from vault_agent.state import ExecutionPlan, FlagKind, VaultAgentState
 
 ReviewKind = Literal[
     "contract_owner", "validation_error", "validation_warning", "review_flag"
 ]
 
-# Stable categories for routine, repetitive advisory ``review_flag`` items, derived from the
-# message. Used only to *aggregate* identical-shape flags at render time (finding #3) so they
-# don't bury the substantive items. ``"other"`` flags are always rendered individually.
+# Stable categories for routine, repetitive advisory ``review_flag`` items, keyed by the
+# flag's typed ``kind`` (never by message text). Used only to *aggregate* identical-shape
+# flags at render time (finding #3) so they don't bury the substantive items. Flags whose
+# kind is not listed here fall into ``"other"`` and are always rendered individually.
 REVIEW_FLAG_GROUPS: dict[str, str] = {
-    "undetermined-type": "has an undetermined type",
-    "no-source-schema": "no source schema for",
+    FlagKind.UNDETERMINED_TYPE: "undetermined-type",
+    FlagKind.NO_SOURCE_SCHEMA: "no-source-schema",
+    FlagKind.SOURCE_BINDING: "source-binding",
 }
 _DEFAULT_GROUP = "other"
 # Above this many items in one group, the renderers collapse it to a single summarised line.
 AGGREGATE_THRESHOLD = 3
 
-
-def _classify_review_flag(message: str) -> str:
-    """Map a review-flag message to a stable group key (``"other"`` when none matches)."""
-    for group, needle in REVIEW_FLAG_GROUPS.items():
-        if needle in message:
-            return group
-    return _DEFAULT_GROUP
-
-
 # Human-readable noun phrase per aggregatable group, for the collapsed summary line.
 _GROUP_LABELS: dict[str, str] = {
     "undetermined-type": "undetermined field type",
     "no-source-schema": "contract(s) without a source schema",
-}
-# Per-group regex pulling a short representative term out of a flag message, for the sample
-# in a collapsed line (falls back to the whole summary when nothing matches).
-_SAMPLE_PATTERNS: dict[str, re.Pattern[str]] = {
-    "undetermined-type": re.compile(r"field (\S+) has an undetermined type"),
-    "no-source-schema": re.compile(r"no source schema for (\S+)"),
+    "source-binding": "inferred staging source binding(s)",
 }
 
 
 def _sample_term(item: "ReviewItem") -> str:
-    pattern = _SAMPLE_PATTERNS.get(item.group)
-    if pattern:
-        match = pattern.search(item.summary)
-        if match:
-            return match.group(1).replace("'", "").replace('"', "")
-    return item.summary
+    """A short representative term for a collapsed line: the flag's typed asset."""
+    return item.asset or item.summary
 
 
 def _sample_phrase(members: list["ReviewItem"], limit: int = 2) -> str:
@@ -91,6 +70,7 @@ class ReviewItem(BaseModel):
     detail: str = ""
     source: str = ""  # the agent / construct the item originates from
     group: str = _DEFAULT_GROUP  # advisory-flag category, for render-time aggregation
+    asset: str | None = None  # the affected asset/construct, carried from the typed flag
 
 
 class HumanReviewQueue(BaseModel):
@@ -150,14 +130,18 @@ def assemble_review_queue(state: VaultAgentState) -> HumanReviewQueue:
             )
 
     # Remaining advisory flags. The owner concern is already a structured contract_owner
-    # item above, so drop those flag lines to avoid listing the same thing twice.
-    for err in state.errors:
-        if _OWNER_FLAG_MARKER in err:
+    # item above, so drop those flags (matched on their typed kind, never on message text)
+    # to avoid listing the same thing twice.
+    for flag in state.flags:
+        if flag.kind == FlagKind.OWNER_PLACEHOLDER:
             continue
         items.append(
             ReviewItem(
-                kind="review_flag", summary=err, source="pipeline",
-                group=_classify_review_flag(err),
+                kind="review_flag",
+                summary=str(flag),
+                source=flag.agent,
+                group=REVIEW_FLAG_GROUPS.get(flag.kind, _DEFAULT_GROUP),
+                asset=flag.asset,
             )
         )
 
@@ -254,7 +238,12 @@ class OrchestratorAgent(BaseAgent):
             notes.append(
                 "no input documents declared; downstream parsing will produce nothing"
             )
-            state.errors.append("orchestrator: no input documents declared")
+            state.flag(
+                "orchestrator",
+                "no input documents declared",
+                severity="error",
+                kind=FlagKind.MISSING_INPUT,
+            )
 
         plan = ExecutionPlan(
             stages=list(self._planned_stages),
@@ -280,8 +269,9 @@ def apply_human_decision(state: VaultAgentState, decision: Any) -> list[str]:
     ``decision`` is whatever the resume supplied, expected as
     ``{"owners": {asset: {"name": ..., "email": ...}}, "accept": bool}``. Owners are written
     onto the matching contracts, and the now-resolved placeholder-owner review flags are
-    pruned so a regenerated review queue no longer lists them. Deterministic and pure (no
-    interrupt), so it is unit-tested directly."""
+    pruned — matched on the flag's typed kind and *exact* asset name, so assigning
+    ``customer`` never prunes the still-unresolved flag for ``customer_address``.
+    Deterministic and pure (no interrupt), so it is unit-tested directly."""
     owners = decision.get("owners", {}) if isinstance(decision, dict) else {}
     assigned: list[str] = []
     for contract in state.artifacts.contracts:
@@ -295,10 +285,11 @@ def apply_human_decision(state: VaultAgentState, decision: Any) -> list[str]:
             assigned.append(str(name))
 
     if assigned:
-        state.errors = [
-            err
-            for err in state.errors
-            if not (_OWNER_FLAG_MARKER in err and any(a in err for a in assigned))
+        resolved = set(assigned)
+        state.flags = [
+            flag
+            for flag in state.flags
+            if not (flag.kind == FlagKind.OWNER_PLACEHOLDER and flag.asset in resolved)
         ]
     return assigned
 

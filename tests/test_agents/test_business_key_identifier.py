@@ -76,7 +76,7 @@ async def test_proposes_business_keys_from_requirements() -> None:
     assert all(isinstance(c, BusinessKeyCandidate) for c in result.business_keys)
     assert result.business_keys[0].entity == "customer"
     assert result.business_keys[0].field == "national customer ID"
-    assert not result.errors
+    assert not result.flags
 
     # The agent injected the DV2 criteria into the prompt and passed the requirements.
     assert len(stub.calls) == 1
@@ -96,8 +96,8 @@ async def test_invalid_candidate_is_skipped_and_logged() -> None:
     result = await agent.run(_state_with_requirements())
 
     assert len(result.business_keys) == 2
-    assert len(result.errors) == 1
-    assert "dropped invalid candidate" in result.errors[0]
+    assert len(result.flags) == 1
+    assert "dropped invalid candidate" in result.flags[0].message
 
 
 async def test_out_of_range_score_is_dropped() -> None:
@@ -115,8 +115,8 @@ async def test_out_of_range_score_is_dropped() -> None:
     result = await agent.run(_state_with_requirements())
 
     assert result.business_keys == []
-    assert len(result.errors) == 1
-    assert "out-of-range score" in result.errors[0]
+    assert len(result.flags) == 1
+    assert "out-of-range score" in result.flags[0].message
 
 
 async def test_no_requirements_short_circuits_without_calling_llm() -> None:
@@ -127,8 +127,8 @@ async def test_no_requirements_short_circuits_without_calling_llm() -> None:
     result = await agent.run(state)
 
     assert result.business_keys == []
-    assert len(result.errors) == 1
-    assert "no requirements" in result.errors[0]
+    assert len(result.flags) == 1
+    assert "no requirements" in result.flags[0].message
     assert stub.calls == []  # the LLM must not be called
 
 

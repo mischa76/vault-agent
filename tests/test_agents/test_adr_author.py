@@ -129,4 +129,4 @@ async def test_no_model_reports_error_and_writes_no_adr() -> None:
     result = await AdrAuthorAgent(today="2026-06-10").run(VaultAgentState())
 
     assert result.adrs == []
-    assert any("no model to document" in e for e in result.errors)
+    assert any("no model to document" in e.message for e in result.flags)

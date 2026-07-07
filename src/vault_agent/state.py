@@ -3,6 +3,44 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+FlagSeverity = Literal["error", "advisory"]
+
+
+class FlagKind:
+    """Stable, machine-readable categories for :class:`PipelineFlag`.
+
+    Consumers (review queue, HITL pruning, aggregation) branch on these — never on the
+    flag's human-readable message text."""
+
+    MISSING_INPUT = "missing_input"  # a stage ran without its required upstream output
+    DROPPED_RECORD = "dropped_record"  # an invalid LLM record was dropped, not guessed at
+    COLUMN_COLLISION = "column_collision"  # two labels normalise to the same identifier
+    GENERATION_GAP = "generation_gap"  # a construct could not be generated; human review
+    OWNER_PLACEHOLDER = "owner_placeholder"  # contract awaiting a real owner (blocking)
+    UNDETERMINED_TYPE = "undetermined_type"  # contract field type unknown; review required
+    NO_SOURCE_SCHEMA = "no_source_schema"  # contract inferred from prose, not a schema
+    SOURCE_BINDING = "source_binding"  # staging source relation inferred, not declared
+    GENERIC = "generic"
+
+
+class PipelineFlag(BaseModel):
+    """One typed flag raised by an agent for the audit trail / human review queue.
+
+    Replaces the former free-text ``state.errors`` strings: consumers match on ``kind``
+    and ``asset`` (exact), so rewording a message can never break classification,
+    de-duplication, or HITL pruning."""
+
+    agent: str  # the raising agent, e.g. "data_contract"
+    message: str  # human-readable description (presentation only — never parsed)
+    severity: FlagSeverity = "advisory"
+    kind: str = FlagKind.GENERIC
+    # The affected asset/construct (contract name, satellite name, "contract.field", …).
+    # Exact-match key for consumers, e.g. pruning resolved owner flags on resume.
+    asset: str | None = None
+
+    def __str__(self) -> str:
+        return f"{self.agent}: {self.message}"
+
 
 class ParsedRequirement(BaseModel):
     """One requirement extracted by the Requirements Parser."""
@@ -96,6 +134,12 @@ class Artifacts(BaseModel):
     # dbt schema-test YAML derived from the contracts, keyed by asset name (one properties
     # file per asset). Prevention runs inside the existing dbt pipeline.
     dbt_tests: dict[str, str] = Field(default_factory=dict)
+    # Generated AutomateDV staging models (stg_* -> SQL), kept separate from the raw-vault
+    # dbt_models so each layer can be written/tested/asserted independently.
+    staging_models: dict[str, str] = Field(default_factory=dict)
+    # dbt project scaffolding (relative path -> content): dbt_project.yml, packages.yml,
+    # models/staging/sources.yml, README.md — what makes the output a runnable project.
+    scaffolding: dict[str, str] = Field(default_factory=dict)
 
 
 class ValidationReport(BaseModel):
@@ -134,4 +178,22 @@ class VaultAgentState(BaseModel):
     modeling_attempts: int = 0
     # Audit
     decisions: list[dict[str, Any]] = Field(default_factory=list)
-    errors: list[str] = Field(default_factory=list)
+    # Typed advisory/error flags raised by the agents (dropped records, generation gaps,
+    # contract review items, …). Consumers branch on kind/asset, never on message text.
+    flags: list[PipelineFlag] = Field(default_factory=list)
+
+    def flag(
+        self,
+        agent: str,
+        message: str,
+        *,
+        severity: FlagSeverity = "advisory",
+        kind: str = FlagKind.GENERIC,
+        asset: str | None = None,
+    ) -> None:
+        """Raise a typed pipeline flag (convenience helper for the agents)."""
+        self.flags.append(
+            PipelineFlag(
+                agent=agent, message=message, severity=severity, kind=kind, asset=asset
+            )
+        )

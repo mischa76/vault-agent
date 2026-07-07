@@ -16,14 +16,14 @@ validation a structural pass drops constructs that dangle (links referencing mis
 satellites referencing a missing parent).
 """
 import json
-from typing import Any, Protocol, cast
+from typing import Any, Protocol
 
 from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import render_schema_prompt_section
 from vault_agent.rules.dv2_rules import DV_MODELING_RULES
-from vault_agent.state import DVModel, Hub, Link, Satellite, VaultAgentState
+from vault_agent.state import DVModel, FlagKind, Hub, Link, Satellite, VaultAgentState
 
 _TOOL_NAME = "emit_dv_model"
 _MAX_TOKENS = 8192
@@ -64,38 +64,25 @@ class DVModelExtractor(Protocol):
 
 
 class AnthropicDVModelExtractor:
-    """Default extractor backed by the Anthropic Messages API (forced tool-use)."""
+    """Default extractor backed by the shared forced-tool-use call path."""
 
     def __init__(self, model: str | None = None) -> None:
         # Imported lazily so importing this module never requires an API key.
-        from anthropic import AsyncAnthropic
-
         from vault_agent.config import get_settings
+        from vault_agent.llm import ForcedToolCaller
 
-        settings = get_settings()
-        self._client = AsyncAnthropic(api_key=settings.anthropic_api_key)
         # The modeller is the hardest reasoning step; allow the heavy model via config.
-        self._model = model or settings.heavy_model
+        self._caller = ForcedToolCaller(model or get_settings().heavy_model)
 
     async def model(self, *, system_prompt: str, payload_json: str) -> dict[str, Any]:
-        message = await self._client.messages.create(
-            model=self._model,
+        return await self._caller.call(
+            tool_name=_TOOL_NAME,
+            tool_description="Emit the logical Data Vault model for the inputs.",
+            input_schema=_tool_schema(),
+            system_prompt=system_prompt,
+            user_content=payload_json,
             max_tokens=_MAX_TOKENS,
-            system=system_prompt,
-            tools=[
-                {
-                    "name": _TOOL_NAME,
-                    "description": "Emit the logical Data Vault model for the inputs.",
-                    "input_schema": _tool_schema(),
-                }
-            ],
-            tool_choice={"type": "tool", "name": _TOOL_NAME},
-            messages=[{"role": "user", "content": payload_json}],
         )
-        for block in message.content:
-            if block.type == "tool_use" and block.name == _TOOL_NAME:
-                return cast(dict[str, Any], block.input)
-        return {}
 
 
 class Dv2ModelerAgent(BaseAgent):
@@ -121,9 +108,11 @@ class Dv2ModelerAgent(BaseAgent):
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         if not state.business_keys:
-            state.errors.append(
-                "dv2_modeler: no business keys in state; run the business key "
-                "identifier first"
+            state.flag(
+                "dv2_modeler",
+                "no business keys in state; run the business key identifier first",
+                severity="error",
+                kind=FlagKind.MISSING_INPUT,
             )
             return state
 
@@ -166,9 +155,12 @@ class Dv2ModelerAgent(BaseAgent):
         for link in links:
             missing = [name for name in link.connected_hubs if name not in hub_names]
             if len(link.connected_hubs) < 2 or missing:
-                state.errors.append(
-                    f"dv2_modeler: dropped link {link.name!r} — must connect >=2 known "
-                    f"hubs (missing: {missing or 'none'}, count: {len(link.connected_hubs)})"
+                state.flag(
+                    "dv2_modeler",
+                    f"dropped link {link.name!r} — must connect >=2 known hubs "
+                    f"(missing: {missing or 'none'}, count: {len(link.connected_hubs)})",
+                    kind=FlagKind.DROPPED_RECORD,
+                    asset=link.name,
                 )
                 continue
             kept_links.append(link)
@@ -177,9 +169,12 @@ class Dv2ModelerAgent(BaseAgent):
         kept_satellites: list[Satellite] = []
         for sat in satellites:
             if sat.parent not in valid_parents:
-                state.errors.append(
-                    f"dv2_modeler: dropped satellite {sat.name!r} — parent "
-                    f"{sat.parent!r} is not a known hub or link"
+                state.flag(
+                    "dv2_modeler",
+                    f"dropped satellite {sat.name!r} — parent {sat.parent!r} is not a "
+                    f"known hub or link",
+                    kind=FlagKind.DROPPED_RECORD,
+                    asset=sat.name,
                 )
                 continue
             kept_satellites.append(sat)
@@ -198,7 +193,9 @@ class Dv2ModelerAgent(BaseAgent):
             try:
                 items.append(model_cls.model_validate(record))
             except ValidationError as exc:
-                state.errors.append(
-                    f"dv2_modeler: dropped invalid {label}: {exc.error_count()} error(s)"
+                state.flag(
+                    "dv2_modeler",
+                    f"dropped invalid {label}: {exc.error_count()} error(s)",
+                    kind=FlagKind.DROPPED_RECORD,
                 )
         return items

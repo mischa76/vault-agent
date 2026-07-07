@@ -24,7 +24,7 @@ from vault_agent.rules.dv2_rules import (
     STAGING_PREFIX,
     normalize_identifier,
 )
-from vault_agent.state import Hub, Link, Satellite, VaultAgentState
+from vault_agent.state import FlagKind, Hub, Link, PipelineFlag, Satellite, VaultAgentState
 
 _CONSTRUCT_PREFIXES = ("hub_", "link_", "sat_")
 
@@ -34,14 +34,14 @@ def _to_column(label: str) -> str:
     return normalize_identifier(label)
 
 
-def _collision_warnings(labels: list[str], construct: str) -> list[str]:
+def _collision_warnings(labels: list[str], construct: str) -> list[PipelineFlag]:
     """Warn when two *distinct* labels in one construct collapse to the same identifier.
 
     ``_to_column`` is lossy (``"customer-id"`` and ``"customer id"`` both become
     ``CUSTOMER_ID``), so two different source labels can silently overwrite each other in a
     payload / key list. Generation continues — the point is visibility (L-2)."""
     seen: dict[str, str] = {}
-    warnings: list[str] = []
+    warnings: list[PipelineFlag] = []
     for label in labels:
         col = _to_column(label)
         prior = seen.get(col)
@@ -49,8 +49,15 @@ def _collision_warnings(labels: list[str], construct: str) -> list[str]:
             seen[col] = label
         elif prior != label:
             warnings.append(
-                f"code_generator: column-name collision in {construct}: "
-                f"{prior!r} and {label!r} both map to {col}"
+                PipelineFlag(
+                    agent="code_generator",
+                    message=(
+                        f"column-name collision in {construct}: {prior!r} and "
+                        f"{label!r} both map to {col}"
+                    ),
+                    kind=FlagKind.COLUMN_COLLISION,
+                    asset=construct,
+                )
             )
     return warnings
 
@@ -296,8 +303,11 @@ class CodeGeneratorAgent(BaseAgent):
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         model = state.dv_model
         if not model.hubs:
-            state.errors.append(
-                "code_generator: no hubs in dv_model; run the DV2.0 modeler first"
+            state.flag(
+                "code_generator",
+                "no hubs in dv_model; run the DV2.0 modeler first",
+                severity="error",
+                kind=FlagKind.MISSING_INPUT,
             )
             return state
 
@@ -322,20 +332,24 @@ class CodeGeneratorAgent(BaseAgent):
         for link in model.links:
             missing = [h for h in link.connected_hubs if h not in hub_hashkeys]
             if missing:
-                state.errors.append(
-                    f"code_generator: link {link.name!r} references unknown hubs "
-                    f"{missing}; skipped"
+                state.flag(
+                    "code_generator",
+                    f"link {link.name!r} references unknown hubs {missing}; skipped",
+                    kind=FlagKind.GENERATION_GAP,
+                    asset=link.name,
                 )
                 continue
             if link.link_type == "transactional":
                 if link.event_timestamp is None:
-                    state.errors.append(
-                        f"code_generator: transactional link {link.name!r} has no "
-                        f"event_timestamp; cannot generate automate_dv.nh_link, flagged "
-                        f"for human review"
+                    state.flag(
+                        "code_generator",
+                        f"transactional link {link.name!r} has no event_timestamp; "
+                        f"cannot generate automate_dv.nh_link, flagged for human review",
+                        kind=FlagKind.GENERATION_GAP,
+                        asset=link.name,
                     )
                     continue
-                state.errors.extend(_collision_warnings(link.payload, link.name))
+                state.flags.extend(_collision_warnings(link.payload, link.name))
                 sql, meta = _render_nh_link(link, hub_hashkeys)
             else:
                 sql, meta = _render_link(link, hub_hashkeys)
@@ -367,6 +381,18 @@ class CodeGeneratorAgent(BaseAgent):
 
         state.artifacts.dbt_models = dbt_models
         state.artifacts.automatedv_yaml = metadata
+
+        # Staging pass (own module): the stage models computing every HK/HASHDIFF above,
+        # plus the dbt project scaffolding that makes the output runnable. Imported lazily
+        # to keep the module dependency one-directional (staging imports our helpers).
+        from vault_agent.agents.staging_generator import build_staging
+
+        staging = build_staging(model, state.source_schemas)
+        state.artifacts.staging_models = staging.models
+        state.artifacts.scaffolding = staging.scaffolding
+        metadata["staging"] = staging.metadata
+        state.flags.extend(staging.flags)
+
         state.decisions.append(
             {
                 "agent": "code_generator",
@@ -374,6 +400,8 @@ class CodeGeneratorAgent(BaseAgent):
                 "hubs": len(metadata["hubs"]),
                 "links": len(metadata["links"]),
                 "satellites": len(metadata["satellites"]),
+                "staging_models": len(staging.models),
+                "scaffolding_files": len(staging.scaffolding),
             }
         )
         return state
@@ -389,15 +417,18 @@ class CodeGeneratorAgent(BaseAgent):
     ) -> tuple[str, dict[str, Any]] | None:
         """Dispatch a satellite to the template for its type; flag what can't be generated."""
         if sat.parent not in parent_hashkeys:
-            state.errors.append(
-                f"code_generator: satellite {sat.name!r} has parent {sat.parent!r} "
-                f"with no generated hub/link; skipped"
+            state.flag(
+                "code_generator",
+                f"satellite {sat.name!r} has parent {sat.parent!r} with no generated "
+                f"hub/link; skipped",
+                kind=FlagKind.GENERATION_GAP,
+                asset=sat.name,
             )
             return None
 
         # Surface colliding labels across the satellite's full column set (payload plus any
         # child-dependent key) — visibility only, generation still proceeds.
-        state.errors.extend(
+        state.flags.extend(
             _collision_warnings(sat.attributes + sat.child_dependent_key, sat.name)
         )
 
@@ -406,25 +437,33 @@ class CodeGeneratorAgent(BaseAgent):
 
         if sat.sat_type == "multi_active":
             if not sat.child_dependent_key:
-                state.errors.append(
-                    f"code_generator: multi-active satellite {sat.name!r} has no "
-                    f"child_dependent_key; cannot generate automate_dv.ma_sat, flagged "
-                    f"for human review"
+                state.flag(
+                    "code_generator",
+                    f"multi-active satellite {sat.name!r} has no child_dependent_key; "
+                    f"cannot generate automate_dv.ma_sat, flagged for human review",
+                    kind=FlagKind.GENERATION_GAP,
+                    asset=sat.name,
                 )
                 return None
             return _render_ma_sat(sat, parent_hashkeys[sat.parent])
 
         # effectivity
         if sat.parent not in link_fks:
-            state.errors.append(
-                f"code_generator: effectivity satellite {sat.name!r} must hang off a "
-                f"generated link; parent {sat.parent!r} is not one, flagged for human review"
+            state.flag(
+                "code_generator",
+                f"effectivity satellite {sat.name!r} must hang off a generated link; "
+                f"parent {sat.parent!r} is not one, flagged for human review",
+                kind=FlagKind.GENERATION_GAP,
+                asset=sat.name,
             )
             return None
         if len(sat.attributes) < 2:
-            state.errors.append(
-                f"code_generator: effectivity satellite {sat.name!r} needs start and end "
-                f"date attributes; flagged for human review"
+            state.flag(
+                "code_generator",
+                f"effectivity satellite {sat.name!r} needs start and end date "
+                f"attributes; flagged for human review",
+                kind=FlagKind.GENERATION_GAP,
+                asset=sat.name,
             )
             return None
         # The eff_sat end-dates by the link's declared driving key, never by whichever hub
@@ -433,10 +472,12 @@ class CodeGeneratorAgent(BaseAgent):
         # skip rather than silently fall back to the first hub.
         driving_fks = link_driving_fks.get(sat.parent, [])
         if not driving_fks:
-            state.errors.append(
-                f"code_generator: effectivity satellite {sat.name!r} on link "
-                f"{sat.parent!r} has no driving_key; cannot end-date by driving key, "
-                f"flagged for human review"
+            state.flag(
+                "code_generator",
+                f"effectivity satellite {sat.name!r} on link {sat.parent!r} has no "
+                f"driving_key; cannot end-date by driving key, flagged for human review",
+                kind=FlagKind.GENERATION_GAP,
+                asset=sat.name,
             )
             return None
         return _render_eff_sat(

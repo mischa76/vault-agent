@@ -12,14 +12,14 @@ Structured output uses forced Anthropic tool-use with a schema derived from
 ``BusinessKeyCandidate``; the client is constructed lazily so tests run without a key.
 """
 import json
-from typing import Any, Protocol, cast
+from typing import Any, Protocol
 
 from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import render_schema_prompt_section
 from vault_agent.rules.dv2_rules import BUSINESS_KEY_CRITERIA
-from vault_agent.state import BusinessKeyCandidate, VaultAgentState
+from vault_agent.state import BusinessKeyCandidate, FlagKind, VaultAgentState
 
 _TOOL_NAME = "emit_business_keys"
 _MAX_TOKENS = 4096
@@ -53,41 +53,27 @@ class BusinessKeyExtractor(Protocol):
 
 
 class AnthropicBusinessKeyExtractor:
-    """Default extractor backed by the Anthropic Messages API (forced tool-use)."""
+    """Default extractor backed by the shared forced-tool-use call path."""
 
     def __init__(self, model: str | None = None) -> None:
         # Imported lazily so importing this module never requires an API key.
-        from anthropic import AsyncAnthropic
-
         from vault_agent.config import get_settings
+        from vault_agent.llm import ForcedToolCaller
 
-        settings = get_settings()
-        self._client = AsyncAnthropic(api_key=settings.anthropic_api_key)
-        self._model = model or settings.primary_model
+        self._caller = ForcedToolCaller(model or get_settings().primary_model)
 
     async def identify(
         self, *, system_prompt: str, requirements_json: str
     ) -> list[dict[str, Any]]:
-        message = await self._client.messages.create(
-            model=self._model,
+        payload = await self._caller.call(
+            tool_name=_TOOL_NAME,
+            tool_description="Emit the business key candidates for the requirements.",
+            input_schema=_tool_schema(),
+            system_prompt=system_prompt,
+            user_content=requirements_json,
             max_tokens=_MAX_TOKENS,
-            system=system_prompt,
-            tools=[
-                {
-                    "name": _TOOL_NAME,
-                    "description": "Emit the business key candidates for the requirements.",
-                    "input_schema": _tool_schema(),
-                }
-            ],
-            tool_choice={"type": "tool", "name": _TOOL_NAME},
-            messages=[{"role": "user", "content": requirements_json}],
         )
-        for block in message.content:
-            if block.type == "tool_use" and block.name == _TOOL_NAME:
-                payload = cast(dict[str, Any], block.input)
-                records = payload.get("business_keys", [])
-                return list(records)
-        return []
+        return list(payload.get("business_keys", []))
 
 
 class BusinessKeyIdentifierAgent(BaseAgent):
@@ -113,9 +99,11 @@ class BusinessKeyIdentifierAgent(BaseAgent):
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         if not state.requirements:
-            state.errors.append(
-                "business_key_identifier: no requirements in state; run the "
-                "requirements parser first"
+            state.flag(
+                "business_key_identifier",
+                "no requirements in state; run the requirements parser first",
+                severity="error",
+                kind=FlagKind.MISSING_INPUT,
             )
             return state
 
@@ -133,16 +121,19 @@ class BusinessKeyIdentifierAgent(BaseAgent):
             try:
                 candidate = BusinessKeyCandidate.model_validate(record)
             except ValidationError as exc:
-                state.errors.append(
-                    f"business_key_identifier: dropped invalid candidate: "
-                    f"{exc.error_count()} error(s)"
+                state.flag(
+                    "business_key_identifier",
+                    f"dropped invalid candidate: {exc.error_count()} error(s)",
+                    kind=FlagKind.DROPPED_RECORD,
                 )
                 continue
             if not 0.0 <= candidate.score <= 1.0:
-                state.errors.append(
-                    f"business_key_identifier: dropped candidate "
-                    f"{candidate.entity}.{candidate.field!r} with out-of-range "
-                    f"score {candidate.score}"
+                state.flag(
+                    "business_key_identifier",
+                    f"dropped candidate {candidate.entity}.{candidate.field!r} with "
+                    f"out-of-range score {candidate.score}",
+                    kind=FlagKind.DROPPED_RECORD,
+                    asset=f"{candidate.entity}.{candidate.field}",
                 )
                 continue
             candidates.append(candidate)
