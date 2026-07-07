@@ -60,3 +60,6 @@ _tmp/
 docs/handover/
 .claude/
 output*/
+
+# Eval harness: per-run JSON results are local artifacts (WP6)
+eval/results/

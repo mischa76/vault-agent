@@ -204,6 +204,11 @@ def main(argv: list[str] | None = None) -> int:
     models = {"primary_model": settings.primary_model, "heavy_model": settings.heavy_model}
     git_sha = _git_sha()
 
+    # Optional LangSmith layer (spec §6): silently disabled without the key/package.
+    from eval.langsmith_upload import make_client, upload_run_results
+
+    langsmith_client = make_client(settings)
+
     exit_code = 0
     for case in _load_cases(args):
         print(f"Evaluating case '{case.name}' ...", flush=True)
@@ -212,6 +217,9 @@ def main(argv: list[str] | None = None) -> int:
         written = _write_results(case, runs, args.out, models, git_sha)
         print(render_table(case.name, stats, args.repeat))
         print(f"  results: {', '.join(str(path) for path in written)}")
+        if langsmith_client is not None:
+            upload_run_results(langsmith_client, case, runs, models=models, git_sha=git_sha)
+            print(f"  uploaded to LangSmith ('{settings.langsmith_project}' workspace)")
         for name in failed_gates(stats, case):
             print(
                 f"  GATE FAILED: {name} mean {stats[name].mean:.3f} < "
