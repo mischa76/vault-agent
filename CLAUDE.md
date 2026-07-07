@@ -312,6 +312,28 @@ tests/test_llm.py stub client, the errors-only three-field retry payload (and it
 when only warnings exist), and the truncation boundary + flag (at-limit documents are
 untouched and unflagged). 174 tests green, ruff clean, mypy strict clean.
 
+The eval harness landed (as of 2026-07-08, WP6:
+docs/architecture/backlog-2026-07/wp6-eval-harness-spec.md) — the declared LangSmith-evals
+milestone, in three strictly separated layers under eval/. Layer 1: golden datasets
+(eval/datasets/<case>/dataset.yml — bank from the Postgres-verified Durchstich model with a
+construct_f1>=0.5 gate, health_insurance from the demo walkthrough with driving_key
+hub_policy on link_insured_person_policy, messy_insurance loose/ungated as a
+review-queue-regression canary) with a typed loader (eval/datasets.py: EvalCase/GoldenModel,
+attributable errors in the source_schema.load_source_schemas style). Layer 2: four
+deterministic scorers (eval/scorers.py: construct_f1, driving_key_accuracy,
+validation_gate, pipeline_health), all matching *structurally* through
+rules.normalize_identifier, keyless and pinned-score-tested. Layer 3: the live runner
+(`python -m eval.run --dataset <case> [--all] [--repeat N]`) runs the real graph per
+repeat (MemorySaver, HITL checkpoint auto-resumed like `vault-agent resume --accept`),
+writes one JSON result per run (scores, details, model ids, git SHA) under eval/results/
+(git-ignored), prints mean/min/max per scorer across repeats, and exits 1 when a mean
+falls below the case's optional min_scores — a manual pre-release gate, no CI wiring.
+The optional LangSmith layer (eval/langsmith_upload.py) is import-guarded: with
+LANGSMITH_API_KEY plus the `eval` extra it creates one dataset per case and logs runs
+with scores as feedback; without either it is a no-op, and the default test suite needs
+neither a key nor the langsmith package. mypy now also checks eval/ ([tool.mypy] files).
+210 tests green, ruff clean.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
