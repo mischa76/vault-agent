@@ -1,5 +1,7 @@
--- Hand-authored AutomateDV staging model (the generator does not yet emit this layer —
--- spec §9). Computes the hash key + hashdiff that hub_customer / sat_customer_details
+-- Hand-authored AutomateDV staging model. Since 2026-07-06 the generator emits this layer
+-- itself (agents/staging_generator.py, semantically identical output); the demo keeps its
+-- hand-written staging for the two-phase load_batch filter in stg_account_customer.
+-- Computes the hash key + hashdiff that hub_customer / sat_customer_details
 -- reference, and passes the source columns + LOAD_DATETIME / RECORD_SOURCE through.
 {{ config(materialized='view') }}
 {%- set yaml_metadata -%}

@@ -6,8 +6,9 @@
 -- DEDICATED column (rules.EFFECTIVITY_APPLIED_COLUMN), distinct from src_start_date, so
 -- AutomateDV's incremental SQL no longer projects the same column twice (the Postgres
 -- "specified more than once" fix). Carrying the start-date value means end-dating closes a
--- superseded record to the business effective date of its successor. (A future staging
--- generator would emit this automatically for eff_sat parents.)
+-- superseded record to the business effective date of its successor. (Since 2026-07-06 the
+-- staging generator emits this automatically for eff_sat parents; this hand-written copy
+-- stays for the demo-specific load_batch filter below.)
 {{ config(materialized='view') }}
 {%- set yaml_metadata -%}
 source_model: 'raw_account_customer'

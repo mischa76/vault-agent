@@ -33,9 +33,12 @@ The fixed bank model (hand-checked, deterministic — no LLM) exercises four con
 
 > **The raw-vault SQL is generated, never hand-written.** `build_vault_models.py` constructs the
 > fixed `DVModel` and runs the same `CodeGeneratorAgent` the pipeline uses, writing
-> `models/raw_vault/*.sql`. Re-running it is idempotent (byte-identical output). The **staging**
-> models and **seeds** are hand-authored — the generator does not yet emit the staging layer
-> (see [Findings](#findings)).
+> `models/raw_vault/*.sql`. Re-running it is idempotent (byte-identical output). Since
+> 2026-07-06 the generator **also emits the staging layer and project scaffolding** (see
+> [Findings](#findings) #1); this demo deliberately keeps its hand-authored `stg_*` models
+> because `stg_account_customer` carries the demo-specific two-phase `load_batch` filter
+> (Phase B2). The guardrail test asserts the generated staging mirrors the hand-authored one.
+> **Seeds** and `profiles.yml` are user inputs by design.
 
 ## Prerequisites
 
@@ -171,11 +174,15 @@ return to the canonical single-load state afterwards, run `uv run dbt build --fu
 These are **valuable outputs** of the PoC — gaps between "generates code" and "generates a
 runnable project", and platform quirks worth recording (spec §9).
 
-1. **The staging layer is not generated.** The code generator emits raw-vault models but not the
-   `stg_*` models AutomateDV needs (hash-key / hashdiff computation). They are hand-authored
-   here. This is the single biggest gap to a fully runnable project — and the natural next
-   feature, since the generator already knows every HK/HASHDIFF name and its source columns. A
-   draft ADR for a **staging generator** is the recommended sequel.
+1. **The staging layer is not generated — RESOLVED (2026-07-06).** The staging generator
+   (`src/vault_agent/agents/staging_generator.py`) now emits one `automate_dv.stage` model per
+   staging source (hub HKs, link multi-column HKs, per-satellite hashdiffs, the eff_sat
+   parent's `APPLIED_DTS` derived column) plus the dbt project scaffolding, making the
+   pipeline output a runnable project. Hardness-tested 2026-07-07: a fresh generator output
+   built green on a clean PostgreSQL (`dbt build` PASS=12, idempotent re-run, two-phase
+   end-dating verified) with only seeds + `profiles.yml` added. This demo keeps its
+   hand-authored staging for the Phase B2 `load_batch` filter; the guardrail test pins that
+   the generated staging mirrors it.
 
 2. **AutomateDV `eff_sat` incremental path on Postgres — RESOLVED**
    ([eff-sat-incremental-fix-spec.md](../../docs/architecture/eff-sat-incremental-fix-spec.md)).
@@ -205,12 +212,16 @@ runnable project", and platform quirks worth recording (spec §9).
 4. **Deferred construct types.** Multi-active satellites (customer addresses) and transactional
    links (transactions) are deliberately out of this core model — they surface real generator
    design questions (a satellite's source-model grain; expressing two roles of one hub in a
-   self-referencing link). Tracked as modeling-capability gaps (spec §9), to revisit when the
-   staging generator lands.
+   self-referencing link). Now that the staging generator has landed, both are fully specified
+   as work packages: ma_sat staging grain in
+   [WP7](../../docs/architecture/backlog-2026-07/wp7-staging-refinements-spec.md), role-qualified
+   self-referencing links in
+   [WP8](../../docs/architecture/backlog-2026-07/wp8-multi-role-links-spec.md).
 
-5. **Project scaffolding is hand-authored.** `dbt_project.yml`, `packages.yml`, `profiles.yml`,
-   and seeds are written by hand here. A future "emit a runnable dbt project" mode would
-   generate them too.
+5. **Project scaffolding is hand-authored — RESOLVED (2026-07-06).** The pipeline output now
+   includes generated `dbt_project.yml`, `packages.yml` (AutomateDV pinned), a documented
+   `models/staging/sources.yml`, and a run-instructions README. `profiles.yml` (connection) and
+   seeds (raw data) remain user inputs by design; this demo keeps its own hand-written copies.
 
 ## Files
 

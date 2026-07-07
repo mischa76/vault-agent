@@ -30,8 +30,9 @@ pure function that derives a categorized `HumanReviewQueue` from a finished run:
 
 - `validation_error` / `validation_warning` — one per `validation_report` issue, by severity.
 - `contract_owner` — one per contract still holding the placeholder owner.
-- `review_flag` — the remaining advisory flags from `state.errors` (owner flags are dropped,
-  as they are already represented structurally as `contract_owner` items).
+- `review_flag` — the remaining advisory flags from `state.flags` (typed `PipelineFlag`
+  records since 2026-07-06; owner flags are dropped by their `kind`, as they are already
+  represented structurally as `contract_owner` items).
 
 `requires_signoff` is true when any **validation error** or **unassigned contract owner** is
 present — those block agreement; warnings and flags are advisory. The CLI prints the queue,

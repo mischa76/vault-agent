@@ -191,8 +191,13 @@ Routing           self-correcting validation loop (retry on failure)           �
 Grounding         optional source-schema grounding (ADR-0004)                  ✅ done
 Contracts         data contract agent + dbt schema tests                       ✅ done
 Orchestration     orchestrator entry node · live HITL (interrupt/resume)       ✅ done
-Polish            LangSmith evals · public walkthrough                         🔜 next
+Hardening         typed pipeline flags · resilient LLM call path (retry/backoff) ✅ done
+Runnable output   staging generator + dbt project scaffolding (verified on Postgres) ✅ done
+Polish            LangSmith evals (specced: backlog-2026-07/WP6) · public walkthrough 🔜 next
 ```
+
+The remaining open points are fully specified as implementation-ready work packages in
+[`docs/architecture/backlog-2026-07/`](docs/architecture/backlog-2026-07/00-overview.md).
 
 ## Documentation
 

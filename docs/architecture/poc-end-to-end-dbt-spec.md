@@ -81,7 +81,8 @@ seeds/raw_*.csv  ──►  models/staging/stg_*.sql   ──►  models/raw_vau
 - **Seeds** = the toy raw source data (CSV), loaded with `dbt seed`.
 - **Staging** = hand-authored `automate_dv.stage()` models that compute the hash keys and
   hashdiffs the vault models reference. **This is the layer the generator does not yet emit** —
-  see §9.
+  see §9. *(Update 2026-07-06: delivered — `agents/staging_generator.py` now emits staging +
+  project scaffolding; hardness-tested on a clean Postgres 2026-07-07. See CLAUDE.md milestone.)*
 - **Raw vault** = the **code generator's output**, dropped in unchanged. The generator already
   sets `source_model='stg_<base>'`, so the vault models `ref()` the staging models by name.
 
@@ -288,15 +289,19 @@ a product change, as draft ADRs:
   `stg_*` models AutomateDV needs (hash key/hashdiff computation). Candidate next feature: a
   staging generator (the generator already knows every HK/HASHDIFF name and its source columns).
   This is the natural sequel to this PoC and the biggest single gap between "generates code" and
-  "generates a runnable project".
+  "generates a runnable project". *(Delivered 2026-07-06, hardness-tested 2026-07-07 — see
+  CLAUDE.md milestone.)*
 - **Multi-active satellite grain.** The generator sets a satellite's `source_model` to
   `stg_<parent base>`, but multi-active data (e.g. customer addresses) has finer grain than the
   hub's staging. Deferred from the core model; revisit when the staging generator lands.
+  *(Specced: backlog-2026-07/WP7.)*
 - **Self-referencing links.** A transaction links `account`↔`counterparty account` (same hub
   twice); `connected_hubs` as a list of hub names can't express two roles of one hub. Deferred;
-  document as a modeling-capability gap.
+  document as a modeling-capability gap. *(Specced: backlog-2026-07/WP8 incl. draft ADR-0009.)*
 - **Project scaffolding.** `dbt_project.yml`/`packages.yml`/`profiles.yml`/seeds are hand-authored
-  here. A future "emit a runnable dbt project" mode would generate them too.
+  here. A future "emit a runnable dbt project" mode would generate them too. *(Delivered
+  2026-07-06: dbt_project.yml/packages.yml/sources.yml/README are generated; profiles.yml and
+  seeds remain user inputs by design.)*
 - **DuckDB.** Out of scope (unsupported by AutomateDV). If a zero-server demo is later wanted,
   evaluate a custom `duckdb__` dispatch shim mapping to AutomateDV's Postgres macros.
 

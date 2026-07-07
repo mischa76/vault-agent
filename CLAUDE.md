@@ -69,7 +69,8 @@ without an API key (LLM calls are injectable/stubbed); ruff + mypy strict clean.
 
 DV2.0 modeling rules are now encoded (as of 2026-06-13) per the Linstedt/Olschimke
 canon (dv2-modeling-rules-spec.md), split into [ENFORCE] rules (validator gates) and
-[GUIDE] rules (modeler prompt). The validator has 10 independent gates with E_/W_ codes
+[GUIDE] rules (modeler prompt). The validator has independent gates with E_/W_ codes (10 when
+this entry was written; grown since — count the codes in validator.py, don't trust prose)
 enforcing driving keys, grain, attribute overlap, wide-satellite splits, and BK
 collision; rules/dv2_rules.py holds the UoW/driving-key/splitting/collision guidance,
 SATELLITE_SPLIT_AXES, and SAT_WIDE_ATTRIBUTE_THRESHOLD. State carries Link.driving_key
@@ -188,6 +189,54 @@ The changes are validator/orchestrator/prompt only — they do not touch the cod
 bank Postgres Durchstich was re-verified green on 2026-06-25 (regenerated models byte-identical;
 `dbt build --full-refresh` PASS=29; Phase B2 eff_sat end-dating closes ACC-503's first owner and
 leaves the new owner open, idempotent on re-run) as a no-regression guard.
+
+Hardening batch P1+P2 landed (as of 2026-07-06, see PROJECT_REVIEW_2026-07-06.md). (P1) The
+stringly-typed state.errors channel is replaced by typed state.flags: list[PipelineFlag]
+(agent, message, severity error/advisory, kind, asset) with FlagKind constants in state.py;
+all producers use state.flag(...), and every consumer (review-queue classification/aggregation
+via REVIEW_FLAG_GROUPS keyed by kind, owner-flag dedup, collapsed-line samples via
+ReviewItem.asset) branches on kind/asset — never on message text. The former substring regexes
+(_classify_review_flag, _SAMPLE_PATTERNS, _OWNER_FLAG_MARKER) are gone. apply_human_decision
+now prunes owner flags by exact asset match (fixes the latent bug where assigning `customer`
+also pruned `customer_address`). Severity is informational only — requires_signoff semantics
+are unchanged (validation errors + unassigned owners block). (P2) All four Anthropic extractor
+classes delegate to a shared ForcedToolCaller (src/vault_agent/llm.py): forced single-tool
+call, stop_reason=="max_tokens" raises LLMCallError instead of silently returning an empty
+payload (a truncated modeler response no longer burns a retry as E_NO_HUBS), missing tool
+block raises, transient failures (408/429/5xx/529 + connection/timeout) retry 3× with
+exponential backoff (2s/4s/8s), non-retryable 4xx propagate. Client and sleep are injectable;
+tests/test_llm.py covers all paths keyless. 158 tests green, ruff clean, mypy strict clean.
+Note: docs written before 2026-07-06 that mention `state.errors` describe the old shape.
+
+The staging generator landed (as of 2026-07-06, P3 from PROJECT_REVIEW_2026-07-06.md): the
+output is now a runnable dbt project, closing the spec-§9 "biggest single gap". A new
+deterministic module (src/vault_agent/agents/staging_generator.py, called by the
+CodeGeneratorAgent, lazily to keep the dependency one-directional) derives one
+automate_dv.stage model per staging source from the DVModel: hub HKs from business keys,
+link HKs as multi-column hashes in connected_hubs order, one hashdiff per standard/ma
+satellite (name = base+_HASHDIFF), and the eff_sat parent's dedicated APPLIED_DTS derived
+column (rules.EFFECTIVITY_APPLIED_COLUMN) — the generated stg_account_customer is
+semantically identical to the demo's hand-authored, Postgres-verified one. Source binding:
+a declared source table (ADR-0004) matching the construct base (or raw_<base>) is used
+verbatim; otherwise the binding is inferred as rules.RAW_SOURCE_PREFIX+base and flagged
+(FlagKind.SOURCE_BINDING, advisory, aggregatable in the review queue) — named, never
+silently guessed. Artifacts gain staging_models and scaffolding (dbt_project.yml with
+staging-view/raw-vault-incremental defaults and quote_columns=false seeds, packages.yml
+pinned to rules.AUTOMATE_DV_VERSION=0.11.4, a documented models/staging/sources.yml
+describing the expected raw interface incl. expected columns, README.md with run
+instructions); write_outputs writes models/raw_vault/ + models/staging/ + scaffolding at
+the output root. The bank demo keeps its hand-authored staging (two-phase load_batch demo
+filter); its guardrail test now also asserts the generated staging mirrors it. Deferred:
+ma_sat staging grain (spec §9), switching sources.yml from documentation to bound source()
+references, generated seeds/column types. 169 tests green, ruff clean, mypy strict clean.
+Hardness-tested end-to-end in a clean environment (2026-07-07): a fresh generator output
+(fixed bank DVModel → CodeGeneratorAgent → cli.write_outputs, zero hand-written SQL) built
+green against a real PostgreSQL with only the README-documented user inputs added (seeds +
+profiles.yml): `dbt deps` (AutomateDV 0.11.4) → `dbt seed` → `dbt build --full-refresh`
+PASS=12; incremental re-run idempotent; two-phase snapshot load closes ACC-503's superseded
+ownership to the successor's business date (2026-04-01) via the generated staging's
+APPLIED_DTS — the generated staging behaves exactly like the demo's hand-authored one.
+Seed type inference handled timestamps without declared column_types.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
