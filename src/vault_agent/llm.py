@@ -76,7 +76,18 @@ class ForcedToolCaller:
                 message = await self._client.messages.create(
                     model=self._model,
                     max_tokens=max_tokens,
-                    system=system_prompt,
+                    # Prompt caching (WP3): the system prompt is byte-identical across
+                    # modeling retries (and across documents within a run), so mark it as
+                    # a cache breakpoint. The tools array precedes system in the cached
+                    # prefix automatically. Below the model's minimum cacheable length
+                    # the block is silently not cached — no conditional needed.
+                    system=[
+                        {
+                            "type": "text",
+                            "text": system_prompt,
+                            "cache_control": {"type": "ephemeral"},
+                        }
+                    ],
                     tools=[
                         {
                             "name": tool_name,

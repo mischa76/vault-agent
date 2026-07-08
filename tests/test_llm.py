@@ -146,3 +146,16 @@ async def test_non_retryable_status_propagates_unchanged() -> None:
     with pytest.raises(anthropic.APIStatusError):
         await _call(caller)
     assert len(client.messages.calls) == 1  # no retry on a caller error
+
+
+async def test_system_prompt_is_sent_as_a_cache_controlled_block() -> None:
+    # WP3 prompt caching: the block form with an ephemeral cache_control marker, per the
+    # Messages API docs. Below the model's minimum cacheable length the API silently
+    # skips caching, so the block is always sent unconditionally.
+    caller, client = _caller([_Message(content=[_tool_block()])])
+
+    await _call(caller)
+
+    assert client.messages.calls[0]["system"] == [
+        {"type": "text", "text": "system", "cache_control": {"type": "ephemeral"}}
+    ]

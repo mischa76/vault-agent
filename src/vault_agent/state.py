@@ -21,6 +21,7 @@ class FlagKind:
     UNDETERMINED_TYPE = "undetermined_type"  # contract field type unknown; review required
     NO_SOURCE_SCHEMA = "no_source_schema"  # contract inferred from prose, not a schema
     SOURCE_BINDING = "source_binding"  # staging source relation inferred, not declared
+    INPUT_TRUNCATED = "input_truncated"  # oversized input document cut to the size guard
     GENERIC = "generic"
 
 

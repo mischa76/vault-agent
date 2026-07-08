@@ -3,6 +3,7 @@
 The LLM call is stubbed via the ``DVModelExtractor`` protocol so these tests run in CI
 without an Anthropic API key (``asyncio_mode = auto`` runs the async tests directly).
 """
+import json
 from typing import Any
 
 from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
@@ -11,6 +12,8 @@ from vault_agent.state import (
     BusinessKeyCandidate,
     ParsedRequirement,
     SourceTable,
+    ValidationIssue,
+    ValidationReport,
     VaultAgentState,
 )
 
@@ -190,3 +193,60 @@ async def test_source_schema_is_injected_into_modeler_prompt() -> None:
     system_prompt, _ = stub.calls[0]
     assert "Known source columns" in system_prompt
     assert "date_of_birth" in system_prompt
+
+
+async def test_retry_feedback_sends_errors_only_with_three_fields() -> None:
+    """WP3: the re-model payload carries only blocking issues, each reduced to
+    code/construct/message — warnings and the severity field are not sent."""
+    stub = StubExtractor(_valid_payload())
+    agent = Dv2ModelerAgent(extractor=stub)
+    state = _state()
+    state.validation_report = ValidationReport(
+        passed=False,
+        issues=[
+            ValidationIssue(
+                severity="error", code="E_EFF_SAT_NO_DRIVING_KEY",
+                construct="link_account_customer",
+                message="effectivity satellite requires a declared driving key",
+            ),
+            ValidationIssue(
+                severity="warning", code="W_SAT_WIDE",
+                construct="sat_customer_details",
+                message="wide satellite; consider a split",
+            ),
+        ],
+    )
+
+    await agent.run(state)
+
+    _, payload_json = stub.calls[0]
+    payload = json.loads(payload_json)
+    assert payload["previous_validation_issues"] == [
+        {
+            "code": "E_EFF_SAT_NO_DRIVING_KEY",
+            "construct": "link_account_customer",
+            "message": "effectivity satellite requires a declared driving key",
+        }
+    ]
+
+
+async def test_retry_feedback_omitted_when_only_warnings() -> None:
+    """Warnings alone are advisory for humans — they never steer the retry."""
+    stub = StubExtractor(_valid_payload())
+    agent = Dv2ModelerAgent(extractor=stub)
+    state = _state()
+    state.validation_report = ValidationReport(
+        passed=False,
+        issues=[
+            ValidationIssue(
+                severity="warning", code="W_SAT_WIDE",
+                construct="sat_customer_details",
+                message="wide satellite; consider a split",
+            ),
+        ],
+    )
+
+    await agent.run(state)
+
+    _, payload_json = stub.calls[0]
+    assert "previous_validation_issues" not in json.loads(payload_json)

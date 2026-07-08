@@ -291,6 +291,27 @@ exactly two date attributes in (start, end) order. Validator code count is 27 (d
 updated; the code stays the source of truth). 179 tests green, ruff clean, mypy strict
 clean; bank demo guardrails untouched.
 
+WP3 LLM cost & robustness landed (as of 2026-07-08,
+docs/architecture/backlog-2026-07/wp3-llm-cost-spec.md), three token-economy fixes.
+(1) Prompt caching: ForcedToolCaller.call now sends the system prompt as a
+cache-controlled block — system=[{"type": "text", "text": ..., "cache_control":
+{"type": "ephemeral"}}] — verified against the live Messages API docs. One change point,
+all four extractors benefit; the tools array precedes system in the cached prefix
+automatically, and prompts below a model's minimum cacheable length are silently not
+cached, so the block form is sent unconditionally. The modeler's byte-identical system
+prompt across MAX_MODELING_ATTEMPTS retries is the main win. (2) Errors-only retry
+feedback: on a re-model, dv2_modeler sends only severity=="error" issues, each reduced to
+exactly code/construct/message (attribute access on the WP4 ValidationIssue) — warnings
+are advisory for humans, not steering input. (3) Input-size guard: extracted document
+text longer than MAX_DOCUMENT_CHARS (400_000, ~4 chars/token heuristic; lives in
+agents/requirements_parser.py, deliberately not in rules/ — it is not a DV rule) is cut
+to the head and flagged FlagKind.INPUT_TRUNCATED (advisory, asset = document path,
+message names both sizes) — never silently truncated; the pipeline continues on the head
+and the human decides. Keyless tests pin the cache-controlled request shape via the
+tests/test_llm.py stub client, the errors-only three-field retry payload (and its absence
+when only warnings exist), and the truncation boundary + flag (at-limit documents are
+untouched and unflagged). 174 tests green, ruff clean, mypy strict clean.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

@@ -6,8 +6,11 @@ CI without an Anthropic API key (``asyncio_mode = auto`` runs the async tests di
 from pathlib import Path
 from typing import Any
 
-from vault_agent.agents.requirements_parser import RequirementsParserAgent
-from vault_agent.state import ParsedRequirement, VaultAgentState
+from vault_agent.agents.requirements_parser import (
+    MAX_DOCUMENT_CHARS,
+    RequirementsParserAgent,
+)
+from vault_agent.state import FlagKind, ParsedRequirement, VaultAgentState
 
 EXAMPLE_DOC = (
     Path(__file__).parents[2] / "examples" / "inputs" / "bank_account_requirements.md"
@@ -172,3 +175,36 @@ async def test_unsupported_extension_is_skipped(tmp_path: Path) -> None:
     )
     assert len(stub.calls) == 1  # only the supported doc reached the extractor
     assert len(result.requirements) == 2
+
+
+async def test_oversized_document_is_truncated_and_flagged(tmp_path: Path) -> None:
+    """WP3 input-size guard: the extractor sees exactly MAX_DOCUMENT_CHARS characters
+    and the truncation is flagged (kind, asset, both sizes) — never silent."""
+    original_size = MAX_DOCUMENT_CHARS + 5_000
+    big = tmp_path / "big_requirements.md"
+    big.write_text("x" * original_size, encoding="utf-8")
+    stub = StubExtractor(_valid_payload())
+    agent = RequirementsParserAgent(extractor=stub)
+
+    result = await agent.run(VaultAgentState(input_documents=[str(big)]))
+
+    _, document = stub.calls[0]
+    assert len(document) == MAX_DOCUMENT_CHARS
+    [flag] = [f for f in result.flags if f.kind == FlagKind.INPUT_TRUNCATED]
+    assert flag.severity == "advisory"  # pipeline continues on the head
+    assert flag.asset == str(big)
+    assert str(original_size) in flag.message
+    assert str(MAX_DOCUMENT_CHARS) in flag.message
+
+
+async def test_document_at_the_limit_is_untouched_and_unflagged(tmp_path: Path) -> None:
+    doc = tmp_path / "at_limit.md"
+    doc.write_text("y" * MAX_DOCUMENT_CHARS, encoding="utf-8")
+    stub = StubExtractor(_valid_payload())
+    agent = RequirementsParserAgent(extractor=stub)
+
+    result = await agent.run(VaultAgentState(input_documents=[str(doc)]))
+
+    assert not result.flags
+    _, document = stub.calls[0]
+    assert len(document) == MAX_DOCUMENT_CHARS  # untouched, no truncation

@@ -23,6 +23,10 @@ from vault_agent.state import FlagKind, ParsedRequirement, VaultAgentState
 _TOOL_NAME = "emit_requirements"
 _MAX_TOKENS = 4096
 
+# Guard against blowing the model's context window: ~4 chars/token heuristic,
+# capped well below the 200k window to leave room for system prompt + output.
+MAX_DOCUMENT_CHARS = 400_000
+
 
 def _extract_pdf_text(path: Path) -> str:
     """Extract text from a PDF, one page per line-group, via pypdf."""
@@ -144,7 +148,9 @@ class RequirementsParserAgent(BaseAgent):
 
         Supports the charter's source formats (``.md``/``.txt`` plain text, ``.pdf`` via
         pypdf, ``.docx`` via python-docx). An unknown extension is flagged on
-        ``state.flags`` and skipped — it never crashes the pipeline."""
+        ``state.flags`` and skipped — it never crashes the pipeline. Extracted text
+        longer than ``MAX_DOCUMENT_CHARS`` is cut to the head and flagged
+        (``FlagKind.INPUT_TRUNCATED``) — never silently truncated."""
         path = Path(doc_path)
         if not path.is_file():
             state.flag(
@@ -157,17 +163,33 @@ class RequirementsParserAgent(BaseAgent):
             return None
         suffix = path.suffix.lower()
         if suffix in ("", ".md", ".txt"):
-            return path.read_text(encoding="utf-8")
-        if suffix == ".pdf":
-            return _extract_pdf_text(path)
-        if suffix == ".docx":
-            return _extract_docx_text(path)
-        state.flag(
-            "requirements_parser",
-            f"unsupported document type {suffix or '(none)'!r} for {doc_path!r}; "
-            f"supported: .md, .txt, .pdf, .docx — skipped",
-            severity="error",
-            kind=FlagKind.MISSING_INPUT,
-            asset=doc_path,
-        )
-        return None
+            text = path.read_text(encoding="utf-8")
+        elif suffix == ".pdf":
+            text = _extract_pdf_text(path)
+        elif suffix == ".docx":
+            text = _extract_docx_text(path)
+        else:
+            state.flag(
+                "requirements_parser",
+                f"unsupported document type {suffix or '(none)'!r} for {doc_path!r}; "
+                f"supported: .md, .txt, .pdf, .docx — skipped",
+                severity="error",
+                kind=FlagKind.MISSING_INPUT,
+                asset=doc_path,
+            )
+            return None
+        # Input-size guard (WP3): an oversized document would blow the context window
+        # with an opaque API error. Truncate to the head — but never silently: the flag
+        # names the document and both sizes so a human can decide whether the head is
+        # an acceptable basis (advisory; the pipeline continues).
+        if len(text) > MAX_DOCUMENT_CHARS:
+            state.flag(
+                "requirements_parser",
+                f"document {doc_path!r} truncated from {len(text)} to "
+                f"{MAX_DOCUMENT_CHARS} characters to fit the model's context window; "
+                f"requirements beyond the cut are not extracted — review",
+                kind=FlagKind.INPUT_TRUNCATED,
+                asset=doc_path,
+            )
+            text = text[:MAX_DOCUMENT_CHARS]
+        return text

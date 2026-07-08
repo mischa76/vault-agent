@@ -123,11 +123,17 @@ class Dv2ModelerAgent(BaseAgent):
             "requirements": [req.model_dump() for req in state.requirements],
             "business_keys": [bk.model_dump() for bk in state.business_keys],
         }
-        # On a retry the validator has populated issues; feed them back so the model
-        # converges instead of repeating the same mistakes.
-        if state.validation_report.issues:
+        # On a retry the validator has populated issues; feed the *blocking* ones back
+        # so the model converges instead of repeating the same mistakes. Warnings are
+        # advisory for humans, not steering input — sending them dilutes the correction
+        # signal and costs tokens (WP3). Only the fields the model needs are sent.
+        errors = [
+            issue for issue in state.validation_report.issues if issue.severity == "error"
+        ]
+        if errors:
             payload["previous_validation_issues"] = [
-                issue.model_dump() for issue in state.validation_report.issues
+                {"code": issue.code, "construct": issue.construct, "message": issue.message}
+                for issue in errors
             ]
         payload_json = json.dumps(payload, indent=2)
         extractor = self._get_extractor()
