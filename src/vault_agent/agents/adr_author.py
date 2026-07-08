@@ -17,10 +17,13 @@ byte-identical ADR out. Repo-level ADR numbering happens only when a human *acce
 proposal and moves it into ``docs/architecture/adrs/``; the pipeline never numbers into
 the repo sequence.
 """
+import logging
 from datetime import date
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.state import DVModel, FlagKind, VaultAgentState
+
+logger = logging.getLogger(__name__)
 
 # The generated ADR is always the first (and only) ADR of its output project.
 _OUTPUT_ADR_NUMBER = 1
@@ -50,6 +53,12 @@ class AdrAuthorAgent(BaseAgent):
             )
             return state
 
+        logger.info(
+            "rendering model ADR: %d hub(s), %d link(s), %d satellite(s)",
+            len(state.dv_model.hubs),
+            len(state.dv_model.links),
+            len(state.dv_model.satellites),
+        )
         number = self._start_number if self._start_number is not None else _OUTPUT_ADR_NUMBER
         today = self._today or date.today().isoformat()
         # The adr_author runs after the code generator on the validated path (graph:

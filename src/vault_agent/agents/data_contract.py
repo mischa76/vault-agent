@@ -21,6 +21,7 @@ consistent with the other agents. Gaps are **flagged for human review** (via typ
 whose type could not be determined each surface a flag.
 """
 import json
+import logging
 from typing import Any, Protocol, cast
 
 from vault_agent.agents.base import BaseAgent
@@ -34,6 +35,8 @@ from vault_agent.models.contract import (
 )
 from vault_agent.rules.dv2_rules import STAGING_PREFIX, normalize_identifier
 from vault_agent.state import FlagKind, VaultAgentState
+
+logger = logging.getLogger(__name__)
 
 _TOOL_NAME = "emit_contract_enrichment"
 _MAX_TOKENS = 4096
@@ -163,9 +166,11 @@ class DataContractAgent(BaseAgent):
             )
             return state
 
+        logger.info("drafting contracts for %d asset(s)", len(assets))
         grounded = bool(state.source_schemas)
         system_prompt = self._build_system_prompt(state)
         assets_json = json.dumps({name: cols for name, cols in assets}, indent=2)
+        logger.debug("assets payload: %d chars", len(assets_json))
         enricher = self._get_enricher()
         enrichment = await enricher.enrich(
             system_prompt=system_prompt, assets_json=assets_json

@@ -258,3 +258,46 @@ def test_checkpoint_renderers_share_one_presentation_source() -> None:
     cli_positions = [cli_text.index(KIND_HEADINGS[kind]) for kind in KIND_ORDER]
     assert md_positions == sorted(md_positions)  # every heading present, in KIND_ORDER
     assert cli_positions == sorted(cli_positions)  # same kinds, same order in the CLI
+
+
+# --- Logging + --debug (WP5 §5.4) ---------------------------------------------------------
+
+
+def _failing_pipeline_doc(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+
+    async def boom(*args: object, **kwargs: object) -> object:
+        raise RuntimeError("boom-for-debug")
+
+    monkeypatch.setattr("vault_agent.cli._run_pipeline", boom)
+    return doc
+
+
+def test_default_failure_is_one_line_without_traceback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    doc = _failing_pipeline_doc(tmp_path, monkeypatch)
+    result = runner.invoke(app, ["run", str(doc)])
+    assert result.exit_code == 1
+    assert "Pipeline failed:" in result.output
+    assert "boom-for-debug" in result.output
+    assert "Traceback" not in result.output  # default output unchanged
+
+
+def test_debug_flag_enables_debug_logging_and_full_traceback(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import logging
+
+    doc = _failing_pipeline_doc(tmp_path, monkeypatch)
+    configured: dict[str, object] = {}
+    # Recorded instead of executed so the test process's logging stays untouched.
+    monkeypatch.setattr(
+        "vault_agent.cli.logging.basicConfig", lambda **kw: configured.update(kw)
+    )
+    result = runner.invoke(app, ["--debug", "run", str(doc)])
+    assert result.exit_code != 0
+    assert configured.get("level") == logging.DEBUG  # the CLI, not the library, configures
+    assert isinstance(result.exception, RuntimeError)  # re-raised: full traceback available
+    assert str(result.exception) == "boom-for-debug"

@@ -20,6 +20,7 @@ business key and source (``E_DUP_HUB``), and optional source-schema grounding. C
 (backlog-2026-07, adding ``W_MASAT_SHARED_GRAIN``); the code, not this prose, is the
 source of truth.
 """
+import logging
 from typing import Any
 
 from vault_agent.agents.base import BaseAgent
@@ -39,6 +40,8 @@ from vault_agent.state import (
     ValidationReport,
     VaultAgentState,
 )
+
+logger = logging.getLogger(__name__)
 
 # Maps the logical DV column names in the rules to the AutomateDV metadata keys the code
 # generator emits, so the required-column rules can be checked against the artifacts.
@@ -67,6 +70,12 @@ class ValidatorAgent(BaseAgent):
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         model = state.dv_model
+        logger.info(
+            "validating model: %d hub(s), %d link(s), %d satellite(s)",
+            len(model.hubs),
+            len(model.links),
+            len(model.satellites),
+        )
         issues: list[ValidationIssue] = []
 
         hub_names = {hub.name for hub in model.hubs}
@@ -286,6 +295,12 @@ class ValidatorAgent(BaseAgent):
 
         errors = [issue for issue in issues if issue.severity == "error"]
         state.validation_report = ValidationReport(passed=not errors, issues=issues)
+        logger.info(
+            "validation %s: %d error(s), %d warning(s)",
+            "failed" if errors else "passed",
+            len(errors),
+            len(issues) - len(errors),
+        )
         state.decisions.append(
             {
                 "agent": "validator",

@@ -12,6 +12,7 @@ effectivity / multi-active satellites) are flagged for human review rather than 
 as wrong SQL, so coverage grows by adding (type on the model + a template), never by
 hacking heuristics into the generator.
 """
+import logging
 from typing import Any
 
 from vault_agent.agents.base import BaseAgent
@@ -25,6 +26,8 @@ from vault_agent.rules.dv2_rules import (
     normalize_identifier,
 )
 from vault_agent.state import FlagKind, Hub, Link, PipelineFlag, Satellite, VaultAgentState
+
+logger = logging.getLogger(__name__)
 
 _CONSTRUCT_PREFIXES = ("hub_", "link_", "sat_")
 
@@ -322,6 +325,12 @@ class CodeGeneratorAgent(BaseAgent):
             )
             return state
 
+        logger.info(
+            "generating dbt models: %d hub(s), %d link(s), %d satellite(s)",
+            len(model.hubs),
+            len(model.links),
+            len(model.satellites),
+        )
         hub_hashkeys = {hub.name: _hub_hashkey(hub) for hub in model.hubs}
         parent_hashkeys: dict[str, str] = dict(hub_hashkeys)
         # link name -> the hub hashkeys it connects, in declared order. Membership marks a
@@ -408,6 +417,12 @@ class CodeGeneratorAgent(BaseAgent):
         metadata["staging"] = staging.metadata
         state.flags.extend(staging.flags)
 
+        logger.info(
+            "generated %d raw-vault + %d staging model(s), %d scaffolding file(s)",
+            len(dbt_models),
+            len(staging.models),
+            len(staging.scaffolding),
+        )
         state.decisions.append(
             {
                 "agent": "code_generator",

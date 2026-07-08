@@ -9,6 +9,7 @@ without the graph or an API key; the ``run`` command wires the graph to it.
 """
 import asyncio
 import json
+import logging
 import re
 from pathlib import Path
 from typing import Annotated, Any
@@ -38,11 +39,30 @@ from vault_agent.state import SourceTable, VaultAgentState
 
 app = typer.Typer(help="Agentic AI for Data Vault 2.0 automation.", no_args_is_help=True)
 
+# Set by the --debug flag (WP5 §5.4). The CLI is the only place logging is configured —
+# library code only emits via module loggers and never touches handlers or levels.
+_DEBUG = False
+
 
 @app.callback()
-def main() -> None:
+def main(
+    debug: Annotated[
+        bool,
+        typer.Option(
+            "--debug",
+            help="Enable DEBUG logging (incl. library INFO/DEBUG) and full tracebacks.",
+        ),
+    ] = False,
+) -> None:
     """Agentic AI for Data Vault 2.0 automation."""
-    # Present so `run` stays an explicit subcommand instead of collapsing into the app.
+    # Also present so `run` stays an explicit subcommand instead of collapsing into the app.
+    global _DEBUG
+    _DEBUG = debug
+    if debug:
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format="%(asctime)s %(levelname)-7s %(name)s: %(message)s",
+        )
 
 
 def _adr_filename(adr_text: str) -> str:
@@ -330,6 +350,8 @@ def run(
     try:
         state, paused, thread_id = asyncio.run(_run_pipeline(input_doc, out, schemas))
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
+        if _DEBUG:
+            raise  # --debug: full traceback instead of the one-line summary
         console.print(f"[bold red]Pipeline failed:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
 
@@ -378,6 +400,8 @@ def resume(
     try:
         state, paused = asyncio.run(_resume_pipeline(out, pending["thread_id"], decision))
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
+        if _DEBUG:
+            raise  # --debug: full traceback instead of the one-line summary
         console.print(f"[bold red]Resume failed:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
 

@@ -12,6 +12,7 @@ so the returned payload validates back into the pydantic model with no ad-hoc pa
 The Anthropic client is only constructed lazily (and ``config.settings`` only imported
 then), so unit tests can inject a stub extractor and run without an API key.
 """
+import logging
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -19,6 +20,8 @@ from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.state import FlagKind, ParsedRequirement, VaultAgentState
+
+logger = logging.getLogger(__name__)
 
 _TOOL_NAME = "emit_requirements"
 _MAX_TOKENS = 4096
@@ -109,6 +112,7 @@ class RequirementsParserAgent(BaseAgent):
         return self._extractor
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
+        logger.info("parsing %d input document(s)", len(state.input_documents))
         system_prompt = self.load_prompt()
         extractor = self._get_extractor()
 
@@ -117,6 +121,7 @@ class RequirementsParserAgent(BaseAgent):
             document = self._read_document(doc_path, state)
             if document is None:
                 continue
+            logger.debug("document %s: %d chars", doc_path, len(document))
             raw_records = await extractor.extract(
                 system_prompt=system_prompt, document=document
             )
@@ -132,6 +137,7 @@ class RequirementsParserAgent(BaseAgent):
                         asset=doc_path,
                     )
 
+        logger.info("extracted %d requirement(s)", len(requirements))
         state.requirements = requirements
         state.decisions.append(
             {

@@ -11,10 +11,13 @@ unwrapping — but delegate the call itself to :class:`ForcedToolCaller`, so a f
 hardens every LLM call in the pipeline at once.
 """
 import asyncio
+import logging
 from collections.abc import Awaitable, Callable
 from typing import Any, cast
 
 import anthropic
+
+logger = logging.getLogger(__name__)
 
 # Transient statuses worth retrying: timeout, rate limit, server errors, overloaded.
 _RETRYABLE_STATUS = frozenset({408, 429, 500, 502, 503, 529})
@@ -68,6 +71,13 @@ class ForcedToolCaller:
         Retries transient failures with exponential backoff; raises
         :class:`LLMCallError` on truncation, a missing tool block, or when the retry
         budget is exhausted. Non-retryable API errors (4xx) propagate unchanged."""
+        logger.debug(
+            "%s: forced call of tool %r (system=%d chars, user=%d chars)",
+            self._model,
+            tool_name,
+            len(system_prompt),
+            len(user_content),
+        )
         last_exc: Exception | None = None
         for attempt in range(_MAX_RETRIES + 1):
             if attempt:

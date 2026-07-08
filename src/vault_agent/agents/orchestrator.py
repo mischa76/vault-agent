@@ -17,6 +17,7 @@ Two deterministic responsibilities, no LLM:
 
 Being deterministic, the whole agent is unit-tested without an API key.
 """
+import logging
 from typing import Any, Literal
 
 from langgraph.types import interrupt
@@ -25,6 +26,8 @@ from pydantic import BaseModel, Field
 from vault_agent.agents.base import BaseAgent
 from vault_agent.models.contract import ContractOwner
 from vault_agent.state import ExecutionPlan, FlagKind, VaultAgentState
+
+logger = logging.getLogger(__name__)
 
 ReviewKind = Literal[
     "contract_owner", "validation_error", "validation_warning", "review_flag"
@@ -252,6 +255,12 @@ class OrchestratorAgent(BaseAgent):
             notes=notes,
         )
         state.plan = plan
+        logger.info(
+            "planned %d stage(s), %d input document(s), grounding %s",
+            len(plan.stages),
+            plan.input_documents,
+            "on" if plan.grounded else "off",
+        )
         state.decisions.append(
             {
                 "agent": "orchestrator",
@@ -302,6 +311,11 @@ class HumanCheckpointAgent(BaseAgent):
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         queue = assemble_review_queue(state)
+        logger.info(
+            "human checkpoint: %d review item(s), requires sign-off: %s",
+            len(queue.items),
+            queue.requires_signoff,
+        )
         if not queue.requires_signoff:
             state.decisions.append(
                 {"agent": "human_checkpoint", "interrupted": False, "assigned": []}

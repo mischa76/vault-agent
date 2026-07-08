@@ -16,6 +16,7 @@ validation a structural pass drops constructs that dangle (links referencing mis
 satellites referencing a missing parent).
 """
 import json
+import logging
 from typing import Any, Protocol
 
 from pydantic import ValidationError
@@ -24,6 +25,8 @@ from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import render_schema_prompt_section
 from vault_agent.rules.dv2_rules import DV_MODELING_RULES
 from vault_agent.state import DVModel, FlagKind, Hub, Link, Satellite, VaultAgentState
+
+logger = logging.getLogger(__name__)
 
 _TOOL_NAME = "emit_dv_model"
 _MAX_TOKENS = 8192
@@ -118,6 +121,12 @@ class Dv2ModelerAgent(BaseAgent):
 
         # Count this modeling pass for the validation retry guard (route_after_validation).
         state.modeling_attempts += 1
+        logger.info(
+            "modeling attempt %d: %d requirement(s), %d business key(s)",
+            state.modeling_attempts,
+            len(state.requirements),
+            len(state.business_keys),
+        )
         system_prompt = self._build_system_prompt(state)
         payload: dict[str, Any] = {
             "requirements": [req.model_dump() for req in state.requirements],
@@ -136,11 +145,18 @@ class Dv2ModelerAgent(BaseAgent):
                 for issue in errors
             ]
         payload_json = json.dumps(payload, indent=2)
+        logger.debug("modeling payload: %d chars", len(payload_json))
         extractor = self._get_extractor()
         raw = await extractor.model(system_prompt=system_prompt, payload_json=payload_json)
 
         model = self._validate_model(raw, state)
         state.dv_model = model
+        logger.info(
+            "modeled %d hub(s), %d link(s), %d satellite(s)",
+            len(model.hubs),
+            len(model.links),
+            len(model.satellites),
+        )
         state.decisions.append(
             {
                 "agent": "dv2_modeler",

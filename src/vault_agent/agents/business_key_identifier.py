@@ -12,6 +12,7 @@ Structured output uses forced Anthropic tool-use with a schema derived from
 ``BusinessKeyCandidate``; the client is constructed lazily so tests run without a key.
 """
 import json
+import logging
 from typing import Any, Protocol
 
 from pydantic import ValidationError
@@ -20,6 +21,8 @@ from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import render_schema_prompt_section
 from vault_agent.rules.dv2_rules import BUSINESS_KEY_CRITERIA
 from vault_agent.state import BusinessKeyCandidate, FlagKind, VaultAgentState
+
+logger = logging.getLogger(__name__)
 
 _TOOL_NAME = "emit_business_keys"
 _MAX_TOKENS = 4096
@@ -98,6 +101,9 @@ class BusinessKeyIdentifierAgent(BaseAgent):
         return f"{template}\n\n## Business key criteria to apply\n\n{criteria}\n{schema_section}"
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
+        logger.info(
+            "identifying business keys from %d requirement(s)", len(state.requirements)
+        )
         if not state.requirements:
             state.flag(
                 "business_key_identifier",
@@ -111,6 +117,7 @@ class BusinessKeyIdentifierAgent(BaseAgent):
         requirements_json = json.dumps(
             [req.model_dump() for req in state.requirements], indent=2
         )
+        logger.debug("requirements payload: %d chars", len(requirements_json))
         extractor = self._get_extractor()
         raw_records = await extractor.identify(
             system_prompt=system_prompt, requirements_json=requirements_json
