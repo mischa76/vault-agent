@@ -58,3 +58,18 @@ def test_get_settings_is_cached(monkeypatch: pytest.MonkeyPatch) -> None:
         assert get_settings() is get_settings()
     finally:
         get_settings.cache_clear()
+
+
+def test_stale_or_foreign_dotenv_keys_are_ignored(tmp_path, monkeypatch):
+    """A .env carrying unknown keys (e.g. the removed LOG_LEVEL, or another tool's
+    variables) must not crash Settings construction (WP5 §5.3 follow-up)."""
+    env_file = tmp_path / ".env"
+    env_file.write_text(
+        "ANTHROPIC_API_KEY=sk-ant-test-not-a-real-key\n"
+        "LOG_LEVEL=INFO\n"
+        "SOME_OTHER_TOOLS_SETTING=whatever\n",
+        encoding="utf-8",
+    )
+    settings = Settings(_env_file=env_file)  # type: ignore[call-arg]
+    assert settings.anthropic_api_key == "sk-ant-test-not-a-real-key"
+    assert not hasattr(settings, "log_level")

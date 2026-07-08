@@ -13,7 +13,12 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    # extra="ignore": a user's .env may carry variables for other tools or entries for
+    # settings that no longer exist (e.g. the removed LOG_LEVEL) — stale or foreign keys
+    # must never crash startup. Newer pydantic-settings versions default to "forbid".
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
 
     # LLM
     anthropic_api_key: str
