@@ -161,7 +161,7 @@ class ValidatorAgent(BaseAgent):
                     )
                 )
             # Mirror the generator gate: a transactional (non-historized) link needs an
-            # event timestamp to drive automate_dv.nh_link's src_eff.
+            # event timestamp to drive automate_dv.t_link's src_eff.
             if link.link_type == "transactional" and not (link.event_timestamp or "").strip():
                 issues.append(
                     _issue(

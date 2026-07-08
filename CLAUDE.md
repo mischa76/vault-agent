@@ -431,11 +431,17 @@ self-referencing transactional link_transfer (hub_account + hub_account as count
 payload amount/currency, seed raw_transfer.csv, hand-authored stg_transfer, _raw_vault.yml
 tests, README + Files) via build_bank_dv_model_with_transfer() — the plain
 build_bank_dv_model() stays the byte-identity baseline; the generated link_transfer.sql
-emits src_fk=["ACCOUNT_HK","COUNTERPARTY_ACCOUNT_HK"] and stg_transfer hashes both. Also
-fixed a latent bug in build_vault_models.py main() (referenced the removed state.errors →
-now state.flags). The Postgres dbt build INCLUDING link_transfer is the single open
-human-verification step (no Postgres in the build env) — recorded in the demo README's
-"Last verified" note. pytest / ruff / mypy (canonical `uv run mypy`, 28 files) green.
+emits src_fk=["ACCOUNT_HK","COUNTERPARTY_ACCOUNT_HK"] and stg_transfer hashes both.
+Verified end-to-end on PostgreSQL 16 + AutomateDV 0.11.4 (2026-07-08): `dbt build
+--full-refresh` green (PASS=36 WARN=0 ERROR=0), link_transfer materialising DISTINCT
+account_hk / counterparty_account_hk columns (not_null + unique pass; account that both pays
+and receives hashes to the same value in each role). This Postgres run exposed and fixed a
+latent generator bug — the transactional-link template emitted the non-existent
+automate_dv.nh_link; AutomateDV's macro is t_link (with a required src_extra_columns arg,
+passed as none). Never caught before because no transactional link had ever been built
+end-to-end; the standard-link/hub/sat/eff_sat path was unaffected. Also fixed a latent bug in
+build_vault_models.py main() (referenced the removed state.errors → now state.flags). pytest /
+ruff / mypy (canonical `uv run mypy`, 28 files) green.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF

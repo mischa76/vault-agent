@@ -120,7 +120,7 @@ class Link(BaseModel):
     connected_hubs: list[str | LinkHubRef]
     description: str
     # Discriminator the code generator dispatches on (standard -> automate_dv.link,
-    # transactional -> automate_dv.nh_link, the non-historized link).
+    # transactional -> automate_dv.t_link, the non-historized/transactional link).
     link_type: Literal["standard", "transactional"] = "standard"
     # Hub reference(s) that stay fixed while the others rotate over time (the "one at a
     # time" side of a relationship). Each entry names a connected participation — a bare
@@ -131,9 +131,9 @@ class Link(BaseModel):
     # Optional: the modeler's rationale for the link's Unit of Work — which business keys
     # form the one atomic event this link captures. Surfaced in the ADR trail, not enforced.
     unit_of_work: str | None = None
-    # For a transactional link only: the transaction's data columns (automate_dv.nh_link's
+    # For a transactional link only: the transaction's data columns (automate_dv.t_link's
     # src_payload) and the event-date column used as src_eff. event_timestamp is required to
-    # generate a nh_link.
+    # generate a t_link.
     payload: list[str] = Field(default_factory=list)
     event_timestamp: str | None = None
     requirement_ids: list[str] = Field(default_factory=list)

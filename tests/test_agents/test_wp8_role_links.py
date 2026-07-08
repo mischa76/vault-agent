@@ -76,7 +76,7 @@ async def test_self_referencing_link_generates_distinct_role_fk_columns() -> Non
     assert meta["src_fk"] == ["ACCOUNT_HK", "COUNTERPARTY_ACCOUNT_HK"]
     sql = state.artifacts.dbt_models["link_transfer"]
     assert '"ACCOUNT_HK", "COUNTERPARTY_ACCOUNT_HK"' in sql
-    assert "automate_dv.nh_link" in sql
+    assert "automate_dv.t_link" in sql
     # No generation-gap flag: the self-referencing link is fully modelable now.
     assert [f for f in state.flags if f.kind == "generation_gap"] == []
 

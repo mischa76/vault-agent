@@ -255,10 +255,10 @@ async def test_transactional_link_without_event_timestamp_is_flagged() -> None:
     result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
 
     assert "link_transaction" not in result.artifacts.dbt_models
-    assert any("event_timestamp" in e.message and "nh_link" in e.message for e in result.flags)
+    assert any("event_timestamp" in e.message and "t_link" in e.message for e in result.flags)
 
 
-async def test_transactional_link_generates_nh_link() -> None:
+async def test_transactional_link_generates_t_link() -> None:
     model = _model()
     model.links.append(
         Link(name="link_transaction", connected_hubs=["hub_account", "hub_customer"],
@@ -268,7 +268,8 @@ async def test_transactional_link_generates_nh_link() -> None:
     result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
     sql = result.artifacts.dbt_models["link_transaction"]
 
-    assert "automate_dv.nh_link(" in sql
+    assert "automate_dv.t_link(" in sql
+    assert "src_extra_columns=none" in sql
     assert '{%- set src_fk = ["ACCOUNT_HK", "CUSTOMER_HK"] -%}' in sql
     assert '{%- set src_payload = ["AMOUNT", "REFERENCE_TEXT"] -%}' in sql
     assert '{%- set src_eff = "TRANSACTION_TIMESTAMP" -%}' in sql

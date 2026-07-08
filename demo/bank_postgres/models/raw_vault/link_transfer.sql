@@ -8,5 +8,6 @@
 {%- set src_ldts = "LOAD_DATETIME" -%}
 {%- set src_source = "RECORD_SOURCE" -%}
 
-{{ automate_dv.nh_link(src_pk=src_pk, src_fk=src_fk, src_payload=src_payload,
-                       src_eff=src_eff, src_ldts=src_ldts, src_source=src_source, source_model=source_model) }}
+{{ automate_dv.t_link(src_pk=src_pk, src_fk=src_fk, src_payload=src_payload,
+                      src_extra_columns=none,
+                      src_eff=src_eff, src_ldts=src_ldts, src_source=src_source, source_model=source_model) }}

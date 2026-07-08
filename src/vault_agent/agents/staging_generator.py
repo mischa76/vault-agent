@@ -127,7 +127,7 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
         if any(ref.hub not in hub_by_name for ref in link.hub_refs):
             continue  # the raw-vault generator skips (and flags) this link
         if link.link_type == "transactional" and link.event_timestamp is None:
-            continue  # not generated as nh_link either
+            continue  # not generated as t_link either
         generated_links.append(link)
         spec = spec_for(link.name)
         bk_cols = []

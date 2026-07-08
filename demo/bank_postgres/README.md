@@ -12,12 +12,15 @@ Implements [`docs/architecture/poc-end-to-end-dbt-spec.md`](../../docs/architect
 > was green (`PASS=29 WARN=0 ERROR=0`); the Phase B2 end-dating demo closed ACC-503's first owner
 > at the transfer date and left the new owner open, idempotent on re-run.
 >
-> **WP8 (2026-07-08, ADR-0009):** the self-referencing `link_transfer` + `stg_transfer` +
-> `raw_transfer` seed were added and the generator/staging output verified deterministically
-> (unit + guardrail tests green; the 6 pre-existing models stay byte-identical). The Postgres
-> `dbt build` including `link_transfer` is the **single open human-verification step** — run
-> the runbook below on a local Postgres to confirm `COUNTERPARTY_ACCOUNT_HK` and `ACCOUNT_HK`
-> materialise as distinct FK columns on `link_transfer`.
+> **WP8 verified 2026-07-08 (ADR-0009)** on PostgreSQL 16 + AutomateDV 0.11.4: the
+> self-referencing `link_transfer` (+ `stg_transfer` + `raw_transfer` seed) built green as
+> part of `dbt build --full-refresh` (`PASS=36 WARN=0 ERROR=0`), materialising **distinct**
+> role-qualified FK columns — `ACCOUNT_HK` and `COUNTERPARTY_ACCOUNT_HK` — on `link_transfer`
+> (not_null + unique tests pass; the three transfer rows show `account_hk <> counterparty_account_hk`,
+> and an account that both pays and receives hashes to the same value in each role). The six
+> pre-existing models stay byte-identical. This surfaced (and fixed) a latent generator bug:
+> the transactional-link template emitted `automate_dv.nh_link`, but AutomateDV's macro is
+> `t_link` — never caught before because no transactional link had been built end-to-end.
 
 ## What it builds
 

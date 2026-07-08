@@ -199,7 +199,12 @@ def _render_sat(sat: Satellite, parent_hashkey: str) -> tuple[str, dict[str, Any
 
 
 def _render_nh_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict[str, Any]]:
-    """Render a transactional (non-historized) link. Caller guarantees event_timestamp."""
+    """Render a transactional (non-historized) link. Caller guarantees event_timestamp.
+
+    Uses AutomateDV's ``t_link`` macro (the transactional/non-historized link — verified
+    against AutomateDV 0.11.4, which has no ``nh_link``). ``src_extra_columns`` is passed as
+    ``none``: the macro requires the argument but the generator models transaction data as
+    ``src_payload``, not extra pass-through columns."""
     src_fk = _link_src_fk(link, hub_hashkeys)
     payload = [_to_column(col) for col in link.payload]
     src_eff = _to_column(link.event_timestamp or "")
@@ -225,8 +230,9 @@ def _render_nh_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict
                 ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
             ]
         )
-        + "\n{{ automate_dv.nh_link(src_pk=src_pk, src_fk=src_fk, src_payload=src_payload,\n"
-        + "                       src_eff=src_eff, src_ldts=src_ldts, "
+        + "\n{{ automate_dv.t_link(src_pk=src_pk, src_fk=src_fk, src_payload=src_payload,\n"
+        + "                      src_extra_columns=none,\n"
+        + "                      src_eff=src_eff, src_ldts=src_ldts, "
         + "src_source=src_source, source_model=source_model) }}\n"
     )
     return sql, meta
@@ -373,7 +379,7 @@ class CodeGeneratorAgent(BaseAgent):
                     state.flag(
                         "code_generator",
                         f"transactional link {link.name!r} has no event_timestamp; "
-                        f"cannot generate automate_dv.nh_link, flagged for human review",
+                        f"cannot generate automate_dv.t_link, flagged for human review",
                         kind=FlagKind.GENERATION_GAP,
                         asset=link.name,
                     )
