@@ -403,6 +403,40 @@ HumanCheckpointAgent docstring) is reworded to the actual invariant — everythi
 interrupt() stays pure/idempotent because the node re-executes on resume. 235 tests
 green, ruff clean, mypy strict clean.
 
+WP8 role-qualified link hub references landed (as of 2026-07-08, ADR-0009 Accepted,
+docs/architecture/backlog-2026-07/wp8-multi-role-links-spec.md), closing the
+self-referencing-link gap (poc-end-to-end-dbt-spec §9, reality-test #5). A link hub
+reference is now Link.connected_hubs: list[str | LinkHubRef] — a plain string is an
+unqualified participation, a LinkHubRef(hub, role) (or {"hub", "role"} dict) role-qualifies
+one so the SAME hub can take part twice (e.g. a transfer's paying account + counterparty
+account). A before-validator normalises every entry to LinkHubRef; downstream code reads
+one shape via Link.hub_refs (a property that re-coerces defensively, since field assignment
+skips validation), and driving keys — which may name "hub" or "hub:role" — resolve through
+Link.resolve_driving_refs(). The declared union keeps plain-string YAML/tool-schema/tests
+working and model_dump round-trips through the checkpointer. Naming is a single source of
+truth in rules/dv2_rules.py: role_fk_column("ACCOUNT_HK","counterparty")==
+"COUNTERPARTY_ACCOUNT_HK" and role_bk_column("ACCOUNT_NUMBER","counterparty")==
+"COUNTERPARTY_ACCOUNT_NUMBER"; both are identity for role=None, so unqualified refs render
+byte-identically (acceptance criterion #1, pinned by test_staging_regression + the demo
+guardrail + a dedicated backward-compat test). Ripple (each tested): the code generator
+role-qualifies src_fk (new _link_src_fk helper) and the eff_sat driving/secondary FK split
+on resolved refs; the staging generator hashes role-qualified FK columns from role-qualified
+BK columns (a self-referencing raw table carries the two participations as two columns); the
+validator gains E_LINK_DUP_ROLE (two participations with identical (hub, role)) and the
+grounded W_ROLE_BK_NOT_IN_SOURCE, and makes E_LINK_UNKNOWN_HUB / E_DRIVING_KEY_NOT_IN_LINK /
+W_LINK_REDUNDANT_GRAIN role-aware (grain = multiset of (hub, role); validator code count 30);
+adr_author renders refs as "hub_account (counterparty)"; the modeler prompt + DV_MODELING_RULES
+gain a [GUIDE] line; eval/scorers matches links on the hub set. The bank demo gains a
+self-referencing transactional link_transfer (hub_account + hub_account as counterparty,
+payload amount/currency, seed raw_transfer.csv, hand-authored stg_transfer, _raw_vault.yml
+tests, README + Files) via build_bank_dv_model_with_transfer() — the plain
+build_bank_dv_model() stays the byte-identity baseline; the generated link_transfer.sql
+emits src_fk=["ACCOUNT_HK","COUNTERPARTY_ACCOUNT_HK"] and stg_transfer hashes both. Also
+fixed a latent bug in build_vault_models.py main() (referenced the removed state.errors →
+now state.flags). The Postgres dbt build INCLUDING link_transfer is the single open
+human-verification step (no Postgres in the build env) — recorded in the demo README's
+"Last verified" note. pytest / ruff / mypy (canonical `uv run mypy`, 28 files) green.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

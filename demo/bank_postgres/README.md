@@ -11,6 +11,13 @@ Implements [`docs/architecture/poc-end-to-end-dbt-spec.md`](../../docs/architect
 > regenerated all 6 raw-vault models byte-identically (idempotent); `dbt build --full-refresh`
 > was green (`PASS=29 WARN=0 ERROR=0`); the Phase B2 end-dating demo closed ACC-503's first owner
 > at the transfer date and left the new owner open, idempotent on re-run.
+>
+> **WP8 (2026-07-08, ADR-0009):** the self-referencing `link_transfer` + `stg_transfer` +
+> `raw_transfer` seed were added and the generator/staging output verified deterministically
+> (unit + guardrail tests green; the 6 pre-existing models stay byte-identical). The Postgres
+> `dbt build` including `link_transfer` is the **single open human-verification step** — run
+> the runbook below on a local Postgres to confirm `COUNTERPARTY_ACCOUNT_HK` and `ACCOUNT_HK`
+> materialise as distinct FK columns on `link_transfer`.
 
 ## What it builds
 
@@ -22,14 +29,24 @@ seeds/raw_*.csv  ──►  models/staging/stg_*.sql   ──►  models/raw_vau
                        adds HK / HASHDIFF)                automate_dv.hub/link/sat/eff_sat)
 ```
 
-The fixed bank model (hand-checked, deterministic — no LLM) exercises four construct types:
+The fixed bank model (hand-checked, deterministic — no LLM) exercises five construct types:
 
 | Construct | Type | dbt model |
 |---|---|---|
 | `hub_customer`, `hub_account` | hub | `models/raw_vault/hub_*.sql` |
 | `link_account_customer` | standard link | `models/raw_vault/link_account_customer.sql` |
+| `link_transfer` | transactional, **self-referencing** link | `models/raw_vault/link_transfer.sql` |
 | `sat_customer_details`, `sat_account_details` | standard satellite | `models/raw_vault/sat_*_details.sql` |
 | `sat_account_customer_eff` | effectivity satellite | `models/raw_vault/sat_account_customer_eff.sql` |
+
+> **`link_transfer` is the WP8 / ADR-0009 proof (role-qualified hub references).** A transfer
+> connects `hub_account` twice — the paying account and the *counterparty* account — so the
+> same hub participates in two roles. The model expresses this as
+> `connected_hubs=["hub_account", {"hub": "hub_account", "role": "counterparty"}]`; the
+> generator role-qualifies the second participation into distinct columns —
+> `ACCOUNT_HK` from `ACCOUNT_NUMBER` and `COUNTERPARTY_ACCOUNT_HK` from
+> `COUNTERPARTY_ACCOUNT_NUMBER` (`rules.role_fk_column` / `role_bk_column`). Without roles the
+> two would collapse to one `ACCOUNT_HK` and the relationship would be unmodelable.
 
 > **The raw-vault SQL is generated, never hand-written.** `build_vault_models.py` constructs the
 > fixed `DVModel` and runs the same `CodeGeneratorAgent` the pipeline uses, writing
@@ -233,10 +250,11 @@ demo/bank_postgres/
 ├── packages.yml                   # AutomateDV 0.11.4
 ├── profiles.yml                   # native local Postgres target
 ├── analyses/verify_vault.sql      # row-count + ownership-history verification
-├── seeds/raw_*.csv                # toy source data (3 customers, 4 accounts, an ownership transfer)
+├── seeds/raw_*.csv                # toy source data (3 customers, 4 accounts, ownership + transfers)
+│                                  #   incl. raw_transfer.csv (ACCOUNT_NUMBER + COUNTERPARTY_ACCOUNT_NUMBER)
 └── models/
-    ├── staging/stg_*.sql          # hand-authored automate_dv.stage() models
+    ├── staging/stg_*.sql          # hand-authored automate_dv.stage() models (incl. stg_transfer)
     └── raw_vault/                  # GENERATED — do not hand-edit the *.sql
         ├── _raw_vault.yml          # hand-authored schema tests (not_null / unique on keys)
-        └── {hub,link,sat}_*.sql
+        └── {hub,link,sat}_*.sql    # incl. link_transfer.sql (self-referencing, WP8)
 ```

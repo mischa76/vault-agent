@@ -54,3 +54,19 @@ models:
     columns:
       - name: LINK_ACCOUNT_CUSTOMER_HK
         data_tests: [not_null]
+
+  - name: link_transfer
+    description: >
+      Self-referencing transactional link (WP8, ADR-0009): a transfer connects hub_account
+      as the paying account and as the counterparty account. The two participations render
+      as distinct role-qualified FK columns — ACCOUNT_HK and COUNTERPARTY_ACCOUNT_HK.
+    columns:
+      - name: LINK_TRANSFER_HK
+        description: "Hash key of the transfer event (non-historized link)."
+        data_tests: [not_null, unique]
+      - name: ACCOUNT_HK
+        description: "FK to the paying account (unqualified participation)."
+        data_tests: [not_null]
+      - name: COUNTERPARTY_ACCOUNT_HK
+        description: "Role-qualified FK to the counterparty account (same hub, role=counterparty)."
+        data_tests: [not_null]

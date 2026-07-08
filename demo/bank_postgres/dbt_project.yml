@@ -56,3 +56,15 @@ seeds:
         EFFECTIVE_TO: timestamp
         LOAD_DATETIME: timestamp
         RECORD_SOURCE: varchar
+    raw_transfer:
+      # Self-referencing transfer table (WP8): the counterparty account is carried in a
+      # role-prefixed COUNTERPARTY_ACCOUNT_NUMBER column (rules.role_bk_column), staged into
+      # COUNTERPARTY_ACCOUNT_HK — distinct from the paying account's ACCOUNT_HK.
+      +column_types:
+        ACCOUNT_NUMBER: varchar
+        COUNTERPARTY_ACCOUNT_NUMBER: varchar
+        AMOUNT: numeric
+        CURRENCY: varchar
+        TRANSFER_TIMESTAMP: timestamp
+        LOAD_DATETIME: timestamp
+        RECORD_SOURCE: varchar

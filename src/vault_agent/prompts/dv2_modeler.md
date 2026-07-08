@@ -37,12 +37,17 @@ record-source columns (those are added downstream by the code generator).
 
 - Hub: `name`, `business_key` (the natural-key field), `source_entity`, `description`,
   `requirement_ids` (the requirements that justify it).
-- Link: `name`, `connected_hubs` (the hub `name`s it connects, two or more),
+- Link: `name`, `connected_hubs` (the hub participations it connects, two or more —
+  usually a hub `name` string; when one hub takes part more than once in different roles,
+  use `{"hub": "<hub name>", "role": "<role>"}` for each participation, e.g. a transfer
+  connecting `{"hub": "hub_account"}` and `{"hub": "hub_account", "role": "counterparty"}`,
+  rather than dropping or duplicating the hub),
   `description`, `requirement_ids`, and optionally `link_type` and `driving_key`. For a
   `transactional` link (an event/transaction that is recorded once and never updated), also
   set `payload` (the transaction's data columns) and `event_timestamp` (the column holding
   the event date/time); without `event_timestamp` the transactional link cannot be
-  generated. Set `driving_key` (a non-empty subset of `connected_hubs`) whenever an
+  generated. Set `driving_key` (a non-empty subset of `connected_hubs`; name a
+  role-qualified participation as `"hub_account:counterparty"`) whenever an
   effectivity satellite hangs off the link — see below. Optionally set `unit_of_work` to a
   short note naming the business keys of the one atomic event this link captures (for the
   ADR trail).

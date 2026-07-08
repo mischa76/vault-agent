@@ -2,7 +2,7 @@
 import warnings
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 FlagSeverity = Literal["error", "advisory"]
 
@@ -91,17 +91,42 @@ class Hub(BaseModel):
     requirement_ids: list[str] = Field(default_factory=list)
 
 
+class LinkHubRef(BaseModel):
+    """One hub participation in a link, optionally role-qualified (ADR-0009).
+
+    A plain hub name in ``Link.connected_hubs`` coerces to ``LinkHubRef(hub=<name>)``
+    (unqualified, ``role=None``). A role qualifier disambiguates one hub participating
+    twice in different roles — e.g. ``hub_account`` as the unqualified payer side and as
+    the ``counterparty`` side of a transfer — so the generator can render distinct
+    role-prefixed FK columns (``ACCOUNT_HK`` vs ``COUNTERPARTY_ACCOUNT_HK``, via
+    :func:`rules.dv2_rules.role_fk_column`). Unqualified refs render byte-identically to
+    the pre-ADR-0009 plain-string behaviour."""
+
+    hub: str  # hub name, e.g. "hub_account"
+    role: str | None = None  # e.g. "counterparty"; None = unqualified
+
+    def __str__(self) -> str:
+        return self.hub if self.role is None else f"{self.hub}:{self.role}"
+
+
 class Link(BaseModel):
     """A Data Vault link: a relationship connecting two or more hubs."""
     name: str  # e.g. "link_account_customer"
-    connected_hubs: list[str]  # hub names this link connects (>= 2)
+    # Hub participations (>= 2). A plain string is a hub name (unqualified); a LinkHubRef
+    # (or ``{"hub": ..., "role": ...}`` dict) role-qualifies a participation so one hub can
+    # take part more than once (ADR-0009). The union keeps plain-string YAML/tool-schema
+    # inputs working; the before-validator normalises every entry to LinkHubRef so
+    # downstream code sees one shape — read it through ``hub_refs``.
+    connected_hubs: list[str | LinkHubRef]
     description: str
     # Discriminator the code generator dispatches on (standard -> automate_dv.link,
     # transactional -> automate_dv.nh_link, the non-historized link).
     link_type: Literal["standard", "transactional"] = "standard"
     # Hub reference(s) that stay fixed while the others rotate over time (the "one at a
-    # time" side of a relationship). A non-empty subset of connected_hubs; required when an
-    # effectivity satellite hangs off this link so it can end-date per driving key.
+    # time" side of a relationship). Each entry names a connected participation — a bare
+    # hub name, or "hub:role" for a role-qualified one (ADR-0009); resolve via
+    # resolve_driving_refs(). Required when an effectivity satellite hangs off this link so
+    # it can end-date per driving key.
     driving_key: list[str] = Field(default_factory=list)
     # Optional: the modeler's rationale for the link's Unit of Work — which business keys
     # form the one atomic event this link captures. Surfaced in the ADR trail, not enforced.
@@ -112,6 +137,45 @@ class Link(BaseModel):
     payload: list[str] = Field(default_factory=list)
     event_timestamp: str | None = None
     requirement_ids: list[str] = Field(default_factory=list)
+
+    @field_validator("connected_hubs", mode="before")
+    @classmethod
+    def _normalise_hub_refs(cls, value: Any) -> Any:
+        """Coerce every entry to a LinkHubRef so downstream code sees one shape (ADR-0009).
+
+        Plain strings become unqualified refs; dicts/LinkHubRefs pass through to pydantic.
+        Runs on construction/validation; direct field assignment bypasses it, which is why
+        :attr:`hub_refs` re-coerces defensively."""
+        if isinstance(value, list):
+            return [LinkHubRef(hub=v) if isinstance(v, str) else v for v in value]
+        return value
+
+    @property
+    def hub_refs(self) -> list[LinkHubRef]:
+        """``connected_hubs`` as normalised :class:`LinkHubRef`s — the single read path.
+
+        The before-validator already normalises validated input; this re-coerces any plain
+        string (e.g. from a post-construction field assignment that skips validation) so
+        every consumer can rely on ``.hub`` / ``.role`` without a union check."""
+        return [LinkHubRef(hub=h) if isinstance(h, str) else h for h in self.connected_hubs]
+
+    def resolve_driving_refs(self) -> list["LinkHubRef"]:
+        """Resolve ``driving_key`` entries to the connected refs they name (ADR-0009).
+
+        An entry is a bare hub name (matches the unqualified connected ref) or ``"hub:role"``
+        (matches the role-qualified one). This is the single interpretation point for the
+        driving key; unmatched entries are dropped here and reported by the validator's
+        ``E_DRIVING_KEY_NOT_IN_LINK`` gate."""
+        refs = self.hub_refs
+        resolved: list[LinkHubRef] = []
+        for entry in self.driving_key:
+            hub, sep, role = entry.partition(":")
+            wanted = (hub, role if sep else None)
+            for ref in refs:
+                if (ref.hub, ref.role) == wanted:
+                    resolved.append(ref)
+                    break
+        return resolved
 
 
 class Satellite(BaseModel):

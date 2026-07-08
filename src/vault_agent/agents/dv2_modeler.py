@@ -177,12 +177,12 @@ class Dv2ModelerAgent(BaseAgent):
 
         kept_links: list[Link] = []
         for link in links:
-            missing = [name for name in link.connected_hubs if name not in hub_names]
-            if len(link.connected_hubs) < 2 or missing:
+            missing = [ref.hub for ref in link.hub_refs if ref.hub not in hub_names]
+            if len(link.hub_refs) < 2 or missing:
                 state.flag(
                     "dv2_modeler",
                     f"dropped link {link.name!r} — must connect >=2 known hubs "
-                    f"(missing: {missing or 'none'}, count: {len(link.connected_hubs)})",
+                    f"(missing: {missing or 'none'}, count: {len(link.hub_refs)})",
                     kind=FlagKind.DROPPED_RECORD,
                     asset=link.name,
                 )

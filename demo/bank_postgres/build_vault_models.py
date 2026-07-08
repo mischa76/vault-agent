@@ -16,7 +16,7 @@ import asyncio
 from pathlib import Path
 
 from vault_agent.agents.code_generator import CodeGeneratorAgent
-from vault_agent.state import DVModel, Hub, Link, Satellite, VaultAgentState
+from vault_agent.state import DVModel, Hub, Link, LinkHubRef, Satellite, VaultAgentState
 
 # Where the generated raw-vault models land — resolved from this file, not the cwd, so the
 # script works both from the repo root and from inside demo/bank_postgres/.
@@ -81,6 +81,35 @@ def build_bank_dv_model() -> DVModel:
     return DVModel(hubs=hubs, links=links, satellites=satellites)
 
 
+def build_bank_dv_model_with_transfer() -> DVModel:
+    """The bank model plus a self-referencing transactional ``link_transfer`` (ADR-0009/WP8).
+
+    A transfer connects ``hub_account`` twice — the paying account (unqualified) and the
+    ``counterparty`` account — so the same hub participates in two roles. The generator
+    role-qualifies the second FK (``COUNTERPARTY_ACCOUNT_HK`` vs ``ACCOUNT_HK``) from the
+    role-prefixed staging business-key column (``COUNTERPARTY_ACCOUNT_NUMBER``). The plain
+    constructs are reused verbatim from :func:`build_bank_dv_model`, so the byte-identity
+    guards on that model (tests/test_agents/test_staging_regression.py, the demo guardrail)
+    keep proving backward compatibility (acceptance criterion #1)."""
+    model = build_bank_dv_model()
+    model.links.append(
+        Link(
+            name="link_transfer",
+            connected_hubs=[
+                "hub_account",  # the paying account (unqualified)
+                LinkHubRef(hub="hub_account", role="counterparty"),  # the counterparty
+            ],
+            description="A money transfer from one account to a counterparty account.",
+            link_type="transactional",
+            payload=["amount", "currency"],
+            event_timestamp="transfer timestamp",
+            unit_of_work="One transfer moves money from an account to a counterparty "
+            "account at a point in time.",
+        )
+    )
+    return model
+
+
 async def generate_models(model: DVModel) -> VaultAgentState:
     """Run the real code generator over the fixed model."""
     state = VaultAgentState(dv_model=model)
@@ -99,7 +128,9 @@ def write_models(state: VaultAgentState, out_dir: Path = RAW_VAULT_DIR) -> list[
 
 
 def main() -> None:
-    model = build_bank_dv_model()
+    # The runnable demo includes the self-referencing link_transfer (WP8); the plain
+    # build_bank_dv_model() stays the byte-identity baseline for the regression guards.
+    model = build_bank_dv_model_with_transfer()
     state = asyncio.run(generate_models(model))
 
     written = write_models(state)
@@ -113,13 +144,14 @@ def main() -> None:
         f"{len(meta.get('links', {}))} link(s), "
         f"{len(meta.get('satellites', {}))} satellite(s)."
     )
-    # Surface generator errors/flags (there should be none for this fixed model).
-    if state.errors:
-        print("\nGenerator flags/errors:")
-        for err in state.errors:
-            print(f"  ! {err}")
+    # Surface generator flags. Ungrounded, the staging generator infers raw_* source
+    # bindings and flags them (advisory) — expected for this demo, which ships those seeds.
+    if state.flags:
+        print("\nGenerator flags:")
+        for flag in state.flags:
+            print(f"  ! [{flag.severity}] {flag}")
     else:
-        print("No generator errors.")
+        print("No generator flags.")
 
 
 if __name__ == "__main__":

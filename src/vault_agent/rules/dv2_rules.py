@@ -101,7 +101,39 @@ DV_MODELING_RULES = [
     "exist in that relation so the rows attach to the parent",
     "When the same business-key value from different sources can mean different objects, add a "
     "collision code (source differentiation) rather than silently merging them into one hub",
+    "When one hub participates twice in a relationship (e.g. a transfer's payer and "
+    "counterparty are both accounts), qualify each participation with a role — "
+    "connected_hubs entry {hub: hub_account, role: counterparty} — instead of dropping or "
+    "duplicating the hub; role-qualify the driving key as \"hub_account:counterparty\" when it "
+    "names a role",
 ]
+
+def _role_prefix(column: str, role: str | None) -> str:
+    """Prefix ``column`` with a normalised role; ``role`` None returns it unchanged."""
+    if role is None:
+        return column
+    return f"{normalize_identifier(role)}_{column}"
+
+
+def role_fk_column(hub_hashkey: str, role: str | None) -> str:
+    """Role-qualify a hub's FK hash-key column for a link participation (ADR-0009).
+
+    ``role_fk_column("ACCOUNT_HK", "counterparty") == "COUNTERPARTY_ACCOUNT_HK"``;
+    an unqualified ref (``role=None``) returns the hash key unchanged, so plain-string
+    links render byte-identically. Single source of truth for role FK naming — the code
+    generator, staging generator, and validator all call it (never prefix ad hoc)."""
+    return _role_prefix(hub_hashkey, role)
+
+
+def role_bk_column(bk_column: str, role: str | None) -> str:
+    """Role-qualify a business-key *source* column in staging for a role ref (ADR-0009).
+
+    ``role_bk_column("ACCOUNT_NUMBER", "counterparty") == "COUNTERPARTY_ACCOUNT_NUMBER"``;
+    None returns it unchanged. A self-referencing raw table necessarily carries the two
+    participations as two columns — the role prefix is the documented expectation (an
+    unmatched grounded column surfaces as W_ROLE_BK_NOT_IN_SOURCE, never a silent guess)."""
+    return _role_prefix(bk_column, role)
+
 
 # Physical naming conventions the code generator uses when rendering AutomateDV/dbt
 # models. Kept here so naming stays a single source of truth across modeler/generator.

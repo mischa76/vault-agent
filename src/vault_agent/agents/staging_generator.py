@@ -27,6 +27,8 @@ from vault_agent.rules.dv2_rules import (
     RECORD_SOURCE_COLUMN,
     STAGING_PREFIX,
     normalize_identifier,
+    role_bk_column,
+    role_fk_column,
 )
 from vault_agent.state import DVModel, FlagKind, PipelineFlag, SourceTable
 
@@ -122,18 +124,21 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
 
     generated_links = []
     for link in model.links:
-        if any(h not in hub_by_name for h in link.connected_hubs):
+        if any(ref.hub not in hub_by_name for ref in link.hub_refs):
             continue  # the raw-vault generator skips (and flags) this link
         if link.link_type == "transactional" and link.event_timestamp is None:
             continue  # not generated as nh_link either
         generated_links.append(link)
         spec = spec_for(link.name)
         bk_cols = []
-        for hub_name in link.connected_hubs:
-            hub = hub_by_name[hub_name]
-            bk_col = _to_column(hub.business_key)
+        for ref in link.hub_refs:
+            # Role-qualify both the FK hash key and its source business-key column so a
+            # self-referencing link gets two distinct columns (ADR-0009); unqualified refs
+            # keep the bare names, so plain-string links stage byte-identically.
+            hub = hub_by_name[ref.hub]
+            bk_col = role_bk_column(_to_column(hub.business_key), ref.role)
             bk_cols.append(bk_col)
-            spec.add_hashed(_hub_hashkey(hub), bk_col)
+            spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), bk_col)
             spec.add_source_column(bk_col)
         spec.add_hashed(_link_hashkey(link), bk_cols)
         if link.link_type == "transactional":
@@ -167,8 +172,10 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
             else:
                 parent_link = links_by_name[sat.parent]
                 bk_cols = []
-                for hub_name in parent_link.connected_hubs:
-                    bk_col = _to_column(hub_by_name[hub_name].business_key)
+                for ref in parent_link.hub_refs:
+                    bk_col = role_bk_column(
+                        _to_column(hub_by_name[ref.hub].business_key), ref.role
+                    )
                     bk_cols.append(bk_col)
                     spec.add_source_column(bk_col)
                 spec.add_hashed(_link_hashkey(parent_link), bk_cols)

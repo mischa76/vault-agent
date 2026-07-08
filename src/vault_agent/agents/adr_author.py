@@ -119,8 +119,14 @@ class AdrAuthorAgent(BaseAgent):
         lines += ["", f"### Links ({len(model.links)})", ""]
         for link in model.links:
             uow = f" Unit of work: {link.unit_of_work}." if link.unit_of_work else ""
+            # Render each participation as "hub_account (counterparty)" for a role-qualified
+            # ref (ADR-0009); unqualified refs render as the bare hub name (unchanged).
+            connected = ", ".join(
+                ref.hub if ref.role is None else f"{ref.hub} ({ref.role})"
+                for ref in link.hub_refs
+            )
             lines.append(
-                f"- **{link.name}** — connects {', '.join(link.connected_hubs)}. "
+                f"- **{link.name}** — connects {connected}. "
                 f"{link.description}{uow} _(requirements: {_ids(link.requirement_ids)})_"
             )
 

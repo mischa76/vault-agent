@@ -24,6 +24,7 @@ from vault_agent.rules.dv2_rules import (
     RECORD_SOURCE_COLUMN,
     STAGING_PREFIX,
     normalize_identifier,
+    role_fk_column,
 )
 from vault_agent.state import FlagKind, Hub, Link, PipelineFlag, Satellite, VaultAgentState
 
@@ -132,8 +133,16 @@ def _render_hub(hub: Hub) -> tuple[str, dict[str, Any]]:
     return sql, meta
 
 
+def _link_src_fk(link: Link, hub_hashkeys: dict[str, str]) -> list[str]:
+    """The link's FK hash-key columns, role-qualified per participation (ADR-0009).
+
+    Unqualified refs return the bare hub hash key (byte-identical to the pre-role output);
+    a role-qualified ref (a hub participating twice) gets a distinct role-prefixed column."""
+    return [role_fk_column(hub_hashkeys[ref.hub], ref.role) for ref in link.hub_refs]
+
+
 def _render_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict[str, Any]]:
-    src_fk = [hub_hashkeys[hub_name] for hub_name in link.connected_hubs]
+    src_fk = _link_src_fk(link, hub_hashkeys)
     meta: dict[str, Any] = {
         "source_model": _staging_model(link.name),
         "src_pk": _link_hashkey(link),
@@ -191,7 +200,7 @@ def _render_sat(sat: Satellite, parent_hashkey: str) -> tuple[str, dict[str, Any
 
 def _render_nh_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict[str, Any]]:
     """Render a transactional (non-historized) link. Caller guarantees event_timestamp."""
-    src_fk = [hub_hashkeys[hub_name] for hub_name in link.connected_hubs]
+    src_fk = _link_src_fk(link, hub_hashkeys)
     payload = [_to_column(col) for col in link.payload]
     src_eff = _to_column(link.event_timestamp or "")
     meta: dict[str, Any] = {
@@ -350,7 +359,7 @@ class CodeGeneratorAgent(BaseAgent):
             metadata["hubs"][hub.name] = meta
 
         for link in model.links:
-            missing = [h for h in link.connected_hubs if h not in hub_hashkeys]
+            missing = [ref.hub for ref in link.hub_refs if ref.hub not in hub_hashkeys]
             if missing:
                 state.flag(
                     "code_generator",
@@ -376,17 +385,23 @@ class CodeGeneratorAgent(BaseAgent):
             dbt_models[link.name] = sql
             metadata["links"][link.name] = meta
             parent_hashkeys[link.name] = _link_hashkey(link)
-            link_fks[link.name] = [hub_hashkeys[h] for h in link.connected_hubs]
+            link_fks[link.name] = _link_src_fk(link, hub_hashkeys)
             if link.driving_key:
-                # Driving keys in their declared order; secondaries = the remaining
-                # connected hubs in theirs. Order-independent of connected_hubs ordering.
+                # Driving keys as declared (resolved to their role-qualified refs);
+                # secondaries = the remaining participations. Both are role-qualified FK
+                # columns, so an eff_sat end-dates by the exact participation named — and a
+                # plain-string link produces the same columns as before (role None).
+                driving_refs = link.resolve_driving_refs()
+                driving_keys = {(ref.hub, ref.role) for ref in driving_refs}
                 link_driving_fks[link.name] = [
-                    hub_hashkeys[h] for h in link.driving_key if h in hub_hashkeys
+                    role_fk_column(hub_hashkeys[ref.hub], ref.role)
+                    for ref in driving_refs
+                    if ref.hub in hub_hashkeys
                 ]
                 link_secondary_fks[link.name] = [
-                    hub_hashkeys[h]
-                    for h in link.connected_hubs
-                    if h not in link.driving_key
+                    role_fk_column(hub_hashkeys[ref.hub], ref.role)
+                    for ref in link.hub_refs
+                    if (ref.hub, ref.role) not in driving_keys
                 ]
 
         for sat in model.satellites:

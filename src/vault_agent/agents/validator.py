@@ -15,10 +15,11 @@ attribute overlap across constructs, satellite-internal duplicate attributes
 (``E_SAT_DUP_ATTR``), effectivity-satellite date count and (start, end) order
 (``E_EFFSAT_DATE_ORDER`` / ``W_EFFSAT_DATE_ORDER_UNVERIFIED``), hub hash-key/staging
 collisions on a shared source entity (``E_HUB_HK_COLLISION``), duplicate hubs over the same
-business key and source (``E_DUP_HUB``), and optional source-schema grounding. Count the
-``E_``/``W_`` codes in this module for the authoritative gate count — 28 as of WP7
-(backlog-2026-07, adding ``W_MASAT_SHARED_GRAIN``); the code, not this prose, is the
-source of truth.
+business key and source (``E_DUP_HUB``), role-qualified link participations
+(``E_LINK_DUP_ROLE`` and the grounded ``W_ROLE_BK_NOT_IN_SOURCE``, ADR-0009/WP8), and
+optional source-schema grounding. Count the ``E_``/``W_`` codes in this module for the
+authoritative gate count — 30 as of WP8 (backlog-2026-07); the code, not this prose, is
+the source of truth.
 """
 import logging
 from typing import Any
@@ -32,6 +33,7 @@ from vault_agent.rules.dv2_rules import (
     SAT_WIDE_ATTRIBUTE_THRESHOLD,
     effectivity_date_pair,
     normalize_identifier,
+    role_bk_column,
 )
 from vault_agent.state import (
     Hub,
@@ -118,7 +120,7 @@ class ValidatorAgent(BaseAgent):
                         f"link connects {len(link.connected_hubs)} hub(s); needs >= 2",
                     )
                 )
-            unknown = [h for h in link.connected_hubs if h not in hub_names]
+            unknown = sorted({ref.hub for ref in link.hub_refs if ref.hub not in hub_names})
             if unknown:
                 issues.append(
                     _issue(
@@ -126,13 +128,36 @@ class ValidatorAgent(BaseAgent):
                         f"link references unknown hubs: {unknown}",
                     )
                 )
-            # A declared driving key must be a subset of the hubs the link connects.
-            outside = [h for h in link.driving_key if h not in link.connected_hubs]
+            # E_LINK_DUP_ROLE: two participations with the same (hub, role) are the exact
+            # duplicate roles exist to disambiguate (ADR-0009) — one hub twice with no role,
+            # or twice under the same role, would collapse to one FK column. Role-qualify
+            # (or drop) the repeat.
+            seen_refs: set[tuple[str, str | None]] = set()
+            for ref in link.hub_refs:
+                key = (ref.hub, ref.role)
+                if key in seen_refs:
+                    label = ref.hub if ref.role is None else f"{ref.hub} (role {ref.role})"
+                    issues.append(
+                        _issue(
+                            "error", "E_LINK_DUP_ROLE", link.name,
+                            f"hub participation {label} appears twice with the same role; "
+                            f"qualify each repeated participation with a distinct role",
+                        )
+                    )
+                seen_refs.add(key)
+            # A declared driving key must name connected participations (by hub, or
+            # "hub:role" for a role-qualified one — ADR-0009).
+            connected_keys = {(ref.hub, ref.role) for ref in link.hub_refs}
+            outside = []
+            for entry in link.driving_key:
+                dk_hub, sep, dk_role = entry.partition(":")
+                if (dk_hub, dk_role if sep else None) not in connected_keys:
+                    outside.append(entry)
             if outside:
                 issues.append(
                     _issue(
                         "error", "E_DRIVING_KEY_NOT_IN_LINK", link.name,
-                        f"driving key is not a subset of connected_hubs: {outside}",
+                        f"driving key is not a subset of connected participations: {outside}",
                     )
                 )
             # Mirror the generator gate: a transactional (non-historized) link needs an
@@ -319,9 +344,13 @@ class ValidatorAgent(BaseAgent):
 
         # W_LINK_REDUNDANT_GRAIN: two links over the same hub set with the same type likely
         # model one Unit of Work twice (or are a grain error). Order-independent on hubs.
-        grain_groups: dict[tuple[tuple[str, ...], str], list[str]] = {}
+        grain_groups: dict[tuple[tuple[tuple[str, str | None], ...], str], list[str]] = {}
         for link in model.links:
-            key = (tuple(sorted(link.connected_hubs)), link.link_type)
+            # Grain = the multiset of (hub, role) participations (ADR-0009): a
+            # role-qualified self-referencing link has a different grain from a plain link
+            # over the same hub, and must not be flagged as its redundant twin.
+            grain = tuple(sorted((ref.hub, ref.role or "") for ref in link.hub_refs))
+            key = (grain, link.link_type)
             grain_groups.setdefault(key, []).append(link.name)
         for _key, names in sorted(grain_groups.items()):
             if len(names) > 1:
@@ -434,6 +463,7 @@ class ValidatorAgent(BaseAgent):
         if not state.source_schemas:
             return issues
         columns = known_columns(state.source_schemas)
+        hub_by_name = {hub.name: hub for hub in state.dv_model.hubs}
         for hub in state.dv_model.hubs:
             if hub.business_key.strip() and not is_grounded(hub.business_key, columns):
                 issues.append(
@@ -443,6 +473,31 @@ class ValidatorAgent(BaseAgent):
                         f"declared source schema; verify the source or complete the schema",
                     )
                 )
+        # W_ROLE_BK_NOT_IN_SOURCE (ADR-0009): a role-qualified participation expects a
+        # role-prefixed business-key column in the source (COUNTERPARTY_ACCOUNT_NUMBER); a
+        # self-referencing raw table carries the two participations as two columns. Warning,
+        # mirroring W_BK_NOT_IN_SOURCE — the schema may be partial. Unqualified refs are
+        # already covered by the hub loop above.
+        for link in state.dv_model.links:
+            for ref in link.hub_refs:
+                if ref.role is None:
+                    continue
+                ref_hub = hub_by_name.get(ref.hub)
+                if ref_hub is None or not ref_hub.business_key.strip():
+                    continue
+                expected = role_bk_column(
+                    normalize_identifier(ref_hub.business_key), ref.role
+                )
+                if expected not in columns:
+                    issues.append(
+                        _issue(
+                            "warning", "W_ROLE_BK_NOT_IN_SOURCE", link.name,
+                            f"role-qualified participation {ref.hub} (role {ref.role!r}) "
+                            f"expects a source column {expected!r}, which matches no column "
+                            f"in the declared source schema; verify the source or complete "
+                            f"the schema",
+                        )
+                    )
         for sat in state.dv_model.satellites:
             for attr in sat.attributes:
                 if not is_grounded(attr, columns):

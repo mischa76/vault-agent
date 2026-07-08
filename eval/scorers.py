@@ -58,7 +58,9 @@ def _matched_hubs(state: VaultAgentState, case: EvalCase) -> int:
 def _matched_links(state: VaultAgentState, case: EvalCase) -> int:
     """Golden links matched on normalised name + normalised connected-hub *set*."""
     generated = {
-        normalize_identifier(link.name): _norm_set(link.connected_hubs)
+        # Match on the set of connected hub names; role-qualified participations
+        # (ADR-0009) collapse to their hub for this structural comparison.
+        normalize_identifier(link.name): _norm_set(ref.hub for ref in link.hub_refs)
         for link in state.dv_model.links
     }
     return sum(
