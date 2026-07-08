@@ -74,6 +74,19 @@ def _staging_model(name: str) -> str:
     return STAGING_PREFIX + _base_name(name)
 
 
+def _sat_staging_model(sat: Satellite) -> str:
+    """The staging model feeding a satellite (WP7 §7.1).
+
+    A satellite that declares a ``source_table`` (its rows live in their own, usually
+    finer-grain raw relation) reads its own dedicated ``stg_<sat base>`` model; otherwise
+    it shares the parent's staging model (the pre-WP7 behaviour). Effectivity satellites
+    always read the parent link's staging — their date pair lives in the relationship's
+    own relation — so ``source_table`` is ignored for them."""
+    if sat.source_table and sat.sat_type != "effectivity":
+        return STAGING_PREFIX + normalize_identifier(_base_name(sat.name)).lower()
+    return _staging_model(sat.parent)
+
+
 def _sql_list(items: list[str]) -> str:
     return "[" + ", ".join(f'"{item}"' for item in items) + "]"
 
@@ -146,7 +159,7 @@ def _render_sat(sat: Satellite, parent_hashkey: str) -> tuple[str, dict[str, Any
     payload = [_to_column(attr) for attr in sat.attributes]
     src_hashdiff = _to_column(_base_name(sat.name)) + HASHDIFF_SUFFIX
     meta: dict[str, Any] = {
-        "source_model": _staging_model(sat.parent),
+        "source_model": _sat_staging_model(sat),
         "src_pk": parent_hashkey,
         "src_hashdiff": src_hashdiff,
         "src_payload": payload,
@@ -212,7 +225,7 @@ def _render_ma_sat(sat: Satellite, parent_hashkey: str) -> tuple[str, dict[str, 
     cdk = [_to_column(key) for key in sat.child_dependent_key]
     src_hashdiff = _to_column(_base_name(sat.name)) + HASHDIFF_SUFFIX
     meta: dict[str, Any] = {
-        "source_model": _staging_model(sat.parent),
+        "source_model": _sat_staging_model(sat),
         "src_pk": parent_hashkey,
         "src_cdk": cdk,
         "src_hashdiff": src_hashdiff,

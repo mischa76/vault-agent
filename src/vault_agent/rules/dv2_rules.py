@@ -95,6 +95,10 @@ DV_MODELING_RULES = [
     "driving key — the hub reference(s) that stay fixed while the others rotate over time",
     "An effectivity satellite carries exactly two date attributes, in (start, end) order: "
     "the active-from date first, the active-to date second",
+    "When a satellite's rows live in their own source relation at finer grain than the "
+    "parent's — typical for a multi-active satellite — declare the satellite's "
+    "source_table (the raw relation feeding it); the parent's business-key column must "
+    "exist in that relation so the rows attach to the parent",
     "When the same business-key value from different sources can mean different objects, add a "
     "collision code (source differentiation) rather than silently merging them into one hub",
 ]

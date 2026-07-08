@@ -250,3 +250,13 @@ async def test_retry_feedback_omitted_when_only_warnings() -> None:
 
     _, payload_json = stub.calls[0]
     assert "previous_validation_issues" not in json.loads(payload_json)
+
+
+def test_tool_schema_exposes_satellite_source_table() -> None:
+    """WP7 §7.1: the modeler's tool schema derives from the pydantic models, so the new
+    Satellite.source_table field must appear automatically for the LLM to fill."""
+    from vault_agent.agents.dv2_modeler import _tool_schema
+
+    sat_schema = _tool_schema()["properties"]["satellites"]["items"]
+    assert "source_table" in sat_schema["properties"]
+    assert any("source_table" in rule for rule in DV_MODELING_RULES)

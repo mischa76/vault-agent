@@ -16,8 +16,9 @@ attribute overlap across constructs, satellite-internal duplicate attributes
 (``E_EFFSAT_DATE_ORDER`` / ``W_EFFSAT_DATE_ORDER_UNVERIFIED``), hub hash-key/staging
 collisions on a shared source entity (``E_HUB_HK_COLLISION``), duplicate hubs over the same
 business key and source (``E_DUP_HUB``), and optional source-schema grounding. Count the
-``E_``/``W_`` codes in this module for the authoritative gate count — 27 as of WP1
-(backlog-2026-07); the code, not this prose, is the source of truth.
+``E_``/``W_`` codes in this module for the authoritative gate count — 28 as of WP7
+(backlog-2026-07, adding ``W_MASAT_SHARED_GRAIN``); the code, not this prose, is the
+source of truth.
 """
 from typing import Any
 
@@ -190,6 +191,20 @@ class ValidatorAgent(BaseAgent):
                     _issue(
                         "error", "E_MASAT_NO_CDK", sat.name,
                         "multi-active satellite has no child_dependent_key",
+                    )
+                )
+            # W_MASAT_SHARED_GRAIN (WP7 §7.1): multi-active rows usually live in their
+            # own source relation at finer grain than the parent's; without a declared
+            # source_table the satellite silently shares the parent's staging model,
+            # which assumes equal grain. Warning, not error — the shared relation may
+            # genuinely carry the multi-active rows.
+            if sat.sat_type == "multi_active" and not sat.source_table:
+                issues.append(
+                    _issue(
+                        "warning", "W_MASAT_SHARED_GRAIN", sat.name,
+                        "multi-active rows usually come from their own source relation; "
+                        "sharing the parent's staging assumes equal grain — declare "
+                        "source_table or confirm the shared source",
                     )
                 )
             # Heuristic: a *standard* satellite hanging off a link whose payload is a from/to

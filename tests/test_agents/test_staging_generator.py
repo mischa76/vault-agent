@@ -162,6 +162,50 @@ def test_transactional_link_payload_passes_through_unhashed() -> None:
         assert col in txn.source_columns
 
 
+def test_ma_sat_with_source_table_gets_its_own_staging_spec() -> None:
+    """WP7 §7.1: finer-grain multi-active rows staged from their own declared relation —
+    parent HK (hashed from the parent's BK), own hashdiff, cdk + attrs; bound verbatim."""
+    model = _bank_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_address", parent="hub_customer",
+                  attributes=["street", "city"], description="addresses",
+                  sat_type="multi_active", child_dependent_key=["address type"],
+                  source_table="raw_customer_address"),
+    )
+    result = build_staging(model, source_schemas=[])
+    spec = collect_staging_specs(model)["stg_customer_address"]
+
+    assert spec.source_model == "raw_customer_address"
+    assert spec.bound is True
+    names = [name for name, _ in spec.hashed]
+    assert names == ["CUSTOMER_HK", "CUSTOMER_ADDRESS_HASHDIFF"]
+    assert spec.hashed[0][1] == "NATIONAL_CUSTOMER_ID"  # parent BK exists in the relation
+    assert getattr(spec.hashed[1][1], "columns", None) == ["STREET", "CITY"]
+    assert spec.source_columns == [
+        "NATIONAL_CUSTOMER_ID", "STREET", "CITY", "ADDRESS_TYPE",
+        "LOAD_DATETIME", "RECORD_SOURCE",
+    ]
+    # The parent's staging is untouched by the finer-grain payload.
+    parent = collect_staging_specs(model)["stg_customer"]
+    assert "STREET" not in parent.source_columns
+    # Declared binding: rendered verbatim, never flagged.
+    assert "source_model: 'raw_customer_address'" in result.models["stg_customer_address"]
+    assert "stg_customer_address" not in {f.asset for f in result.flags}
+
+
+def test_ma_sat_without_source_table_shares_the_parent_staging() -> None:
+    model = _bank_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_address", parent="hub_customer",
+                  attributes=["street", "city"], description="addresses",
+                  sat_type="multi_active", child_dependent_key=["address type"]),
+    )
+    specs = collect_staging_specs(model)
+
+    assert "stg_customer_address" not in specs
+    assert "STREET" in specs["stg_customer"].source_columns
+
+
 def test_skipped_constructs_get_no_staging() -> None:
     model = DVModel(
         hubs=[Hub(name="hub_customer", business_key="id", source_entity="customer",

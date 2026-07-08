@@ -115,6 +115,14 @@ class Satellite(BaseModel):
     # Child dependent key(s) that distinguish concurrently-active rows of a multi-active
     # satellite (automate_dv.ma_sat's src_cdk). Required to generate a ma_sat.
     child_dependent_key: list[str] = Field(default_factory=list)
+    # The raw relation this satellite's rows come from, when it differs from its parent's
+    # (WP7 §7.1): multi-active payloads usually live in their own finer-grain source
+    # table. When set, the staging generator emits a dedicated stg_<sat base> model bound
+    # to it VERBATIM (declared — never inferred, never flagged) and the satellite reads
+    # that staging model. The parent's business-key column(s) must exist in this relation
+    # — that is what makes the rows attachable to the parent's hash key. Ignored for
+    # effectivity satellites (their date pair lives in the relationship's own relation).
+    source_table: str | None = None
     # Optional: why this satellite's attributes are grouped/split as they are (rate of
     # change, source, classification). Surfaced in the ADR trail, not enforced.
     split_rationale: str | None = None

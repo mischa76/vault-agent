@@ -132,6 +132,26 @@ async def test_multi_active_satellite_generates_with_cdk() -> None:
     assert "automate_dv.ma_sat(" in sql
     assert '{%- set src_cdk = ["ADDRESS_TYPE"] -%}' in sql
     assert '{%- set src_payload = ["ADDRESS_LINE", "CITY"] -%}' in sql
+    # Without a declared source_table the ma_sat shares the parent's staging model.
+    assert '{%- set source_model = "stg_customer" -%}' in sql
+    assert not _unexpected_flags(result)
+
+
+async def test_satellite_with_source_table_reads_its_own_staging_model() -> None:
+    # WP7 §7.1: a satellite whose rows live in their own raw relation reads a dedicated
+    # stg_<sat base> model instead of the parent's staging.
+    model = _model()
+    model.satellites.append(
+        Satellite(name="sat_customer_addresses", parent="hub_customer",
+                  attributes=["address line", "city"], description="addresses",
+                  sat_type="multi_active", child_dependent_key=["address type"],
+                  source_table="raw_customer_address")
+    )
+    result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
+    sql = result.artifacts.dbt_models["sat_customer_addresses"]
+
+    assert '{%- set source_model = "stg_customer_addresses" -%}' in sql
+    assert "stg_customer_addresses" in result.artifacts.staging_models
     assert not _unexpected_flags(result)
 
 

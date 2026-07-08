@@ -93,7 +93,11 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
     Mirrors the raw-vault generator's guards (unknown hubs/parents are skipped there and
     therefore need no staging here); insertion order is deterministic: hubs, links, then
     the satellites' additions to their parents' staging models."""
-    from vault_agent.agents.code_generator import _hub_hashkey, _link_hashkey
+    from vault_agent.agents.code_generator import (
+        _hub_hashkey,
+        _link_hashkey,
+        _sat_staging_model,
+    )
 
     specs: dict[str, StagingSpec] = {}
     hub_by_name = {hub.name: hub for hub in model.hubs}
@@ -133,10 +137,37 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
                 spec.add_source_column(_to_column(link.event_timestamp))
 
     link_names = {link.name for link in generated_links}
+    links_by_name = {link.name: link for link in generated_links}
     for sat in model.satellites:
         if sat.parent not in hub_by_name and sat.parent not in link_names:
             continue  # dangling parent — skipped/flagged by the raw-vault generator
-        spec = spec_for(sat.parent)
+        if sat.source_table and sat.sat_type != "effectivity":
+            # WP7 §7.1: the satellite's rows live in their own (usually finer-grain) raw
+            # relation — a dedicated staging model, bound VERBATIM to the declared
+            # source_table (never inferred, never flagged). It still computes the
+            # parent's hash key from the parent's business key(s): those columns existing
+            # in the finer-grain relation is what makes the rows attachable.
+            name = _sat_staging_model(sat)
+            spec = specs.setdefault(
+                name, StagingSpec(name=name, base=_base_name(sat.name))
+            )
+            spec.source_model = sat.source_table
+            spec.bound = True
+            if sat.parent in hub_by_name:
+                parent_hub = hub_by_name[sat.parent]
+                bk_col = _to_column(parent_hub.business_key)
+                spec.add_hashed(_hub_hashkey(parent_hub), bk_col)
+                spec.add_source_column(bk_col)
+            else:
+                parent_link = links_by_name[sat.parent]
+                bk_cols = []
+                for hub_name in parent_link.connected_hubs:
+                    bk_col = _to_column(hub_by_name[hub_name].business_key)
+                    bk_cols.append(bk_col)
+                    spec.add_source_column(bk_col)
+                spec.add_hashed(_link_hashkey(parent_link), bk_cols)
+        else:
+            spec = spec_for(sat.parent)
         attr_cols = [_to_column(attr) for attr in sat.attributes]
         for col in attr_cols:
             spec.add_source_column(col)
@@ -168,6 +199,10 @@ def bind_sources(
     Without a match the binding is inferred as ``raw_<base>`` and flagged for review."""
     flags: list[PipelineFlag] = []
     for spec in specs.values():
+        if spec.bound:
+            # Declared on the construct itself (Satellite.source_table, WP7 §7.1):
+            # bound verbatim at collection time — no inference, no flag.
+            continue
         inferred = RAW_SOURCE_PREFIX + spec.base
         candidates = {normalize_identifier(spec.base), normalize_identifier(inferred)}
         for table in source_schemas:

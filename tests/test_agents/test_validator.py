@@ -154,6 +154,38 @@ async def test_multi_active_satellite_without_cdk_fails() -> None:
     assert "E_MASAT_NO_CDK" in _codes(result.validation_report.issues)
 
 
+async def test_multi_active_satellite_without_source_table_warns_shared_grain() -> None:
+    # WP7 §7.1: multi-active rows usually live in their own finer-grain relation;
+    # sharing the parent's staging is only a warning — the model still passes.
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_phones", parent="hub_customer",
+                  attributes=["phone"], description="phone numbers",
+                  sat_type="multi_active", child_dependent_key=["phone type"])
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is True
+    issues = [i for i in result.validation_report.issues
+              if i.code == "W_MASAT_SHARED_GRAIN"]
+    assert len(issues) == 1
+    assert issues[0].severity == "warning"
+    assert issues[0].construct == "sat_customer_phones"
+
+
+async def test_multi_active_satellite_with_source_table_does_not_warn() -> None:
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_phones", parent="hub_customer",
+                  attributes=["phone"], description="phone numbers",
+                  sat_type="multi_active", child_dependent_key=["phone type"],
+                  source_table="raw_customer_phone")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert "W_MASAT_SHARED_GRAIN" not in _codes(result.validation_report.issues)
+
+
 async def test_effectivity_satellite_on_hub_fails() -> None:
     model = _valid_model()
     model.satellites.append(
