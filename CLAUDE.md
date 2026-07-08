@@ -366,15 +366,18 @@ matches by normalised name gets seeds.<project>.<source>.+column_types per the f
 mapping (string→varchar, integer→bigint, number→numeric, boolean→boolean,
 string+format=date→date, date-time→timestamp via the field's semantics, unions take the
 single non-null member, unknown/ambiguous OMITTED — left to dbt inference, never
-guessed); LOAD_DATETIME/RECORD_SOURCE always timestamp/varchar. HANDOVER: the Postgres
-hardness re-verification is still required before release — fresh output (fixed bank
-DVModel → CodeGeneratorAgent → cli.write_outputs, zero hand-written SQL) against a real
-PostgreSQL with only the README-documented user inputs (seeds + profiles.yml): `dbt deps`
-→ `dbt seed` → `dbt build --full-refresh` then an incremental re-run (idempotent) and the
-two-phase snapshot load closing ACC-503's superseded ownership to 2026-04-01, per the
-2026-07-07 paragraph above; additionally worth covering: a grounded run with declared
-schema/database (source()-bound staging) and a ma_sat with source_table. Record the
-result here. 239 tests green, ruff clean, mypy strict clean.
+guessed); LOAD_DATETIME/RECORD_SOURCE always timestamp/varchar. The Postgres hardness
+re-verification REQUIRED by the original handover was performed 2026-07-08 in a clean
+environment, all three scenarios green: (A) ungrounded fresh output incl. a ma_sat with
+source_table — `dbt deps` → `dbt seed` → `dbt build --full-refresh` PASS=15, incremental
+re-run idempotent, sat_customer_addresses populated on its own stg_customer_addresses
+with the parent CUSTOMER_HK joining hub_customer for every row (the §7.1 correctness
+property); (B) grounded run with declared schema (raw_core) — staging bound via the
+source() mapping form, `dbt build` green with NO seeds (PASS=9, raw tables materialised
+directly in raw_core), sources.yml carried the real schema; (B2) two-phase snapshot load
+against the raw_core tables closed ACC-503's superseded ownership to 2026-04-01 with the
+successor open — identical behaviour to the seed-based path. 239 tests green, ruff clean,
+mypy strict clean.
 
 WP5 hygiene batch landed (as of 2026-07-08,
 docs/architecture/backlog-2026-07/wp5-hygiene-spec.md), six cleanups. (§5.1) The

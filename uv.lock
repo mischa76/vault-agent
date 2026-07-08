@@ -2491,7 +2491,6 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
-    { name = "jinja2" },
     { name = "langchain-anthropic" },
     { name = "langgraph" },
     { name = "langgraph-checkpoint-sqlite" },
@@ -2529,7 +2528,6 @@ requires-dist = [
     { name = "dbt-core", marker = "extra == 'demo'", specifier = "~=1.9.0" },
     { name = "dbt-postgres", marker = "extra == 'demo'", specifier = "~=1.9.0" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.29" },
-    { name = "jinja2", specifier = ">=3.1" },
     { name = "langchain-anthropic", specifier = ">=0.2" },
     { name = "langgraph", specifier = ">=0.2" },
     { name = "langgraph-checkpoint-sqlite", specifier = ">=3.1.0" },
