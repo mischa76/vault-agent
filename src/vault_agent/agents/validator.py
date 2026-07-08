@@ -9,6 +9,15 @@ modeler and generator already enforce, giving defense in depth across agents.
 Results land in ``VaultAgentState.validation_report`` as a list of typed
 :class:`~vault_agent.state.ValidationIssue` records (``severity`` / ``code`` /
 ``construct`` / ``message``); ``passed`` is true when there are no error-severity issues.
+
+The gates cover structural invariants (names, keys, parents, required columns), grain and
+attribute overlap across constructs, satellite-internal duplicate attributes
+(``E_SAT_DUP_ATTR``), effectivity-satellite date count and (start, end) order
+(``E_EFFSAT_DATE_ORDER`` / ``W_EFFSAT_DATE_ORDER_UNVERIFIED``), hub hash-key/staging
+collisions on a shared source entity (``E_HUB_HK_COLLISION``), duplicate hubs over the same
+business key and source (``E_DUP_HUB``), and optional source-schema grounding. Count the
+``E_``/``W_`` codes in this module for the authoritative gate count — 27 as of WP1
+(backlog-2026-07); the code, not this prose, is the source of truth.
 """
 from typing import Any
 
@@ -20,8 +29,10 @@ from vault_agent.rules.dv2_rules import (
     REQUIRED_SAT_COLUMNS,
     SAT_WIDE_ATTRIBUTE_THRESHOLD,
     effectivity_date_pair,
+    normalize_identifier,
 )
 from vault_agent.state import (
+    Hub,
     IssueSeverity,
     ValidationIssue,
     ValidationReport,
@@ -153,6 +164,25 @@ class ValidatorAgent(BaseAgent):
                         f"change, source, or data classification",
                     )
                 )
+            # E_SAT_DUP_ATTR: two attributes (or an attribute and a child-dependent-key
+            # label) that normalise to the same identifier become a duplicate staging/payload
+            # column — the generated SQL cannot build. Attributes and child_dependent_key are
+            # one namespace: both end up as columns of the same satellite. Covers exact
+            # duplicates and lossy-normalisation ones ("customer-id" vs "customer id").
+            by_column: dict[str, list[str]] = {}
+            for label in sat.attributes + sat.child_dependent_key:
+                by_column.setdefault(normalize_identifier(label), []).append(label)
+            for column, labels in sorted(by_column.items()):
+                if len(labels) > 1:
+                    joined = ", ".join(repr(label) for label in labels)
+                    issues.append(
+                        _issue(
+                            "error", "E_SAT_DUP_ATTR", sat.name,
+                            f"attributes {joined} all map to the same column {column}; "
+                            f"the generated satellite would carry a duplicate payload "
+                            f"column and cannot build",
+                        )
+                    )
             # Mirror the generator gate: a multi-active satellite needs a child dependent
             # key to distinguish concurrently-active rows (automate_dv.ma_sat's src_cdk).
             if sat.sat_type == "multi_active" and not sat.child_dependent_key:
@@ -191,6 +221,36 @@ class ValidatorAgent(BaseAgent):
                             f"(start, end) in order; has {len(sat.attributes)}",
                         )
                     )
+                else:
+                    # The generator takes attributes[0] as the start and attributes[1] as
+                    # the end date positionally — a reversed pair renders a silently
+                    # inverted effectivity satellite. effectivity_date_pair() is the single
+                    # source of truth for from/to token classification: a recognisably
+                    # reversed pair is an error; unrecognisable tokens only warn (a
+                    # heuristic non-match must never hard-fail a legitimate model, same
+                    # reasoning as W_SAT_MAYBE_EFFECTIVITY).
+                    start_attr, end_attr = sat.attributes[0], sat.attributes[1]
+                    date_pair = effectivity_date_pair(sat.attributes)
+                    if date_pair == (end_attr, start_attr):
+                        issues.append(
+                            _issue(
+                                "error", "E_EFFSAT_DATE_ORDER", sat.name,
+                                f"effectivity date attributes are reversed: "
+                                f"{start_attr!r} is the end date and {end_attr!r} the "
+                                f"start date; required order is (start, end), i.e. "
+                                f"({end_attr!r}, {start_attr!r})",
+                            )
+                        )
+                    elif date_pair is None:
+                        issues.append(
+                            _issue(
+                                "warning", "W_EFFSAT_DATE_ORDER_UNVERIFIED", sat.name,
+                                f"cannot verify that the effectivity date attributes "
+                                f"({start_attr!r}, {end_attr!r}) are in (start, end) "
+                                f"order; confirm {start_attr!r} is the start and "
+                                f"{end_attr!r} the end of the active period",
+                            )
+                        )
                 if sat.parent in link_names:
                     if not links_by_name[sat.parent].driving_key:
                         issues.append(
@@ -280,6 +340,57 @@ class ValidatorAgent(BaseAgent):
                         f"hubs {joined} share business key {business_key!r} across different "
                         f"source entities {sorted(sources)}; confirm whether a collision "
                         f"code is needed",
+                    )
+                )
+
+        # E_HUB_HK_COLLISION: the hub hash key and staging model derive from source_entity
+        # (normalize(source_entity) + "_HK"), so hubs sharing a source entity but keyed
+        # differently collide on the same X_HK column and staging model — the staging
+        # generator's per-name dedup then silently binds one hub's HK to the other's
+        # business key. Groups whose members all share one normalised business key are the
+        # same-concept case and belong to E_DUP_HUB instead (gate 3/4 interplay).
+        hubs_by_source: dict[str, list[Hub]] = {}
+        for hub in model.hubs:
+            hubs_by_source.setdefault(normalize_identifier(hub.source_entity), []).append(hub)
+        for source_norm, hubs in sorted(hubs_by_source.items()):
+            if len(hubs) < 2:
+                continue
+            bks = {normalize_identifier(hub.business_key) for hub in hubs}
+            if len(bks) > 1:
+                joined = ", ".join(sorted(hub.name for hub in hubs))
+                issues.append(
+                    _issue(
+                        "error", "E_HUB_HK_COLLISION", joined,
+                        f"hubs {joined} share source entity "
+                        f"{hubs[0].source_entity!r} but have different business keys; "
+                        f"they would derive the same {source_norm}_HK hash-key column "
+                        f"and staging model, silently binding one hub's hash key to "
+                        f"the other's business key",
+                    )
+                )
+
+        # E_DUP_HUB: the same business key on the same source entity modelled as >= 2 hubs
+        # is the same business concept twice ("one hub per business key",
+        # DV_MODELING_RULES[0]). Complements W_BK_COLLISION_RISK, which covers the same BK
+        # across *different* source entities. Empty BKs are already E_HUB_NO_BK.
+        hubs_by_concept: dict[tuple[str, str], list[str]] = {}
+        for hub in model.hubs:
+            if not hub.business_key.strip():
+                continue
+            concept = (
+                normalize_identifier(hub.business_key),
+                normalize_identifier(hub.source_entity),
+            )
+            hubs_by_concept.setdefault(concept, []).append(hub.name)
+        for (bk_norm, _source_norm), names in sorted(hubs_by_concept.items()):
+            if len(names) > 1:
+                joined = ", ".join(sorted(names))
+                issues.append(
+                    _issue(
+                        "error", "E_DUP_HUB", joined,
+                        f"hubs {joined} model the same business concept (business key "
+                        f"{bk_norm} on the same source entity) more than once; create "
+                        f"exactly one hub per business key",
                     )
                 )
 

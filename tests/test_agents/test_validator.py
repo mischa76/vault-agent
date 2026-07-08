@@ -384,3 +384,150 @@ async def test_attribute_absent_from_source_is_warned() -> None:
         i.construct == "sat_customer_details" and "'name'" in i.message
         for i in attr_warnings
     )
+
+
+async def test_effectivity_reversed_date_order_fails() -> None:
+    # The generator reads attributes[0] as start and attributes[1] as end; a recognisably
+    # reversed pair would render a silently inverted effectivity satellite.
+    model = _effectivity_model()
+    model.satellites[-1].attributes = ["effective to", "effective from"]
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is False
+    reversed_issues = [
+        i for i in result.validation_report.issues if i.code == "E_EFFSAT_DATE_ORDER"
+    ]
+    assert len(reversed_issues) == 1
+    assert reversed_issues[0].construct == "sat_ownership_eff"
+    assert "'effective to'" in reversed_issues[0].message
+    assert "'effective from'" in reversed_issues[0].message
+    assert "(start, end)" in reversed_issues[0].message
+
+
+async def test_effectivity_unverifiable_date_order_warns() -> None:
+    # Tokens the from/to heuristic cannot classify: warn, never hard-fail (same reasoning
+    # as W_SAT_MAYBE_EFFECTIVITY — a heuristic non-match must not block a legitimate model).
+    model = _effectivity_model()
+    model.satellites[-1].attributes = ["first date", "second date"]
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is True
+    warnings = [
+        i for i in result.validation_report.issues
+        if i.code == "W_EFFSAT_DATE_ORDER_UNVERIFIED"
+    ]
+    assert len(warnings) == 1
+    assert warnings[0].severity == "warning"
+    assert warnings[0].construct == "sat_ownership_eff"
+
+
+async def test_effectivity_correct_date_order_emits_no_order_issue() -> None:
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=_effectivity_model()))
+
+    codes = _codes(result.validation_report.issues)
+    assert result.validation_report.passed is True
+    assert "E_EFFSAT_DATE_ORDER" not in codes
+    assert "W_EFFSAT_DATE_ORDER_UNVERIFIED" not in codes
+
+
+async def test_satellite_duplicate_attribute_fails() -> None:
+    # Lossy normalisation: "customer-id" and "customer id" both become CUSTOMER_ID — the
+    # generated satellite would carry a duplicate payload column that Postgres rejects.
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_ids", parent="hub_customer",
+                  attributes=["customer-id", "customer id"], description="colliding labels")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is False
+    dups = [i for i in result.validation_report.issues if i.code == "E_SAT_DUP_ATTR"]
+    assert len(dups) == 1
+    assert dups[0].construct == "sat_customer_ids"
+    assert "'customer-id'" in dups[0].message
+    assert "'customer id'" in dups[0].message
+    assert "CUSTOMER_ID" in dups[0].message
+
+
+async def test_satellite_attribute_colliding_with_cdk_fails() -> None:
+    # attributes + child_dependent_key are one column namespace on the satellite.
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_phones", parent="hub_customer",
+                  attributes=["phone type", "number"], description="phones",
+                  sat_type="multi_active", child_dependent_key=["phone-type"])
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is False
+    dups = [i for i in result.validation_report.issues if i.code == "E_SAT_DUP_ATTR"]
+    assert len(dups) == 1
+    assert dups[0].construct == "sat_customer_phones"
+    assert "PHONE_TYPE" in dups[0].message
+
+
+async def test_hubs_sharing_source_entity_with_different_bks_fail_hk_collision() -> None:
+    # Both hubs derive PARTY_HK and stg_party from source_entity="party"; the staging
+    # dedup would silently bind the second hub's hash key to the first hub's business key.
+    model = _valid_model()
+    model.hubs.extend([
+        Hub(name="hub_person", business_key="person id",
+            source_entity="party", description="a person"),
+        Hub(name="hub_organisation", business_key="organisation id",
+            source_entity="party", description="an organisation"),
+    ])
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is False
+    collisions = [
+        i for i in result.validation_report.issues if i.code == "E_HUB_HK_COLLISION"
+    ]
+    assert len(collisions) == 1
+    assert collisions[0].construct == "hub_organisation, hub_person"  # sorted
+    assert "PARTY_HK" in collisions[0].message
+
+
+async def test_identical_hubs_fail_dup_hub() -> None:
+    # Same business key AND same source entity: the same business concept modelled twice
+    # ("one hub per business key"). Complements W_BK_COLLISION_RISK (different sources).
+    model = _valid_model()
+    model.hubs.append(
+        Hub(name="hub_client", business_key="national customer ID",
+            source_entity="customer", description="hub_customer modelled again")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    assert result.validation_report.passed is False
+    dups = [i for i in result.validation_report.issues if i.code == "E_DUP_HUB"]
+    assert len(dups) == 1
+    assert dups[0].construct == "hub_client, hub_customer"  # sorted
+    # Same source entity, so the cross-source collision-code warning must NOT fire.
+    assert "W_BK_COLLISION_RISK" not in _codes(result.validation_report.issues)
+
+
+async def test_identical_hubs_trip_only_dup_hub_not_hk_collision() -> None:
+    # Gate 3/4 interplay: a same-BK group is excluded from E_HUB_HK_COLLISION by
+    # construction — one pair of identical hubs yields exactly one E_DUP_HUB.
+    model = _valid_model()
+    model.hubs.append(
+        Hub(name="hub_client", business_key="national customer ID",
+            source_entity="customer", description="hub_customer modelled again")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    codes = _codes(result.validation_report.issues)
+    assert "E_DUP_HUB" in codes
+    assert "E_HUB_HK_COLLISION" not in codes
+
+
+async def test_happy_path_trips_none_of_the_wp1_gates() -> None:
+    # No-false-positive guard: the valid model and the valid effectivity setup produce
+    # none of the four new codes.
+    wp1_codes = {
+        "E_EFFSAT_DATE_ORDER", "W_EFFSAT_DATE_ORDER_UNVERIFIED",
+        "E_SAT_DUP_ATTR", "E_HUB_HK_COLLISION", "E_DUP_HUB",
+    }
+    for model in (_valid_model(), _effectivity_model()):
+        result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+        assert result.validation_report.passed is True
+        assert not _codes(result.validation_report.issues) & wp1_codes

@@ -300,3 +300,20 @@ async def test_no_hubs_short_circuits() -> None:
 
     assert result.artifacts.dbt_models == {}
     assert any("no hubs" in e.message for e in result.flags)
+
+
+async def test_effectivity_satellite_wrong_date_count_is_flagged() -> None:
+    # Aligned with the validator's E_EFFSAT_DATES gate (exactly two date attributes):
+    # one attribute cannot provide (start, end); three would silently drop payload if the
+    # generator kept using only the first two. Both are flagged and skipped.
+    for attributes in (["effective from"], ["effective from", "effective to", "note"]):
+        model = _eff_model(["hub_account", "hub_customer"], ["hub_customer"])
+        model.satellites[-1].attributes = attributes
+        result = await CodeGeneratorAgent().run(VaultAgentState(dv_model=model))
+
+        assert "sat_ownership_eff" not in result.artifacts.dbt_models
+        assert any(
+            f.kind == FlagKind.GENERATION_GAP and f.asset == "sat_ownership_eff"
+            and "start and end date" in f.message
+            for f in result.flags
+        )

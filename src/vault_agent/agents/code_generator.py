@@ -457,7 +457,9 @@ class CodeGeneratorAgent(BaseAgent):
                 asset=sat.name,
             )
             return None
-        if len(sat.attributes) < 2:
+        # Aligned with the validator's E_EFFSAT_DATES gate: exactly two date attributes,
+        # (start, end). Accepting >= 2 and silently using the first two would drop payload.
+        if len(sat.attributes) != 2:
             state.flag(
                 "code_generator",
                 f"effectivity satellite {sat.name!r} needs start and end date "

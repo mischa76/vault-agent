@@ -66,8 +66,9 @@ def effectivity_date_pair(attributes: list[str]) -> tuple[str, str] | None:
 
     A pair is exactly one "from"-token match and one "to"-token match across ``attributes``
     (see :data:`EFFECTIVITY_FROM_TOKENS` / :data:`EFFECTIVITY_TO_TOKENS`); anything else
-    (zero, or ambiguous multiples) returns ``None``. Heuristic by design — used only to raise
-    a warning, never to fail a model."""
+    (zero, or ambiguous multiples) returns ``None``. Heuristic by design: a *non-match* only
+    ever warns (W_SAT_MAYBE_EFFECTIVITY, W_EFFSAT_DATE_ORDER_UNVERIFIED) — but a positive,
+    recognisably *reversed* match is safe to fail on (E_EFFSAT_DATE_ORDER)."""
     from_matches = [a for a in attributes if _matches_tokens(a, EFFECTIVITY_FROM_TOKENS)]
     to_matches = [a for a in attributes if _matches_tokens(a, EFFECTIVITY_TO_TOKENS)]
     if len(from_matches) == 1 and len(to_matches) == 1:
@@ -92,6 +93,8 @@ DV_MODELING_RULES = [
     "sit on the link; descriptive attributes that change over time go in a satellite on the link",
     "When an effectivity satellite tracks a relationship's active period, declare the link's "
     "driving key — the hub reference(s) that stay fixed while the others rotate over time",
+    "An effectivity satellite carries exactly two date attributes, in (start, end) order: "
+    "the active-from date first, the active-to date second",
     "When the same business-key value from different sources can mean different objects, add a "
     "collision code (source differentiation) rather than silently merging them into one hub",
 ]

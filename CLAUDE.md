@@ -69,8 +69,8 @@ without an API key (LLM calls are injectable/stubbed); ruff + mypy strict clean.
 
 DV2.0 modeling rules are now encoded (as of 2026-06-13) per the Linstedt/Olschimke
 canon (dv2-modeling-rules-spec.md), split into [ENFORCE] rules (validator gates) and
-[GUIDE] rules (modeler prompt). The validator has independent gates with E_/W_ codes (10 when
-this entry was written; grown since — count the codes in validator.py, don't trust prose)
+[GUIDE] rules (modeler prompt). The validator has independent gates with E_/W_ codes (27 as of
+2026-07-08 / WP1; may grow — count the codes in validator.py, don't trust prose)
 enforcing driving keys, grain, attribute overlap, wide-satellite splits, and BK
 collision; rules/dv2_rules.py holds the UoW/driving-key/splitting/collision guidance,
 SATELLITE_SPLIT_AXES, and SAT_WIDE_ATTRIBUTE_THRESHOLD. State carries Link.driving_key
@@ -267,6 +267,29 @@ are present), and the ADR lists exactly those as "N construct(s) could not be ge
 are flagged for human review: …" — generated non-standard types get no caveat. The References
 section now counts raw-vault and staging models separately. 169 tests green, ruff clean,
 mypy strict clean.
+
+Four new validator gates landed (as of 2026-07-08, WP1 of backlog-2026-07,
+docs/architecture/backlog-2026-07/wp1-validator-gates-spec.md), all deterministic and
+reusing the existing rules helpers (effectivity_date_pair, normalize_identifier — no
+re-implemented token/normalisation logic). (1) E_EFFSAT_DATE_ORDER: a 2-attribute
+effectivity satellite whose date pair is recognisably reversed (the generator reads
+attributes[0]/[1] positionally as start/end) is an error; unclassifiable tokens only warn
+(W_EFFSAT_DATE_ORDER_UNVERIFIED — a heuristic non-match never hard-fails, same reasoning
+as W_SAT_MAYBE_EFFECTIVITY). (2) E_SAT_DUP_ATTR: two satellite attributes (or an attribute
+and a child_dependent_key label — one column namespace) normalising to the same identifier
+would emit a duplicate payload column Postgres rejects; blocking before generation, the
+generator's _collision_warnings stays as defense in depth. (3) E_HUB_HK_COLLISION: hubs
+sharing a normalised source_entity with differing business keys would derive the same
+X_HK column and staging model (the staging dedup then silently binds one hub's HK to the
+other's BK). (4) E_DUP_HUB: same BK and same source entity on >= 2 hubs is the same concept
+modelled twice (complements W_BK_COLLISION_RISK, which covers differing sources); identical
+hubs trip only E_DUP_HUB, never gate 3 (same-BK groups are excluded by construction —
+pinned by a test). Consistency fix: the code generator now rejects effectivity satellites
+with != 2 attributes (was >= 2, silently dropping payload beyond the first two), flagged as
+FlagKind.GENERATION_GAP; DV_MODELING_RULES gains a [GUIDE] line steering the modeler to
+exactly two date attributes in (start, end) order. Validator code count is 27 (docstring
+updated; the code stays the source of truth). 179 tests green, ruff clean, mypy strict
+clean; bank demo guardrails untouched.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
