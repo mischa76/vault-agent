@@ -69,8 +69,8 @@ without an API key (LLM calls are injectable/stubbed); ruff + mypy strict clean.
 
 DV2.0 modeling rules are now encoded (as of 2026-06-13) per the Linstedt/Olschimke
 canon (dv2-modeling-rules-spec.md), split into [ENFORCE] rules (validator gates) and
-[GUIDE] rules (modeler prompt). The validator has independent gates with E_/W_ codes (27 as of
-2026-07-08 / WP1; may grow — count the codes in validator.py, don't trust prose)
+[GUIDE] rules (modeler prompt). The validator has independent gates with E_/W_ codes (28 as of
+2026-07-08 / WP7; may grow — count the codes in validator.py, don't trust prose)
 enforcing driving keys, grain, attribute overlap, wide-satellite splits, and BK
 collision; rules/dv2_rules.py holds the UoW/driving-key/splitting/collision guidance,
 SATELLITE_SPLIT_AXES, and SAT_WIDE_ATTRIBUTE_THRESHOLD. State carries Link.driving_key
@@ -288,8 +288,8 @@ pinned by a test). Consistency fix: the code generator now rejects effectivity s
 with != 2 attributes (was >= 2, silently dropping payload beyond the first two), flagged as
 FlagKind.GENERATION_GAP; DV_MODELING_RULES gains a [GUIDE] line steering the modeler to
 exactly two date attributes in (start, end) order. Validator code count is 27 (docstring
-updated; the code stays the source of truth). 179 tests green, ruff clean, mypy strict
-clean; bank demo guardrails untouched.
+updated; the code stays the source of truth; 28 since WP7's W_MASAT_SHARED_GRAIN). 179
+tests green, ruff clean, mypy strict clean; bank demo guardrails untouched.
 
 WP3 LLM cost & robustness landed (as of 2026-07-08,
 docs/architecture/backlog-2026-07/wp3-llm-cost-spec.md), three token-economy fixes.
@@ -333,6 +333,46 @@ LANGSMITH_API_KEY plus the `eval` extra it creates one dataset per case and logs
 with scores as feedback; without either it is a no-op, and the default test suite needs
 neither a key nor the langsmith package. mypy now also checks eval/ ([tool.mypy] files).
 210 tests green, ruff clean.
+
+WP7 staging refinements landed (as of 2026-07-08,
+docs/architecture/backlog-2026-07/wp7-staging-refinements-spec.md), closing the staging
+generator's three recorded deferrals, all deterministic. Guard first: an ungrounded run
+over the bank Durchstich model is pinned byte-identical to the pre-WP7 output
+(tests/fixtures/staging_ungrounded_baseline/ + test_staging_regression.py, written before
+the changes) — WP7 only alters grounded / source_table / contract-matched output. (§7.1
+ma_sat grain) Satellite gains source_table (the raw relation its rows come from when it
+differs from the parent's); a satellite declaring it gets its own staging model
+(stg_<sat base>: parent HK hashed from the parent's BK — the BK column must exist in the
+finer-grain relation — plus own hashdiff, cdk, attrs), bound VERBATIM (declared, never
+flagged), and _render_sat/_render_ma_sat read it as source_model; effectivity satellites
+keep the parent link's staging. New validator warning W_MASAT_SHARED_GRAIN (28 E_/W_
+codes now) when a multi_active satellite has no source_table; matching [GUIDE] line in
+DV_MODELING_RULES; the modeler tool schema picks the field up from the pydantic model
+(pinned by test). (§7.2 source() binding) SourceTable gains schema_name (input alias
+`schema`) and database, accepted by the loader; on grounded runs, staging specs bound to
+a declared table that carries a physical location render AutomateDV's source() mapping
+form (source_model: {raw: '<table>'}, verified against the 0.11.4 stage docs) and
+sources.yml becomes a real source definition — one block per distinct (database, schema),
+deterministically named raw, raw_2, … in staging-spec insertion order. Declared tables
+WITHOUT schema/database deliberately keep bare-name references (a dbt source without a
+schema property defaults its schema to the source name, which would break the verified
+bare-name/seed pattern); they are documented in a sources.yml trailing comment, and
+inferred bindings keep their SOURCE_BINDING flag. (§7.3 seed types) build_staging takes
+state.artifacts.contracts (drafted upstream — graph order data_contract before
+code_generator makes this possible; do not reorder); a staging source whose contract
+matches by normalised name gets seeds.<project>.<source>.+column_types per the fixed
+mapping (string→varchar, integer→bigint, number→numeric, boolean→boolean,
+string+format=date→date, date-time→timestamp via the field's semantics, unions take the
+single non-null member, unknown/ambiguous OMITTED — left to dbt inference, never
+guessed); LOAD_DATETIME/RECORD_SOURCE always timestamp/varchar. HANDOVER: the Postgres
+hardness re-verification is still required before release — fresh output (fixed bank
+DVModel → CodeGeneratorAgent → cli.write_outputs, zero hand-written SQL) against a real
+PostgreSQL with only the README-documented user inputs (seeds + profiles.yml): `dbt deps`
+→ `dbt seed` → `dbt build --full-refresh` then an incremental re-run (idempotent) and the
+two-phase snapshot load closing ACC-503's superseded ownership to 2026-04-01, per the
+2026-07-07 paragraph above; additionally worth covering: a grounded run with declared
+schema/database (source()-bound staging) and a ma_sat with source_table. Record the
+result here. 239 tests green, ruff clean, mypy strict clean.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
