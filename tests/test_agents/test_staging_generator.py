@@ -118,6 +118,10 @@ def test_unmatched_binding_is_inferred_and_flagged() -> None:
 
 
 def test_declared_source_table_binds_verbatim_without_a_flag() -> None:
+    # No schema/database declared -> bare relation names, exactly as before WP7 §7.2
+    # (a dbt source without a schema property would default its schema to the source
+    # NAME, silently breaking the verified bare-name/seed pattern — so no location
+    # declared means no source() binding).
     schemas = [
         SourceTable(table="raw_customer", columns=["NATIONAL_CUSTOMER_ID"]),
         SourceTable(table="ACCOUNT", columns=["ACCOUNT_NUMBER"]),  # matches by base name
@@ -128,6 +132,49 @@ def test_declared_source_table_binds_verbatim_without_a_flag() -> None:
     assert "source_model: 'ACCOUNT'" in result.models["stg_account"]
     # Only the link staging is unmatched and flagged.
     assert {f.asset for f in result.flags} == {"stg_account_customer"}
+
+
+def test_grounded_run_with_locations_binds_staging_through_source_refs() -> None:
+    """WP7 §7.2: declared schema/database -> source() mapping form + real sources.yml."""
+    schemas = [
+        SourceTable(table="raw_customer", columns=["NATIONAL_CUSTOMER_ID"],
+                    schema_name="core", database="bank"),
+        SourceTable(table="raw_account", columns=["ACCOUNT_NUMBER"],
+                    schema_name="core", database="bank"),
+    ]
+    result = build_staging(_bank_model(), source_schemas=schemas)
+
+    sql = result.models["stg_customer"]
+    assert "source_model:\n  raw: 'raw_customer'" in sql
+    assert "source_model: 'raw_customer'" not in sql
+    sources = result.scaffolding["models/staging/sources.yml"]
+    assert "  - name: raw\n    database: bank\n    schema: core\n    tables:" in sources
+    assert "      - name: raw_customer" in sources
+    assert "      - name: raw_account" in sources
+    # The unmatched link staging stays a bare-name reference, documented + flagged.
+    assert "source_model: 'raw_account_customer'" in result.models["stg_account_customer"]
+    assert "#   - raw_account_customer (feeds stg_account_customer)" in sources
+    assert {f.asset for f in result.flags} == {"stg_account_customer"}
+    # Metadata mirrors the mapping form so downstream consumers see the real binding.
+    assert result.metadata["stg_customer"]["source_model"] == {"raw": "raw_customer"}
+
+
+def test_mixed_schemas_get_one_source_block_each_deterministically() -> None:
+    """WP7 §7.2: one block per distinct (database, schema), named raw, raw_2, ... in
+    staging-spec insertion order (hubs first: customer before account here)."""
+    schemas = [
+        SourceTable(table="raw_account", columns=["ACCOUNT_NUMBER"], schema_name="ops"),
+        SourceTable(table="raw_customer", columns=["NATIONAL_CUSTOMER_ID"],
+                    schema_name="core"),
+    ]
+    result = build_staging(_bank_model(), source_schemas=schemas)
+
+    # stg_customer is collected first -> its schema 'core' claims the name 'raw'.
+    assert "source_model:\n  raw: 'raw_customer'" in result.models["stg_customer"]
+    assert "source_model:\n  raw_2: 'raw_account'" in result.models["stg_account"]
+    sources = result.scaffolding["models/staging/sources.yml"]
+    assert sources.index("- name: raw\n") < sources.index("- name: raw_2\n")
+    assert "    schema: core" in sources and "    schema: ops" in sources
 
 
 def test_scaffolding_makes_a_runnable_project() -> None:

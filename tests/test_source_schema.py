@@ -108,3 +108,37 @@ def test_non_mapping_entry_raises_value_error(tmp_path: Path) -> None:
     path.write_text("source_schemas:\n  - just_a_string\n", encoding="utf-8")
     with pytest.raises(ValueError, match="must be a mapping"):
         load_source_schemas(path)
+
+
+def test_loads_optional_schema_and_database_keys(tmp_path: Path) -> None:
+    # WP7 §7.2: `schema:` (aliased to schema_name) and `database:` locate the table
+    # physically so grounded runs can bind staging through real dbt source() refs.
+    path = tmp_path / "schema.yml"
+    path.write_text(
+        """\
+source_schemas:
+  - table: raw_customer
+    columns: [national_customer_id]
+    schema: core
+    database: bank
+  - table: raw_account
+    columns: [account_number]
+""",
+        encoding="utf-8",
+    )
+    loaded = load_source_schemas(path)
+    assert loaded[0].schema_name == "core"
+    assert loaded[0].database == "bank"
+    # Both remain optional; absent keys stay None (bare-name binding, as before).
+    assert loaded[1].schema_name is None
+    assert loaded[1].database is None
+
+
+def test_invalid_schema_key_type_is_attributable(tmp_path: Path) -> None:
+    path = tmp_path / "schema.yml"
+    path.write_text(
+        "source_schemas:\n  - table: customer\n    schema: [not, a, string]\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(ValueError, match=r"entry #1 is invalid"):
+        load_source_schemas(path)

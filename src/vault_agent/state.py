@@ -2,7 +2,7 @@
 import warnings
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 FlagSeverity = Literal["error", "advisory"]
 
@@ -66,9 +66,20 @@ class SourceTable(BaseModel):
 
     Optional input: when ``VaultAgentState.source_schemas`` is non-empty the validator
     flags business keys / attributes that match no declared column, and the modeler and
-    business-key prompts are steered toward these real columns."""
+    business-key prompts are steered toward these real columns.
+
+    ``schema_name`` / ``database`` (WP7 §7.2) locate the table physically; when
+    declared, grounded runs bind the matching staging model through a real dbt
+    ``source()`` mapping instead of a bare relation name. ``schema_name`` is aliased to
+    ``schema`` in input files (the natural key there) because ``schema`` collides with a
+    ``BaseModel`` attribute."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
     table: str  # the source table / entity name
     columns: list[str] = Field(default_factory=list)  # its column names, as in the source
+    schema_name: str | None = Field(default=None, alias="schema")
+    database: str | None = None
 
 
 class Hub(BaseModel):

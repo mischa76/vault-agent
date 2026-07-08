@@ -52,6 +52,11 @@ class StagingSpec:
     source_columns: list[str] = field(default_factory=list)  # expected raw columns, ordered
     source_model: str = ""  # the raw relation this staging reads
     bound: bool = False  # True when matched against a declared source table
+    # dbt source block this staging reads through (WP7 §7.2). Set only on grounded runs
+    # for specs whose declared table carries a physical location (schema/database); the
+    # rendered model then uses automate_dv.stage's source() mapping form instead of a
+    # bare relation name.
+    source_name: str | None = None
 
     def add_hashed(self, name: str, value: str | list[str] | _HashDiff) -> None:
         if all(existing != name for existing, _ in self.hashed):
@@ -227,6 +232,53 @@ def bind_sources(
     return flags
 
 
+@dataclass
+class SourceBlock:
+    """One dbt ``source:`` block in the generated sources.yml (grounded runs, WP7 §7.2)."""
+
+    name: str  # dbt source name: "raw", then "raw_2", ... in first-appearance order
+    database: str | None
+    schema_name: str | None
+    specs: list[StagingSpec] = field(default_factory=list)
+
+
+def group_sources(
+    specs: dict[str, StagingSpec], source_schemas: list[SourceTable]
+) -> list[SourceBlock]:
+    """Assign bound staging specs to dbt source blocks (grounded runs only, WP7 §7.2).
+
+    A spec joins a block when its bound relation matches a declared table that carries a
+    physical location (``schema_name`` and/or ``database``) — only then is a ``source()``
+    reference *better* than the bare relation name (a dbt source without a ``schema``
+    property defaults its schema to the source's name, which would silently break the
+    verified bare-name/seed pattern; unknowns stay bare and documented, never guessed).
+    One block per distinct (database, schema) pair, deterministic: blocks appear in
+    staging-spec insertion order, named ``raw``, ``raw_2``, ... Ungrounded runs
+    (``source_schemas`` empty) return no blocks — output stays byte-identical."""
+    if not source_schemas:
+        return []
+    declared: dict[str, SourceTable] = {}
+    for table in source_schemas:
+        declared.setdefault(normalize_identifier(table.table), table)
+    blocks: dict[tuple[str | None, str | None], SourceBlock] = {}
+    for spec in specs.values():
+        if not spec.bound:
+            continue
+        match = declared.get(normalize_identifier(spec.source_model))
+        if match is None or (match.schema_name is None and match.database is None):
+            continue
+        key = (match.database, match.schema_name)
+        block = blocks.get(key)
+        if block is None:
+            name = "raw" if not blocks else f"raw_{len(blocks) + 1}"
+            block = SourceBlock(name=name, database=match.database,
+                                schema_name=match.schema_name)
+            blocks[key] = block
+        block.specs.append(spec)
+        spec.source_name = block.name
+    return list(blocks.values())
+
+
 def render_stage_model(spec: StagingSpec) -> str:
     """Render one AutomateDV ``stage`` model (the pattern verified by demo/bank_postgres)."""
     binding = "declared source schema" if spec.bound else "inferred — see review queue"
@@ -237,8 +289,14 @@ def render_stage_model(spec: StagingSpec) -> str:
         f"-- the source columns through (source binding: {binding}).",
         "{{ config(materialized='view') }}",
         "{%- set yaml_metadata -%}",
-        f"source_model: '{spec.source_model}'",
     ]
+    if spec.source_name:
+        # source() mapping form (AutomateDV stage: `source_name: table_name`), bound to
+        # the matching block in the generated sources.yml (WP7 §7.2, grounded runs).
+        lines.append("source_model:")
+        lines.append(f"  {spec.source_name}: '{spec.source_model}'")
+    else:
+        lines.append(f"source_model: '{spec.source_model}'")
     if spec.derived:
         lines.append("derived_columns:")
         for name, source_col in spec.derived.items():
@@ -281,7 +339,10 @@ def _stage_metadata(spec: StagingSpec) -> dict[str, object]:
         else:
             hashed[name] = value
     meta: dict[str, object] = {
-        "source_model": spec.source_model,
+        "source_model": (
+            {spec.source_name: spec.source_model} if spec.source_name
+            else spec.source_model
+        ),
         "source_binding": "declared" if spec.bound else "inferred",
         "hashed_columns": hashed,
         "expected_source_columns": list(spec.source_columns),
@@ -341,7 +402,52 @@ packages:
 """
 
 
-def _render_sources_yml(specs: dict[str, StagingSpec]) -> str:
+def _render_sources_yml(
+    specs: dict[str, StagingSpec], blocks: list[SourceBlock]
+) -> str:
+    if blocks:
+        # Grounded run with declared physical locations (WP7 §7.2): REAL source blocks —
+        # the staging models listed under them reference their table via source().
+        lines = [
+            "# Generated by vault-agent — dbt sources for the declared raw inputs "
+            "(ADR-0004).",
+            "#",
+            "# Grounded run: staging models whose declared source table carries a "
+            "physical",
+            "# location (schema/database) reference it through automate_dv.stage's "
+            "source()",
+            "# mapping form (`source_model: {<source name>: <table>}`), bound to the "
+            "blocks",
+            "# below. Relations in the trailing comment are still referenced by BARE "
+            "name",
+            "# (a seed, model, or table in the target schema).",
+            "version: 2",
+            "",
+            "sources:",
+        ]
+        in_blocks = {spec.name for block in blocks for spec in block.specs}
+        for block in blocks:
+            lines.append(f"  - name: {block.name}")
+            if block.database is not None:
+                lines.append(f"    database: {block.database}")
+            if block.schema_name is not None:
+                lines.append(f"    schema: {block.schema_name}")
+            lines.append("    tables:")
+            for spec in block.specs:
+                lines.append(f"      - name: {spec.source_model}")
+                cols = ", ".join(spec.source_columns)
+                lines.append(f"        # expected columns: {cols}")
+        bare = [spec for spec in specs.values() if spec.name not in in_blocks]
+        if bare:
+            lines.append("")
+            lines.append(
+                "# Referenced by BARE relation name (no declared physical location):"
+            )
+            for spec in bare:
+                note = "" if spec.bound else " — inferred binding, review"
+                lines.append(f"#   - {spec.source_model} (feeds {spec.name}){note}")
+        return "\n".join(lines) + "\n"
+
     lines = [
         "# Generated by vault-agent — the raw inputs the staging layer expects.",
         "#",
@@ -402,12 +508,14 @@ def build_staging(model: DVModel, source_schemas: list[SourceTable]) -> StagingR
     """The full staging pass: specs -> bindings -> rendered models + scaffolding."""
     specs = collect_staging_specs(model)
     flags = bind_sources(specs, source_schemas)
+    # Grounded runs only (ungrounded: no blocks, no source_name — byte-identical output).
+    blocks = group_sources(specs, source_schemas)
     models = {name: render_stage_model(spec) for name, spec in specs.items()}
     metadata = {name: _stage_metadata(spec) for name, spec in specs.items()}
     scaffolding = {
         "dbt_project.yml": _render_dbt_project(),
         "packages.yml": _render_packages(),
-        "models/staging/sources.yml": _render_sources_yml(specs),
+        "models/staging/sources.yml": _render_sources_yml(specs, blocks),
         "README.md": _render_readme(specs),
     }
     return StagingResult(
