@@ -121,8 +121,9 @@ ContractOwner.PLACEHOLDER_NAME is the single source for the placeholder-owner ma
 Live human-in-the-loop interrupt/resume now works (as of 2026-06-15, ADR-0006 second half).
 A human_checkpoint node sits on the validated path (validator --pass--> human_checkpoint -->
 adr_author): it assembles the review queue and, when requires_signoff (a validation error or
-unassigned contract owner), calls LangGraph interrupt() to pause — interrupt() is the node's
-first statement since the node re-executes from the top on resume. The graph is compiled with
+unassigned contract owner), calls LangGraph interrupt() to pause — everything before
+interrupt() must stay pure/idempotent because the node re-executes from the top on resume
+(assemble_review_queue is pure). The graph is compiled with
 a persistent AsyncSqliteSaver (langgraph-checkpoint-sqlite) keyed by a per-run thread_id under
 <out>/.vault-agent/. CLI: `vault-agent run` detects the interrupt, writes artifacts-so-far +
 pending.json, and prints resume instructions; `vault-agent resume --owner "asset=Name <email>"
@@ -374,6 +375,30 @@ two-phase snapshot load closing ACC-503's superseded ownership to 2026-04-01, pe
 2026-07-07 paragraph above; additionally worth covering: a grounded run with declared
 schema/database (source()-bound staging) and a ma_sat with source_table. Record the
 result here. 239 tests green, ruff clean, mypy strict clean.
+
+WP5 hygiene batch landed (as of 2026-07-08,
+docs/architecture/backlog-2026-07/wp5-hygiene-spec.md), six cleanups. (§5.1) The
+review-queue presentation knowledge (KIND_HEADINGS/KIND_ORDER) is public in
+agents/orchestrator.py and imported by cli._print_checkpoint — one owner, parity-tested;
+the former cli duplicates are gone. (§5.2) BaseAgent.prompt_path is
+ClassVar[str | None] = None and load_prompt() raises RuntimeError naming a prompt-less
+agent; the deterministic agents lost their dead prompt_path lines, all nine
+`# type: ignore[assignment]` are gone, the four never-loaded prompt files
+(validator/orchestrator/code_generator/adr_author.md) and the empty tools/ package are
+deleted (grep-verified unreferenced first). (§5.3) jinja2 (imported nowhere) is out of
+pyproject; config drops the dead log_level; the langsmith_* settings stay (WP6's eval
+harness consumes them). (§5.4) Std-lib logging: logger per module, INFO at agent-run
+boundaries with construct counts, DEBUG for payload sizes; the library never configures
+handlers/levels — the CLI's new global `--debug` flag sets basicConfig(DEBUG) and
+re-raises pipeline failures with the full traceback; default CLI output is unchanged.
+(§5.5) A finalised run prunes its checkpoint thread via AsyncSqliteSaver.adelete_thread
+(verified against the installed langgraph-checkpoint-sqlite) inside
+_run_pipeline/_resume_pipeline; paused runs keep their thread for resume —
+checkpoints.sqlite no longer grows unboundedly (tested against the real sqlite saver).
+(§5.6) Doc drift: the "interrupt() is the node's first statement" claim (here and in the
+HumanCheckpointAgent docstring) is reworded to the actual invariant — everything before
+interrupt() stays pure/idempotent because the node re-executes on resume. 235 tests
+green, ruff clean, mypy strict clean.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF

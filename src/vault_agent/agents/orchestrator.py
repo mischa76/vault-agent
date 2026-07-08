@@ -12,8 +12,9 @@ Two deterministic responsibilities, no LLM:
    awaiting an owner, and the agents' review flags. Per ADR-0006 this deterministic queue is
    surfaced to the human (CLI / file) and, when it blocks sign-off, the
    :class:`HumanCheckpointAgent` pauses the graph on a live LangGraph ``interrupt()`` until a
-   human resumes with their decision. Keeping the queue a pure, separately-tested function
-   means the interrupt node just assembles it and delivers an already-defined payload.
+   human resumes with their decision. Everything before ``interrupt()`` must stay
+   pure/idempotent because the node re-executes from the top on resume —
+   :func:`assemble_review_queue` is pure, so re-assembling the queue is safe.
 
 Being deterministic, the whole agent is unit-tested without an API key.
 """
@@ -307,7 +308,11 @@ class HumanCheckpointAgent(BaseAgent):
     """Human-in-the-loop gate (ADR-0006). On the validated path it assembles the review
     queue and, when something blocks agreement, pauses the graph with LangGraph's
     ``interrupt()`` until a human resumes with their decision. When nothing blocks it passes
-    straight through. Requires the graph to be compiled with a checkpointer."""
+    straight through. Requires the graph to be compiled with a checkpointer.
+
+    Everything before ``interrupt()`` must stay pure/idempotent: on resume the node
+    re-executes from the top, so queue assembly (and logging) runs again —
+    :func:`assemble_review_queue` is pure, which makes that safe."""
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         queue = assemble_review_queue(state)
@@ -322,8 +327,8 @@ class HumanCheckpointAgent(BaseAgent):
             )
             return state
 
-        # interrupt() must come before any state mutation: on resume the node re-executes
-        # from the top, so anything above this line would run twice.
+        # Everything above interrupt() re-executes on resume, so it must stay
+        # pure/idempotent — no state mutation before this line.
         decision = interrupt(
             {
                 "review_queue": queue.model_dump(),
