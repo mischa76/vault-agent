@@ -20,13 +20,11 @@ class Settings(BaseSettings):
     primary_model: str = "claude-sonnet-4-6"
     heavy_model: str = "claude-opus-4-8"
 
-    # Tracing
+    # Tracing / evals (consumed by the WP6 eval harness: eval/run.py,
+    # eval/langsmith_upload.py)
     langsmith_api_key: str | None = None
     langsmith_tracing: bool = False
     langsmith_project: str = "vault-agent-dev"
-
-    # Logging
-    log_level: str = "INFO"
 
 
 @lru_cache(maxsize=1)
