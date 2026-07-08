@@ -283,3 +283,76 @@ async def test_agent_wires_staging_into_artifacts_and_metadata() -> None:
     assert result.decisions[-1]["staging_models"] == 3
     # Ungrounded run: the three inferred bindings are advisory flags, nothing else.
     assert {f.kind for f in result.flags} == {FlagKind.SOURCE_BINDING}
+
+
+def _contract(name: str, fields: list[dict]) -> dict:
+    """A minimal contract dict in the DataContract.to_dict() shape (WP7 §7.3)."""
+    return {"spec-version": "1.0.0", "name": name, "namespace": "source",
+            "schema": [
+                {"name": f["name"],
+                 "constraints": {"data_type": f.get("data_type", "unknown")},
+                 "semantics": f.get("semantics", [])}
+                for f in fields
+            ]}
+
+
+def test_contract_types_pin_seed_column_types_per_the_mapping_table() -> None:
+    """WP7 §7.3: string→varchar, integer→bigint, number→numeric, boolean→boolean,
+    string+format=date→date, …date-time→timestamp, union takes the non-null member,
+    unknown is omitted; LOAD_DATETIME/RECORD_SOURCE always timestamp/varchar."""
+    contracts = [_contract("raw_customer", [
+        {"name": "national customer ID", "data_type": "string"},
+        {"name": "customer count", "data_type": "integer"},
+        {"name": "balance", "data_type": "number"},
+        {"name": "is active", "data_type": "boolean"},
+        {"name": "date of birth", "data_type": "string",
+         "semantics": [{"kind": "format", "value": "date"}]},
+        {"name": "updated at", "data_type": "string",
+         "semantics": [{"kind": "format", "value": "date-time"}]},
+        {"name": "customer name", "data_type": ["null", "string"]},
+        {"name": "mystery", "data_type": "unknown"},
+        {"name": "ambiguous", "data_type": ["null", "string", "integer"]},
+    ])]
+    result = build_staging(_bank_model(), source_schemas=[], contracts=contracts)
+
+    project = result.scaffolding["dbt_project.yml"]
+    assert "    raw_customer:\n      +column_types:" in project
+    for line in (
+        "        NATIONAL_CUSTOMER_ID: varchar",
+        "        CUSTOMER_COUNT: bigint",
+        "        BALANCE: numeric",
+        "        IS_ACTIVE: boolean",
+        "        DATE_OF_BIRTH: date",
+        "        UPDATED_AT: timestamp",
+        "        CUSTOMER_NAME: varchar",  # union ["null", "string"] → non-null member
+        "        LOAD_DATETIME: timestamp",
+        "        RECORD_SOURCE: varchar",
+    ):
+        assert line in project, line
+    assert "MYSTERY" not in project  # unknown → omitted (dbt inference, as today)
+    assert "AMBIGUOUS" not in project  # multi-type union → omitted, never guessed
+
+
+def test_unmatched_contracts_leave_dbt_project_unchanged() -> None:
+    """Ungrounded entity contracts ('customer') never match a raw_* staging source, so
+    passing them changes nothing — part of the WP7 byte-identity guarantee."""
+    contracts = [_contract("customer", [{"name": "customer name", "data_type": "string"}])]
+    with_contracts = build_staging(_bank_model(), source_schemas=[], contracts=contracts)
+    without = build_staging(_bank_model(), source_schemas=[])
+
+    assert with_contracts.scaffolding == without.scaffolding
+    assert with_contracts.models == without.models
+
+
+async def test_agent_passes_contracts_from_state_to_the_staging_pass() -> None:
+    """The graph runs data_contract before code_generator (ADR-0005/0006), so the drafted
+    contracts sit in state.artifacts when the staging pass needs them (WP7 §7.3)."""
+    state = VaultAgentState(dv_model=_bank_model())
+    state.artifacts.contracts = [
+        _contract("raw_customer", [{"name": "customer name", "data_type": "string"}])
+    ]
+    result = await CodeGeneratorAgent().run(state)
+
+    project = result.artifacts.scaffolding["dbt_project.yml"]
+    assert "    raw_customer:\n      +column_types:" in project
+    assert "        CUSTOMER_NAME: varchar" in project

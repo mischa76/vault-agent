@@ -400,7 +400,11 @@ class CodeGeneratorAgent(BaseAgent):
         # to keep the module dependency one-directional (staging imports our helpers).
         from vault_agent.agents.staging_generator import build_staging
 
-        staging = build_staging(model, state.source_schemas)
+        # Contracts (drafted upstream by the data-contract agent) pin seed column
+        # types for matching staging sources (WP7 §7.3).
+        staging = build_staging(
+            model, state.source_schemas, contracts=state.artifacts.contracts
+        )
         state.artifacts.staging_models = staging.models
         state.artifacts.scaffolding = staging.scaffolding
         metadata["staging"] = staging.metadata
