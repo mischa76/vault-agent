@@ -98,7 +98,7 @@ class AnthropicRequirementExtractor:
 class RequirementsParserAgent(BaseAgent):
     """Extracts structured requirements from the input documents."""
 
-    prompt_path = "requirements_parser.md"  # type: ignore[assignment]
+    prompt_path = "requirements_parser.md"
 
     def __init__(self, extractor: RequirementExtractor | None = None) -> None:
         self._extractor = extractor

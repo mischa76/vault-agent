@@ -20,8 +20,6 @@ from vault_agent.state import Artifacts, ValidationIssue, ValidationReport, Vaul
 
 
 class _RecordingAgent(BaseAgent):
-    prompt_path = "unused.md"  # type: ignore[assignment]
-
     def __init__(self, name: str) -> None:
         self.name = name
 
@@ -36,8 +34,6 @@ class _RecordingAgent(BaseAgent):
 
 class _StubValidator(BaseAgent):
     """Reports a scripted pass/fail sequence (last value repeats)."""
-
-    prompt_path = "unused.md"  # type: ignore[assignment]
 
     def __init__(self, verdicts: list[bool]) -> None:
         self.verdicts = verdicts
@@ -125,8 +121,6 @@ async def test_persistent_failure_stops_at_retry_cap() -> None:
 
 class _PlaceholderContractAgent(BaseAgent):
     """Stub data_contract that injects one contract still awaiting an owner."""
-
-    prompt_path = "unused.md"  # type: ignore[assignment]
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         state.artifacts = Artifacts(

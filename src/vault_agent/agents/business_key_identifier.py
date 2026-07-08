@@ -79,7 +79,7 @@ class AnthropicBusinessKeyExtractor:
 class BusinessKeyIdentifierAgent(BaseAgent):
     """Proposes ranked business key candidates from the parsed requirements."""
 
-    prompt_path = "business_key_identifier.md"  # type: ignore[assignment]
+    prompt_path = "business_key_identifier.md"
 
     def __init__(self, extractor: BusinessKeyExtractor | None = None) -> None:
         self._extractor = extractor

@@ -227,8 +227,6 @@ def render_review_queue_md(queue: HumanReviewQueue) -> str:
 class OrchestratorAgent(BaseAgent):
     """Deterministic planning entry node; also owns the review-queue helpers above."""
 
-    prompt_path = "orchestrator.md"  # type: ignore[assignment]
-
     def __init__(self, planned_stages: list[str] | None = None) -> None:
         # The downstream stages this run will execute, injected by the graph so the plan
         # tracks the real pipeline without this module importing graph (no import cycle).
@@ -301,8 +299,6 @@ class HumanCheckpointAgent(BaseAgent):
     queue and, when something blocks agreement, pauses the graph with LangGraph's
     ``interrupt()`` until a human resumes with their decision. When nothing blocks it passes
     straight through. Requires the graph to be compiled with a checkpointer."""
-
-    prompt_path = "orchestrator.md"  # type: ignore[assignment]
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         queue = assemble_review_queue(state)

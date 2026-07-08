@@ -88,7 +88,7 @@ class AnthropicDVModelExtractor:
 class Dv2ModelerAgent(BaseAgent):
     """Derives a logical Data Vault model from requirements and business keys."""
 
-    prompt_path = "dv2_modeler.md"  # type: ignore[assignment]
+    prompt_path = "dv2_modeler.md"
 
     def __init__(self, extractor: DVModelExtractor | None = None) -> None:
         self._extractor = extractor

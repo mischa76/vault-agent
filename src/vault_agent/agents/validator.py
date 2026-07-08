@@ -65,8 +65,6 @@ def _issue(
 class ValidatorAgent(BaseAgent):
     """Validates the Data Vault model and generated artifacts against DV2.0 rules."""
 
-    prompt_path = "validator.md"  # type: ignore[assignment]
-
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         model = state.dv_model
         issues: list[ValidationIssue] = []

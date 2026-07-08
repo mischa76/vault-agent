@@ -121,7 +121,7 @@ class AnthropicContractEnricher:
 class DataContractAgent(BaseAgent):
     """Drafts a JSON-Schema-based data contract (+ dbt tests) per source-to-staging asset."""
 
-    prompt_path = "data_contract.md"  # type: ignore[assignment]
+    prompt_path = "data_contract.md"
 
     def __init__(self, enricher: ContractEnricher | None = None) -> None:
         self._enricher = enricher

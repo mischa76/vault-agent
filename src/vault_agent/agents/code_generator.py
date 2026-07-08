@@ -311,8 +311,6 @@ def _render_eff_sat(
 class CodeGeneratorAgent(BaseAgent):
     """Renders the Data Vault model into AutomateDV-compatible dbt models."""
 
-    prompt_path = "code_generator.md"  # type: ignore[assignment]
-
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         model = state.dv_model
         if not model.hubs:

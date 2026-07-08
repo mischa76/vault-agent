@@ -35,7 +35,8 @@ progress), 20+ years in ICT.
 - Each agent in its own file under src/vault_agent/agents/
 - Prompts live as .md files in src/vault_agent/prompts/, loaded by the agent
 - LangGraph state is a single pydantic model in state.py; agents read/write specific fields
-- Tools are MCP-style: typed inputs, typed outputs, idempotent where possible
+- Tools are MCP-style: typed inputs, typed outputs, idempotent where possible (the empty tools/
+  package was removed 2026-07-08; the directory is reintroduced when the first tool lands)
 - Each agent decision the LLM makes that affects the model should produce a draft ADR
   fragment that the ADR Author agent can finalize
 - No business logic in graph.py – only orchestration

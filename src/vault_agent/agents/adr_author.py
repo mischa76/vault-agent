@@ -33,8 +33,6 @@ def _ids(requirement_ids: list[str]) -> str:
 class AdrAuthorAgent(BaseAgent):
     """Renders the finalized Data Vault model ADR from state.dv_model."""
 
-    prompt_path = "adr_author.md"  # type: ignore[assignment]
-
     def __init__(self, today: str | None = None, start_number: int | None = None) -> None:
         self._today = today
         # Explicit start_number wins (tests/overrides); the default is the per-output
