@@ -32,6 +32,7 @@ from pydantic import BaseModel
 
 from eval.datasets import DATASET_FILENAME, DATASETS_ROOT, EvalCase, load_all_cases, load_eval_case
 from eval.scorers import ScorerResult, score_state
+from vault_agent.cli import _checkpoint_serde
 from vault_agent.config import get_settings
 from vault_agent.graph import build_graph
 from vault_agent.source_schema import load_source_schemas
@@ -58,7 +59,12 @@ class ScoreStats(BaseModel):
 async def run_case_once(case: EvalCase) -> VaultAgentState:
     """One real pipeline run for ``case``; auto-resumes the HITL checkpoint."""
     source_schemas = load_source_schemas(case.source_schema) if case.source_schema else []
-    compiled = build_graph().compile(checkpointer=MemorySaver())
+    saver = MemorySaver()
+    # Same state-model allow-list the CLI registers on its sqlite saver: without it every
+    # HITL resume deserialises our pydantic models as "unregistered types" (deprecation
+    # warnings today, hard errors once langgraph enforces strict msgpack).
+    saver.serde = _checkpoint_serde()
+    compiled = build_graph().compile(checkpointer=saver)
     config: RunnableConfig = {"configurable": {"thread_id": uuid4().hex}}
     result = await compiled.ainvoke(
         # Same pragma as cli._run_pipeline: ainvoke's generic stub does not infer our
