@@ -192,6 +192,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
 
+    # The project convention keeps the key in .env (config.Settings reads it via
+    # pydantic-settings); load it here too so `python -m eval.run` works from a checkout
+    # without exporting the variable manually.
+    from dotenv import load_dotenv
+
+    load_dotenv()
     if not os.environ.get("ANTHROPIC_API_KEY"):
         print(
             "eval.run needs real LLM calls: set ANTHROPIC_API_KEY (the deterministic "
