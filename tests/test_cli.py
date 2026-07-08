@@ -220,3 +220,41 @@ def test_cli_checkpoint_collapses_noise_like_the_md() -> None:
     assert "39× undetermined field type" in text  # collapsed, not 39 lines
     assert "W_LINK_REDUNDANT_GRAIN" in text  # substantive warning still shown
     assert text.index("W_LINK_REDUNDANT_GRAIN") < text.index("39× undetermined field type")
+
+
+def test_checkpoint_renderers_share_one_presentation_source() -> None:
+    """WP5 §5.1: both renderers (markdown in the orchestrator, rich-console in the CLI)
+    cover exactly the same kinds, in the same order, from the shared constants."""
+    import typing
+
+    from rich.console import Console
+
+    from vault_agent.agents.orchestrator import (
+        KIND_HEADINGS,
+        KIND_ORDER,
+        HumanReviewQueue,
+        ReviewItem,
+        ReviewKind,
+        render_review_queue_md,
+    )
+    from vault_agent.cli import _print_checkpoint
+
+    # The shared knowledge covers every ReviewKind exactly once.
+    assert set(KIND_ORDER) == set(KIND_HEADINGS) == set(typing.get_args(ReviewKind))
+    assert len(KIND_ORDER) == len(set(KIND_ORDER))
+
+    queue = HumanReviewQueue(
+        items=[
+            ReviewItem(kind=kind, summary=f"item for {kind}")
+            for kind in typing.get_args(ReviewKind)
+        ]
+    )
+    md = render_review_queue_md(queue)
+    console = Console(record=True, width=200)
+    _print_checkpoint(console, queue)
+    cli_text = console.export_text()
+
+    md_positions = [md.index(KIND_HEADINGS[kind]) for kind in KIND_ORDER]
+    cli_positions = [cli_text.index(KIND_HEADINGS[kind]) for kind in KIND_ORDER]
+    assert md_positions == sorted(md_positions)  # every heading present, in KIND_ORDER
+    assert cli_positions == sorted(cli_positions)  # same kinds, same order in the CLI

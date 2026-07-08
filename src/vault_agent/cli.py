@@ -25,6 +25,8 @@ from rich.console import Console
 
 from vault_agent import state as _state_module
 from vault_agent.agents.orchestrator import (
+    KIND_HEADINGS,
+    KIND_ORDER,
     HumanReviewQueue,
     aggregate_review_flags,
     assemble_review_queue,
@@ -250,20 +252,6 @@ def _print_summary(console: Console, state: VaultAgentState) -> None:
     _print_checkpoint(console, assemble_review_queue(state))
 
 
-_CHECKPOINT_HEADINGS: dict[str, str] = {
-    "validation_error": "Validation errors (block agreement)",
-    "contract_owner": "Contract owners to assign (block agreement)",
-    "validation_warning": "Validation warnings (advisory)",
-    "review_flag": "Review flags (advisory)",
-}
-_CHECKPOINT_ORDER = (
-    "validation_error",
-    "contract_owner",
-    "validation_warning",
-    "review_flag",
-)
-
-
 def _print_checkpoint(console: Console, queue: HumanReviewQueue) -> None:
     """Render the human-in-the-loop checkpoint, grouped blocking-first."""
     if not queue.items:
@@ -278,13 +266,13 @@ def _print_checkpoint(console: Console, queue: HumanReviewQueue) -> None:
         f"({len(queue.items)} item(s)):"
     )
     grouped = queue.by_kind()
-    for kind in _CHECKPOINT_ORDER:
+    for kind in KIND_ORDER:
         group = grouped.get(kind)
         if not group:
             continue
         if kind == "review_flag":
             group = aggregate_review_flags(group)
-        console.print(f"  [bold]{_CHECKPOINT_HEADINGS[kind]}[/bold]")
+        console.print(f"  [bold]{KIND_HEADINGS[kind]}[/bold]")
         for item in group:
             detail = f" — {item.detail}" if item.detail else ""
             console.print(f"    - {item.summary}{detail}")

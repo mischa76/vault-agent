@@ -147,14 +147,17 @@ def assemble_review_queue(state: VaultAgentState) -> HumanReviewQueue:
     return HumanReviewQueue(items=items)
 
 
-_KIND_HEADINGS: dict[str, str] = {
+# Single owner of the review-queue *presentation knowledge* (WP5 §5.1): the heading per
+# kind and the stable blocking-first order. Both renderers — render_review_queue_md here
+# and the CLI's rich-console _print_checkpoint — import these, so they can never drift.
+KIND_HEADINGS: dict[str, str] = {
     "validation_error": "Validation errors (block agreement)",
     "contract_owner": "Contract owners to assign (block agreement)",
     "validation_warning": "Validation warnings (advisory)",
     "review_flag": "Review flags (advisory)",
 }
 # Stable presentation order: blocking concerns first, advisory last.
-_KIND_ORDER = (
+KIND_ORDER: tuple[str, ...] = (
     "validation_error",
     "contract_owner",
     "validation_warning",
@@ -202,13 +205,13 @@ def render_review_queue_md(queue: HumanReviewQueue) -> str:
     lines.append(f"**Status:** {verdict} — {len(queue.items)} item(s).")
     lines.append("")
     grouped = queue.by_kind()
-    for kind in _KIND_ORDER:
+    for kind in KIND_ORDER:
         group = grouped.get(kind)
         if not group:
             continue
         if kind == "review_flag":
             group = aggregate_review_flags(group)
-        lines.append(f"## {_KIND_HEADINGS[kind]}")
+        lines.append(f"## {KIND_HEADINGS[kind]}")
         lines.append("")
         for item in group:
             line = f"- **{item.summary}**"
