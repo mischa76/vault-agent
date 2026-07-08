@@ -213,7 +213,13 @@ async def _run_pipeline(
             ),
             config=config,
         )
-    return _state_from_result(result), "__interrupt__" in result, thread_id
+        paused = "__interrupt__" in result
+        if not paused:
+            # Checkpoint pruning (WP5 §5.5): a finalised run's thread is never resumed,
+            # so its rows would only grow checkpoints.sqlite unboundedly. Paused runs
+            # keep their thread — it is exactly what `vault-agent resume` continues.
+            await saver.adelete_thread(thread_id)
+    return _state_from_result(result), paused, thread_id
 
 
 async def _resume_pipeline(
@@ -225,7 +231,11 @@ async def _resume_pipeline(
         saver.serde = _checkpoint_serde()
         compiled = build_graph().compile(checkpointer=saver)
         result = await compiled.ainvoke(Command(resume=decision), config=config)
-    return _state_from_result(result), "__interrupt__" in result
+        paused = "__interrupt__" in result
+        if not paused:
+            # Finalised on resume: prune the thread's checkpoints (WP5 §5.5).
+            await saver.adelete_thread(thread_id)
+    return _state_from_result(result), paused
 
 
 def _parse_owner(spec: str) -> tuple[str, dict[str, str | None]]:

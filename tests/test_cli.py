@@ -301,3 +301,87 @@ def test_debug_flag_enables_debug_logging_and_full_traceback(
     assert configured.get("level") == logging.DEBUG  # the CLI, not the library, configures
     assert isinstance(result.exception, RuntimeError)  # re-raised: full traceback available
     assert str(result.exception) == "boom-for-debug"
+
+
+# --- Checkpoint pruning on finalise (WP5 §5.5) --------------------------------------------
+# MemorySaver won't do here: pruning is exercised against the real sqlite saver in
+# tmp_path, cross-checked by reopening the database.
+
+
+def _sqlite_stub_agents(*, block_signoff: bool) -> "dict[str, object]":
+    from vault_agent.agents.base import BaseAgent
+    from vault_agent.agents.orchestrator import HumanCheckpointAgent
+    from vault_agent.graph import NODES
+    from vault_agent.state import Artifacts, ValidationReport
+
+    class _Stub(BaseAgent):
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        async def run(self, state: VaultAgentState) -> VaultAgentState:
+            if self.name == "validator":
+                state.validation_report = ValidationReport(passed=True, issues=[])
+            if self.name == "data_contract" and block_signoff:
+                state.artifacts = Artifacts(
+                    contracts=[
+                        {"name": "customer", "owner": {"name": "TODO: assign", "email": None}}
+                    ]
+                )
+            state.decisions.append({"agent": self.name})
+            return state
+
+    agents: dict[str, object] = {name: _Stub(name) for name in NODES}
+    agents["human_checkpoint"] = HumanCheckpointAgent()  # the real gate
+    return agents
+
+
+async def _thread_checkpoint_count(out_dir: Path, thread_id: str) -> int:
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+    from vault_agent.cli import _checkpoint_db
+
+    config = {"configurable": {"thread_id": thread_id}}
+    async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out_dir)) as saver:
+        return len([c async for c in saver.alist(config)])
+
+
+async def test_finalised_run_prunes_its_checkpoint_thread(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _run_pipeline
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_sqlite_stub_agents(block_signoff=False)),  # type: ignore[arg-type]
+    )
+    _, paused, thread_id = await _run_pipeline(tmp_path / "req.md", tmp_path)
+
+    assert paused is False
+    assert await _thread_checkpoint_count(tmp_path, thread_id) == 0  # no rows left behind
+
+
+async def test_paused_run_keeps_thread_until_resume_finalises(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _resume_pipeline, _run_pipeline
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_sqlite_stub_agents(block_signoff=True)),  # type: ignore[arg-type]
+    )
+    _, paused, thread_id = await _run_pipeline(tmp_path / "req.md", tmp_path)
+
+    assert paused is True
+    assert await _thread_checkpoint_count(tmp_path, thread_id) > 0  # resumable: thread kept
+
+    state, still_paused = await _resume_pipeline(
+        tmp_path,
+        thread_id,
+        {"owners": {"customer": {"name": "Data Team", "email": "data@x.io"}}, "accept": True},
+    )
+
+    assert still_paused is False
+    assert state.artifacts.contracts[0]["owner"]["name"] == "Data Team"
+    assert await _thread_checkpoint_count(tmp_path, thread_id) == 0  # pruned on finalise
