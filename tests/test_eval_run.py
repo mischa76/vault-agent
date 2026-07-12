@@ -83,6 +83,10 @@ def test_render_table_shows_mean_min_max_per_scorer() -> None:
 def test_main_without_api_key_exits_2(
     monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:
+    # main() calls load_dotenv() for developer convenience, which would repopulate
+    # ANTHROPIC_API_KEY from a real .env on a dev box and defeat this test. Neutralise it
+    # so "no key" means no key regardless of whether a .env exists in the working dir.
+    monkeypatch.setattr("dotenv.load_dotenv", lambda *args, **kwargs: False)
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     assert main(["--dataset", "bank"]) == 2
     assert "ANTHROPIC_API_KEY" in capsys.readouterr().err
