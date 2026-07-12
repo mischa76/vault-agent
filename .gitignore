@@ -63,3 +63,7 @@ output*/
 
 # Eval harness: per-run JSON results are local artifacts (WP6)
 eval/results/
+
+# Mapping spike: throwaway prototype code + its measured-run outputs (charter D3/D4).
+# Only the golden dataset assets and the D2 scorers survive; spike/ does not.
+spike/
