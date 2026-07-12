@@ -19,6 +19,8 @@ this directory and a self-contained kick-off prompt in `kickoff/` that a develop
 | WP6 | `wp6-eval-harness-spec.md` | Eval harness: golden datasets, deterministic scorers, optional LangSmith layer | M/L | WP4 |
 | WP7 | `wp7-staging-refinements-spec.md` | ma_sat staging grain, bound `source()` refs, seed column types | M | — |
 | WP8 | `wp8-multi-role-links-spec.md` | Role-qualified link hub references (self-referencing links) — includes draft ADR-0009 | L | WP1, WP7 |
+| WP9 | `wp9-mapping-spec.md` | Business↔source mapping (LLM-first, ratification file, category gate) — spike-validated | L | WP7, WP6, ADR-0008 Accepted |
+| WP10 | `wp10-multi-source-hub-spec.md` | Multi-source hub: business-key harmonisation across sources | M/L | WP9 |
 
 Rationale for the order: WP4 changes the shape WP1's new gates emit and WP6's scorers
 consume — do it first. WP1/WP2/WP3/WP5 are independent of each other. WP8 is the most
@@ -46,13 +48,13 @@ milestone paragraph (resolve append-order at merge), and the kick-offs' STOP pre
 
 ## Explicitly NOT in this package (needs a design spike / ADR first)
 
-- **Business↔source mapping + DDL/DB introspection (Phase 2, ADR-0008).** The five
-  preconditions in ADR-0008 are a contract with the user organisation; implementation must
-  not start before an accepted ADR defines the degraded-mode behaviour per missing
-  precondition. Spike output should be a spec in this format.
-  *Update 2026-07-12: the spike is chartered — see `spike-mapping-charter.md` +
-  `kickoff/SPIKE-mapping.md`; it produces the WP9 spec draft and the ADR-0008 status
-  recommendation.*
+- **Business↔source mapping (Phase 2, ADR-0008): RESOLVED 2026-07-13.** The spike ran
+  2026-07-12 (`spike-mapping-charter.md` → `spike-mapping-results.md`; finding: LLM-first
+  mapping at 0.984 accuracy / 1.000 gap recall beat deterministic-first (0.65) at lower
+  token cost). All maintainer decisions are taken (decision record in the results memo),
+  ADR-0008 is **Accepted**, and the work is specced as **WP9** (mapping, single-source
+  binding) + **WP10** (multi-source hub) with kick-offs. Only DDL/`information_schema`
+  introspection and same-as links remain future work beyond WP10.
 - **Contradiction reconciliation (reality-test #1).** Requires prompt-design
   experimentation with live LLM runs (and ideally WP6's eval harness to measure it). Not
   deterministically speccable today.
