@@ -443,6 +443,38 @@ end-to-end; the standard-link/hub/sat/eff_sat path was unaffected. Also fixed a 
 build_vault_models.py main() (referenced the removed state.errors → now state.flags). pytest /
 ruff / mypy (canonical `uv run mypy`, 28 files) green.
 
+The business↔source mapping design spike ran and resolved Phase 2 (as of 2026-07-12/13,
+spike-mapping-charter.md → docs/architecture/backlog-2026-07/spike-mapping-results.md). It
+measured, on the deliberately cryptic messy_insurance case, an LLM-first mapper (one
+ForcedToolCaller pass over the enriched schema + profiling + comments, then deterministic
+post-validation) against a deterministic-first hybrid: LLM-first won mapping_accuracy 0.984
+vs 0.650, gap recall 1.000, confidence-calibration margin 0.958 vs 0.000, at LOWER input-token
+cost, and resisted every trap (kept "partner number"→PARTN_NR over the flawless-profiling
+PARTN_GUID; zero false-friend hits; caught all 4 coverage gaps every run). NO src/vault_agent/
+code changed — this was a design spike. Surviving assets (D1/D2, keyless, tested): eval/mapping.py
+(typed ProposedMapping/Proposal result + GoldenMapping loader, WP6 style), three scorers in
+eval/scorers.py (mapping_accuracy/gap_detection/confidence_calibration, structural matching via
+normalize_identifier), tests/test_mapping_scorers.py (15 pinned), and
+eval/datasets/messy_insurance/{golden_mapping,profiling,source_schema_enriched}.yml (golden set
+embedding the five trap classes + profiling + a type/comment-enriched schema). The throwaway
+prototypes (spike/) were deleted. Outcome: ADR-0008 moved Proposed → Accepted (2026-07-13), with
+ONE recorded caveat — the "input quality caps output quality" claim is confirmed for the
+deterministic path but UNPROVEN for the LLM path (the columns-only probe did not degrade because
+the schema's cryptic names are recognisable DACH abbreviations the model knows from priors; a
+mandatory opacity-masked probe, physical names → COL_0001…, is a WP9 acceptance criterion). Key
+methodological finding on naming: the rename layer splits by column role — a hub business key MUST
+be harmonised to one canonical name+format (the hash integration property forces it; "keep source
+names" is impossible for a multi-source key), while satellite descriptive attributes stay
+source-faithful (one sat per source). The multi-source hub is not representable in today's Hub
+model / _render_hub (single source_model + src_nk), so the work is specced as WP9 (single-source
+mapping binding, LLM-first, ratification file + --map shortcut, category-based confidence gate) +
+WP10 (multi-source hub: Hub.sources, per-source staging with canonical-key aliasing, union hub,
+sat-per-source), each with a kick-off. Also fixed a pre-existing test-hermeticity bug: eval.run's
+no-key test (test_main_without_api_key_exits_2) was defeated by main()'s load_dotenv() repopulating
+the key from a real .env — which also made the "keyless" suite fire 3 real bank LLM calls; the test
+now neutralises load_dotenv, so the suite is keyless and fast again (285 passed). ruff / mypy
+(29 files) green.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
