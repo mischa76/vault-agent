@@ -1,6 +1,7 @@
 # ADR-0008: Source-to-target mapping — scope, premises, and the assist boundary
 
-**Status:** Proposed
+**Status:** Accepted (2026-07-13, on the evidence of the mapping spike —
+`../backlog-2026-07/spike-mapping-results.md`)
 **Date:** 2026-06-27
 **Decision makers:** Mischa Eismann
 
@@ -106,6 +107,13 @@ human-owned. *Value is speed + a prepared decision basis; authority stays with t
   "point it at any database and get a vault" pitch.
 - (neutral) The interface between "profiling as a pre-step" and "profiling invoked by the pipeline"
   needs a concrete decision when Phase 2/3 are actually built; revisit then.
+  *(Resolved 2026-07-13 by the mapping spike: the pre-step file suffices — profiling proved
+  non-critical for intent disambiguation; the pipeline-invoked variant is not built.)*
+- (caveat, recorded on acceptance 2026-07-13) The "output quality is capped by input quality"
+  claim (precondition (c)) is **measured for the deterministic path but unproven for the LLM
+  path** on schemas whose cryptic names are domain-recognisable (the spike's columns-only probe
+  did not degrade — DACH abbreviations resolve from model priors). WP9 carries an
+  opacity-masked degradation probe as an acceptance criterion to close this measurement gap.
 
 ## References
 
