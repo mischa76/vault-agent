@@ -50,6 +50,9 @@ milestone paragraph (resolve append-order at merge), and the kick-offs' STOP pre
   preconditions in ADR-0008 are a contract with the user organisation; implementation must
   not start before an accepted ADR defines the degraded-mode behaviour per missing
   precondition. Spike output should be a spec in this format.
+  *Update 2026-07-12: the spike is chartered — see `spike-mapping-charter.md` +
+  `kickoff/SPIKE-mapping.md`; it produces the WP9 spec draft and the ADR-0008 status
+  recommendation.*
 - **Contradiction reconciliation (reality-test #1).** Requires prompt-design
   experimentation with live LLM runs (and ideally WP6's eval harness to measure it). Not
   deterministically speccable today.
