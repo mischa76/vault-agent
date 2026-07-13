@@ -1,6 +1,6 @@
 # Golden case: retail banking toy domain (wp6-eval-harness-spec.md §3).
 #
-# The golden model is the *verified* fixed bank DV model from the Postgres Durchstich
+# The golden model is the *verified* fixed bank DV model from the Postgres end-to-end PoC
 # (demo/bank_postgres/build_vault_models.py) — the one model in this repo that has been
 # built and loaded on a real warehouse. Deliberately conservative: the requirements also
 # mention transactions (a transactional-link candidate) and multiple customer addresses

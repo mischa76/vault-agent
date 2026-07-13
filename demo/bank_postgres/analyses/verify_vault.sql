@@ -1,4 +1,4 @@
--- Verification query for the bank Durchstich (spec §8). Run with:
+-- Verification query for the bank end-to-end PoC (spec §8). Run with:
 --   uv run dbt compile --select verify_vault   (then run target/compiled/.../verify_vault.sql)
 -- or paste the body straight into psql. It shows (1) row counts per vault table — every
 -- one must be > 0 — and (2) the ownership history of the transferred account ACC-503.

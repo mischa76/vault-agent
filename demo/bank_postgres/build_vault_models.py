@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Generate the bank demo's raw-vault dbt models from the *real* CodeGeneratorAgent.
 
-This ties the runnable Durchstich (demo/bank_postgres) to the system's actual output: it
+This ties the runnable end-to-end PoC (demo/bank_postgres) to the system's actual output: it
 constructs a fixed, hand-checked bank ``DVModel`` (no LLM, no API key) and feeds it to the
 same ``CodeGeneratorAgent`` the pipeline uses, then writes every emitted model to
 ``models/raw_vault/<name>.sql``. The vault SQL is therefore generated, never hand-written

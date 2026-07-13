@@ -1,4 +1,4 @@
-"""Guardrail test for the bank Durchstich builder (demo/bank_postgres).
+"""Guardrail test for the bank end-to-end PoC builder (demo/bank_postgres).
 
 Keeps the runnable demo from rotting if the code generator changes: it imports the demo's
 ``build_vault_models.py``, runs the *real* CodeGeneratorAgent over the fixed bank model to a

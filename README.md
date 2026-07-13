@@ -155,7 +155,7 @@ the self-correcting validation loop that needs **no API key**. The two demo doma
 ### Run the generated vault (local Postgres)
 
 The pipeline's output is not just plausible SQL — it is **operable**. The
-[`demo/bank_postgres/`](demo/bank_postgres/README.md) Durchstich takes the *real* code
+[`demo/bank_postgres/`](demo/bank_postgres/README.md) end-to-end PoC takes the *real* code
 generator's AutomateDV/dbt models, loads toy data through a staging layer, and builds a running
 Data Vault (two hubs, a standard link, a self-referencing transactional transfer link — one hub
 in two roles — two standard satellites, and an effectivity satellite with verified auto

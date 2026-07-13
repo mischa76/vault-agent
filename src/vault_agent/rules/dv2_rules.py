@@ -154,7 +154,7 @@ EFFECTIVITY_APPLIED_COLUMN = "APPLIED_DTS"
 # for human review (FlagKind.SOURCE_BINDING) — the generator names, it never guesses silently.
 RAW_SOURCE_PREFIX = "raw_"
 # AutomateDV package pin for the generated packages.yml — the version the Postgres
-# Durchstich (demo/bank_postgres) is verified against. Bump deliberately, re-verifying the demo.
+# end-to-end PoC (demo/bank_postgres) is verified against. Bump deliberately, re-verifying the demo.
 AUTOMATE_DV_VERSION = "0.11.4"
 
 # Vos revisions (NBK over hash, insert-only over persisted end-dating, ELM relationship-hubs,

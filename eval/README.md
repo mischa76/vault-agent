@@ -44,7 +44,7 @@ Golden matching is **structural, never textual**: every name/key/set is compared
 Malformed files raise an attributable error naming file and problem (same contract as
 `source_schema.load_source_schemas`).
 
-Shipped cases: `bank` (the Postgres-verified Durchstich model; gated), `health_insurance`
+Shipped cases: `bank` (the Postgres-verified end-to-end PoC model; gated), `health_insurance`
 (from the demo walkthrough), `messy_insurance` (grounded messy German Fachkonzept; loose,
 ungated — exists to catch review-queue/grounding regressions). Golden-model choices and
 their rationale are documented as comments inside each `dataset.yml`.

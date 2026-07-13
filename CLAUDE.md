@@ -138,7 +138,7 @@ No agents remain as stubs; the HITL loop is closed. Planned: transactional-link 
 modeling improvements, LangSmith evals, and (when a UI lands) an interactive resume prompt.
 
 The generated models now run end-to-end on a real warehouse (as of 2026-06-23,
-docs/architecture/poc-end-to-end-dbt-spec.md): demo/bank_postgres/ is a runnable Durchstich
+docs/architecture/poc-end-to-end-dbt-spec.md): demo/bank_postgres/ is a runnable end-to-end PoC
 that feeds a fixed bank DVModel through the *real* CodeGeneratorAgent (build_vault_models.py,
 no API key) and builds the output on a native local PostgreSQL 16 via dbt + AutomateDV 0.11.4.
 `dbt build --full-refresh` is green for two hubs, a standard link, two standard satellites and
@@ -188,7 +188,7 @@ review_items count are unchanged (count reflects underlying items, not the colla
 Verified live on the messy grounded run (examples/inputs/messy_insurance_*): the 38 undetermined-type
 flags collapse to one line while the 5 owner items + 8 substantive warnings surface on top.
 The changes are validator/orchestrator/prompt only — they do not touch the code generator, and the
-bank Postgres Durchstich was re-verified green on 2026-06-25 (regenerated models byte-identical;
+bank Postgres end-to-end PoC was re-verified green on 2026-06-25 (regenerated models byte-identical;
 `dbt build --full-refresh` PASS=29; Phase B2 eff_sat end-dating closes ACC-503's first owner and
 leaves the new owner open, idempotent on re-run) as a no-regression guard.
 
@@ -317,7 +317,7 @@ untouched and unflagged). 174 tests green, ruff clean, mypy strict clean.
 The eval harness landed (as of 2026-07-08, WP6:
 docs/architecture/backlog-2026-07/wp6-eval-harness-spec.md) — the declared LangSmith-evals
 milestone, in three strictly separated layers under eval/. Layer 1: golden datasets
-(eval/datasets/<case>/dataset.yml — bank from the Postgres-verified Durchstich model with a
+(eval/datasets/<case>/dataset.yml — bank from the Postgres-verified end-to-end PoC model with a
 construct_f1>=0.5 gate, health_insurance from the demo walkthrough with driving_key
 hub_policy on link_insured_person_policy, messy_insurance loose/ungated as a
 review-queue-regression canary) with a typed loader (eval/datasets.py: EvalCase/GoldenModel,
@@ -339,7 +339,7 @@ neither a key nor the langsmith package. mypy now also checks eval/ ([tool.mypy]
 WP7 staging refinements landed (as of 2026-07-08,
 docs/architecture/backlog-2026-07/wp7-staging-refinements-spec.md), closing the staging
 generator's three recorded deferrals, all deterministic. Guard first: an ungrounded run
-over the bank Durchstich model is pinned byte-identical to the pre-WP7 output
+over the bank end-to-end PoC model is pinned byte-identical to the pre-WP7 output
 (tests/fixtures/staging_ungrounded_baseline/ + test_staging_regression.py, written before
 the changes) — WP7 only alters grounded / source_table / contract-matched output. (§7.1
 ma_sat grain) Satellite gains source_table (the raw relation its rows come from when it

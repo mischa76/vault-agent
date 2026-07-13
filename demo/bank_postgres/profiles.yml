@@ -1,4 +1,4 @@
-# dbt connection profile for the bank Durchstich.
+# dbt connection profile for the bank end-to-end PoC.
 #
 # Targets a NATIVE local PostgreSQL 16 (no Docker): the cluster runs on the host at
 # localhost:5432 with a `vault` role/database (password `vault`). To provision it on a

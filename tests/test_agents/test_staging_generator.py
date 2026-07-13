@@ -1,6 +1,6 @@
 """Unit tests for the staging-layer generator (deterministic, no API key).
 
-The fixture mirrors the bank Durchstich (demo/bank_postgres) so the generated staging
+The fixture mirrors the bank end-to-end PoC (demo/bank_postgres) so the generated staging
 models can be asserted against the hand-authored ones the Postgres run verified: same
 hash keys, same hashdiffs, same APPLIED_DTS derivation on the eff_sat parent.
 """
@@ -23,7 +23,7 @@ from vault_agent.state import (
 
 
 def _bank_model() -> DVModel:
-    """The bank Durchstich shape: 2 hubs, 1 link with driving key, 2 sats, 1 eff_sat."""
+    """The bank end-to-end PoC shape: 2 hubs, 1 link with driving key, 2 sats, 1 eff_sat."""
     return DVModel(
         hubs=[
             Hub(name="hub_customer", business_key="national customer ID",

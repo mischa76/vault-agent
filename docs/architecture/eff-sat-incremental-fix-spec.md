@@ -23,7 +23,7 @@ ownership row; generator unit tests pin the fix; demo models regenerated; docs u
 
 ## 0. Symptom & evidence
 
-On the bank Durchstich the eff_sat builds and loads on **full-refresh**, but:
+On the bank end-to-end PoC the eff_sat builds and loads on **full-refresh**, but:
 
 - Both ownership rows of the transferred account `…91873fa8…` carry `effective_to = 9999-12-31`
   (verified): the superseded relationship was **not end-dated**.

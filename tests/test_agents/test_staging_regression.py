@@ -2,7 +2,7 @@
 
 WP7 (staging refinements) may only change generator output on *grounded* runs
 (``state.source_schemas`` non-empty), for satellites that declare a ``source_table``, or
-when a contract matches a staging source. A plain ungrounded run over the bank Durchstich
+when a contract matches a staging source. A plain ungrounded run over the bank end-to-end PoC
 model must keep producing byte-identical raw-vault models, staging models, and scaffolding.
 The baseline under ``tests/fixtures/staging_ungrounded_baseline/`` was captured from the
 generator BEFORE the WP7 changes (main@51e1088) — regenerating it after an intentional

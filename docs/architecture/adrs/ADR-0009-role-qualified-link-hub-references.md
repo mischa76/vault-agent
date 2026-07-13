@@ -11,7 +11,7 @@ relationship under different roles — the canonical case being a transfer/trans
 linking `hub_account` (payer side) to `hub_account` (counterparty side). Today such a
 relationship is unmodelable: the modeler either drops one participation or emits a
 duplicate hub name whose generated FK columns collide (both would be `ACCOUNT_HK`).
-Recorded as a modeling-capability gap since the Postgres Durchstich
+Recorded as a modeling-capability gap since the Postgres end-to-end PoC
 (poc-end-to-end-dbt-spec §9, reality-test #5); the transactional-link demo scope was
 deferred for exactly this reason.
 
@@ -74,7 +74,7 @@ class Link(BaseModel):
 
 - Positive: self-referencing and multi-role relationships become expressible end-to-end
   (model → validator → raw vault → staging → ADR) with deterministic, rule-derived
-  column names; the known Durchstich gap closes with a Postgres-verified demo.
+  column names; the known end-to-end PoC gap closes with a Postgres-verified demo.
 - Positive: zero migration — existing models, checkpoints, and prompts keep working;
   plain-string links render byte-identically.
 - Negative: `connected_hubs` becomes a union type; every consumer must go through the

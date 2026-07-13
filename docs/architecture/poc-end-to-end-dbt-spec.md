@@ -1,4 +1,4 @@
-# PoC Spec — End-to-End Durchstich: requirements → running Data Vault (dbt + AutomateDV + Postgres)
+# PoC Spec — the end-to-end slice: requirements → running Data Vault (dbt + AutomateDV + Postgres)
 
 > **Purpose.** Turn the generated AutomateDV/dbt models into a *running* Data Vault: real
 > tables loaded by real ETL, executed locally. This is the proof that the pipeline's output is
@@ -29,7 +29,7 @@ BigQuery, MS SQL Server, Databricks, Postgres** (Redshift planned). DuckDB has n
 macro implementations, so `dbt run` on the AutomateDV macros would fail. This contradicts the
 "DuckDB for demo" wording in `README.md`/`CLAUDE.md`.
 
-**Decision:** the Durchstich targets **Postgres** — officially supported, fully local, free
+**Decision:** the end-to-end PoC targets **Postgres** — officially supported, fully local, free
 (Docker or apt). Crucially, the code generator emits standard `{{ config(materialized='incremental') }}`,
 **not** AutomateDV's custom materialisations, so the known Postgres custom-materialisation
 limitation (CTE handling) does **not** apply here.
@@ -90,7 +90,7 @@ seeds/raw_*.csv  ──►  models/staging/stg_*.sql   ──►  models/raw_vau
 
 ## 3. The fixed bank DV model [ENFORCE]
 
-To make the Durchstich deterministic (no LLM variance), the demo uses a **fixed, hand-checked**
+To make the end-to-end PoC deterministic (no LLM variance), the demo uses a **fixed, hand-checked**
 `DVModel` for the bank domain, fed to the **real** `CodeGeneratorAgent`. Construct names and
 columns below are exact — staging and seeds must match them, because the generator derives
 physical names from them via `normalize_identifier` (UPPER_SNAKE) and the suffixes in
@@ -111,12 +111,12 @@ This exercises **hub + standard link + standard satellite + effectivity satellit
 construct types, all with consistent grain and all officially Postgres-supported. Multi-active
 satellites (addresses) and transactional links (transactions) are **deliberately deferred** to
 §9 because they surface real generator design questions (grain of a sat's source model;
-self-referencing links). Keep the core Durchstich clean; document the rest as findings.
+self-referencing links). Keep the core end-to-end PoC clean; document the rest as findings.
 
 > **Note on the effectivity satellite:** verify it runs under standard `incremental` on Postgres
 > during Phase B. If AutomateDV's `eff_sat` on Postgres needs behaviour the generator's plain
 > `incremental` config doesn't give, fall back to delivering Phase A (hubs/link/standard sats) as
-> the headline Durchstich and record the eff_sat result as a finding — do not block the PoC on it.
+> the headline end-to-end PoC and record the eff_sat result as a finding — do not block the PoC on it.
 >
 > **Update (2026-06-23): resolved** by
 > [eff-sat-incremental-fix-spec.md](./eff-sat-incremental-fix-spec.md). The incremental eff_sat
@@ -314,7 +314,7 @@ a product change, as draft ADRs:
   architecture diagram's "Targets" line (`Snowflake · MS Fabric · Postgres (demo)`).
 - `CLAUDE.md`: in the tech-stack line, change "DuckDB for demo" to "Postgres for the local demo
   (AutomateDV does not support DuckDB)"; add a one-line current-milestone note when the PoC lands.
-- `docs/demos/README.md`: add a row pointing at the runnable Postgres Durchstich.
+- `docs/demos/README.md`: add a row pointing at the runnable Postgres end-to-end PoC.
 
 ---
 
@@ -324,7 +324,7 @@ a product change, as draft ADRs:
    extra, `build_vault_models.py`, `packages.yml`, `dbt_project.yml`, `profiles.yml`, seeds,
    `stg_customer`/`stg_account`, `hub_customer`/`hub_account`/`sat_customer_details`/
    `sat_account_details`. Goal: `dbt seed && dbt run && dbt test` green for **two hubs + two
-   standard satellites**. ← the minimum publishable Durchstich.
+   standard satellites**. ← the minimum publishable end-to-end PoC.
 2. **Phase A+ (link):** add `stg_account_customer` + `link_account_customer`; green.
 3. **Phase B (eff_sat):** add `sat_account_customer_eff`; green, or record the finding (§3 note).
 4. **Docs:** README/CLAUDE.md/demos updates (§10) + demo `README.md` runbook + verification query.

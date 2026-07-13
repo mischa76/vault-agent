@@ -1,4 +1,4 @@
-# Bank Durchstich — a running Data Vault on local Postgres
+# Bank end-to-end PoC — a running Data Vault on local Postgres
 
 This demo is the **end-to-end proof** that vault-agent's output is not just plausible SQL but
 *operable* code: it takes the **real** code generator's AutomateDV/dbt models and builds a

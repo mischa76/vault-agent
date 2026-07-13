@@ -85,7 +85,7 @@ This matters for credibility — overclaiming is the fastest way to lose a techn
   point + transparency + open stack + methodology rigor**. Tell that story; never "another DV
   generator."
 - The field is converging (vendor "AI", academic PoCs). **The window favors visible, reproducible
-  artifacts now** — which is the rationale for going public and shipping the end-to-end Durchstich
+  artifacts now** — which is the rationale for going public and shipping the end-to-end PoC
   as the proof point.
 - Likely reality: many consultancies build comparable PoCs **internally and never publish**. The
   scarcity is in the *public, polished, reproducible* artifact — that scarcity is the opportunity.
