@@ -504,19 +504,40 @@ staging). Multi-candidate business keys (the same key in two sources) are NOT fo
 land in unresolved with both candidates in evidence and a WP10 pointer (Hub.sources is WP10). The
 mapper is inert when ungrounded (no source_schemas -> no LLM call, byte-identical). Eval: the D2
 mapping scorers are wired into eval/run.py against a case's golden_mapping.yml; a bank golden
-mapping (easy/high-floor case) added. Verified live end-to-end (2026-07-13): the bank grounded
-pipeline correctly detected BOTH hub keys as multi-source (present in the hub table AND the
-account_customer link table) -> unresolved with both candidates + WP10 pointer; `resume --map`
-ratified them and re-bound stg_customer->customer / stg_account->account with the mapping flags
-pruned and the run finalised. The messy case reproduced the spike's variant-B band through the
-production mapper (mapping_accuracy 0.870 precision 1.00 / gap_detection 1.000 / calibration 0.945;
-the recall delta vs the spike's 0.984 is the intended multi-source-key deferral). Two REQUIRED
-acceptance items remain as open human-verification steps (heavier new measurements): §10.7 the
-opacity-masked degradation probe (physical names -> COL_0001…, closes the ADR-0008 precondition-(c)
-caveat) and §10.8 a Postgres build of a grounded+profiled+ratified single-source run. Also
-surfaced (pre-existing, NOT WP9): the data_contract agent truncates at max_tokens=4096 on the
-6-table messy schema, so the full messy `run` cannot complete end-to-end today — flagged, out of
-WP9 scope. 306 tests green (keyless), ruff clean, mypy strict clean (31 files).
+mapping (easy/high-floor case) added. Verified live end-to-end (2026-07-13): HITL ratification
+(`resume --map`) re-bound stg_customer->customer / stg_account->account with the mapping flags
+pruned and the run finalised. (NB the WP9 build had an over-deferral bug — it treated an FK
+occurrence of a key in a relationship/transaction table as a second source and parked hub keys in
+`unresolved`; fixed in WP9.1 below. This paragraph originally miscelebrated that as a feature.)
+Two REQUIRED acceptance items remain as open human-verification steps (heavier new measurements):
+§10.7 the opacity-masked degradation probe (physical names -> COL_0001…, closes the ADR-0008
+precondition-(c) caveat) and §10.8 a Postgres build of a grounded+profiled+ratified single-source
+run. Also surfaced (pre-existing, NOT WP9): the data_contract agent truncates at max_tokens=4096 on
+the 6-table messy schema, so the full messy `run` cannot complete end-to-end today — flagged, out
+of WP9 scope.
+
+WP9.1 mapping remediation landed (as of 2026-07-13,
+docs/architecture/backlog-2026-07/kickoff/WP9.1-mapping-remediation.md), fixing three review
+findings against WP9. (F1) Over-broad multi-source deferral: the mapper treated an FK occurrence of
+a business key inside the SAME source system (a key column in a relationship/contract/transaction
+table, e.g. VICTOR_VERTRAG.PARTN_NR "FK to VICTOR_PARTNER.PARTN_NR", or bank account_customer's
+national_customer_id) as a second source and parked the hub key in `unresolved`, so §6 auto-binding
+never fired and live messy accuracy sat at 0.870 (below the spike band). Fix: prompts/source_mapper.md
+now defers ONLY across DIFFERENT source systems (VICTOR entity table vs. CRM entity table); an
+FK reference to another candidate's table is not a second source — map to the entity-anchor table.
+Plus a deterministic belt-and-braces FK-demotion in _post_validate (keyless-testable): when the
+proposer defers a business_key with >= 2 TABLE.COLUMN candidates in its evidence and all but one
+candidate's SourceColumn.comment marks it an FK to the remaining anchor's table, it auto-resolves to
+the anchor (evidence += fk-demotion); no comments / genuinely cross-system stays unresolved (honest,
+WP10). (F2) rebind_staging now applies the FULL build_staging result — staging_models,
+automatedv_yaml["staging"] metadata, and scaffolding — not just the models, so a re-bind can't leave
+stale metadata/sources.yml behind. (F3) this milestone's WP9 paragraph corrected (above). Re-measured
+live (2026-07-13): messy_insurance 5 repeats mapping_accuracy 0.980/0.980/0.960/0.980/0.960 (mean
+0.972, all >= the 0.95 gate; precision 1.00 every run so the statistics trap stays correct —
+partner number -> PARTN_NR, never PARTN_GUID; gap_detection 1.000; the synonym "customer reference"
+stays unresolved, scorer-acceptable per memo thin-evidence #4). 310 tests green (keyless; +4 WP9.1
+tests: FK-demotion resolve / no-comment-stays / cross-system-stays / rebind-consistency), ruff clean,
+mypy strict clean (31 files). §10.7/§10.8 remain open as under WP9.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
