@@ -116,7 +116,7 @@ def test_bank_case_matches_the_durchstich_model() -> None:
     assert link.driving_key == ["hub_account"]
     assert {sat.sat_type for sat in case.golden.satellites} == {"standard", "effectivity"}
     assert case.source_schema is not None and case.source_schema.is_file()
-    assert case.expectations.min_scores == {"construct_f1": 0.5}
+    assert case.expectations.min_scores == {"construct_f1": 0.5, "mapping_accuracy": 0.95}
 
 
 def test_health_insurance_case_shape() -> None:

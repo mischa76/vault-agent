@@ -230,6 +230,19 @@ def _gap_concepts(golden: GoldenMapping) -> set[str]:
     return {normalize_identifier(g.concept) for g in golden.gaps}
 
 
+def _golden_universe(golden: GoldenMapping) -> set[str]:
+    """The normalised concepts the golden mapping actually covers (WP9.2): mappings + gaps +
+    ambiguous. The live pipeline maps the *generated* model's concepts, which routinely
+    include constructs the golden set does not judge (the bank modeler adds
+    transactions/addresses); those must not be scored as wrong — only concepts in this
+    universe are scored."""
+    return (
+        {normalize_identifier(m.concept) for m in golden.mappings}
+        | _gap_concepts(golden)
+        | {normalize_identifier(a.concept) for a in golden.ambiguous}
+    )
+
+
 def _false_friend_pairs(golden: GoldenMapping) -> set[tuple[str, str]]:
     return {_norm_pair(f.table, f.column) for f in golden.false_friends}
 
@@ -237,19 +250,25 @@ def _false_friend_pairs(golden: GoldenMapping) -> set[tuple[str, str]]:
 def mapping_accuracy(proposed: ProposedMapping, golden: GoldenMapping) -> ScorerResult:
     """F1 over proposed ``concept → (table, column)`` pairs vs. the golden mappings.
 
-    Recall is over the mappable concepts (``mappings`` + ``ambiguous``); an ``ambiguous``
-    concept scores for any listed candidate. Precision is over *all* proposals, so a
-    force-fit of a gap concept or a false-friend column costs score. False-friend hits are
-    named in the details (charter §4.2)."""
+    Only proposals whose concept is in the **golden universe** (``mappings`` + ``gaps`` +
+    ``ambiguous``, WP9.2) are scored: the live pipeline maps the generated model's concepts,
+    and constructs the golden set does not cover must not count as wrong. The precision
+    denominator is the *scored* proposals; recall is over the mappable concepts (``mappings``
+    + ``ambiguous``), an ``ambiguous`` concept scoring for any listed candidate. A force-fit
+    of a gap concept or a false-friend column still costs score (both are in the universe).
+    Out-of-universe proposals are reported, not penalised."""
     acceptable = _acceptable_pairs(golden)
     false_friends = _false_friend_pairs(golden)
+    universe = _golden_universe(golden)
     n_mappable = len(acceptable)
-    n_proposals = len(proposed.proposals)
+
+    scored = [p for p in proposed.proposals if normalize_identifier(p.concept) in universe]
+    out_of_universe = len(proposed.proposals) - len(scored)
 
     correct_proposals = 0
     correct_concepts: set[str] = set()
     ff_hits: list[str] = []
-    for p in proposed.proposals:
+    for p in scored:
         cnorm = normalize_identifier(p.concept)
         pair = _norm_pair(p.table, p.column)
         if cnorm in acceptable and pair in acceptable[cnorm]:
@@ -258,16 +277,21 @@ def mapping_accuracy(proposed: ProposedMapping, golden: GoldenMapping) -> Scorer
         if pair in false_friends:
             ff_hits.append(f"{p.concept} → {p.table}.{p.column}")
 
-    if n_mappable == 0 and n_proposals == 0:
-        return ScorerResult(name="mapping_accuracy", score=1.0, details="no mappable concepts")
-    precision = correct_proposals / n_proposals if n_proposals else 0.0
+    if n_mappable == 0 and not scored:
+        details = "no mappable concepts"
+        if out_of_universe:
+            details += f"; {out_of_universe} proposals outside the golden universe, unscored"
+        return ScorerResult(name="mapping_accuracy", score=1.0, details=details)
+    precision = correct_proposals / len(scored) if scored else 0.0
     recall = len(correct_concepts) / n_mappable if n_mappable else 0.0
     f1 = 0.0 if (precision + recall) == 0 else 2 * precision * recall / (precision + recall)
 
     details = (
-        f"F1={f1:.2f} (precision={precision:.2f} {correct_proposals}/{n_proposals}, "
+        f"F1={f1:.2f} (precision={precision:.2f} {correct_proposals}/{len(scored)}, "
         f"recall={recall:.2f} {len(correct_concepts)}/{n_mappable})"
     )
+    if out_of_universe:
+        details += f"; {out_of_universe} proposals outside the golden universe, unscored"
     if ff_hits:
         details += f"; FALSE-FRIEND HIT(S): {', '.join(ff_hits)}"
     return ScorerResult(name="mapping_accuracy", score=f1, details=details)
@@ -301,13 +325,20 @@ def confidence_calibration(proposed: ProposedMapping, golden: GoldenMapping) -> 
     """Details-only (no gate): does confidence separate correct proposals from wrong ones?
 
     Score is the *calibration margin* = mean confidence of correct proposals minus mean of
-    wrong ones, clamped to [0, 1]. The ADR-0008 degraded-mode story (low confidence =
-    review harder) only holds if this margin is meaningfully positive (memo §7 Q2)."""
+    wrong ones, clamped to [0, 1]. Only **golden-universe** proposals are considered (WP9.2),
+    so a confident-but-out-of-universe generated concept can't masquerade as a "wrong"
+    proposal and collapse the margin. With no wrong proposals to separate from, the margin is
+    **1.0** by definition (perfect separation), not the mean confidence. The ADR-0008
+    degraded-mode story (low confidence = review harder) only holds if this margin is
+    meaningfully positive (memo §7 Q2)."""
     acceptable = _acceptable_pairs(golden)
+    universe = _golden_universe(golden)
     correct_conf: list[float] = []
     wrong_conf: list[float] = []
     for p in proposed.proposals:
         cnorm = normalize_identifier(p.concept)
+        if cnorm not in universe:
+            continue
         pair = _norm_pair(p.table, p.column)
         if cnorm in acceptable and pair in acceptable[cnorm]:
             correct_conf.append(p.confidence)
@@ -315,16 +346,25 @@ def confidence_calibration(proposed: ProposedMapping, golden: GoldenMapping) -> 
             wrong_conf.append(p.confidence)
 
     if not correct_conf and not wrong_conf:
-        return ScorerResult(name="confidence_calibration", score=0.0, details="no proposals")
+        return ScorerResult(name="confidence_calibration", score=0.0, details="no scored proposals")
     mean_correct = sum(correct_conf) / len(correct_conf) if correct_conf else 0.0
     mean_wrong = sum(wrong_conf) / len(wrong_conf) if wrong_conf else 0.0
+    if not wrong_conf:
+        # No wrong proposals to separate from: perfect separation by definition (1.0), not
+        # the mean confidence (which would understate a flawless run).
+        return ScorerResult(
+            name="confidence_calibration",
+            score=1.0,
+            details=(
+                f"margin=1.00; mean confidence correct={mean_correct:.2f} "
+                f"(n={len(correct_conf)}), no wrong proposals to separate from"
+            ),
+        )
     margin = max(0.0, min(1.0, mean_correct - mean_wrong))
     details = (
         f"margin={margin:.2f}; mean confidence correct={mean_correct:.2f} "
         f"(n={len(correct_conf)}), wrong={mean_wrong:.2f} (n={len(wrong_conf)})"
     )
-    if not wrong_conf:
-        details += " — no wrong proposals to separate from"
     return ScorerResult(name="confidence_calibration", score=margin, details=details)
 
 

@@ -28,3 +28,6 @@ expectations:
   # Manual pre-release gate (spec §5): conservative floor, not a target.
   min_scores:
     construct_f1: 0.5
+    # WP9 §8 deferred this until a clean baseline existed; with the WP9.2 golden-universe
+    # scorer the bank case maps its golden concepts at F1=1.00, so gate at 0.95.
+    mapping_accuracy: 0.95

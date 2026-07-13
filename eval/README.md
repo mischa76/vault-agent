@@ -63,6 +63,29 @@ their rationale are documented as comments inside each `dataset.yml`.
   `max_validation_warnings` (when set); else 0.0 with details.
 - **pipeline_health** — 1.0 iff no `PipelineFlag` with `severity == "error"` was raised.
 
+### Mapping scorers (WP9)
+
+Score a run's `state.mappings` (a `ProposedMapping`) against a case's optional
+`golden_mapping.yml` (loaded by `eval/mapping.py`). All three match structurally through
+`normalize_identifier` on concept/table/column.
+
+- **Golden concept universe** (WP9.2) — the concepts a golden mapping actually judges:
+  every concept in `mappings` + `gaps` + `ambiguous`. The live pipeline maps the *generated*
+  model's concepts, which routinely include constructs the golden set does not cover (the
+  bank modeler adds transactions/addresses). `mapping_accuracy` and `confidence_calibration`
+  score **only** proposals whose concept is in this universe; out-of-universe proposals are
+  reported (`"N proposals outside the golden universe, unscored"`), never penalised.
+- **mapping_accuracy** — F1 of the scored `concept → (table, column)` proposals. Precision
+  denominator = scored proposals; recall over the mappable concepts (`mappings` +
+  `ambiguous`, any `ambiguous` candidate correct). A force-fit of a `gap` concept or a
+  false-friend column still costs score (both are in the universe).
+- **gap_detection** — recall over the golden `gaps` (fraction correctly called a gap). The
+  force-fit penalty (a golden gap mapped anywhere) stays **global** — it considers all
+  proposals, by design.
+- **confidence_calibration** (informational) — margin = mean confidence of correct scored
+  proposals − mean of wrong ones. With **no wrong proposals** to separate from, the margin
+  is **1.0** by definition (perfect separation), not the mean confidence.
+
 ## Live runner
 
 ```bash

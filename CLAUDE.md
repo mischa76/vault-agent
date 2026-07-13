@@ -539,6 +539,19 @@ stays unresolved, scorer-acceptable per memo thin-evidence #4). 310 tests green 
 tests: FK-demotion resolve / no-comment-stays / cross-system-stays / rebind-consistency), ruff clean,
 mypy strict clean (31 files). §10.7/§10.8 remain open as under WP9.
 
+WP9.2 mapping-scorer universe fix landed (as of 2026-07-13,
+docs/architecture/backlog-2026-07/kickoff/WP9.2-mapping-scorer-universe.md), eval-only. The live
+bank eval scored the mapper's proposals for GENERATED-model concepts the golden mapping doesn't
+cover (transactions/addresses) as "wrong" (precision 0.67, F1 0.80) and their confidence collapsed
+the calibration margin — an eval-design artefact (the spike prototypes were fed the golden model's
+concepts; the pipeline maps the generated model's). Fix (eval/scorers.py only, no src change):
+mapping_accuracy and confidence_calibration score ONLY proposals whose concept is in the golden
+"universe" (mappings + gaps + ambiguous); out-of-universe proposals are reported, not penalised;
+the no-wrong-proposals calibration margin is defined as 1.0 (perfect separation). gap_detection's
+force-fit check stays global by design. bank now scores mapping_accuracy F1=1.00, so its
+min_scores.mapping_accuracy gate (deferred by WP9 §8) is set to 0.95. eval/README scorer semantics
+updated; +3 pinned tests (out-of-universe ignored, no-wrong margin=1.0).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

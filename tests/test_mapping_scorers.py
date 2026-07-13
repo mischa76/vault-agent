@@ -170,7 +170,9 @@ def test_confidence_calibration_positive_margin() -> None:
     assert "margin=0.60" in result.details
 
 
-def test_confidence_calibration_no_wrong_reports_it() -> None:
+def test_confidence_calibration_no_wrong_is_perfect_margin() -> None:
+    # WP9.2: with no wrong proposals to separate from, the margin is 1.0 by definition
+    # (perfect separation), not the mean confidence.
     golden = _golden()
     proposed = ProposedMapping(
         proposals=[
@@ -178,8 +180,65 @@ def test_confidence_calibration_no_wrong_reports_it() -> None:
         ]
     )
     result = confidence_calibration(proposed, golden)
-    assert result.score == pytest.approx(0.8)
+    assert result.score == pytest.approx(1.0)
     assert "no wrong proposals" in result.details
+
+
+# ── WP9.2: golden-universe restriction (the bank live-run artefact) ───────────────────────
+def _bank_golden() -> GoldenMapping:
+    """Six exact-match golden concepts (the bank case; no gaps/ambiguous)."""
+    cols = [
+        ("national customer ID", "customer", "national_customer_id"),
+        ("account number", "account", "account_number"),
+        ("customer name", "customer", "customer_name"),
+        ("date of birth", "customer", "date_of_birth"),
+        ("balance", "account", "balance"),
+        ("status", "account", "status"),
+    ]
+    return GoldenMapping(
+        mappings=[
+            GoldenMappingEntry(concept=c, source_table=t, source_column=col) for c, t, col in cols
+        ]
+    )
+
+
+def _bank_proposed() -> ProposedMapping:
+    """Nine confident proposals: the six golden concepts (correct) + three the generated
+    model added that the golden set does not cover (effective_from/effective_to/txn amount)."""
+    golden = [
+        ("national customer ID", "customer", "national_customer_id"),
+        ("account number", "account", "account_number"),
+        ("customer name", "customer", "customer_name"),
+        ("date of birth", "customer", "date_of_birth"),
+        ("balance", "account", "balance"),
+        ("status", "account", "status"),
+    ]
+    extra = [
+        ("effective from", "account_customer", "effective_from"),
+        ("effective to", "account_customer", "effective_to"),
+        ("transaction amount", "transaction", "amount"),
+    ]
+    return ProposedMapping(
+        proposals=[
+            Proposal(concept=c, table=t, column=col, confidence=0.97)
+            for c, t, col in golden + extra
+        ]
+    )
+
+
+def test_mapping_accuracy_ignores_out_of_universe_proposals() -> None:
+    result = mapping_accuracy(_bank_proposed(), _bank_golden())
+    assert result.score == pytest.approx(1.0)  # 6/6 scored correct; the 3 extras don't count
+    assert "precision=1.00 6/6" in result.details
+    assert "3 proposals outside the golden universe, unscored" in result.details
+
+
+def test_confidence_calibration_ignores_out_of_universe_proposals() -> None:
+    # The 3 confident out-of-universe proposals used to masquerade as "wrong" and collapse
+    # the margin; now they are not scored, so the margin is a clean 1.0 (n=6 correct, n=0 wrong).
+    result = confidence_calibration(_bank_proposed(), _bank_golden())
+    assert result.score == pytest.approx(1.0)
+    assert "n=6" in result.details and "no wrong proposals" in result.details
 
 
 def test_score_mapping_runs_all_three() -> None:
