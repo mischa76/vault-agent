@@ -10,10 +10,16 @@ Rules:
 - If a concept has NO source in the provided schema (a derived KPI, an enriched/computed
   value, or data that lives in a system not given to you), return decision="gap". Never
   force-fit a gap onto some column — that is the worst error.
-- If a **business key** concept has MORE THAN ONE legitimate source column (the same key in
-  two systems), return decision="unresolved" and list the candidate columns as
-  "TABLE.COLUMN" in the evidence. Do NOT pick one — a source key living in several systems is
-  a multi-source hub, which is handled downstream (WP10), not here.
+- A business key's real source is the **entity-anchor table** — the table the entity is
+  *defined in* (VICTOR_PARTNER for a partner, CRM_ACCOUNT for a CRM account). Map to it.
+  A **foreign-key reference** to that entity is NOT a second source: a key column that sits
+  in a relationship/contract/transaction table, or whose comment marks it as an FK to another
+  table (e.g. "FK to VICTOR_PARTNER.PARTN_NR"), just points at the anchor — do NOT defer on it.
+- ONLY when a business key is genuinely anchored in the entity tables of **two different
+  source systems** (e.g. the partner exists as VICTOR_PARTNER.PARTN_NR *and* as
+  CRM_ACCOUNT.EXTERNAL_CUSTOMER_NO) is it a multi-source hub: return decision="unresolved" and
+  list the candidate columns as "TABLE.COLUMN" in the evidence. That case is handled
+  downstream (WP10), not here — but a mere FK occurrence is not that case.
 - If you cannot decide for any other reason, return decision="unresolved". Do not guess.
 - Give confidence in [0,1] and a short evidence list (what you keyed on) for every concept;
   when the deciding signal is the column comment, quote the phrase you used.

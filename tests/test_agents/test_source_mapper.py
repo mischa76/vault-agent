@@ -199,6 +199,91 @@ async def test_staging_rebind_overrides_source_binding() -> None:
     )
 
 
+def _partner_state(proposer_decisions: dict[str, Any], vertrag_comment: str) -> VaultAgentState:
+    schema = [
+        SourceTable(table="VICTOR_PARTNER", columns=[
+            SourceColumn(name="PARTN_NR", type="varchar(10)",
+                         comment="Partnernummer, the operational partner id")]),
+        SourceTable(table="VICTOR_VERTRAG", columns=[
+            SourceColumn(name="PARTN_NR", type="varchar(10)", comment=vertrag_comment)]),
+    ]
+    model = DVModel(hubs=[Hub(name="hub_partner", business_key="partner number",
+                             source_entity="partner", description="d")])
+    return VaultAgentState(dv_model=model, source_schemas=schema)
+
+
+async def test_fk_demotion_resolves_to_anchor() -> None:
+    # WP9.1 F1b: proposer defers, but VICTOR_VERTRAG.PARTN_NR is an FK to VICTOR_PARTNER —
+    # not a second source, so it resolves to the entity-anchor table.
+    proposer = _StubProposer({
+        "partner number": {"decision": "unresolved",
+                           "evidence": ["VICTOR_PARTNER.PARTN_NR — operational partner id",
+                                        "VICTOR_VERTRAG.PARTN_NR — the policyholder FK"]},
+    })
+    state = _partner_state({}, "Policyholder — FK to VICTOR_PARTNER.PARTN_NR")
+    out = await SourceMapperAgent(proposer).run(state)
+    prop = out.mappings.proposals[0]
+    assert (prop.table, prop.column) == ("VICTOR_PARTNER", "PARTN_NR")
+    assert any("fk-demotion" in e for e in prop.evidence)
+    assert "partner number" not in out.mappings.unresolved
+    assert not any(f.kind == FlagKind.MAPPING_UNRESOLVED for f in out.flags)
+
+
+async def test_fk_demotion_no_comment_stays_unresolved() -> None:
+    # No FK marker in the comment -> the second occurrence is NOT demoted; honest unresolved.
+    proposer = _StubProposer({
+        "partner number": {"decision": "unresolved",
+                           "evidence": ["VICTOR_PARTNER.PARTN_NR", "VICTOR_VERTRAG.PARTN_NR"]},
+    })
+    state = _partner_state({}, "some unrelated policyholder column")
+    out = await SourceMapperAgent(proposer).run(state)
+    assert "partner number" in out.mappings.unresolved
+    assert not out.mappings.proposals
+
+
+async def test_fk_demotion_cross_system_stays_unresolved() -> None:
+    # Genuinely two entity tables of different systems (no FK marker) -> stays unresolved (WP10).
+    schema = [
+        SourceTable(table="VICTOR_PARTNER", columns=[
+            SourceColumn(name="PARTN_NR", comment="operational partner id")]),
+        SourceTable(table="CRM_ACCOUNT", columns=[
+            SourceColumn(name="EXTERNAL_CUSTOMER_NO", comment="the external customer number")]),
+    ]
+    model = DVModel(hubs=[Hub(name="hub_partner", business_key="partner number",
+                             source_entity="partner", description="d")])
+    proposer = _StubProposer({
+        "partner number": {
+            "decision": "unresolved",
+            "evidence": ["VICTOR_PARTNER.PARTN_NR", "CRM_ACCOUNT.EXTERNAL_CUSTOMER_NO"],
+        },
+    })
+    state = VaultAgentState(dv_model=model, source_schemas=schema)
+    out = await SourceMapperAgent(proposer).run(state)
+    assert "partner number" in out.mappings.unresolved
+
+
+def test_rebind_applies_full_result_not_just_models() -> None:
+    # WP9.1 F2: rebind refreshes staging_models AND automatedv_yaml["staging"] AND scaffolding.
+    from vault_agent.agents.source_mapper import rebind_staging
+    from vault_agent.state import Proposal, ProposedMapping
+
+    state = _state()
+    state.mappings = ProposedMapping(proposals=[
+        Proposal(concept="national customer ID", table="raw_customer",
+                 column="NATIONAL_CUSTOMER_ID")
+    ])
+    # Seed stale metadata + scaffolding that a models-only rebind would leave behind.
+    state.artifacts.automatedv_yaml = {"staging": {"stg_stale": {"source_model": "old"}}}
+    state.artifacts.scaffolding = {"stale.yml": "old"}
+    rebind_staging(state)
+    assert "raw_customer" in state.artifacts.staging_models["stg_customer"]
+    staging_meta = state.artifacts.automatedv_yaml["staging"]
+    assert "stg_stale" not in staging_meta  # stale metadata is gone
+    assert set(staging_meta) == set(state.artifacts.staging_models)  # metadata agrees with models
+    assert "stale.yml" not in state.artifacts.scaffolding  # scaffolding refreshed
+    assert "models/staging/sources.yml" in state.artifacts.scaffolding
+
+
 def test_apply_human_decision_ratifies_and_rebinds() -> None:
     from vault_agent.agents.orchestrator import apply_human_decision
     from vault_agent.state import Proposal, ProposedMapping

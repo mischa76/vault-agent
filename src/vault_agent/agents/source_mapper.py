@@ -25,6 +25,7 @@ LLM vs deterministic split mirrors ``data_contract``:
 """
 import json
 import logging
+import re
 from typing import Any, Protocol, cast
 
 from vault_agent.agents.base import BaseAgent
@@ -241,6 +242,24 @@ class SourceMapperAgent(BaseAgent):
                 normalize_identifier(str(entry.get("column", ""))) if entry else "",
             )
             if decision != "map" or key not in index:
+                # WP9.1 F1b: deterministic FK-demotion. When the proposer defers a business
+                # key it saw in >= 2 tables, but all but one candidate are FK references to
+                # the remaining anchor entity, resolve to the anchor (belt-and-braces; the
+                # prompt handles it first). No comments / genuinely cross-system -> unresolved.
+                anchor = (
+                    self._fk_demote(evidence, state)
+                    if c.kind == "business_key" and decision == "unresolved"
+                    else None
+                )
+                if anchor is not None:
+                    table, column, demoted = anchor
+                    proposals.append(
+                        self._make_proposal(
+                            state, c, table, column, 0.7,
+                            evidence + [f"fk-demotion: {', '.join(demoted)}"],
+                        )
+                    )
+                    continue
                 unresolved.append(c.concept)
                 detail = "; candidates: " + ", ".join(evidence) if (evidence and c.kind ==
                          "business_key") else ""
@@ -253,22 +272,65 @@ class SourceMapperAgent(BaseAgent):
                 )
                 continue
             table, column = index[key]
-            profile = state.profiling.get(table, {}).get(column)
-            column_ref = self._column_ref(state, table, column)
             confidence = entry.get("confidence", 0.5) if entry else 0.5
             proposals.append(
-                Proposal(
-                    concept=c.concept,
-                    entity=c.entity,
-                    table=table,
-                    column=column,
-                    confidence=max(0.0, min(1.0, float(confidence)
-                                            if isinstance(confidence, (int, float)) else 0.5)),
-                    evidence=evidence or ["llm"],
-                    category=self._category(c.concept, column, column_ref, profile, c.kind),
-                )
+                self._make_proposal(state, c, table, column, confidence, evidence or ["llm"])
             )
         return ProposedMapping(proposals=proposals, gaps=gaps, unresolved=unresolved)
+
+    def _make_proposal(
+        self, state: VaultAgentState, c: _Concept, table: str, column: str,
+        confidence: Any, evidence: list[str],
+    ) -> Proposal:
+        profile = state.profiling.get(table, {}).get(column)
+        column_ref = self._column_ref(state, table, column)
+        conf = max(0.0, min(1.0, float(confidence)
+                            if isinstance(confidence, (int, float)) else 0.5))
+        return Proposal(
+            concept=c.concept, entity=c.entity, table=table, column=column, confidence=conf,
+            evidence=evidence,
+            category=self._category(c.concept, column, column_ref, profile, c.kind),
+        )
+
+    def _fk_demote(
+        self, evidence: list[str], state: VaultAgentState
+    ) -> tuple[str, str, list[str]] | None:
+        """Resolve a deferred business key to its entity-anchor table (WP9.1 F1b).
+
+        Extracts ``TABLE.COLUMN`` candidates the proposer named in its evidence; if all but
+        one are FK references (comment marks FK + names the anchor's table) to the remaining
+        anchor candidate, returns ``(anchor table, anchor col, demoted 'T.C' labels)``. A
+        single distinct anchor is required; otherwise ``None`` (stays unresolved)."""
+        index = self._column_index(state)
+        candidates: list[tuple[str, str]] = []
+        for line in evidence:
+            for match in re.finditer(r"([A-Za-z_]\w*)\.([A-Za-z_]\w*)", line):
+                pair = (normalize_identifier(match.group(1)), normalize_identifier(match.group(2)))
+                real = index.get(pair)
+                if real is not None and real not in candidates:
+                    candidates.append(real)
+        if len(candidates) < 2 or len({t for t, _ in candidates}) < 2:
+            return None
+        anchors: list[tuple[str, str]] = []
+        for anchor in candidates:
+            others = [c for c in candidates if c[0] != anchor[0]]
+            if others and all(self._is_fk_to(state, other, anchor[0]) for other in others):
+                anchors.append(anchor)
+        if len({a[0] for a in anchors}) != 1:
+            return None
+        anchor = anchors[0]
+        demoted = [f"{t}.{col}" for t, col in candidates if t != anchor[0]]
+        return anchor[0], anchor[1], demoted
+
+    def _is_fk_to(
+        self, state: VaultAgentState, candidate: tuple[str, str], anchor_table: str
+    ) -> bool:
+        column_ref = self._column_ref(state, candidate[0], candidate[1])
+        comment = (column_ref.comment or "").lower() if column_ref else ""
+        if "fk" not in comment and "foreign key" not in comment:
+            return False
+        tokens = {normalize_identifier(t) for t in re.findall(r"\w+", comment)}
+        return normalize_identifier(anchor_table) in tokens
 
     @staticmethod
     def _column_index(state: VaultAgentState) -> dict[tuple[str, str], tuple[str, str]]:
@@ -352,6 +414,11 @@ def rebind_staging(state: VaultAgentState) -> None:
         contracts=state.artifacts.contracts,
         source_overrides=overrides,
     )
+    # Apply the FULL result (WP9.1 F2) — mirror code_generator so metadata and scaffolding
+    # don't keep the pre-rebind bindings. models + scaffolding + the staging metadata block.
     state.artifacts.staging_models = result.models
+    state.artifacts.scaffolding = result.scaffolding
+    if state.artifacts.automatedv_yaml:
+        state.artifacts.automatedv_yaml["staging"] = result.metadata
     # Drop the now-satisfied SOURCE_BINDING flags for overridden specs; keep the rest.
     state.flags = [f for f in state.flags if f.kind != FlagKind.SOURCE_BINDING] + result.flags
