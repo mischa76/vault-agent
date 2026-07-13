@@ -22,6 +22,8 @@ class FlagKind:
     NO_SOURCE_SCHEMA = "no_source_schema"  # contract inferred from prose, not a schema
     SOURCE_BINDING = "source_binding"  # staging source relation inferred, not declared
     INPUT_TRUNCATED = "input_truncated"  # oversized input document cut to the size guard
+    MAPPING_GAP = "mapping_gap"  # concept has no in-scope source (WP9; belongs downstream)
+    MAPPING_UNRESOLVED = "mapping_unresolved"  # concept's source undecided; human ratifies
     GENERIC = "generic"
 
 
@@ -61,12 +63,31 @@ class BusinessKeyCandidate(BaseModel):
     rationale: str
 
 
+class SourceColumn(BaseModel):
+    """One declared source column, optionally carrying its type and documentation (WP9 §3.1).
+
+    The richer form ADR-0008 precondition (c) wants — ``type`` and a source ``comment`` —
+    which the business↔source mapper reads to establish *intent* (a column named ``KD_NR``
+    whose comment says "branch code" is not a customer number). Both are optional: a bare
+    column name (the ADR-0004 shape) coerces to ``SourceColumn(name=...)`` with empty
+    type/comment, so pre-WP9 schemas stay byte-for-byte inert."""
+
+    name: str
+    type: str = ""
+    comment: str | None = None
+
+
 class SourceTable(BaseModel):
     """A declared source table the model can be grounded against (ADR-0004).
 
     Optional input: when ``VaultAgentState.source_schemas`` is non-empty the validator
     flags business keys / attributes that match no declared column, and the modeler and
     business-key prompts are steered toward these real columns.
+
+    ``columns`` accepts a bare name (``list[str]``, the ADR-0004 shape) or the enriched
+    ``{name, type, comment}`` form (WP9 §3.1); a before-validator normalises every entry to
+    :class:`SourceColumn`, and grounding/staging read the plain names through
+    :attr:`column_names` so bare-string inputs stay byte-identical.
 
     ``schema_name`` / ``database`` (WP7 §7.2) locate the table physically; when
     declared, grounded runs bind the matching staging model through a real dbt
@@ -77,9 +98,87 @@ class SourceTable(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
     table: str  # the source table / entity name
-    columns: list[str] = Field(default_factory=list)  # its column names, as in the source
+    # Column definitions, as in the source. Union keeps bare-string YAML working; the
+    # before-validator normalises to SourceColumn so downstream sees one shape.
+    columns: list[str | SourceColumn] = Field(default_factory=list)
     schema_name: str | None = Field(default=None, alias="schema")
     database: str | None = None
+
+    @field_validator("columns", mode="before")
+    @classmethod
+    def _normalise_columns(cls, value: Any) -> Any:
+        """Coerce every entry to a SourceColumn (WP9 §3.1; mirrors the WP8 LinkHubRef union).
+
+        Plain strings become bare ``SourceColumn(name=...)``; dicts/SourceColumns pass
+        through. Field assignment bypasses this, which is why :attr:`column_names` re-coerces
+        defensively."""
+        if isinstance(value, list):
+            return [SourceColumn(name=v) if isinstance(v, str) else v for v in value]
+        return value
+
+    @property
+    def column_names(self) -> list[str]:
+        """The plain column names — the single read path for grounding/staging (WP9 §3.1)."""
+        return [c.name if isinstance(c, SourceColumn) else c for c in self.columns]
+
+    @property
+    def column_refs(self) -> list[SourceColumn]:
+        """``columns`` as normalised :class:`SourceColumn`s (re-coerces post-assignment)."""
+        return [SourceColumn(name=c) if isinstance(c, str) else c for c in self.columns]
+
+
+class ColumnProfile(BaseModel):
+    """Per-column profiling statistics (WP9 §3.2 / ADR-0008 #4).
+
+    A pre-step *input* artifact — produced ahead of time from a sanitised extract or a
+    metadata export, never by the pipeline logging into a live source. The mapper uses it
+    as BK-plausibility and post-validation evidence, never as the primary intent signal
+    (the spike found comments/names carry intent; statistics establish structure, not
+    intent)."""
+
+    name: str
+    uniqueness_ratio: float = 0.0
+    null_ratio: float = 0.0
+    distinct_count: int = 0
+    example_values: list[str] = Field(default_factory=list)
+
+
+# The evidence-derived confidence tier (WP9 §7): a deterministic category the review queue
+# sorts/flags by, more robust than a raw self-reported confidence number across models.
+MappingCategory = Literal[
+    "exact_name", "comment_grounded", "profiled_key", "llm_semantic", "unresolved"
+]
+# Ratification lifecycle of one proposal (WP9 §5); a human accepts/overrides at the HITL.
+RatificationStatus = Literal["proposed", "accepted", "overridden"]
+
+
+class Proposal(BaseModel):
+    """One proposed ``concept → (table, column)`` mapping with its evidence trail (WP9).
+
+    ``confidence`` (0..1) and ``evidence`` are the ADR-0008 assist-quality machinery — the
+    ratifying human sees *why* a column was proposed. ``category`` is the deterministic
+    confidence tier (§7); ``ratification_status`` tracks the HITL decision (§5)."""
+
+    concept: str
+    table: str
+    column: str
+    confidence: float = 0.0
+    evidence: list[str] = Field(default_factory=list)
+    entity: str | None = None
+    category: MappingCategory = "llm_semantic"
+    ratification_status: RatificationStatus = "proposed"
+
+
+class ProposedMapping(BaseModel):
+    """The mapper's full answer for one run: resolved proposals plus honest non-answers.
+
+    ``gaps`` are concepts with no in-scope source (ADR-0008 #3, a first-class output);
+    ``unresolved`` are concepts the mapper could not decide (incl. multi-candidate keys held
+    for WP10) — distinct from a gap, and the honest degraded-mode behaviour."""
+
+    proposals: list[Proposal] = Field(default_factory=list)
+    gaps: list[str] = Field(default_factory=list)
+    unresolved: list[str] = Field(default_factory=list)
 
 
 class Hub(BaseModel):
@@ -272,7 +371,14 @@ class VaultAgentState(BaseModel):
     input_documents: list[str] = Field(default_factory=list)
     # Optional source-column metadata for grounding (ADR-0004); empty = no grounding.
     source_schemas: list[SourceTable] = Field(default_factory=list)
+    # Optional profiling evidence for the mapping step (WP9 §3.2 / ADR-0008 #4): a pre-step
+    # file, table -> column -> ColumnProfile. Empty = no profiling (mapper leans on
+    # names/comments, which the spike found sufficient for intent).
+    profiling: dict[str, dict[str, ColumnProfile]] = Field(default_factory=dict)
     # Working state
+    # Business↔source mapping proposals (WP9): written by the source_mapper on grounded runs,
+    # ratified at the HITL checkpoint, and consumed by staging binding. Empty when ungrounded.
+    mappings: ProposedMapping = Field(default_factory=ProposedMapping)
     requirements: list[ParsedRequirement] = Field(default_factory=list)
     business_keys: list[BusinessKeyCandidate] = Field(default_factory=list)
     dv_model: DVModel = Field(default_factory=DVModel)

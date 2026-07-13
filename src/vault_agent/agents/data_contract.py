@@ -146,7 +146,7 @@ class DataContractAgent(BaseAgent):
         fall back to the business entities (one contract per entity, fields = its proposed
         business keys), and flag that types were inferred from prose rather than a schema."""
         if state.source_schemas:
-            return [(t.table, list(t.columns)) for t in state.source_schemas]
+            return [(t.table, list(t.column_names)) for t in state.source_schemas]
         by_entity: dict[str, list[str]] = {}
         for bk in state.business_keys:
             fields = by_entity.setdefault(bk.entity, [])

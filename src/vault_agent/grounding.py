@@ -17,7 +17,7 @@ def known_columns(source_schemas: list[SourceTable]) -> set[str]:
     return {
         normalize_identifier(col)
         for table in source_schemas
-        for col in table.columns
+        for col in table.column_names
     }
 
 
@@ -41,6 +41,6 @@ def render_schema_prompt_section(source_schemas: list[SourceTable]) -> str:
         "",
     ]
     for table in source_schemas:
-        cols = ", ".join(table.columns) if table.columns else "(no columns listed)"
+        cols = ", ".join(table.column_names) if table.columns else "(no columns listed)"
         lines.append(f"- **{table.table}**: {cols}")
     return "\n" + "\n".join(lines) + "\n"

@@ -142,3 +142,59 @@ def test_invalid_schema_key_type_is_attributable(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match=r"entry #1 is invalid"):
         load_source_schemas(path)
+
+
+def test_bare_column_names_stay_inert(tmp_path: Path) -> None:
+    # WP9 §3.1: bare string columns coerce to SourceColumn(name=...) with empty type/comment
+    # and column_names returns the exact original strings (byte-for-byte inert).
+    path = tmp_path / "schema.yml"
+    path.write_text(_YAML, encoding="utf-8")
+    loaded = load_source_schemas(path)
+    assert loaded[0].column_names == [
+        "national_customer_id",
+        "bank_customer_reference",
+        "customer_name",
+    ]
+    assert loaded[0].column_refs[0].type == ""
+    assert loaded[0].column_refs[0].comment is None
+
+
+def test_enriched_columns_carry_type_and_comment(tmp_path: Path) -> None:
+    # WP9 §3.1: the {name, type, comment} form loads; column_names still yields plain names.
+    path = tmp_path / "enriched.yml"
+    path.write_text(
+        """\
+source_schemas:
+  - table: VICTOR_PARTNER
+    schema: legacy_victor
+    columns:
+      - name: PARTN_NR
+        type: varchar(10)
+        comment: "operational partner id"
+      - name: KD_NR
+        type: varchar(6)
+        comment: "legacy branch code, NOT a customer number"
+      - PARTN_TYP
+""",
+        encoding="utf-8",
+    )
+    loaded = load_source_schemas(path)
+    assert loaded[0].schema_name == "legacy_victor"
+    assert loaded[0].column_names == ["PARTN_NR", "KD_NR", "PARTN_TYP"]
+    refs = loaded[0].column_refs
+    assert refs[0].type == "varchar(10)" and refs[0].comment == "operational partner id"
+    assert "branch code" in (refs[1].comment or "")
+    # A bare string mixed in still coerces to an empty-metadata column.
+    assert refs[2].type == "" and refs[2].comment is None
+
+
+def test_shipped_enriched_schema_loads() -> None:
+    # The spike's reference enriched schema (WP9 §3.1 reference input) round-trips.
+    path = (
+        Path(__file__).resolve().parent.parent
+        / "eval/datasets/messy_insurance/source_schema_enriched.yml"
+    )
+    loaded = load_source_schemas(path)
+    victor = next(t for t in loaded if t.table == "VICTOR_PARTNER")
+    kd_nr = next(c for c in victor.column_refs if c.name == "KD_NR")
+    assert "branch" in (kd_nr.comment or "").lower()
