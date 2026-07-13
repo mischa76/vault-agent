@@ -1,0 +1,38 @@
+# Golden business↔source mapping for the bank case (WP9 §8 — the easy/high-floor case).
+#
+# The bank source columns are already business-named and match the concepts almost
+# exactly, so this is the trivial baseline any mapping mechanism must clear (contrast the
+# messy_insurance case, which embeds the five §4 traps). No gaps, no ambiguity, no
+# false-friends here. Scored by eval/scorers.py:mapping_accuracy/gap_detection through
+# rules.normalize_identifier; loaded by eval/mapping.py:load_golden_mapping.
+mappings:
+  - concept: "national customer ID"
+    entity: customer
+    source_table: customer
+    source_column: national_customer_id
+    kind: business_key
+  - concept: "account number"
+    entity: account
+    source_table: account
+    source_column: account_number
+    kind: business_key
+  - concept: "customer name"
+    entity: customer
+    source_table: customer
+    source_column: customer_name
+    kind: attribute
+  - concept: "date of birth"
+    entity: customer
+    source_table: customer
+    source_column: date_of_birth
+    kind: attribute
+  - concept: "balance"
+    entity: account
+    source_table: account
+    source_column: balance
+    kind: attribute
+  - concept: "status"
+    entity: account
+    source_table: account
+    source_column: status
+    kind: attribute

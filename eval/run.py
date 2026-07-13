@@ -31,7 +31,8 @@ from langgraph.types import Command
 from pydantic import BaseModel
 
 from eval.datasets import DATASET_FILENAME, DATASETS_ROOT, EvalCase, load_all_cases, load_eval_case
-from eval.scorers import ScorerResult, score_state
+from eval.mapping import GOLDEN_MAPPING_FILENAME, load_golden_mapping
+from eval.scorers import ScorerResult, score_mapping, score_state
 from vault_agent.cli import _checkpoint_serde
 from vault_agent.config import get_settings
 from vault_agent.graph import build_graph
@@ -153,12 +154,21 @@ def _load_cases(args: argparse.Namespace) -> list[EvalCase]:
     return [load_eval_case(DATASETS_ROOT / args.dataset / DATASET_FILENAME)]
 
 
+def _score_run(case: EvalCase, state: VaultAgentState) -> list[ScorerResult]:
+    """Construct scorers, plus the WP9 mapping scorers when the case ships a golden mapping."""
+    results = score_state(state, case)
+    golden_path = DATASETS_ROOT / case.name / GOLDEN_MAPPING_FILENAME
+    if golden_path.is_file():
+        results.extend(score_mapping(state.mappings, load_golden_mapping(golden_path)))
+    return results
+
+
 async def _run_and_score(case: EvalCase, repeat: int) -> list[list[ScorerResult]]:
     runs: list[list[ScorerResult]] = []
     for index in range(repeat):
         print(f"  run {index + 1}/{repeat} ...", flush=True)
         state = await run_case_once(case)
-        runs.append(score_state(state, case))
+        runs.append(_score_run(case, state))
     return runs
 
 

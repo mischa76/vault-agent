@@ -19,35 +19,13 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, Field, ValidationError
 
+# The prototypes' / agent's output shape is the promoted state model (WP9 §5): one definition
+# for the pipeline (state.mappings) and the scorers, re-exported here for the spike's callers.
+from vault_agent.state import Proposal, ProposedMapping
+
+__all__ = ["Proposal", "ProposedMapping"]
+
 ConceptKind = Literal["business_key", "attribute"]
-
-
-# ── The prototypes' output shape (shared by variant A and B) ────────────────────────────
-class Proposal(BaseModel):
-    """One proposed ``concept → (table, column)`` mapping with its evidence trail.
-
-    ``confidence`` (0..1) and ``evidence`` are the ADR-0008 assist-quality machinery: the
-    ratifying human sees *why* a column was proposed, and the degraded-mode story needs
-    low confidence to correlate with error (memo §7 Q2)."""
-
-    concept: str
-    table: str
-    column: str
-    confidence: float = 0.0
-    evidence: list[str] = Field(default_factory=list)
-    entity: str | None = None
-
-
-class ProposedMapping(BaseModel):
-    """A mechanism's full answer for one case: resolved proposals plus honest non-answers.
-
-    ``gaps`` are concepts the mechanism judged to have no in-scope source (ADR-0008 #3,
-    a first-class output); ``unresolved`` are concepts it could not decide — distinct from
-    a gap, and the honest degraded-mode behaviour (surface the miss, do not guess)."""
-
-    proposals: list[Proposal] = Field(default_factory=list)
-    gaps: list[str] = Field(default_factory=list)
-    unresolved: list[str] = Field(default_factory=list)
 
 
 # ── The golden ground truth (loaded from golden_mapping.yml) ────────────────────────────
