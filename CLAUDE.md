@@ -475,6 +475,49 @@ the key from a real .env — which also made the "keyless" suite fire 3 real ban
 now neutralises load_dotenv, so the suite is keyless and fast again (285 passed). ruff / mypy
 (29 files) green.
 
+WP9 business↔source mapping landed (as of 2026-07-13, ADR-0008 Accepted,
+docs/architecture/backlog-2026-07/wp9-mapping-spec.md), the single-source half of Phase 2. A new
+LLM agent (agents/source_mapper.py, SourceMapperAgent) proposes, per validated-model concept (hub
+business keys + satellite attributes), which physical source column feeds it — or that it is a
+coverage gap — then deterministic post-validation demotes any pick naming a non-existent column to
+unresolved (never invents a column, the spike's safety property). It productionises the spike's
+LLM-first mechanism: one ForcedToolCaller pass (Sonnet-tier, prompt in prompts/source_mapper.md,
+injectable MappingProposer for keyless tests) over the enriched schema + profiling + comments.
+Inputs (both inert-compatible, ADR-0004 byte-for-byte guard): state.SourceColumn makes
+SourceTable.columns a list[str | SourceColumn] union (name/type/comment; bare strings coerce, read
+via .column_names) so a schema can carry the type+comment ADR-0008 precondition (c) wants; a new
+profiling.py load_profiling producer feeds state.profiling (CLI `run --profiling <file>`);
+state.Proposal/ProposedMapping are promoted into state.py (re-exported by eval/mapping.py — one
+definition) with a §7 deterministic confidence category
+(exact_name>comment_grounded>profiled_key>llm_semantic) and a ratification_status. Graph: the
+mapper runs on the validated path (validator --pass--> source_mapper --> human_checkpoint -->
+adr_author). NB the spec's §4 diagram placed it before code generation, but the validator validates
+the code generator's artifacts (_check_artifact_columns), so code generation cannot move after the
+validator — the mapper runs post-validation and re-binds staging itself (build_staging/bind_sources
+gained source_overrides: a ratified hub-key mapping binds its staging to the real source table,
+clearing the SOURCE_BINDING flag; empty overrides leave the WP7 inference byte-identical). HITL:
+gaps/unresolved join the ADR-0006 review queue (FlagKind.MAPPING_GAP/MAPPING_UNRESOLVED,
+aggregatable; requires_signoff unchanged — a gap is honest output, not a blocker); write_outputs
+emits mappings.review.yml; `resume --mappings <edited file>` / `--map "concept=TABLE.COLUMN"`
+ratify via apply_human_decision (promotes unresolved/gap concepts, prunes their flags, re-binds
+staging). Multi-candidate business keys (the same key in two sources) are NOT force-picked — they
+land in unresolved with both candidates in evidence and a WP10 pointer (Hub.sources is WP10). The
+mapper is inert when ungrounded (no source_schemas -> no LLM call, byte-identical). Eval: the D2
+mapping scorers are wired into eval/run.py against a case's golden_mapping.yml; a bank golden
+mapping (easy/high-floor case) added. Verified live end-to-end (2026-07-13): the bank grounded
+pipeline correctly detected BOTH hub keys as multi-source (present in the hub table AND the
+account_customer link table) -> unresolved with both candidates + WP10 pointer; `resume --map`
+ratified them and re-bound stg_customer->customer / stg_account->account with the mapping flags
+pruned and the run finalised. The messy case reproduced the spike's variant-B band through the
+production mapper (mapping_accuracy 0.870 precision 1.00 / gap_detection 1.000 / calibration 0.945;
+the recall delta vs the spike's 0.984 is the intended multi-source-key deferral). Two REQUIRED
+acceptance items remain as open human-verification steps (heavier new measurements): §10.7 the
+opacity-masked degradation probe (physical names -> COL_0001…, closes the ADR-0008 precondition-(c)
+caveat) and §10.8 a Postgres build of a grounded+profiled+ratified single-source run. Also
+surfaced (pre-existing, NOT WP9): the data_contract agent truncates at max_tokens=4096 on the
+6-table messy schema, so the full messy `run` cannot complete end-to-end today — flagged, out of
+WP9 scope. 306 tests green (keyless), ruff clean, mypy strict clean (31 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
