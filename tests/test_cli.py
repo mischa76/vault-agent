@@ -53,7 +53,7 @@ def test_write_outputs_creates_files(tmp_path: Path) -> None:
 
     assert counts == {
         "models": 2, "staging": 1, "scaffolding": 2, "adrs": 1, "metadata": 1,
-        "contracts": 0, "review_items": 0,
+        "contracts": 0, "mappings": 0, "review_items": 0,
     }
     assert (tmp_path / "models" / "raw_vault" / "hub_customer.sql").read_text() == "-- hub sql"
     assert (tmp_path / "models" / "raw_vault" / "sat_customer_details.sql").exists()
@@ -74,8 +74,9 @@ def test_write_outputs_skips_empty_sections(tmp_path: Path) -> None:
 
     assert counts == {
         "models": 0, "staging": 0, "scaffolding": 0, "adrs": 0, "metadata": 0,
-        "contracts": 0, "review_items": 0,
+        "contracts": 0, "mappings": 0, "review_items": 0,
     }
+    assert not (tmp_path / "mappings.review.yml").exists()
     assert not (tmp_path / "models" / "staging").exists()
     assert not (tmp_path / "dbt_project.yml").exists()
     assert not (tmp_path / "metadata").exists()
@@ -112,6 +113,31 @@ def test_parse_owner_rejects_malformed(spec: str) -> None:
         _parse_owner(spec)
 
 
+def test_parse_map_and_mappings_file_round_trip(tmp_path: Path) -> None:
+    from vault_agent.cli import _mappings_from_file, _parse_map, _render_mappings_review
+    from vault_agent.state import Proposal, ProposedMapping
+
+    assert _parse_map("partner number=VICTOR_PARTNER.PARTN_NR") == (
+        "partner number", "VICTOR_PARTNER.PARTN_NR"
+    )
+    with pytest.raises(ValueError, match="expected 'concept=TABLE.COLUMN'"):
+        _parse_map("no target here")
+
+    mapping = ProposedMapping(
+        proposals=[Proposal(concept="partner number", table="VICTOR_PARTNER", column="PARTN_NR")],
+        gaps=["claims ratio"],
+        unresolved=["customer reference"],
+    )
+    path = tmp_path / "mappings.review.yml"
+    path.write_text(_render_mappings_review(mapping), encoding="utf-8")
+    assert _mappings_from_file(path) == {"partner number": "VICTOR_PARTNER.PARTN_NR"}
+
+
+def test_build_decision_carries_mappings() -> None:
+    decision = _build_decision([], accept=False, mappings={"c": "T.COL"})
+    assert decision["mappings"] == {"c": "T.COL"}
+
+
 def test_build_decision_collects_owners() -> None:
     decision = _build_decision(["customer=Data Team <d@x.io>", "account=Risk"], accept=True)
     assert decision == {
@@ -120,6 +146,7 @@ def test_build_decision_collects_owners() -> None:
             "account": {"name": "Risk", "email": None},
         },
         "accept": True,
+        "mappings": {},
     }
 
 

@@ -26,7 +26,8 @@ from pydantic import BaseModel, Field
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.models.contract import ContractOwner
-from vault_agent.state import ExecutionPlan, FlagKind, VaultAgentState
+from vault_agent.rules.dv2_rules import normalize_identifier
+from vault_agent.state import ExecutionPlan, FlagKind, Proposal, VaultAgentState
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,8 @@ REVIEW_FLAG_GROUPS: dict[str, str] = {
     FlagKind.UNDETERMINED_TYPE: "undetermined-type",
     FlagKind.NO_SOURCE_SCHEMA: "no-source-schema",
     FlagKind.SOURCE_BINDING: "source-binding",
+    FlagKind.MAPPING_GAP: "mapping-gap",
+    FlagKind.MAPPING_UNRESOLVED: "mapping-unresolved",
 }
 _DEFAULT_GROUP = "other"
 # Above this many items in one group, the renderers collapse it to a single summarised line.
@@ -52,6 +55,8 @@ _GROUP_LABELS: dict[str, str] = {
     "undetermined-type": "undetermined field type",
     "no-source-schema": "contract(s) without a source schema",
     "source-binding": "inferred staging source binding(s)",
+    "mapping-gap": "concept(s) with no in-scope source (coverage gap)",
+    "mapping-unresolved": "concept(s) with an unresolved source mapping",
 }
 
 
@@ -301,7 +306,70 @@ def apply_human_decision(state: VaultAgentState, decision: Any) -> list[str]:
             for flag in state.flags
             if not (flag.kind == FlagKind.OWNER_PLACEHOLDER and flag.asset in resolved)
         ]
+
+    # WP9: ratify / override business↔source mappings, then re-bind staging to them.
+    mappings = decision.get("mappings", {}) if isinstance(decision, dict) else {}
+    accept = bool(decision.get("accept")) if isinstance(decision, dict) else False
+    _apply_mapping_decision(state, mappings if isinstance(mappings, dict) else {}, accept)
     return assigned
+
+
+def _apply_mapping_decision(
+    state: VaultAgentState, overrides: dict[str, Any], accept: bool
+) -> None:
+    """Apply a human's mapping ratification (WP9 §5): ``{concept: "TABLE.COLUMN"}`` overrides
+    plus a global ``accept``. Overrides update/promote a proposal (from unresolved/gap),
+    mark it ``overridden``, and prune its mapping flag; ``accept`` marks every still-proposed
+    proposal ``accepted``. Any change re-binds staging so it reads the ratified source."""
+    changed = False
+    by_concept = {normalize_identifier(p.concept): p for p in state.mappings.proposals}
+    for concept, target in overrides.items():
+        if not isinstance(target, str) or "." not in target:
+            continue
+        table, column = target.rsplit(".", 1)
+        norm = normalize_identifier(concept)
+        existing = by_concept.get(norm)
+        if existing is not None:
+            existing.table, existing.column = table.strip(), column.strip()
+            existing.ratification_status = "overridden"
+        else:
+            state.mappings.unresolved = [
+                u for u in state.mappings.unresolved if normalize_identifier(u) != norm
+            ]
+            state.mappings.gaps = [
+                g for g in state.mappings.gaps if normalize_identifier(g) != norm
+            ]
+            state.mappings.proposals.append(
+                Proposal(
+                    concept=concept,
+                    table=table.strip(),
+                    column=column.strip(),
+                    confidence=1.0,
+                    evidence=["human override"],
+                    ratification_status="overridden",
+                )
+            )
+        state.flags = [
+            f
+            for f in state.flags
+            if not (
+                f.kind in (FlagKind.MAPPING_UNRESOLVED, FlagKind.MAPPING_GAP)
+                and f.asset
+                and normalize_identifier(f.asset) == norm
+            )
+        ]
+        changed = True
+
+    if accept:
+        for proposal in state.mappings.proposals:
+            if proposal.ratification_status == "proposed":
+                proposal.ratification_status = "accepted"
+                changed = True
+
+    if changed:
+        from vault_agent.agents.source_mapper import rebind_staging
+
+        rebind_staging(state)
 
 
 class HumanCheckpointAgent(BaseAgent):

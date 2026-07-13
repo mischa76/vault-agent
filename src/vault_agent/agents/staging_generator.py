@@ -203,18 +203,30 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
 
 
 def bind_sources(
-    specs: dict[str, StagingSpec], source_schemas: list[SourceTable]
+    specs: dict[str, StagingSpec],
+    source_schemas: list[SourceTable],
+    source_overrides: dict[str, str] | None = None,
 ) -> list[PipelineFlag]:
     """Bind each staging model to its raw relation; flag every *inferred* binding.
 
     A declared source table matches by normalised name against the construct base or its
     ``raw_<base>`` form; the table name is then used verbatim (source dialect, ADR-0004).
-    Without a match the binding is inferred as ``raw_<base>`` and flagged for review."""
+    Without a match the binding is inferred as ``raw_<base>`` and flagged for review.
+
+    ``source_overrides`` (WP9 §6) maps a normalised construct base to the source table a
+    ratified/proposed business↔source mapping resolved it to; an override binds the spec
+    verbatim and raises no flag (the mapping *is* the human-reviewable evidence)."""
+    overrides = source_overrides or {}
     flags: list[PipelineFlag] = []
     for spec in specs.values():
         if spec.bound:
             # Declared on the construct itself (Satellite.source_table, WP7 §7.1):
             # bound verbatim at collection time — no inference, no flag.
+            continue
+        override = overrides.get(normalize_identifier(spec.base))
+        if override:
+            spec.source_model = override
+            spec.bound = True
             continue
         inferred = RAW_SOURCE_PREFIX + spec.base
         candidates = {normalize_identifier(spec.base), normalize_identifier(inferred)}
@@ -611,14 +623,19 @@ def build_staging(
     model: DVModel,
     source_schemas: list[SourceTable],
     contracts: list[dict[str, Any]] | None = None,
+    source_overrides: dict[str, str] | None = None,
 ) -> StagingResult:
     """The full staging pass: specs -> bindings -> rendered models + scaffolding.
 
     ``contracts`` (``state.artifacts.contracts``, drafted by the data-contract agent —
     which runs BEFORE the code generator in the graph) pins seed column types for
-    staging sources whose contract matches by name (WP7 §7.3)."""
+    staging sources whose contract matches by name (WP7 §7.3).
+
+    ``source_overrides`` (WP9 §6) binds specs to the source tables a ratified/proposed
+    business↔source mapping resolved them to (the source_mapper's re-bind); ``None`` /
+    empty leaves the WP7 inference untouched, so unmapped runs stay byte-identical."""
     specs = collect_staging_specs(model)
-    flags = bind_sources(specs, source_schemas)
+    flags = bind_sources(specs, source_schemas, source_overrides)
     # Grounded runs only (ungrounded: no blocks, no source_name — byte-identical output).
     blocks = group_sources(specs, source_schemas)
     seed_column_types = _collect_seed_column_types(specs, contracts or [])

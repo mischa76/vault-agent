@@ -34,8 +34,9 @@ from vault_agent.agents.orchestrator import (
     render_review_queue_md,
 )
 from vault_agent.graph import build_graph
+from vault_agent.profiling import load_profiling
 from vault_agent.source_schema import load_source_schemas
-from vault_agent.state import SourceTable, VaultAgentState
+from vault_agent.state import ColumnProfile, ProposedMapping, SourceTable, VaultAgentState
 
 app = typer.Typer(help="Agentic AI for Data Vault 2.0 automation.", no_args_is_help=True)
 
@@ -121,6 +122,12 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         for asset, tests_yaml in state.artifacts.dbt_tests.items():
             (contracts_dir / f"{asset}.tests.yml").write_text(tests_yaml, encoding="utf-8")
 
+    mapping = state.mappings
+    if mapping.proposals or mapping.gaps or mapping.unresolved:
+        (out_dir / "mappings.review.yml").write_text(
+            _render_mappings_review(mapping), encoding="utf-8"
+        )
+
     review_queue = assemble_review_queue(state)
     if review_queue.items:
         (out_dir / "review-queue.md").write_text(
@@ -134,8 +141,40 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         "adrs": len(state.adrs),
         "metadata": 1 if state.artifacts.automatedv_yaml else 0,
         "contracts": len(state.artifacts.contracts),
+        "mappings": len(mapping.proposals),
         "review_items": len(review_queue.items),
     }
+
+
+def _render_mappings_review(mapping: ProposedMapping) -> str:
+    """Render the human-editable business↔source mapping review file (WP9 §5).
+
+    Edit a proposal's ``table``/``column`` (or move an ``unresolved`` concept up into
+    ``proposals`` with a source) and resume with ``vault-agent resume --mappings <file>``, or
+    override one concept with ``vault-agent resume --map "concept=TABLE.COLUMN"``."""
+    doc: dict[str, Any] = {
+        "proposals": [
+            {
+                "concept": p.concept,
+                "table": p.table,
+                "column": p.column,
+                "category": p.category,
+                "confidence": round(p.confidence, 3),
+                "ratification_status": p.ratification_status,
+                "evidence": list(p.evidence),
+            }
+            for p in mapping.proposals
+        ],
+        "gaps": list(mapping.gaps),
+        "unresolved": list(mapping.unresolved),
+    }
+    header = (
+        "# Business↔source mapping — review & ratify (WP9, ADR-0008).\n"
+        "# Edit table/column below, then: vault-agent resume --mappings <this file>\n"
+        "# Or override one concept:      vault-agent resume --map \"concept=TABLE.COLUMN\"\n"
+        "# gaps have no in-scope source (Business Vault/marts); unresolved need your decision.\n"
+    )
+    return header + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True)
 
 
 # Per-output-dir checkpoint storage: the LangGraph SQLite checkpointer (so a paused run can
@@ -191,13 +230,17 @@ def _state_from_result(result: dict[str, Any]) -> VaultAgentState:
 
 
 async def _run_pipeline(
-    input_doc: Path, out_dir: Path, source_schemas: list[SourceTable] | None = None
+    input_doc: Path,
+    out_dir: Path,
+    source_schemas: list[SourceTable] | None = None,
+    profiling: dict[str, dict[str, ColumnProfile]] | None = None,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
 
-    ``source_schemas`` (from a declared ``--source-schema`` file) is set on the initial
-    state to activate ADR-0004 grounding; empty/``None`` leaves grounding inert."""
+    ``source_schemas`` (from ``--source-schema``) activates ADR-0004 grounding; ``profiling``
+    (from ``--profiling``, WP9) feeds the business↔source mapper. Empty/``None`` leaves both
+    inert."""
     thread_id = uuid4().hex
     _checkpoint_dir(out_dir).mkdir(parents=True, exist_ok=True)
     config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
@@ -210,6 +253,7 @@ async def _run_pipeline(
             VaultAgentState(  # type: ignore[arg-type]
                 input_documents=[str(input_doc)],
                 source_schemas=source_schemas or [],
+                profiling=profiling or {},
             ),
             config=config,
         )
@@ -254,12 +298,42 @@ def _parse_owner(spec: str) -> tuple[str, dict[str, str | None]]:
     return asset, {"name": rest, "email": email}
 
 
-def _build_decision(owners: list[str], accept: bool) -> dict[str, Any]:
+def _parse_map(spec: str) -> tuple[str, str]:
+    """Parse ``concept=TABLE.COLUMN`` (WP9 --map shortcut)."""
+    concept, sep, target = spec.partition("=")
+    concept, target = concept.strip(), target.strip()
+    if not sep or not concept or "." not in target:
+        raise ValueError(f"invalid --map {spec!r}; expected 'concept=TABLE.COLUMN'")
+    return concept, target
+
+
+def _mappings_from_file(path: Path) -> dict[str, str]:
+    """Read an edited ``mappings.review.yml`` into ``{concept: 'TABLE.COLUMN'}`` overrides.
+
+    Every proposal that carries a table and column becomes an override — so a human who edits
+    a binding, or moves an ``unresolved`` concept up into ``proposals`` with a source, has it
+    applied on resume."""
+    document = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(document, dict):
+        raise ValueError(f"{path}: expected a mapping with a 'proposals' list")
+    overrides: dict[str, str] = {}
+    for entry in document.get("proposals", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        concept, table, column = entry.get("concept"), entry.get("table"), entry.get("column")
+        if concept and table and column:
+            overrides[str(concept)] = f"{table}.{column}"
+    return overrides
+
+
+def _build_decision(
+    owners: list[str], accept: bool, mappings: dict[str, str] | None = None
+) -> dict[str, Any]:
     parsed: dict[str, dict[str, str | None]] = {}
     for spec in owners:
         asset, owner = _parse_owner(spec)
         parsed[asset] = owner
-    return {"owners": parsed, "accept": accept}
+    return {"owners": parsed, "accept": accept, "mappings": mappings or {}}
 
 
 def _print_summary(console: Console, state: VaultAgentState) -> None:
@@ -345,6 +419,13 @@ def run(
             help="Optional declared source schema (YAML/JSON) to ground keys/attributes against.",
         ),
     ] = None,
+    profiling: Annotated[
+        Path | None,
+        typer.Option(
+            "--profiling", exists=True, dir_okay=False,
+            help="Optional profiling-evidence file (YAML/JSON) for the WP9 source mapper.",
+        ),
+    ] = None,
     write: Annotated[
         bool, typer.Option("--write/--no-write", help="Write artifacts to disk."),
     ] = True,
@@ -354,11 +435,12 @@ def run(
     console.print(f"[bold]Running Vault-Agent pipeline[/bold] on {input_doc} …\n")
     try:
         schemas = load_source_schemas(source_schema) if source_schema else []
+        profiles = load_profiling(profiling) if profiling else {}
     except (ValueError, OSError) as exc:
-        console.print(f"[bold red]Could not load source schema:[/bold red] {exc}")
+        console.print(f"[bold red]Could not load an input file:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
     try:
-        state, paused, thread_id = asyncio.run(_run_pipeline(input_doc, out, schemas))
+        state, paused, thread_id = asyncio.run(_run_pipeline(input_doc, out, schemas, profiles))
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
         if _DEBUG:
             raise  # --debug: full traceback instead of the one-line summary
@@ -392,8 +474,16 @@ def resume(
     accept: Annotated[
         bool, typer.Option("--accept/--no-accept", help="Accept and proceed past the checkpoint."),
     ] = False,
+    mappings: Annotated[
+        Path | None,
+        typer.Option("--mappings", help="Edited mappings.review.yml to ratify (WP9)."),
+    ] = None,
+    map_: Annotated[
+        list[str] | None,
+        typer.Option("--map", help="Override one mapping: 'concept=TABLE.COLUMN' (WP9)."),
+    ] = None,
 ) -> None:
-    """Resume a run paused at the human-in-the-loop checkpoint with owner assignments."""
+    """Resume a run paused at the human-in-the-loop checkpoint (owners and/or mappings)."""
     console = Console()
     pending = _read_pending(out)
     if pending is None:
@@ -401,8 +491,12 @@ def resume(
         raise typer.Exit(code=1)
 
     try:
-        decision = _build_decision(owner or [], accept)
-    except ValueError as exc:
+        overrides = _mappings_from_file(mappings) if mappings else {}
+        for spec in map_ or []:
+            concept, target = _parse_map(spec)
+            overrides[concept] = target
+        decision = _build_decision(owner or [], accept, overrides)
+    except (ValueError, OSError) as exc:
         console.print(f"[bold red]{exc}[/bold red]")
         raise typer.Exit(code=1) from exc
 

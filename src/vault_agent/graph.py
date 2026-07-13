@@ -22,6 +22,7 @@ from vault_agent.agents.data_contract import DataContractAgent
 from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
 from vault_agent.agents.orchestrator import HumanCheckpointAgent, OrchestratorAgent
 from vault_agent.agents.requirements_parser import RequirementsParserAgent
+from vault_agent.agents.source_mapper import SourceMapperAgent
 from vault_agent.agents.validator import ValidatorAgent
 from vault_agent.state import VaultAgentState
 
@@ -42,13 +43,22 @@ PIPELINE: list[str] = [
     "validator",
 ]
 
-# Reached only after the validator passes: the human-in-the-loop checkpoint (ADR-0006) where
-# a human signs off / assigns contract owners, then the ADR author documents the model.
+# Reached only after the validator passes. The business↔source mapper (WP9) runs first on the
+# now-stable/validated model — outside the re-model loop — then the human-in-the-loop
+# checkpoint (ADR-0006) where a human signs off / assigns owners / ratifies mappings, then the
+# ADR author documents the model. (The mapper sits here rather than before code generation, as
+# WP9 §4's diagram suggests, because the validator validates the code generator's artifacts —
+# so code generation cannot move after the validator; the mapper re-binds staging itself.)
+SOURCE_MAPPER_NODE = "source_mapper"
 HUMAN_CHECKPOINT_NODE = "human_checkpoint"
 POST_VALIDATION_NODE = "adr_author"
-NODES: list[str] = [ENTRY_NODE, *PIPELINE, HUMAN_CHECKPOINT_NODE, POST_VALIDATION_NODE]
+NODES: list[str] = [
+    ENTRY_NODE, *PIPELINE, SOURCE_MAPPER_NODE, HUMAN_CHECKPOINT_NODE, POST_VALIDATION_NODE
+]
 # What the orchestrator records as the planned downstream stages (everything after itself).
-PLANNED_STAGES: list[str] = [*PIPELINE, HUMAN_CHECKPOINT_NODE, POST_VALIDATION_NODE]
+PLANNED_STAGES: list[str] = [
+    *PIPELINE, SOURCE_MAPPER_NODE, HUMAN_CHECKPOINT_NODE, POST_VALIDATION_NODE
+]
 
 Node = Callable[[VaultAgentState], Awaitable[VaultAgentState]]
 
@@ -57,10 +67,10 @@ MAX_MODELING_ATTEMPTS = 3
 
 
 def route_after_validation(state: VaultAgentState) -> str:
-    """On success route to the human checkpoint (then the ADR author); loop back to the
-    modeler while the retry budget remains; give up at the cap."""
+    """On success route to the source mapper (then the human checkpoint and the ADR author);
+    loop back to the modeler while the retry budget remains; give up at the cap."""
     if state.validation_report.passed:
-        return HUMAN_CHECKPOINT_NODE
+        return SOURCE_MAPPER_NODE
     if state.modeling_attempts >= MAX_MODELING_ATTEMPTS:
         return END
     return "dv2_modeler"
@@ -76,6 +86,7 @@ def default_agents() -> dict[str, BaseAgent]:
         "dv2_modeler": Dv2ModelerAgent(),
         "code_generator": CodeGeneratorAgent(),
         "validator": ValidatorAgent(),
+        "source_mapper": SourceMapperAgent(),
         "human_checkpoint": HumanCheckpointAgent(),
         "adr_author": AdrAuthorAgent(),
     }
@@ -109,11 +120,12 @@ def build_graph(agents: dict[str, BaseAgent] | None = None) -> StateGraph[VaultA
         "validator",
         route_after_validation,
         {
-            HUMAN_CHECKPOINT_NODE: HUMAN_CHECKPOINT_NODE,
+            SOURCE_MAPPER_NODE: SOURCE_MAPPER_NODE,
             "dv2_modeler": "dv2_modeler",
             END: END,
         },
     )
+    graph.add_edge(SOURCE_MAPPER_NODE, HUMAN_CHECKPOINT_NODE)
     graph.add_edge(HUMAN_CHECKPOINT_NODE, POST_VALIDATION_NODE)
     graph.add_edge(POST_VALIDATION_NODE, END)
 
