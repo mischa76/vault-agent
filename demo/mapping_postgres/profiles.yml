@@ -1,0 +1,19 @@
+# dbt connection profile for the grounded+ratified mapping demo (WP9 §10.8).
+#
+# Same native local PostgreSQL 16 (vault/vault) the demo/bank_postgres PoC targets, but a
+# separate schema (mapping_demo) so the two demos never collide. The profile name
+# 'vault_project' matches the generated dbt_project.yml (PROJECT_NAME). Provision the cluster
+# once (see demo/bank_postgres/README.md), then run dbt from this directory with
+# DBT_PROFILES_DIR=. (or copy this file to ~/.dbt/profiles.yml).
+vault_project:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: localhost
+      port: 5432
+      user: vault
+      password: vault
+      dbname: vault
+      schema: mapping_demo
+      threads: 4
