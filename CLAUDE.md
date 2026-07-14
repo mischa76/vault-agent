@@ -552,6 +552,36 @@ force-fit check stays global by design. bank now scores mapping_accuracy F1=1.00
 min_scores.mapping_accuracy gate (deferred by WP9 §8) is set to 0.95. eval/README scorer semantics
 updated; +3 pinned tests (out-of-universe ignored, no-wrong margin=1.0).
 
+WP10 multi-source hub landed (as of 2026-07-14,
+docs/architecture/backlog-2026-07/wp10-multi-source-hub-spec.md), the canonical DV2.0 integration
+case: one business key living in several source systems -> one hub. state.Hub gains
+sources: list[HubSource] (per feed the physical key column); empty = single-source, today's
+behaviour (byte-identity guard, pinned first — the existing hub-SQL/staging-regression tests plus a
+new empty-sources assertion). rules.canonical_hub_key_column() decides the staging key name in ONE
+place: a business term (normalised business_key) ONLY when the feeds disagree on the physical column
+name, else the source's own name (no gratuitous rename — WP9 §6 policy). Generation: the staging
+generator emits one stg_<entity>_<source> per HubSource, each aliasing its physical key column to the
+canonical name via derived_columns and hashing X_HK from it — so the SAME key value hashes
+identically across feeds (the integration property); _render_hub emits source_model as a LIST (the
+AutomateDV 0.11.4 postgres__hub macro unions a source_model list and DISTINCT-ONs the PK — verified
+against the installed macro, not memory, per the WP8 t_link lesson) with src_nk = the canonical
+name; a satellite on a multi-source hub splits into one sat_<entity>_<source> per source, each
+reading its own staging (record_source distinguishes the feeds, value harmonisation stays in the
+Business Vault — spike Q6). Validator: E_HUB_DUP_FEED (two HubSources naming the same (table,
+column)) and per-source W_HUBSOURCE_BK_NOT_IN_SOURCE grounding. WP9 hand-off: the ratification file
+gains a sources: form (apply_human_decision resolves a ratified multi-candidate key into Hub.sources,
+prunes its unresolved flag; a fresh run then renders the hub multi-source — mid-run resume
+regeneration of a newly-multi-source hub is a documented follow-up). Same-as links (asserted-
+equivalent but DIFFERING keys) stay explicitly deferred — flagged, never merged. Proven end-to-end
+on PostgreSQL 16 + AutomateDV 0.11.4 (2026-07-14): a hub fed by crm_customer(cust_id) +
+victor_partner(partn_id), with the same customer 'C001' in both, built green (dbt build PASS=7
+WARN=0 ERROR=0, "hub_customer from 2 source(s)") to ONE hub row for C001 (3 rows total for
+C001/C002/C003) with an IDENTICAL CUSTOMER_HK across the crm stage, the victor stage, and the hub
+(crm_eq_victor = true), and the two per-source satellites split by record_source. 322 tests green
+(keyless; +10 WP10 tests: canonical policy, hash-input identity, source_model list, sat-per-source,
+byte-identity, duplicate-feed error, per-source grounding, ratification round-trip), ruff clean,
+mypy strict clean (31 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
