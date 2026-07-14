@@ -3,6 +3,7 @@
 Keep in pure Python so they are unit-testable and not subject to LLM hallucination.
 """
 import re
+from typing import Any
 
 
 def normalize_identifier(label: str) -> str:
@@ -133,6 +134,24 @@ def role_bk_column(bk_column: str, role: str | None) -> str:
     participations as two columns — the role prefix is the documented expectation (an
     unmatched grounded column surfaces as W_ROLE_BK_NOT_IN_SOURCE, never a silent guess)."""
     return _role_prefix(bk_column, role)
+
+
+def canonical_hub_key_column(hub: Any) -> str:
+    """The canonical staging column name a hub's key hashes from (WP10 §2.2, one source).
+
+    Policy (decided 2026-07-13): a **business term** (normalised from ``hub.business_key``,
+    e.g. ``CUSTOMER_ID``) ONLY when the feeding sources disagree on the physical key column;
+    otherwise the source's own column name (no gratuitous rename — WP9 §6). With no declared
+    ``sources`` this is today's single-source behaviour (``normalize_identifier(business_key)``),
+    keeping single-source hubs byte-identical. Takes ``Any`` to avoid importing the state
+    model here (rules stays dependency-free)."""
+    sources = getattr(hub, "sources", None) or []
+    if not sources:
+        return normalize_identifier(hub.business_key)
+    columns = {normalize_identifier(s.business_key_column) for s in sources}
+    if len(columns) == 1:
+        return next(iter(columns))  # sources agree — keep the source name
+    return normalize_identifier(hub.business_key)  # disagree — harmonise to the business term
 
 
 # Physical naming conventions the code generator uses when rendering AutomateDV/dbt

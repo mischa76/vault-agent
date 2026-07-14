@@ -147,6 +147,7 @@ def test_build_decision_collects_owners() -> None:
         },
         "accept": True,
         "mappings": {},
+        "mapping_sources": {},
     }
 
 

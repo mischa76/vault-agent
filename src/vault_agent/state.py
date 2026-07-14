@@ -181,12 +181,28 @@ class ProposedMapping(BaseModel):
     unresolved: list[str] = Field(default_factory=list)
 
 
+class HubSource(BaseModel):
+    """One source feeding a multi-source hub (WP10): the physical key column in that source.
+
+    ``business_key_column`` is the source's own name for the hub's business key (they differ
+    across systems — ``partner_id`` in one, ``customer_id`` in another). Staging aliases it to
+    the canonical name before hashing so the same key value hashes identically everywhere (the
+    hub's integration property)."""
+
+    source_table: str
+    business_key_column: str
+
+
 class Hub(BaseModel):
     """A Data Vault hub: one business concept, anchored on its business key."""
     name: str  # e.g. "hub_customer"
     business_key: str  # the natural key field this hub is built on
     source_entity: str  # the business object, e.g. "customer"
     description: str
+    # WP10: when a business key lives in several sources, one HubSource per feed (the physical
+    # key column in each). Empty = single-source, today's behaviour (byte-identity guard). The
+    # canonical staging key name is computed once in rules.canonical_hub_key_column().
+    sources: list[HubSource] = Field(default_factory=list)
     requirement_ids: list[str] = Field(default_factory=list)
 
 

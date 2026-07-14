@@ -451,6 +451,26 @@ class ValidatorAgent(BaseAgent):
                     )
                 )
 
+        # E_HUB_DUP_FEED (WP10): a multi-source hub must not name the same (table, column)
+        # feed twice — a copy-paste / ratification slip, not two distinct sources.
+        for hub in model.hubs:
+            seen: set[tuple[str, str]] = set()
+            for source in hub.sources:
+                feed = (
+                    normalize_identifier(source.source_table),
+                    normalize_identifier(source.business_key_column),
+                )
+                if feed in seen:
+                    issues.append(
+                        _issue(
+                            "error", "E_HUB_DUP_FEED", hub.name,
+                            f"hub {hub.name!r} declares the source feed "
+                            f"{source.source_table}.{source.business_key_column} more than "
+                            f"once; each HubSource must be a distinct (table, column)",
+                        )
+                    )
+                seen.add(feed)
+
         return issues
 
     @staticmethod
@@ -473,6 +493,17 @@ class ValidatorAgent(BaseAgent):
                         f"declared source schema; verify the source or complete the schema",
                     )
                 )
+            # WP10: each multi-source feed's physical key column should exist in the schema.
+            for source in hub.sources:
+                if not is_grounded(source.business_key_column, columns):
+                    issues.append(
+                        _issue(
+                            "warning", "W_HUBSOURCE_BK_NOT_IN_SOURCE", hub.name,
+                            f"multi-source feed {source.source_table}."
+                            f"{source.business_key_column} matches no column in the declared "
+                            f"source schema; verify the source or complete the schema",
+                        )
+                    )
         # W_ROLE_BK_NOT_IN_SOURCE (ADR-0009): a role-qualified participation expects a
         # role-prefixed business-key column in the source (COUNTERPARTY_ACCOUNT_NUMBER); a
         # self-referencing raw table carries the two participations as two columns. Warning,

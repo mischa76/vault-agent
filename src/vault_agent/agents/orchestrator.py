@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 from vault_agent.agents.base import BaseAgent
 from vault_agent.models.contract import ContractOwner
 from vault_agent.rules.dv2_rules import normalize_identifier
-from vault_agent.state import ExecutionPlan, FlagKind, Proposal, VaultAgentState
+from vault_agent.state import ExecutionPlan, FlagKind, HubSource, Proposal, VaultAgentState
 
 logger = logging.getLogger(__name__)
 
@@ -311,7 +311,48 @@ def apply_human_decision(state: VaultAgentState, decision: Any) -> list[str]:
     mappings = decision.get("mappings", {}) if isinstance(decision, dict) else {}
     accept = bool(decision.get("accept")) if isinstance(decision, dict) else False
     _apply_mapping_decision(state, mappings if isinstance(mappings, dict) else {}, accept)
+    # WP10: resolve a multi-candidate key into a multi-source hub (Hub.sources).
+    sources = decision.get("mapping_sources", {}) if isinstance(decision, dict) else {}
+    _apply_mapping_sources(state, sources if isinstance(sources, dict) else {})
     return assigned
+
+
+def _apply_mapping_sources(
+    state: VaultAgentState, sources_by_concept: dict[str, Any]
+) -> None:
+    """Resolve ratified multi-source key feeds into ``Hub.sources`` (WP10 §2.4).
+
+    For each concept the human resolved with a ``sources:`` list, set the matching hub's
+    ``sources`` (matched on normalised business key), drop the concept from ``unresolved`` and
+    prune its flag. A subsequent generation renders the hub as multi-source; regeneration of an
+    already-emitted run is a fresh run, not an in-place resume rewrite."""
+    for concept, feeds in sources_by_concept.items():
+        if not isinstance(feeds, list) or not feeds:
+            continue
+        norm = normalize_identifier(concept)
+        hub = next(
+            (h for h in state.dv_model.hubs if normalize_identifier(h.business_key) == norm),
+            None,
+        )
+        if hub is None:
+            continue
+        hub.sources = [
+            HubSource(source_table=str(f["table"]), business_key_column=str(f["column"]))
+            for f in feeds
+            if isinstance(f, dict) and f.get("table") and f.get("column")
+        ]
+        state.mappings.unresolved = [
+            u for u in state.mappings.unresolved if normalize_identifier(u) != norm
+        ]
+        state.flags = [
+            f
+            for f in state.flags
+            if not (
+                f.kind == FlagKind.MAPPING_UNRESOLVED
+                and f.asset
+                and normalize_identifier(f.asset) == norm
+            )
+        ]
 
 
 def _apply_mapping_decision(

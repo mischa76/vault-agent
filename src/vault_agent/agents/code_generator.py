@@ -23,10 +23,19 @@ from vault_agent.rules.dv2_rules import (
     LOAD_DATETIME_COLUMN,
     RECORD_SOURCE_COLUMN,
     STAGING_PREFIX,
+    canonical_hub_key_column,
     normalize_identifier,
     role_fk_column,
 )
-from vault_agent.state import FlagKind, Hub, Link, PipelineFlag, Satellite, VaultAgentState
+from vault_agent.state import (
+    FlagKind,
+    Hub,
+    HubSource,
+    Link,
+    PipelineFlag,
+    Satellite,
+    VaultAgentState,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -104,15 +113,38 @@ def _hub_hashkey(hub: Hub) -> str:
     return _to_column(hub.source_entity) + HASHKEY_SUFFIX
 
 
+def _sat_source_name(sat: Satellite, source: HubSource) -> str:
+    """Per-source satellite model name on a multi-source hub (WP10): ``sat_<...>_<source>``.
+
+    The source suffix matches the per-source staging model's, so ``sat_customer_details`` on a
+    hub fed by ``crm_customer`` yields ``sat_customer_details_crm_customer``."""
+    return sat.name + "_" + normalize_identifier(source.source_table).lower()
+
+
 def _link_hashkey(link: Link) -> str:
     return _to_column(link.name) + HASHKEY_SUFFIX
 
 
 def _render_hub(hub: Hub) -> tuple[str, dict[str, Any]]:
+    # WP10: a multi-source hub unions one staging model per feed (AutomateDV's hub macro
+    # accepts source_model as a list — verified against 0.11.4 postgres__hub) and keys off
+    # the canonical column each stage aliases to. Single-source stays a bare string + the
+    # business-key column, byte-identical.
+    if hub.sources:
+        from vault_agent.agents.staging_generator import multi_source_staging_name
+
+        source_models = [multi_source_staging_name(hub, source) for source in hub.sources]
+        source_model: str | list[str] = source_models
+        src_nk = canonical_hub_key_column(hub)
+        source_model_literal = _sql_list(source_models)
+    else:
+        source_model = _staging_model(hub.name)
+        src_nk = _to_column(hub.business_key)
+        source_model_literal = f'"{source_model}"'
     meta: dict[str, Any] = {
-        "source_model": _staging_model(hub.name),
+        "source_model": source_model,
         "src_pk": _hub_hashkey(hub),
-        "src_nk": _to_column(hub.business_key),
+        "src_nk": src_nk,
         "src_ldts": LOAD_DATETIME_COLUMN,
         "src_source": RECORD_SOURCE_COLUMN,
     }
@@ -120,9 +152,9 @@ def _render_hub(hub: Hub) -> tuple[str, dict[str, Any]]:
         "{{ config(materialized='incremental') }}\n\n"
         + _set_block(
             [
-                ("source_model", f'"{meta["source_model"]}"'),
+                ("source_model", source_model_literal),
                 ("src_pk", f'"{meta["src_pk"]}"'),
-                ("src_nk", f'"{meta["src_nk"]}"'),
+                ("src_nk", f'"{src_nk}"'),
                 ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
                 ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
             ]
@@ -167,11 +199,16 @@ def _render_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict[st
     return sql, meta
 
 
-def _render_sat(sat: Satellite, parent_hashkey: str) -> tuple[str, dict[str, Any]]:
+def _render_sat(
+    sat: Satellite, parent_hashkey: str, source_model: str | None = None
+) -> tuple[str, dict[str, Any]]:
     payload = [_to_column(attr) for attr in sat.attributes]
+    # The hashdiff name is derived from the ORIGINAL satellite base so it matches the column
+    # each staging computes — including a per-source staging (WP10), where ``source_model`` is
+    # overridden but the hashdiff column keeps the shared name.
     src_hashdiff = _to_column(_base_name(sat.name)) + HASHDIFF_SUFFIX
     meta: dict[str, Any] = {
-        "source_model": _sat_staging_model(sat),
+        "source_model": source_model or _sat_staging_model(sat),
         "src_pk": parent_hashkey,
         "src_hashdiff": src_hashdiff,
         "src_payload": payload,
@@ -347,6 +384,7 @@ class CodeGeneratorAgent(BaseAgent):
             len(model.satellites),
         )
         hub_hashkeys = {hub.name: _hub_hashkey(hub) for hub in model.hubs}
+        hub_by_name = {hub.name: hub for hub in model.hubs}
         parent_hashkeys: dict[str, str] = dict(hub_hashkeys)
         # link name -> the hub hashkeys it connects, in declared order. Membership marks a
         # parent as a generated link (eff_sat must hang off one).
@@ -411,6 +449,31 @@ class CodeGeneratorAgent(BaseAgent):
                 ]
 
         for sat in model.satellites:
+            parent_hub = hub_by_name.get(sat.parent)
+            if parent_hub is not None and parent_hub.sources:
+                # WP10: split a satellite on a multi-source hub into one per source, each
+                # reading its own staging model (record_source distinguishes the feeds, so
+                # value harmonisation stays downstream — spike Q6). Only standard sats split.
+                if sat.sat_type != "standard":
+                    state.flag(
+                        "code_generator",
+                        f"satellite {sat.name!r} of type {sat.sat_type!r} on multi-source hub "
+                        f"{sat.parent!r} is not supported; flagged for human review",
+                        kind=FlagKind.GENERATION_GAP,
+                        asset=sat.name,
+                    )
+                    continue
+                from vault_agent.agents.staging_generator import multi_source_staging_name
+
+                for source in parent_hub.sources:
+                    per_name = _sat_source_name(sat, source)
+                    staging_model = multi_source_staging_name(parent_hub, source)
+                    sql, meta = _render_sat(
+                        sat, parent_hashkeys[sat.parent], source_model=staging_model
+                    )
+                    dbt_models[per_name] = sql
+                    metadata["satellites"][per_name] = meta
+                continue
             rendered = self._render_satellite(
                 sat, parent_hashkeys, link_fks, link_driving_fks, link_secondary_fks, state
             )

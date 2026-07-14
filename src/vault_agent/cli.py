@@ -326,14 +326,48 @@ def _mappings_from_file(path: Path) -> dict[str, str]:
     return overrides
 
 
+def _mapping_sources_from_file(path: Path) -> dict[str, list[dict[str, str]]]:
+    """Read multi-source key resolutions from an edited ``mappings.review.yml`` (WP10 §2.4).
+
+    A human resolves a multi-candidate business key by adding a ``sources:`` list (each with a
+    ``table`` and ``column``) to its proposal entry; on resume each becomes a ``Hub.sources``
+    feed. Single-column proposals (no ``sources:``) are handled by :func:`_mappings_from_file`."""
+    document = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(document, dict):
+        return {}
+    out: dict[str, list[dict[str, str]]] = {}
+    for entry in document.get("proposals", []) or []:
+        if not isinstance(entry, dict) or not entry.get("concept"):
+            continue
+        raw = entry.get("sources")
+        if not isinstance(raw, list):
+            continue
+        feeds = [
+            {"table": str(s["table"]), "column": str(s["column"])}
+            for s in raw
+            if isinstance(s, dict) and s.get("table") and s.get("column")
+        ]
+        if feeds:
+            out[str(entry["concept"])] = feeds
+    return out
+
+
 def _build_decision(
-    owners: list[str], accept: bool, mappings: dict[str, str] | None = None
+    owners: list[str],
+    accept: bool,
+    mappings: dict[str, str] | None = None,
+    mapping_sources: dict[str, list[dict[str, str]]] | None = None,
 ) -> dict[str, Any]:
     parsed: dict[str, dict[str, str | None]] = {}
     for spec in owners:
         asset, owner = _parse_owner(spec)
         parsed[asset] = owner
-    return {"owners": parsed, "accept": accept, "mappings": mappings or {}}
+    return {
+        "owners": parsed,
+        "accept": accept,
+        "mappings": mappings or {},
+        "mapping_sources": mapping_sources or {},
+    }
 
 
 def _print_summary(console: Console, state: VaultAgentState) -> None:
@@ -495,7 +529,8 @@ def resume(
         for spec in map_ or []:
             concept, target = _parse_map(spec)
             overrides[concept] = target
-        decision = _build_decision(owner or [], accept, overrides)
+        multi = _mapping_sources_from_file(mappings) if mappings else {}
+        decision = _build_decision(owner or [], accept, overrides, multi)
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]{exc}[/bold red]")
         raise typer.Exit(code=1) from exc

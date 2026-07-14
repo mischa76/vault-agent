@@ -26,11 +26,12 @@ from vault_agent.rules.dv2_rules import (
     RAW_SOURCE_PREFIX,
     RECORD_SOURCE_COLUMN,
     STAGING_PREFIX,
+    canonical_hub_key_column,
     normalize_identifier,
     role_bk_column,
     role_fk_column,
 )
-from vault_agent.state import DVModel, FlagKind, PipelineFlag, SourceTable
+from vault_agent.state import DVModel, FlagKind, Hub, HubSource, PipelineFlag, SourceTable
 
 # dbt project/profile name used in the generated scaffolding.
 PROJECT_NAME = "vault_project"
@@ -95,6 +96,20 @@ def _staging_name(construct_name: str) -> str:
     return STAGING_PREFIX + _base_name(construct_name)
 
 
+def multi_source_staging_name(hub: Hub, source: HubSource) -> str:
+    """Per-source staging model for a multi-source hub (WP10): ``stg_<entity>_<source>``.
+
+    Deterministic and traceable — the source suffix is the feeding table's normalised name,
+    so a hub fed by ``crm_customer`` + ``victor_partner`` yields ``stg_customer_crm_customer``
+    and ``stg_customer_victor_partner``."""
+    return (
+        STAGING_PREFIX
+        + _base_name(hub.name)
+        + "_"
+        + normalize_identifier(source.source_table).lower()
+    )
+
+
 def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
     """Group the raw-vault constructs by the staging model that feeds them.
 
@@ -117,10 +132,26 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
         return specs[name]
 
     for hub in model.hubs:
-        spec = spec_for(hub.name)
-        bk_col = _to_column(hub.business_key)
-        spec.add_hashed(_hub_hashkey(hub), bk_col)
-        spec.add_source_column(bk_col)
+        if hub.sources:
+            # WP10 multi-source: one stg_<entity>_<source> per feed, each aliasing its
+            # physical key column to the canonical name and hashing X_HK from it — so the
+            # same key value hashes identically across sources (the integration property).
+            canonical = canonical_hub_key_column(hub)
+            for source in hub.sources:
+                name = multi_source_staging_name(hub, source)
+                spec = specs.setdefault(name, StagingSpec(name=name, base=_base_name(hub.name)))
+                spec.source_model = source.source_table
+                spec.bound = True
+                src_col = _to_column(source.business_key_column)
+                if src_col != canonical:
+                    spec.derived[canonical] = src_col  # alias the source column -> canonical
+                spec.add_hashed(_hub_hashkey(hub), canonical)
+                spec.add_source_column(src_col)
+        else:
+            spec = spec_for(hub.name)
+            bk_col = _to_column(hub.business_key)
+            spec.add_hashed(_hub_hashkey(hub), bk_col)
+            spec.add_source_column(bk_col)
 
     generated_links = []
     for link in model.links:
@@ -179,22 +210,33 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
                     bk_cols.append(bk_col)
                     spec.add_source_column(bk_col)
                 spec.add_hashed(_link_hashkey(parent_link), bk_cols)
+            target_specs = [spec]
         else:
-            spec = spec_for(sat.parent)
+            sat_parent_hub = hub_by_name.get(sat.parent)
+            if sat_parent_hub is not None and sat_parent_hub.sources:
+                # WP10: a satellite on a multi-source hub feeds each per-source staging (one
+                # satellite per source is emitted downstream, reading its own staging).
+                target_specs = [
+                    specs[multi_source_staging_name(sat_parent_hub, source)]
+                    for source in sat_parent_hub.sources
+                ]
+            else:
+                target_specs = [spec_for(sat.parent)]
         attr_cols = [_to_column(attr) for attr in sat.attributes]
-        for col in attr_cols:
-            spec.add_source_column(col)
-        for key in sat.child_dependent_key:
-            spec.add_source_column(_to_column(key))
-        if sat.sat_type == "effectivity":
-            # Same guard as the raw-vault eff_sat template: needs start+end dates and a
-            # link parent. The dedicated src_eff column is DERIVED from the start date so
-            # AutomateDV's incremental SQL never projects one column twice (see rules/).
-            if sat.parent in link_names and len(attr_cols) >= 2:
-                spec.derived.setdefault(EFFECTIVITY_APPLIED_COLUMN, attr_cols[0])
-        else:
-            hashdiff_name = _to_column(_base_name(sat.name)) + HASHDIFF_SUFFIX
-            spec.add_hashed(hashdiff_name, _HashDiff(columns=attr_cols))
+        for spec in target_specs:
+            for col in attr_cols:
+                spec.add_source_column(col)
+            for key in sat.child_dependent_key:
+                spec.add_source_column(_to_column(key))
+            if sat.sat_type == "effectivity":
+                # Same guard as the raw-vault eff_sat template: needs start+end dates and a
+                # link parent. The dedicated src_eff column is DERIVED from the start date so
+                # AutomateDV's incremental SQL never projects one column twice (see rules/).
+                if sat.parent in link_names and len(attr_cols) >= 2:
+                    spec.derived.setdefault(EFFECTIVITY_APPLIED_COLUMN, attr_cols[0])
+            else:
+                hashdiff_name = _to_column(_base_name(sat.name)) + HASHDIFF_SUFFIX
+                spec.add_hashed(hashdiff_name, _HashDiff(columns=attr_cols))
 
     for spec in specs.values():
         spec.add_source_column(LOAD_DATETIME_COLUMN)
