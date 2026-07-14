@@ -119,17 +119,23 @@ WP9 §3.3.
 
 ## Where the evidence is thin (read before trusting the numbers)
 
-1. **The columns-only probe did NOT demonstrate honest degradation** — accuracy stayed at
-   **1.000**. This is a *negative result for the probe, not a strength to celebrate*: the
-   `messy_insurance` physical names, though cryptic, are **recognisable DACH-insurance
-   abbreviations** (`VTG_NR`→Vertragsnummer, `PARTN_NR`→Partnernummer, `SPARTE`, `PRAEMIE`)
-   that the LLM resolves from its own domain priors *without* comments or types. So the probe
-   stressed precondition (c) far too weakly. **Precondition-(c) degradation is unproven.** A
-   follow-up must mask opacity (rename physical columns to `COL_0001…`, keep only the golden
-   mapping) to measure whether B degrades honestly or hallucinates confidently. Until then,
-   the ADR-0008 "output quality is capped by input quality" claim is *plausible but
-   unmeasured* for the LLM mechanism. (It *is* visibly true for the deterministic layer, which
-   collapses to near-zero signal under columns-only — verified keylessly.)
+1. **~~Precondition-(c) degradation is unproven~~ — CLOSED by the WP9 §10.7 opacity probe
+   (2026-07-14).** The spike's columns-only probe did not degrade (accuracy stayed **1.000**)
+   because the `messy_insurance` physical names, though cryptic, are recognisable DACH-insurance
+   abbreviations (`VTG_NR`→Vertragsnummer, `PARTN_NR`→Partnernummer) the LLM resolves from its
+   own priors — the probe stressed precondition (c) too weakly. WP9's opacity probe
+   (`eval/opacity_probe.py`) closes this: it masks physical column names to `COL_0001…` (and,
+   maximally, table names to `TBL_NN`), strips comments + example values, keeps only types +
+   distributions, and re-keys the golden set. Measured (3 repeats each, production mapper):
+   accuracy degrades monotonically as documentation is removed — **0.972** (real names) →
+   **0.902** (columns masked) → **~0.88** (columns + tables masked) — with `unresolved` rising
+   and categories collapsing entirely from name-based (`exact_name`/`comment_grounded`) to
+   structural (`profiled_key`/`llm_semantic`), and **zero confident-wrong proposals across every
+   run**. So the ADR-0008 "output quality is capped by input quality" claim is **confirmed for
+   the LLM path**, and — the essential guarantee — the mapper degrades *honestly* (resolves
+   structurally at lower confidence, or defers to `unresolved`) and never confidently
+   hallucinates. Nuance: accuracy stays ~0.88 even at maximal opacity because types + profiling
+   + the concept list still carry structural signal — column *names* are not the sole driver.
 2. **Single dataset.** All numbers are `messy_insurance` only. The charter's optional `bank`
    easy case was traded away to spend the timebox on the hard case. B's band should be
    re-measured on `bank`/`health_insurance` before WP9 sets a `min_scores` gate.

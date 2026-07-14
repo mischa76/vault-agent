@@ -552,6 +552,23 @@ force-fit check stays global by design. bank now scores mapping_accuracy F1=1.00
 min_scores.mapping_accuracy gate (deferred by WP9 §8) is set to 0.95. eval/README scorer semantics
 updated; +3 pinned tests (out-of-universe ignored, no-wrong margin=1.0).
 
+WP9 §10.7 opacity probe closed (as of 2026-07-14), shutting the ADR-0008 precondition-(c)
+measurement gap the spike recorded as unproven (spike memo thin-evidence #1). eval/opacity_probe.py
+is a deterministic, keyless-tested masking transform (physical column names -> COL_NNNN, optionally
+table names -> TBL_NN, comments + example values stripped, types + distributions kept, the golden
+set re-keyed) plus a live probe that re-runs the PRODUCTION mapper. Measured (3 repeats/config):
+mapping_accuracy degrades monotonically as documentation is removed — 0.972 (real names) -> 0.902
+(columns masked) -> ~0.88 (columns + tables masked) — with unresolved rising, gap recall becoming
+uncertain, and the confidence categories collapsing entirely from name-based
+(exact_name/comment_grounded) to structural (profiled_key/llm_semantic), while confident-wrong
+proposals stayed at ZERO across all runs. So "input quality caps output quality" is confirmed for
+the LLM path AND the essential guarantee holds: the mapper degrades honestly (resolves structurally
+at lower confidence, or defers to unresolved) and never confidently hallucinates. Nuance: accuracy
+stays ~0.88 even at maximal opacity because types + profiling + the concept list still carry
+structural signal — column names are not the sole driver. WP9 §10.8 (Postgres re-verification of a
+grounded+profiled+ratified single-source run) remains the one open WP9 verification item. 325 tests
+green (keyless; +3 mask-transform tests), ruff clean, mypy strict clean (32 files).
+
 WP10 multi-source hub landed (as of 2026-07-14,
 docs/architecture/backlog-2026-07/wp10-multi-source-hub-spec.md), the canonical DV2.0 integration
 case: one business key living in several source systems -> one hub. state.Hub gains

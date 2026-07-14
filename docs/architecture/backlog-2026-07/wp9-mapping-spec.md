@@ -145,6 +145,10 @@ pin.
    accuracy drops AND the agent degrades honestly (more `unresolved`, lower confidence,
    categories shift toward `llm_semantic`/`unresolved`) — never confident hallucination.
    This closes the ADR-0008 precondition-(c) measurement gap recorded on acceptance.
+   **✅ MET (2026-07-14):** `eval/opacity_probe.py` (keyless masking transform + live probe).
+   Measured: accuracy 0.972 (real names) → 0.902 (columns masked) → ~0.88 (columns + tables
+   masked), `unresolved` rising, categories collapsing to `profiled_key`/`llm_semantic`, and
+   **0 confident-wrong proposals across all runs**. Memo thin-evidence #1 updated to CLOSED.
 8. Suite + ruff + mypy green; Postgres hardness re-verification on a grounded + profiled +
    ratified single-source run (WP7 §-style) REQUIRED before done.
 
