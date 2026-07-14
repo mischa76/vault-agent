@@ -151,6 +151,23 @@ pin.
    **0 confident-wrong proposals across all runs**. Memo thin-evidence #1 updated to CLOSED.
 8. Suite + ruff + mypy green; Postgres hardness re-verification on a grounded + profiled +
    ratified single-source run (WP7 §-style) REQUIRED before done.
+   **✅ MET (2026-07-14):** live grounded+profiled run on the bank case
+   (`examples/inputs/bank_account_requirements.md` + `bank_source_schema_enriched.yml` +
+   `bank_profiling.yml`) → the mapper resolved all 9 concepts by `exact_name` (0 gaps, 0
+   unresolved; correct FK-vs-anchor reasoning, `national_customer_id`→`customer` not the
+   `account_customer` FK) → ratified via `resume --accept` → the generated dbt project built
+   green on PostgreSQL 16 + AutomateDV 0.11.4: `dbt build --full-refresh` **PASS=17 WARN=0
+   ERROR=0**, incremental re-run idempotent (row counts unchanged), all 7 raw-vault
+   constructs populated (2 hubs, `link_account_customer`, self-referencing `link_transaction`
+   with distinct role FKs, 2 standard sats, 1 eff_sat). The hub carries the ratified
+   source-faithful key `national_customer_id` (§6, no gratuitous rename). The build surfaced
+   and fixed a latent generator bug (same class as WP8's `t_link`): `_render_sources_yml`
+   listed a physical source table once per staging spec, so two specs binding to the same
+   relation (a hub's staging + a satellite whose `source_table` names the hub's own relation)
+   emitted duplicate `sources.yml` entries and dbt raised a duplicate-source compilation
+   error; `_merge_source_tables` now dedups by relation (columns unioned, byte-identical when
+   every spec already has a distinct source table). Regression test:
+   `test_sources_yml_lists_each_source_table_once`.
 
 ## 11. Out of scope
 

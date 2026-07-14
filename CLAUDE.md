@@ -599,6 +599,27 @@ C001/C002/C003) with an IDENTICAL CUSTOMER_HK across the crm stage, the victor s
 byte-identity, duplicate-feed error, per-source grounding, ratification round-trip), ruff clean,
 mypy strict clean (31 files).
 
+WP9 §10.8 closed (as of 2026-07-14) — the last open WP9 verification item: a Postgres hardness
+build of a grounded + profiled + ratified SINGLE-source run. A live bank run
+(examples/inputs/bank_account_requirements.md + the new bank_source_schema_enriched.yml
+[types+comments, ADR-0008 precondition (c)] + bank_profiling.yml) exercised the real
+SourceMapperAgent: it resolved all 9 concepts by exact_name (0 gaps, 0 unresolved; correct
+FK-vs-anchor reasoning — national_customer_id→customer, not the account_customer FK — the WP9.1
+demotion), ratified via `resume --accept`, and the generated dbt project built green on
+PostgreSQL 16 + AutomateDV 0.11.4: `dbt build --full-refresh` PASS=17 WARN=0 ERROR=0, incremental
+re-run idempotent (row counts unchanged), all 7 raw-vault constructs populated (2 hubs,
+link_account_customer, self-referencing link_transaction with distinct role FKs, 2 standard sats,
+1 eff_sat), the hub carrying the ratified source-faithful key national_customer_id (§6, no
+gratuitous rename). The build surfaced and fixed a latent generator bug (same class as WP8's
+t_link): staging_generator._render_sources_yml listed a physical source table once per staging
+spec, so two specs binding to the same relation (a hub's staging plus a satellite whose
+source_table names the hub's own relation, which the modeller had done) emitted DUPLICATE
+sources.yml table entries and dbt raised a duplicate-source compilation error; a new
+_merge_source_tables dedups by relation (expected columns unioned in first-appearance order,
+byte-identical output when every spec already has a distinct source table, so all staging
+fixtures are unaffected). 326 tests green (+1: test_sources_yml_lists_each_source_table_once),
+ruff clean, mypy strict clean (32 files). Every WP9 acceptance item is now MET.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
