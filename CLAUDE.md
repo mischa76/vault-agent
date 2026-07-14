@@ -618,7 +618,15 @@ sources.yml table entries and dbt raised a duplicate-source compilation error; a
 _merge_source_tables dedups by relation (expected columns unioned in first-appearance order,
 byte-identical output when every spec already has a distinct source table, so all staging
 fixtures are unaffected). 326 tests green (+1: test_sources_yml_lists_each_source_table_once),
-ruff clean, mypy strict clean (32 files). Every WP9 acceptance item is now MET.
+ruff clean, mypy strict clean (32 files). Every WP9 acceptance item is now MET. The §10.8
+build was then promoted to a permanent, re-runnable demo (demo/mapping_postgres/, 2026-07-15):
+a deterministic no-API-key build script (build_vault_models.py — the fixed bank model, the
+declared enriched schema, and the ratified accepted mapping, run through the real
+CodeGeneratorAgent + rebind_staging) that emits GROUNDED+RATIFIED staging bound to the real
+business-named source tables (customer/account/account_customer — zero inferred-binding flags,
+the contrast with the ungrounded demo/bank_postgres) and builds green on PostgreSQL 16 +
+AutomateDV 0.11.4 (dbt build --full-refresh PASS=12, incremental idempotent). Guardrail:
+tests/test_demo_mapping_postgres.py (bindings, zero flags, idempotency, sources.yml dedup).
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
