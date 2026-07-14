@@ -628,6 +628,24 @@ the contrast with the ungrounded demo/bank_postgres) and builds green on Postgre
 AutomateDV 0.11.4 (dbt build --full-refresh PASS=12, incremental idempotent). Guardrail:
 tests/test_demo_mapping_postgres.py (bindings, zero flags, idempotency, sources.yml dedup).
 
+The data_contract truncation bug is fixed (as of 2026-07-15) — the pre-existing blocker the
+WP9 paragraph above flagged (max_tokens=4096 on the wide messy schema). The enricher drafted
+ALL assets in one ForcedToolCaller call, so the combined enrichment exceeded the cap and WP3's
+max_tokens guard raised LLMCallError, killing the run. DataContractAgent.run now enriches in
+BOUNDED units (agents/data_contract.py), scaling in BOTH dimensions: one asset per call (so a
+wide *schema* — many tables — never overflows), AND a table wider than _FIELDS_PER_CALL (40)
+is further split by field into ceil(cols/40) calls (so a wide *table* — many columns, routine
+in legacy insurance/banking sources — never overflows either; _merge_enrichment folds the
+chunks back per asset). The system prompt (carrying the full declared schema) is byte-identical
+across calls, so WP3 prompt caching makes the extra calls cheap on input tokens; the per-call
+output budget is 8192 (output tokens billed per generation, so headroom is free). Verified live:
+(a) 5-table/38-column messy_insurance — 5/5 contracts, all 38 fields typed, 0 undetermined-type
+flags; (b) a 256-column table — 7 bounded calls (ceil(256/40)), all 256 fields contracted, no
+truncation (both previously LLMCallError). Keyless tests:
+test_enrichment_is_batched_one_asset_per_call (one call per asset) and
+test_wide_table_is_chunked_and_fully_enriched (256 cols → chunked, full field coverage).
+331 tests green, ruff clean, mypy strict clean (32 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

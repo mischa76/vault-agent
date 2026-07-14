@@ -202,6 +202,91 @@ async def test_grounding_section_passed_to_enricher() -> None:
     assert "national_customer_id" in enricher.system_prompt
 
 
+class _RecordingEnricher:
+    """Records each call's payload and answers per-asset (mirrors the real batched call)."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
+    async def enrich(self, *, system_prompt: str, assets_json: str) -> dict[str, Any]:
+        payload = json.loads(assets_json)
+        self.calls.append(payload)
+        # A well-behaved enricher answers only for the asset(s) it was given.
+        return {name: {"doc": f"doc for {name}", "fields": {}} for name in payload}
+
+
+async def test_enrichment_is_batched_one_asset_per_call() -> None:
+    """The truncation fix: each asset is enriched in its own bounded call (not one combined
+    call that would cap the whole schema at max_tokens), so a wide schema still completes."""
+    state = VaultAgentState(
+        source_schemas=[
+            SourceTable(table="customer", columns=["national_customer_id", "customer_name"]),
+            SourceTable(table="account", columns=["account_number", "balance"]),
+            SourceTable(table="contract", columns=["contract_number", "premium"]),
+        ],
+        business_keys=[
+            BusinessKeyCandidate(entity="customer", field="national customer ID",
+                                 score=0.9, rationale="key"),
+        ],
+    )
+    enricher = _RecordingEnricher()
+    result = await DataContractAgent(enricher=enricher).run(state)
+
+    # One call per source table, each carrying exactly that one asset.
+    assert len(enricher.calls) == 3
+    assert [set(call) for call in enricher.calls] == [
+        {"customer"}, {"account"}, {"contract"},
+    ]
+    # Every asset was still contracted and enriched from its own call.
+    assert len(result.artifacts.contracts) == 3
+    docs = {c["name"]: c["doc"] for c in result.artifacts.contracts}
+    assert docs == {
+        "customer": "doc for customer",
+        "account": "doc for account",
+        "contract": "doc for contract",
+    }
+
+
+class _EchoTypeEnricher:
+    """Enriches every field it is handed with a concrete type — so a field left 'unknown'
+    proves that chunk was never sent (chunk-coverage check)."""
+
+    def __init__(self) -> None:
+        self.calls: list[dict[str, Any]] = []
+
+    async def enrich(self, *, system_prompt: str, assets_json: str) -> dict[str, Any]:
+        payload = json.loads(assets_json)
+        self.calls.append(payload)
+        return {
+            name: {"doc": f"doc {name}", "fields": {c: {"data_type": "string"} for c in cols}}
+            for name, cols in payload.items()
+        }
+
+
+async def test_wide_table_is_chunked_and_fully_enriched() -> None:
+    """A 256-attribute source table enriches over several bounded calls (each <=
+    _FIELDS_PER_CALL fields) with every field covered — a single call would overflow the
+    output budget and raise LLMCallError (WP3)."""
+    import math
+
+    from vault_agent.agents.data_contract import _FIELDS_PER_CALL
+
+    cols = [f"col_{i}" for i in range(256)]
+    state = VaultAgentState(source_schemas=[SourceTable(table="wide", columns=cols)])
+    enricher = _EchoTypeEnricher()
+    result = await DataContractAgent(enricher=enricher).run(state)
+
+    # Split into ceil(256 / _FIELDS_PER_CALL) calls, all for the one asset, none over budget.
+    assert len(enricher.calls) == math.ceil(256 / _FIELDS_PER_CALL)
+    assert all(set(call) == {"wide"} for call in enricher.calls)
+    assert all(len(call["wide"]) <= _FIELDS_PER_CALL for call in enricher.calls)
+
+    # All 256 fields are present and every one was enriched (chunk coverage: none left over).
+    contract = DataContract.model_validate(result.artifacts.contracts[0])
+    assert len(contract.fields) == 256
+    assert all(f.constraints.data_type == "string" for f in contract.fields)
+
+
 def test_write_outputs_persists_contracts(tmp_path: Any) -> None:
     from vault_agent.cli import write_outputs
 
