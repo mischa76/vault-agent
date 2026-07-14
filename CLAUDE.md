@@ -646,6 +646,20 @@ test_enrichment_is_batched_one_asset_per_call (one call per asset) and
 test_wide_table_is_chunked_and_fully_enriched (256 cols → chunked, full field coverage).
 331 tests green, ruff clean, mypy strict clean (32 files).
 
+With that blocker gone, the FULL messy_insurance pipeline now completes end-to-end (verified
+live 2026-07-15) — the case the WP9 paragraph flagged as unable to finish. `vault-agent run`
+over examples/inputs/messy_insurance_requirements.md +
+eval/datasets/messy_insurance/source_schema_enriched.yml + …/profiling.yml ran every agent
+(requirements 34 → business keys 10 → 5 contracts → model 4 hubs / 5 links / 13 sats → validation
+PASSED → source_mapper 32 exact_name proposals, 0 unresolved, 2 honest gaps) to the HITL
+checkpoint, then `resume --accept` (5 contract owners assigned) finalized it: 22 raw-vault + 17
+staging models, 5 contracts, ADR-0001, mappings.review.yml. Notably the multi-source hub (WP10)
+fired on the real case — hub_partner integrates VICTOR_PARTNER + CRM_ACCOUNT with per-source
+satellites — and the mapper correctly flagged effective_from/effective_to as Business-Vault gaps
+rather than forcing a source. Two honest advisory flags surfaced for human review (not blockers):
+an effectivity satellite the modeller left without a driving_key, and 4 inferred staging bindings.
+This was a verification run (no code change).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
