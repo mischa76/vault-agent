@@ -39,7 +39,16 @@ from vault_agent.state import FlagKind, VaultAgentState
 logger = logging.getLogger(__name__)
 
 _TOOL_NAME = "emit_contract_enrichment"
-_MAX_TOKENS = 4096
+# Per-call output budget. Enrichment is drafted in bounded units (see run() and
+# _enrichment_units) — never the whole schema at once. Output tokens are billed per
+# generation, so headroom is free for small units and covers a dense one without truncating
+# (which WP3 turns into a hard LLMCallError).
+_MAX_TOKENS = 8192
+# Max fields enriched per LLM call. A very wide source table (legacy insurance/banking
+# tables routinely carry 100s of columns) is split into chunks of this size so a single
+# table can never overflow the output budget — the failure per-asset batching alone would
+# still hit. ~200 output tokens/field worst case keeps a full chunk well under _MAX_TOKENS.
+_FIELDS_PER_CALL = 40
 _NAMESPACE = "source"
 
 
@@ -154,6 +163,41 @@ class DataContractAgent(BaseAgent):
                 fields.append(bk.field)
         return list(by_entity.items())
 
+    @staticmethod
+    def _enrichment_units(
+        assets: list[tuple[str, list[str]]],
+    ) -> list[tuple[str, list[str]]]:
+        """Split assets into bounded (name, field-chunk) enrichment units (see run()).
+
+        One unit per asset for a normal-width table (unchanged); a table wider than
+        ``_FIELDS_PER_CALL`` is split into several field-chunk units under the same asset name,
+        so a 256-column source table enriches over ``ceil(256/_FIELDS_PER_CALL)`` bounded calls
+        instead of one that would overflow the output budget. Field order is preserved."""
+        units: list[tuple[str, list[str]]] = []
+        for name, cols in assets:
+            if len(cols) <= _FIELDS_PER_CALL:
+                units.append((name, list(cols)))
+                continue
+            for start in range(0, len(cols), _FIELDS_PER_CALL):
+                units.append((name, list(cols[start:start + _FIELDS_PER_CALL])))
+        return units
+
+    @staticmethod
+    def _merge_enrichment(acc: dict[str, Any], slice_: dict[str, Any]) -> None:
+        """Fold one call's result into the accumulator, merging FIELDS across an asset's
+        chunks (a plain ``update`` would drop earlier chunks' fields). The asset ``doc`` is
+        taken from the first chunk that supplies one."""
+        for name, detail in slice_.items():
+            if not isinstance(detail, dict):
+                continue
+            target = acc.setdefault(name, {})
+            doc = detail.get("doc")
+            if doc and not target.get("doc"):
+                target["doc"] = doc
+            fields = detail.get("fields")
+            if isinstance(fields, dict):
+                target.setdefault("fields", {}).update(fields)
+
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         assets = self._assets(state)
         if not assets:
@@ -169,12 +213,29 @@ class DataContractAgent(BaseAgent):
         logger.info("drafting contracts for %d asset(s)", len(assets))
         grounded = bool(state.source_schemas)
         system_prompt = self._build_system_prompt(state)
-        assets_json = json.dumps({name: cols for name, cols in assets}, indent=2)
-        logger.debug("assets payload: %d chars", len(assets_json))
         enricher = self._get_enricher()
-        enrichment = await enricher.enrich(
-            system_prompt=system_prompt, assets_json=assets_json
-        )
+
+        # Enrich in BOUNDED units, never the whole schema at once. A single combined call
+        # caps the entire enrichment at max_tokens, so a wide schema (many tables) OR one wide
+        # table (many columns) truncates and ForcedToolCaller raises LLMCallError (WP3) — the
+        # run could never complete. Units are one asset each, and a table wider than
+        # _FIELDS_PER_CALL is further split by field, so every response stays bounded and the
+        # approach scales to any table count AND any table width. The system prompt (carrying
+        # the full declared schema) is byte-identical across calls, so WP3 prompt caching
+        # makes the extra calls cheap on input tokens.
+        enrichment: dict[str, Any] = {}
+        units = self._enrichment_units(assets)
+        for name, cols_chunk in units:
+            asset_json = json.dumps({name: cols_chunk}, indent=2)
+            logger.debug(
+                "enriching asset %r (%d field(s)): %d chars",
+                name, len(cols_chunk), len(asset_json),
+            )
+            slice_ = await enricher.enrich(
+                system_prompt=system_prompt, assets_json=asset_json
+            )
+            if isinstance(slice_, dict):
+                self._merge_enrichment(enrichment, slice_)
 
         # Business-key fields drive primaryKey / not-null. Matched normalised so a business
         # label ("national customer ID") propagates to a NATIONAL_CUSTOMER_ID column.
