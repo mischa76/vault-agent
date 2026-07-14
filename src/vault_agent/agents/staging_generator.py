@@ -15,6 +15,7 @@ the generator names, it never guesses silently.
 Called by the CodeGeneratorAgent after the raw-vault pass; kept in its own module so the
 raw-vault renderer stays under its size budget and this layer is testable in isolation.
 """
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -559,6 +560,35 @@ packages:
 """
 
 
+def _merge_source_tables(
+    specs: Iterable[StagingSpec],
+) -> list[tuple[str, list[str], bool]]:
+    """Collapse staging specs that read the SAME raw relation into one source entry.
+
+    Several staging models can legitimately bind to one physical table — e.g. a hub's
+    staging plus a satellite whose ``source_table`` names the hub's own relation, or a
+    hub and a standard satellite the modeller named off the same base. A dbt
+    ``sources.yml`` (and the documented interface it renders) must list each table
+    exactly ONCE: dbt raises a compilation error on two source tables with the same name.
+    Returns ``(source_model, expected columns unioned in first-appearance order,
+    all_bound)`` per distinct relation, in first-appearance order — so the output stays
+    byte-identical when every spec already has a distinct ``source_model``."""
+    merged: dict[str, list[str]] = {}
+    bound: dict[str, bool] = {}
+    order: list[str] = []
+    for spec in specs:
+        if spec.source_model not in merged:
+            merged[spec.source_model] = []
+            bound[spec.source_model] = True
+            order.append(spec.source_model)
+        cols = merged[spec.source_model]
+        for col in spec.source_columns:
+            if col not in cols:
+                cols.append(col)
+        bound[spec.source_model] = bound[spec.source_model] and spec.bound
+    return [(name, merged[name], bound[name]) for name in order]
+
+
 def _render_sources_yml(
     specs: dict[str, StagingSpec], blocks: list[SourceBlock]
 ) -> str:
@@ -590,9 +620,9 @@ def _render_sources_yml(
             if block.schema_name is not None:
                 lines.append(f"    schema: {block.schema_name}")
             lines.append("    tables:")
-            for spec in block.specs:
-                lines.append(f"      - name: {spec.source_model}")
-                cols = ", ".join(spec.source_columns)
+            for source_model, source_columns, _ in _merge_source_tables(block.specs):
+                lines.append(f"      - name: {source_model}")
+                cols = ", ".join(source_columns)
                 lines.append(f"        # expected columns: {cols}")
         bare = [spec for spec in specs.values() if spec.name not in in_blocks]
         if bare:
@@ -621,11 +651,11 @@ def _render_sources_yml(
         "    # schema: <set me>",
         "    tables:",
     ]
-    for spec in specs.values():
-        lines.append(f"      - name: {spec.source_model}")
-        cols = ", ".join(spec.source_columns)
+    for source_model, source_columns, all_bound in _merge_source_tables(specs.values()):
+        lines.append(f"      - name: {source_model}")
+        cols = ", ".join(source_columns)
         lines.append(f"        # expected columns: {cols}")
-        if not spec.bound:
+        if not all_bound:
             lines.append(
                 "        # NOTE: inferred binding (no declared source table matched) — review"
             )

@@ -253,6 +253,37 @@ def test_ma_sat_without_source_table_shares_the_parent_staging() -> None:
     assert "STREET" in specs["stg_customer"].source_columns
 
 
+def test_sources_yml_lists_each_source_table_once() -> None:
+    """§10.8 regression: two staging models can bind to the SAME raw relation — here a
+    satellite whose ``source_table`` names its parent hub's own relation gets a dedicated
+    staging spec (``stg_customer_details``) alongside the hub's (``stg_customer``), both
+    reading ``customer``. dbt raises a compilation error on two source tables with the same
+    name, so the documented sources.yml must list ``customer`` exactly once, with the two
+    specs' expected columns unioned (first-appearance order). Surfaced by the Postgres
+    build of a grounded+profiled+ratified run."""
+    model = _bank_model()
+    model.satellites = [
+        Satellite(name="sat_customer_details", parent="hub_customer",
+                  attributes=["customer name", "date of birth"],
+                  description="customer payload", source_table="customer"),
+    ]
+    schemas = [SourceTable(table="customer",
+                           columns=["national_customer_id", "customer_name",
+                                    "date_of_birth"])]
+    result = build_staging(model, source_schemas=schemas)
+
+    # Two distinct staging models, both bound to the single `customer` relation.
+    assert "source_model: 'customer'" in result.models["stg_customer"]
+    assert "source_model: 'customer'" in result.models["stg_customer_details"]
+
+    sources = result.scaffolding["models/staging/sources.yml"]
+    # `customer` appears exactly once as a source table (no dbt duplicate-source error).
+    assert sources.count("- name: customer") == 1
+    # The two specs' expected columns are unioned onto the single entry.
+    assert "NATIONAL_CUSTOMER_ID, LOAD_DATETIME, RECORD_SOURCE, CUSTOMER_NAME, " \
+           "DATE_OF_BIRTH" in sources
+
+
 def test_skipped_constructs_get_no_staging() -> None:
     model = DVModel(
         hubs=[Hub(name="hub_customer", business_key="id", source_entity="customer",
