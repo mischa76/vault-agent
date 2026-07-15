@@ -6,7 +6,7 @@ before any UI work — see CLAUDE.md).
 
 | Domain | Input document | Walkthrough |
 |---|---|---|
-| Retail banking | [`examples/inputs/bank_account_requirements.md`](../../examples/inputs/bank_account_requirements.md) | (see examples 01–07) |
+| Retail banking | [`examples/inputs/bank_account_requirements.md`](../../examples/inputs/bank_account_requirements.md) | (see examples 01–06; 07 is the routing-loop demo) |
 | Health insurance | [`examples/inputs/health_insurance_requirements.md`](../../examples/inputs/health_insurance_requirements.md) | [health-insurance-walkthrough.md](./health-insurance-walkthrough.md) |
 | Retail banking — **runnable vault** | [`examples/inputs/bank_account_requirements.md`](../../examples/inputs/bank_account_requirements.md) | [`demo/bank_postgres/`](../../demo/bank_postgres/README.md) — the generator's models built and loaded on local Postgres (dbt + AutomateDV) |
 
