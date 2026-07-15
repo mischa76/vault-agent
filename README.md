@@ -43,7 +43,7 @@ every modeling decision the agents make is captured as an Architecture Decision 
 *reasoning* survives, not just the output.
 
 ```
-  Requirements (PDF / DOCX / MD)  +  Source schemas (SQL / DDL)
+  Requirements (PDF / DOCX / MD)  +  Source schemas (YAML / JSON) [+ profiling]
                           │
                           ▼
         ┌──────────────────────────────────────┐
@@ -77,7 +77,7 @@ Nine specialized agents, orchestrated in LangGraph — **all nine built**:
 | **Business-Key Identifier** | Scores key candidates against DV2.0 heuristics; flags ambiguity for review | ✅ Built |
 | **DV2.0 Modeler** | Generates Hubs, Links (incl. role-qualified self-referencing links), and Satellites under DV2.1 rules | ✅ Built |
 | **Code Generator** | Emits AutomateDV dbt models — hubs, links, standard/multi-active/effectivity satellites, transactional links — plus the staging layer and dbt project scaffolding (a runnable project) | ✅ Built |
-| **Validator** | 30 independent E_/W_ gates checking the model and generated artifacts for DV2.0 compliance | ✅ Built |
+| **Validator** | 32 independent E_/W_ gates checking the model and generated artifacts for DV2.0 compliance | ✅ Built |
 | **ADR Author** | Turns the agents' modeling decisions into an explicit, traceable ADR | ✅ Built |
 | **Data Contract Agent** | Drafts JSON-Schema source-to-staging contracts + dbt schema tests; flags gaps for human review | ✅ Built |
 | **Source Mapper** | Proposes which physical source column feeds each business concept (evidence trail, coverage gaps as first-class output); a human ratifies (ADR-0008) | ✅ Built |
@@ -171,6 +171,12 @@ DBT_PROFILES_DIR=. uv run dbt build --full-refresh   # seed + run + test, all gr
 
 See the [demo runbook](demo/bank_postgres/README.md) for prerequisites and verification.
 
+A second demo, [`demo/mapping_postgres/`](demo/mapping_postgres/README.md), is the **grounded +
+ratified** counterpart: the same fixed model, but bound to real, business-named source tables via
+a ratified source mapping — the generated staging binds to `customer` / `account` /
+`account_customer` instead of inferred `raw_*`, with zero inferred-binding flags — also built
+green on Postgres (deterministic, no API key).
+
 > The requirements parser, business-key identifier, modeler, contract enricher, and source
 > mapper are LLM-driven (Claude, via one shared hardened call path with retry/backoff and
 > prompt caching); the code/staging generators, validator, and ADR author are deterministic,
@@ -209,12 +215,12 @@ Contracts         data contract agent + dbt schema tests                       �
 Orchestration     orchestrator entry node · live HITL (interrupt/resume)       ✅ done
 Hardening         typed pipeline flags · resilient LLM call path (retry/backoff/caching) ✅ done
 Runnable output   staging generator + dbt project scaffolding (verified on Postgres) ✅ done
-Validation depth  30 independent validator gates (incl. eff-sat order, HK collisions) ✅ done
+Validation depth  32 independent validator gates (incl. eff-sat order, HK collisions) ✅ done
 Evals             eval harness: golden datasets · deterministic scorers · LangSmith layer ✅ done
 Multi-role links  role-qualified self-referencing links (ADR-0009, Postgres-verified) ✅ done
-Mapping (Phase 2) business↔source mapping, spike-validated (ADR-0008); two
-                  verification items open (opacity probe · Postgres re-check)  🔦 landing
-Multi-source hub  business-key harmonisation across sources (WP10)             🔜 next
+Mapping (Phase 2) business↔source mapping — LLM-first, ratified, opacity-probed &
+                  Postgres-verified (ADR-0008 Accepted)                        ✅ done
+Multi-source hub  business-key harmonisation across sources (WP10, Postgres-verified) ✅ done
 Polish            public walkthrough                                           🔜 next
 ```
 
