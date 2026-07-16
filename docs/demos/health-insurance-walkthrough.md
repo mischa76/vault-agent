@@ -23,7 +23,7 @@ vault-agent run examples/inputs/health_insurance_requirements.md --out output
 requirements:  29
 business keys: 6
 model:         4 hubs, 3 links, 8 satellites
-dbt models:    15 raw vault + a generated stg_* staging layer
+dbt models:    15 raw vault + 8 staging
 validation:    PASSED (0 issues)
 ```
 

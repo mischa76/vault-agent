@@ -23,7 +23,7 @@ from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import render_schema_prompt_section
-from vault_agent.rules.dv2_rules import DV_MODELING_RULES
+from vault_agent.rules.dv2_rules import DV_MODELING_RULES, attributes_without_cdk
 from vault_agent.state import DVModel, FlagKind, Hub, Link, Satellite, VaultAgentState
 
 logger = logging.getLogger(__name__)
@@ -201,6 +201,19 @@ class Dv2ModelerAgent(BaseAgent):
                     asset=sat.name,
                 )
                 continue
+            # A child_dependent_key also listed among the attributes would duplicate a
+            # satellite column (E_SAT_DUP_ATTR). Drop the redundant payload copy — the CDK
+            # column is emitted via src_cdk regardless — so a multi-active sat the LLM
+            # over-populated still validates. Genuine attr-vs-attr dups are left to the gate.
+            deduped = attributes_without_cdk(sat.attributes, sat.child_dependent_key)
+            if deduped != sat.attributes:
+                removed = [a for a in sat.attributes if a not in deduped]
+                logger.info(
+                    "satellite %r: dropped %d attribute(s) duplicating the "
+                    "child_dependent_key: %s",
+                    sat.name, len(removed), removed,
+                )
+                sat.attributes = deduped
             kept_satellites.append(sat)
 
         return DVModel(hubs=hubs, links=kept_links, satellites=kept_satellites)

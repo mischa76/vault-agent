@@ -660,6 +660,21 @@ rather than forcing a source. Two honest advisory flags surfaced for human revie
 an effectivity satellite the modeller left without a driving_key, and 4 inferred staging bindings.
 This was a verification run (no code change).
 
+Modeler CDK-dedup fix (as of 2026-07-16): re-running the health_insurance demo to refresh the
+walkthrough's figures exposed that it FAILED validation 4/4 — every run tripped E_SAT_DUP_ATTR on
+the multi-active sat_insured_person_address because the modeler listed the child_dependent_key
+(address_type) ALSO among the satellite's attributes, so the generated sat would emit that column
+twice (src_cdk + src_payload). The re-model loop couldn't recover within MAX_MODELING_ATTEMPTS. Fix
+(both belt-and-braces, since LLM steering alone failed 4/4 even with the error fed back): a [GUIDE]
+line in DV_MODELING_RULES telling the modeler a multi-active CDK is a key column, not payload; and a
+deterministic rules.attributes_without_cdk(attributes, child_dependent_key) that dv2_modeler applies
+in _validate_model — it drops payload attributes normalising to a CDK label (order-preserving,
+meaning-preserving: the CDK column still ships via src_cdk), while genuine attr-vs-attr duplicates
+stay for E_SAT_DUP_ATTR to flag. After the fix the demo PASSES 3/3 (0 issues); a representative run
+is 4 hubs / 3 links / 8 satellites → 15 raw-vault + 8 staging models, matching the walkthrough. 333
+tests green (+2: attributes_without_cdk unit + the modeler-dedup integration), ruff clean, mypy
+strict clean (32 files). docs/demos/health-insurance-walkthrough.md figures refreshed.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

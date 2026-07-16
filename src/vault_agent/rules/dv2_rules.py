@@ -100,6 +100,10 @@ DV_MODELING_RULES = [
     "parent's — typical for a multi-active satellite — declare the satellite's "
     "source_table (the raw relation feeding it); the parent's business-key column must "
     "exist in that relation so the rows attach to the parent",
+    "A multi-active satellite's child_dependent_key (the sub-sequence key that distinguishes "
+    "its concurrent rows, e.g. address_type) is a key column, not payload — never also list "
+    "it among the satellite's attributes, or the generated satellite carries a duplicate "
+    "column and cannot build",
     "When the same business-key value from different sources can mean different objects, add a "
     "collision code (source differentiation) rather than silently merging them into one hub",
     "When one hub participates twice in a relationship (e.g. a transfer's payer and "
@@ -108,6 +112,23 @@ DV_MODELING_RULES = [
     "duplicating the hub; role-qualify the driving key as \"hub_account:counterparty\" when it "
     "names a role",
 ]
+
+def attributes_without_cdk(
+    attributes: list[str], child_dependent_key: list[str]
+) -> list[str]:
+    """Drop payload attributes that duplicate a ``child_dependent_key`` column.
+
+    A satellite's attributes and its child_dependent_key share ONE column namespace (both
+    become columns of the generated satellite; the CDK is emitted as ``src_cdk``, the
+    attributes as ``src_payload``). A multi-active CDK (e.g. ``address_type``) also listed
+    among the attributes would emit that column twice — the duplicate the warehouse rejects
+    and ``E_SAT_DUP_ATTR`` blocks. Removing the redundant payload copy is meaning-preserving:
+    the CDK column stays (via the key), only its duplicate attribute entry goes. Genuine
+    attribute-vs-attribute duplicates are NOT touched here — the validator still flags those.
+    Order-preserving; matches by ``normalize_identifier`` so casing/spacing variants collide."""
+    cdk_norms = {normalize_identifier(key) for key in child_dependent_key}
+    return [attr for attr in attributes if normalize_identifier(attr) not in cdk_norms]
+
 
 def _role_prefix(column: str, role: str | None) -> str:
     """Prefix ``column`` with a normalised role; ``role`` None returns it unchanged."""
