@@ -149,6 +149,37 @@ async def test_satellite_on_link_parent_is_kept() -> None:
     assert not result.flags
 
 
+def test_attributes_without_cdk_drops_only_cdk_collisions() -> None:
+    from vault_agent.rules.dv2_rules import attributes_without_cdk
+
+    # Order preserved; only the CDK-colliding attribute goes (casing/spacing normalised);
+    # a genuine attr-vs-attr duplicate is left in place for the validator to flag.
+    assert attributes_without_cdk(
+        ["street", "city", "Address Type", "street"], ["address type"]
+    ) == ["street", "city", "street"]
+    # No CDK → unchanged.
+    assert attributes_without_cdk(["a", "b"], []) == ["a", "b"]
+
+
+async def test_multi_active_cdk_duplicated_in_attributes_is_deduped() -> None:
+    """A multi-active satellite whose child_dependent_key also appears in attributes would
+    trip E_SAT_DUP_ATTR (one column emitted twice); the modeler drops the redundant payload
+    copy — the CDK column still ships via src_cdk — so the sat validates and builds."""
+    payload = _valid_payload()
+    payload["satellites"].append(
+        {"name": "sat_customer_address", "parent": "hub_customer",
+         "attributes": ["street", "city", "address type"], "description": "addresses",
+         "sat_type": "multi_active", "child_dependent_key": ["address type"],
+         "requirement_ids": []}
+    )
+    stub = StubExtractor(payload)
+    result = await Dv2ModelerAgent(extractor=stub).run(_state())
+
+    sat = next(s for s in result.dv_model.satellites if s.name == "sat_customer_address")
+    assert sat.child_dependent_key == ["address type"]  # the CDK stays
+    assert sat.attributes == ["street", "city"]  # its duplicate payload copy is gone
+
+
 async def test_invalid_hub_is_skipped_and_logged() -> None:
     payload = _valid_payload()
     payload["hubs"].append({"name": "hub_broken"})  # missing required fields
