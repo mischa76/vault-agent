@@ -23,9 +23,13 @@ vault-agent run examples/inputs/health_insurance_requirements.md --out output
 requirements:  29
 business keys: 6
 model:         4 hubs, 3 links, 8 satellites
-dbt models:    15
+dbt models:    15 raw vault + a generated stg_* staging layer
 validation:    PASSED (0 issues)
 ```
+
+> Figures are **representative** — the LLM stages vary run to run (the exact hub/link/satellite
+> split and totals shift); the deterministic stages, the runnable staging layer, and the
+> constructs below are the stable part.
 
 **Hubs** — `hub_insured_person` (national insured number), `hub_policy` (policy number),
 `hub_claim` (claim number), `hub_healthcare_provider` (provider registration number).
@@ -40,12 +44,14 @@ validation:    PASSED (0 issues)
 - `sat_insured_person_policy_effectivity` is an **effectivity satellite on the link** —
   exactly how Data Vault models the transferable insured-person→policy relationship: a
   transfer end-dates the current link row and opens a new one. It is generated as
-  `automate_dv.eff_sat` (driving FK = `INSURED_PERSON_HK`, secondary FK = `POLICY_HK`).
+  `automate_dv.eff_sat`; the driving key is the **fixed** side — the policy — so driving
+  FK = `POLICY_HK`, secondary FK = `INSURED_PERSON_HK`.
 - `sat_insured_person_address` is **multi-active** (one person, several active addresses),
   generated as `automate_dv.ma_sat` with `ADDRESS_TYPE` as the child dependent key.
 
 Every construct is traced back to specific requirement ids in the generated
-`ADR-0004` (status `Proposed`, pending human review).
+`ADR-0001` (each output directory's model ADR is always `ADR-0001`; repo-level numbering
+happens only when a human accepts it — status `Proposed`, pending human review).
 
 ## Flags surfaced for human review (honest limitations)
 
@@ -57,12 +63,11 @@ rather than emitting wrong code:
   structural check dropped it (and its satellite). Premium payments have no business key
   and relate only to the policy, so they are better modelled as a transactional link or a
   multi-active satellite — a known area for the modeler to improve.
-- **Transactional links** (`automate_dv.nh_link`, the macro that supersedes the deprecated
-  `t_link`) are not yet templated; when the modeler proposes one it is flagged for human
-  review rather than generated.
 
-The multi-active and effectivity satellites above *are* generated (code generator Phase 2):
-`automate_dv.ma_sat` and `automate_dv.eff_sat`.
+The multi-active and effectivity satellites above *are* generated
+(`automate_dv.ma_sat` / `automate_dv.eff_sat`), as are transactional (non-historized) links —
+via `automate_dv.t_link` (AutomateDV 0.11.4 has no `nh_link`; the bank demo builds a
+self-referencing `link_transfer` end-to-end, ADR-0009 / WP8).
 
 ## What this demonstrates
 

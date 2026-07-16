@@ -100,10 +100,11 @@ IREB classifies requirement sources into three types (§4.1): **stakeholders**, 
 relevant requirements. Vault-Agent's inputs map onto this:
 
 - **Documents** → `state.input_documents` (the requirements document the parser reads).
-- **Systems in operation** → the optional declared **source schema** (`SourceTable`, ADR-0004), and,
-  prospectively, live profiling of the source system
-  ([ADR-0008](../architecture/adrs/ADR-0008-source-to-target-mapping.md)). This is the "what things
-  are physically called" input.
+- **Systems in operation** → the optional declared **source schema** (`SourceTable`, ADR-0004) and
+  optional **profiling evidence** (`state.profiling`, supplied as a pre-computed file via
+  `--profiling`, ADR-0008 — the source mapper consumes both). *Live* profiling of the source system
+  stays out of scope by design (governed access; profiling is a read-only pre-step). This is the
+  "what things are physically called" input.
 - **System boundary / context** → the requirements-scoped subset that bounds what the agent
   attempts (also ADR-0008, premise (b)).
 
@@ -113,7 +114,7 @@ IREB treats the **glossary** as a work product (§3.5) and makes "use terms cons
 in the glossary" a documentation guideline (§3.1.5). In Vault-Agent this surfaces as: business-entity
 and business-key naming that stays faithful to the source vocabulary, and the data-contract layer
 ([ADR-0005](../architecture/adrs/ADR-0005-data-contract-spec.md)) that pins field meaning — the place
-where a project's *Fachsprache* is recorded rather than invented.
+where a project's *business vocabulary* is recorded rather than invented.
 
 ## What the parser deliberately does not do
 

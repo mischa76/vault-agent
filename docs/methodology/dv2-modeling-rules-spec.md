@@ -1,9 +1,13 @@
 # DV2.0 Modeling Rules — Expansion Spec
 
-> **Purpose:** Concrete blueprint for fleshing out `src/vault_agent/rules/dv2_rules.py` (currently
-> a thin skeleton ending in `# TODO: populate further from CDVP 2.1 material`) and the matching
-> `validator.py` checks. Closes the gap where DV2.0 depth (Unit of Work, link grain, driving keys,
-> satellite splitting) is left to the LLM's latent knowledge rather than encoded and enforced.
+> **Status (2026-07-16): implemented.** This blueprint has been built out — `dv2_rules.py` is fully
+> populated and `validator.py` now carries 32 E_/W_ gates. The document is kept as the design
+> rationale; the "[ENFORCE — new] / proposed" framing below is the original plan, since delivered.
+>
+> **Purpose:** Concrete blueprint for fleshing out `src/vault_agent/rules/dv2_rules.py` and the
+> matching `validator.py` checks. Closes the gap where DV2.0 depth (Unit of Work, link grain,
+> driving keys, satellite splitting) is left to the LLM's latent knowledge rather than encoded and
+> enforced.
 >
 > **Canon of record:** Dan Linstedt & Michael Olschimke, *Building a Scalable Data Warehouse with
 > Data Vault 2.0* (Morgan Kaufmann) — the Scalefree/Linstedt trilogy. This spec encodes **DV2.0
@@ -134,8 +138,10 @@ time (e.g. several phone numbers). It needs a child dependent key (intra-key sub
 - **[GUIDE]** *Hierarchical link* — connects a hub to itself in parent/child roles. Recognize from
   self-referencing hierarchies (org chart, BOM).
 
-These are not yet representable in `state.py` (a link connects *distinct named* hubs). Supporting
-them is a **separate modeling-feature decision** (candidate ADR), not part of this rules pass.
+Self-referencing / hierarchical links **are** now representable via role-qualified hub references
+(`Link.connected_hubs` accepts `LinkHubRef(hub, role)`, ADR-0009 / WP8) — the same hub can
+participate twice under distinct roles. **Same-as** links (asserting equivalence across *differing*
+keys) remain deferred as a separate modeling-feature decision.
 
 ## Consolidated: proposed new validator issue codes
 
@@ -172,7 +178,7 @@ that never reaches generation.
 3. Mirror the generator-time checks into `validator.py` and add the new enforce checks above.
 4. Add unit tests per new issue code (deterministic — no API key).
 5. Update [dv2-rules-cheatsheet.md](dv2-rules-cheatsheet.md) so the human-facing cheatsheet and the
-   encoded rules stay in sync (it currently has the same `TODO`).
+   encoded rules stay in sync.
 
 ## Explicitly out of scope (tracked in dsaf-mapping.md)
 
