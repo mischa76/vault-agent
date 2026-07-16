@@ -42,7 +42,7 @@ TEAM connection config.
 | DSAF concept | Status in Vault-Agent | Disposition |
 |---|---|---|
 | **Persistent Staging Area (PSA)** — his "single most consequential idea": insert-only, ordered archive enabling full DV rebuild | Not modelled | **ADR decision.** Architecturally heavy; sits *outside* core DV2.0. Decide deliberately, don't default. |
-| **PIT / Bridge** presentation tables | Code generator emits hubs/links/sats/nh-links only | Concrete, codeable gap; AutomateDV supports both. Reasonable next feature. |
+| **PIT / Bridge** presentation tables | Code generator emits hubs, links (standard / transactional / role-qualified), satellites (standard / multi-active / effectivity), and multi-source hubs — but no PIT/Bridge | Concrete, codeable gap; AutomateDV supports both. Reasonable next feature. |
 | **Virtualisation (schema-on-read)** as the default above PSA | Vault-Agent materialises physical dbt models | Deliberate divergence — keep materialised; note it. |
 | **DIRECT-style run-time control** (Module/Batch audit) | Out of scope (LangGraph orchestrates) | Leave out; different layer. |
 

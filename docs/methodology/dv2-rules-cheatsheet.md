@@ -41,8 +41,9 @@ Each rule is one of two tiers:
 - **Driving key** — when one side of a relationship is "one at a time" (one manager per
   employee), declare `driving_key` as the fixed subset of `connected_hubs`. Required for an
   effectivity satellite; must be a non-empty subset → `E_DRIVING_KEY_NOT_IN_LINK`. **[ENFORCE]**
-- *Same-as* and *hierarchical* links are recognised by the modeler but not yet representable
-  in the logical model — a separate modeling-feature decision (candidate ADR). **[GUIDE]**
+- *Hierarchical* / self-referencing links **are** representable via role-qualified hub references
+  (`LinkHubRef(hub, role)`, ADR-0009). *Same-as* links (equivalence across differing keys) remain
+  a separate modeling-feature decision (candidate ADR). **[GUIDE]**
 
 ## Satellites
 - Carry descriptive data that changes over time. Columns: HashKey(parent), LoadDateTime,
@@ -97,7 +98,23 @@ Each rule is one of two tiers:
 | `E_EFFSAT_DATES` | error | effectivity satellite lacks exactly two ordered date attributes |
 | `E_EFFSAT_NO_DRIVING_KEY` | error | parent link of an effectivity satellite declares no driving key |
 | `W_BK_COLLISION_RISK` | warning | same business-key field across different source entities |
+| `E_DUP_HUB` | error | ≥2 hubs with the same business key AND same source entity (one concept modelled twice) |
+| `E_HUB_HK_COLLISION` | error | hubs share a normalised source entity but differ on business key → same `X_HK` |
+| `E_HUB_DUP_FEED` | error | two `HubSource`s of a multi-source hub name the same (table, column) |
+| `E_SAT_DUP_ATTR` | error | two satellite attributes normalise to the same payload column |
+| `E_EFFSAT_DATE_ORDER` | error | effectivity satellite's date pair is recognisably reversed (end before start) |
+| `W_EFFSAT_DATE_ORDER_UNVERIFIED` | warning | effectivity date order can't be verified from the tokens (heuristic non-match) |
+| `W_SAT_MAYBE_EFFECTIVITY` | warning | standard sat on a link carrying a from/to date pair (likely a mis-modelled eff-sat) |
+| `W_MASAT_SHARED_GRAIN` | warning | multi-active satellite with no `source_table` (shares the parent's grain) |
+| `E_LINK_DUP_ROLE` | error | two link participations with identical `(hub, role)` |
 | `E_MISSING_COLUMN` | error | a generated construct is missing a DV-required column |
+| `W_BK_NOT_IN_SOURCE` | warning | business key matches no column in the declared source schema (grounding) |
+| `W_ATTR_NOT_IN_SOURCE` | warning | satellite attribute matches no column in the declared source schema (grounding) |
+| `W_ROLE_BK_NOT_IN_SOURCE` | warning | a role-qualified participation's expected source column is absent from the schema |
+| `W_HUBSOURCE_BK_NOT_IN_SOURCE` | warning | a multi-source hub feed's key column is absent from that source (grounding) |
+
+(Count the codes in `validator.py` for the authoritative list — 32 as of 2026-07-16; this table
+mirrors them.)
 
 ## Out of scope here (see [dsaf-mapping.md](dsaf-mapping.md))
 

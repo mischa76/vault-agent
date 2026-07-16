@@ -1,9 +1,12 @@
 # How requirements become a model — current behaviour, assumptions & target
 
 > **Purpose.** A plain map of how Vault-Agent turns an input document into a Data Vault model
-> and dbt code *today*, what it implicitly assumes, and the agreed **target architecture** for
-> naming and inputs. Written to cut through ambiguity before building the next features.
-> **Snapshot: 2026-06-17.**
+> and dbt code, what it implicitly assumes, and the naming/inputs **architecture**. Originally
+> written (2026-06-17) to cut through ambiguity *before* building the two-input target; that
+> target has since largely shipped — the source-schema producer (Phase 1), the business↔source
+> **mapping** agent (WP9 / ADR-0008), the **staging generator**, and **per-source satellites**
+> incl. the multi-source hub (WP10) are all built and Postgres-verified. This doc is updated to
+> reflect that. **Updated: 2026-07-16.**
 
 ## TL;DR
 
@@ -13,7 +16,7 @@
   `NATIONAL_CUSTOMER_ID`). So today's Raw Vault is named in **business language**.
 - **Decision (this doc):** that is a **PoC simplification, not the target.** Per Data Vault 2.0
   doctrine, the **Stage and Raw Vault stay in the source-system dialect** (hard rules only);
-  translation into a department's *Fachsprache* happens **downstream** (Business Vault soft rules,
+  translation into a department's *business vocabulary* happens **downstream** (Business Vault soft rules,
   Information Marts). See [§ Target](#target-architecture).
 - **Consequence:** the target needs **two inputs** — the requirements (scope + modeling intent)
   *and* the source schema (physical names + types) — plus a **mapping** between them.
@@ -31,10 +34,17 @@ The data actually flows like this (grounded in `src/vault_agent/`):
 | `business_key_identifier` | requirements (+ optional source schema*) | `BusinessKeyCandidate[]` (entity, field, score, rationale) | yes |
 | `data_contract` | requirements + business keys (+ optional schema*) | draft contracts + dbt tests | yes (enrichment) |
 | `dv2_modeler` | requirements + business keys (+ optional schema*) | `DVModel` — hubs, links, satellites | yes |
-| `code_generator` | `DVModel` | AutomateDV/dbt models + metadata | **no (deterministic)** |
-| `validator` | model + artifacts | validation report (E_/W_ gates) | no |
-| `human_checkpoint` | review queue | sign-off / owner assignment | no |
+| `code_generator` | `DVModel` | AutomateDV/dbt raw-vault + staging models + scaffolding + metadata | **no (deterministic)** |
+| `validator` | model + artifacts | validation report (32 E_/W_ gates) | no |
+| `source_mapper` | validated model + source schema (+ profiling) | `state.mappings` — per-concept source column / coverage gap | yes |
+| `human_checkpoint` | review queue | sign-off / owner assignment / mapping ratification | no |
 | `adr_author` | model | finalized ADR | no |
+
+The `source_mapper` (WP9 / ADR-0008) runs on the *validated* path (`validator --pass-->
+source_mapper --> human_checkpoint`), not before modeling: the validator validates the code
+generator's artifacts, so code generation can't move after it. The mapper proposes, per concept,
+the physical source column that feeds it (or flags a coverage gap) and re-binds the generated
+staging to the ratified source tables.
 
 \* *The optional source schema (`state.source_schemas`) is read by the grounding helpers, the
 modeler/business-key prompts, and the validator. It is now **fed** by a declared-file producer
@@ -49,17 +59,19 @@ The model's identifiers are **free text the LLM lifts from the requirements pros
 `code_generator` only normalises them to `UPPER_SNAKE` via `normalize_identifier`
 (`"national customer ID"` → `NATIONAL_CUSTOMER_ID`; entity `customer` → `CUSTOMER_HK`).
 
-There is **no source-system input and no source→target mapping**. If the real source column is
-`KD_NR`, Vault-Agent cannot know it — it invents `NATIONAL_CUSTOMER_ID` from the text. **This means
-today's Raw Vault is already named in business language** — which the next section corrects as a
-target.
+On an **ungrounded** run (no `--source-schema`) there is no physical source to bind to, so if the
+real source column is `KD_NR`, Vault-Agent cannot know it — it invents `NATIONAL_CUSTOMER_ID` from
+the text, and the Raw Vault is named in business language. On a **grounded + ratified** run the
+`source_mapper` binds the generated staging to the real declared source columns (see
+[`demo/mapping_postgres`](../demo/mapping_postgres/README.md)), so the Raw Vault is fed
+source-faithfully — the target the next section sets out, now built.
 
 ---
 
 ## Target architecture
 
 **Naming rule (decided):** Stage and Raw Vault stay in the **source-system dialect**; business /
-department *Fachsprache* is applied **only downstream** (Business Vault and Information Marts).
+department *business vocabulary* is applied **only downstream** (Business Vault and Information Marts).
 
 **Why (DV2.0 anchoring).** The Raw Vault is loaded with **hard rules only** — operations that do
 *not* change the meaning of data (hashing, load-date, record-source, dedup, meaning-preserving type
@@ -72,7 +84,7 @@ Vault mirrors the source. The canonical homes for renaming/harmonisation are the
 department's language alienates the others, who know the data by its source names. Harmonisation is
 not even done across sources in the Raw Vault: sources are consolidated **only on the business key**
 (same hub, collision code if needed), while descriptive attributes land in **one satellite per
-source**, each keeping that source's native names. Translation to a single *Fachsprache* is
+source**, each keeping that source's native names. Translation to a single *business vocabulary* is
 consumer-specific and belongs in the marts.
 
 > Note: "source dialect" usually means source names with at most a **technical, meaning-preserving**
@@ -120,14 +132,18 @@ mapping can be grounded.
    profiler) remain future. Per [ADR-0007](architecture/adrs/ADR-0007-automation-scope-by-layer.md)
    this is **assist-level and selective** (a curated, requirements-scoped subset — not a full DB
    dump).
-2. **Mapping step** — business concept ↔ source column, agent-proposed, human-confirmed; feeds the
-   modeler so Raw Vault names come from the source, not the prose.
-3. **Staging generator** — Vault-Agent emits raw-vault models but not the `stg_*` layer that
-   computes hash keys/hashdiffs and is the natural home for meaning-preserving technical
-   normalisation (see the [PoC spec](architecture/poc-end-to-end-dbt-spec.md)).
-4. **Per-source satellites** — support multiple satellites per hub, one per source, with
-   source-native attribute names.
-5. **Downstream business naming** — translation into Fachsprache lives in Business Vault / Marts,
+2. **Mapping step** — ✅ **done (WP9 / ADR-0008)**: the `source_mapper` proposes business concept ↔
+   source column with an evidence trail and coverage gaps as first-class output; a human ratifies at
+   the checkpoint. It runs post-validation and **re-binds the generated staging** to the ratified
+   source (not the modeler — code generation precedes the validator).
+3. **Staging generator** — ✅ **done**: the code generator emits the `stg_*` layer that computes
+   hash keys/hashdiffs and is the natural home for meaning-preserving technical normalisation
+   (`src/vault_agent/agents/staging_generator.py`; see the
+   [PoC spec](architecture/poc-end-to-end-dbt-spec.md)). The output is a runnable dbt project.
+4. **Per-source satellites** — ✅ **done (WP7 + WP10)**: a satellite can declare its own
+   `source_table`, and a multi-source hub splits into one satellite per source with source-native
+   attribute names.
+5. **Downstream business naming** — translation into business vocabulary lives in Business Vault / Marts,
    which are **assist/scaffold scope only** ([ADR-0007](architecture/adrs/ADR-0007-automation-scope-by-layer.md)),
    not authoritative generation.
 
@@ -135,14 +151,14 @@ mapping can be grounded.
 
 ## Status: today vs. target
 
-| Concern | Today | Target |
+| Concern | Today | Remaining |
 |---|---|---|
-| Inputs | requirements prose only | requirements (scope/intent) + source schema (names/types) |
-| Raw Vault naming | business language (from prose) | **source dialect** (technically normalised) |
-| Source→target mapping | none (names invented from prose) | explicit, agent-proposed + human-confirmed |
-| Cross-source handling | single implied source | consolidate on business key; **per-source satellites** |
-| Fachsprache | (leaks into Raw Vault) | **downstream only** (Business Vault / Marts) |
-| `source_schemas` | **fed** by `--source-schema` (declared file) → grounding active | richer producers (DDL parse, DB introspection) |
+| Inputs | requirements prose + optional declared source schema (+ profiling) | richer source-schema producers |
+| Raw Vault naming | grounded+ratified: **source dialect**; ungrounded: business language (from prose) | — |
+| Source→target mapping | grounded: **agent-proposed + human-confirmed** (`source_mapper`); ungrounded: names from prose | — |
+| Cross-source handling | **multi-source hub** (consolidate on business key) + **per-source satellites** (WP10) | same-as links (differing keys) deferred |
+| Business vocabulary | **downstream only** (Business Vault / Marts) | Business Vault / Mart assist (ADR-0007 scope) |
+| `source_schemas` | **fed** by `--source-schema` (declared YAML/JSON, optionally typed) → grounding active | DDL parse, DB introspection |
 
 ---
 
@@ -194,11 +210,14 @@ so, rather than guessing.
 
 ## Note
 
-The mapping scope and its preconditions are now recorded as
-[ADR-0008](architecture/adrs/ADR-0008-source-to-target-mapping.md). The remaining naming/inputs
-decision ("source-dialect Stage + Raw Vault; Fachsprache downstream; two-input target") is
-significant enough to promote to its own ADR when the source-schema producer and staging generator
-are actually built. Until then this map is the agreed direction.
+The mapping scope and its preconditions are recorded in
+[ADR-0008](architecture/adrs/ADR-0008-source-to-target-mapping.md). The naming/inputs direction
+this doc sets out ("source-dialect Stage + Raw Vault; business vocabulary downstream; two-input target")
+is now realized: the source-schema producer (Phase 1), the `source_mapper` (ADR-0008), the staging
+generator, and per-source / multi-source satellites (WP7 + WP10) are all built and Postgres-verified
+(see the [WP backlog](architecture/backlog-2026-07/00-overview.md)). What remains downstream is
+Business Vault / Mart naming (ADR-0007 assist scope) and richer source-schema producers (DDL /
+introspection).
 
 ## References
 
