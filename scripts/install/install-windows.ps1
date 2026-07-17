@@ -42,13 +42,13 @@ function Write-Step($msg) { Write-Host "`n==> $msg" -ForegroundColor Cyan }
 $identity  = [Security.Principal.WindowsIdentity]::GetCurrent()
 $principal = New-Object Security.Principal.WindowsPrincipal($identity)
 if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
-    Write-Host "Bitte in einer ADMINISTRATOR-PowerShell ausfuehren (WSL-Installation braucht Adminrechte)." -ForegroundColor Red
+    Write-Host "Please run this script in an ADMINISTRATOR PowerShell (installing WSL requires admin rights)." -ForegroundColor Red
     exit 1
 }
 
 # --- 1. WSL + Ubuntu ----------------------------------------------------------
 if (-not $SkipWslInstall) {
-    Write-Step "Pruefe WSL/Ubuntu"
+    Write-Step "Checking WSL/Ubuntu"
 
     # wsl.exe prints UTF-16; strip NULs so string matching works.
     $installed = @()
@@ -60,38 +60,38 @@ if (-not $SkipWslInstall) {
     $hasDistro = $installed | Where-Object { $_ -match "^$Distro" }
 
     if (-not $hasDistro) {
-        Write-Step "Installiere WSL2 + $Distro (einmalig; dauert ein paar Minuten)"
+        Write-Step "Installing WSL2 + $Distro (one-time; takes a few minutes)"
         & wsl.exe --install -d $Distro
         Write-Host @"
 
 --------------------------------------------------------------------------
- NAECHSTE SCHRITTE (einmalig):
- 1. Falls Windows einen NEUSTART verlangt: neu starten.
- 2. Ubuntu startet danach automatisch (oder 'Ubuntu' im Startmenue oeffnen)
-    und fragt EINMALIG nach einem Linux-Benutzernamen + Passwort.
-    Das Passwort brauchst du spaeter fuer 'sudo' - merken!
- 3. Danach dieses Script ERNEUT ausfuehren - es macht dann mit der
-    eigentlichen Vault-Agent-Installation weiter.
+ NEXT STEPS (one-time):
+ 1. If Windows asks for a RESTART: reboot now.
+ 2. Ubuntu then starts automatically (or open 'Ubuntu' from the Start menu)
+    and asks ONCE for a Linux username + password.
+    You will need that password later for 'sudo' - remember it!
+ 3. Then run this script AGAIN - it will continue with the actual
+    Vault-Agent installation.
 --------------------------------------------------------------------------
 "@ -ForegroundColor Yellow
         exit 0
     }
 
-    Write-Host "WSL/$Distro ist vorhanden." -ForegroundColor Green
+    Write-Host "WSL/$Distro is present." -ForegroundColor Green
 
     # Distro registered but never initialized? (no default user -> root)
     $whoami = (((& wsl.exe -d $Distro -- whoami 2>$null) -replace "`0", "") | Out-String).Trim()
     if (-not $whoami) {
-        Write-Host "Ubuntu ist installiert, aber noch nicht initialisiert. Bitte 'Ubuntu' im Startmenue oeffnen, Benutzer anlegen, dann dieses Script erneut ausfuehren." -ForegroundColor Yellow
+        Write-Host "Ubuntu is installed but not initialized yet. Please open 'Ubuntu' from the Start menu, create your user, then run this script again." -ForegroundColor Yellow
         exit 0
     }
     if ($whoami -eq "root") {
-        Write-Host "Hinweis: Ubuntu laeuft als root (kein Standardbenutzer angelegt). Die Installation funktioniert, aber ein normaler Benutzer waere sauberer ('Ubuntu' im Startmenue oeffnen)." -ForegroundColor Yellow
+        Write-Host "Note: Ubuntu runs as root (no default user created). The installation works, but a regular user would be cleaner (open 'Ubuntu' from the Start menu)." -ForegroundColor Yellow
     }
 }
 
 # --- 2. Stage 2 inside Ubuntu ---------------------------------------------------
-Write-Step "Starte Setup innerhalb von $Distro"
+Write-Step "Running setup inside $Distro"
 
 $localSetup = Join-Path $PSScriptRoot "setup-wsl.sh"
 if (Test-Path $localSetup) {
@@ -105,19 +105,19 @@ if (Test-Path $localSetup) {
 }
 
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "`nSetup in $Distro ist mit Fehler beendet (Exit $LASTEXITCODE). Ausgabe oben pruefen; das Script kann gefahrlos erneut ausgefuehrt werden." -ForegroundColor Red
+    Write-Host "`nSetup inside $Distro finished with an error (exit $LASTEXITCODE). Check the output above; the script is safe to re-run." -ForegroundColor Red
     exit $LASTEXITCODE
 }
 
-Write-Step "Fertig"
+Write-Step "Done"
 Write-Host @"
-Vault-Agent ist installiert. Einstieg (im Ubuntu-Terminal):
+Vault-Agent is installed. Getting started (in an Ubuntu terminal):
 
   cd ~/vault-agent
-  uv run pytest -q                # Testsuite, laeuft OHNE API-Key
-  cd demo/bank_postgres           # lauffaehige Demo, OHNE API-Key
-  # mit API-Key (.env):
+  uv run pytest -q                # test suite, runs WITHOUT an API key
+  cd demo/bank_postgres           # runnable demo, WITHOUT an API key
+  # with an API key (.env):
   uv run vault-agent run examples/inputs/health_insurance_requirements.md --out output
 
-Details: README.md im Repo bzw. scripts/install/README.md
+Details: README.md in the repo and scripts/install/README.md
 "@ -ForegroundColor Green
