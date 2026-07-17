@@ -105,6 +105,12 @@ one-off overrides).
 The pipeline runs end-to-end today: a requirements document in; generated AutomateDV/dbt models,
 metadata, data contracts, and an ADR out.
 
+On **Windows 11**, [`scripts/install/`](scripts/install/README.md) installs the whole stack
+(WSL2 + Ubuntu, uv, PostgreSQL, this repo, a keyless smoke test) from one elevated PowerShell
+script. On an existing Ubuntu/Debian machine, its second stage runs standalone. Otherwise the
+steps below assume git, [uv](https://docs.astral.sh/uv/), and — for the Postgres demos — a
+local PostgreSQL:
+
 ```bash
 git clone https://github.com/mischa76/vault-agent.git
 cd vault-agent
@@ -239,6 +245,7 @@ The work-package specs, agent kick-offs, and the measured mapping-spike evidence
 - [Source-to-target mapping: scope, premises & the assist boundary (ADR-0008)](docs/architecture/adrs/ADR-0008-source-to-target-mapping.md)
 - [Mapping spike: measured evidence & decisions](docs/architecture/backlog-2026-07/spike-mapping-results.md)
 - [Eval harness: datasets, scorers, live runner](eval/README.md)
+- [Installing on Windows 11 (WSL2)](scripts/install/README.md)
 - [DV2.0 rules cheatsheet](docs/methodology/dv2-rules-cheatsheet.md)
 - [Demo datasets & walkthroughs](docs/demos/README.md)
 
