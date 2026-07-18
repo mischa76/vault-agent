@@ -11,6 +11,7 @@ import asyncio
 import json
 import logging
 import re
+import sys
 from pathlib import Path
 from typing import Annotated, Any
 from uuid import uuid4
@@ -23,6 +24,7 @@ from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
 from pydantic import BaseModel
 from rich.console import Console
+from rich.prompt import Confirm, Prompt
 
 from vault_agent import state as _state_module
 from vault_agent.agents.orchestrator import (
@@ -34,10 +36,18 @@ from vault_agent.agents.orchestrator import (
     render_review_queue_md,
 )
 from vault_agent.graph import build_graph
+from vault_agent.models.contract import ContractOwner
 from vault_agent.profiling import load_profiling
 from vault_agent.report import build_report
+from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.source_schema import load_source_schemas
-from vault_agent.state import ColumnProfile, ProposedMapping, SourceTable, VaultAgentState
+from vault_agent.state import (
+    ColumnProfile,
+    FlagKind,
+    ProposedMapping,
+    SourceTable,
+    VaultAgentState,
+)
 
 app = typer.Typer(help="Agentic AI for Data Vault 2.0 automation.", no_args_is_help=True)
 
@@ -377,6 +387,174 @@ def _build_decision(
     }
 
 
+# --- WP12: interactive checkpoint prompt (UI-track stage 1.5) -----------------------------
+# Ergonomics over the exact same apply_human_decision path the resume flags drive: the prompt
+# may only offer what those flags offer (capability-parity rule), and every answer is routed
+# through the existing parse/build/resume functions — no decision semantics live here.
+# Prompting goes through an injectable module-level seam so the whole flow is keyless-testable
+# without a real TTY.
+
+
+class _Prompter:
+    """The default interactive prompter (rich). Injectable: tests replace ``cli._prompter``."""
+
+    def text(self, console: Console, message: str) -> str:
+        return Prompt.ask(message, console=console, default="", show_default=False)
+
+    def confirm(self, console: Console, message: str, *, default: bool = False) -> bool:
+        return Confirm.ask(message, console=console, default=default)
+
+
+_prompter: _Prompter = _Prompter()
+
+
+def _is_interactive(default: bool | None) -> bool:
+    """Resolve the ``--interactive/--no-interactive`` tri-state.
+
+    ``True``/``False`` force the mode; ``None`` (the default) is *auto* — interactive only when
+    both stdin and stdout are real TTYs, so CI, pipes, and tests keep the non-interactive path
+    (which stays byte-identical to the pre-WP12 behaviour)."""
+    if default is not None:
+        return default
+    return sys.stdin.isatty() and sys.stdout.isatty()
+
+
+def _has_decision_flags(
+    owner: list[str] | None, accept: bool, mappings: Path | None, map_: list[str] | None
+) -> bool:
+    """True when ``resume`` was given any explicit decision — flags win, no prompt is shown."""
+    return bool(owner) or accept or mappings is not None or bool(map_)
+
+
+def _multi_source_unresolved(state: VaultAgentState) -> set[str]:
+    """Unresolved concepts that are multi-source business keys (structural — no message text).
+
+    A key whose normalised name is a column in >= 2 declared source tables needs a ``sources:``
+    multi-feed resolution, which the prompt cannot express (WP10 §2.4); it is listed with the
+    file-based pointer and never prompted (capability-parity rule)."""
+    deferred: set[str] = set()
+    for concept in state.mappings.unresolved:
+        norm = normalize_identifier(concept)
+        tables = {
+            table.table
+            for table in state.source_schemas
+            if any(normalize_identifier(col) == norm for col in table.column_names)
+        }
+        if len(tables) >= 2:
+            deferred.add(concept)
+    return deferred
+
+
+def _unresolved_evidence(state: VaultAgentState, concept: str) -> str:
+    """The mapper's evidence line for an unresolved concept, from its typed flag (display only)."""
+    for flag in state.flags:
+        if flag.kind == FlagKind.MAPPING_UNRESOLVED and flag.asset == concept:
+            return flag.message
+    return ""
+
+
+def _collect_decision(
+    console: Console, state: VaultAgentState
+) -> tuple[list[str], dict[str, str]]:
+    """Walk the actionable checkpoint items, collecting owner specs and mapping overrides.
+
+    Collects strings only and hands them to the existing parsers — no decision semantics. A
+    contract with a placeholder owner (matched on ``ContractOwner.PLACEHOLDER_NAME``, never
+    message text) is prompted, as is each single-source unresolved mapping; a malformed answer
+    re-prompts, an empty answer skips. Multi-source keys are listed with the file pointer."""
+    owners: list[str] = []
+    for contract in state.artifacts.contracts:
+        owner = contract.get("owner") or {}
+        if owner.get("name") != ContractOwner.PLACEHOLDER_NAME:
+            continue
+        name = str(contract.get("name", ""))
+        while True:
+            answer = _prompter.text(
+                console, f"Owner for contract {name!r} (Name <email>, Enter to skip)"
+            ).strip()
+            if not answer:
+                break
+            try:
+                _parse_owner(f"{name}={answer}")  # validate via the existing parser
+            except ValueError as exc:
+                console.print(f"[red]{exc}[/red]")
+                continue
+            owners.append(f"{name}={answer}")
+            break
+
+    overrides: dict[str, str] = {}
+    deferred = _multi_source_unresolved(state)
+    for concept in state.mappings.unresolved:
+        if concept in deferred:
+            console.print(
+                f"  [yellow]{concept}[/yellow]: multi-source key — resolve via "
+                "[cyan]resume --mappings[/cyan] (add a sources: list)"
+            )
+            continue
+        evidence = _unresolved_evidence(state, concept)
+        if evidence:
+            console.print(f"  {concept}: {evidence}")
+        while True:
+            answer = _prompter.text(
+                console, f"Source for {concept!r} (TABLE.COLUMN, Enter to skip)"
+            ).strip()
+            if not answer:
+                break
+            if "." not in answer:
+                console.print("[red]expected TABLE.COLUMN[/red]")
+                continue
+            overrides[concept] = answer
+            break
+    return owners, overrides
+
+
+def _interactive_checkpoint(
+    console: Console, out: Path, thread_id: str, state: VaultAgentState
+) -> None:
+    """Answer the HITL checkpoint in the terminal, then resume the same thread in-process.
+
+    Collects owners/mappings, shows any (interactively-unfixable) validation errors, and gates
+    on an accept confirm that mirrors ``--accept`` exactly. On accept it assembles the decision
+    via the existing ``_build_decision`` and resumes via ``_resume_pipeline`` (re-entering the
+    loop on the defensive chance of a re-pause). On decline / skip-all / Ctrl-C it leaves the
+    checkpoint intact — ``pending.json`` and the checkpointer thread survive and the flag-based
+    ``resume`` still works — and prints today's resume instructions."""
+    while True:
+        try:
+            owners, overrides = _collect_decision(console, state)
+            for issue in state.validation_report.issues:
+                if issue.severity == "error":
+                    console.print(f"[red]validation error[/red] {issue.code}: {issue.message}")
+            if not _prompter.confirm(console, "Accept and finalize?", default=False):
+                _report_paused(console, out)
+                return
+        except KeyboardInterrupt:
+            console.print("\n[yellow]Aborted — checkpoint kept.[/yellow]")
+            _report_paused(console, out)
+            return
+
+        decision = _build_decision(owners, True, overrides, {})
+        state, paused = asyncio.run(_resume_pipeline(out, thread_id, decision))
+        _print_summary(console, state)
+        counts = write_outputs(state, out)
+        _report_written(console, counts, out)
+        if not paused:
+            _clear_pending(out)
+            console.print("\n[bold green]Checkpoint cleared — run finalized.[/bold green]")
+            return
+        # Re-paused (no node re-interrupts today; defensive): loop with the new state.
+
+
+async def _paused_state(out: Path, thread_id: str) -> VaultAgentState:
+    """Load an interrupted run's state from its checkpoint (for a flag-less interactive resume)."""
+    config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
+    async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out)) as saver:
+        saver.serde = _checkpoint_serde()
+        compiled = build_graph().compile(checkpointer=saver)
+        snapshot = await compiled.aget_state(config)
+    return VaultAgentState.model_validate(snapshot.values)
+
+
 def _print_summary(console: Console, state: VaultAgentState) -> None:
     model = state.dv_model
     report = state.validation_report
@@ -470,6 +648,13 @@ def run(
     write: Annotated[
         bool, typer.Option("--write/--no-write", help="Write artifacts to disk."),
     ] = True,
+    interactive: Annotated[
+        bool | None,
+        typer.Option(
+            "--interactive/--no-interactive",
+            help="Answer the checkpoint in the terminal (default: auto — on when a TTY).",
+        ),
+    ] = None,
 ) -> None:
     """Run the full pipeline on a requirements document and write the artifacts."""
     console = Console()
@@ -498,7 +683,12 @@ def run(
 
     if paused:
         _write_pending(out, thread_id, input_doc)
-        _report_paused(console, out)
+        # WP12: answer the checkpoint in-terminal when interactive (needs write, since the
+        # in-process resume finalises to disk); otherwise print today's resume instructions.
+        if write and _is_interactive(interactive):
+            _interactive_checkpoint(console, out, thread_id, state)
+        else:
+            _report_paused(console, out)
     else:
         _clear_pending(out)
 
@@ -523,6 +713,13 @@ def resume(
         list[str] | None,
         typer.Option("--map", help="Override one mapping: 'concept=TABLE.COLUMN' (WP9)."),
     ] = None,
+    interactive: Annotated[
+        bool | None,
+        typer.Option(
+            "--interactive/--no-interactive",
+            help="Answer the checkpoint in the terminal (default: auto — on when a TTY).",
+        ),
+    ] = None,
 ) -> None:
     """Resume a run paused at the human-in-the-loop checkpoint (owners and/or mappings)."""
     console = Console()
@@ -530,6 +727,22 @@ def resume(
     if pending is None:
         console.print(f"[bold red]No paused run found[/bold red] under [cyan]{out}/[/cyan].")
         raise typer.Exit(code=1)
+
+    # WP12: with no decision flags and a TTY, drive the checkpoint interactively — load the
+    # paused state from its checkpoint, then prompt + resume in-process. Flags win (no prompt),
+    # and a non-TTY keeps today's flag-based path byte-identical.
+    if not _has_decision_flags(owner, accept, mappings, map_) and _is_interactive(interactive):
+        try:
+            state = asyncio.run(_paused_state(out, pending["thread_id"]))
+        except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly
+            if _DEBUG:
+                raise
+            console.print(f"[bold red]Resume failed:[/bold red] {exc}")
+            raise typer.Exit(code=1) from exc
+        console.print(f"[bold]Resuming[/bold] paused run in [cyan]{out}/[/cyan] (interactive) …\n")
+        _print_checkpoint(console, assemble_review_queue(state))
+        _interactive_checkpoint(console, out, pending["thread_id"], state)
+        return
 
     try:
         overrides = _mappings_from_file(mappings) if mappings else {}

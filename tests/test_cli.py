@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 import yaml
+from rich.console import Console
 from typer.testing import CliRunner
 
 from vault_agent.cli import (
@@ -416,3 +417,202 @@ async def test_paused_run_keeps_thread_until_resume_finalises(
     assert still_paused is False
     assert state.artifacts.contracts[0]["owner"]["name"] == "Data Team"
     assert await _thread_checkpoint_count(tmp_path, thread_id) == 0  # pruned on finalise
+
+
+# --- WP12: interactive checkpoint prompt (stage 1.5) --------------------------------------
+
+
+class _ScriptedPrompter:
+    """A keyless, TTY-free stand-in for cli._prompter: returns queued answers in order."""
+
+    def __init__(self, texts: list[str], confirms: list[bool]) -> None:
+        self._texts = list(texts)
+        self._confirms = list(confirms)
+        self.text_calls: list[str] = []
+
+    def text(self, console: object, message: str) -> str:
+        self.text_calls.append(message)
+        return self._texts.pop(0)
+
+    def confirm(self, console: object, message: str, *, default: bool = False) -> bool:
+        return self._confirms.pop(0)
+
+
+def _paused_owner_state() -> VaultAgentState:
+    from vault_agent.state import ValidationReport
+
+    state = VaultAgentState()
+    state.validation_report = ValidationReport(passed=True, issues=[])
+    state.artifacts = Artifacts(
+        contracts=[{"name": "customer", "owner": {"name": "TODO: assign", "email": None}}]
+    )
+    return state
+
+
+def test_is_interactive_tristate(monkeypatch: pytest.MonkeyPatch) -> None:
+    from vault_agent.cli import _is_interactive
+
+    assert _is_interactive(True) is True     # --interactive forces on (even on non-TTY)
+    assert _is_interactive(False) is False   # --no-interactive forces off (even on a TTY)
+    monkeypatch.setattr("vault_agent.cli.sys.stdin.isatty", lambda: True)
+    monkeypatch.setattr("vault_agent.cli.sys.stdout.isatty", lambda: True)
+    assert _is_interactive(None) is True     # auto: both TTY
+    monkeypatch.setattr("vault_agent.cli.sys.stdout.isatty", lambda: False)
+    assert _is_interactive(None) is False    # auto: stdout not a TTY
+
+
+def test_has_decision_flags() -> None:
+    from vault_agent.cli import _has_decision_flags
+
+    assert _has_decision_flags(None, False, None, None) is False
+    assert _has_decision_flags(["a=B"], False, None, None) is True
+    assert _has_decision_flags(None, True, None, None) is True
+    assert _has_decision_flags(None, False, Path("m.yml"), None) is True
+    assert _has_decision_flags(None, False, None, ["c=T.C"]) is True
+
+
+def test_run_paused_non_tty_is_non_interactive(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Non-TTY regression: a pausing run prints today's resume instructions and never prompts."""
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_sqlite_stub_agents(block_signoff=True)),
+    )
+    guard = _ScriptedPrompter([], [])  # any call would IndexError → proves no prompt fired
+    monkeypatch.setattr("vault_agent.cli._prompter", guard)
+    doc = tmp_path / "req.md"
+    doc.write_text("x", encoding="utf-8")
+
+    result = runner.invoke(app, ["run", str(doc), "--out", str(tmp_path)])
+
+    assert result.exit_code == 0
+    assert "Paused at the human-in-the-loop checkpoint." in result.stdout
+    assert guard.text_calls == []                        # no prompt in a non-TTY
+    assert (tmp_path / ".vault-agent" / "pending.json").exists()  # checkpoint kept
+
+
+def test_collect_decision_reprompts_on_invalid_owner(monkeypatch: pytest.MonkeyPatch) -> None:
+    from vault_agent.cli import _collect_decision
+
+    # First answer is only an email (no owner name) → _parse_owner rejects it → re-prompt.
+    scripted = _ScriptedPrompter(texts=["<e@x.io>", "Data Team <e@x.io>"], confirms=[])
+    monkeypatch.setattr("vault_agent.cli._prompter", scripted)
+    owners, overrides = _collect_decision(Console(), _paused_owner_state())
+
+    assert owners == ["customer=Data Team <e@x.io>"]      # malformed answer re-prompted
+    assert overrides == {}
+    assert len(scripted.text_calls) == 2
+
+
+def test_collect_decision_defers_multi_source_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    scripted = _ScriptedPrompter(texts=[], confirms=[])  # must NOT prompt for the multi-source key
+    monkeypatch.setattr("vault_agent.cli._prompter", scripted)
+    from vault_agent.cli import _collect_decision
+
+    state = VaultAgentState(
+        source_schemas=[
+            SourceTable(table="crm_customer", columns=["customer_id"]),
+            SourceTable(table="victor_partner", columns=["customer_id"]),
+        ]
+    )
+    state.mappings.unresolved = ["customer id"]
+
+    owners, overrides = _collect_decision(Console(), state)
+    assert owners == [] and overrides == {}
+    assert scripted.text_calls == []                      # listed, never prompted
+
+
+def test_interactive_owner_parity_and_finalize(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An interactive owner+accept builds the SAME decision as the flag-based resume, and a
+    successful resume clears the checkpoint."""
+    from vault_agent.cli import _interactive_checkpoint
+    from vault_agent.state import ValidationReport
+
+    captured: dict[str, object] = {}
+
+    async def fake_resume(out: Path, thread_id: str, decision: dict[str, object]):
+        captured["decision"] = decision
+        finalized = VaultAgentState()
+        finalized.validation_report = ValidationReport(passed=True, issues=[])
+        return finalized, False
+
+    monkeypatch.setattr("vault_agent.cli._resume_pipeline", fake_resume)
+    scripted = _ScriptedPrompter(texts=["Data Team <data@x.io>"], confirms=[True])
+    monkeypatch.setattr("vault_agent.cli._prompter", scripted)
+    _write_pending(tmp_path, "tid", Path("req.md"))
+
+    _interactive_checkpoint(Console(), tmp_path, "tid", _paused_owner_state())
+
+    assert captured["decision"] == _build_decision(
+        ["customer=Data Team <data@x.io>"], True, {}, {}
+    )
+    assert _read_pending(tmp_path) is None                # checkpoint cleared on finalize
+
+
+def test_interactive_decline_keeps_checkpoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Declining the accept gate must never resume or lose the checkpoint (abort safety)."""
+    from vault_agent.cli import _interactive_checkpoint
+
+    async def must_not_resume(*a: object, **k: object):  # pragma: no cover - must not run
+        raise AssertionError("resume must not be called when the human declines")
+
+    monkeypatch.setattr("vault_agent.cli._resume_pipeline", must_not_resume)
+    scripted = _ScriptedPrompter(texts=["Data Team <data@x.io>"], confirms=[False])
+    monkeypatch.setattr("vault_agent.cli._prompter", scripted)
+    _write_pending(tmp_path, "tid", Path("req.md"))
+
+    _interactive_checkpoint(Console(), tmp_path, "tid", _paused_owner_state())
+
+    assert _read_pending(tmp_path) is not None            # checkpoint survives
+
+
+async def test_paused_state_loads_from_checkpoint(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The flag-less interactive resume reconstructs the paused state from its sqlite checkpoint."""
+    from vault_agent.cli import _paused_state, _run_pipeline
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_sqlite_stub_agents(block_signoff=True)),
+    )
+    _, paused, thread_id = await _run_pipeline(tmp_path / "req.md", tmp_path)
+    assert paused is True
+
+    state = await _paused_state(tmp_path, thread_id)
+    assert state.artifacts.contracts[0]["owner"]["name"] == "TODO: assign"
+
+
+def test_interactive_finalize_end_to_end(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Acceptance #1 (keyless via the stub graph): a real paused run is taken to finalized
+    entirely through the prompt (owner + accept), against the real resume machinery."""
+    import asyncio
+
+    from vault_agent.cli import _interactive_checkpoint, _run_pipeline
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_sqlite_stub_agents(block_signoff=True)),
+    )
+    state, paused, thread_id = asyncio.run(_run_pipeline(tmp_path / "req.md", tmp_path))
+    assert paused is True
+    _write_pending(tmp_path, thread_id, tmp_path / "req.md")
+
+    scripted = _ScriptedPrompter(texts=["Data Team <data@x.io>"], confirms=[True])
+    monkeypatch.setattr("vault_agent.cli._prompter", scripted)
+    _interactive_checkpoint(Console(), tmp_path, thread_id, state)
+
+    assert _read_pending(tmp_path) is None                          # checkpoint cleared
+    remaining = asyncio.run(_thread_checkpoint_count(tmp_path, thread_id))
+    assert remaining == 0                                           # thread pruned on finalise

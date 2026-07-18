@@ -704,12 +704,40 @@ always-present graph-source <details> so a CDN-blocked report stays fully readab
 runtime dependency (stdlib templating only — jinja2 stays removed). Verified deterministically
 on the bank-with-transfer demo model (report.html generated keyless, well-formed, self-ref
 link_transfer renders two edges to hub_account incl. the counterparty role, one script tag).
-NB a manual browser check (online render + CDN-blocked fallback) remains a pre-release step
-per the spec DoD; acceptance #2 (messy_insurance multi-source render) was exercised via the
+The manual browser check (spec DoD) was performed 2026-07-18 and passed: the graph renders
+online and, with the CDN blocked, the report stays readable with the graph-source details
+auto-expanded. Acceptance #2 (messy_insurance multi-source render) was exercised via the
 equivalent checked-in model shape in tests, not a live LLM run. 339 tests green (+6 in
 tests/test_report.py: fixture/idempotency, hostile-name escaping, Mermaid structure, review
 parity, empty-state; the 2 cli count assertions updated for the new "report" key), ruff
 clean, mypy strict clean.
+
+WP12 interactive checkpoint prompt landed (as of 2026-07-18, UI-track stage 1.5,
+docs/architecture/backlog-2026-07/wp12-interactive-resume-spec.md). The HITL checkpoint is now
+answerable directly in the terminal instead of re-typing a `vault-agent resume …` command.
+cli.py only (+ tests): `run` and flag-less `resume` gain --interactive/--no-interactive
+(default auto = both stdin and stdout are TTYs, via _is_interactive; non-TTY — CI, pipes,
+tests — keeps today's print-and-exit path byte-identical, pinned). On a pause the loop
+(_interactive_checkpoint) walks the actionable items — a contract with a placeholder owner
+(matched on ContractOwner.PLACEHOLDER_NAME, never message text) is prompted, each single-source
+unresolved mapping is prompted for TABLE.COLUMN, and a multi-source key (detected structurally:
+its normalised name is a column in >= 2 declared source tables — never by parsing the flag
+message) is listed with the resume --mappings pointer, never prompted (capability-parity rule:
+the prompt offers only what the resume flags offer). A malformed answer re-prompts via the
+existing _parse_owner; an accept confirm mirrors --accept and gates the commit. Confirmed input
+is assembled by the existing _build_decision and resumed in-process via _resume_pipeline (the
+flag-less resume loads the paused state from its checkpoint through a new _paused_state helper /
+compiled.aget_state); decline / skip-all / Ctrl-C leaves pending.json + the checkpointer thread
+intact and prints today's resume instructions (abort never loses the checkpoint). No decision
+semantics live in the loop — it only collects strings; apply_human_decision, the graph, and
+state are untouched. Prompting goes through an injectable module seam (_prompter, rich
+Prompt/Confirm) so the whole flow is keyless- and TTY-free-testable. No new dependency (rich
+already present). Acceptance #1 verified keyless end-to-end against the real stub graph
+(a paused run finalised entirely through the prompt, checkpoint cleared + thread pruned);
+a real-terminal smoke test remains a pre-release step per the spec DoD. 348 tests green (+9 in
+tests/test_cli.py: tri-state/flag matrix, non-TTY regression, invalid-input re-prompt,
+multi-source deferral, owner+accept decision parity, abort-keeps-checkpoint, _paused_state
+load, end-to-end interactive finalize), ruff clean, mypy strict clean.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
