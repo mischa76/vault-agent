@@ -733,8 +733,14 @@ semantics live in the loop — it only collects strings; apply_human_decision, t
 state are untouched. Prompting goes through an injectable module seam (_prompter, rich
 Prompt/Confirm) so the whole flow is keyless- and TTY-free-testable. No new dependency (rich
 already present). Acceptance #1 verified keyless end-to-end against the real stub graph
-(a paused run finalised entirely through the prompt, checkpoint cleared + thread pruned);
-a real-terminal smoke test remains a pre-release step per the spec DoD. 348 tests green (+9 in
+(a paused run finalised entirely through the prompt, checkpoint cleared + thread pruned).
+The spec-DoD real-terminal smoke test was then performed 2026-07-18: a genuine paused run
+(real AsyncSqliteSaver, placeholder-owner contract) driven through the actual
+`vault-agent resume` CLI attached to a pseudo-terminal (pty → isatty() true → auto
+interactive) with the owner + accept *typed* — finalised, checkpoint cleared, thread
+pruned, and the outputs (report.html, review-queue.md, contract) are BYTE-IDENTICAL to the
+same paused run resumed via `resume --owner … --accept` (parity / capability-equivalence
+proven, acceptance #1's byte-identical clause). 348 tests green (+9 in
 tests/test_cli.py: tri-state/flag matrix, non-TTY regression, invalid-input re-prompt,
 multi-source deferral, owner+accept decision parity, abort-keeps-checkpoint, _paused_state
 load, end-to-end interactive finalize), ruff clean, mypy strict clean.
