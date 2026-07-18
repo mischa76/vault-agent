@@ -675,6 +675,42 @@ is 4 hubs / 3 links / 8 satellites → 15 raw-vault + 8 staging models, matching
 tests green (+2: attributes_without_cdk unit + the modeler-dedup integration), ruff clean, mypy
 strict clean (32 files). docs/demos/health-insurance-walkthrough.md figures refreshed.
 
+WP11 static HTML run report landed (as of 2026-07-18, UI-track stage 1,
+docs/architecture/backlog-2026-07/wp11-html-run-report-spec.md). A new deterministic,
+presentation-only module (src/vault_agent/report.py: build_report(state),
+build_model_mermaid(model) — no LLM, no agent, no business logic) emits one self-contained
+report.html per run, written unconditionally by cli.write_outputs (counts gains "report": 1;
+both the interrupt path and the finalize path call it, so a paused run's report shows the
+pending state and a resumed run overwrites it). The DV model is rendered as a Mermaid
+flowchart whose *source text* is generated in pure Python (browser does layout): hubs are
+rectangles, links hexagons (transactional annotated), satellites rounded rectangles with one
+class per sat_type; a multi-source hub (WP10 Hub.sources) gets one cylinder per feed, link
+participations read through Link.hub_refs (never raw connected_hubs) with the role as edge
+label and a driving-key participation (resolve_driving_refs()) as a thick ==> edge, a
+WP7-§7.1 sat source_table noted in the label; node IDs via rules.normalize_identifier (one
+normalisation source), emission order deterministic (hubs, links, sats in model order).
+Sections: header (counts + grounding from state.plan + validation/sign-off badges), graph,
+construct inventory (3 tables), validation (WP4 ValidationIssue attribute access), review
+queue (the THIRD renderer over the WP5 §5.1 API — imports KIND_HEADINGS/KIND_ORDER/
+aggregate_review_flags, never duplicates that knowledge), mappings (conditional), contracts
+(placeholder owner → "⚠ unassigned" matched on ContractOwner.PLACEHOLDER_NAME), and a
+collapsed generated-files list. Determinism: no timestamps/env — byte-identical output for
+identical state (pinned fixture tests/fixtures/report/report_fixture.html). Security: every
+LLM-derived string passes html.escape (and Mermaid-label escaping) — treat all state strings
+as hostile; the document carries exactly ONE raw <script>, the pinned Mermaid v11 UMD CDN
+include (dist/mermaid.min.js — verified present on jsdelivr, not from memory), whose own
+onload initialises+runs Mermaid (securityLevel:'strict') and whose onerror un-collapses the
+always-present graph-source <details> so a CDN-blocked report stays fully readable. No new
+runtime dependency (stdlib templating only — jinja2 stays removed). Verified deterministically
+on the bank-with-transfer demo model (report.html generated keyless, well-formed, self-ref
+link_transfer renders two edges to hub_account incl. the counterparty role, one script tag).
+NB a manual browser check (online render + CDN-blocked fallback) remains a pre-release step
+per the spec DoD; acceptance #2 (messy_insurance multi-source render) was exercised via the
+equivalent checked-in model shape in tests, not a live LLM run. 339 tests green (+6 in
+tests/test_report.py: fixture/idempotency, hostile-name escaping, Mermaid structure, review
+parity, empty-state; the 2 cli count assertions updated for the new "report" key), ruff
+clean, mypy strict clean.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

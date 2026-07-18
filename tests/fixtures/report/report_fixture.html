@@ -1,0 +1,88 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Vault-Agent run report</title><style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 2rem; color: #0b1324; background: #f8fafc;
+  font: 15px/1.55 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+main { max-width: 1100px; margin: 0 auto; }
+header h1 { margin: 0 0 .5rem; font-size: 1.6rem; }
+h2 { margin-top: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: .3rem; }
+h3 { margin: 1.2rem 0 .4rem; font-size: 1rem; color: #334155; }
+.badges { margin: .3rem 0 .6rem; }
+.badge { display: inline-block; padding: .15rem .55rem; border-radius: 999px;
+  font-size: .8rem; font-weight: 600; margin-right: .4rem; }
+.badge.ok { background: #dcfce7; color: #166534; }
+.badge.err { background: #fee2e2; color: #991b1b; }
+.badge.muted { background: #e2e8f0; color: #334155; }
+.chips .chip { display: inline-block; background: #eef2ff; color: #3730a3;
+  border-radius: 6px; padding: .1rem .5rem; margin: .15rem .3rem .15rem 0; font-size: .82rem; }
+table { border-collapse: collapse; width: 100%; margin: .4rem 0 1rem; font-size: .88rem; }
+th, td { border: 1px solid #e2e8f0; padding: .35rem .55rem; text-align: left; vertical-align: top; }
+th { background: #f1f5f9; }
+tr:nth-child(even) td { background: #fafcff; }
+ul { margin: .3rem 0 1rem; }
+code { background: #f1f5f9; padding: .05rem .3rem; border-radius: 4px; font-size: .85em; }
+pre.mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 1rem; overflow-x: auto; }
+details { margin: .6rem 0; }
+summary { cursor: pointer; font-weight: 600; color: #334155; }
+.hint { color: #475569; font-size: .85rem; }
+.files { columns: 2; font-size: .82rem; }
+</style></head><body><main><header><h1>Vault-Agent run report</h1><div class='badges'><span class="badge ok">validation passed</span><span class="badge err">requires sign-off</span><span class='badge muted'>grounding: unknown</span></div><div class='chips'><span class="chip">2 hubs</span><span class="chip">1 links</span><span class="chip">3 satellites</span><span class="chip">2 raw-vault models</span><span class="chip">1 staging models</span><span class="chip">1 contracts</span><span class="chip">0 ADRs</span></div></header><section><h2>Model graph</h2><pre class="mermaid">flowchart LR
+  classDef hub fill:#dbeafe,stroke:#1e40af,color:#0b1324;
+  classDef hubsource fill:#eff6ff,stroke:#93c5fd,color:#0b1324;
+  classDef link fill:#dcfce7,stroke:#166534,color:#0b1324;
+  classDef sat_standard fill:#fef9c3,stroke:#a16207,color:#0b1324;
+  classDef sat_multi_active fill:#fed7aa,stroke:#c2410c,color:#0b1324;
+  classDef sat_effectivity fill:#e9d5ff,stroke:#7e22ce,color:#0b1324;
+  HUB_ACCOUNT[&quot;hub_account&lt;br/&gt;BK: account_number&quot;]
+  class HUB_ACCOUNT hub;
+  HUB_CUSTOMER[&quot;hub_customer&lt;br/&gt;BK: customer_id&quot;]
+  class HUB_CUSTOMER hub;
+  HUB_CUSTOMER__SRC0[(&quot;crm_customer.cust_id&quot;)]
+  class HUB_CUSTOMER__SRC0 hubsource;
+  HUB_CUSTOMER__SRC0 --&gt; HUB_CUSTOMER
+  HUB_CUSTOMER__SRC1[(&quot;victor_partner.partn_id&quot;)]
+  class HUB_CUSTOMER__SRC1 hubsource;
+  HUB_CUSTOMER__SRC1 --&gt; HUB_CUSTOMER
+  LINK_TRANSFER{{&quot;link_transfer&lt;br/&gt;(transactional)&quot;}}
+  class LINK_TRANSFER link;
+  LINK_TRANSFER ==&gt; HUB_ACCOUNT
+  LINK_TRANSFER --&gt;|&quot;counterparty&quot;| HUB_ACCOUNT
+  SAT_ACCOUNT_DETAILS(&quot;sat_account_details&quot;)
+  class SAT_ACCOUNT_DETAILS sat_standard;
+  HUB_ACCOUNT --- SAT_ACCOUNT_DETAILS
+  SAT_CUSTOMER_ADDRESSES(&quot;sat_customer_addresses&lt;br/&gt;src: raw_customer_address&quot;)
+  class SAT_CUSTOMER_ADDRESSES sat_multi_active;
+  HUB_CUSTOMER --- SAT_CUSTOMER_ADDRESSES
+  SAT_TRANSFER_EFF(&quot;sat_transfer_eff&quot;)
+  class SAT_TRANSFER_EFF sat_effectivity;
+  LINK_TRANSFER --- SAT_TRANSFER_EFF</pre><details class="graph-source"><summary>Graph source (renders on GitHub / mermaid.live if the diagram did not load)</summary><pre>flowchart LR
+  classDef hub fill:#dbeafe,stroke:#1e40af,color:#0b1324;
+  classDef hubsource fill:#eff6ff,stroke:#93c5fd,color:#0b1324;
+  classDef link fill:#dcfce7,stroke:#166534,color:#0b1324;
+  classDef sat_standard fill:#fef9c3,stroke:#a16207,color:#0b1324;
+  classDef sat_multi_active fill:#fed7aa,stroke:#c2410c,color:#0b1324;
+  classDef sat_effectivity fill:#e9d5ff,stroke:#7e22ce,color:#0b1324;
+  HUB_ACCOUNT[&quot;hub_account&lt;br/&gt;BK: account_number&quot;]
+  class HUB_ACCOUNT hub;
+  HUB_CUSTOMER[&quot;hub_customer&lt;br/&gt;BK: customer_id&quot;]
+  class HUB_CUSTOMER hub;
+  HUB_CUSTOMER__SRC0[(&quot;crm_customer.cust_id&quot;)]
+  class HUB_CUSTOMER__SRC0 hubsource;
+  HUB_CUSTOMER__SRC0 --&gt; HUB_CUSTOMER
+  HUB_CUSTOMER__SRC1[(&quot;victor_partner.partn_id&quot;)]
+  class HUB_CUSTOMER__SRC1 hubsource;
+  HUB_CUSTOMER__SRC1 --&gt; HUB_CUSTOMER
+  LINK_TRANSFER{{&quot;link_transfer&lt;br/&gt;(transactional)&quot;}}
+  class LINK_TRANSFER link;
+  LINK_TRANSFER ==&gt; HUB_ACCOUNT
+  LINK_TRANSFER --&gt;|&quot;counterparty&quot;| HUB_ACCOUNT
+  SAT_ACCOUNT_DETAILS(&quot;sat_account_details&quot;)
+  class SAT_ACCOUNT_DETAILS sat_standard;
+  HUB_ACCOUNT --- SAT_ACCOUNT_DETAILS
+  SAT_CUSTOMER_ADDRESSES(&quot;sat_customer_addresses&lt;br/&gt;src: raw_customer_address&quot;)
+  class SAT_CUSTOMER_ADDRESSES sat_multi_active;
+  HUB_CUSTOMER --- SAT_CUSTOMER_ADDRESSES
+  SAT_TRANSFER_EFF(&quot;sat_transfer_eff&quot;)
+  class SAT_TRANSFER_EFF sat_effectivity;
+  LINK_TRANSFER --- SAT_TRANSFER_EFF</pre></details></section><section><h2>Constructs</h2><h3>Hubs</h3><table><thead><tr><th>Hub</th><th>Business key</th><th>Source entity</th><th>Sources</th><th>Description</th></tr></thead><tbody><tr><td>hub_account</td><td>account_number</td><td>account</td><td>—</td><td>A bank account.</td></tr><tr><td>hub_customer</td><td>customer_id</td><td>customer</td><td>crm_customer.cust_id, victor_partner.partn_id</td><td>A customer.</td></tr></tbody></table><h3>Links</h3><table><thead><tr><th>Link</th><th>Type</th><th>Participations</th><th>Driving key</th><th>Unit of work</th><th>Payload</th></tr></thead><tbody><tr><td>link_transfer</td><td>transactional</td><td>hub_account, hub_account (counterparty)</td><td>hub_account</td><td>—</td><td>2</td></tr></tbody></table><h3>Satellites</h3><table><thead><tr><th>Satellite</th><th>Type</th><th>Parent</th><th>Attrs</th><th>CDK</th><th>Source table</th><th>Split rationale</th></tr></thead><tbody><tr><td>sat_account_details</td><td>standard</td><td>hub_account</td><td>1</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_customer_addresses</td><td>multi_active</td><td>hub_customer</td><td>1</td><td>address_type</td><td>raw_customer_address</td><td>—</td></tr><tr><td>sat_transfer_eff</td><td>effectivity</td><td>link_transfer</td><td>2</td><td>—</td><td>—</td><td>—</td></tr></tbody></table></section><section><h2>Validation — PASSED</h2><table><thead><tr><th>Severity</th><th>Code</th><th>Construct</th><th>Message</th></tr></thead><tbody><tr><td>warning</td><td>W_SAT_WIDE</td><td>sat_account_details</td><td>Satellite is getting wide.</td></tr></tbody></table></section><section><h2>Review queue</h2><p><strong>Status:</strong> requires sign-off — 3 item(s).</p><h3>Contract owners to assign (block agreement)</h3><ul><li><strong>Assign an owner for contract &#x27;account&#x27;</strong> — The agent never invents an owner; assign one before agreeing the contract. <em>(data_contract)</em></li></ul><h3>Validation warnings (advisory)</h3><ul><li><strong>W_SAT_WIDE on sat_account_details</strong> — Satellite is getting wide. <em>(validator)</em></li></ul><h3>Review flags (advisory)</h3><ul><li><strong>data_contract: field &#x27;x&#x27; type undetermined</strong> <em>(data_contract)</em></li></ul></section><section><h2>Data contracts</h2><table><thead><tr><th>Contract</th><th>Owner</th><th>Fields</th></tr></thead><tbody><tr><td>account</td><td>⚠ unassigned</td><td>2</td></tr></tbody></table></section><section><details><summary>Generated files</summary><ul class='files'><li><code>models/raw_vault/hub_account.sql</code></li><li><code>models/raw_vault/link_transfer.sql</code></li><li><code>models/staging/stg_account.sql</code></li><li><code>dbt_project.yml</code></li><li><code>contracts/account.contract.yml</code></li></ul></details></section></main><script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" onload="mermaid.initialize({securityLevel:'strict'}); mermaid.run();" onerror="document.querySelectorAll('details.graph-source').forEach(function(d){d.open=true;});"></script></body></html>

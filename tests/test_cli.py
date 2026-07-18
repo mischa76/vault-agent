@@ -53,8 +53,9 @@ def test_write_outputs_creates_files(tmp_path: Path) -> None:
 
     assert counts == {
         "models": 2, "staging": 1, "scaffolding": 2, "adrs": 1, "metadata": 1,
-        "contracts": 0, "mappings": 0, "review_items": 0,
+        "contracts": 0, "mappings": 0, "review_items": 0, "report": 1,
     }
+    assert (tmp_path / "report.html").exists()
     assert (tmp_path / "models" / "raw_vault" / "hub_customer.sql").read_text() == "-- hub sql"
     assert (tmp_path / "models" / "raw_vault" / "sat_customer_details.sql").exists()
     assert (tmp_path / "models" / "staging" / "stg_customer.sql").read_text() == "-- stage sql"
@@ -74,8 +75,10 @@ def test_write_outputs_skips_empty_sections(tmp_path: Path) -> None:
 
     assert counts == {
         "models": 0, "staging": 0, "scaffolding": 0, "adrs": 0, "metadata": 0,
-        "contracts": 0, "mappings": 0, "review_items": 0,
+        "contracts": 0, "mappings": 0, "review_items": 0, "report": 1,
     }
+    # The report is always written, even for an empty run (header + empty-model note).
+    assert (tmp_path / "report.html").exists()
     assert not (tmp_path / "mappings.review.yml").exists()
     assert not (tmp_path / "models" / "staging").exists()
     assert not (tmp_path / "dbt_project.yml").exists()

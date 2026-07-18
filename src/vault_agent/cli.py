@@ -35,6 +35,7 @@ from vault_agent.agents.orchestrator import (
 )
 from vault_agent.graph import build_graph
 from vault_agent.profiling import load_profiling
+from vault_agent.report import build_report
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import ColumnProfile, ProposedMapping, SourceTable, VaultAgentState
 
@@ -134,6 +135,11 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
             render_review_queue_md(review_queue), encoding="utf-8"
         )
 
+    # WP11: a single self-contained HTML report per run, always written (both the interrupt
+    # path — artifacts-so-far — and the finalize path call write_outputs, so a paused run's
+    # report shows the pending state and a resumed run overwrites it).
+    (out_dir / "report.html").write_text(build_report(state), encoding="utf-8")
+
     return {
         "models": len(state.artifacts.dbt_models),
         "staging": len(state.artifacts.staging_models),
@@ -143,6 +149,7 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         "contracts": len(state.artifacts.contracts),
         "mappings": len(mapping.proposals),
         "review_items": len(review_queue.items),
+        "report": 1,
     }
 
 
@@ -422,7 +429,7 @@ def _report_written(console: Console, counts: dict[str, int], out: Path) -> None
         f"{counts['staging']} staging model(s), {counts['scaffolding']} scaffolding "
         f"file(s), {counts['contracts']} contract(s), {counts['adrs']} ADR(s), "
         f"{counts['metadata']} metadata file(s), {counts['review_items']} review "
-        f"item(s) to [cyan]{out}/[/cyan]"
+        f"item(s), and [cyan]report.html[/cyan] to [cyan]{out}/[/cyan]"
     )
 
 
