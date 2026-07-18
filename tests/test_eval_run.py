@@ -67,6 +67,7 @@ def test_build_result_payload_shape() -> None:
         "models": {"primary_model": "claude-sonnet-4-6", "heavy_model": "claude-opus-4-8"},
         "scores": {"construct_f1": 0.5},
         "details": {"construct_f1": "hubs: 1/2"},
+        "metrics": {},
     }
 
 

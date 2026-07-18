@@ -1,0 +1,10 @@
+# WP13 scale-hardness case — the 300-table step (Charter A), synthesised on demand.
+#
+# As scale_100, but the top breadth step. Ungated (pure measurement); the runner materialises
+# the deterministic 300-table landscape at run time. Escalate to this step only while the
+# 100-table step completed within the budget the maintainer set (spec §4 abort criteria).
+name: scale_300
+generate:
+  tables: 300
+  seed: 42
+golden: {}

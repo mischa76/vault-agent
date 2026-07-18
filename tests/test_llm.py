@@ -28,9 +28,17 @@ def _text_block() -> Any:
 
 
 @dataclass
+class _Usage:
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_input_tokens: int = 0
+
+
+@dataclass
 class _Message:
     content: list[Any]
     stop_reason: str = "tool_use"
+    usage: _Usage | None = None
 
 
 class _StubMessages:
@@ -159,3 +167,81 @@ async def test_system_prompt_is_sent_as_a_cache_controlled_block() -> None:
     assert client.messages.calls[0]["system"] == [
         {"type": "text", "text": "system", "cache_control": {"type": "ephemeral"}}
     ]
+
+
+# --- WP13: usage capture (token/cost transparency) ---------------------------------------
+
+
+def _recording_caller(
+    outcomes: list[Any],
+) -> tuple[ForcedToolCaller, _StubClient, list[tuple[str, int, int, int]]]:
+    client = _StubClient(outcomes)
+    _SLEEPS.clear()
+    recorded: list[tuple[str, int, int, int]] = []
+
+    def record(model: str, inp: int, out: int, cache: int) -> None:
+        recorded.append((model, inp, out, cache))
+
+    caller = ForcedToolCaller(
+        "test-model", client=client, sleep=_no_sleep, usage_recorder=record
+    )
+    return caller, client, recorded
+
+
+async def test_usage_recorder_receives_response_usage() -> None:
+    usage = _Usage(input_tokens=1200, output_tokens=340, cache_read_input_tokens=900)
+    caller, _, recorded = _recording_caller([_Message(content=[_tool_block()], usage=usage)])
+
+    await _call(caller)
+
+    assert recorded == [("test-model", 1200, 340, 900)]
+
+
+async def test_usage_recorder_defaults_missing_fields_to_zero() -> None:
+    # A response without a usage object (a stub, or a partial SDK shape) must not crash the
+    # call path — usage capture is observational.
+    caller, _, recorded = _recording_caller([_Message(content=[_tool_block()], usage=None)])
+
+    await _call(caller)
+
+    assert recorded == [("test-model", 0, 0, 0)]
+
+
+async def test_usage_recorded_even_on_truncation() -> None:
+    # A truncated response is still billed; its tokens must count toward the totals before
+    # the LLMCallError surfaces.
+    usage = _Usage(input_tokens=500, output_tokens=4096)
+    caller, _, recorded = _recording_caller(
+        [_Message(content=[_tool_block()], stop_reason="max_tokens", usage=usage)]
+    )
+
+    with pytest.raises(LLMCallError, match="truncated"):
+        await _call(caller)
+    assert recorded == [("test-model", 500, 4096, 0)]
+
+
+async def test_no_recorder_is_a_no_op() -> None:
+    # The default (no instance recorder, no module recorder) records nothing and behaves
+    # exactly as before.
+    from vault_agent import llm
+
+    assert llm._default_usage_recorder is None
+    caller, client = _caller([_Message(content=[_tool_block({"ok": 1})], usage=_Usage(1, 2, 3))])
+
+    assert await _call(caller) == {"ok": 1}
+
+
+async def test_module_level_recorder_captures_agent_constructed_callers() -> None:
+    # eval.run registers a module-level recorder because the agents build their own callers.
+    from vault_agent import llm
+
+    recorded: list[tuple[str, int, int, int]] = []
+    llm.set_usage_recorder(lambda *args: recorded.append(args))
+    try:
+        caller, _ = _caller([_Message(content=[_tool_block()], usage=_Usage(10, 20, 5))])
+        await _call(caller)
+    finally:
+        llm.set_usage_recorder(None)
+
+    assert recorded == [("test-model", 10, 20, 5)]
+    assert llm._default_usage_recorder is None  # cleared

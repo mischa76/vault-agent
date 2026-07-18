@@ -20,6 +20,8 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
+import time
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -30,12 +32,22 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 from pydantic import BaseModel
 
-from eval.datasets import DATASET_FILENAME, DATASETS_ROOT, EvalCase, load_all_cases, load_eval_case
-from eval.mapping import GOLDEN_MAPPING_FILENAME, load_golden_mapping
+from eval.datasets import (
+    DATASET_FILENAME,
+    DATASETS_ROOT,
+    EvalCase,
+    load_all_cases,
+    load_eval_case,
+    materialize_case,
+)
+from eval.mapping import load_golden_mapping
 from eval.scorers import ScorerResult, score_mapping, score_state
+from vault_agent import llm
+from vault_agent.agents.orchestrator import assemble_review_queue, render_review_queue_md
 from vault_agent.cli import _checkpoint_serde
 from vault_agent.config import get_settings
 from vault_agent.graph import build_graph
+from vault_agent.profiling import load_profiling
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import VaultAgentState
 
@@ -57,9 +69,72 @@ class ScoreStats(BaseModel):
     max: float
 
 
+class UsageTotals:
+    """Accumulates per-call token usage across a run (WP13 §3 cost transparency).
+
+    Registered as the module-level ForcedToolCaller recorder for the duration of one run, so
+    every agent's LLM call — the agents build their own callers — feeds the same totals."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+        self.input_tokens = 0
+        self.output_tokens = 0
+        self.cache_read_tokens = 0
+        self.by_model: dict[str, dict[str, int]] = {}
+
+    def record(self, model: str, input_tokens: int, output_tokens: int, cache_read: int) -> None:
+        self.calls += 1
+        self.input_tokens += input_tokens
+        self.output_tokens += output_tokens
+        self.cache_read_tokens += cache_read
+        per = self.by_model.setdefault(
+            model, {"calls": 0, "input_tokens": 0, "output_tokens": 0, "cache_read_tokens": 0}
+        )
+        per["calls"] += 1
+        per["input_tokens"] += input_tokens
+        per["output_tokens"] += output_tokens
+        per["cache_read_tokens"] += cache_read
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "calls": self.calls,
+            "input_tokens": self.input_tokens,
+            "output_tokens": self.output_tokens,
+            "cache_read_tokens": self.cache_read_tokens,
+            "by_model": self.by_model,
+        }
+
+
+def run_metrics(
+    state: VaultAgentState, wall_clock_seconds: float, usage: UsageTotals
+) -> dict[str, Any]:
+    """Non-score observations captured per run (WP13 §3): cost, wall-clock, review-queue size.
+
+    ``review_queue_lines`` is the *rendered* markdown line count — the readability proxy the
+    scale test watches: does WP-aggregation keep the checkpoint scannable at hundreds of flags?"""
+    queue = assemble_review_queue(state)
+    rendered = render_review_queue_md(queue)
+    return {
+        "wall_clock_seconds": round(wall_clock_seconds, 3),
+        "usage": usage.as_dict(),
+        "review_items_total": len(queue.items),
+        "review_queue_lines": rendered.count("\n") + 1,
+        "constructs": {
+            "hubs": len(state.dv_model.hubs),
+            "links": len(state.dv_model.links),
+            "satellites": len(state.dv_model.satellites),
+        },
+        "flags": len(state.flags),
+    }
+
+
 async def run_case_once(case: EvalCase) -> VaultAgentState:
-    """One real pipeline run for ``case``; auto-resumes the HITL checkpoint."""
+    """One real pipeline run for ``case``; auto-resumes the HITL checkpoint.
+
+    Feeds the declared source schema (ADR-0004 grounding) and profiling (WP9 mapper) when the
+    case carries them — the WP13 scale cases always do."""
     source_schemas = load_source_schemas(case.source_schema) if case.source_schema else []
+    profiling = load_profiling(case.profiling) if case.profiling else {}
     saver = MemorySaver()
     # Same state-model allow-list the CLI registers on its sqlite saver: without it every
     # HITL resume deserialises our pydantic models as "unregistered types" (deprecation
@@ -73,6 +148,7 @@ async def run_case_once(case: EvalCase) -> VaultAgentState:
         VaultAgentState(  # type: ignore[arg-type]
             input_documents=[str(case.input_document)],
             source_schemas=source_schemas,
+            profiling=profiling,
         ),
         config=config,
     )
@@ -111,8 +187,10 @@ def build_result_payload(
     models: dict[str, str],
     git_sha: str,
     timestamp: str,
+    metrics: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """The JSON document written for one run: scores, model ids, git SHA, diff details."""
+    """The JSON document written for one run: scores, model ids, git SHA, diff details, and
+    (WP13) usage/wall-clock/review-queue metrics."""
     return {
         "case": case.name,
         "run": run_index,
@@ -121,6 +199,7 @@ def build_result_payload(
         "models": models,
         "scores": {result.name: result.score for result in results},
         "details": {result.name: result.details for result in results},
+        "metrics": metrics or {},
     }
 
 
@@ -133,6 +212,26 @@ def render_table(case_name: str, stats: dict[str, ScoreStats], repeat: int) -> s
         for name, stat in sorted(stats.items())
     )
     return "\n".join(lines)
+
+
+def render_metrics(case_name: str, metrics: list[dict[str, Any]]) -> str:
+    """Compact per-case usage/wall-clock/review-queue summary across the repeats (pure)."""
+    if not metrics:
+        return f"  {case_name}: no metrics"
+    n = len(metrics)
+    wall = sum(m["wall_clock_seconds"] for m in metrics) / n
+    tin = sum(m["usage"]["input_tokens"] for m in metrics) / n
+    tout = sum(m["usage"]["output_tokens"] for m in metrics) / n
+    cache = sum(m["usage"]["cache_read_tokens"] for m in metrics) / n
+    calls = sum(m["usage"]["calls"] for m in metrics) / n
+    review = sum(m["review_items_total"] for m in metrics) / n
+    lines = sum(m["review_queue_lines"] for m in metrics) / n
+    cache_share = cache / tin if tin else 0.0
+    return (
+        f"  usage (mean/run): {calls:.0f} calls, in={tin:,.0f} tok "
+        f"(cache-read {cache_share:.0%}), out={tout:,.0f} tok · wall={wall:.1f}s · "
+        f"review items={review:.0f} ({lines:.0f} rendered lines)"
+    )
 
 
 def _git_sha() -> str:
@@ -154,27 +253,44 @@ def _load_cases(args: argparse.Namespace) -> list[EvalCase]:
     return [load_eval_case(DATASETS_ROOT / args.dataset / DATASET_FILENAME)]
 
 
-def _score_run(case: EvalCase, state: VaultAgentState) -> list[ScorerResult]:
-    """Construct scorers, plus the WP9 mapping scorers when the case ships a golden mapping."""
+def _score_run(
+    case: EvalCase, state: VaultAgentState, golden_path: Path | None
+) -> list[ScorerResult]:
+    """Construct scorers, plus the WP9 mapping scorers when the case has a golden mapping."""
     results = score_state(state, case)
-    golden_path = DATASETS_ROOT / case.name / GOLDEN_MAPPING_FILENAME
-    if golden_path.is_file():
+    if golden_path is not None and golden_path.is_file():
         results.extend(score_mapping(state.mappings, load_golden_mapping(golden_path)))
     return results
 
 
-async def _run_and_score(case: EvalCase, repeat: int) -> list[list[ScorerResult]]:
+async def _run_and_score(
+    case: EvalCase, golden_path: Path | None, repeat: int
+) -> tuple[list[list[ScorerResult]], list[dict[str, Any]]]:
+    """Run + score ``repeat`` times, capturing per-run token usage and wall-clock metrics.
+
+    The usage recorder is a module-level ForcedToolCaller hook (the agents build their own
+    callers), installed only for the duration of each run and always cleared afterwards."""
     runs: list[list[ScorerResult]] = []
+    metrics: list[dict[str, Any]] = []
     for index in range(repeat):
         print(f"  run {index + 1}/{repeat} ...", flush=True)
-        state = await run_case_once(case)
-        runs.append(_score_run(case, state))
-    return runs
+        usage = UsageTotals()
+        llm.set_usage_recorder(usage.record)
+        started = time.perf_counter()
+        try:
+            state = await run_case_once(case)
+        finally:
+            llm.set_usage_recorder(None)
+        elapsed = time.perf_counter() - started
+        runs.append(_score_run(case, state, golden_path))
+        metrics.append(run_metrics(state, elapsed, usage))
+    return runs, metrics
 
 
 def _write_results(
     case: EvalCase,
     runs: list[list[ScorerResult]],
+    metrics: list[dict[str, Any]],
     out_root: Path,
     models: dict[str, str],
     git_sha: str,
@@ -182,10 +298,11 @@ def _write_results(
     case_dir = out_root / case.name
     case_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
-    for index, results in enumerate(runs, start=1):
+    for index, (results, run_meta) in enumerate(zip(runs, metrics, strict=True), start=1):
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
         payload = build_result_payload(
-            case, index, results, models=models, git_sha=git_sha, timestamp=timestamp
+            case, index, results, models=models, git_sha=git_sha,
+            timestamp=timestamp, metrics=run_meta,
         )
         path = case_dir / f"{timestamp}-run{index}.json"
         path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
@@ -234,10 +351,21 @@ def main(argv: list[str] | None = None) -> int:
     exit_code = 0
     for case in _load_cases(args):
         print(f"Evaluating case '{case.name}' ...", flush=True)
-        runs = asyncio.run(_run_and_score(case, args.repeat))
+        # A WP13 generate case synthesises its inputs into a temp workdir on demand; a
+        # committed case is returned unchanged with its shipped golden-mapping path.
+        with tempfile.TemporaryDirectory(prefix=f"eval-{case.name}-") as workdir:
+            resolved, golden_path = materialize_case(case, Path(workdir))
+            if resolved.generate is not None:
+                print(
+                    f"  generated landscape: {resolved.generate.tables} tables "
+                    f"(seed {resolved.generate.seed})",
+                    flush=True,
+                )
+            runs, metrics = asyncio.run(_run_and_score(resolved, golden_path, args.repeat))
         stats = aggregate(runs)
-        written = _write_results(case, runs, args.out, models, git_sha)
+        written = _write_results(case, runs, metrics, args.out, models, git_sha)
         print(render_table(case.name, stats, args.repeat))
+        print(render_metrics(case.name, metrics))
         print(f"  results: {', '.join(str(path) for path in written)}")
         if langsmith_client is not None:
             upload_run_results(langsmith_client, case, runs, models=models, git_sha=git_sha)

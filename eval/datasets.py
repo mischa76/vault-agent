@@ -14,12 +14,16 @@ from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, model_validator
 
 # Where the shipped cases live; the runner and tests discover cases here by default.
 DATASETS_ROOT = Path(__file__).parent / "datasets"
 
 DATASET_FILENAME = "dataset.yml"
+
+# The golden-mapping filename a case ships (or a generated case materialises); mirrored from
+# eval.mapping.GOLDEN_MAPPING_FILENAME, kept local to avoid an import cycle at module load.
+GOLDEN_MAPPING_FILENAME = "golden_mapping.yml"
 
 
 class GoldenHub(BaseModel):
@@ -70,15 +74,45 @@ class Expectations(BaseModel):
     min_scores: dict[str, float] = Field(default_factory=dict)
 
 
+class GenerateSpec(BaseModel):
+    """A generated case (WP13): the inputs are synthesised on demand from ``(tables, seed)``
+    by ``eval.scale.generate`` instead of committed, so the large scale steps (100/300) do
+    not check hundreds of KB of synthetic YAML into the repo."""
+
+    tables: int
+    seed: int
+
+
 class EvalCase(BaseModel):
-    """One golden eval case. ``input_document``/``source_schema`` are resolved to absolute
-    paths (relative paths in ``dataset.yml`` are taken relative to the file itself)."""
+    """One golden eval case. ``input_document``/``source_schema``/``profiling`` are resolved
+    to absolute paths (relative paths in ``dataset.yml`` are taken relative to the file
+    itself) for a committed case; a ``generate`` case leaves them unset until
+    :func:`materialize_case` synthesises them. Exactly one of ``input_document`` / ``generate``
+    must be given."""
 
     name: str
-    input_document: Path
+    input_document: Path | None = None
     source_schema: Path | None = None
+    profiling: Path | None = None
+    generate: GenerateSpec | None = None
     golden: GoldenModel
     expectations: Expectations = Field(default_factory=Expectations)
+
+    @model_validator(mode="after")
+    def _exactly_one_input_source(self) -> "EvalCase":
+        if (self.input_document is None) == (self.generate is None):
+            raise ValueError(
+                "provide exactly one of 'input_document' (committed case) or 'generate' "
+                "(synthesised case)"
+            )
+        if self.generate is not None and (
+            self.source_schema is not None or self.profiling is not None
+        ):
+            raise ValueError(
+                "a 'generate' case must not also declare 'source_schema'/'profiling' "
+                "(they are synthesised)"
+            )
+        return self
 
 
 def _resolve_existing(base: Path, candidate: Path, field: str, source: Path) -> Path:
@@ -111,14 +145,48 @@ def load_eval_case(path: Path) -> EvalCase:
     except ValidationError as exc:
         raise ValueError(f"{path}: invalid eval case: {exc}") from exc
 
-    case.input_document = _resolve_existing(
-        path.parent, case.input_document, "input_document", path
-    )
-    if case.source_schema is not None:
-        case.source_schema = _resolve_existing(
-            path.parent, case.source_schema, "source_schema", path
+    # A generated case leaves the input paths unset; they are synthesised by
+    # materialize_case(). A committed case resolves them to existing files now.
+    if case.generate is None:
+        assert case.input_document is not None  # guaranteed by the model validator
+        case.input_document = _resolve_existing(
+            path.parent, case.input_document, "input_document", path
         )
+        if case.source_schema is not None:
+            case.source_schema = _resolve_existing(
+                path.parent, case.source_schema, "source_schema", path
+            )
+        if case.profiling is not None:
+            case.profiling = _resolve_existing(path.parent, case.profiling, "profiling", path)
     return case
+
+
+def materialize_case(case: EvalCase, workdir: Path) -> tuple[EvalCase, Path | None]:
+    """Resolve a case to concrete input files, synthesising a ``generate`` case on demand.
+
+    For a committed case this is a near no-op: it returns the case unchanged plus the path to
+    its shipped ``golden_mapping.yml`` (or ``None`` if it ships none). For a WP13 ``generate``
+    case it runs :func:`eval.scale.generate.write_landscape` into ``workdir`` and returns a
+    copy of the case bound to the synthesised ``requirements.md``/``source_schema.yml``/
+    ``profiling.yml`` plus the synthesised ``golden_mapping.yml``. Deterministic: the same
+    ``(tables, seed)`` yields byte-identical inputs (WP13 §2)."""
+    if case.generate is None:
+        golden = DATASETS_ROOT / case.name / GOLDEN_MAPPING_FILENAME
+        return case, (golden if golden.is_file() else None)
+
+    # Lazy import: keeps the loader light and the eval → src dependency direction explicit.
+    from eval.scale.generate import generate_landscape, write_landscape
+
+    landscape = generate_landscape(case.generate.tables, case.generate.seed)
+    files = write_landscape(landscape, workdir)
+    resolved = case.model_copy(
+        update={
+            "input_document": files["requirements"],
+            "source_schema": files["source_schema"],
+            "profiling": files["profiling"],
+        }
+    )
+    return resolved, files["golden_mapping"]
 
 
 def load_all_cases(root: Path = DATASETS_ROOT) -> list[EvalCase]:

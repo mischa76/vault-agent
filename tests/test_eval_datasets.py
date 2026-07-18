@@ -100,9 +100,22 @@ def test_load_all_cases_skips_dirs_without_dataset(tmp_path: Path) -> None:
 
 def test_shipped_cases_load_with_unique_names() -> None:
     cases = load_all_cases()
-    assert [case.name for case in cases] == ["bank", "health_insurance", "messy_insurance"]
+    # Sorted by directory name; the WP13 scale cases join the original three.
+    assert [case.name for case in cases] == [
+        "bank",
+        "health_insurance",
+        "messy_insurance",
+        "scale_100",
+        "scale_30",
+        "scale_300",
+    ]
     for case in cases:
-        assert case.input_document.is_file()
+        # Committed cases resolve their document to a file; a WP13 generate case has no
+        # committed input_document (it is synthesised on demand by materialize_case).
+        if case.generate is None:
+            assert case.input_document is not None and case.input_document.is_file()
+        else:
+            assert case.input_document is None
 
 
 def _shipped(name: str) -> EvalCase:

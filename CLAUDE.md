@@ -745,6 +745,43 @@ tests/test_cli.py: tri-state/flag matrix, non-TTY regression, invalid-input re-p
 multi-source deferral, owner+accept decision parity, abort-keeps-checkpoint, _paused_state
 load, end-to-end interactive finalize), ruff clean, mypy strict clean.
 
+WP13 scale-hardness *tooling* landed (as of 2026-07-18, Charter A / roadmap;
+docs/architecture/backlog-2026-07/wp13-scale-hardness-spec.md), the keyless half — the live
+measurement protocol (spec §4) is the maintainer's, executed afterwards. Three pieces.
+(§2 generator) eval/scale/generate.py (`python -m eval.scale.generate --tables N --seed S
+--out DIR`) synthesises a mutually-consistent landscape of exactly N source tables across
+three systems (a cryptic DACH legacy system, an anglophone CRM, a peripheral system):
+source_schema.yml (types+comments, ADR-0008 precondition-(c) shape), profiling.yml (incl.
+the statistics trap — a technical GUID profiling 1.0/0.0 next to the true key's realistic
+null wart), requirements.md (a business-entity/relationship narrative that scales with the
+entity count — deliberately NOT an exhaustive per-table inventory, see the breakpoint note
+below), and golden_mapping.yml (a sampled ~30-concept universe, WP9.2 semantics, NOT one per
+table — the generator knows the truth). All five spike trap classes present by construction
+in seeded, reported proportions (abbreviations, false friends, GUID-shadow, cross-system
+synonyms→WP10 multi-source, FK-comment→WP9.1 demotion) plus a wide-table fraction (100–300
+cols) riding the width axis. Byte-deterministic for a fixed (tables, seed); keyless, depends
+on vault_agent only for MAX_DOCUMENT_CHARS + normalize_identifier (eval→src direction).
+(§3 usage capture) ForcedToolCaller gains an injectable usage_recorder (per-instance ctor arg
++ a module-level set_usage_recorder default, since the agents build their own callers) fired
+once per API response with (model, input, output, cache_read) tokens — observational, no
+behaviour change when unset, records even on truncation; eval/run.py registers a run-scoped
+UsageTotals and writes usage + wall-clock + review-queue size (items and *rendered* line
+count, the readability proxy) + construct/flag counts into each result JSON's new `metrics`
+block, printed as a per-case summary. (§3 cases) eval/datasets.py EvalCase gains optional
+profiling + a `generate:{tables,seed}` block (exactly one of input_document/generate);
+materialize_case synthesises a generate case's inputs on demand into a temp workdir; run.py
+feeds profiling to the mapper. scale_30 is committed (inputs == `generate --tables 30 --seed
+42`, pinned) and gated loosely (mapping_accuracy≥0.8, pipeline_health=1.0); scale_100/scale_300
+carry generate blocks and stay ungated (measurement). Findings template at
+docs/architecture/scale-test-findings.md (run commands, budget/abort criteria). A first
+candidate breakpoint was already observed (2026-07-18): the requirements_parser output cap
+(max_tokens=4096) truncates on an inventory-heavy doc — the generator's requirements were made
+leaner in response; confirming the exact breaking N (and chunking the parser like the contract
+enricher) is the maintainer's first live task and a likely follow-up WP. 374 tests green (+21
+in tests/test_scale_generate.py, +6 usage tests in tests/test_llm.py; two existing eval tests
+updated for the new metrics key / shipped cases), ruff clean, mypy strict clean (35 files). The
+core package gains no new dependency and no behaviour change when the usage recorder is unset.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

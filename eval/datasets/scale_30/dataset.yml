@@ -1,0 +1,23 @@
+# WP13 scale-hardness case — the committed 30-table step (Charter A).
+#
+# The inputs under inputs/ are the deterministic output of
+#   python -m eval.scale.generate --tables 30 --seed 42
+# (regenerating with the same (tables, seed) reproduces them byte-for-byte; pinned by
+# tests/test_scale_generate.py). The 100/300 steps are NOT committed — their dataset.yml
+# carries a `generate:` block and the runner synthesises the inputs on demand.
+#
+# No golden DV model is asserted (scale is a *measurement* case, not a construct-regression
+# gate): `golden` is empty, so construct_f1 is reported but never gated. The golden business↔
+# source mapping (golden_mapping.yml) is the real ground truth here — a sampled ~30-concept
+# universe (WP9.2 semantics) the mapper is scored against.
+name: scale_30
+input_document: inputs/requirements.md
+source_schema: inputs/source_schema.yml
+profiling: inputs/profiling.yml
+golden: {}
+expectations:
+  # Loose floors (spike band, not exactness): the run must stay healthy and the mapper must
+  # clear a realistic accuracy bar on the sampled concepts. 100/300 stay ungated (measurement).
+  min_scores:
+    mapping_accuracy: 0.8
+    pipeline_health: 1.0

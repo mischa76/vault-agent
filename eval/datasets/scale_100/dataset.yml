@@ -1,0 +1,11 @@
+# WP13 scale-hardness case — the 100-table step (Charter A), synthesised on demand.
+#
+# No committed inputs: the `generate:` block tells the runner to materialise a deterministic
+# 100-table landscape (via eval.scale.generate) into a temp workdir at run time, so the repo
+# does not carry hundreds of KB of synthetic YAML. Ungated (pure measurement) — escalate to
+# this step only while scale_30 stays green.
+name: scale_100
+generate:
+  tables: 100
+  seed: 42
+golden: {}

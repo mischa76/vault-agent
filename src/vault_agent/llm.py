@@ -24,6 +24,22 @@ _RETRYABLE_STATUS = frozenset({408, 429, 500, 502, 503, 529})
 _MAX_RETRIES = 3
 _BASE_DELAY_SECONDS = 2.0
 
+# Token/cost capture (WP13 §3): a callback fired once per completed API response with
+# ``(model, input_tokens, output_tokens, cache_read_tokens)`` from ``response.usage``.
+# Purely observational — in-memory, no behaviour change when unset. The agents construct
+# their own callers, so a *module-level* default lets a harness (eval.run) capture usage
+# across every agent without threading a recorder through each constructor; per-instance
+# injection (the ``usage_recorder`` ctor arg) is for tests.
+UsageRecorder = Callable[[str, int, int, int], None]
+
+_default_usage_recorder: UsageRecorder | None = None
+
+
+def set_usage_recorder(recorder: UsageRecorder | None) -> None:
+    """Register (or clear with ``None``) the process-wide default usage recorder."""
+    global _default_usage_recorder
+    _default_usage_recorder = recorder
+
 
 class LLMCallError(RuntimeError):
     """A forced tool call failed in a way the pipeline must not silently absorb.
@@ -45,6 +61,7 @@ class ForcedToolCaller:
         model: str,
         client: Any | None = None,
         sleep: Callable[[float], Awaitable[None]] | None = None,
+        usage_recorder: UsageRecorder | None = None,
     ) -> None:
         if client is None:
             # Imported here so module import never requires an API key.
@@ -55,6 +72,7 @@ class ForcedToolCaller:
         self._client = client
         self._model = model
         self._sleep = sleep or asyncio.sleep
+        self._usage_recorder = usage_recorder
 
     async def call(
         self,
@@ -117,6 +135,10 @@ class ForcedToolCaller:
                 last_exc = exc
                 continue
 
+            # Record usage the moment a response lands — before the truncation check, so a
+            # truncated (but billed) call still counts toward the cost totals.
+            self._record_usage(message)
+
             # A truncated response means an incomplete (or absent) tool payload; falling
             # through would be indistinguishable from "the model found nothing" and
             # would burn a modeling retry on garbage.
@@ -136,3 +158,19 @@ class ForcedToolCaller:
         raise LLMCallError(
             f"{tool_name}: API call failed after {_MAX_RETRIES + 1} attempts: {last_exc}"
         ) from last_exc
+
+    def _record_usage(self, message: Any) -> None:
+        """Fire the usage recorder (instance override, else module default) if one is set.
+
+        Reads ``message.usage`` defensively — a stub or a future SDK may omit fields — and
+        never lets a recorder error disturb the call path (usage capture is observational)."""
+        recorder = self._usage_recorder or _default_usage_recorder
+        if recorder is None:
+            return
+        usage = getattr(message, "usage", None)
+        recorder(
+            self._model,
+            int(getattr(usage, "input_tokens", 0) or 0),
+            int(getattr(usage, "output_tokens", 0) or 0),
+            int(getattr(usage, "cache_read_input_tokens", 0) or 0),
+        )
