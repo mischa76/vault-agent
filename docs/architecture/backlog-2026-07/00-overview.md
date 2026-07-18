@@ -91,3 +91,18 @@ milestone paragraph (resolve append-order at merge), and the kick-offs' STOP pre
 Give the agent the matching `kickoff/WPn-*.md` file as its task prompt, with the repo as
 working directory. The kick-off tells it what to read, what to build, and how to verify.
 Review its output against the spec's acceptance criteria before merging.
+
+## Addendum 2026-07-18 — UI track (post-review additions)
+
+Two WPs added after the original package, from the UI-track decision 2026-07-17
+(see `../roadmap-2026-07-productization.md` for the full sequence incl. the
+scale-test / residency / competitive-brief charters):
+
+| WP | Spec | What | Size | Depends on |
+|----|------|------|------|------------|
+| WP11 | `wp11-html-run-report-spec.md` | Static HTML run report (model graph, review queue, mappings) — UI stage 1 | M | — |
+| WP12 | `wp12-interactive-resume-spec.md` | Interactive checkpoint prompt in the CLI — UI stage 1.5 | S/M | — |
+
+Both are bound by the CLI-first invariant (WP11 §1): pure console operation stays a
+complete mode; nothing may become web- or prompt-only. Kick-offs: `kickoff/WP11-html-run-report.md`,
+`kickoff/WP12-interactive-resume.md`.
