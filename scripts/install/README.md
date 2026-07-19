@@ -55,3 +55,11 @@ uv run vault-agent run examples/inputs/health_insurance_requirements.md --out ou
 
 Note without systemd: after a Windows reboot, run
 `sudo service postgresql start` once (the setup prints whether this applies).
+
+## Troubleshooting
+
+- **`uv: command not found` / `~/vault-agent: No such file or directory`** right after
+  Ubuntu's very first launch: stage 2 has not run yet — you are in a fresh distro. Run
+  the stage-2 one-liner above (or re-run `install-windows.ps1` in PowerShell; it
+  continues where it left off). Do **not** follow Ubuntu's `snap install astral-uv`
+  hint — snap is not the supported install path here.
