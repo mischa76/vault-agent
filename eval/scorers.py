@@ -7,6 +7,7 @@ connected-hub sets, driving-key sets, and attribute sets are compared through
 ``NATIONAL_CUSTOMER_ID`` and construct names match regardless of label casing/spacing.
 """
 from collections.abc import Callable, Iterable
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -297,15 +298,24 @@ def mapping_accuracy(proposed: ProposedMapping, golden: GoldenMapping) -> Scorer
     return ScorerResult(name="mapping_accuracy", score=f1, details=details)
 
 
-def gap_detection(proposed: ProposedMapping, golden: GoldenMapping) -> ScorerResult:
+def gap_detection(
+    proposed: ProposedMapping, golden: GoldenMapping, *, reported_only: bool = False
+) -> ScorerResult:
     """Recall over golden gaps: fraction of no-source concepts correctly called a gap.
 
     A golden gap that got *mapped* anywhere (force-fit) is the worst failure mode and is
     named in the details (charter §5). Concepts parked in ``unresolved`` are honest
-    non-answers — they lower recall but are not force-fits."""
+    non-answers — they lower recall but are not force-fits.
+
+    Both halves (gap recall and the force-fit check) are keyed on the proposal's *concept*
+    name, so in the scale cases' column mode — where the modeler's free-form concept names
+    diverge from the golden's vocabulary (WP14) — this scorer is blind. ``reported_only``
+    prefixes the details to mark the score non-gateable there; the loader rejects a
+    column-mode case that gates it (``datasets.load_eval_case``)."""
+    prefix = "concept-coupled — reported only in column mode; " if reported_only else ""
     gap_concepts = _gap_concepts(golden)
     if not gap_concepts:
-        return ScorerResult(name="gap_detection", score=1.0, details="no golden gaps")
+        return ScorerResult(name="gap_detection", score=1.0, details=prefix + "no golden gaps")
 
     proposed_gaps = {normalize_identifier(g) for g in proposed.gaps}
     proposed_concepts = {normalize_identifier(p.concept) for p in proposed.proposals}
@@ -313,12 +323,85 @@ def gap_detection(proposed: ProposedMapping, golden: GoldenMapping) -> ScorerRes
     force_fit = sorted(gap_concepts & proposed_concepts)
     recall = len(caught) / len(gap_concepts)
 
-    details = f"gap recall={recall:.2f} ({len(caught)}/{len(gap_concepts)})"
+    details = f"{prefix}gap recall={recall:.2f} ({len(caught)}/{len(gap_concepts)})"
     if force_fit:
         # Report using the original concept labels for readability.
         labels = [g.concept for g in golden.gaps if normalize_identifier(g.concept) in force_fit]
         details += f"; FORCE-FIT (mapped a gap): {', '.join(labels)}"
     return ScorerResult(name="gap_detection", score=recall, details=details)
+
+
+# ── Column-based mapping scorers (WP14) ───────────────────────────────────────────────────
+# The scale cases (WP13) feed the *generated* model's free-form concept names, which diverge
+# almost entirely from the golden's sampled vocabulary — so concept-keyed mapping_accuracy
+# measures naming alignment, not mapping quality (scale-test-findings.md Candidate #2). These
+# two scorers judge the mapper on its actual job — binding the right physical column — by
+# matching normalised (table, column) pairs, with no concept or entity coupling.
+def mapping_coverage(proposed: ProposedMapping, golden: GoldenMapping) -> ScorerResult:
+    """Column-based recall: fraction of golden mappable entries whose ``(table, column)`` pair
+    is bound by *some* proposal (an ``ambiguous`` entry is covered by any listed candidate).
+
+    Deliberately pair-only — no ``entity`` coupling (entity naming diverges exactly like
+    concept naming) and no synthetic precision/F1 (naming it ``mapping_coverage`` keeps the
+    honest semantics visible in every result JSON and gate). The statistics trap survives:
+    binding the shadow GUID is a different pair, so it never covers the real key. Proposals
+    binding a column outside the golden mappable set are counted and reported, never penalised
+    (WP9.2 tradition)."""
+    acceptable = _acceptable_pairs(golden)  # normalised concept → set of acceptable pairs
+    n_mappable = len(acceptable)
+    proposed_pairs = {_norm_pair(p.table, p.column) for p in proposed.proposals}
+    golden_pairs = {pair for pairs in acceptable.values() for pair in pairs}
+    out_of_golden = sum(
+        1 for p in proposed.proposals if _norm_pair(p.table, p.column) not in golden_pairs
+    )
+
+    if n_mappable == 0:
+        details = "no mappable golden entries"
+        if out_of_golden:
+            details += f"; {out_of_golden} proposal(s) outside the golden column set, unscored"
+        return ScorerResult(name="mapping_coverage", score=1.0, details=details)
+
+    recalled = 0
+    missed: list[str] = []
+    for pairs in acceptable.values():
+        if proposed_pairs & pairs:
+            recalled += 1
+        else:
+            missed.append("|".join(f"{table}.{column}" for table, column in sorted(pairs)))
+    score = recalled / n_mappable
+    details = f"coverage={score:.2f} ({recalled}/{n_mappable} golden pairs bound)"
+    if missed:
+        shown = ", ".join(sorted(missed)[:5])
+        more = f" (+{len(missed) - 5} more)" if len(missed) > 5 else ""
+        details += f"; missed: {shown}{more}"
+    if out_of_golden:
+        details += f"; {out_of_golden} proposal(s) outside the golden column set, unscored"
+    return ScorerResult(name="mapping_coverage", score=score, details=details)
+
+
+def false_friend_hits(proposed: ProposedMapping, golden: GoldenMapping) -> ScorerResult:
+    """Gateable false-friend guard (column mode): **1.0 when no proposal binds a golden
+    ``false_friends`` pair, else 0.0**, every hit named in the details.
+
+    Vacuously 1.0 when the golden declares no false friends. This keeps the findings-review
+    gate — "coverage ≥ 0.8 AND zero false-friend hits" — expressible as two ``min_scores``
+    lines (``mapping_coverage``/``false_friend_hits``)."""
+    friends = _false_friend_pairs(golden)
+    hits = [
+        f"{p.concept} → {p.table}.{p.column}"
+        for p in proposed.proposals
+        if _norm_pair(p.table, p.column) in friends
+    ]
+    if hits:
+        return ScorerResult(
+            name="false_friend_hits",
+            score=0.0,
+            details=f"{len(hits)} FALSE-FRIEND HIT(S): {', '.join(hits)}",
+        )
+    watched = f"{len(friends)} false-friend column(s) watched" if friends else "none declared"
+    return ScorerResult(
+        name="false_friend_hits", score=1.0, details=f"no false-friend columns bound ({watched})"
+    )
 
 
 def confidence_calibration(proposed: ProposedMapping, golden: GoldenMapping) -> ScorerResult:
@@ -374,7 +457,22 @@ MAPPING_SCORERS: dict[str, MappingScorer] = {
     "confidence_calibration": confidence_calibration,
 }
 
+MappingMatchMode = Literal["concept", "column"]
 
-def score_mapping(proposed: ProposedMapping, golden: GoldenMapping) -> list[ScorerResult]:
-    """Apply every mapping scorer to one prototype result."""
+
+def score_mapping(
+    proposed: ProposedMapping, golden: GoldenMapping, *, mode: MappingMatchMode = "concept"
+) -> list[ScorerResult]:
+    """Apply the mapping scorers for the case's ``mapping_match`` mode (WP14).
+
+    ``concept`` (default) is the WP9/WP9.2 behaviour — byte-identical, name-aligned goldens
+    (``bank``/``messy_insurance``). ``column`` is the honest scale mode: pair-based
+    ``mapping_coverage`` + gateable ``false_friend_hits`` + ``gap_detection`` reported-only
+    (it is concept-coupled and blind at scale; the loader rejects gating it there)."""
+    if mode == "column":
+        return [
+            mapping_coverage(proposed, golden),
+            false_friend_hits(proposed, golden),
+            gap_detection(proposed, golden, reported_only=True),
+        ]
     return [scorer(proposed, golden) for scorer in MAPPING_SCORERS.values()]

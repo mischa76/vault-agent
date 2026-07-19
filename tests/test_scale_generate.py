@@ -169,7 +169,10 @@ def test_scale_30_loads_through_the_wp6_loader() -> None:
     assert case.input_document is not None and case.input_document.is_file()
     assert case.source_schema is not None and case.source_schema.is_file()
     assert case.profiling is not None and case.profiling.is_file()
-    assert case.expectations.min_scores["mapping_accuracy"] == 0.8
+    # WP14: scale scores the mapper on column binding, not concept naming (Candidate #2).
+    assert case.mapping_match == "column"
+    assert case.expectations.min_scores["mapping_coverage"] == 0.8
+    assert case.expectations.min_scores["false_friend_hits"] == 1.0
     # the mapper inputs load cleanly
     assert load_source_schemas(case.source_schema)
     assert load_profiling(case.profiling)

@@ -71,6 +71,26 @@ def test_build_result_payload_shape() -> None:
     }
 
 
+def test_build_result_payload_includes_mappings_when_given() -> None:
+    # WP14: the mapper's proposal dump is written into every live result JSON, but only when
+    # supplied — the shape test above (which omits it) stays byte-identical.
+    dump = {
+        "proposals": [{"concept": "x", "table": "T", "column": "C"}],
+        "gaps": [],
+        "unresolved": [],
+    }
+    payload = build_result_payload(
+        _case(),
+        1,
+        [_result("mapping_coverage", 0.8)],
+        models={"primary_model": "claude-sonnet-4-6", "heavy_model": "claude-opus-4-8"},
+        git_sha="abc1234",
+        timestamp="20260719T000000000000Z",
+        mappings=dump,
+    )
+    assert payload["mappings"] == dump
+
+
 def test_render_table_shows_mean_min_max_per_scorer() -> None:
     table = render_table(
         "bank",

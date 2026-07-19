@@ -1,6 +1,7 @@
 # Scale-hardness test findings (WP13 / Charter A)
 
-Status: **template — live half not yet run** · Owner: Mischa Eismann · Spec:
+Status: **live half started — 30-table step run 2026-07-19 (gate failed on an eval-side
+artifact, see Candidate #2); 100/300 not yet run** · Owner: Mischa Eismann · Spec:
 `backlog-2026-07/wp13-scale-hardness-spec.md` · Charter:
 `roadmap-2026-07-productization.md` §Charter A.
 
@@ -45,24 +46,37 @@ result JSON `metrics`.
 
 ### Step: 30 tables (seed 42) — committed `scale_30`
 
+Run: `uv run python -m eval.run --dataset scale_30` — **3 repeats** completed cleanly
+(not 1; the default `--repeat` is 3). Values are mean over the 3 runs, with per-run
+range where it varied.
+
 | Measure | Value |
 |---|---|
-| Date / git SHA | _tbd_ |
-| Models (primary / heavy) | _tbd_ |
-| Wall-clock | _tbd_ |
-| LLM calls | _tbd_ |
-| Input tokens (cache-read share) | _tbd_ |
-| Output tokens | _tbd_ |
-| Cost estimate | _tbd_ |
-| Hubs / links / satellites | _tbd_ |
-| Validation verdict (+ issue counts) | _tbd_ |
-| mapping_accuracy (vs sampled golden) | _tbd_ (gate ≥ 0.80) |
-| gaps / unresolved | _tbd_ |
-| Review items / rendered lines | _tbd_ |
-| report.html size · Mermaid graph renders? | _tbd_ |
-| First hard failure (agent / limit) | _none / tbd_ |
+| Date / git SHA | 2026-07-19 / a04606d |
+| Models (primary / heavy) | `claude-sonnet-4-6` (39 calls) / `claude-opus-4-8` (1 call — the modeler) |
+| Wall-clock | mean **943.6 s** (~15.7 min); range 924.7–980.9 s. Total for 3 repeats ~47 min |
+| LLM calls | 40 / repeat |
+| Input tokens (cache-read share) | mean 64,508 / repeat; cache-read ~151–156k (≈239% of input — prompt caching effective) |
+| Output tokens | mean 78,883 / repeat |
+| Cost estimate | rough **≈ $1.5–2 / repeat**, ~$5 for 3 (output-bound: ~79k out vs ~65k in; recompute with live per-model pricing) |
+| Hubs / links / satellites | 17 / 7 / **21–24** (sats varied: 24/24/21) |
+| Validation verdict (+ issue counts) | **PASSED** all 3 (`validation_gate`=1.0, `pipeline_health`=1.0) |
+| mapping_accuracy (vs sampled golden) | **0.069** all 3 — **GATE FAILED** (≥ 0.80). *Eval-side artifact, not a mapper regression — see Candidate #2* |
+| gaps / unresolved | `gap_detection`=0.00 (0/3 golden gaps recalled — same concept-naming coupling, see Candidate #2) |
+| Review items / rendered lines | mean 140 items (per-run **132 / 85 / 202** — high variance) / 54 rendered lines (53–56) |
+| report.html size · Mermaid graph renders? | n/a — `eval.run` runs the graph in-memory (MemorySaver), writes no `report.html` to disk |
+| First hard failure (agent / limit) | **none** — pipeline ran end-to-end; the gate miss is a *scored* result, not a crash |
 
-Notes: _tbd_
+Other observed scores: `driving_key_accuracy`=1.00, `confidence_calibration`=1.00,
+`construct_f1`=0.00 (expected & ungated — `golden: {}` is empty; scale is a measurement
+case, not a construct-regression gate).
+
+Notes:
+- **Non-determinism across identical inputs is high**: satellite count 21↔24 and flag
+  count **77 ↔ 191** (review items 85 ↔ 202) over the 3 repeats. Worth watching as its own
+  stability signal at larger N.
+- Prompt caching is working well (cache-read ≈ 2.4× the fresh input tokens): the modeler's
+  and enricher's stable system prefixes are being reused.
 
 ### Step: 100 tables (seed 42) — `scale_100`
 
@@ -92,6 +106,88 @@ Each entry: symptom, size at which it appears, which agent/limit, proposed follo
   extraction the way the contract enricher was chunked (bounded per-section calls, folded
   back) — the same pattern that fixed the wide-schema contract truncation (CLAUDE.md
   2026-07-15). Confirm the exact breaking N first, then spec it.
+
+### Candidate #2 — `mapping_accuracy` gate unmeasurable at scale (golden/scorer concept-name alignment)
+
+> **Specced & landed as WP14** (`backlog-2026-07/wp14-scale-mapping-coverage-spec.md`,
+> eval-only): the scale cases now score `mapping_match: column` — pair-based
+> `mapping_coverage` + gateable `false_friend_hits`, with the concept-coupled scorers
+> reported-only — and every result JSON carries the proposal dump. Concept mode
+> (`bank`/`messy_insurance`) is unchanged. The live re-run below (§6 acceptance) is the
+> maintainer's remaining step.
+
+- **Observed 2026-07-19** on the first live `scale_30` run (3/3 repeats): `mapping_accuracy`
+  = **0.069**, well below the 0.80 gate → `eval.run` exits 1. `pipeline_health`=1.0 and
+  validation PASSED, so this is **not a crash or a pipeline regression** — the pipeline
+  produced a healthy 17/7/~23 model and the gate simply cannot be met as currently wired.
+- **Root cause — eval-side, structural, not a mapper-quality problem.** The scorer detail
+  reads: `F1=0.07 (precision=1.00 1/1, recall=0.04 1/28); 50 proposals outside the golden
+  universe, unscored`. Mechanism:
+  - The mapper's concept work-list is the **free-form names the modeler assigns** — hub
+    business keys and satellite attributes (`agents/source_mapper.py:148-151`).
+  - `mapping_accuracy` matches a proposal to a golden concept by
+    `normalize_identifier(concept)` string equality (`eval/scorers.py:265,272-274`;
+    `normalize_identifier` = non-alnum→`_`, upper — a pure string fold).
+  - The `scale_30` golden concepts are **business phrases** (`"partner name"`,
+    `"branch of insurance"`, `"account number"`, `"iban"`). For **recall** to score, the
+    LLM modeler must emit a hub-key/sat-attr string that normalises *identically* to each
+    sampled phrase. At 30-table scale the generated concept vocabulary diverges almost
+    entirely → recall 1/28, and ~50 of the model's ~51 concepts fall **out-of-universe**.
+  - **precision is 1.00** — where a proposal *is* in the universe, the column pick is
+    correct. So the mapper binds columns well; the scorer just can't align most of its
+    concepts to the sampled golden phrases.
+  - `gap_detection` = 0/3 is the same coupling (golden gaps are also keyed by concept name).
+- **Why small cases don't show this:** `bank` / `messy_insurance` goldens were authored/
+  tuned against the pipeline's *actual* concept output (WP9.1 re-measured live → 0.97). The
+  synthetic `scale.generate` golden emits concepts in its **own** naming, with no mechanism
+  binding the modeler's free naming to those strings. WP9.2 fixed the *precision* side
+  (extra proposals don't count as wrong); the **recall** side still requires a name-matched
+  proposal per golden concept, which free LLM naming at scale does not deliver.
+- **Evidence strength:** structural, derived from the code + the scorer detail string. The
+  50 out-of-universe proposals themselves were not persisted (`eval.run` uses `MemorySaver`,
+  no disk dump); a one-run proposal dump would confirm concept-by-concept.
+- **Proposed follow-up WP (decide with the architect — NOT yet implemented):**
+  1. *Column-based recall* — score each golden entry by "does any proposal bind
+     `golden.source_column` for `golden.entity`?" instead of by concept-string match. This
+     measures the mapper's actual job (column binding) and decouples it from LLM naming. A
+     deliberate scorer-semantics change, in the WP9.2 tradition.
+  2. *Align the golden to real output* — dump one run's concepts and bind the sampled golden
+     names to them; conflicts with the "byte-deterministic from `generate`" invariant.
+  3. *Drop/loosen the scale gate* — the dataset.yml comment already frames scale as a
+     *measurement* case; the current 0.80 gate is effectively unreachable and does not
+     measure mapping quality.
+  Recommendation on record: option 1 (column-based recall) — the other scores
+  (`pipeline_health`, `validation_gate`, `driving_key_accuracy`) confirm the run itself is
+  healthy, so the fix belongs in the scorer, not the pipeline.
+
+- **Architect review (Cowork, 2026-07-19): diagnosis CONFIRMED against the code**
+  (`scorers.mapping_accuracy` matches `normalize_identifier(p.concept)` against the golden
+  universe; the mapper's work-list is the modeler's free-form `hub.business_key` +
+  `sat.attributes`; `GoldenMappingEntry` already carries `source_table`/`source_column`, so
+  column-based scoring needs no golden-format change). Option 1 is the right direction,
+  **with three sharpenings** for the follow-up WP:
+  1. Do NOT change `mapping_accuracy` semantics globally — the bank/messy goldens are
+     name-aligned and measure the *stronger* concept-level correctness. Add a per-case
+     scoring mode instead (dataset.yml `mapping_match: concept | column`, default
+     `concept`), or equivalently a separate `mapping_coverage` scorer used by the scale
+     cases. WP9.2 tradition: documented semantics change, pinned tests.
+  2. Column mode scores **coverage, honestly named**: a golden mapping is recalled iff some
+     proposal binds its `(source_table, source_column)` (normalised pair match only — do
+     not couple to `entity`, entity naming diverges exactly like concept naming). The
+     statistics trap survives (binding the GUID ≠ binding `PARTN_NR` → miss) and the
+     false-friend check is already column-based. Do not construct a synthetic
+     precision/F1 in column mode — gate on coverage ≥ 0.8 **plus zero false-friend hits**.
+  3. `gap_detection` is concept-coupled on BOTH halves (gap recall *and* force-fit) and is
+     therefore equally blind at scale — set it to reported-only for scale cases and say so
+     in eval/README; the scale gap signal is the reported gap/unresolved counts plus human
+     spot-check.
+  Evidence step before implementing: persist the proposals into the result JSON (eval-only)
+  and confirm the 50 out-of-universe concepts are modeler-naming variants, not mapper
+  misbinds. Option 2 rejected (breaks generator determinism), option 3 alone rejected
+  (loses the gate entirely). Candidate #1 assessment is also confirmed — chunking the
+  parser like the contract enricher is the right pattern; confirm the breaking N first.
+- **Specced as WP14** (2026-07-19): `backlog-2026-07/wp14-scale-mapping-coverage-spec.md`
+  + kickoff — land before the `scale_100` live step.
 
 ## Landscape composition (for interpreting the numbers)
 

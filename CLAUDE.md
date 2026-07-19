@@ -782,6 +782,38 @@ in tests/test_scale_generate.py, +6 usage tests in tests/test_llm.py; two existi
 updated for the new metrics key / shipped cases), ruff clean, mypy strict clean (35 files). The
 core package gains no new dependency and no behaviour change when the usage recorder is unset.
 
+WP14 column-based mapping coverage landed (as of 2026-07-19, eval-only,
+docs/architecture/backlog-2026-07/wp14-scale-mapping-coverage-spec.md), fixing the scale gate
+the first live WP13 run exposed (scale-test-findings.md Candidate #2): on scale_30,
+mapping_accuracy scored 0.069 and failed its 0.80 gate 3/3 with a perfectly healthy pipeline
+(pipeline_health 1.0, validation PASSED) — an eval-side artefact, not a mapper regression. The
+mapper's concepts are the modeler's free-form hub-key/attribute names; the concept-keyed
+mapping_accuracy matched them by normalize_identifier string-equality against the synthetic
+golden's own sampled vocabulary, which diverges almost entirely at 30 tables (recall 1/28,
+precision 1.00, ~50/51 proposals out-of-universe). NO src/vault_agent/ change (constraint of
+the WP). EvalCase gains mapping_match: Literal["concept","column"]="concept": concept mode is
+byte-identical (bank/messy_insurance, whose goldens are name-aligned — the WP9/WP9.2 scorer
+tests pass untouched). column mode (the scale cases) swaps in two pair-based scorers in
+eval/scorers.py: mapping_coverage (recall over golden mappable entries whose normalised
+(source_table, source_column) pair is bound by some proposal — an ambiguous entry by any
+candidate; no concept/entity coupling, no synthetic precision/F1, the statistics-trap GUID is a
+different pair so it never covers the real key, out-of-golden-column proposals reported not
+penalised) and false_friend_hits (1.0 unless a proposal binds a golden false_friends pair, then
+0.0 — gateable, so the review gate "coverage ≥ 0.8 AND zero false-friend hits" is two min_scores
+lines). gap_detection stays computed but reported-only in column mode (both its halves key on
+the concept name → blind at scale; details prefixed "concept-coupled — reported only in column
+mode"); load_eval_case rejects a column-mode case whose min_scores gates a concept-coupled
+scorer (mapping_accuracy/gap_detection/confidence_calibration), attributable in the house loader
+style. scale_30 re-gated to {mapping_coverage: 0.8, false_friend_hits: 1.0, pipeline_health:
+1.0}; scale_100/scale_300 carry mapping_match: column, still ungated (measurement). Evidence:
+eval/run.py writes state.mappings.model_dump() into every result JSON's new "mappings" key (added
+only when supplied, so the payload-shape unit test stays byte-identical) — one scale re-run can
+now be read concept-by-concept. The live re-run (spec §6: gate verdict now reflects mapping
+quality; the dump confirms the naming-variant hypothesis) is the maintainer's remaining step.
+388 tests green (+14: mapping_coverage full/partial/zero/GUID-trap/entity-blind/vacuous,
+false_friend clean/hit, column-mode scorer set, gap reported-only, loader default+rejection,
+payload dump), ruff clean, mypy strict clean (35 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

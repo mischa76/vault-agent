@@ -25,6 +25,14 @@ DATASET_FILENAME = "dataset.yml"
 # eval.mapping.GOLDEN_MAPPING_FILENAME, kept local to avoid an import cycle at module load.
 GOLDEN_MAPPING_FILENAME = "golden_mapping.yml"
 
+# Mapping scorers keyed on the proposal's *concept* name (WP9/WP9.2). In "column"
+# mapping_match mode the modeler's free-form names diverge from the golden vocabulary, so
+# these become blind — reported but never a gate (WP14 §2.4). load_eval_case rejects a
+# column-mode case that names any of them in expectations.min_scores.
+_CONCEPT_COUPLED_SCORERS = frozenset(
+    {"mapping_accuracy", "gap_detection", "confidence_calibration"}
+)
+
 
 class GoldenHub(BaseModel):
     """Expected hub: matched on normalised name *and* normalised business key."""
@@ -97,6 +105,11 @@ class EvalCase(BaseModel):
     generate: GenerateSpec | None = None
     golden: GoldenModel
     expectations: Expectations = Field(default_factory=Expectations)
+    # How the WP9 mapping scorers judge this case (WP14). "concept" (default) is the
+    # name-aligned WP9/WP9.2 behaviour (bank/messy_insurance). "column" is the scale mode:
+    # pair-based mapping_coverage + false_friend_hits, with the concept-coupled scorers
+    # reported-only (and non-gateable — enforced in load_eval_case).
+    mapping_match: Literal["concept", "column"] = "concept"
 
     @model_validator(mode="after")
     def _exactly_one_input_source(self) -> "EvalCase":
@@ -144,6 +157,19 @@ def load_eval_case(path: Path) -> EvalCase:
         case = EvalCase.model_validate(document)
     except ValidationError as exc:
         raise ValueError(f"{path}: invalid eval case: {exc}") from exc
+
+    # A column-mode case must not gate a concept-coupled mapping scorer: those measure naming
+    # alignment, not mapping quality, and are reported-only at scale (WP14 §2.4). Fail loudly
+    # (house loader style: name the file, the field, and why) rather than silently gate a
+    # score that cannot mean what the author intends.
+    if case.mapping_match == "column":
+        gated = sorted(set(case.expectations.min_scores) & _CONCEPT_COUPLED_SCORERS)
+        if gated:
+            raise ValueError(
+                f"{path}: mapping_match='column' must not gate concept-coupled scorer(s) "
+                f"{gated} in expectations.min_scores — they are reported-only at scale "
+                f"(WP14); gate 'mapping_coverage'/'false_friend_hits' instead"
+            )
 
     # A generated case leaves the input paths unset; they are synthesised by
     # materialize_case(). A committed case resolves them to existing files now.

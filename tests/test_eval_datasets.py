@@ -77,6 +77,32 @@ def test_dangling_source_schema_raises(tmp_path: Path) -> None:
         load_eval_case(path)
 
 
+def test_mapping_match_defaults_to_concept(tmp_path: Path) -> None:
+    case = load_eval_case(_write_case(tmp_path))
+    assert case.mapping_match == "concept"
+
+
+def test_column_mode_allows_pair_based_gates(tmp_path: Path) -> None:
+    yaml_text = _MINIMAL + (
+        "mapping_match: column\n"
+        "expectations:\n"
+        "  min_scores: {mapping_coverage: 0.8, false_friend_hits: 1.0, pipeline_health: 1.0}\n"
+    )
+    case = load_eval_case(_write_case(tmp_path, yaml_text))
+    assert case.mapping_match == "column"
+    assert case.expectations.min_scores["mapping_coverage"] == 0.8
+
+
+def test_column_mode_rejects_concept_coupled_gate(tmp_path: Path) -> None:
+    yaml_text = _MINIMAL + (
+        "mapping_match: column\n"
+        "expectations:\n"
+        "  min_scores: {mapping_accuracy: 0.8}\n"  # concept-coupled: reported-only at scale
+    )
+    with pytest.raises(ValueError, match="mapping_accuracy"):
+        load_eval_case(_write_case(tmp_path, yaml_text))
+
+
 def test_load_all_cases_rejects_duplicate_names(tmp_path: Path) -> None:
     for directory in ("a", "b"):
         case_dir = tmp_path / directory

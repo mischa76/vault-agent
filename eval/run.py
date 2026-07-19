@@ -188,10 +188,16 @@ def build_result_payload(
     git_sha: str,
     timestamp: str,
     metrics: dict[str, Any] | None = None,
+    mappings: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """The JSON document written for one run: scores, model ids, git SHA, diff details, and
-    (WP13) usage/wall-clock/review-queue metrics."""
-    return {
+    """The JSON document written for one run: scores, model ids, git SHA, diff details,
+    (WP13) usage/wall-clock/review-queue metrics, and (WP14) the mapper's proposal dump.
+
+    ``mappings`` is ``state.mappings.model_dump()`` — proposals + gaps + unresolved. It is
+    added only when supplied, so callers that omit it (the payload-shape unit test) keep the
+    pre-WP14 document; every live run passes it, so real result JSONs always carry it and one
+    scale re-run can be inspected concept-by-concept."""
+    payload: dict[str, Any] = {
         "case": case.name,
         "run": run_index,
         "timestamp": timestamp,
@@ -201,6 +207,9 @@ def build_result_payload(
         "details": {result.name: result.details for result in results},
         "metrics": metrics or {},
     }
+    if mappings is not None:
+        payload["mappings"] = mappings
+    return payload
 
 
 def render_table(case_name: str, stats: dict[str, ScoreStats], repeat: int) -> str:
@@ -256,22 +265,31 @@ def _load_cases(args: argparse.Namespace) -> list[EvalCase]:
 def _score_run(
     case: EvalCase, state: VaultAgentState, golden_path: Path | None
 ) -> list[ScorerResult]:
-    """Construct scorers, plus the WP9 mapping scorers when the case has a golden mapping."""
+    """Construct scorers, plus the WP9 mapping scorers when the case has a golden mapping.
+
+    The mapping scorers honour the case's ``mapping_match`` mode (WP14): ``column`` for the
+    scale cases (pair-based coverage), ``concept`` for the name-aligned goldens."""
     results = score_state(state, case)
     if golden_path is not None and golden_path.is_file():
-        results.extend(score_mapping(state.mappings, load_golden_mapping(golden_path)))
+        results.extend(
+            score_mapping(
+                state.mappings, load_golden_mapping(golden_path), mode=case.mapping_match
+            )
+        )
     return results
 
 
 async def _run_and_score(
     case: EvalCase, golden_path: Path | None, repeat: int
-) -> tuple[list[list[ScorerResult]], list[dict[str, Any]]]:
-    """Run + score ``repeat`` times, capturing per-run token usage and wall-clock metrics.
+) -> tuple[list[list[ScorerResult]], list[dict[str, Any]], list[dict[str, Any]]]:
+    """Run + score ``repeat`` times, capturing per-run token usage, wall-clock metrics, and
+    the mapper's proposal dump (WP14 evidence).
 
     The usage recorder is a module-level ForcedToolCaller hook (the agents build their own
     callers), installed only for the duration of each run and always cleared afterwards."""
     runs: list[list[ScorerResult]] = []
     metrics: list[dict[str, Any]] = []
+    mapping_dumps: list[dict[str, Any]] = []
     for index in range(repeat):
         print(f"  run {index + 1}/{repeat} ...", flush=True)
         usage = UsageTotals()
@@ -284,13 +302,15 @@ async def _run_and_score(
         elapsed = time.perf_counter() - started
         runs.append(_score_run(case, state, golden_path))
         metrics.append(run_metrics(state, elapsed, usage))
-    return runs, metrics
+        mapping_dumps.append(state.mappings.model_dump(mode="json"))
+    return runs, metrics, mapping_dumps
 
 
 def _write_results(
     case: EvalCase,
     runs: list[list[ScorerResult]],
     metrics: list[dict[str, Any]],
+    mapping_dumps: list[dict[str, Any]],
     out_root: Path,
     models: dict[str, str],
     git_sha: str,
@@ -298,11 +318,13 @@ def _write_results(
     case_dir = out_root / case.name
     case_dir.mkdir(parents=True, exist_ok=True)
     written: list[Path] = []
-    for index, (results, run_meta) in enumerate(zip(runs, metrics, strict=True), start=1):
+    for index, (results, run_meta, run_mappings) in enumerate(
+        zip(runs, metrics, mapping_dumps, strict=True), start=1
+    ):
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
         payload = build_result_payload(
             case, index, results, models=models, git_sha=git_sha,
-            timestamp=timestamp, metrics=run_meta,
+            timestamp=timestamp, metrics=run_meta, mappings=run_mappings,
         )
         path = case_dir / f"{timestamp}-run{index}.json"
         path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
@@ -361,9 +383,11 @@ def main(argv: list[str] | None = None) -> int:
                     f"(seed {resolved.generate.seed})",
                     flush=True,
                 )
-            runs, metrics = asyncio.run(_run_and_score(resolved, golden_path, args.repeat))
+            runs, metrics, mapping_dumps = asyncio.run(
+                _run_and_score(resolved, golden_path, args.repeat)
+            )
         stats = aggregate(runs)
-        written = _write_results(case, runs, metrics, args.out, models, git_sha)
+        written = _write_results(case, runs, metrics, mapping_dumps, args.out, models, git_sha)
         print(render_table(case.name, stats, args.repeat))
         print(render_metrics(case.name, metrics))
         print(f"  results: {', '.join(str(path) for path in written)}")

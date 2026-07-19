@@ -86,6 +86,40 @@ Score a run's `state.mappings` (a `ProposedMapping`) against a case's optional
   proposals − mean of wrong ones. With **no wrong proposals** to separate from, the margin
   is **1.0** by definition (perfect separation), not the mean confidence.
 
+#### Matching mode: `concept` vs `column` (WP14)
+
+A case declares `mapping_match: concept` (default) or `mapping_match: column` in its
+`dataset.yml`; the runner picks the mapping scorers accordingly.
+
+- **`concept`** (default) — the scorers above (`mapping_accuracy`, `gap_detection`,
+  `confidence_calibration`), keyed on the proposal's *concept* name. Correct for the
+  name-aligned goldens (`bank`, `messy_insurance`), whose golden concepts match the
+  pipeline's actual concept vocabulary.
+- **`column`** (the scale cases) — the synthetic scale goldens sample their *own* concept
+  vocabulary, while the mapper's concepts are the modeler's free-form hub-key/attribute
+  names; at 30 tables they diverge almost entirely, so concept-keyed `mapping_accuracy`
+  measured naming alignment, not mapping quality (a healthy pipeline failed the gate 3/3 —
+  `../docs/architecture/scale-test-findings.md` Candidate #2). Column mode instead runs:
+  - **mapping_coverage** — pair-based recall: the fraction of golden mappable entries whose
+    `(source_table, source_column)` pair is bound by *some* proposal (an `ambiguous` entry
+    by any candidate). No concept/entity coupling and no synthetic precision/F1 — it scores
+    the mapper's actual job, column binding. The statistics trap survives (binding the
+    shadow GUID is a different pair → miss); proposals binding a column outside the golden
+    set are reported, never penalised.
+  - **false_friend_hits** — gateable guard: **1.0** when no proposal binds a golden
+    `false_friends` pair, else **0.0** (hits named). Lets the review gate "coverage ≥ 0.8
+    **and** zero false-friend hits" be two `min_scores` lines.
+  - **gap_detection** — still computed but **reported-only** (its details are prefixed
+    `concept-coupled — reported only in column mode`): both gap recall and the force-fit
+    check key on the concept name, so they are blind at scale. The loader **rejects** a
+    column-mode case whose `min_scores` gates a concept-coupled scorer
+    (`mapping_accuracy`/`gap_detection`/`confidence_calibration`). The scale gap signal is
+    the reported gap/unresolved counts plus a human spot-check of the proposal dump.
+
+Every result JSON (both modes) carries a `mappings` block — `state.mappings.model_dump()`
+(proposals + gaps + unresolved) — so a single scale re-run can be inspected
+concept-by-concept.
+
 ## Live runner
 
 ```bash

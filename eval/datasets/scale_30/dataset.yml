@@ -15,9 +15,18 @@ input_document: inputs/requirements.md
 source_schema: inputs/source_schema.yml
 profiling: inputs/profiling.yml
 golden: {}
+# Column-based mapping scoring (WP14): the modeler's free-form concept names diverge from the
+# sampled golden vocabulary at scale, so the concept-keyed mapping_accuracy measured naming
+# alignment, not mapping quality (gate failed 3/3 on a healthy pipeline, 2026-07-19 — see
+# scale-test-findings.md Candidate #2). column mode scores the mapper's real job: binding the
+# right physical (table, column) pair.
+mapping_match: column
 expectations:
-  # Loose floors (spike band, not exactness): the run must stay healthy and the mapper must
-  # clear a realistic accuracy bar on the sampled concepts. 100/300 stay ungated (measurement).
+  # Loose floors (spike band, not exactness): the run must stay healthy, the mapper must cover
+  # a realistic share of the sampled golden columns, and must not fall for a false friend.
+  # gap_detection/mapping_accuracy are concept-coupled — reported-only here (the loader rejects
+  # gating them in column mode). 100/300 stay ungated (measurement).
   min_scores:
-    mapping_accuracy: 0.8
+    mapping_coverage: 0.8
+    false_friend_hits: 1.0
     pipeline_health: 1.0

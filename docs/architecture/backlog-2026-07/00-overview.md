@@ -103,6 +103,7 @@ scale-test / residency / competitive-brief charters):
 | WP11 | `wp11-html-run-report-spec.md` | Static HTML run report (model graph, review queue, mappings) — UI stage 1 | M | — |
 | WP12 | `wp12-interactive-resume-spec.md` | Interactive checkpoint prompt in the CLI — UI stage 1.5 | S/M | — |
 | WP13 | `wp13-scale-hardness-spec.md` | Scale hardness test: landscape generator, eval cases, usage capture (Charter A) | M | WP6 |
+| WP14 | `wp14-scale-mapping-coverage-spec.md` | Column-based mapping coverage for scale cases (eval-only; before the scale_100 live step) | S | WP13 |
 
 Both are bound by the CLI-first invariant (WP11 §1): pure console operation stays a
 complete mode; nothing may become web- or prompt-only. Kick-offs: `kickoff/WP11-html-run-report.md`,

@@ -9,3 +9,5 @@ generate:
   tables: 100
   seed: 42
 golden: {}
+# Pair-based mapping scoring, like scale_30 (WP14); ungated (pure measurement).
+mapping_match: column

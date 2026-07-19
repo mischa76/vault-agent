@@ -24,8 +24,10 @@ from eval.mapping import (
 from eval.scorers import (
     MAPPING_SCORERS,
     confidence_calibration,
+    false_friend_hits,
     gap_detection,
     mapping_accuracy,
+    mapping_coverage,
     score_mapping,
 )
 
@@ -244,6 +246,128 @@ def test_confidence_calibration_ignores_out_of_universe_proposals() -> None:
 def test_score_mapping_runs_all_three() -> None:
     results = score_mapping(ProposedMapping(), _golden())
     assert {r.name for r in results} == set(MAPPING_SCORERS)
+
+
+# ── WP14: column-mode scorers (scale cases) ───────────────────────────────────────────────
+def test_mapping_coverage_full_is_one() -> None:
+    golden = _golden()  # mappable: partner number, city, customer reference (ambiguous)
+    proposed = ProposedMapping(
+        proposals=[
+            Proposal(concept="partner number", table="victor_partner", column="partn_nr"),
+            Proposal(concept="city", table="VICTOR_PARTNER", column="KD_ORT"),
+            Proposal(
+                concept="customer reference", table="CRM_ACCOUNT", column="ExternalCustomerNo"
+            ),
+        ]
+    )
+    result = mapping_coverage(proposed, golden)
+    assert result.score == pytest.approx(1.0)  # 3/3 golden pairs bound
+    assert "3/3" in result.details
+
+
+def test_mapping_coverage_partial_and_reports_missed() -> None:
+    golden = _golden()
+    proposed = ProposedMapping(
+        proposals=[
+            Proposal(concept="city", table="VICTOR_PARTNER", column="KD_ORT"),
+            # the ambiguous second candidate covers "customer reference" ...
+            Proposal(
+                concept="customer reference", table="CRM_ACCOUNT", column="ExternalCustomerNo"
+            ),
+            # ... but "partner number" (PARTN_NR) is never bound
+        ]
+    )
+    result = mapping_coverage(proposed, golden)
+    assert result.score == pytest.approx(2 / 3)
+    assert "missed" in result.details and "PARTN_NR" in result.details
+
+
+def test_mapping_coverage_zero_and_out_of_golden_reported() -> None:
+    golden = _golden()
+    proposed = ProposedMapping(
+        proposals=[Proposal(concept="something", table="OTHER_TBL", column="OTHER_COL")]
+    )
+    result = mapping_coverage(proposed, golden)
+    assert result.score == pytest.approx(0.0)
+    # the stray binding is reported, never penalises the coverage denominator
+    assert "1 proposal(s) outside the golden column set" in result.details
+
+
+def test_mapping_coverage_statistics_trap_guid_pair_misses() -> None:
+    # Binding the shadow GUID is a different (table, column) pair than the real key → not covered.
+    golden = GoldenMapping(
+        mappings=[
+            GoldenMappingEntry(
+                concept="partner number",
+                source_table="VICTOR_PARTNER",
+                source_column="PARTN_NR",
+                kind="business_key",
+            )
+        ]
+    )
+    proposed = ProposedMapping(
+        proposals=[Proposal(concept="partner number", table="VICTOR_PARTNER", column="PARTN_GUID")]
+    )
+    assert mapping_coverage(proposed, golden).score == pytest.approx(0.0)
+
+
+def test_mapping_coverage_is_blind_to_concept_and_entity() -> None:
+    # Pair match only: a proposal with an unrelated concept/entity but the right column still
+    # covers the golden entry — the property that makes column mode honest at scale.
+    golden = _golden()
+    proposed = ProposedMapping(
+        proposals=[
+            Proposal(
+                concept="totally unrelated label",
+                entity="not_partner",
+                table="VICTOR_PARTNER",
+                column="KD_ORT",
+            )
+        ]
+    )
+    result = mapping_coverage(proposed, golden)
+    assert result.score == pytest.approx(1 / 3)  # "city" covered despite the concept mismatch
+
+
+def test_mapping_coverage_vacuous_without_mappable_entries() -> None:
+    assert mapping_coverage(ProposedMapping(), GoldenMapping()).score == pytest.approx(1.0)
+
+
+def test_false_friend_hits_clean_is_one() -> None:
+    golden = _golden()  # KD_NR is the watched false friend
+    proposed = ProposedMapping(
+        proposals=[Proposal(concept="city", table="VICTOR_PARTNER", column="KD_ORT")]
+    )
+    result = false_friend_hits(proposed, golden)
+    assert result.score == pytest.approx(1.0)
+    assert "watched" in result.details
+
+
+def test_false_friend_hits_binding_a_friend_is_zero_and_named() -> None:
+    golden = _golden()
+    proposed = ProposedMapping(
+        proposals=[Proposal(concept="partner number", table="VICTOR_PARTNER", column="KD_NR")]
+    )
+    result = false_friend_hits(proposed, golden)
+    assert result.score == pytest.approx(0.0)
+    assert "FALSE-FRIEND HIT" in result.details and "KD_NR" in result.details
+
+
+def test_score_mapping_column_mode_swaps_the_scorers() -> None:
+    results = score_mapping(ProposedMapping(), _golden(), mode="column")
+    assert {r.name for r in results} == {
+        "mapping_coverage",
+        "false_friend_hits",
+        "gap_detection",
+    }
+
+
+def test_gap_detection_reported_only_marks_details_non_gateable() -> None:
+    golden = _golden()
+    proposed = ProposedMapping(gaps=["Schadenquote je Partner"])
+    result = gap_detection(proposed, golden, reported_only=True)
+    assert result.score == pytest.approx(1.0)  # score unchanged from the un-prefixed form
+    assert result.details.startswith("concept-coupled — reported only in column mode;")
 
 
 # ── the real messy_insurance golden set (D1) ──────────────────────────────────────────────
