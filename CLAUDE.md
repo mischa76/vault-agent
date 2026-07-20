@@ -192,7 +192,8 @@ bank Postgres end-to-end PoC was re-verified green on 2026-06-25 (regenerated mo
 `dbt build --full-refresh` PASS=29; Phase B2 eff_sat end-dating closes ACC-503's first owner and
 leaves the new owner open, idempotent on re-run) as a no-regression guard.
 
-Hardening batch P1+P2 landed (as of 2026-07-06, see PROJECT_REVIEW_2026-07-06.md). (P1) The
+Hardening batch P1+P2 landed (as of 2026-07-06, see
+docs/architecture/reviews/project-review-2026-07-06.md). (P1) The
 stringly-typed state.errors channel is replaced by typed state.flags: list[PipelineFlag]
 (agent, message, severity error/advisory, kind, asset) with FlagKind constants in state.py;
 all producers use state.flag(...), and every consumer (review-queue classification/aggregation
@@ -210,7 +211,8 @@ exponential backoff (2s/4s/8s), non-retryable 4xx propagate. Client and sleep ar
 tests/test_llm.py covers all paths keyless. 158 tests green, ruff clean, mypy strict clean.
 Note: docs written before 2026-07-06 that mention `state.errors` describe the old shape.
 
-The staging generator landed (as of 2026-07-06, P3 from PROJECT_REVIEW_2026-07-06.md): the
+The staging generator landed (as of 2026-07-06, P3 from
+docs/architecture/reviews/project-review-2026-07-06.md): the
 output is now a runnable dbt project, closing the spec-§9 "biggest single gap". A new
 deterministic module (src/vault_agent/agents/staging_generator.py, called by the
 CodeGeneratorAgent, lazily to keep the dependency one-directional) derives one

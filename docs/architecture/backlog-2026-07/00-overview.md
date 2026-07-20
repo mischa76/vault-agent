@@ -2,7 +2,7 @@
 
 Status: Proposed · Author: Mischa Eismann + Claude (project review 2026-07-06/07)
 
-This package turns every open point from `PROJECT_REVIEW_2026-07-06.md` (and the deferrals
+This package turns every open point from `docs/architecture/reviews/project-review-2026-07-06.md` (and the deferrals
 recorded in CLAUDE.md) into implementation-ready specs. Each work package (WP) has a spec in
 this directory and a self-contained kick-off prompt in `kickoff/` that a developer agent
 (e.g. Claude Opus 4.8 via Claude Code) can execute without further briefing.

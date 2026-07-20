@@ -1,7 +1,7 @@
 # Remediation Spec — Architecture Review 2026-06-13
 
 > **Purpose:** Turn the findings of the 2026-06-13 architecture review
-> ([../../ARCHITECTURE_REVIEW_2026-06-13.md](../../ARCHITECTURE_REVIEW_2026-06-13.md)) into an
+> ([reviews/architecture-review-2026-06-13.md](reviews/architecture-review-2026-06-13.md)) into an
 > implementation-ready blueprint that can be executed directly in Claude Code. Each finding gets
 > the intended behaviour, the exact files to touch, concrete acceptance criteria, and the test
 > changes needed. Same two-tier `[ENFORCE]`/`[GUIDE]` discipline as
