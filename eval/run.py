@@ -279,17 +279,31 @@ def _score_run(
     return results
 
 
-async def _run_and_score(
-    case: EvalCase, golden_path: Path | None, repeat: int
-) -> tuple[list[list[ScorerResult]], list[dict[str, Any]], list[dict[str, Any]]]:
-    """Run + score ``repeat`` times, capturing per-run token usage, wall-clock metrics, and
-    the mapper's proposal dump (WP14 evidence).
+async def _run_score_write(
+    case: EvalCase,
+    golden_path: Path | None,
+    repeat: int,
+    *,
+    out_root: Path,
+    models: dict[str, str],
+    git_sha: str,
+) -> tuple[list[list[ScorerResult]], list[dict[str, Any]], list[Path], tuple[int, str] | None]:
+    """Run + score + **persist each repeat immediately** (WP14.1, findings Candidate #3).
 
-    The usage recorder is a module-level ForcedToolCaller hook (the agents build their own
-    callers), installed only for the duration of each run and always cleared afterwards."""
+    A repeat's JSON (scores + metrics + proposal dump) is written the moment that repeat is
+    scored, not after the whole batch — so a mid-batch failure (e.g. an exhausted credit
+    balance: a non-retryable 4xx the ForcedToolCaller correctly does not retry) never discards
+    a completed, paid-for run again. On such a failure the loop stops and returns
+    ``(failed_repeat_index, reason)``; the caller renders the partial summary and exits
+    non-zero. Only ``run_case_once`` (the LLM batch) is guarded — the deterministic
+    score/metrics/write step is not expected to fail on a completed run.
+
+    Returns the completed repeats' scorer results + metrics, the written paths, and the
+    failure marker (``None`` on a fully green batch). The usage recorder is a module-level
+    ForcedToolCaller hook, installed per run and always cleared."""
     runs: list[list[ScorerResult]] = []
     metrics: list[dict[str, Any]] = []
-    mapping_dumps: list[dict[str, Any]] = []
+    written: list[Path] = []
     for index in range(repeat):
         print(f"  run {index + 1}/{repeat} ...", flush=True)
         usage = UsageTotals()
@@ -297,39 +311,46 @@ async def _run_and_score(
         started = time.perf_counter()
         try:
             state = await run_case_once(case)
+        except Exception as exc:  # any run failure: flush the completed repeats, don't lose them
+            return runs, metrics, written, (index + 1, f"{type(exc).__name__}: {exc}")
         finally:
             llm.set_usage_recorder(None)
         elapsed = time.perf_counter() - started
-        runs.append(_score_run(case, state, golden_path))
-        metrics.append(run_metrics(state, elapsed, usage))
-        mapping_dumps.append(state.mappings.model_dump(mode="json"))
-    return runs, metrics, mapping_dumps
+        results = _score_run(case, state, golden_path)
+        run_meta = run_metrics(state, elapsed, usage)
+        mapping_dump = state.mappings.model_dump(mode="json")
+        written.append(
+            _write_one_result(
+                case, index + 1, results, out_root, models, git_sha, run_meta, mapping_dump
+            )
+        )
+        runs.append(results)
+        metrics.append(run_meta)
+    return runs, metrics, written, None
 
 
-def _write_results(
+def _write_one_result(
     case: EvalCase,
-    runs: list[list[ScorerResult]],
-    metrics: list[dict[str, Any]],
-    mapping_dumps: list[dict[str, Any]],
+    run_index: int,
+    results: list[ScorerResult],
     out_root: Path,
     models: dict[str, str],
     git_sha: str,
-) -> list[Path]:
+    metrics: dict[str, Any],
+    mappings: dict[str, Any],
+) -> Path:
+    """Persist one repeat's result JSON immediately (WP14.1). Same filename scheme and payload
+    as before — one timestamped JSON per repeat — only written sooner (inside the loop)."""
     case_dir = out_root / case.name
     case_dir.mkdir(parents=True, exist_ok=True)
-    written: list[Path] = []
-    for index, (results, run_meta, run_mappings) in enumerate(
-        zip(runs, metrics, mapping_dumps, strict=True), start=1
-    ):
-        timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
-        payload = build_result_payload(
-            case, index, results, models=models, git_sha=git_sha,
-            timestamp=timestamp, metrics=run_meta, mappings=run_mappings,
-        )
-        path = case_dir / f"{timestamp}-run{index}.json"
-        path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
-        written.append(path)
-    return written
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    payload = build_result_payload(
+        case, run_index, results, models=models, git_sha=git_sha,
+        timestamp=timestamp, metrics=metrics, mappings=mappings,
+    )
+    path = case_dir / f"{timestamp}-run{run_index}.json"
+    path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    return path
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -383,15 +404,29 @@ def main(argv: list[str] | None = None) -> int:
                     f"(seed {resolved.generate.seed})",
                     flush=True,
                 )
-            runs, metrics, mapping_dumps = asyncio.run(
-                _run_and_score(resolved, golden_path, args.repeat)
+            runs, metrics, written, failure = asyncio.run(
+                _run_score_write(
+                    resolved, golden_path, args.repeat,
+                    out_root=args.out, models=models, git_sha=git_sha,
+                )
             )
+        # Each completed repeat is already on disk (WP14.1); the summary renders from the
+        # in-memory results of whatever completed — the full batch on success, the partial
+        # set when a mid-batch failure cut it short.
         stats = aggregate(runs)
-        written = _write_results(case, runs, metrics, mapping_dumps, args.out, models, git_sha)
-        print(render_table(case.name, stats, args.repeat))
+        print(render_table(case.name, stats, len(runs)))
         print(render_metrics(case.name, metrics))
-        print(f"  results: {', '.join(str(path) for path in written)}")
-        if langsmith_client is not None:
+        if written:
+            print(f"  results: {', '.join(str(path) for path in written)}")
+        if failure is not None:
+            failed_repeat, reason = failure
+            print(
+                f"  BATCH INCOMPLETE: run {failed_repeat}/{args.repeat} failed and was not "
+                f"persisted ({reason}); {len(runs)}/{args.repeat} run(s) completed and saved",
+                file=sys.stderr,
+            )
+            exit_code = 1
+        if langsmith_client is not None and runs:
             upload_run_results(langsmith_client, case, runs, models=models, git_sha=git_sha)
             print(f"  uploaded to LangSmith ('{settings.langsmith_project}' workspace)")
         for name in failed_gates(stats, case):
@@ -401,6 +436,10 @@ def main(argv: list[str] | None = None) -> int:
                 file=sys.stderr,
             )
             exit_code = 1
+        if failure is not None:
+            # A run failure (e.g. an exhausted credit balance) is fatal and stays fatal — do
+            # not burn money re-attempting the remaining cases in an --all batch.
+            break
     return exit_code
 
 

@@ -3,9 +3,15 @@
 The runner itself needs an API key and is never executed here — these tests cover the
 deterministic parts: aggregation, the min_scores gate, the JSON payload, the report
 table, and the missing-key guard."""
+import asyncio
+import json
+from types import SimpleNamespace
+
 import pytest
 
+from eval import run as run_mod
 from eval.datasets import EvalCase, Expectations, GoldenModel
+from eval.mapping import ProposedMapping
 from eval.run import (
     ScoreStats,
     aggregate,
@@ -99,6 +105,67 @@ def test_render_table_shows_mean_min_max_per_scorer() -> None:
     )
     assert "bank (2 run(s)):" in table
     assert "construct_f1  mean=0.875  min=0.750  max=1.000" in table
+
+
+def _stub_runner(monkeypatch: pytest.MonkeyPatch, scores: ScorerResult) -> None:
+    """Stub the run/score/metrics seams so _run_score_write is keyless (no graph, no key).
+
+    ``run_case_once`` returns a fake state exposing only ``.mappings`` (all the write loop
+    reads off it); ``_score_run``/``run_metrics`` return fixed, JSON-serialisable payloads."""
+    monkeypatch.setattr(run_mod, "_score_run", lambda case, state, golden: [scores])
+    monkeypatch.setattr(
+        run_mod, "run_metrics", lambda state, elapsed, usage: {"wall_clock_seconds": 1.0}
+    )
+
+
+def test_run_score_write_persists_completed_repeats_before_a_mid_batch_failure(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # WP14.1 (findings Candidate #3): a run-2 failure must leave run 1's paid-for JSON on disk.
+    attempts = {"n": 0}
+
+    async def fake_run_case_once(case: EvalCase) -> SimpleNamespace:
+        attempts["n"] += 1
+        if attempts["n"] == 2:
+            raise RuntimeError("credit balance too low")  # non-retryable 4xx analog
+        return SimpleNamespace(mappings=ProposedMapping())
+
+    monkeypatch.setattr(run_mod, "run_case_once", fake_run_case_once)
+    _stub_runner(monkeypatch, _result("mapping_coverage", 1.0))
+
+    runs, metrics, written, failure = asyncio.run(
+        run_mod._run_score_write(
+            _case(), None, 3,
+            out_root=tmp_path, models={"primary_model": "m", "heavy_model": "h"}, git_sha="abc",
+        )
+    )
+    assert len(runs) == 1 and len(metrics) == 1
+    assert len(written) == 1 and written[0].is_file()  # run 1 persisted despite the run-2 crash
+    assert failure == (2, "RuntimeError: credit balance too low")
+    payload = json.loads(written[0].read_text())
+    assert payload["run"] == 1
+    assert payload["scores"] == {"mapping_coverage": 1.0}
+    assert payload["mappings"] == {"proposals": [], "gaps": [], "unresolved": []}
+
+
+def test_run_score_write_success_persists_every_repeat(
+    tmp_path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fake_run_case_once(case: EvalCase) -> SimpleNamespace:
+        return SimpleNamespace(mappings=ProposedMapping())
+
+    monkeypatch.setattr(run_mod, "run_case_once", fake_run_case_once)
+    _stub_runner(monkeypatch, _result("construct_f1", 0.5))
+
+    runs, metrics, written, failure = asyncio.run(
+        run_mod._run_score_write(
+            _case(), None, 3,
+            out_root=tmp_path, models={"primary_model": "m", "heavy_model": "h"}, git_sha="abc",
+        )
+    )
+    assert failure is None
+    assert len(runs) == 3 and len(written) == 3 and all(path.is_file() for path in written)
+    assert {json.loads(path.read_text())["run"] for path in written} == {1, 2, 3}
 
 
 def test_main_without_api_key_exits_2(

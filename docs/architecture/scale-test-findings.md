@@ -191,6 +191,10 @@ Each entry: symptom, size at which it appears, which agent/limit, proposed follo
 
 ### Candidate #3 — eval runner loses completed repeats on a mid-batch failure (operational)
 
+> **Fixed (WP14.1).** `_run_score_write` now persists each repeat's JSON the moment
+> it is scored; a mid-batch failure keeps every completed repeat on disk, prints a partial
+> `n/m runs completed` summary, and exits non-zero. Success path unchanged.
+
 - **Observed 2026-07-19** during the post-WP14 `scale_30` verification: the API credit
   balance ran out during run 2/3 (Anthropic 400, correctly non-retried by
   `ForcedToolCaller`); the process died with a traceback and run 1/3 — fully completed,

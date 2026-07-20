@@ -814,6 +814,22 @@ quality; the dump confirms the naming-variant hypothesis) is the maintainer's re
 false_friend clean/hit, column-mode scorer set, gap reported-only, loader default+rejection,
 payload dump), ruff clean, mypy strict clean (35 files).
 
+WP14.1 crash-safe eval-run persistence landed (as of 2026-07-20, eval-only, findings
+Candidate #3). The live post-WP14 scale_30 verification lost a completed, paid-for repeat
+1/3 when the credit balance ran out during repeat 2/3 (Anthropic 400, correctly non-retried
+by ForcedToolCaller): eval/run.py wrote all result JSONs only after the whole batch. The run
+loop is restructured into _run_score_write, which writes each repeat's JSON (scores + metrics
++ mappings dump) via _write_one_result the moment that repeat is scored — so an exception in
+run_case_once returns (failed_repeat, reason) with every completed repeat already on disk;
+main() renders the summary from the completed repeats, prints a "BATCH INCOMPLETE: … n/m
+run(s) completed and saved" banner, exits non-zero, and stops (a fatal 4xx like an exhausted
+balance stays fatal — no re-attempt of remaining --all cases). Only run_case_once is guarded;
+the deterministic score/write step is not. Success path unchanged: identical JSON shape,
+filename scheme, and console output for a fully green batch. No src/vault_agent change. 390
+tests green (+2 keyless via a stubbed run_case_once/_score_run/run_metrics seam: run-2 failure
+leaves run 1 persisted + returns the failure marker; success writes every repeat), ruff clean,
+mypy strict clean.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
