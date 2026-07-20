@@ -19,16 +19,23 @@ consequences were fixed:
 
 | # | Item | Kind | Executor |
 |---|------|------|----------|
-| 1 | WP11 — static HTML run report | spec ready | Claude Code |
-| 2 | WP12 — interactive checkpoint prompt (stage 1.5) | spec ready | Claude Code |
-| 3 | Charter A — scale hardness test | charter below | Claude Code (tooling) + live runs |
-| 4 | Charter B — deployment & data-residency one-pager | charter below | Cowork research, Mischa review |
-| 5 | Charter C — competitive brief | charter below | Cowork research, Mischa review |
+| 1 | WP11 — static HTML run report | **landed 2026-07-18** | Claude Code |
+| 2 | WP12 — interactive checkpoint prompt (stage 1.5) | **landed 2026-07-18** | Claude Code |
+| 3 | Charter A — scale hardness test | **WP13 tooling landed 2026-07-18** (generator + eval cases + usage capture); live measurement protocol (§4) pending → `scale-test-findings.md` | Claude Code (tooling) + live runs |
+| 4 | Charter B — deployment & data-residency one-pager | **done 2026-07-18** → `deployment-residency.md` | Cowork research, Mischa review |
+| 5 | Charter C — competitive brief | **done 2026-07-18** → private (Nextcloud Documents, not in repo) | Cowork research, Mischa review |
 
 B and C touch no code and can run parallel to any implementation WP. Stage 2 (HITL web
 UI) stays deferred behind its own ADR and is NOT scheduled here.
 
 ## Charter A — scale hardness test ("the 300-table run")
+
+> **Status 2026-07-18:** materialised as **WP13**; the *tooling half* (deterministic
+> landscape generator `eval/scale/generate.py`, `scale_30/100/300` eval cases, per-run token/
+> wall-clock/review-queue usage capture) has landed and is keyless-tested. The **live
+> measurement protocol below is the maintainer's next step** — run `eval.run --dataset
+> scale_30 → 100 → 300`, budget-gated, recording into `scale-test-findings.md`. A first
+> candidate breakpoint is already noted there (the `requirements_parser` output cap).
 
 *Question:* where does the pipeline break on realistic enterprise breadth — before a
 customer finds out?

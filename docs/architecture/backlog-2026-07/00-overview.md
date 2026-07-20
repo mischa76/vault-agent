@@ -104,6 +104,7 @@ scale-test / residency / competitive-brief charters):
 | WP12 | `wp12-interactive-resume-spec.md` | Interactive checkpoint prompt in the CLI — UI stage 1.5 | S/M | — |
 | WP13 | `wp13-scale-hardness-spec.md` | Scale hardness test: landscape generator, eval cases, usage capture (Charter A) | M | WP6 |
 | WP14 | `wp14-scale-mapping-coverage-spec.md` | Column-based mapping coverage for scale cases (eval-only; before the scale_100 live step) | S | WP13 |
+| WP14.1 | kickoff-only (`kickoff/WP14.1-eval-run-persistence.md`, spec = findings Candidate #3) | Crash-safe per-repeat result persistence in eval.run | S | WP13 |
 
 Both are bound by the CLI-first invariant (WP11 §1): pure console operation stays a
 complete mode; nothing may become web- or prompt-only. Kick-offs: `kickoff/WP11-html-run-report.md`,

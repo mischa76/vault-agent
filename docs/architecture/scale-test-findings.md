@@ -189,6 +189,20 @@ Each entry: symptom, size at which it appears, which agent/limit, proposed follo
 - **Specced as WP14** (2026-07-19): `backlog-2026-07/wp14-scale-mapping-coverage-spec.md`
   + kickoff — land before the `scale_100` live step.
 
+### Candidate #3 — eval runner loses completed repeats on a mid-batch failure (operational)
+
+- **Observed 2026-07-19** during the post-WP14 `scale_30` verification: the API credit
+  balance ran out during run 2/3 (Anthropic 400, correctly non-retried by
+  `ForcedToolCaller`); the process died with a traceback and run 1/3 — fully completed,
+  scored, usage captured — was **not persisted**, because `_write_results` runs only after
+  the whole repeat batch. Real money spent, no JSON.
+- **Proposed follow-up (eval-only, S):** write each repeat's result JSON immediately after
+  the repeat completes (crash-safe persistence); optionally catch per-repeat exceptions to
+  flush partials and exit non-zero with the failure recorded. Fold into the next eval WP or
+  do as a one-commit fix before the 100-step (where a mid-batch failure costs much more).
+- **Protocol reminder:** the spec's budget rule is ONE repeat per step — use
+  `--repeat 1` for gate/verification runs; the default is 3.
+
 ## Landscape composition (for interpreting the numbers)
 
 The generator's controlled variables (`eval/scale/generate.py`): wide tables ~6%
