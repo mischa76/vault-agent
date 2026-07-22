@@ -48,6 +48,31 @@ jq 'select(.kind=="backstop")' $T                          # what was silently r
 jq -s 'map(select(.kind=="llm_call") | .input_tokens) | add // 0' $T   # input-token total
 ```
 
+**Without jq.** Hardened environments often cannot install tooling. The same views work
+with the Python standard library alone — no jq, no dependencies, and no project
+virtualenv (a trace is plain jsonl; reading one needs nothing from vault-agent):
+
+```bash
+P='import json,sys; rows=[json.loads(l) for l in open(sys.argv[1])]'
+
+python3 -c "$P
+for e in rows:
+    print(e['kind'], e['tool_name'] + e['backstop_id'], 'attempt', e['attempt'])" $T
+
+python3 -c "$P
+for e in rows:
+    if e['tool_name'] == 'emit_dv_model':
+        print(json.dumps(e['payload']['satellites'], indent=2))" $T
+
+python3 -c "$P
+for e in rows:
+    if e['kind'] == 'llm_error':
+        print(e['error'])" $T
+
+python3 -c "$P
+print(sum(e['input_tokens'] for e in rows if e['kind'] == 'llm_call'))" $T
+```
+
 The most useful comparison in practice: the modeler's attempt-1 vs attempt-2 payloads
 after a validation failure — it shows exactly what the error feedback did (and did not)
 change.
