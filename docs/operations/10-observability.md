@@ -21,8 +21,10 @@ Event kinds: `llm_call` (a completed API response — including a truncated one)
 non-retryable 4xx), and `backstop` (10.4). Fields per event: timestamp, `tool_name`
 (the de-facto agent id — e.g. `emit_dv_model` is the modeler), `model`, `attempt`,
 `system_prompt` + `system_prompt_sha` (full text only on the first event per sha —
-later events carry the sha alone), `user_content`, `max_tokens`, and on success the
-tool `payload`, `stop_reason`, and token usage.
+later events carry the sha alone), `user_content`, `max_tokens`. Every `llm_call`
+additionally carries the tool `payload`, `stop_reason`, and token usage — including a
+truncated one (`stop_reason: "max_tokens"`, and the tokens it was billed for); on a
+response without the forced tool block the `payload` is `null`.
 
 Handle with care: traces contain the **raw document and source text**. They live only
 under `.vault-agent/` (git-ignored) and are not demo-safe — never publish one.
@@ -35,14 +37,14 @@ judgment diverged, and cite `tool_name`/`attempt` when filing a finding. Recipes
 (`jq` optional but worth it):
 
 ```bash
-T=out/.vault-agent/traces/<thread>.jsonl
+T=output/.vault-agent/traces/<thread>.jsonl   # 'output' = the --out dir of the run
 
 jq -r '.kind + "  " + .tool_name + "  attempt=" + (.attempt|tostring)' $T   # overview
 jq 'select(.tool_name=="emit_dv_model")' $T                # the modeler call(s), full payload
 jq 'select(.tool_name=="emit_dv_model") | .payload.satellites' $T   # just its satellites
 jq 'select(.kind=="llm_error")' $T                         # what failed, and how
 jq 'select(.kind=="backstop")' $T                          # what was silently repaired
-jq -s 'map(.input_tokens // 0) | add' $T                   # token totals across the run
+jq -s 'map(select(.kind=="llm_call") | .input_tokens) | add' $T   # input-token total
 ```
 
 The most useful comparison in practice: the modeler's attempt-1 vs attempt-2 payloads
@@ -64,13 +66,14 @@ backstop makes its steering rule a deletion candidate.
 
 ## 10.5 Cost & usage
 
-Per-call token usage (input, output, cache reads) is recorded in every trace event;
-eval runs additionally aggregate it into their result metrics (11.2). What keeps costs
-predictable: system prompts are cache-controlled (retries and per-asset contract calls
-hit the cache), re-model feedback sends errors only, and oversized documents are cut
-and flagged rather than ballooning silently. The expensive step is the modeler
-(heavy model); a run that loops all three modeling attempts costs roughly three
-modeler output generations on a cached prompt.
+Per-call token usage (input, output, cache reads) is recorded on every `llm_call` trace
+event — `llm_error` and `backstop` events carry zeros, so filter on `llm_call` when
+totalling a run by hand; eval runs additionally aggregate it into their result metrics
+(11.2). What keeps costs predictable: system prompts are cache-controlled (retries and
+per-asset contract calls hit the cache), re-model feedback sends errors only, and
+oversized documents are cut and flagged rather than ballooning silently. The expensive
+step is the modeler (heavy model); a run that loops all three modeling attempts costs
+roughly three modeler output generations on a cached prompt.
 
 ## 10.6 `.vault-agent/` internals
 
