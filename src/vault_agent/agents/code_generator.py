@@ -16,6 +16,7 @@ import logging
 from typing import Any
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.llm import TraceEvent, emit_trace
 from vault_agent.rules.dv2_rules import (
     EFFECTIVITY_APPLIED_COLUMN,
     HASHDIFF_SUFFIX,
@@ -574,6 +575,20 @@ class CodeGeneratorAgent(BaseAgent):
         # Aligned with the validator's E_EFFSAT_DATES gate: exactly two date attributes,
         # (start, end). Accepting >= 2 and silently using the first two would drop payload.
         if len(sat.attributes) != 2:
+            # WP16 §2.3: the rejection is the `effsat_two_dates` steering line's backstop.
+            # The GENERATION_GAP flag stays the human-review channel; the event adds the
+            # counting channel that says whether the steering still needs help.
+            emit_trace(
+                TraceEvent(
+                    kind="backstop",
+                    backstop_id="effsat_two_attributes",
+                    detail={
+                        "rule": "effsat_two_dates",
+                        "satellite": sat.name,
+                        "attributes": list(sat.attributes),
+                    },
+                )
+            )
             state.flag(
                 "code_generator",
                 f"effectivity satellite {sat.name!r} needs start and end date "

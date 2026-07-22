@@ -84,7 +84,7 @@ async def test_builds_model_from_requirements_and_keys() -> None:
 
     # Modelling rules injected; both input arrays handed to the LLM.
     system_prompt, payload_json = stub.calls[0]
-    assert DV_MODELING_RULES[0] in system_prompt
+    assert DV_MODELING_RULES[0].text in system_prompt
     assert "national customer ID" in payload_json
     assert "REQ-001" in payload_json
 
@@ -290,4 +290,4 @@ def test_tool_schema_exposes_satellite_source_table() -> None:
 
     sat_schema = _tool_schema()["properties"]["satellites"]["items"]
     assert "source_table" in sat_schema["properties"]
-    assert any("source_table" in rule for rule in DV_MODELING_RULES)
+    assert any("source_table" in rule.text for rule in DV_MODELING_RULES)

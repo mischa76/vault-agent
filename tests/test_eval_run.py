@@ -5,6 +5,7 @@ deterministic parts: aggregation, the min_scores gate, the JSON payload, the rep
 table, and the missing-key guard."""
 import asyncio
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -114,7 +115,8 @@ def _stub_runner(monkeypatch: pytest.MonkeyPatch, scores: ScorerResult) -> None:
     reads off it); ``_score_run``/``run_metrics`` return fixed, JSON-serialisable payloads."""
     monkeypatch.setattr(run_mod, "_score_run", lambda case, state, golden: [scores])
     monkeypatch.setattr(
-        run_mod, "run_metrics", lambda state, elapsed, usage: {"wall_clock_seconds": 1.0}
+        run_mod, "run_metrics",
+        lambda *args, **kwargs: {"wall_clock_seconds": 1.0}
     )
 
 
@@ -178,3 +180,48 @@ def test_main_without_api_key_exits_2(
     monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
     assert main(["--dataset", "bank"]) == 2
     assert "ANTHROPIC_API_KEY" in capsys.readouterr().err
+
+
+# --- WP15/WP16: trace path and backstop-fire metrics ---------------------------------------
+
+
+def test_backstop_counter_counts_only_backstop_events() -> None:
+    from vault_agent.llm import TraceEvent
+
+    counter = run_mod.BackstopCounter()
+    counter.record(TraceEvent(kind="llm_call", tool_name="emit_dv_model"))
+    counter.record(TraceEvent(kind="backstop", backstop_id="attributes_without_cdk"))
+    counter.record(TraceEvent(kind="backstop", backstop_id="attributes_without_cdk"))
+    counter.record(TraceEvent(kind="backstop", backstop_id="fk_demotion"))
+
+    assert counter.fires == {"attributes_without_cdk": 2, "fk_demotion": 1}
+
+
+def test_fanout_feeds_every_recorder() -> None:
+    from vault_agent.llm import TraceEvent
+
+    seen_a: list[TraceEvent] = []
+    seen_b: list[TraceEvent] = []
+    event = TraceEvent(kind="backstop", backstop_id="fk_demotion")
+
+    run_mod.fanout(seen_a.append, seen_b.append)(event)
+
+    assert seen_a == [event] and seen_b == [event]
+
+
+def test_run_metrics_carries_trace_path_and_backstop_fires() -> None:
+    from vault_agent.state import VaultAgentState
+
+    metrics = run_mod.run_metrics(
+        VaultAgentState(),
+        1.5,
+        run_mod.UsageTotals(),
+        Path("eval/results/bank/x.trace.jsonl"),
+        {"attributes_without_cdk": 2},
+    )
+
+    assert metrics["trace_path"] == "eval/results/bank/x.trace.jsonl"
+    assert metrics["backstop_fires"] == {"attributes_without_cdk": 2}
+    # An un-instrumented call keeps the pre-WP15 shape apart from the (empty) fire map.
+    plain = run_mod.run_metrics(VaultAgentState(), 1.5, run_mod.UsageTotals())
+    assert "trace_path" not in plain and plain["backstop_fires"] == {}

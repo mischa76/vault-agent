@@ -12,6 +12,8 @@ import json
 import logging
 import re
 import sys
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Annotated, Any
 from uuid import uuid4
@@ -26,6 +28,7 @@ from pydantic import BaseModel
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
+from vault_agent import llm as _llm
 from vault_agent import state as _state_module
 from vault_agent.agents.orchestrator import (
     KIND_HEADINGS,
@@ -48,6 +51,7 @@ from vault_agent.state import (
     SourceTable,
     VaultAgentState,
 )
+from vault_agent.trace import JsonlTraceWriter
 
 app = typer.Typer(help="Agentic AI for Data Vault 2.0 automation.", no_args_is_help=True)
 
@@ -216,6 +220,32 @@ def _checkpoint_serde() -> JsonPlusSerializer:
     return JsonPlusSerializer(allowed_msgpack_modules=allowed)
 
 
+def _trace_path(out_dir: Path, thread_id: str) -> Path:
+    """Where a run's LLM transcript lands: one jsonl per thread (WP15 §2.3).
+
+    Under ``.vault-agent/`` deliberately — that directory already holds per-run,
+    non-deliverable state, and a trace carries raw document/source text (never publish it).
+    A resumed run appends to its thread's file, so one HITL run reads as one transcript."""
+    return _checkpoint_dir(out_dir) / "traces" / f"{thread_id}.jsonl"
+
+
+@contextmanager
+def _tracing(out_dir: Path, thread_id: str, enabled: bool) -> Iterator[None]:
+    """Register the JSONL trace writer as the process-wide recorder for one run.
+
+    Default ON (``--no-trace`` opts out): a trace you have to remember to enable is a trace
+    you don't have when you need it. Always cleared afterwards, so an in-process caller (the
+    interactive checkpoint, tests) never leaks a recorder into the next run."""
+    if not enabled:
+        yield
+        return
+    _llm.set_trace_recorder(JsonlTraceWriter(_trace_path(out_dir, thread_id)))
+    try:
+        yield
+    finally:
+        _llm.set_trace_recorder(None)
+
+
 def _pending_path(out_dir: Path) -> Path:
     return _checkpoint_dir(out_dir) / "pending.json"
 
@@ -251,51 +281,56 @@ async def _run_pipeline(
     out_dir: Path,
     source_schemas: list[SourceTable] | None = None,
     profiling: dict[str, dict[str, ColumnProfile]] | None = None,
+    trace: bool = True,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
 
     ``source_schemas`` (from ``--source-schema``) activates ADR-0004 grounding; ``profiling``
     (from ``--profiling``, WP9) feeds the business↔source mapper. Empty/``None`` leaves both
-    inert."""
+    inert. ``trace`` (WP15) writes the run's LLM transcript beside its checkpoint."""
     thread_id = uuid4().hex
     _checkpoint_dir(out_dir).mkdir(parents=True, exist_ok=True)
     config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
-    async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out_dir)) as saver:
-        saver.serde = _checkpoint_serde()
-        compiled = build_graph().compile(checkpointer=saver)
-        result = await compiled.ainvoke(
-            # LangGraph's generic ainvoke doesn't infer our pydantic state as StateT;
-            # passing VaultAgentState is correct at runtime.
-            VaultAgentState(  # type: ignore[arg-type]
-                input_documents=[str(input_doc)],
-                source_schemas=source_schemas or [],
-                profiling=profiling or {},
-            ),
-            config=config,
-        )
-        paused = "__interrupt__" in result
-        if not paused:
-            # Checkpoint pruning (WP5 §5.5): a finalised run's thread is never resumed,
-            # so its rows would only grow checkpoints.sqlite unboundedly. Paused runs
-            # keep their thread — it is exactly what `vault-agent resume` continues.
-            await saver.adelete_thread(thread_id)
+    with _tracing(out_dir, thread_id, trace):
+        async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out_dir)) as saver:
+            saver.serde = _checkpoint_serde()
+            compiled = build_graph().compile(checkpointer=saver)
+            result = await compiled.ainvoke(
+                # LangGraph's generic ainvoke doesn't infer our pydantic state as StateT;
+                # passing VaultAgentState is correct at runtime.
+                VaultAgentState(  # type: ignore[arg-type]
+                    input_documents=[str(input_doc)],
+                    source_schemas=source_schemas or [],
+                    profiling=profiling or {},
+                ),
+                config=config,
+            )
+            paused = "__interrupt__" in result
+            if not paused:
+                # Checkpoint pruning (WP5 §5.5): a finalised run's thread is never resumed,
+                # so its rows would only grow checkpoints.sqlite unboundedly. Paused runs
+                # keep their thread — it is exactly what `vault-agent resume` continues.
+                await saver.adelete_thread(thread_id)
     return _state_from_result(result), paused, thread_id
 
 
 async def _resume_pipeline(
-    out_dir: Path, thread_id: str, decision: dict[str, Any]
+    out_dir: Path, thread_id: str, decision: dict[str, Any], trace: bool = True
 ) -> tuple[VaultAgentState, bool]:
-    """Resume a paused run on the same thread with the human's decision."""
+    """Resume a paused run on the same thread with the human's decision.
+
+    The trace appends to the same thread's jsonl, so a paused+resumed run is one transcript."""
     config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
-    async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out_dir)) as saver:
-        saver.serde = _checkpoint_serde()
-        compiled = build_graph().compile(checkpointer=saver)
-        result = await compiled.ainvoke(Command(resume=decision), config=config)
-        paused = "__interrupt__" in result
-        if not paused:
-            # Finalised on resume: prune the thread's checkpoints (WP5 §5.5).
-            await saver.adelete_thread(thread_id)
+    with _tracing(out_dir, thread_id, trace):
+        async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out_dir)) as saver:
+            saver.serde = _checkpoint_serde()
+            compiled = build_graph().compile(checkpointer=saver)
+            result = await compiled.ainvoke(Command(resume=decision), config=config)
+            paused = "__interrupt__" in result
+            if not paused:
+                # Finalised on resume: prune the thread's checkpoints (WP5 §5.5).
+                await saver.adelete_thread(thread_id)
     return _state_from_result(result), paused
 
 
@@ -509,7 +544,7 @@ def _collect_decision(
 
 
 def _interactive_checkpoint(
-    console: Console, out: Path, thread_id: str, state: VaultAgentState
+    console: Console, out: Path, thread_id: str, state: VaultAgentState, trace: bool = True
 ) -> None:
     """Answer the HITL checkpoint in the terminal, then resume the same thread in-process.
 
@@ -534,7 +569,7 @@ def _interactive_checkpoint(
             return
 
         decision = _build_decision(owners, True, overrides, {})
-        state, paused = asyncio.run(_resume_pipeline(out, thread_id, decision))
+        state, paused = asyncio.run(_resume_pipeline(out, thread_id, decision, trace))
         _print_summary(console, state)
         counts = write_outputs(state, out)
         _report_written(console, counts, out)
@@ -648,6 +683,13 @@ def run(
     write: Annotated[
         bool, typer.Option("--write/--no-write", help="Write artifacts to disk."),
     ] = True,
+    trace: Annotated[
+        bool,
+        typer.Option(
+            "--trace/--no-trace",
+            help="Write the run's LLM transcript to .vault-agent/traces/ (default: on).",
+        ),
+    ] = True,
     interactive: Annotated[
         bool | None,
         typer.Option(
@@ -666,7 +708,9 @@ def run(
         console.print(f"[bold red]Could not load an input file:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
     try:
-        state, paused, thread_id = asyncio.run(_run_pipeline(input_doc, out, schemas, profiles))
+        state, paused, thread_id = asyncio.run(
+            _run_pipeline(input_doc, out, schemas, profiles, trace)
+        )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
         if _DEBUG:
             raise  # --debug: full traceback instead of the one-line summary
@@ -686,7 +730,7 @@ def run(
         # WP12: answer the checkpoint in-terminal when interactive (needs write, since the
         # in-process resume finalises to disk); otherwise print today's resume instructions.
         if write and _is_interactive(interactive):
-            _interactive_checkpoint(console, out, thread_id, state)
+            _interactive_checkpoint(console, out, thread_id, state, trace)
         else:
             _report_paused(console, out)
     else:
@@ -713,6 +757,13 @@ def resume(
         list[str] | None,
         typer.Option("--map", help="Override one mapping: 'concept=TABLE.COLUMN' (WP9)."),
     ] = None,
+    trace: Annotated[
+        bool,
+        typer.Option(
+            "--trace/--no-trace",
+            help="Append the resume's LLM transcript to the run's trace (default: on).",
+        ),
+    ] = True,
     interactive: Annotated[
         bool | None,
         typer.Option(
@@ -741,7 +792,7 @@ def resume(
             raise typer.Exit(code=1) from exc
         console.print(f"[bold]Resuming[/bold] paused run in [cyan]{out}/[/cyan] (interactive) …\n")
         _print_checkpoint(console, assemble_review_queue(state))
-        _interactive_checkpoint(console, out, pending["thread_id"], state)
+        _interactive_checkpoint(console, out, pending["thread_id"], state, trace)
         return
 
     try:
@@ -757,7 +808,9 @@ def resume(
 
     console.print(f"[bold]Resuming[/bold] paused run in [cyan]{out}/[/cyan] …\n")
     try:
-        state, paused = asyncio.run(_resume_pipeline(out, pending["thread_id"], decision))
+        state, paused = asyncio.run(
+            _resume_pipeline(out, pending["thread_id"], decision, trace)
+        )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
         if _DEBUG:
             raise  # --debug: full traceback instead of the one-line summary

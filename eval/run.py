@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -47,9 +48,11 @@ from vault_agent.agents.orchestrator import assemble_review_queue, render_review
 from vault_agent.cli import _checkpoint_serde
 from vault_agent.config import get_settings
 from vault_agent.graph import build_graph
+from vault_agent.llm import TraceEvent
 from vault_agent.profiling import load_profiling
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import VaultAgentState
+from vault_agent.trace import JsonlTraceWriter
 
 DEFAULT_REPEAT = 3
 DEFAULT_OUT = Path("eval") / "results"
@@ -105,16 +108,49 @@ class UsageTotals:
         }
 
 
+class BackstopCounter:
+    """Counts deterministic backstop fires per run (WP16 §2.3).
+
+    A backstop fires only when it actually repairs LLM output, so the count is the evidence
+    for "does the current model still need the steering rule behind it?" — the number the
+    steering ledger and ``eval.ablate`` read."""
+
+    def __init__(self) -> None:
+        self.fires: dict[str, int] = {}
+
+    def record(self, event: TraceEvent) -> None:
+        if event.kind != "backstop":
+            return
+        key = event.backstop_id or "unknown"
+        self.fires[key] = self.fires.get(key, 0) + 1
+
+
+def fanout(*recorders: Callable[[TraceEvent], None]) -> Callable[[TraceEvent], None]:
+    """One trace recorder feeding several sinks (the writer *and* the backstop counter)."""
+
+    def record(event: TraceEvent) -> None:
+        for recorder in recorders:
+            recorder(event)
+
+    return record
+
+
 def run_metrics(
-    state: VaultAgentState, wall_clock_seconds: float, usage: UsageTotals
+    state: VaultAgentState,
+    wall_clock_seconds: float,
+    usage: UsageTotals,
+    trace_path: Path | None = None,
+    backstops: dict[str, int] | None = None,
 ) -> dict[str, Any]:
     """Non-score observations captured per run (WP13 §3): cost, wall-clock, review-queue size.
 
     ``review_queue_lines`` is the *rendered* markdown line count — the readability proxy the
-    scale test watches: does WP-aggregation keep the checkpoint scannable at hundreds of flags?"""
+    scale test watches: does WP-aggregation keep the checkpoint scannable at hundreds of flags?
+    ``trace_path`` (WP15) points at the run's LLM transcript, so a finding can cite the call
+    that produced it instead of a hunch."""
     queue = assemble_review_queue(state)
     rendered = render_review_queue_md(queue)
-    return {
+    metrics: dict[str, Any] = {
         "wall_clock_seconds": round(wall_clock_seconds, 3),
         "usage": usage.as_dict(),
         "review_items_total": len(queue.items),
@@ -125,7 +161,13 @@ def run_metrics(
             "satellites": len(state.dv_model.satellites),
         },
         "flags": len(state.flags),
+        # WP16: {} means every backstop stayed idle this run — a rule with a persistently
+        # empty count is the ablation runner's first candidate-delete.
+        "backstop_fires": dict(sorted((backstops or {}).items())),
     }
+    if trace_path is not None:
+        metrics["trace_path"] = str(trace_path)
+    return metrics
 
 
 async def run_case_once(case: EvalCase) -> VaultAgentState:
@@ -307,7 +349,13 @@ async def _run_score_write(
     for index in range(repeat):
         print(f"  run {index + 1}/{repeat} ...", flush=True)
         usage = UsageTotals()
+        # The result JSON's timestamp is stamped *before* the run so the trace written during
+        # it can share the filename stem — result and transcript sit side by side (WP15 §2.4).
+        timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+        trace_path = out_root / case.name / f"{timestamp}-run{index + 1}.trace.jsonl"
+        backstops = BackstopCounter()
         llm.set_usage_recorder(usage.record)
+        llm.set_trace_recorder(fanout(JsonlTraceWriter(trace_path), backstops.record))
         started = time.perf_counter()
         try:
             state = await run_case_once(case)
@@ -315,13 +363,15 @@ async def _run_score_write(
             return runs, metrics, written, (index + 1, f"{type(exc).__name__}: {exc}")
         finally:
             llm.set_usage_recorder(None)
+            llm.set_trace_recorder(None)
         elapsed = time.perf_counter() - started
         results = _score_run(case, state, golden_path)
-        run_meta = run_metrics(state, elapsed, usage)
+        run_meta = run_metrics(state, elapsed, usage, trace_path, backstops.fires)
         mapping_dump = state.mappings.model_dump(mode="json")
         written.append(
             _write_one_result(
-                case, index + 1, results, out_root, models, git_sha, run_meta, mapping_dump
+                case, index + 1, results, out_root, models, git_sha, run_meta, mapping_dump,
+                timestamp,
             )
         )
         runs.append(results)
@@ -338,12 +388,16 @@ def _write_one_result(
     git_sha: str,
     metrics: dict[str, Any],
     mappings: dict[str, Any],
+    timestamp: str | None = None,
 ) -> Path:
     """Persist one repeat's result JSON immediately (WP14.1). Same filename scheme and payload
-    as before — one timestamped JSON per repeat — only written sooner (inside the loop)."""
+    as before — one timestamped JSON per repeat — only written sooner (inside the loop).
+
+    ``timestamp`` is stamped by the caller (WP15: shared with the run's trace file); omitted,
+    it is taken now, keeping the pre-WP15 behaviour for any other caller."""
     case_dir = out_root / case.name
     case_dir.mkdir(parents=True, exist_ok=True)
-    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+    timestamp = timestamp or datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     payload = build_result_payload(
         case, run_index, results, models=models, git_sha=git_sha,
         timestamp=timestamp, metrics=metrics, mappings=mappings,

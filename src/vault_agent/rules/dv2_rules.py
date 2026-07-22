@@ -3,6 +3,8 @@
 Keep in pure Python so they are unit-testable and not subject to LLM hallucination.
 """
 import re
+from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -76,42 +78,183 @@ def effectivity_date_pair(attributes: list[str]) -> tuple[str, str] | None:
         return from_matches[0], to_matches[0]
     return None
 
+@dataclass(frozen=True)
+class SteeringRule:
+    """One prompt-steering line the modeler is given, with its provenance (WP16 §2.1).
+
+    Parts of the harness exist because *current* models failed — the CDK line landed only
+    after LLM steering failed 4/4, the effectivity two-dates line has a generator-side
+    rejection behind it. That is correct belt-and-braces engineering, but it is
+    model-compensation, and an anonymous ``list[str]`` cannot answer "does the next model
+    still need this?". Naming each line makes it ablatable (:func:`active_modeling_rules`)
+    and countable against its ``backstop``.
+
+    - ``id``: stable snake_case handle (``eval.ablate --drop <id>``, ledger row key)
+    - ``text``: the prompt line itself, byte-identical to what shipped before WP16
+    - ``backstop``: the deterministic pre-gate repair that catches this failure when the
+      steering does not — the thing whose fire count says whether the rule is still earning
+      its place. ``None`` where steering stands alone.
+    - ``origin``: WP/date and what it cost to learn (read before deleting anything)
+
+    Validator gates are deliberately NOT in scope here: they are the product (auditable,
+    deterministic E_/W_ codes an enterprise DV2.0 tool owes its users), not
+    model-compensation. Only prompt lines and pre-gate backstops are measurable-and-deletable.
+    """
+
+    id: str
+    text: str
+    backstop: str | None = None
+    origin: str = ""
+
+
 # Structural rules the DV2.0 Modeler applies when turning business objects and keys
 # into hubs, links, and satellites. Injected into the modeler prompt at runtime so the
 # rule set stays a single source of truth (see CLAUDE.md).
 DV_MODELING_RULES = [
-    "Create exactly one hub per business key — one hub is one concept with one natural key",
-    "Hubs hold only the business key plus DV technical columns; never descriptive attributes",
-    "Create a link for each relationship between objects; a link connects two or more hubs",
-    "Links hold only references to their hubs — no descriptive attributes, no business keys",
-    "Put descriptive, changing attributes in satellites; each satellite hangs off one parent",
-    f"Split satellites along these axes — {', '.join(SATELLITE_SPLIT_AXES)}; one satellite "
-    f"holds attributes that belong together on all of them, split where they diverge",
-    "Do not model a stand-alone object as a link, and do not model a relationship as a hub",
-    "A link represents exactly one Unit of Work — the business keys of one atomic business "
-    "event; never split one event across links nor merge unrelated relationships into one link",
-    "Degenerate attributes of the relationship itself (e.g. an order-line sequence number) may "
-    "sit on the link; descriptive attributes that change over time go in a satellite on the link",
-    "When an effectivity satellite tracks a relationship's active period, declare the link's "
-    "driving key — the hub reference(s) that stay fixed while the others rotate over time",
-    "An effectivity satellite carries exactly two date attributes, in (start, end) order: "
-    "the active-from date first, the active-to date second",
-    "When a satellite's rows live in their own source relation at finer grain than the "
-    "parent's — typical for a multi-active satellite — declare the satellite's "
-    "source_table (the raw relation feeding it); the parent's business-key column must "
-    "exist in that relation so the rows attach to the parent",
-    "A multi-active satellite's child_dependent_key (the sub-sequence key that distinguishes "
-    "its concurrent rows, e.g. address_type) is a key column, not payload — never also list "
-    "it among the satellite's attributes, or the generated satellite carries a duplicate "
-    "column and cannot build",
-    "When the same business-key value from different sources can mean different objects, add a "
-    "collision code (source differentiation) rather than silently merging them into one hub",
-    "When one hub participates twice in a relationship (e.g. a transfer's payer and "
-    "counterparty are both accounts), qualify each participation with a role — "
-    "connected_hubs entry {hub: hub_account, role: counterparty} — instead of dropping or "
-    "duplicating the hub; role-qualify the driving key as \"hub_account:counterparty\" when it "
-    "names a role",
+    SteeringRule(
+        id="one_hub_per_key",
+        text="Create exactly one hub per business key — one hub is one concept with one "
+        "natural key",
+        origin="canon (Linstedt/Olschimke); gated by E_DUP_HUB (WP1, 2026-07-08)",
+    ),
+    SteeringRule(
+        id="hub_no_attributes",
+        text="Hubs hold only the business key plus DV technical columns; never descriptive "
+        "attributes",
+        origin="canon (Linstedt/Olschimke)",
+    ),
+    SteeringRule(
+        id="link_per_relationship",
+        text="Create a link for each relationship between objects; a link connects two or "
+        "more hubs",
+        origin="canon (Linstedt/Olschimke)",
+    ),
+    SteeringRule(
+        id="link_no_attributes",
+        text="Links hold only references to their hubs — no descriptive attributes, no "
+        "business keys",
+        origin="canon (Linstedt/Olschimke)",
+    ),
+    SteeringRule(
+        id="attributes_in_satellites",
+        text="Put descriptive, changing attributes in satellites; each satellite hangs off "
+        "one parent",
+        origin="canon (Linstedt/Olschimke)",
+    ),
+    SteeringRule(
+        id="satellite_split_axes",
+        text=f"Split satellites along these axes — {', '.join(SATELLITE_SPLIT_AXES)}; one "
+        f"satellite holds attributes that belong together on all of them, split where they "
+        f"diverge",
+        origin="canon (satellite splitting); W_SAT_WIDE flags the smell",
+    ),
+    SteeringRule(
+        id="no_object_link_confusion",
+        text="Do not model a stand-alone object as a link, and do not model a relationship "
+        "as a hub",
+        origin="canon (Linstedt/Olschimke)",
+    ),
+    SteeringRule(
+        id="unit_of_work",
+        text="A link represents exactly one Unit of Work — the business keys of one atomic "
+        "business event; never split one event across links nor merge unrelated "
+        "relationships into one link",
+        origin="dv2-modeling-rules-spec (2026-06-13); W_LINK_REDUNDANT_GRAIN",
+    ),
+    SteeringRule(
+        id="degenerate_attributes",
+        text="Degenerate attributes of the relationship itself (e.g. an order-line sequence "
+        "number) may sit on the link; descriptive attributes that change over time go in a "
+        "satellite on the link",
+        origin="dv2-modeling-rules-spec (2026-06-13)",
+    ),
+    SteeringRule(
+        id="effsat_driving_key",
+        text="When an effectivity satellite tracks a relationship's active period, declare "
+        "the link's driving key — the hub reference(s) that stay fixed while the others "
+        "rotate over time",
+        origin="review-2026-06 remediation; gated by E_EFFSAT_NO_DRIVING_KEY",
+    ),
+    SteeringRule(
+        id="effsat_two_dates",
+        text="An effectivity satellite carries exactly two date attributes, in (start, end) "
+        "order: the active-from date first, the active-to date second",
+        backstop="effsat_two_attributes",
+        origin="WP1 (2026-07-08): the generator reads attributes[0]/[1] positionally and "
+        "silently dropped payload beyond the first two",
+    ),
+    SteeringRule(
+        id="masat_source_table",
+        text="When a satellite's rows live in their own source relation at finer grain than "
+        "the parent's — typical for a multi-active satellite — declare the satellite's "
+        "source_table (the raw relation feeding it); the parent's business-key column must "
+        "exist in that relation so the rows attach to the parent",
+        origin="WP7 §7.1 (2026-07-08); W_MASAT_SHARED_GRAIN warns when absent",
+    ),
+    SteeringRule(
+        id="cdk_not_payload",
+        text="A multi-active satellite's child_dependent_key (the sub-sequence key that "
+        "distinguishes its concurrent rows, e.g. address_type) is a key column, not payload "
+        "— never also list it among the satellite's attributes, or the generated satellite "
+        "carries a duplicate column and cannot build",
+        backstop="attributes_without_cdk",
+        origin="2026-07-16: health_insurance failed validation 4/4 (E_SAT_DUP_ATTR) with "
+        "error feedback alone — steering AND the deterministic backstop were needed",
+    ),
+    SteeringRule(
+        id="bk_collision_code",
+        text="When the same business-key value from different sources can mean different "
+        "objects, add a collision code (source differentiation) rather than silently merging "
+        "them into one hub",
+        origin="canon (business-key collision); W_BK_COLLISION_RISK",
+    ),
+    SteeringRule(
+        id="role_qualified_participation",
+        text="When one hub participates twice in a relationship (e.g. a transfer's payer and "
+        "counterparty are both accounts), qualify each participation with a role — "
+        "connected_hubs entry {hub: hub_account, role: counterparty} — instead of dropping or "
+        "duplicating the hub; role-qualify the driving key as \"hub_account:counterparty\" "
+        "when it names a role",
+        origin="WP8 / ADR-0009 (2026-07-08); E_LINK_DUP_ROLE",
+    ),
 ]
+
+# Ablation seam (WP16 §2.2). Module-level, mirroring llm.set_usage_recorder: the harness
+# injects an exclusion set without threading arguments through the agents. PRODUCTION CODE
+# NEVER SETS THIS — it exists for eval/ablate.py, which measures whether a steering line is
+# still doing work against the current model.
+_excluded_rule_ids: frozenset[str] = frozenset()
+
+
+def set_excluded_rules(rule_ids: Iterable[str] | None) -> None:
+    """Exclude the named steering rules from the modeler prompt (or clear with ``None``).
+
+    Raises ``ValueError`` on an unknown id — a silently ignored typo would report a rule as
+    "safe to delete" while it was still in the prompt, the one failure mode that must not be
+    quiet. Empty/``None`` restores the byte-identical shipped prompt."""
+    global _excluded_rule_ids
+    if not rule_ids:
+        _excluded_rule_ids = frozenset()
+        return
+    requested = frozenset(rule_ids)
+    known = {rule.id for rule in DV_MODELING_RULES}
+    unknown = sorted(requested - known)
+    if unknown:
+        raise ValueError(
+            f"unknown steering rule id(s): {', '.join(unknown)}; "
+            f"known ids: {', '.join(sorted(known))}"
+        )
+    _excluded_rule_ids = requested
+
+
+def excluded_rules() -> frozenset[str]:
+    """The currently excluded steering-rule ids (empty in every production run)."""
+    return _excluded_rule_ids
+
+
+def active_modeling_rules() -> list[SteeringRule]:
+    """The steering rules the modeler prompt is built from, honouring the ablation seam."""
+    return [rule for rule in DV_MODELING_RULES if rule.id not in _excluded_rule_ids]
 
 def attributes_without_cdk(
     attributes: list[str], child_dependent_key: list[str]

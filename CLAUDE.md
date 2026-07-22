@@ -29,6 +29,13 @@ progress), 20+ years in ICT.
   alternatives are critically mapped in docs/methodology/dsaf-mapping.md
 - IREB CPRE Foundation – Requirements Engineering conventions
 - Chad Sanderson, Mark Freeman & B.E. Schmidt – Data Contracts: Developing Production-Grade Pipelines at Scale (O'Reilly, 2025)
+- Andrej Karpathy – LOOPS.md: Field Notes on Agents That Run for Days (working notes,
+  v060726, 2026) – agent-loop/harness design principles (role separation, state on disk,
+  contract-first, trace reading). Adopted post hoc as a lens, not a blueprint: the
+  convergent matches and the ONE deliberate deviation (rule VIII "delete the harness" does
+  not apply to the validator gates — they are product, not model-compensation) are
+  critically mapped in docs/methodology/loops-mapping.md; WP15/WP16 operationalise
+  rules VII/VIII
 
 ## Code conventions
 - Type hints everywhere; pydantic for data models; mypy strict
@@ -831,6 +838,72 @@ filename scheme, and console output for a fully green batch. No src/vault_agent 
 tests green (+2 keyless via a stubbed run_case_once/_score_run/run_metrics seam: run-2 failure
 leaves run 1 persisted + returns the failure marker; success writes every repeat), ruff clean,
 mypy strict clean.
+
+WP15 LLM trace capture landed (as of 2026-07-22,
+docs/architecture/backlog-2026-07/wp15-trace-capture-spec.md; origin: Karpathy LOOPS.md rule VII
+"read the traces"). The pipeline's LLM interactions are no longer invisible after the fact:
+llm.py gains a TraceEvent frozen dataclass (kind llm_call/llm_error/backstop, tool_name, model,
+attempt, system_prompt + system_prompt_sha, user_content, max_tokens, payload, stop_reason,
+usage numbers, error, and the WP16 backstop_id/detail) plus a recorder seam mirroring WP13's
+usage recorder exactly — module-level set_trace_recorder(...) (the CLI/eval harness sets it,
+library code never does) with a per-instance ForcedToolCaller ctor arg for tests, and an
+emit_trace(event) helper whose recorder exceptions are swallowed with a warning (observational,
+never fatal). Emission: every completed API response (including a truncated one — usage
+semantics) and every terminal failure (truncation, missing tool block, exhausted retries, and —
+beyond the spec's §2.1 list, added after a live run hit it — a propagating non-retryable 4xx
+such as an exhausted credit balance); a retryable attempt that will be retried is NOT an event.
+Writer: src/vault_agent/trace.py JsonlTraceWriter appends one JSON object per event (ISO
+timestamp + all fields), writing the system prompt in full on the first event per sha and by
+sha alone afterwards (the modeler's prompt is byte-identical across retries by WP3 design);
+opened in append mode per event, so a resumed run continues ONE transcript and a crash keeps
+what was written. CLI: `run`/`resume` register the writer at
+<out>/.vault-agent/traces/<thread_id>.jsonl via a _tracing() contextmanager (always cleared in
+finally), **default ON** with `--no-trace` to opt out; the interactive checkpoint threads the
+flag into its in-process resume. Eval: each repeat's trace lands next to its result JSON as
+<timestamp>-run<N>.trace.jsonl (the timestamp is now stamped before the run so both share the
+stem) and metrics gains trace_path; scale-test-findings.md gained the protocol line — quote the
+trace (tool_name/attempt), don't file hunches. Traces are debug artifacts, not deliverables:
+timestamped (exempt from the byte-identity rules), carrying raw document/source text, hence
+.vault-agent/-only, git-ignored, and README-flagged as not demo-safe. Verified live 2026-07-22
+against the real API path (the failing requirements_parser call landed in the jsonl with tool
+name, model, attempt and full system prompt); acceptance #1's full `grep emit_dv_model`
+payload demo is OPEN — the run stopped on an exhausted Anthropic credit balance, not on code.
+21 keyless tests (+6 tests/test_trace.py, +7 in test_llm.py incl. the raising-recorder and
+instance-override paths, +4 CLI: trace file per thread, resume appends, --no-trace writes
+nothing, flag exposed).
+
+WP16 steering registry, backstop telemetry and the model-release re-test landed (as of
+2026-07-22, docs/architecture/backlog-2026-07/wp16-steering-retest-spec.md; origin: LOOPS.md
+rule VIII "delete the harness"). Parts of the harness are model-compensation (the CDK line
+landed only after steering failed 4/4, plus a deterministic backstop) and nothing could answer
+"does the next model still need this?". Now: (§2.1) DV_MODELING_RULES is list[SteeringRule]
+(frozen dataclass: id, text, backstop, origin) — the rendered modeler prompt is BYTE-IDENTICAL
+to pre-WP16, pinned against a fixture generated from the old constant
+(tests/fixtures/steering/modeler_rules_pre_wp16.txt). (§2.2) active_modeling_rules() honours a
+module-level exclusion set (set_excluded_rules(ids|None), unknown id raises attributably,
+None = identity); production code NEVER sets it — the seam exists for eval/ablate.py.
+(§2.3) The three pre-gate backstops emit TraceEvent(kind="backstop") through the WP15 seam when
+and only when they actually repair something: attributes_without_cdk (modeler CDK dedup),
+fk_demotion (WP9.1 source_mapper), effsat_two_attributes (code generator's !=2-attributes
+rejection; the GENERATION_GAP flag stays the human channel, the event adds counting).
+eval/run.py counts them per repeat into metrics.backstop_fires via a BackstopCounter fanned out
+alongside the trace writer. (§2.4) eval/ablate.py (`python -m eval.ablate --case <c> --drop
+<rule_id> [--model <id>] [--repeat N]`) runs baseline vs. rule-dropped arms on the real graph
+(reusing run_case_once/_score_run), recording scores, validation issue codes, backstop fires
+and usage per arm, with WP14.1 crash-safety (the comparison JSON under eval/results/ablation/
+is rewritten after EVERY completed repeat) and a printed two-column summary. (§2.5)
+docs/architecture/steering-ledger.md holds the full inventory (15 modeler rules + the two
+source_mapper prompt heuristics, which stay in their prompt file and are manual-ablation only)
+and the release protocol: on a model bump, ablate gated cases × backstopped rules first; zero
+backstop fires AND no gated-score regression over N>=3 repeats makes a rule candidate-delete —
+a human decides, prompt text is cheap to revert, deleting a backstop needs the evidence AND its
+E_-gate kept. Scope boundary stated everywhere: validator gates are the product, never ablated,
+never deleted here. Acceptance #2 (a live cdk_not_payload ablation on health_insurance) is OPEN
+for the same credit-balance reason. 433 tests green (+15 tests/test_steering.py: id uniqueness,
+byte-identity, exclusion/clear/unknown-id, backstop-link consistency, the three telemetry sites
+firing only on a real repair, no-recorder no-op; +8 tests/test_eval_ablate.py: both arms, report
+shape, arm-2 failure persistence + seam always cleared, summary/render helpers), ruff clean,
+mypy strict clean (37 files).
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF

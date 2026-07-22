@@ -12,7 +12,7 @@ import anthropic
 import httpx
 import pytest
 
-from vault_agent.llm import ForcedToolCaller, LLMCallError
+from vault_agent.llm import ForcedToolCaller, LLMCallError, TraceEvent
 
 _TOOL = "emit_things"
 
@@ -245,3 +245,123 @@ async def test_module_level_recorder_captures_agent_constructed_callers() -> Non
 
     assert recorded == [("test-model", 10, 20, 5)]
     assert llm._default_usage_recorder is None  # cleared
+
+
+# --- WP15: trace capture (content transcript) ---------------------------------------------
+
+
+def _tracing_caller(outcomes: list[Any]) -> tuple[ForcedToolCaller, list[TraceEvent]]:
+    client = _StubClient(outcomes)
+    _SLEEPS.clear()
+    events: list[TraceEvent] = []
+    caller = ForcedToolCaller(
+        "test-model", client=client, sleep=_no_sleep, trace_recorder=events.append
+    )
+    return caller, events
+
+
+async def test_trace_records_payload_stop_reason_and_usage_on_success() -> None:
+    payload = {"hubs": [{"name": "hub_customer"}]}
+    caller, events = _tracing_caller(
+        [_Message(content=[_tool_block(payload)], usage=_Usage(1200, 340, 900))]
+    )
+
+    await _call(caller)
+
+    assert len(events) == 1
+    event = events[0]
+    assert event.kind == "llm_call"
+    assert event.tool_name == _TOOL and event.model == "test-model" and event.attempt == 0
+    assert event.payload == payload
+    assert event.stop_reason == "tool_use"
+    assert (event.input_tokens, event.output_tokens, event.cache_read_tokens) == (1200, 340, 900)
+    # llm.py always fills both; dedup is a writer concern.
+    assert event.system_prompt == "system" and event.system_prompt_sha
+    assert event.user_content == "user" and event.max_tokens == 64
+
+
+async def test_truncation_traces_the_call_then_the_error() -> None:
+    # Usage semantics (WP13): a truncated response is a completed, billed API response — it is
+    # traced as a call *and* as the terminal error it causes.
+    caller, events = _tracing_caller([_Message(content=[], stop_reason="max_tokens")])
+
+    with pytest.raises(LLMCallError):
+        await _call(caller)
+
+    assert [event.kind for event in events] == ["llm_call", "llm_error"]
+    assert "truncated at max_tokens=64" in (events[1].error or "")
+
+
+async def test_missing_tool_block_traces_an_error() -> None:
+    caller, events = _tracing_caller([_Message(content=[_text_block()])])
+
+    with pytest.raises(LLMCallError):
+        await _call(caller)
+
+    assert [event.kind for event in events] == ["llm_call", "llm_error"]
+    assert "no tool_use block" in (events[1].error or "")
+
+
+async def test_exhausted_retries_trace_one_error_and_no_calls() -> None:
+    # A retryable attempt that *will* be retried is not an event — only the terminal outcome.
+    caller, events = _tracing_caller([_status_error(429)] * 4)
+
+    with pytest.raises(LLMCallError):
+        await _call(caller)
+
+    assert [event.kind for event in events] == ["llm_error"]
+    assert "failed after 4 attempts" in (events[0].error or "")
+
+
+async def test_retried_call_traces_only_the_completed_response() -> None:
+    caller, events = _tracing_caller([_status_error(429), _Message(content=[_tool_block()])])
+
+    await _call(caller)
+
+    assert [event.kind for event in events] == ["llm_call"]
+    assert events[0].attempt == 1  # the attempt that actually landed
+
+
+async def test_non_retryable_status_traces_the_terminal_error() -> None:
+    # The failure mode that cost WP14.1 a completed repeat (exhausted credit balance is a
+    # non-retryable 400): the transcript must show why the run stopped.
+    caller, events = _tracing_caller([_status_error(400)])
+
+    with pytest.raises(anthropic.APIStatusError):
+        await _call(caller)
+
+    assert [event.kind for event in events] == ["llm_error"]
+    assert "APIStatusError" in (events[0].error or "")
+
+
+async def test_raising_trace_recorder_never_disturbs_the_call() -> None:
+    def boom(event: TraceEvent) -> None:
+        raise RuntimeError("recorder is broken")
+
+    client = _StubClient([_Message(content=[_tool_block({"ok": 1})])])
+    caller = ForcedToolCaller("test-model", client=client, sleep=_no_sleep, trace_recorder=boom)
+
+    assert await _call(caller) == {"ok": 1}  # observational channel, never fatal
+
+
+async def test_module_level_trace_recorder_and_instance_override() -> None:
+    from vault_agent import llm
+
+    module_events: list[TraceEvent] = []
+    instance_events: list[TraceEvent] = []
+    llm.set_trace_recorder(module_events.append)
+    try:
+        caller, _ = _caller([_Message(content=[_tool_block()])])
+        await _call(caller)  # no instance recorder -> module default
+        override = ForcedToolCaller(
+            "test-model",
+            client=_StubClient([_Message(content=[_tool_block()])]),
+            sleep=_no_sleep,
+            trace_recorder=instance_events.append,
+        )
+        await _call(override)
+    finally:
+        llm.set_trace_recorder(None)
+
+    assert len(module_events) == 1 and len(instance_events) == 1  # override wins, no duplicate
+    assert llm._default_trace_recorder is None  # cleared

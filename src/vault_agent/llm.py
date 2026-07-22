@@ -11,9 +11,11 @@ unwrapping — but delegate the call itself to :class:`ForcedToolCaller`, so a f
 hardens every LLM call in the pipeline at once.
 """
 import asyncio
+import hashlib
 import logging
 from collections.abc import Awaitable, Callable
-from typing import Any, cast
+from dataclasses import dataclass, field
+from typing import Any, Literal, cast
 
 import anthropic
 
@@ -41,6 +43,73 @@ def set_usage_recorder(recorder: UsageRecorder | None) -> None:
     _default_usage_recorder = recorder
 
 
+# Trace capture (WP15): the *content* channel next to WP13's usage (count) channel. Every
+# completed API response and every terminal call failure is offered to a recorder, so a run
+# leaves a grep-able transcript behind instead of having to be re-run with ad-hoc prints.
+# Same seam shape as the usage recorder: a module-level default (the CLI/eval harness sets it,
+# library code never does) plus a per-instance ctor arg for tests.
+@dataclass(frozen=True)
+class TraceEvent:
+    """One observable moment in the pipeline's LLM interaction.
+
+    ``llm_call`` is a completed API response (including a truncated one — matching the usage
+    semantics), ``llm_error`` a terminal failure (truncation, missing tool block, exhausted
+    retries; a retryable attempt that *will* be retried is not an event), ``backstop`` a
+    deterministic repair of LLM output firing (WP16 §2.3).
+
+    ``system_prompt`` is always filled — deduplication by ``system_prompt_sha`` is purely a
+    writer concern (:mod:`vault_agent.trace`), so a recorder that wants the full text has it."""
+
+    kind: Literal["llm_call", "llm_error", "backstop"]
+    tool_name: str = ""
+    model: str = ""
+    attempt: int = 0
+    system_prompt_sha: str = ""
+    system_prompt: str = ""
+    user_content: str = ""
+    max_tokens: int = 0
+    payload: dict[str, Any] | None = None
+    stop_reason: str | None = None
+    input_tokens: int = 0
+    output_tokens: int = 0
+    cache_read_tokens: int = 0
+    error: str | None = None
+    # WP16 backstop events: which repair fired, and on what.
+    backstop_id: str = ""
+    detail: dict[str, Any] = field(default_factory=dict)
+
+
+TraceRecorder = Callable[[TraceEvent], None]
+
+_default_trace_recorder: TraceRecorder | None = None
+
+
+def set_trace_recorder(recorder: TraceRecorder | None) -> None:
+    """Register (or clear with ``None``) the process-wide default trace recorder."""
+    global _default_trace_recorder
+    _default_trace_recorder = recorder
+
+
+def emit_trace(event: TraceEvent, recorder: TraceRecorder | None = None) -> None:
+    """Offer ``event`` to ``recorder`` (else the module default); never disturb the caller.
+
+    Tracing is observational: a broken recorder must not take a pipeline down, so any recorder
+    exception is swallowed with a warning. No recorder set → a cheap no-op, which is what the
+    keyless test suite and every un-instrumented run see."""
+    sink = recorder or _default_trace_recorder
+    if sink is None:
+        return
+    try:
+        sink(event)
+    except Exception:  # noqa: BLE001 - observational channel, never fatal
+        logger.warning("trace recorder failed for a %s event", event.kind, exc_info=True)
+
+
+def prompt_sha(system_prompt: str) -> str:
+    """Short stable digest of a system prompt (the writer's dedup key)."""
+    return hashlib.sha256(system_prompt.encode("utf-8")).hexdigest()[:16]
+
+
 class LLMCallError(RuntimeError):
     """A forced tool call failed in a way the pipeline must not silently absorb.
 
@@ -62,6 +131,7 @@ class ForcedToolCaller:
         client: Any | None = None,
         sleep: Callable[[float], Awaitable[None]] | None = None,
         usage_recorder: UsageRecorder | None = None,
+        trace_recorder: TraceRecorder | None = None,
     ) -> None:
         if client is None:
             # Imported here so module import never requires an API key.
@@ -73,6 +143,7 @@ class ForcedToolCaller:
         self._model = model
         self._sleep = sleep or asyncio.sleep
         self._usage_recorder = usage_recorder
+        self._trace_recorder = trace_recorder
 
     async def call(
         self,
@@ -96,6 +167,26 @@ class ForcedToolCaller:
             len(system_prompt),
             len(user_content),
         )
+        # Shared identity of every event this call emits (WP15): the writer dedups the system
+        # prompt by sha, so the modeler's byte-identical retries stay readable and small.
+        sha = prompt_sha(system_prompt)
+
+        def event(kind: Literal["llm_call", "llm_error"], attempt: int, **extra: Any) -> None:
+            emit_trace(
+                TraceEvent(
+                    kind=kind,
+                    tool_name=tool_name,
+                    model=self._model,
+                    attempt=attempt,
+                    system_prompt_sha=sha,
+                    system_prompt=system_prompt,
+                    user_content=user_content,
+                    max_tokens=max_tokens,
+                    **extra,
+                ),
+                self._trace_recorder,
+            )
+
         last_exc: Exception | None = None
         for attempt in range(_MAX_RETRIES + 1):
             if attempt:
@@ -131,6 +222,10 @@ class ForcedToolCaller:
                 continue
             except anthropic.APIStatusError as exc:
                 if exc.status_code not in _RETRYABLE_STATUS:
+                    # A propagating 4xx (exhausted credit balance, bad request) is a terminal
+                    # outcome of this call — trace it before it leaves. Beyond the WP15 §2.1
+                    # list, but the same rule: the transcript must show why a run stopped.
+                    event("llm_error", attempt, error=f"{type(exc).__name__}: {exc}")
                     raise
                 last_exc = exc
                 continue
@@ -138,26 +233,48 @@ class ForcedToolCaller:
             # Record usage the moment a response lands — before the truncation check, so a
             # truncated (but billed) call still counts toward the cost totals.
             self._record_usage(message)
+            payload = self._tool_payload(message, tool_name)
+            usage = getattr(message, "usage", None)
+            event(
+                "llm_call",
+                attempt,
+                payload=payload,
+                stop_reason=message.stop_reason,
+                input_tokens=int(getattr(usage, "input_tokens", 0) or 0),
+                output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
+                cache_read_tokens=int(getattr(usage, "cache_read_input_tokens", 0) or 0),
+            )
 
             # A truncated response means an incomplete (or absent) tool payload; falling
             # through would be indistinguishable from "the model found nothing" and
             # would burn a modeling retry on garbage.
             if message.stop_reason == "max_tokens":
-                raise LLMCallError(
+                error = (
                     f"{tool_name}: response truncated at max_tokens={max_tokens}; "
                     f"the tool payload is incomplete (raise the limit or shrink the input)"
                 )
-            for block in message.content:
-                if isinstance(block, anthropic.types.ToolUseBlock) and block.name == tool_name:
-                    return cast(dict[str, Any], block.input)
-            raise LLMCallError(
+                event("llm_error", attempt, error=error, stop_reason=message.stop_reason)
+                raise LLMCallError(error)
+            if payload is not None:
+                return payload
+            error = (
                 f"{tool_name}: no tool_use block in the response "
                 f"(stop_reason={message.stop_reason!r})"
             )
+            event("llm_error", attempt, error=error, stop_reason=message.stop_reason)
+            raise LLMCallError(error)
 
-        raise LLMCallError(
-            f"{tool_name}: API call failed after {_MAX_RETRIES + 1} attempts: {last_exc}"
-        ) from last_exc
+        error = f"{tool_name}: API call failed after {_MAX_RETRIES + 1} attempts: {last_exc}"
+        event("llm_error", _MAX_RETRIES, error=error)
+        raise LLMCallError(error) from last_exc
+
+    @staticmethod
+    def _tool_payload(message: Any, tool_name: str) -> dict[str, Any] | None:
+        """The forced tool's input from a response, or ``None`` when the block is absent."""
+        for block in message.content:
+            if isinstance(block, anthropic.types.ToolUseBlock) and block.name == tool_name:
+                return cast(dict[str, Any], block.input)
+        return None
 
     def _record_usage(self, message: Any) -> None:
         """Fire the usage recorder (instance override, else module default) if one is set.

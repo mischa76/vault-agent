@@ -139,6 +139,28 @@ uv run python -m eval.run --dataset bank --out eval/results
   how LLM variance becomes visible.
 - Exit code 1 when any scorer's **mean** falls below the case's `expectations.min_scores`
   threshold: a manual pre-release gate. No CI wiring (cost decision deferred, spec §7).
+- Each repeat also writes its **LLM transcript** next to the result JSON
+  (`<timestamp>-run<i>.trace.jsonl`, WP15) — one JSON object per API call with the system
+  prompt (once per digest), the user payload, and the tool payload returned. The result's
+  `metrics` block carries `trace_path` plus `backstop_fires` (WP16: `{backstop_id: n}`,
+  counted only when a deterministic repair actually fired).
+
+## Ablation runner (WP16)
+
+Measures whether a modeler steering rule is still needed by the current model: it runs a case
+once **baseline** and once with one `SteeringRule` dropped from the prompt, and compares
+scores, validation issue codes, backstop fires and usage.
+
+```bash
+uv run python -m eval.ablate --case health_insurance --drop cdk_not_payload --repeat 3
+uv run python -m eval.ablate --case bank --drop unit_of_work --model <candidate-model>
+```
+
+One comparison JSON per invocation under `eval/results/ablation/` (rewritten after every
+completed repeat, so a mid-run failure never discards a paid-for arm). Rule ids come from
+`vault_agent.rules.dv2_rules.DV_MODELING_RULES`; the exclusion seam is never used by
+production code. Verdicts belong in `docs/architecture/steering-ledger.md` — the runner
+measures, a human decides, and validator gates are never ablated.
 
 ## LangSmith (optional)
 

@@ -153,6 +153,21 @@ uv run vault-agent resume --out output --owner "customer=Data Team <data@acme.co
   --map "national customer ID=RAW_CUSTOMER.NATIONAL_CUSTOMER_ID" --accept
 ```
 
+Every run also leaves a **grep-able LLM transcript** at
+`output/.vault-agent/traces/<thread_id>.jsonl` — one JSON object per API call with the system
+prompt (written once per prompt digest), the user payload, and the tool payload the model
+returned; a paused run's resume appends to the same file, so one run reads as one transcript.
+Diagnosing a mis-modelled run means reading the trace, not re-running with prints:
+
+```bash
+jq -c 'select(.tool_name=="emit_dv_model") | {attempt, payload}' \
+  output/.vault-agent/traces/*.jsonl
+```
+
+Traces are debug artifacts, **not deliverables**: they contain your raw requirements and
+source-schema text, so they stay inside `.vault-agent/` and must not be published with a demo
+output. Opt out per run with `vault-agent run … --no-trace`.
+
 The `examples/` directory has step-by-step scripts that run each stage in isolation
 (`01_simple_requirement.py` … `06_pipeline.py`), plus `07_routing.py`, a deterministic demo of
 the self-correcting validation loop that needs **no API key**. The two demo domains

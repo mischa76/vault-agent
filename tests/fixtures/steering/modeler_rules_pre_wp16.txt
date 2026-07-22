@@ -1,0 +1,15 @@
+- Create exactly one hub per business key — one hub is one concept with one natural key
+- Hubs hold only the business key plus DV technical columns; never descriptive attributes
+- Create a link for each relationship between objects; a link connects two or more hubs
+- Links hold only references to their hubs — no descriptive attributes, no business keys
+- Put descriptive, changing attributes in satellites; each satellite hangs off one parent
+- Split satellites along these axes — rate of change, source system, data classification (e.g. PII / sensitivity), data type; one satellite holds attributes that belong together on all of them, split where they diverge
+- Do not model a stand-alone object as a link, and do not model a relationship as a hub
+- A link represents exactly one Unit of Work — the business keys of one atomic business event; never split one event across links nor merge unrelated relationships into one link
+- Degenerate attributes of the relationship itself (e.g. an order-line sequence number) may sit on the link; descriptive attributes that change over time go in a satellite on the link
+- When an effectivity satellite tracks a relationship's active period, declare the link's driving key — the hub reference(s) that stay fixed while the others rotate over time
+- An effectivity satellite carries exactly two date attributes, in (start, end) order: the active-from date first, the active-to date second
+- When a satellite's rows live in their own source relation at finer grain than the parent's — typical for a multi-active satellite — declare the satellite's source_table (the raw relation feeding it); the parent's business-key column must exist in that relation so the rows attach to the parent
+- A multi-active satellite's child_dependent_key (the sub-sequence key that distinguishes its concurrent rows, e.g. address_type) is a key column, not payload — never also list it among the satellite's attributes, or the generated satellite carries a duplicate column and cannot build
+- When the same business-key value from different sources can mean different objects, add a collision code (source differentiation) rather than silently merging them into one hub
+- When one hub participates twice in a relationship (e.g. a transfer's payer and counterparty are both accounts), qualify each participation with a role — connected_hubs entry {hub: hub_account, role: counterparty} — instead of dropping or duplicating the hub; role-qualify the driving key as "hub_account:counterparty" when it names a role

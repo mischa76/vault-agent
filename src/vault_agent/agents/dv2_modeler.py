@@ -23,7 +23,8 @@ from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import render_schema_prompt_section
-from vault_agent.rules.dv2_rules import DV_MODELING_RULES, attributes_without_cdk
+from vault_agent.llm import TraceEvent, emit_trace
+from vault_agent.rules.dv2_rules import active_modeling_rules, attributes_without_cdk
 from vault_agent.state import DVModel, FlagKind, Hub, Link, Satellite, VaultAgentState
 
 logger = logging.getLogger(__name__)
@@ -105,7 +106,9 @@ class Dv2ModelerAgent(BaseAgent):
         """Load the prompt template, inject the DV2 modelling rules, and (when a source
         schema is declared) the known source columns to ground attributes (ADR-0004)."""
         template = self.load_prompt()
-        rules = "\n".join(f"- {rule}" for rule in DV_MODELING_RULES)
+        # WP16: the registry is the single source of the steering lines; active_modeling_rules()
+        # honours the ablation seam (empty in production, so the prompt is byte-identical).
+        rules = "\n".join(f"- {rule.text}" for rule in active_modeling_rules())
         schema_section = render_schema_prompt_section(state.source_schemas)
         return f"{template}\n\n## Data Vault modelling rules to apply\n\n{rules}\n{schema_section}"
 
@@ -212,6 +215,20 @@ class Dv2ModelerAgent(BaseAgent):
                     "satellite %r: dropped %d attribute(s) duplicating the "
                     "child_dependent_key: %s",
                     sat.name, len(removed), removed,
+                )
+                # WP16 §2.3: a backstop fire is the evidence that the `cdk_not_payload`
+                # steering line is still needed. Counted only when it actually repairs
+                # something — a clean model emits nothing.
+                emit_trace(
+                    TraceEvent(
+                        kind="backstop",
+                        backstop_id="attributes_without_cdk",
+                        detail={
+                            "rule": "cdk_not_payload",
+                            "satellite": sat.name,
+                            "dropped": removed,
+                        },
+                    )
                 )
                 sat.attributes = deduped
             kept_satellites.append(sat)

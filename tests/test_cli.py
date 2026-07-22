@@ -535,7 +535,9 @@ def test_interactive_owner_parity_and_finalize(
 
     captured: dict[str, object] = {}
 
-    async def fake_resume(out: Path, thread_id: str, decision: dict[str, object]):
+    async def fake_resume(
+        out: Path, thread_id: str, decision: dict[str, object], trace: bool = True
+    ):
         captured["decision"] = decision
         finalized = VaultAgentState()
         finalized.validation_report = ValidationReport(passed=True, issues=[])
@@ -616,3 +618,118 @@ def test_interactive_finalize_end_to_end(
     assert _read_pending(tmp_path) is None                          # checkpoint cleared
     remaining = asyncio.run(_thread_checkpoint_count(tmp_path, thread_id))
     assert remaining == 0                                           # thread pruned on finalise
+
+
+# --- WP15: LLM trace capture --------------------------------------------------------------
+
+
+def _tracing_stub_agents(*, block_signoff: bool) -> "dict[str, object]":
+    """The sqlite stub graph, with the modeler emitting one trace event (an LLM call stand-in).
+
+    The stub agents never call the API, so nothing would reach the recorder otherwise; emitting
+    through the same ``llm.emit_trace`` seam the real ForcedToolCaller uses keeps the test
+    honest about the wiring under test (registration + path + clearing)."""
+    from vault_agent import llm
+
+    agents = _sqlite_stub_agents(block_signoff=block_signoff)
+
+    def instrument(node: str, tool: str) -> None:
+        agent = agents[node]
+        original = agent.run  # type: ignore[union-attr]
+
+        async def run(state: VaultAgentState) -> VaultAgentState:
+            llm.emit_trace(
+                llm.TraceEvent(
+                    kind="llm_call",
+                    tool_name=tool,
+                    model="stub-model",
+                    system_prompt="SYSTEM",
+                    system_prompt_sha=llm.prompt_sha("SYSTEM"),
+                    payload={"hubs": []},
+                )
+            )
+            return await original(state)
+
+        agent.run = run  # type: ignore[union-attr, method-assign]
+
+    instrument("dv2_modeler", "emit_dv_model")
+    instrument("adr_author", "emit_adr")  # runs only past the checkpoint (the resume case)
+    return agents
+
+
+def _trace_files(out_dir: Path) -> list[Path]:
+    return sorted((out_dir / ".vault-agent" / "traces").glob("*.jsonl"))
+
+
+def test_run_writes_a_grepable_trace_per_thread(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import asyncio
+    import json
+
+    from vault_agent import llm
+    from vault_agent.cli import _run_pipeline
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_tracing_stub_agents(block_signoff=False)),
+    )
+    _, _, thread_id = asyncio.run(_run_pipeline(tmp_path / "req.md", tmp_path))
+
+    traces = _trace_files(tmp_path)
+    assert [path.name for path in traces] == [f"{thread_id}.jsonl"]
+    records = [json.loads(line) for line in traces[0].read_text().splitlines()]
+    assert [record["tool_name"] for record in records] == ["emit_dv_model", "emit_adr"]
+    assert records[0]["payload"] == {"hubs": []}
+    assert llm._default_trace_recorder is None  # cleared after the run
+
+
+def test_no_trace_writes_nothing(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    import asyncio
+
+    from vault_agent.cli import _run_pipeline
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_tracing_stub_agents(block_signoff=False)),
+    )
+    asyncio.run(_run_pipeline(tmp_path / "req.md", tmp_path, trace=False))
+
+    assert not (tmp_path / ".vault-agent" / "traces").exists()
+
+
+def test_resume_appends_to_the_same_thread_trace(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # One HITL run — paused and resumed — must read as ONE transcript (WP15 acceptance #1).
+    import asyncio
+
+    from vault_agent.cli import _resume_pipeline, _run_pipeline
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_tracing_stub_agents(block_signoff=True)),
+    )
+    _, paused, thread_id = asyncio.run(_run_pipeline(tmp_path / "req.md", tmp_path))
+    assert paused is True
+    lines_after_run = _trace_files(tmp_path)[0].read_text().count("\n")
+
+    asyncio.run(
+        _resume_pipeline(tmp_path, thread_id, {"owners": {}, "accept": True})
+    )
+
+    traces = _trace_files(tmp_path)
+    assert len(traces) == 1 and traces[0].name == f"{thread_id}.jsonl"
+    assert traces[0].read_text().count("\n") > lines_after_run  # appended, not truncated
+
+
+def test_run_and_resume_expose_the_trace_flag() -> None:
+    for command in ("run", "resume"):
+        result = runner.invoke(
+            app, [command, "--help"], env={"COLUMNS": "200", "NO_COLOR": "1"}
+        )
+        assert result.exit_code == 0
+        assert "--no-trace" in re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)

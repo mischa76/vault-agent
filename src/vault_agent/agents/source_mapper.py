@@ -29,6 +29,7 @@ import re
 from typing import Any, Protocol, cast
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.llm import TraceEvent, emit_trace
 from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import (
     ColumnProfile,
@@ -253,6 +254,20 @@ class SourceMapperAgent(BaseAgent):
                 )
                 if anchor is not None:
                     table, column, demoted = anchor
+                    # WP16 §2.3: the deterministic FK-demotion repaired an over-broad
+                    # deferral the prompt steering should have prevented — count the fire.
+                    emit_trace(
+                        TraceEvent(
+                            kind="backstop",
+                            backstop_id="fk_demotion",
+                            detail={
+                                "rule": "source_mapper:fk_anchor",
+                                "concept": c.concept,
+                                "anchor": f"{table}.{column}",
+                                "demoted": demoted,
+                            },
+                        )
+                    )
                     proposals.append(
                         self._make_proposal(
                             state, c, table, column, 0.7,

@@ -61,5 +61,10 @@ docs/handover/
 .claude/
 output*/
 
-# Eval harness: per-run JSON results are local artifacts (WP6)
+# Eval harness: per-run JSON results, LLM transcripts, ablation comparisons (WP6/15/16)
 eval/results/
+
+# Per-run checkpoints and LLM transcripts (WP15) — never publishable: they carry the raw
+# requirements/source text. Belt-and-braces for output dirs outside the patterns above.
+.vault-agent/
+**/.vault-agent/

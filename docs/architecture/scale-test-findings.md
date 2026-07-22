@@ -30,6 +30,16 @@ scores **and** the `metrics` block: `usage` (calls, input/output/cache-read toke
 model), `wall_clock_seconds`, `review_items_total`, `review_queue_lines`, construct
 counts, flag count. The console prints a compact scores + usage/wall-clock/review summary.
 
+Since WP15 each repeat also writes its **LLM transcript** next to the result JSON
+(`<timestamp>-run<N>.trace.jsonl`, path echoed in `metrics.trace_path`): one JSON object per
+API call/failure with the full system prompt (once per sha), user content, and the tool
+payload the model returned.
+
+> **Finding protocol (WP15 §2.4):** before filing a finding below, grep the trace for the call
+> where the model's judgment diverged and cite its `tool_name` and `attempt` in the entry —
+> findings quote transcripts, not hunches. E.g.
+> `jq -c 'select(.tool_name=="emit_dv_model") | {attempt, payload}' eval/results/scale_30/*.trace.jsonl`.
+
 ### Budget & abort criteria (spec §4)
 
 - One repeat per step; escalate 30 → 100 → 300 only while the previous step completed.
