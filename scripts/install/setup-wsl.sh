@@ -19,10 +19,13 @@ if [[ "$TARGET_DIR" == /mnt/* ]]; then
 fi
 
 # --- 1. System packages -------------------------------------------------------
-step "[1/7] System packages (git, curl, PostgreSQL)"
+step "[1/7] System packages (git, curl, jq, PostgreSQL)"
 sudo apt-get update -y
+# jq is a convenience, not a requirement: it is what the trace-reading recipes in the
+# operations manual (10.3) use. Everything works without it — that chapter also carries
+# a stdlib-Python fallback for environments where installing tools is not allowed.
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-    git curl ca-certificates postgresql postgresql-contrib
+    git curl ca-certificates jq postgresql postgresql-contrib
 
 # --- 2. uv ---------------------------------------------------------------------
 step "[2/7] uv (Python toolchain)"

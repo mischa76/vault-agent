@@ -39,11 +39,11 @@ flowchart TB
     LT{{"link_transfer<br/>(transactional)"}}:::link
     SC("sat_customer_details"):::sat
     SA("sat_account_details"):::sat
-    ES("eff_sat_account_customer<br/>(effectivity: valid_from, valid_to)"):::eff
+    ES("sat_account_customer_eff<br/>(effectivity: effective_from, effective_to)"):::eff
 
     HC --- LAC
     HA =="driving key"==> LAC
-    HA --"payer"--> LT
+    HA --> LT
     HA --"counterparty"--> LT
     SC --- HC
     SA --- HA
@@ -52,8 +52,9 @@ flowchart TB
 
 Reading aids: thick edge = the link's **driving key** (the participation that stays
 fixed while the other rotates — here: an account keeps its identity while ownership
-changes). Two labelled edges from the same hub = **role-qualified participations**
-(one account can be payer and counterparty of transfers).
+changes). Two edges from the same hub into `link_transfer` = the **same hub
+participating twice**; the repeated participation carries a **role**
+(`counterparty`), the other stays unqualified.
 
 **Standard satellite.** The default: one row per change of its descriptive payload.
 The modeler splits satellites along four axes — rate of change, source system, data
@@ -79,9 +80,10 @@ Either way, a link represents exactly one **unit of work**: the keys of one atom
 business event, never several relationships merged or one event split.
 
 **Role-qualified participation.** When one hub participates twice in the same link (a
-transfer's payer and counterparty are both accounts), each participation carries a
-role, and the generated columns are role-prefixed (`COUNTERPARTY_ACCOUNT_HK`). A
-driving key may name a role as `hub_account:payer`.
+transfer's paying account and its counterparty are both accounts), the repeated
+participation carries a role — the other may stay unqualified — and the role-qualified
+column is prefixed accordingly (`COUNTERPARTY_ACCOUNT_HK` next to `ACCOUNT_HK`). A
+driving key may name a role as `hub_account:counterparty`.
 
 **Multi-source hub.** One business key living in several source systems (the WP10
 integration case: a partner in the legacy system *and* the CRM) becomes ONE hub fed by

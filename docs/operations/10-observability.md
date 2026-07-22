@@ -33,8 +33,9 @@ under `.vault-agent/` (git-ignored) and are not demo-safe — never publish one.
 
 The discipline (LOOPS.md rule VII, adopted via WP15): when a run made a strange
 decision, don't re-run with prints — grep the transcript for the moment the model's
-judgment diverged, and cite `tool_name`/`attempt` when filing a finding. Recipes
-(`jq` optional but worth it):
+judgment diverged, and cite `tool_name`/`attempt` when filing a finding. Recipes below
+use `jq` (the WSL install script brings it; otherwise `apt install jq` — or use the
+jq-free variants further down):
 
 ```bash
 T=output/.vault-agent/traces/<thread>.jsonl   # 'output' = the --out dir of the run

@@ -79,7 +79,7 @@ Everything a finalized run writes below `--out`:
 │   ├── <asset>.contract.yml   # one data contract per source asset
 │   └── <asset>.tests.yml      # dbt schema tests derived from the contract
 ├── adrs/
-│   └── 0001-<slug>.md         # the model ADR (per-output numbering, WP2)
+│   └── ADR-0001-<slug>.md     # the model ADR (per-output numbering, WP2)
 ├── mappings.review.yml        # business↔source mapping — review & ratify (WP9)
 ├── review-queue.md            # the HITL review queue (chapter 7)
 ├── report.html                # self-contained run report incl. model graph (WP11)

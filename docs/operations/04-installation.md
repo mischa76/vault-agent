@@ -11,9 +11,13 @@ itself is installed as a project extra, not globally.
 On **Windows 11**, `scripts/install/` in the repo installs the whole stack — WSL2 +
 Ubuntu, uv, PostgreSQL, the repo, and a keyless smoke test — from one elevated
 PowerShell script; on an existing Ubuntu/Debian machine its second stage runs
-standalone. If you install manually under WSL, keep the repo and virtualenv on the
-Linux filesystem (ext4), not under `/mnt/c` — NTFS round-trips make everything
-(tests, uv, git) painfully slow.
+standalone. It also pulls in `jq` for the trace-reading recipes (10.3) — a convenience,
+not a requirement: nothing in the pipeline uses it, and that chapter carries a
+stdlib-Python fallback for environments where installing tools is not permitted.
+
+If you install manually under WSL, keep the repo and virtualenv on the Linux filesystem
+(ext4), not under `/mnt/c` — NTFS round-trips make everything (tests, uv, git)
+painfully slow.
 
 ## 4.2 Installing
 
