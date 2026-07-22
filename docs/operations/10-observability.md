@@ -39,12 +39,13 @@ judgment diverged, and cite `tool_name`/`attempt` when filing a finding. Recipes
 ```bash
 T=output/.vault-agent/traces/<thread>.jsonl   # 'output' = the --out dir of the run
 
-jq -r '.kind + "  " + .tool_name + "  attempt=" + (.attempt|tostring)' $T   # overview
+# overview — exactly one of tool_name / backstop_id is set per event, so they concatenate
+jq -r '"\(.kind)  \(.tool_name + .backstop_id)  attempt=\(.attempt)"' $T
 jq 'select(.tool_name=="emit_dv_model")' $T                # the modeler call(s), full payload
 jq 'select(.tool_name=="emit_dv_model") | .payload.satellites' $T   # just its satellites
 jq 'select(.kind=="llm_error")' $T                         # what failed, and how
 jq 'select(.kind=="backstop")' $T                          # what was silently repaired
-jq -s 'map(select(.kind=="llm_call") | .input_tokens) | add' $T   # input-token total
+jq -s 'map(select(.kind=="llm_call") | .input_tokens) | add // 0' $T   # input-token total
 ```
 
 The most useful comparison in practice: the modeler's attempt-1 vs attempt-2 payloads
