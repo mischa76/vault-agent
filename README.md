@@ -250,6 +250,7 @@ The work-package specs, agent kick-offs, and the measured mapping-spike evidence
 
 ## Documentation
 
+- [**Operations manual** (install, run, HITL, gates, warehouse, evals)](docs/operations/README.md)
 - [Vision](docs/architecture/0-vision.md)
 - [Architecture overview](docs/architecture/1-architecture-overview.md)
 - [Multi-agent design](docs/architecture/2-multi-agent-design.md)
