@@ -10,6 +10,7 @@ Short definitions with pointers to the chapter that explains each term in contex
 | Child dependent key (CDK) | The sub-sequence key of a multi-active satellite — a key column, not payload | 2.2, 2.4 |
 | Collision code | Source differentiation added when the same key value from different systems can mean different objects | 8.2 (`W_BK_COLLISION_RISK`) |
 | Confidence category | Deterministic class of a mapping proposal: `exact_name` > `comment_grounded` > `profiled_key` > `llm_semantic` | 7.6 |
+| Data boundary | Row data is processed only by generated dbt SQL in the warehouse; the LLM sees requirements, metadata, and (optionally) profiling example values | 10.7 |
 | Data contract | JSON-Schema-based description of one source asset incl. failure modes and owner; drafted per asset | 2.3, 6.4 |
 | Driving key | The link participation that stays fixed while others rotate; required for effectivity satellites | 2.2 |
 | Effectivity satellite | Tracks a relationship's active period (start, end); end-dates superseded rows | 2.2, 9.4 |

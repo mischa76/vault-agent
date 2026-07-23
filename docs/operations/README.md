@@ -20,7 +20,7 @@ textbook, and it explains code internals only where they matter for operations
 | 7 | [The HITL checkpoint](07-hitl-checkpoint.md) | Review queue, interactive prompt, ratification workflows |
 | 8 | [Validation gates reference](08-validation-gates.md) | Every E_/W_ code: meaning, cause, typical fix |
 | 9 | [From output to warehouse](09-warehouse.md) | dbt workflow, source binding, incremental behaviour, demos |
-| 10 | [Observability & debugging](10-observability.md) | `--debug`, LLM traces, `.vault-agent/` internals |
+| 10 | [Observability & debugging](10-observability.md) | `--debug`, LLM traces, `.vault-agent/` internals, the data boundary |
 | 11 | [Evaluation & release operations](11-evaluation.md) | Eval harness, gates, ablation, model-release protocol |
 | 12 | [Troubleshooting & FAQ](12-troubleshooting.md) | Common failure modes, exit codes |
 | 13 | [Glossary](13-glossary.md) | Short definitions, linked from all chapters |

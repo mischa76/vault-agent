@@ -19,7 +19,9 @@ the better the mapping. Malformed entries fail fast with an error naming file an
 problem.
 
 **Profiling evidence (optional).** `--profiling <file.yml|json>` adds per-column
-statistics (uniqueness, null rate, example values) as mapper evidence.
+statistics (uniqueness, null rate, example values) as mapper evidence. Example values
+are the pipeline's one deliberate touchpoint with data *values* — see 10.7 for the
+data boundary and when to mask them.
 
 Worked examples for all three live under `examples/inputs/` (bank and messy-insurance
 sets, including an enriched schema and profiling file).

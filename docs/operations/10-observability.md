@@ -113,3 +113,29 @@ roughly three modeler output generations on a cached prompt.
 Safe to delete the whole directory when: no paused run you still care about, and no
 trace you still need. Deleting it never touches the deliverables — it only forfeits
 resume-ability and history.
+
+## 10.7 The data boundary: what leaves the machine
+
+The short version for a compliance conversation: **row-level data processing happens
+exclusively in your warehouse, through generated dbt/AutomateDV SQL.** The pipeline
+never connects to the warehouse — it generates code, dbt executes it. No Python
+process and no LLM ever reads a row from your tables; this is architectural (there is
+no warehouse connection in the pipeline to begin with), not a configuration promise.
+
+What **does** go to the Anthropic API is the pipeline's three inputs: the requirements
+document (in full — including any real data examples someone pasted into it), the
+declared source schema (metadata: table/column names, types, comments), and the
+profiling evidence. Profiling is the one deliberate touchpoint with data *values*: its
+**example values** are genuinely useful mapping evidence, but against real source
+systems they are real values (account numbers, partner names). If that is not
+acceptable, omit or mask the example values — the mapper then works from names, types,
+comments, and the statistical shape alone, at some cost to mapping confidence
+(structural evidence still carries most of the signal; the opacity-probe measurements
+in the WP9 record quantify the degradation).
+
+Everything else stays local: traces (10.2) persist exactly the API-bound material to
+disk and nothing more; checkpoints, reports, and artifacts never leave the machine;
+LangSmith upload (11.5) is off unless explicitly configured, and even then carries
+eval scores and run metadata, not source data. For the test and demo runs shipped with
+the repo, all inputs are synthetic — the boundary question only becomes real when you
+point the pipeline at real systems.

@@ -3,6 +3,18 @@
 This chapter is the maintainer's half of the manual: how quality is measured, and what
 must happen before a model bump, a prompt change, or a rules change ships.
 
+The problem the eval harness solves: the test suite proves the *code* works, but the
+LLM stages are non-deterministic — the same input can model better today than
+tomorrow, and no unit test can say whether a prompt change improved *modeling
+quality*. The harness answers that like an exam with a marking scheme: fixed **exam
+papers** (golden datasets — inputs with a known-correct model as the answer key, from
+the easy reference case to a deliberately nasty one full of traps), **markers that
+cannot flatter** (deterministic scorers — plain pinned code, not an LLM judging an
+LLM), and a **proctored sitting** (the live runner executes the real pipeline several
+times, because single runs lie about variance, and fails the release when the mean
+drops below a case's pass mark). "Passed" therefore means objectively passed against
+a fixed standard — not "looked fine in a spot check".
+
 ## 11.1 The eval harness
 
 Three strictly separated layers under `eval/`. **Golden datasets**
