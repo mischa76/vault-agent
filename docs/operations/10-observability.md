@@ -118,9 +118,11 @@ resume-ability and history.
 
 The short version for a compliance conversation: **row-level data processing happens
 exclusively in your warehouse, through generated dbt/AutomateDV SQL.** The pipeline
-never connects to the warehouse — it generates code, dbt executes it. No Python
-process and no LLM ever reads a row from your tables; this is architectural (there is
-no warehouse connection in the pipeline to begin with), not a configuration promise.
+never connects to the warehouse — it generates code, dbt executes it. No Python process
+and no LLM ever reads a row from your tables *itself*; this is architectural (there is
+no warehouse connection in the pipeline to begin with, and it does not invoke dbt
+either), not a configuration promise. What it sees of your data is exactly what you put
+in front of it — which is the next paragraph.
 
 What **does** go to the Anthropic API is the pipeline's three inputs: the requirements
 document (in full — including any real data examples someone pasted into it), the
