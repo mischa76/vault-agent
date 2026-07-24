@@ -14,7 +14,7 @@
 |    Business-Key Ident.   Data Contract                       |
 |    DV2.0 Modeler         Code Generator                      |
 |    Validator             Source Mapper                       |
-|    ADR Author                                                |
+|    ADR Author            Human Checkpoint                    |
 +--------------------------------------------------------------+
 |  Backends:  AutomateDV + dbt Core                            |
 |  Targets:   Snowflake & MS Fabric (focus); any AutomateDV DB |

@@ -31,7 +31,7 @@ flowchart TB
         end
         subgraph DETA["Deterministic"]
             OR["orchestrator"]
-            VAL["validator (30 E_/W_ gates)"]
+            VAL["validator (32 E_/W_ gates)"]
             CG["code_generator + staging_generator"]
             HC["human_checkpoint"]
             AA["adr_author"]
@@ -67,7 +67,7 @@ flowchart TB
     BK --> DC["data_contract<br/>one contract per source table"]
     DC --> DM["dv2_modeler<br/>hubs · links · satellites"]
     DM --> CG["code_generator<br/>AutomateDV models + staging + scaffolding"]
-    CG --> VAL{"validator<br/>30 gates"}
+    CG --> VAL{"validator<br/>32 gates"}
     VAL -- "fail (bounded by MAX_MODELING_ATTEMPTS)" --> DM
     VAL -- pass --> SM["source_mapper<br/>concept → column, honest gaps/unresolved"]
     SM --> HC{"human_checkpoint<br/>requires sign-off?"}

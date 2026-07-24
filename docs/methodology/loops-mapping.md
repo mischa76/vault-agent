@@ -103,5 +103,5 @@ LOOPS.md targets autonomous multi-day generator/evaluator loops over *subjective
 outputs (apps, sites). vault-agent's loop is minutes-long, single-pipeline, over
 *rule-governed* outputs with a human sign-off gate — which is why the deterministic
 validator can replace the LLM evaluator entirely, and why rule VIII needed the split
-above. Cited when relevant alongside the DV2.1/DSAF/IREB foundations; ideas subject to
+above. Cited when relevant alongside the DV2.0/DSAF/IREB foundations; ideas subject to
 revision as the models change (the document says so itself).

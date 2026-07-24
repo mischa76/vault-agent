@@ -113,7 +113,7 @@ compressed; the creative 20% gets more room. That is a better job, not a smaller
 This is not a thought experiment for me. I am building exactly this system — a multi-agent
 pipeline that takes business requirements and source schemas and produces a compliant Data
 Vault 2.1 model, AutomateDV-backed dbt code, and the data contracts and decision records to
-go with it — and I am doing it publicly, grounded in the DV2.1 methodology, Roelant Vos's
+go with it — and I am doing it publicly, grounded in the DV2.0 methodology, Roelant Vos's
 DSAF, and proper requirements-engineering practice rather than improvisation.
 
 The interesting question was never whether a model can generate a hub. It obviously can. The

@@ -1,7 +1,7 @@
 # Vision
 
 Automate the repetitive, error-prone parts of Data Vault 2.0 modeling without sacrificing
-the rigor of the DV2.1 methodology – through a multi-agent system that combines classical
+the rigor of the DV2.0 methodology – through a multi-agent system that combines classical
 data architecture wisdom with modern Agentic AI.
 
 ## Value proposition

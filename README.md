@@ -5,10 +5,11 @@
 **Agentic AI for Data Vault 2.0 — from business requirements to compliant, contract-backed dbt code.**
 
 A multi-agent system that reads requirements documents — optionally grounding against a supplied
-source schema — then designs a Data Vault 2.1 model, generates AutomateDV-backed dbt code, and
+source schema — then designs a Data Vault 2.0 model, generates AutomateDV-backed dbt code, and
 documents every decision it makes, keeping the rigor of the methodology while removing the
 repetitive parts.
 
+[![CI](https://github.com/mischa76/vault-agent/actions/workflows/ci.yml/badge.svg)](https://github.com/mischa76/vault-agent/actions/workflows/ci.yml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776AB.svg)](https://www.python.org/)
 [![Orchestration: LangGraph](https://img.shields.io/badge/orchestration-LangGraph-1C3C3C.svg)](https://langchain-ai.github.io/langgraph/)
 [![Codegen: AutomateDV + dbt](https://img.shields.io/badge/codegen-AutomateDV%20%2B%20dbt-FF694B.svg)](https://automate-dv.com/)
@@ -69,19 +70,20 @@ every modeling decision the agents make is captured as an Architecture Decision 
 
 ## The agents
 
-Nine specialized agents, orchestrated in LangGraph — **all nine built**:
+Ten specialized agents, orchestrated in LangGraph — **all ten built**:
 
 | Agent | Responsibility | Status |
 |---|---|---|
 | **Requirements Parser** | Extracts entities, relationships, and business rules from documents (IREB-aligned output) | ✅ Built |
 | **Business-Key Identifier** | Scores key candidates against DV2.0 heuristics; flags ambiguity for review | ✅ Built |
-| **DV2.0 Modeler** | Generates Hubs, Links (incl. role-qualified self-referencing links), and Satellites under DV2.1 rules | ✅ Built |
+| **DV2.0 Modeler** | Generates Hubs, Links (incl. role-qualified self-referencing links), and Satellites under DV2.0 rules | ✅ Built |
 | **Code Generator** | Emits AutomateDV dbt models — hubs, links, standard/multi-active/effectivity satellites, transactional links — plus the staging layer and dbt project scaffolding (a runnable project) | ✅ Built |
 | **Validator** | 32 independent E_/W_ gates checking the model and generated artifacts for DV2.0 compliance | ✅ Built |
 | **ADR Author** | Turns the agents' modeling decisions into an explicit, traceable ADR | ✅ Built |
 | **Data Contract Agent** | Drafts JSON-Schema source-to-staging contracts + dbt schema tests; flags gaps for human review | ✅ Built |
 | **Source Mapper** | Proposes which physical source column feeds each business concept (evidence trail, coverage gaps as first-class output); a human ratifies (ADR-0008) | ✅ Built |
-| **Orchestrator** | Plans the run (entry node) and drives the live human-in-the-loop checkpoint (interrupt / resume) | ✅ Built |
+| **Orchestrator** | Plans the run (entry node), validates inputs, and assembles the categorized human-review queue | ✅ Built |
+| **Human Checkpoint** | Pauses the run at the sign-off gate (LangGraph `interrupt()`) and applies the human's decisions on resume | ✅ Built |
 
 The pipeline self-corrects automatically: a failing validation routes back to the modeler with the
 issues as feedback, bounded by a retry cap. On the validated path a human-in-the-loop checkpoint
@@ -209,7 +211,7 @@ green on Postgres (deterministic, no API key).
 
 This is not vibes-based modeling. The agents are grounded in established practice:
 
-- **Data Vault 2.1** — Dan Linstedt / DataVaultAlliance (methodology and rules)
+- **Data Vault 2.0** — Dan Linstedt / DataVaultAlliance (methodology and rules)
 - **DSAF** — Roelant Vos, Data Solutions Architecture Framework: a pragmatic architecture lens (an influence, not an implemented/selectable mode); adopted ideas and the ADR-gated Vos alternatives are critically mapped in [dsaf-mapping.md](docs/methodology/dsaf-mapping.md)
 - **IREB CPRE** — requirements-engineering conventions for the parsing stage
 - **Data Contracts** — Chad Sanderson, Mark Freeman & B.E. Schmidt, *Data Contracts: Developing Production-Grade Pipelines at Scale* (O'Reilly, 2025)

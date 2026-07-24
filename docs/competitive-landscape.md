@@ -30,7 +30,7 @@ research/PoC, and again works **from source metadata**, not from requirements do
 are simultaneously bolting "AI-ready" onto their marketing.
 
 **3. Open-source, agentic, requirements-to-AutomateDV — effectively empty in public.** A
-multi-agent (LangGraph) system that goes from **business requirements** → DV2.1 model → AutomateDV
+multi-agent (LangGraph) system that goes from **business requirements** → DV2.0 model → AutomateDV
 /dbt code, with self-correcting validation, data contracts, an ADR trail, and human-in-the-loop:
 no public equivalent surfaced in research. This is Vault-Agent's lane.
 
@@ -62,7 +62,7 @@ Four things that are individually unremarkable but **rare in combination**:
    black-box GUI — it shows *why*, which matters for auditability in regulated DACH industries.
 3. **Open stack, no lock-in.** Generation goes through AutomateDV/dbt, so the output is reviewable
    dbt code in git — reproducible, inspectable, and free of a proprietary runtime.
-4. **Methodology depth + governance.** DV2.1 rules encoded as code (not prompts), data contracts
+4. **Methodology depth + governance.** DV2.0 rules encoded as code (not prompts), data contracts
    for source-to-staging assets, and a human-in-the-loop checkpoint — positioned for enterprise
    rigor rather than a demo toy.
 

@@ -6,8 +6,7 @@ from business requirements documents. Target market: Swiss/DACH enterprises with
 DWH landscapes (banks, insurers, pharma, mid-market).
 
 ## Author
-Mischa Eismann (eismann.consulting) — CDVP² (Data Vault 2.0 Practitioner, 2015; 2.1 refresh in
-progress), 20+ years in ICT.
+Mischa Eismann (eismann.consulting) — CDVP² (Data Vault 2.0 Practitioner, 2015), 20+ years in ICT.
 
 ## Technology stack (locked unless an ADR says otherwise)
 - Python 3.12+
@@ -23,7 +22,7 @@ progress), 20+ years in ICT.
 - pytest for tests, ruff + mypy for quality
 
 ## Methodological foundations (cite when relevant)
-- Data Vault 2.1 (Dan Linstedt / DataVaultAlliance) – methodology and rules
+- Data Vault 2.0 (Dan Linstedt / DataVaultAlliance) – methodology and rules
 - DSAF (Roelant Vos) – Data Solutions Architecture Framework: a pragmatic architecture lens
   (influence, not an implemented/selectable mode). Adopted ideas and the ADR-gated Vos
   alternatives are critically mapped in docs/methodology/dsaf-mapping.md
