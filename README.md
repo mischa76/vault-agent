@@ -123,6 +123,23 @@ cp .env.example .env          # then add your ANTHROPIC_API_KEY
 uv run vault-agent run examples/inputs/health_insurance_requirements.md --out output
 ```
 
+**Bring your own API key.** Each developer uses their **own** Anthropic key with active
+billing — don't share one across the team (shared keys pool cost on one account, and a
+single revocation locks everyone out). Create one at
+[console.anthropic.com](https://console.anthropic.com/settings/keys) and put it in your
+local `.env` (no quotes, no surrounding whitespace):
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-api03-…
+```
+
+Only the live `run` needs a key — the test suite (`uv run pytest`) and the Postgres demo
+in `demo/bank_postgres` are fully keyless. Two failure modes when a `run` can't
+authenticate: `401 invalid x-api-key` means the key is wrong, revoked, or (commonly) an
+older `ANTHROPIC_API_KEY` already exported in your shell is overriding `.env` — check with
+`echo "${ANTHROPIC_API_KEY:0:12}… len=${#ANTHROPIC_API_KEY}"` and `unset` it if it differs;
+a `400` mentioning *credit balance* means the key is valid but the account has no funds.
+
 Optionally ground the model against a **declared source schema** (YAML/JSON listing each
 source table and its columns) so proposed business keys and satellite attributes are
 cross-checked against columns that actually exist (ADR-0004). With a schema supplied,
