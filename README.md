@@ -140,6 +140,28 @@ older `ANTHROPIC_API_KEY` already exported in your shell is overriding `.env` �
 `echo "${ANTHROPIC_API_KEY:0:12}… len=${#ANTHROPIC_API_KEY}"` and `unset` it if it differs;
 a `400` mentioning *credit balance* means the key is valid but the account has no funds.
 
+### Try it without an API key
+
+No key yet? Most of the project runs keyless — only `vault-agent run` (and the source
+mapper on grounded runs) calls the API. Everything below works immediately:
+
+```bash
+uv run pytest -q                            # full test suite (~430 tests), green without a key
+uv run ruff check . && uv run mypy          # lint + strict type-check
+
+# End-to-end: build a running Data Vault on local Postgres (no key, no Docker)
+cd demo/bank_postgres && uv sync --extra demo
+uv run python build_vault_models.py         # regenerate raw_vault/*.sql from the real generator
+DBT_PROFILES_DIR=. uv run dbt deps
+DBT_PROFILES_DIR=. uv run dbt build --full-refresh   # seed + run + test, all green
+```
+
+The Postgres build uses the *same* code generator the pipeline uses, just fed a fixed model
+instead of an LLM — see [`demo/bank_postgres/README.md`](demo/bank_postgres/README.md) for
+prerequisites, verification, and the effectivity-satellite end-dating demo, and
+[`demo/mapping_postgres/`](demo/mapping_postgres/README.md) for the grounded + ratified
+variant.
+
 Optionally ground the model against a **declared source schema** (YAML/JSON listing each
 source table and its columns) so proposed business keys and satellite attributes are
 cross-checked against columns that actually exist (ADR-0004). With a schema supplied,
