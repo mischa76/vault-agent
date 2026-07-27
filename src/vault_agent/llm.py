@@ -116,7 +116,15 @@ class LLMCallError(RuntimeError):
     Raised for truncated responses (the tool payload would be incomplete), responses
     without the forced tool block, and transient API failures that persist past the
     retry budget. Callers must NOT treat this as "the model found nothing" — that case
-    is a *successful* call with an empty payload."""
+    is a *successful* call with an empty payload.
+
+    ``truncated`` marks the first of those causes, so a caller that can react to it (the
+    requirements parser splits its document and retries) branches on the attribute rather
+    than matching the message text."""
+
+    def __init__(self, *args: object, truncated: bool = False) -> None:
+        super().__init__(*args)
+        self.truncated = truncated
 
 
 class ForcedToolCaller:
@@ -254,7 +262,7 @@ class ForcedToolCaller:
                     f"the tool payload is incomplete (raise the limit or shrink the input)"
                 )
                 event("llm_error", attempt, error=error, stop_reason=message.stop_reason)
-                raise LLMCallError(error)
+                raise LLMCallError(error, truncated=True)
             if payload is not None:
                 return payload
             error = (

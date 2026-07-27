@@ -22,6 +22,7 @@ class FlagKind:
     NO_SOURCE_SCHEMA = "no_source_schema"  # contract inferred from prose, not a schema
     SOURCE_BINDING = "source_binding"  # staging source relation inferred, not declared
     INPUT_TRUNCATED = "input_truncated"  # oversized input document cut to the size guard
+    INPUT_SEGMENTED = "input_segmented"  # document extracted over several bounded calls
     MAPPING_GAP = "mapping_gap"  # concept has no in-scope source (WP9; belongs downstream)
     MAPPING_UNRESOLVED = "mapping_unresolved"  # concept's source undecided; human ratifies
     GENERIC = "generic"

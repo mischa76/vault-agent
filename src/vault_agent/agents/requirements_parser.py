@@ -13,22 +13,95 @@ The Anthropic client is only constructed lazily (and ``config.settings`` only im
 then), so unit tests can inject a stub extractor and run without an API key.
 """
 import logging
+import re
 from pathlib import Path
 from typing import Any, Protocol
 
 from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.llm import LLMCallError
 from vault_agent.state import FlagKind, ParsedRequirement, VaultAgentState
 
 logger = logging.getLogger(__name__)
 
 _TOOL_NAME = "emit_requirements"
-_MAX_TOKENS = 4096
+_MAX_TOKENS = 8192
 
 # Guard against blowing the model's context window: ~4 chars/token heuristic,
 # capped well below the 200k window to leave room for system prompt + output.
 MAX_DOCUMENT_CHARS = 400_000
+
+# How often a document may be halved when the model's answer does not fit the output
+# budget: 4 levels = up to 16 segments, far past any observed need (the 30-table scale
+# landscape needs one split). A deeper recursion means the per-segment answer is not
+# shrinking, so the cause is not size — better to surface the error than to keep paying.
+_MAX_SPLIT_DEPTH = 4
+
+# Boundary classes for splitting a document, best first: a markdown heading starts a new
+# section, a blank line separates paragraphs/list blocks, a newline is the last resort
+# that still never cuts mid-sentence.
+_BOUNDARY_PATTERNS = (
+    re.compile(r"^#{1,6} ", re.MULTILINE),
+    re.compile(r"\n\s*\n"),
+    re.compile(r"\n"),
+)
+
+
+def split_document(text: str) -> tuple[str, str] | None:
+    """Halve ``text`` at the structural boundary closest to its midpoint.
+
+    Tries the boundary classes in ``_BOUNDARY_PATTERNS`` order, so a document is cut
+    between sections before it is cut between paragraphs, and between paragraphs before
+    between lines — a segment is therefore always a whole number of structural units and
+    a requirement is never severed mid-sentence. Returns ``None`` when the text has no
+    interior boundary at all (a single line), which ends the recursion in :func:`_extract`.
+    """
+    midpoint = len(text) / 2
+    for pattern in _BOUNDARY_PATTERNS:
+        offsets = [m.start() for m in pattern.finditer(text) if 0 < m.start() < len(text)]
+        if not offsets:
+            continue
+        cut = min(offsets, key=lambda offset: abs(offset - midpoint))
+        head, tail = text[:cut], text[cut:]
+        if head.strip() and tail.strip():
+            return head, tail
+    return None
+
+
+def merge_records(
+    segments: list[list[dict[str, Any]]],
+) -> tuple[list[dict[str, Any]], int]:
+    """Concatenate per-segment records, dropping exact repeats and de-colliding ids.
+
+    Each segment is extracted by its own call, so the model numbers every segment from
+    scratch: without this, two segments both emit ``REQ-001``. Records identical in
+    (text, category) are the same requirement seen twice across a cut and are dropped;
+    a surviving record whose id is already taken gets a deterministic ``-2``/``-3``
+    suffix. Both branches are no-ops for a single segment, so an unsplit document
+    round-trips byte-identically. Returns the merged records and the number dropped."""
+    merged: list[dict[str, Any]] = []
+    seen_content: set[tuple[str, str]] = set()
+    seen_ids: dict[str, int] = {}
+    dropped = 0
+    for records in segments:
+        for record in records:
+            content = (
+                str(record.get("text", "")).strip().casefold(),
+                str(record.get("category", "")).strip().casefold(),
+            )
+            if content in seen_content:
+                dropped += 1
+                continue
+            seen_content.add(content)
+            record_id = str(record.get("id", ""))
+            if record_id and record_id in seen_ids:
+                seen_ids[record_id] += 1
+                record = {**record, "id": f"{record_id}-{seen_ids[record_id]}"}
+            elif record_id:
+                seen_ids[record_id] = 1
+            merged.append(record)
+    return merged, dropped
 
 
 def _extract_pdf_text(path: Path) -> str:
@@ -122,9 +195,24 @@ class RequirementsParserAgent(BaseAgent):
             if document is None:
                 continue
             logger.debug("document %s: %d chars", doc_path, len(document))
-            raw_records = await extractor.extract(
-                system_prompt=system_prompt, document=document
-            )
+            segments = await self._extract(extractor, system_prompt, document)
+            raw_records, dropped = merge_records(segments)
+            if len(segments) > 1:
+                logger.info(
+                    "document %s: extracted over %d segment(s), %d duplicate(s) dropped",
+                    doc_path,
+                    len(segments),
+                    dropped,
+                )
+                state.flag(
+                    "requirements_parser",
+                    f"document {doc_path!r} did not fit one model response and was "
+                    f"extracted over {len(segments)} segment(s) split on section "
+                    f"boundaries; requirement ids are per-segment and were de-collided "
+                    f"— review the extracted set for completeness",
+                    kind=FlagKind.INPUT_SEGMENTED,
+                    asset=doc_path,
+                )
             for record in raw_records:
                 try:
                     requirements.append(ParsedRequirement.model_validate(record))
@@ -147,6 +235,47 @@ class RequirementsParserAgent(BaseAgent):
             }
         )
         return state
+
+    @staticmethod
+    async def _extract(
+        extractor: RequirementExtractor,
+        system_prompt: str,
+        document: str,
+        depth: int = 0,
+    ) -> list[list[dict[str, Any]]]:
+        """Extract one document, halving it only when the model's answer did not fit.
+
+        The whole document is tried first, so every input that already fits produces
+        exactly one call with exactly today's content — the segmentation is invisible
+        until it is needed. A truncated response (``LLMCallError.truncated``, i.e.
+        ``stop_reason == "max_tokens"``) means the *answer* outgrew the output budget, not
+        that the input was too long: a dense inventory-style document yields several
+        atomic requirements per line, so output scales with content density, not with
+        character count. Splitting the input is the only lever that shrinks the answer.
+
+        Recursion is bounded by ``_MAX_SPLIT_DEPTH`` and by the text itself — an
+        unsplittable segment re-raises. The truncated call that triggered a split is paid
+        for; WP3 prompt caching keeps its input cost near zero, and it only happens on
+        documents that would otherwise fail outright."""
+        try:
+            return [await extractor.extract(system_prompt=system_prompt, document=document)]
+        except LLMCallError as exc:
+            halves = split_document(document) if exc.truncated else None
+            if halves is None or depth >= _MAX_SPLIT_DEPTH:
+                raise
+            logger.info(
+                "response truncated; splitting document (%d chars) at depth %d",
+                len(document),
+                depth,
+            )
+            segments: list[list[dict[str, Any]]] = []
+            for half in halves:
+                segments.extend(
+                    await RequirementsParserAgent._extract(
+                        extractor, system_prompt, half, depth + 1
+                    )
+                )
+            return segments
 
     @staticmethod
     def _read_document(doc_path: str, state: VaultAgentState) -> str | None:

@@ -6,10 +6,15 @@ CI without an Anthropic API key (``asyncio_mode = auto`` runs the async tests di
 from pathlib import Path
 from typing import Any
 
+import pytest
+
 from vault_agent.agents.requirements_parser import (
     MAX_DOCUMENT_CHARS,
     RequirementsParserAgent,
+    merge_records,
+    split_document,
 )
+from vault_agent.llm import LLMCallError
 from vault_agent.state import FlagKind, ParsedRequirement, VaultAgentState
 
 EXAMPLE_DOC = (
@@ -208,3 +213,148 @@ async def test_document_at_the_limit_is_untouched_and_unflagged(tmp_path: Path) 
     assert not result.flags
     _, document = stub.calls[0]
     assert len(document) == MAX_DOCUMENT_CHARS  # untouched, no truncation
+
+
+# --- adaptive segmentation ----------------------------------------------------------
+# A dense inventory-style document yields several atomic requirements per line, so the
+# ANSWER outgrows the output budget while the input stays small (the 30-table scale
+# landscape is 3.7k chars and truncated at max_tokens=4096 on 2026-07-27). The parser
+# therefore splits only in reaction to a truncated response, never pre-emptively.
+
+
+class TruncatingExtractor:
+    """Truncates while the document exceeds ``fits_under`` chars; then succeeds.
+
+    Emits ``REQ-001``-style ids per call, like the real model, so the merge has genuine
+    id collisions to resolve."""
+
+    def __init__(self, fits_under: int) -> None:
+        self.fits_under = fits_under
+        self.documents: list[str] = []
+
+    async def extract(
+        self, *, system_prompt: str, document: str
+    ) -> list[dict[str, Any]]:
+        self.documents.append(document)
+        if len(document) > self.fits_under:
+            raise LLMCallError("truncated at max_tokens", truncated=True)
+        return [
+            {
+                "id": "REQ-001",
+                "text": f"requirement from {document.strip().splitlines()[0]}",
+                "category": "functional",
+            }
+        ]
+
+
+_SECTIONED = (
+    "# Title\n\nIntro paragraph.\n\n"
+    "## Alpha\n\n- alpha one\n- alpha two\n\n"
+    "## Beta\n\n- beta one\n- beta two\n\n"
+    "## Gamma\n\n- gamma one\n- gamma two\n"
+)
+
+
+def test_split_document_prefers_a_heading_boundary() -> None:
+    halves = split_document(_SECTIONED)
+    assert halves is not None
+    head, tail = halves
+    assert head + tail == _SECTIONED  # lossless
+    assert tail.startswith("## ")  # cut on a section, not mid-paragraph
+
+
+def test_split_document_falls_back_to_paragraph_then_line() -> None:
+    paragraphs = "one line\n\nsecond para\n\nthird para"
+    halves = split_document(paragraphs)
+    assert halves is not None and "".join(halves) == paragraphs
+
+    lines = "alpha\nbeta\ngamma"
+    halves = split_document(lines)
+    assert halves is not None and "".join(halves) == lines
+
+
+def test_split_document_returns_none_when_indivisible() -> None:
+    assert split_document("a single unsplittable line") is None
+
+
+def test_merge_records_is_identity_for_one_segment() -> None:
+    records = _valid_payload()
+    merged, dropped = merge_records([records])
+    assert merged == records and dropped == 0
+
+
+def test_merge_records_decollides_ids_and_drops_exact_repeats() -> None:
+    seg_a = [{"id": "REQ-001", "text": "alpha", "category": "functional"}]
+    seg_b = [
+        {"id": "REQ-001", "text": "beta", "category": "functional"},  # id reused
+        {"id": "REQ-002", "text": "ALPHA ", "category": "Functional"},  # same as seg_a
+    ]
+    merged, dropped = merge_records([seg_a, seg_b])
+    assert [r["id"] for r in merged] == ["REQ-001", "REQ-001-2"]
+    assert dropped == 1
+
+
+async def test_unsplit_document_makes_exactly_one_call_and_no_flag(tmp_path: Path) -> None:
+    """Regression guard: an input that already fits is byte-identical to pre-fix behaviour."""
+    doc = tmp_path / "small.md"
+    doc.write_text(_SECTIONED, encoding="utf-8")
+    stub = StubExtractor(_valid_payload())
+    agent = RequirementsParserAgent(extractor=stub)
+
+    result = await agent.run(VaultAgentState(input_documents=[str(doc)]))
+
+    assert len(stub.calls) == 1
+    assert stub.calls[0][1] == _SECTIONED  # the whole document, unsegmented
+    assert not [f for f in result.flags if f.kind == FlagKind.INPUT_SEGMENTED]
+    assert len(result.requirements) == 2
+
+
+async def test_truncated_response_splits_the_document_and_merges(tmp_path: Path) -> None:
+    doc = tmp_path / "dense.md"
+    doc.write_text(_SECTIONED, encoding="utf-8")
+    extractor = TruncatingExtractor(fits_under=len(_SECTIONED) - 1)
+    agent = RequirementsParserAgent(extractor=extractor)
+
+    result = await agent.run(VaultAgentState(input_documents=[str(doc)]))
+
+    # one failed whole-document attempt, then the two halves succeed
+    assert len(extractor.documents) == 3
+    assert "".join(extractor.documents[1:]) == _SECTIONED  # lossless split
+    assert len(result.requirements) == 2  # both segments contributed
+    assert [r.id for r in result.requirements] == ["REQ-001", "REQ-001-2"]
+    [flag] = [f for f in result.flags if f.kind == FlagKind.INPUT_SEGMENTED]
+    assert flag.severity == "advisory"
+    assert flag.asset == str(doc)
+    assert "2 segment(s)" in flag.message
+
+
+async def test_non_truncation_error_is_not_split(tmp_path: Path) -> None:
+    """Only truncation is a size problem; anything else must surface unchanged."""
+
+    class Failing:
+        def __init__(self) -> None:
+            self.calls = 0
+
+        async def extract(self, *, system_prompt: str, document: str) -> list[dict[str, Any]]:
+            self.calls += 1
+            raise LLMCallError("no tool_use block in the response")
+
+    doc = tmp_path / "doc.md"
+    doc.write_text(_SECTIONED, encoding="utf-8")
+    extractor = Failing()
+    agent = RequirementsParserAgent(extractor=extractor)
+
+    with pytest.raises(LLMCallError, match="no tool_use block"):
+        await agent.run(VaultAgentState(input_documents=[str(doc)]))
+    assert extractor.calls == 1  # no retry, no split
+
+
+async def test_indivisible_document_surfaces_the_truncation(tmp_path: Path) -> None:
+    doc = tmp_path / "one_line.md"
+    doc.write_text("a single very dense unsplittable line", encoding="utf-8")
+    extractor = TruncatingExtractor(fits_under=0)  # always truncates
+    agent = RequirementsParserAgent(extractor=extractor)
+
+    with pytest.raises(LLMCallError, match="truncated"):
+        await agent.run(VaultAgentState(input_documents=[str(doc)]))
+    assert len(extractor.documents) == 1  # nothing to split, so no further calls
