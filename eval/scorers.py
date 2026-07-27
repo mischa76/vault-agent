@@ -5,16 +5,22 @@ everything else. Golden matching is *structural*, never textual: names, business
 connected-hub sets, driving-key sets, and attribute sets are compared through
 ``rules.normalize_identifier``, so ``"national customer ID"`` matches a generated
 ``NATIONAL_CUSTOMER_ID`` and construct names match regardless of label casing/spacing.
+
+``normalize_identifier`` folds casing and separators but not word *order*, so a name is
+only a reliable key where the golden and the modeller agree on it. Links therefore resolve
+on their grain instead (:func:`_resolve_link`) — ``link_policy_insured_person`` and
+``link_insured_person_policy`` are one construct. Hubs and satellites remain name-keyed;
+see the caveat in ``eval/README.md``.
 """
 from collections.abc import Callable, Iterable
 from typing import Literal
 
 from pydantic import BaseModel
 
-from eval.datasets import EvalCase
+from eval.datasets import EvalCase, GoldenLink
 from eval.mapping import GoldenMapping, ProposedMapping
 from vault_agent.rules.dv2_rules import normalize_identifier
-from vault_agent.state import VaultAgentState
+from vault_agent.state import Link, VaultAgentState
 
 
 class ScorerResult(BaseModel):
@@ -57,18 +63,42 @@ def _matched_hubs(state: VaultAgentState, case: EvalCase) -> int:
     )
 
 
+def _link_grain(hubs: Iterable[str]) -> tuple[str, ...]:
+    """A link's structural identity: the sorted *multiset* of its normalised hubs.
+
+    Sorted, so ``[hub_policy, hub_person]`` and ``[hub_person, hub_policy]`` are the same
+    grain; a multiset rather than a set, so a self-referencing link (the same hub twice,
+    ADR-0009) stays distinguishable from a single participation."""
+    return tuple(sorted(normalize_identifier(hub) for hub in hubs))
+
+
+def _resolve_link(golden: GoldenLink, generated: list[Link]) -> Link | None:
+    """The generated link a golden link refers to, matched on grain — not on name.
+
+    A link's name is free-form modeller output: ``link_policy_insured_person`` and
+    ``link_insured_person_policy`` are the same DV construct, so keying on the name scores
+    a correct model as a miss. The grain (which hubs participate, ADR-0009 roles collapsed
+    to their hub) is the structural identity. The name only breaks a tie when two generated
+    links share a grain — which the validator already flags as W_LINK_REDUNDANT_GRAIN, so
+    it is a degenerate case rather than the norm; an unresolvable tie is left unmatched."""
+    grain = _link_grain(golden.connected_hubs)
+    candidates = [
+        link for link in generated if _link_grain(ref.hub for ref in link.hub_refs) == grain
+    ]
+    if len(candidates) == 1:
+        return candidates[0]
+    for candidate in candidates:
+        if normalize_identifier(candidate.name) == normalize_identifier(golden.name):
+            return candidate
+    return None
+
+
 def _matched_links(state: VaultAgentState, case: EvalCase) -> int:
-    """Golden links matched on normalised name + normalised connected-hub *set*."""
-    generated = {
-        # Match on the set of connected hub names; role-qualified participations
-        # (ADR-0009) collapse to their hub for this structural comparison.
-        normalize_identifier(link.name): _norm_set(ref.hub for ref in link.hub_refs)
-        for link in state.dv_model.links
-    }
+    """Golden links matched structurally on their grain (see :func:`_resolve_link`)."""
     return sum(
         1
         for golden in case.golden.links
-        if generated.get(normalize_identifier(golden.name)) == _norm_set(golden.connected_hubs)
+        if _resolve_link(golden, state.dv_model.links) is not None
     )
 
 
@@ -119,7 +149,8 @@ def construct_f1(state: VaultAgentState, case: EvalCase) -> ScorerResult:
 
 def driving_key_accuracy(state: VaultAgentState, case: EvalCase) -> ScorerResult:
     """Fraction of golden links with declared driving keys whose generated counterpart
-    (matched on normalised name) declares the same normalised driving-key set."""
+    (resolved on grain, see :func:`_resolve_link`) declares the same normalised
+    driving-key set."""
     golden_links = [link for link in case.golden.links if link.driving_key]
     if not golden_links:
         return ScorerResult(
@@ -127,13 +158,10 @@ def driving_key_accuracy(state: VaultAgentState, case: EvalCase) -> ScorerResult
             score=1.0,
             details="no golden driving keys declared",
         )
-    generated = {
-        normalize_identifier(link.name): _norm_set(link.driving_key)
-        for link in state.dv_model.links
-    }
     misses: list[str] = []
     for golden in golden_links:
-        declared = generated.get(normalize_identifier(golden.name))
+        counterpart = _resolve_link(golden, state.dv_model.links)
+        declared = _norm_set(counterpart.driving_key) if counterpart is not None else None
         if declared is None:
             misses.append(f"{golden.name}: no generated counterpart")
         elif declared != _norm_set(golden.driving_key):

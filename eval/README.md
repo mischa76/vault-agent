@@ -52,12 +52,25 @@ their rationale are documented as comments inside each `dataset.yml`.
 ## Scorers (all 0..1, deterministic)
 
 - **construct_f1** — mean F1 of generated vs golden constructs over the three kinds.
-  Hubs match on normalised name + business key, links on normalised name +
-  connected-hub *set*, satellites on normalised name + parent + `sat_type` (+ the
-  normalised attribute set when the golden lists attributes). A kind that is empty on
-  both sides is vacuous (1.0); extras and misses both cost score (precision/recall).
+  Hubs match on normalised name + business key, satellites on normalised name + parent +
+  `sat_type` (+ the normalised attribute set when the golden lists attributes). **Links
+  match on their *grain*** — the sorted multiset of participating hubs (ADR-0009 roles
+  collapsed to their hub) — *not* on the name, because the name is free-form modeller
+  output: `link_policy_insured_person` and `link_insured_person_policy` are one construct.
+  The name only breaks a tie when two generated links share a grain (which the validator
+  flags as `W_LINK_REDUNDANT_GRAIN`); an unresolvable tie stays unmatched rather than
+  guessing. A kind that is empty on both sides is vacuous (1.0); extras and misses both
+  cost score (precision/recall).
 - **driving_key_accuracy** — fraction of golden links with declared driving keys whose
   generated counterpart declares the same normalised set; 1.0 when the case declares none.
+  The counterpart is resolved on grain, as for `construct_f1`.
+
+> **Caveat — hubs and satellites are still name-keyed.** `normalize_identifier` folds
+> casing and separators but not word order, so a golden hub/satellite whose name the
+> modeller words differently scores as a miss even when the construct is right. This is
+> only safe where the golden and the modeller agree on naming (the hand-written cases);
+> for a synthetic golden it is not, which is one reason the `scale_*` cases gate on
+> mapping scorers rather than on `construct_f1`.
 - **validation_gate** — 1.0 iff the run's validation outcome matches
   `expectations.validation_passed` and the warning count stays within
   `max_validation_warnings` (when set); else 0.0 with details.

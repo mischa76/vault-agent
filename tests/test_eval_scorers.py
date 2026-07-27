@@ -210,6 +210,92 @@ def test_driving_key_accuracy_missing_counterpart_is_a_miss() -> None:
     assert "no generated counterpart" in result.details
 
 
+# --- link resolution: grain, not name -----------------------------------------------
+# The modeller names links freely: link_policy_insured_person and link_insured_person_policy
+# are one construct. Observed live on health_insurance (2026-07-27), where name-keyed
+# matching scored a DV-correct model as links F1=0.29 / driving_key 0.00.
+
+
+def test_link_matches_despite_reversed_name_component_order() -> None:
+    golden = GoldenModel(
+        links=[
+            GoldenLink(
+                name="link_insured_person_policy",
+                connected_hubs=["hub_insured_person", "hub_policy"],
+                driving_key=["hub_policy"],
+            )
+        ]
+    )
+    state = VaultAgentState(
+        dv_model=DVModel(
+            links=[
+                _link(
+                    "link_policy_insured_person",
+                    ["hub_policy", "hub_insured_person"],
+                    driving_key=["hub_policy"],
+                )
+            ]
+        )
+    )
+    case = _case(golden)
+    assert driving_key_accuracy(state, case).score == 1.0
+    # hubs/satellites vacuous 1.0, links 1.0
+    assert construct_f1(state, case).score == pytest.approx(1.0)
+
+
+def test_link_grain_distinguishes_self_reference_from_single_participation() -> None:
+    """A hub participating twice is a different grain than participating once."""
+    golden = GoldenModel(
+        links=[GoldenLink(name="link_transfer", connected_hubs=["hub_account", "hub_account"])]
+    )
+    state = VaultAgentState(dv_model=DVModel(links=[_link("link_transfer", ["hub_account"])]))
+    assert construct_f1(state, _case(golden)).score == pytest.approx(2 / 3)  # links F1 0.0
+
+
+def test_ambiguous_grain_is_disambiguated_by_name() -> None:
+    """Two links over the same hubs (W_LINK_REDUNDANT_GRAIN territory): the name breaks the tie."""
+    golden = GoldenModel(
+        links=[
+            GoldenLink(
+                name="link_b_a", connected_hubs=["hub_a", "hub_b"], driving_key=["hub_b"]
+            )
+        ]
+    )
+    state = VaultAgentState(
+        dv_model=DVModel(
+            links=[
+                _link("link_a_b", ["hub_a", "hub_b"], driving_key=["hub_a"]),  # wrong side
+                _link("link_b_a", ["hub_b", "hub_a"], driving_key=["hub_b"]),  # named match
+            ]
+        )
+    )
+    assert driving_key_accuracy(state, _case(golden)).score == 1.0
+
+
+def test_ambiguous_grain_without_a_name_match_stays_unmatched() -> None:
+    """Never guess between equally-plausible candidates — an unresolvable tie is a miss."""
+    golden = GoldenModel(
+        links=[
+            GoldenLink(
+                name="link_totally_different",
+                connected_hubs=["hub_a", "hub_b"],
+                driving_key=["hub_a"],
+            )
+        ]
+    )
+    state = VaultAgentState(
+        dv_model=DVModel(
+            links=[
+                _link("link_a_b", ["hub_a", "hub_b"], driving_key=["hub_a"]),
+                _link("link_b_a", ["hub_b", "hub_a"], driving_key=["hub_a"]),
+            ]
+        )
+    )
+    result = driving_key_accuracy(state, _case(golden))
+    assert result.score == 0.0
+    assert "no generated counterpart" in result.details
+
+
 # --- validation_gate ----------------------------------------------------------------
 
 

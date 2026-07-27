@@ -42,7 +42,9 @@ class GoldenHub(BaseModel):
 
 
 class GoldenLink(BaseModel):
-    """Expected link: matched on normalised name *and* normalised connected-hub set.
+    """Expected link: matched on *grain* (the normalised multiset of connected hubs), with
+    ``name`` only breaking a tie between two generated links of the same grain — see
+    ``scorers._resolve_link``.
 
     ``driving_key`` (optional) feeds the ``driving_key_accuracy`` scorer; it is not part
     of the ``construct_f1`` match."""

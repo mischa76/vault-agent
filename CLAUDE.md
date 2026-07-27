@@ -866,7 +866,7 @@ timestamped (exempt from the byte-identity rules), carrying raw document/source 
 .vault-agent/-only, git-ignored, and README-flagged as not demo-safe. Verified live 2026-07-22
 against the real API path (the failing requirements_parser call landed in the jsonl with tool
 name, model, attempt and full system prompt); acceptance #1's full `grep emit_dv_model`
-payload demo is OPEN — the run stopped on an exhausted Anthropic credit balance, not on code.
+payload demo was CLOSED 2026-07-27 (see the verification-batch paragraph below).
 21 keyless tests (+6 tests/test_trace.py, +7 in test_llm.py incl. the raising-recorder and
 instance-override paths, +4 CLI: trace file per thread, resume appends, --no-trace writes
 nothing, flag exposed).
@@ -897,12 +897,71 @@ and the release protocol: on a model bump, ablate gated cases × backstopped rul
 backstop fires AND no gated-score regression over N>=3 repeats makes a rule candidate-delete —
 a human decides, prompt text is cheap to revert, deleting a backstop needs the evidence AND its
 E_-gate kept. Scope boundary stated everywhere: validator gates are the product, never ablated,
-never deleted here. Acceptance #2 (a live cdk_not_payload ablation on health_insurance) is OPEN
-for the same credit-balance reason. 433 tests green (+15 tests/test_steering.py: id uniqueness,
+never deleted here. Acceptance #2 (a live cdk_not_payload ablation on health_insurance) was
+CLOSED 2026-07-27 (see the verification-batch paragraph below). 433 tests green (+15 tests/test_steering.py: id uniqueness,
 byte-identity, exclusion/clear/unknown-id, backstop-link consistency, the three telemetry sites
 firing only on a real repair, no-recorder no-op; +8 tests/test_eval_ablate.py: both arms, report
 shape, arm-2 failure persistence + seam always cleared, summary/render helpers), ruff clean,
 mypy strict clean (37 files).
+
+Live verification batch (2026-07-27/28), executed once API credit existed — it closes the three
+measurement items WP14/WP15/WP16 had to leave open and produces one eval fix plus two recorded
+findings. (1) WP15 acceptance #1 CLOSED: a real `vault-agent run` on the bank demo wrote one
+grep-able transcript per thread; `grep emit_dv_model` finds the modeler call on claude-opus-4-8
+with the FULL payload (3 hubs, 2 links, 4 satellites incl. multi_active + effectivity), its
+system prompt (sha 21e230df28dd70e2), stop_reason and token counts. The pause+resume half is
+weaker than the spec assumed and the spec wording should be read accordingly: a resume produces
+NO new events because every post-checkpoint node (adr_author) is deterministic, so "appends to
+the same file" is today only verifiable as "continues the same file, creates no second
+transcript" — appending on resume is structurally unreachable until an LLM call moves behind the
+checkpoint. (2) WP16 acceptance #2 CLOSED, and the LOOPS rule-VIII answer for cdk_not_payload is
+KEEP: `eval.ablate --case health_insurance --drop cdk_not_payload --repeat 3` fired the
+attributes_without_cdk backstop 0× in the baseline arm and 4× (2/1/1) in the dropped arm, plus
+W_MASAT_SHARED_GRAIN ×3 there — i.e. the prompt line alone now suffices, and without it the
+model reverts to the July behaviour and only the deterministic backstop keeps the output correct.
+Scores are indistinguishable between arms (construct_f1 0.566 vs 0.576, both gates 1.0), which
+is the point of the telemetry: the backstop hides the regression from the scores. (3) WP14 §6
+CLOSED: a live scale_30 re-run scores mapping_coverage 1.00 (28/28 golden pairs bound),
+false_friend_hits 1.00, pipeline_health 1.00 — all three gates pass, so the gate verdict now
+reflects mapping quality instead of the 0.069 concept-naming artefact of 2026-07-19. Run
+metrics: 40 calls, 64,066 in (cache-read 238%), 78,229 out, 849.8 s, 97 review items / 53
+rendered lines.
+
+Two findings from that batch. (F1) WP13 candidate #1 is CONFIRMED and sharper than recorded:
+scale_30 repeat 2/3 died with `LLMCallError: emit_requirements: response truncated at
+max_tokens=4096`. The generate case is byte-deterministic for a fixed (tables, seed), so the
+input was identical to the repeat that passed — at 30 tables the requirements_parser sits ON the
+output cap and sampling variance decides. A flaky breakpoint, not a clean one; the fix (chunk the
+parser like the 2026-07-15 contract enricher) is a follow-up WP, not done here. WP14.1 behaved as
+designed: repeat 1 was already persisted when repeat 2 died, so the batch is INCOMPLETE (1 of 3)
+and the gate verdict above rests on a single measurement. (F2) An eval-scorer defect found by
+reading the ablation traces, fixed here (eval/ only, no src/vault_agent change): link matching
+keyed on `normalize_identifier(link.name)`, which folds casing and separators but NOT word
+order. The modeller named the same construct `link_policy_insured_person` where the golden says
+`link_insured_person_policy`, so a DV-correct model scored links F1 0.29 and driving_key_accuracy
+0.00 in all six ablation runs — the model was right, the scorer was wrong. eval/scorers.py gains
+_link_grain() (the sorted MULTISET of normalised participating hubs, ADR-0009 roles collapsed to
+their hub — a multiset so a self-referencing link stays distinguishable from a single
+participation) and _resolve_link(), shared by _matched_links and driving_key_accuracy: a golden
+link resolves on grain, and the NAME only breaks a tie between two generated links of the same
+grain (the W_LINK_REDUNDANT_GRAIN case); an unresolvable tie stays unmatched rather than guessed.
+Re-scoring the six recorded models lifts driving_key_accuracy 0.000 → 1.000 in every run and
+construct_f1 from 0.566/0.576 to 0.698/0.767 per arm (indicative: computed from the raw
+emit_dv_model payload, not the post-backstop state). Behaviour is byte-identical wherever golden
+and modeller agree on the name — the 18 pre-existing scorer tests passed untouched. This is the
+THIRD instance of the same class after WP9.2 and WP14 (eval scoring free-form LLM names instead
+of structure), so the caveat is now written down rather than rediscovered: hubs and satellites
+are STILL name-keyed (eval/README.md states this explicitly), which is safe only for the
+hand-written cases and is one reason the scale_* cases gate on mapping scorers.
+
+Also recorded, NOT fixed: `_f1` treats an empty golden inconsistently — with no golden constructs
+declared, construct_f1 returns 0.0 (matched==0) while driving_key_accuracy returns 1.0 ("no
+golden driving keys declared"). Both mean "nothing to check", with opposite answers; this is why
+the scale_30 result JSON reads construct_f1 0.000 (`hubs: 0/0 golden matched, 17 generated`)
+although the synthetic cases carry a golden MAPPING and no golden MODEL at all. Not a quality
+signal — do not read it as one. 437 tests green (+4 in tests/test_eval_scorers.py: reversed name
+component order matches, self-reference grain stays distinguishable, ambiguous grain resolved by
+name, unresolvable tie stays a miss), ruff clean, mypy strict clean (37 files).
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
