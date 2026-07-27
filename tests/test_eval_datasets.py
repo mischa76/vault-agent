@@ -103,6 +103,30 @@ def test_column_mode_rejects_concept_coupled_gate(tmp_path: Path) -> None:
         load_eval_case(_write_case(tmp_path, yaml_text))
 
 
+def test_rejects_gating_construct_f1_with_an_empty_golden(tmp_path: Path) -> None:
+    """A vacuous scorer reports 1.0, so gating it would pass on absence of evidence."""
+    empty_golden = "name: toy\ninput_document: requirements.md\ngolden: {}\n"
+    yaml_text = empty_golden + "expectations:\n  min_scores: {construct_f1: 0.5}\n"
+    with pytest.raises(ValueError, match="construct_f1"):
+        load_eval_case(_write_case(tmp_path, yaml_text))
+
+
+def test_rejects_gating_driving_key_accuracy_without_a_golden_driving_key(
+    tmp_path: Path,
+) -> None:
+    yaml_text = _MINIMAL + "expectations:\n  min_scores: {driving_key_accuracy: 1.0}\n"
+    with pytest.raises(ValueError, match="driving_key_accuracy"):
+        load_eval_case(_write_case(tmp_path, yaml_text))
+
+
+def test_gating_construct_f1_is_fine_when_the_golden_declares_constructs(
+    tmp_path: Path,
+) -> None:
+    yaml_text = _MINIMAL + "expectations:\n  min_scores: {construct_f1: 0.5}\n"
+    case = load_eval_case(_write_case(tmp_path, yaml_text))
+    assert case.expectations.min_scores == {"construct_f1": 0.5}
+
+
 def test_load_all_cases_rejects_duplicate_names(tmp_path: Path) -> None:
     for directory in ("a", "b"):
         case_dir = tmp_path / directory

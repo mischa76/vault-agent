@@ -22,7 +22,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -254,15 +254,38 @@ def build_result_payload(
     return payload
 
 
-def render_table(case_name: str, stats: dict[str, ScoreStats], repeat: int) -> str:
-    """Compact per-case report: mean ± min/max per scorer across the repeats (pure)."""
+def render_table(
+    case_name: str,
+    stats: dict[str, ScoreStats],
+    repeat: int,
+    vacuous: Iterable[str] = (),
+) -> str:
+    """Compact per-case report: mean ± min/max per scorer across the repeats (pure).
+
+    ``vacuous`` names scorers that had nothing to check on this case; they are marked
+    inline, because a bare ``mean=1.000`` in the summary reads as a perfect score when it
+    actually means "no golden to compare against" (the scale cases ship no golden model)."""
     lines = [f"{case_name} ({repeat} run(s)):"]
     width = max(len(name) for name in stats) if stats else 0
+    marked = set(vacuous)
     lines.extend(
         f"  {name:<{width}}  mean={stat.mean:.3f}  min={stat.min:.3f}  max={stat.max:.3f}"
+        + ("   (vacuous — nothing to check)" if name in marked else "")
         for name, stat in sorted(stats.items())
     )
     return "\n".join(lines)
+
+
+def vacuous_scorers(runs: list[list[ScorerResult]]) -> list[str]:
+    """Scorer names whose every run reported a vacuous verdict (pure).
+
+    Keyed on the ``details`` prefix the scorers emit, which is theirs to define — the
+    alternative, re-deriving vacuity from the case here, would duplicate that knowledge."""
+    by_name: dict[str, list[bool]] = {}
+    for run in runs:
+        for result in run:
+            by_name.setdefault(result.name, []).append(result.details.startswith("vacuous"))
+    return sorted(name for name, flags in by_name.items() if flags and all(flags))
 
 
 def render_metrics(case_name: str, metrics: list[dict[str, Any]]) -> str:
@@ -468,7 +491,7 @@ def main(argv: list[str] | None = None) -> int:
         # in-memory results of whatever completed — the full batch on success, the partial
         # set when a mid-batch failure cut it short.
         stats = aggregate(runs)
-        print(render_table(case.name, stats, len(runs)))
+        print(render_table(case.name, stats, len(runs), vacuous_scorers(runs)))
         print(render_metrics(case.name, metrics))
         if written:
             print(f"  results: {', '.join(str(path) for path in written)}")

@@ -84,7 +84,7 @@ def test_construct_f1_perfect_match_is_1() -> None:
     assert result.score == 1.0
 
 
-def test_construct_f1_two_of_three_hubs_pins_8_9ths() -> None:
+def test_construct_f1_two_of_three_hubs_pins_5_6ths() -> None:
     golden = GoldenModel(
         hubs=[
             GoldenHub(name="hub_a", business_key="a"),
@@ -104,23 +104,43 @@ def test_construct_f1_two_of_three_hubs_pins_8_9ths() -> None:
         )
     )
     result = construct_f1(state, _case(golden))
-    # hubs: P=R=2/3 -> F1=2/3; links: 1.0; satellites: vacuous 1.0; mean = 8/9.
-    assert result.score == pytest.approx(8 / 9)
+    # hubs: P=R=2/3 -> F1=2/3; links: 1.0. Satellites are undeclared, so they are
+    # excluded rather than contributing a free 1.0: mean = 5/6.
+    assert result.score == pytest.approx(5 / 6)
+    assert "satellites: not declared by the golden" in result.details
     assert "hubs: 2/3 golden matched, 3 generated" in result.details
 
 
 def test_construct_f1_zero_when_golden_expected_but_nothing_generated() -> None:
     golden = GoldenModel(hubs=[GoldenHub(name="hub_a", business_key="a")])
     result = construct_f1(VaultAgentState(), _case(golden))
-    # hubs 0.0; links and satellites vacuous 1.0.
-    assert result.score == pytest.approx(2 / 3)
+    # Only hubs are declared and none were generated -> 0.0, as the test name says. The
+    # undeclared links/satellites no longer pad this to 2/3.
+    assert result.score == 0.0
 
 
-def test_construct_f1_penalises_ungolden_extras() -> None:
+def test_construct_f1_is_vacuous_when_the_golden_declares_nothing() -> None:
+    """An empty golden makes no claim, so generating constructs cannot violate it.
+
+    Reporting 0.0 here (pre-2026-07-28 behaviour) read as total failure on the synthetic
+    scale cases, which ship a golden *mapping* and no golden *model*."""
     golden = GoldenModel()  # nothing expected
     state = VaultAgentState(dv_model=DVModel(hubs=[_hub("hub_a", "a")]))
     result = construct_f1(state, _case(golden))
-    assert result.score == pytest.approx(2 / 3)  # hubs F1 0.0, links/sats vacuous
+    assert result.score == 1.0
+    assert "vacuous" in result.details
+    assert "1 generated, unscored" in result.details
+
+
+def test_construct_f1_still_penalises_extras_within_a_declared_kind() -> None:
+    """Only *undeclared* kinds are unscored — extras still cost precision where the
+    golden does make a claim."""
+    golden = GoldenModel(hubs=[GoldenHub(name="hub_a", business_key="a")])
+    state = VaultAgentState(
+        dv_model=DVModel(hubs=[_hub("hub_a", "a"), _hub("hub_extra", "x")])
+    )
+    # hubs: precision 1/2, recall 1/1 -> F1 = 2/3; the only declared kind.
+    assert construct_f1(state, _case(golden)).score == pytest.approx(2 / 3)
 
 
 def test_construct_f1_link_requires_same_hub_set() -> None:
@@ -131,7 +151,7 @@ def test_construct_f1_link_requires_same_hub_set() -> None:
         dv_model=DVModel(links=[_link("link_ab", ["hub_a", "hub_x"])])
     )
     result = construct_f1(state, _case(golden))
-    assert result.score == pytest.approx(2 / 3)  # links F1 0.0
+    assert result.score == 0.0  # links are the only declared kind and none matched
 
 
 def test_construct_f1_satellite_requires_parent_and_type() -> None:
@@ -142,7 +162,7 @@ def test_construct_f1_satellite_requires_parent_and_type() -> None:
         dv_model=DVModel(satellites=[_sat("sat_a", "hub_a", sat_type="standard")])
     )
     result = construct_f1(state, _case(golden))
-    assert result.score == pytest.approx(2 / 3)  # satellites F1 0.0
+    assert result.score == 0.0  # satellites are the only declared kind and none matched
 
 
 def test_construct_f1_optional_golden_attributes_compared_as_normalised_sets() -> None:
@@ -164,7 +184,7 @@ def test_construct_f1_optional_golden_attributes_compared_as_normalised_sets() -
         dv_model=DVModel(satellites=[_sat("sat_c", "hub_c", attributes=["CUSTOMER_NAME"])])
     )
     assert construct_f1(matching, _case(golden)).score == 1.0
-    assert construct_f1(diverging, _case(golden)).score == pytest.approx(2 / 3)
+    assert construct_f1(diverging, _case(golden)).score == 0.0
 
 
 # --- driving_key_accuracy -----------------------------------------------------------
@@ -249,7 +269,7 @@ def test_link_grain_distinguishes_self_reference_from_single_participation() -> 
         links=[GoldenLink(name="link_transfer", connected_hubs=["hub_account", "hub_account"])]
     )
     state = VaultAgentState(dv_model=DVModel(links=[_link("link_transfer", ["hub_account"])]))
-    assert construct_f1(state, _case(golden)).score == pytest.approx(2 / 3)  # links F1 0.0
+    assert construct_f1(state, _case(golden)).score == 0.0  # wrong grain, only kind declared
 
 
 def test_ambiguous_grain_is_disambiguated_by_name() -> None:

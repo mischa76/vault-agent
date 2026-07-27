@@ -20,6 +20,7 @@ from eval.run import (
     failed_gates,
     main,
     render_table,
+    vacuous_scorers,
 )
 from eval.scorers import ScorerResult
 
@@ -225,3 +226,33 @@ def test_run_metrics_carries_trace_path_and_backstop_fires() -> None:
     # An un-instrumented call keeps the pre-WP15 shape apart from the (empty) fire map.
     plain = run_mod.run_metrics(VaultAgentState(), 1.5, run_mod.UsageTotals())
     assert "trace_path" not in plain and plain["backstop_fires"] == {}
+
+
+def test_render_table_marks_vacuous_scorers() -> None:
+    stats = {
+        "construct_f1": ScoreStats(mean=1.0, min=1.0, max=1.0),
+        "mapping_coverage": ScoreStats(mean=1.0, min=1.0, max=1.0),
+    }
+    table = render_table("scale_30", stats, 1, ["construct_f1"])
+    lines = table.splitlines()
+    construct_line = next(line for line in lines if "construct_f1" in line)
+    coverage_line = next(line for line in lines if "mapping_coverage" in line)
+    assert "vacuous" in construct_line  # 1.000 alone would read as a perfect score
+    assert "vacuous" not in coverage_line  # a real 1.00 stays unqualified
+
+
+def test_vacuous_scorers_needs_every_run_to_be_vacuous() -> None:
+    def result(name: str, details: str) -> ScorerResult:
+        return ScorerResult(name=name, score=1.0, details=details)
+
+    runs = [
+        [result("a", "vacuous — nothing declared"), result("b", "all 3 correct")],
+        [result("a", "vacuous — nothing declared"), result("b", "all 3 correct")],
+    ]
+    assert vacuous_scorers(runs) == ["a"]
+
+    mixed = [
+        [result("a", "vacuous — nothing declared")],
+        [result("a", "2/3 golden matched")],  # one real verdict is enough
+    ]
+    assert vacuous_scorers(mixed) == []

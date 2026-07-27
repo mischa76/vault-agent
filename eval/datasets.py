@@ -173,6 +173,25 @@ def load_eval_case(path: Path) -> EvalCase:
                 f"(WP14); gate 'mapping_coverage'/'false_friend_hits' instead"
             )
 
+    # A scorer with nothing to check reports a vacuous 1.0 (construct_f1 with an empty
+    # golden model, driving_key_accuracy with no golden driving key). That number must not
+    # be gateable: the gate would pass on absence of evidence. Same loud-loader contract as
+    # above — name the file, the field, and why.
+    golden = case.golden
+    vacuous: list[str] = []
+    if not (golden.hubs or golden.links or golden.satellites):
+        vacuous.append("construct_f1")
+    if not any(link.driving_key for link in golden.links):
+        vacuous.append("driving_key_accuracy")
+    gated_vacuous = sorted(set(case.expectations.min_scores) & set(vacuous))
+    if gated_vacuous:
+        raise ValueError(
+            f"{path}: expectations.min_scores gates {gated_vacuous}, but the golden "
+            f"declares nothing for it — the scorer reports a vacuous 1.0, so the gate "
+            f"would pass on absence of evidence; declare the golden constructs/driving "
+            f"keys or drop the gate"
+        )
+
     # A generated case leaves the input paths unset; they are synthesised by
     # materialize_case(). A committed case resolves them to existing files now.
     if case.generate is None:

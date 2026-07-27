@@ -59,11 +59,20 @@ their rationale are documented as comments inside each `dataset.yml`.
   output: `link_policy_insured_person` and `link_insured_person_policy` are one construct.
   The name only breaks a tie when two generated links share a grain (which the validator
   flags as `W_LINK_REDUNDANT_GRAIN`); an unresolvable tie stays unmatched rather than
-  guessing. A kind that is empty on both sides is vacuous (1.0); extras and misses both
-  cost score (precision/recall).
+  guessing. Extras and misses both cost score (precision/recall) **within a kind the
+  golden declares**; a kind the golden says nothing about is excluded from the mean, not
+  scored 0.0 — see the vacuity note below.
 - **driving_key_accuracy** — fraction of golden links with declared driving keys whose
   generated counterpart declares the same normalised set; 1.0 when the case declares none.
   The counterpart is resolved on grain, as for `construct_f1`.
+
+> **Vacuity — a scorer with nothing to check reports 1.0, and cannot be gated.** An empty
+> golden makes no claim, so generating constructs against it is not a failure: before
+> 2026-07-28 `construct_f1` returned **0.000** for the synthetic `scale_*` cases (which
+> ship a golden *mapping* and no golden *model*), which reads as total failure and means
+> "nothing was checked". Both scorers now say `vacuous` in their `details`, and
+> `load_eval_case` **rejects** a case whose `min_scores` gates one of them while the golden
+> declares nothing for it — otherwise the gate would pass on absence of evidence.
 
 > **Caveat — hubs and satellites are still name-keyed.** `normalize_identifier` folds
 > casing and separators but not word order, so a golden hub/satellite whose name the

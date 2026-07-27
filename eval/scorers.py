@@ -128,7 +128,15 @@ def _matched_satellites(state: VaultAgentState, case: EvalCase) -> int:
 
 
 def construct_f1(state: VaultAgentState, case: EvalCase) -> ScorerResult:
-    """Mean F1 of generated vs golden constructs across the three construct kinds."""
+    """Mean F1 over the construct kinds the golden actually declares.
+
+    A kind the golden says nothing about is EXCLUDED from the mean rather than scored 0.0.
+    Scoring it would punish the model for generating against an absent expectation: the
+    synthetic scale cases ship a golden *mapping* and no golden *model*, and used to read
+    ``construct_f1 0.000`` — which looks like total failure and means "nothing was
+    checked". A golden that declares nothing at all is vacuous (1.0, like
+    :func:`driving_key_accuracy`), and ``load_eval_case`` refuses to let a case gate it —
+    a vacuous score must never be able to pass a gate."""
     kinds = (
         ("hubs", _matched_hubs(state, case), len(state.dv_model.hubs), len(case.golden.hubs)),
         ("links", _matched_links(state, case), len(state.dv_model.links), len(case.golden.links)),
@@ -139,11 +147,24 @@ def construct_f1(state: VaultAgentState, case: EvalCase) -> ScorerResult:
             len(case.golden.satellites),
         ),
     )
-    scores = [_f1(matched, n_gen, n_gold) for _, matched, n_gen, n_gold in kinds]
+    declared = [kind for kind in kinds if kind[3] > 0]
+    scores = [_f1(matched, n_gen, n_gold) for _, matched, n_gen, n_gold in declared]
     details = "; ".join(
         f"{kind}: {matched}/{n_gold} golden matched, {n_gen} generated, F1={score:.2f}"
-        for (kind, matched, n_gen, n_gold), score in zip(kinds, scores, strict=True)
+        for (kind, matched, n_gen, n_gold), score in zip(declared, scores, strict=True)
     )
+    undeclared = [
+        f"{kind}: not declared by the golden ({n_gen} generated, unscored)"
+        for kind, _, n_gen, n_gold in kinds
+        if n_gold == 0
+    ]
+    details = "; ".join(filter(None, [details, *undeclared]))
+    if not scores:
+        return ScorerResult(
+            name="construct_f1",
+            score=1.0,
+            details=f"vacuous — the golden declares no constructs ({details})",
+        )
     return ScorerResult(name="construct_f1", score=sum(scores) / len(scores), details=details)
 
 
@@ -156,7 +177,7 @@ def driving_key_accuracy(state: VaultAgentState, case: EvalCase) -> ScorerResult
         return ScorerResult(
             name="driving_key_accuracy",
             score=1.0,
-            details="no golden driving keys declared",
+            details="vacuous — no golden driving keys declared",
         )
     misses: list[str] = []
     for golden in golden_links:
