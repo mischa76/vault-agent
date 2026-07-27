@@ -931,8 +931,8 @@ Two findings from that batch. (F1) WP13 candidate #1 is CONFIRMED and sharper th
 scale_30 repeat 2/3 died with `LLMCallError: emit_requirements: response truncated at
 max_tokens=4096`. The generate case is byte-deterministic for a fixed (tables, seed), so the
 input was identical to the repeat that passed — at 30 tables the requirements_parser sits ON the
-output cap and sampling variance decides. A flaky breakpoint, not a clean one; the fix (chunk the
-parser like the 2026-07-15 contract enricher) is a follow-up WP, not done here. WP14.1 behaved as
+output cap and sampling variance decides. A flaky breakpoint, not a clean one; FIXED in the
+paragraph below (2026-07-28). WP14.1 behaved as
 designed: repeat 1 was already persisted when repeat 2 died, so the batch is INCOMPLETE (1 of 3)
 and the gate verdict above rests on a single measurement. (F2) An eval-scorer defect found by
 reading the ablation traces, fixed here (eval/ only, no src/vault_agent change): link matching
@@ -962,6 +962,43 @@ although the synthetic cases carry a golden MAPPING and no golden MODEL at all. 
 signal — do not read it as one. 437 tests green (+4 in tests/test_eval_scorers.py: reversed name
 component order matches, self-reference grain stays distinguishable, ambiguous grain resolved by
 name, unresolvable tie stays a miss), ruff clean, mypy strict clean (37 files).
+
+The requirements-parser breakpoint (F1 above) is fixed and live-verified (2026-07-28). Two levers,
+both aimed at the OUTPUT — which is what overflows — not the input. (1) _MAX_TOKENS 4096 -> 8192,
+matching the contract enricher; output tokens are billed per generation, so the headroom is free.
+(2) Adaptive segmentation in agents/requirements_parser.py: the whole document is tried first and
+ONLY a truncated response triggers a split, so every document that already fits keeps making
+exactly one call with unchanged content (pinned by test — the segmentation is invisible until
+needed). split_document() halves the text at the best structural boundary nearest the midpoint
+(markdown heading, else blank line, else newline), so a segment is always a whole number of
+structural units and a requirement is never severed mid-sentence; recursion is bounded by
+_MAX_SPLIT_DEPTH=4 (up to 16 segments) and by an unsplittable segment, which re-raises. A FIXED
+CHARACTER THRESHOLD WOULD HAVE BEEN THE WRONG PROXY and this is the reason to keep the adaptive
+shape: messy_insurance is LARGER (4,511 chars) than the 30-table scale document (3,727) yet yields
+~34 requirements instead of ~100 — output tracks content DENSITY, not length, so any threshold
+that split the scale case would also have split a case that never needed it. llm.LLMCallError
+gains a typed `truncated` attribute (set on the stop_reason == "max_tokens" path) so the parser
+branches on the cause, never on message text (the P1 rule); a missing tool block still propagates
+unsplit. merge_records() folds the segments: each call numbers from scratch, so content-identical
+records (same text + category, seen twice across a cut) are dropped and colliding ids get a
+deterministic -2/-3 suffix — both no-ops for a single segment. New FlagKind.INPUT_SEGMENTED tells
+the human the document was split (advisory; deliberately NOT in REVIEW_FLAG_GROUPS since it fires
+once per document, same as INPUT_TRUNCATED). Live proof on a generated 100-table document (9,027
+chars, 93 bullets), every branch exercised once: call 1 over the whole document returned
+stop_reason=max_tokens with 8,192 output tokens and an empty payload; the split produced 6,015 +
+3,012 chars (lossless); calls 2 and 3 returned 88 and 47 records at 7,025 / 4,055 output tokens;
+the merge resolved 47 real id collisions (both segments emitted REQ-001…) into 135 requirements
+with zero duplicate ids, and the INPUT_SEGMENTED flag was raised. Cost of the adaptive shape,
+stated plainly: the triggering call burns its full output budget for nothing (~$0.12 of the
+~$0.31 probe) — paid only by documents that would otherwise fail outright. NOTE the live scale_30
+re-run (2026-07-27, 1 repeat) is NOT evidence for this fix: it emitted 3,591 output tokens, below
+even the old 4,096 cap, so it would have passed unfixed — it confirms the new cap is in effect and
+that the WP14 gates hold on a second independent measurement (mapping_coverage / false_friend_hits
+/ pipeline_health all 1.00, 40 calls, 856 s), nothing more. 446 tests green (+9 in
+tests/test_agents/test_requirements_parser.py: boundary priority, lossless split, indivisible
+document, merge identity for one segment, id de-collision + duplicate drop, one-call regression
+guard, truncation→split→merge, non-truncation error propagates unsplit, indivisible truncation
+propagates), ruff clean, mypy strict clean (37 files).
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
