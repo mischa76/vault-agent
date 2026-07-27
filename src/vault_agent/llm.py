@@ -127,6 +127,53 @@ class LLMCallError(RuntimeError):
         self.truncated = truncated
 
 
+# How often a unit of work may be halved before the truncation is re-raised: 4 levels =
+# up to 16 segments, far past any observed need. A deeper recursion means the per-segment
+# answer is not shrinking, so size is not the cause — surface it instead of paying on.
+MAX_SPLIT_DEPTH = 4
+
+
+async def call_with_truncation_split[T, R](
+    call: Callable[[T], Awaitable[R]],
+    unit: T,
+    split: Callable[[T], tuple[T, T] | None],
+    *,
+    max_depth: int = MAX_SPLIT_DEPTH,
+) -> list[R]:
+    """Run ``call`` on ``unit``, halving it via ``split`` only when the answer is truncated.
+
+    The shared half of a pattern that recurs whenever an agent's OUTPUT scales with the
+    size of the landscape: the whole unit is tried first, so anything that already fits
+    makes exactly one call with unchanged content and the segmentation stays invisible
+    until needed. A truncated response (``LLMCallError.truncated``) means the answer
+    outgrew the output budget — raising ``max_tokens`` buys headroom but not a bound, and
+    at 100 source tables even 8192 was not enough, so splitting the input is the only
+    lever that actually shrinks an answer.
+
+    ``split`` returns the two halves or ``None`` when the unit is indivisible; either an
+    indivisible unit or ``max_depth`` re-raises. Callers merge the returned per-segment
+    results themselves — deduping and key collisions are domain knowledge (requirement ids,
+    business-key identity), not something this helper can decide.
+
+    Anything other than a truncation propagates untouched: a missing tool block or an
+    exhausted retry budget is not a size problem and must not be answered by splitting."""
+
+    async def attempt(current: T, depth: int) -> list[R]:
+        try:
+            return [await call(current)]
+        except LLMCallError as exc:
+            halves = split(current) if exc.truncated else None
+            if halves is None or depth >= max_depth:
+                raise
+            logger.info("response truncated; splitting the unit of work at depth %d", depth)
+            results: list[R] = []
+            for half in halves:
+                results.extend(await attempt(half, depth + 1))
+            return results
+
+    return await attempt(unit, 0)
+
+
 class ForcedToolCaller:
     """Calls the Anthropic Messages API forcing one tool; returns the tool's input.
 

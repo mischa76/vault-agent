@@ -20,7 +20,7 @@ from typing import Any, Protocol
 from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.llm import LLMCallError
+from vault_agent.llm import call_with_truncation_split
 from vault_agent.state import FlagKind, ParsedRequirement, VaultAgentState
 
 logger = logging.getLogger(__name__)
@@ -31,12 +31,6 @@ _MAX_TOKENS = 8192
 # Guard against blowing the model's context window: ~4 chars/token heuristic,
 # capped well below the 200k window to leave room for system prompt + output.
 MAX_DOCUMENT_CHARS = 400_000
-
-# How often a document may be halved when the model's answer does not fit the output
-# budget: 4 levels = up to 16 segments, far past any observed need (the 30-table scale
-# landscape needs one split). A deeper recursion means the per-segment answer is not
-# shrinking, so the cause is not size — better to surface the error than to keep paying.
-_MAX_SPLIT_DEPTH = 4
 
 # Boundary classes for splitting a document, best first: a markdown heading starts a new
 # section, a blank line separates paragraphs/list blocks, a newline is the last resort
@@ -241,41 +235,19 @@ class RequirementsParserAgent(BaseAgent):
         extractor: RequirementExtractor,
         system_prompt: str,
         document: str,
-        depth: int = 0,
     ) -> list[list[dict[str, Any]]]:
         """Extract one document, halving it only when the model's answer did not fit.
 
-        The whole document is tried first, so every input that already fits produces
-        exactly one call with exactly today's content — the segmentation is invisible
-        until it is needed. A truncated response (``LLMCallError.truncated``, i.e.
-        ``stop_reason == "max_tokens"``) means the *answer* outgrew the output budget, not
-        that the input was too long: a dense inventory-style document yields several
-        atomic requirements per line, so output scales with content density, not with
-        character count. Splitting the input is the only lever that shrinks the answer.
-
-        Recursion is bounded by ``_MAX_SPLIT_DEPTH`` and by the text itself — an
-        unsplittable segment re-raises. The truncated call that triggered a split is paid
-        for; WP3 prompt caching keeps its input cost near zero, and it only happens on
-        documents that would otherwise fail outright."""
-        try:
-            return [await extractor.extract(system_prompt=system_prompt, document=document)]
-        except LLMCallError as exc:
-            halves = split_document(document) if exc.truncated else None
-            if halves is None or depth >= _MAX_SPLIT_DEPTH:
-                raise
-            logger.info(
-                "response truncated; splitting document (%d chars) at depth %d",
-                len(document),
-                depth,
-            )
-            segments: list[list[dict[str, Any]]] = []
-            for half in halves:
-                segments.extend(
-                    await RequirementsParserAgent._extract(
-                        extractor, system_prompt, half, depth + 1
-                    )
-                )
-            return segments
+        The truncation-driven recursion is shared with the business-key identifier
+        (:func:`llm.call_with_truncation_split`); what is specific here is the boundary
+        the split respects — a dense inventory-style document yields several atomic
+        requirements per line, so output scales with content DENSITY, not character
+        count, and a segment must stay a whole number of structural units."""
+        return await call_with_truncation_split(
+            lambda text: extractor.extract(system_prompt=system_prompt, document=text),
+            document,
+            split_document,
+        )
 
     @staticmethod
     def _read_document(doc_path: str, state: VaultAgentState) -> str | None:

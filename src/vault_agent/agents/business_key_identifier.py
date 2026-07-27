@@ -19,13 +19,60 @@ from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import render_schema_prompt_section
-from vault_agent.rules.dv2_rules import BUSINESS_KEY_CRITERIA
-from vault_agent.state import BusinessKeyCandidate, FlagKind, VaultAgentState
+from vault_agent.llm import call_with_truncation_split
+from vault_agent.rules.dv2_rules import BUSINESS_KEY_CRITERIA, normalize_identifier
+from vault_agent.state import (
+    BusinessKeyCandidate,
+    FlagKind,
+    ParsedRequirement,
+    VaultAgentState,
+)
 
 logger = logging.getLogger(__name__)
 
 _TOOL_NAME = "emit_business_keys"
-_MAX_TOKENS = 4096
+_MAX_TOKENS = 8192
+
+
+def split_requirements(
+    requirements: list[ParsedRequirement],
+) -> tuple[list[ParsedRequirement], list[ParsedRequirement]] | None:
+    """Halve the requirement list; ``None`` when a single requirement is left.
+
+    The unit of work here is a list, not prose, so the split is exact — no boundary
+    search, and nothing can be severed. Order is preserved within each half so the
+    candidates come back in a stable order."""
+    if len(requirements) < 2:
+        return None
+    midpoint = len(requirements) // 2
+    return requirements[:midpoint], requirements[midpoint:]
+
+
+def merge_candidates(
+    segments: list[list[dict[str, Any]]],
+) -> tuple[list[dict[str, Any]], int]:
+    """Concatenate per-segment candidates, dropping repeats of the same (entity, field).
+
+    Two segments can propose the same key when the entity is described in both halves of
+    the requirement list; the first proposal wins (order-preserving and deterministic —
+    picking "the better score" would need a tie-break the model cannot justify). A no-op
+    for a single segment, so an unsplit run round-trips byte-identically. Returns the
+    merged records and the number dropped."""
+    merged: list[dict[str, Any]] = []
+    seen: set[tuple[str, str]] = set()
+    dropped = 0
+    for records in segments:
+        for record in records:
+            key = (
+                normalize_identifier(str(record.get("entity", ""))),
+                normalize_identifier(str(record.get("field", ""))),
+            )
+            if key in seen:
+                dropped += 1
+                continue
+            seen.add(key)
+            merged.append(record)
+    return merged, dropped
 
 
 def _tool_schema() -> dict[str, Any]:
@@ -114,14 +161,37 @@ class BusinessKeyIdentifierAgent(BaseAgent):
             return state
 
         system_prompt = self._build_system_prompt(state)
-        requirements_json = json.dumps(
-            [req.model_dump() for req in state.requirements], indent=2
-        )
-        logger.debug("requirements payload: %d chars", len(requirements_json))
         extractor = self._get_extractor()
-        raw_records = await extractor.identify(
-            system_prompt=system_prompt, requirements_json=requirements_json
+
+        async def identify(chunk: list[ParsedRequirement]) -> list[dict[str, Any]]:
+            payload = json.dumps([req.model_dump() for req in chunk], indent=2)
+            logger.debug("requirements payload: %d chars", len(payload))
+            return await extractor.identify(
+                system_prompt=system_prompt, requirements_json=payload
+            )
+
+        # Same truncation-driven segmentation as the requirements parser: this agent's
+        # output scales with the number of business entities, so a large landscape
+        # overflows the budget even though each individual record is small. The whole
+        # list is tried first, so a normal run is one call with unchanged content.
+        segments = await call_with_truncation_split(
+            identify, list(state.requirements), split_requirements
         )
+        raw_records, dropped = merge_candidates(segments)
+        if len(segments) > 1:
+            logger.info(
+                "business keys identified over %d segment(s), %d duplicate(s) dropped",
+                len(segments),
+                dropped,
+            )
+            state.flag(
+                "business_key_identifier",
+                f"the {len(state.requirements)} requirement(s) did not fit one model "
+                f"response; business keys were identified over {len(segments)} segment(s) "
+                f"of the requirement list — a key spanning segments may be proposed from "
+                f"partial context, so review the candidate set",
+                kind=FlagKind.INPUT_SEGMENTED,
+            )
 
         candidates: list[BusinessKeyCandidate] = []
         for record in raw_records:

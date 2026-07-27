@@ -12,7 +12,12 @@ import anthropic
 import httpx
 import pytest
 
-from vault_agent.llm import ForcedToolCaller, LLMCallError, TraceEvent
+from vault_agent.llm import (
+    ForcedToolCaller,
+    LLMCallError,
+    TraceEvent,
+    call_with_truncation_split,
+)
 
 _TOOL = "emit_things"
 
@@ -365,3 +370,75 @@ async def test_module_level_trace_recorder_and_instance_override() -> None:
 
     assert len(module_events) == 1 and len(instance_events) == 1  # override wins, no duplicate
     assert llm._default_trace_recorder is None  # cleared
+
+
+# --- call_with_truncation_split -----------------------------------------------------
+# The shared half of the segmentation pattern (requirements parser + business-key
+# identifier). Keyless: the "call" is a plain async function.
+
+
+async def test_split_helper_makes_one_call_when_nothing_truncates() -> None:
+    seen: list[str] = []
+
+    async def call(unit: str) -> str:
+        seen.append(unit)
+        return unit.upper()
+
+    result = await call_with_truncation_split(call, "abc", lambda u: (u[:1], u[1:]))
+    assert result == ["ABC"]
+    assert seen == ["abc"]  # untouched — the split never ran
+
+
+async def test_split_helper_halves_until_each_part_fits() -> None:
+    async def call(unit: str) -> str:
+        if len(unit) > 2:
+            raise LLMCallError("truncated", truncated=True)
+        return unit
+
+    def split(unit: str) -> tuple[str, str] | None:
+        if len(unit) < 2:
+            return None
+        mid = len(unit) // 2
+        return unit[:mid], unit[mid:]
+
+    assert await call_with_truncation_split(call, "abcd", split) == ["ab", "cd"]
+
+
+async def test_split_helper_propagates_a_non_truncation_error() -> None:
+    calls = 0
+
+    async def call(unit: str) -> str:
+        nonlocal calls
+        calls += 1
+        raise LLMCallError("no tool_use block")  # truncated defaults to False
+
+    with pytest.raises(LLMCallError, match="no tool_use block"):
+        await call_with_truncation_split(call, "abcd", lambda u: (u[:2], u[2:]))
+    assert calls == 1  # a non-size failure must not be answered by splitting
+
+
+async def test_split_helper_reraises_when_the_unit_is_indivisible() -> None:
+    async def call(unit: str) -> str:
+        raise LLMCallError("truncated", truncated=True)
+
+    with pytest.raises(LLMCallError, match="truncated"):
+        await call_with_truncation_split(call, "x", lambda u: None)
+
+
+async def test_split_helper_stops_at_max_depth() -> None:
+    calls = 0
+
+    async def call(unit: str) -> str:
+        nonlocal calls
+        calls += 1
+        raise LLMCallError("truncated", truncated=True)
+
+    def split(unit: str) -> tuple[str, str]:
+        return unit, unit  # never shrinks — the pathological case the bound exists for
+
+    with pytest.raises(LLMCallError):
+        await call_with_truncation_split(call, "abcd", split, max_depth=2)
+    # Depth 0, 1, 2 — then the bound re-raises. The failure short-circuits the sibling
+    # branch rather than walking a full binary tree: a partial result that silently
+    # dropped half the input would be worse than a loud failure.
+    assert calls == 3
