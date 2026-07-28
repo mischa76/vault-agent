@@ -109,3 +109,26 @@ scale-test / residency / competitive-brief charters):
 Both are bound by the CLI-first invariant (WP11 §1): pure console operation stays a
 complete mode; nothing may become web- or prompt-only. Kick-offs: `kickoff/WP11-html-run-report.md`,
 `kickoff/WP12-interactive-resume.md`.
+
+## Addendum 2026-07-28 — review batch (project review 2026-07-28)
+
+Five WPs from `../reviews/project-review-2026-07-28.md` (findings 1–7). Shared
+conventions above apply unchanged.
+
+| WP | Spec | What | Size | Depends on |
+|----|------|------|------|------------|
+| WP17 | `wp17-cli-crash-recovery-spec.md` | CLI crash recovery: crashed `pending.json` phase, artifacts-so-far, resumable crashed threads, orphan pruning (finding 1) | M | — |
+| WP18 | `wp18-eval-gate-integrity-spec.md` | Eval gate integrity: loud missing-scorer gates, one vacuity convention, runtime vacuous-gate rejection (finding 2; eval/ only) | S | — |
+| WP19 | `wp19-contract-truncation-split-spec.md` | data_contract onto `call_with_truncation_split` (finding 3) | S | — |
+| WP20 | `wp20-name-gates-spec.md` | `E_BAD_NAME` gate + steering line, `write_outputs` refuse-guard, staging-name unification, normalised `E_SAT_ATTR_OVERLAP` (findings 4+5) | S | — |
+| WP21 | `wp21-robustness-hygiene-spec.md` | Flag-and-skip unreadable documents + hygiene batch 7a–f (findings 6+7) | S/M | WP17 |
+
+Waves (file-overlap driven, one branch per WP, serial merges as above): **wave 1 =
+WP18 + WP19 + WP20 in parallel** (eval/ vs. data_contract vs. validator/rules/generators
+— WP20's small `write_outputs` guard is the only cli.py touch and merges before WP17
+reworks that file); **wave 2 = WP17 alone** (invasive cli.py rework); **wave 3 = WP21**
+(cross-cutting sweep; STOP precondition WP17 merged). Recommended order rationale: the
+review pairs WP17+WP18 as highest impact — the safety net (pipeline) and the quality
+gates (eval) both have holes exactly where one would fall; WP19 and WP21 §2.1 remove the
+two remaining ways a run dies avoidably, which also makes future scale_100 attempts
+cheaper.
