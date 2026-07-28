@@ -1088,6 +1088,29 @@ the cross-scorer convention test incl. vacuous_scorers pickup, gap_detection pre
 false-friend non-vacuous, confidence_calibration polarity regression), ruff clean, mypy
 strict clean (37 files).
 
+WP19 put the LAST list-shaped agent on the shared truncation split (as of 2026-07-28,
+docs/architecture/backlog-2026-07/wp19-contract-truncation-split-spec.md). data_contract
+was the remaining site where a fixed width assumption could kill a run at the third
+pipeline stage: the enricher pre-chunked at _FIELDS_PER_CALL=40 and its own arithmetic
+(~200 output tokens/field ⇒ ~8,000 of the 8,192 budget) claimed that "keeps a full chunk
+well under" the cap — the review falsified it, and a denser-than-assumed chunk raised
+LLMCallError(truncated) with no recovery. Both layers are kept, deliberately: the
+pre-chunking stays as the cheap FIRST-ORDER bound (a known-wide table never pays a doomed
+full-budget probe call), and each unit now goes through llm.call_with_truncation_split
+(unit = the chunk's field list, split = exact halving via the new data_contract.split_fields,
+None at a single field; merge = the existing _merge_enrichment, which already folds fields
+across an asset's chunks). An indivisible single field that still truncates re-raises, and a
+non-truncation LLMCallError propagates unsplit — both the shared helper's contract, pinned
+here too. When any chunk of an asset had to split, ONE advisory FlagKind.INPUT_SEGMENTED
+flag is raised for that asset (asset = the asset name, message naming chunk and segment
+counts); deliberately NOT added to REVIEW_FLAG_GROUPS, so it stays individually visible like
+the parser's per-document flag. The system prompt stays byte-identical across every call
+(WP3 caching), and a run where nothing truncates makes exactly the same calls with the same
+payloads as before — pinned, together with the two pre-existing batching tests, which passed
+untouched. 478 tests green (+4: truncated chunk → halves → full field coverage + flag,
+non-truncation error propagates after exactly one call, indivisible truncation re-raises,
+no flag when nothing truncates), ruff clean, mypy strict clean (37 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

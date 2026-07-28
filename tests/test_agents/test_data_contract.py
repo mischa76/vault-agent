@@ -301,3 +301,106 @@ def test_write_outputs_persists_contracts(tmp_path: Any) -> None:
     assert counts["contracts"] == 1
     assert (tmp_path / "contracts" / "customer.contract.yml").exists()
     assert (tmp_path / "contracts" / "customer.tests.yml").read_text() == "version: 2\n"
+
+
+# --- WP19: the adaptive truncation split (no enrichment density can kill a run) -----------
+
+
+class _TruncatingEnricher:
+    """Truncates on any chunk wider than ``limit``, enriches every field otherwise.
+
+    Mirrors the real failure: ``ForcedToolCaller`` raises ``LLMCallError(truncated=True)``
+    when the answer outgrew the output budget — density, not field count, decides."""
+
+    def __init__(self, limit: int) -> None:
+        self._limit = limit
+        self.calls: list[dict[str, Any]] = []
+
+    async def enrich(self, *, system_prompt: str, assets_json: str) -> dict[str, Any]:
+        from vault_agent.llm import LLMCallError
+
+        payload = json.loads(assets_json)
+        self.calls.append(payload)
+        if any(len(cols) > self._limit for cols in payload.values()):
+            raise LLMCallError("emit_contract_enrichment: response truncated", truncated=True)
+        return {
+            name: {"doc": f"doc {name}", "fields": {c: {"data_type": "string"} for c in cols}}
+            for name, cols in payload.items()
+        }
+
+
+async def test_truncated_chunk_is_halved_and_fully_enriched() -> None:
+    from vault_agent.agents.data_contract import _FIELDS_PER_CALL
+    from vault_agent.state import FlagKind
+
+    cols = [f"col_{i}" for i in range(_FIELDS_PER_CALL)]
+    state = VaultAgentState(source_schemas=[SourceTable(table="dense", columns=cols)])
+    # The full chunk truncates; its halves fit.
+    enricher = _TruncatingEnricher(limit=_FIELDS_PER_CALL // 2)
+    result = await DataContractAgent(enricher=enricher).run(state)
+
+    # One doomed probe call, then the two halves — the split only fires on truncation.
+    assert [len(next(iter(call.values()))) for call in enricher.calls] == [
+        _FIELDS_PER_CALL, _FIELDS_PER_CALL // 2, _FIELDS_PER_CALL // 2,
+    ]
+    # Every field survived the merge with its enrichment (no half dropped).
+    contract = DataContract.model_validate(result.artifacts.contracts[0])
+    assert [f.name for f in contract.fields] == cols
+    assert all(f.constraints.data_type == "string" for f in contract.fields)
+    # ... and the human is told, once, for that asset.
+    segmented = [f for f in result.flags if f.kind == FlagKind.INPUT_SEGMENTED]
+    assert len(segmented) == 1
+    assert segmented[0].asset == "dense" and segmented[0].severity == "advisory"
+
+
+class _FailingEnricher:
+    """Fails every call with a non-truncation error (a missing tool block, say)."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def enrich(self, *, system_prompt: str, assets_json: str) -> dict[str, Any]:
+        from vault_agent.llm import LLMCallError
+
+        self.calls += 1
+        raise LLMCallError("emit_contract_enrichment: no tool block in the response")
+
+
+async def test_non_truncation_error_propagates_unsplit() -> None:
+    import pytest
+
+    from vault_agent.llm import LLMCallError
+
+    state = VaultAgentState(
+        source_schemas=[SourceTable(table="customer", columns=["a", "b", "c", "d"])]
+    )
+    enricher = _FailingEnricher()
+    with pytest.raises(LLMCallError, match="no tool block"):
+        await DataContractAgent(enricher=enricher).run(state)
+    assert enricher.calls == 1  # not a size problem: never answered by splitting
+
+
+async def test_indivisible_chunk_that_still_truncates_re_raises() -> None:
+    import pytest
+
+    from vault_agent.llm import LLMCallError
+
+    state = VaultAgentState(source_schemas=[SourceTable(table="one", columns=["only_field"])])
+    enricher = _TruncatingEnricher(limit=0)  # even a single field truncates
+    with pytest.raises(LLMCallError, match="truncated"):
+        await DataContractAgent(enricher=enricher).run(state)
+    assert len(enricher.calls) == 1  # nothing left to halve — surfaces instead of looping
+
+
+async def test_no_segmentation_flag_when_nothing_truncates() -> None:
+    """Zero behaviour change on a normal run: same calls, same payloads, no flag."""
+    from vault_agent.state import FlagKind
+
+    state = VaultAgentState(
+        source_schemas=[SourceTable(table="customer", columns=["a", "b"])],
+    )
+    enricher = _EchoTypeEnricher()
+    result = await DataContractAgent(enricher=enricher).run(state)
+
+    assert enricher.calls == [{"customer": ["a", "b"]}]
+    assert not [f for f in result.flags if f.kind == FlagKind.INPUT_SEGMENTED]
