@@ -174,6 +174,13 @@ KIND_ORDER: tuple[str, ...] = (
 )
 
 
+def _collapsed_source(members: list[ReviewItem]) -> str:
+    """The agent a collapsed line is attributed to: the members' one source, or "multiple
+    agents" when they disagree (honest attribution beats a plausible single name)."""
+    sources = {item.source for item in members}
+    return sources.pop() if len(sources) == 1 else "multiple agents"
+
+
 def aggregate_review_flags(flags: list[ReviewItem]) -> list[ReviewItem]:
     """Collapse repetitive advisory flags for display (finding #3).
 
@@ -194,7 +201,11 @@ def aggregate_review_flags(flags: list[ReviewItem]) -> list[ReviewItem]:
                     kind="review_flag",
                     summary=f"{len(members)}× {label}",
                     detail=f"e.g. {_sample_phrase(members)} — review before agreeing",
-                    source="data_contract",
+                    # Derived from the members, never hardcoded (WP21 §2.3): the collapsed
+                    # groups come from three different agents (contracts from data_contract,
+                    # source bindings from code_generator, mappings from source_mapper), and
+                    # naming the wrong one sends a reviewer to the wrong artifact.
+                    source=_collapsed_source(members),
                     group=group,
                 )
             )

@@ -468,6 +468,12 @@ class CodeGeneratorAgent(BaseAgent):
                     continue
                 from vault_agent.agents.staging_generator import multi_source_staging_name
 
+                # Parity with _render_satellite (WP21 §2.5): the per-source branch renders
+                # the same column set, so it owes the same collision visibility — once for
+                # the satellite, not once per feed (the labels are identical across feeds).
+                state.flags.extend(
+                    _collision_warnings(sat.attributes + sat.child_dependent_key, sat.name)
+                )
                 for source in parent_hub.sources:
                     per_name = _sat_source_name(sat, source)
                     staging_model = multi_source_staging_name(parent_hub, source)

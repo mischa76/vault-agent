@@ -291,3 +291,31 @@ def test_tool_schema_exposes_satellite_source_table() -> None:
     sat_schema = _tool_schema()["properties"]["satellites"]["items"]
     assert "source_table" in sat_schema["properties"]
     assert any("source_table" in rule.text for rule in DV_MODELING_RULES)
+
+
+# --- WP21 §2.6: a dropped record names the construct it was --------------------------------
+
+
+async def test_dropped_record_carries_its_name_as_asset() -> None:
+    """Every other DROPPED_RECORD flag names its construct; "one hub was invalid" is not
+    something a reviewer can act on."""
+    from vault_agent.state import FlagKind
+
+    payload = _valid_payload()
+    payload["hubs"].append({"name": "hub_broken"})  # missing required fields
+    result = await Dv2ModelerAgent(extractor=StubExtractor(payload)).run(_state())
+
+    [flag] = [f for f in result.flags if f.kind == FlagKind.DROPPED_RECORD]
+    assert flag.asset == "hub_broken"
+
+
+async def test_dropped_record_without_a_usable_name_stays_unattributed() -> None:
+    """A record too broken to carry a name gets no asset — never an invented one."""
+    from vault_agent.state import FlagKind
+
+    payload = _valid_payload()
+    payload["hubs"].append({"business_key": "k", "name": "   "})  # blank name
+    result = await Dv2ModelerAgent(extractor=StubExtractor(payload)).run(_state())
+
+    [flag] = [f for f in result.flags if f.kind == FlagKind.DROPPED_RECORD]
+    assert flag.asset is None

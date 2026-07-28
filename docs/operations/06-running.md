@@ -37,16 +37,18 @@ vault-agent [--debug] run <input_doc> [OPTIONS]
 | `--out`, `-o <dir>` | `output` | Output directory (also holds the run's checkpoint) |
 | `--source-schema`, `-s <file>` | — | Ground against a declared schema (6.1) |
 | `--profiling <file>` | — | Mapper evidence (6.1) |
-| `--write / --no-write` | write | Write artifacts to disk |
+| `--write / --no-write` | write | Write **artifacts** to disk. Run state (checkpoint, `pending.json`, trace) is written regardless — a paused `--no-write` run must stay resumable |
 | `--trace / --no-trace` | trace | LLM transcript under `.vault-agent/traces/` (10.2) |
 | `--interactive / --no-interactive` | auto | Checkpoint prompt in-terminal; auto = only when run in a TTY |
 | `--debug` (global, before the command) | off | DEBUG logging + full tracebacks |
 
 Console output, in order: the execution plan, per-agent progress with construct
 counts, a `grounding: on (N source table(s))` / `off` line, the run summary, and — when
-the run pauses — the review queue, blocking items first. Input-file problems
-(unreadable document, malformed schema/profiling) fail before any LLM call with an
-attributable message.
+the run pauses — the review queue, blocking items first. A malformed
+`--source-schema`/`--profiling` fails before any LLM call with an attributable message. An
+input document that exists but cannot be read (a Latin-1 `.md`, a corrupt PDF/`.docx`) is
+flagged as an error and **skipped**, like an unsupported extension — one bad file in a
+multi-document run never takes the run down.
 
 ## 6.3 What a run does
 
@@ -122,7 +124,10 @@ as above (flags apply immediately, a TTY prompts, a pipe prints the instructions
 not worth continuing is thrown away with `--discard`, which deletes the checkpoint thread
 and `pending.json` (artifacts already written are untouched).
 
-`--trace` (default on) appends the resume's LLM calls to the same transcript.
+`resume` takes `--write/--no-write` with the same artifacts-only meaning: a run paused
+under `--no-write` says so in its pause message, because resuming **does** write unless you
+pass `--no-write` again. `--trace` (default on) appends the resume's LLM calls to the same
+transcript.
 
 ## 6.6 Exit codes & failure surface
 

@@ -269,12 +269,29 @@ class RequirementsParserAgent(BaseAgent):
             )
             return None
         suffix = path.suffix.lower()
-        if suffix in ("", ".md", ".txt"):
-            text = path.read_text(encoding="utf-8")
-        elif suffix == ".pdf":
-            text = _extract_pdf_text(path)
-        elif suffix == ".docx":
-            text = _extract_docx_text(path)
+        if suffix in ("", ".md", ".txt", ".pdf", ".docx"):
+            try:
+                if suffix in ("", ".md", ".txt"):
+                    text = path.read_text(encoding="utf-8")
+                elif suffix == ".pdf":
+                    text = _extract_pdf_text(path)
+                else:
+                    text = _extract_docx_text(path)
+            # A supported extension is no promise that the bytes are readable: a Latin-1
+            # .md raises UnicodeDecodeError, an unreadable file OSError, and a corrupt
+            # PDF/.docx whatever pypdf or python-docx happens to raise — their exception
+            # surfaces are not a stable API, which is why the catch is broad here. The
+            # module's contract is flag-and-skip (as for an unsupported extension), so ONE
+            # bad file must not take a multi-document run down with it (WP21 §2.1).
+            except Exception as exc:  # noqa: BLE001 - see above: unstable library errors
+                state.flag(
+                    "requirements_parser",
+                    f"could not read {doc_path!r}: {type(exc).__name__}: {exc} — skipped",
+                    severity="error",
+                    kind=FlagKind.MISSING_INPUT,
+                    asset=doc_path,
+                )
+                return None
         else:
             state.flag(
                 "requirements_parser",

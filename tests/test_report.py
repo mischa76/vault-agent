@@ -206,3 +206,21 @@ def test_empty_state_renders_without_graph() -> None:
     assert 'class="mermaid"' not in out            # no graph section for an empty model
     assert "No model constructs" in out
     assert out.count("<script") == 1               # the include is still present
+
+
+def test_collapsed_source_is_rendered_identically_by_both_renderers() -> None:
+    """WP21 §2.3: the collapsed line's agent attribution is derived from its members, so all
+    renderers show the same (correct) source — none of them owns that knowledge."""
+    state = VaultAgentState()
+    for i in range(4):
+        state.flag(
+            "code_generator", f"staging for stg_{i} bound to an inferred raw table",
+            kind="source_binding", asset=f"stg_{i}",
+        )
+
+    md = render_review_queue_md(assemble_review_queue(state))
+    html_section = _review_section(state)
+
+    assert "(code_generator)" in md  # was hardcoded to data_contract
+    assert "(code_generator)" in html.unescape(html_section)
+    assert "data_contract" not in md

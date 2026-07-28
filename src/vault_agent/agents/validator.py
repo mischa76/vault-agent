@@ -20,9 +20,9 @@ satellite-internal duplicate attributes
 collisions on a shared source entity (``E_HUB_HK_COLLISION``), duplicate hubs over the same
 business key and source (``E_DUP_HUB``), role-qualified link participations
 (``E_LINK_DUP_ROLE`` and the grounded ``W_ROLE_BK_NOT_IN_SOURCE``, ADR-0009/WP8), and
-optional source-schema grounding. Count the ``E_``/``W_`` codes in this module for the
-authoritative gate count — 33 as of WP20 (backlog-2026-07); the code, not this prose, is
-the source of truth.
+optional source-schema grounding. For the gate count, count the ``E_``/``W_`` codes in this
+module: the code is the source of truth, and a literal here only ever goes stale (it said
+"30 as of WP8" while the module had 32).
 """
 import logging
 from typing import Any

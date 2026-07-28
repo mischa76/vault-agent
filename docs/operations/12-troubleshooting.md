@@ -9,6 +9,7 @@
 | Run ends failed after *attempt 3/3* | The model couldn't produce a gate-clean model within the retry budget. | Read `report.html` + the review queue: recurring `E_` codes point at the requirements (ambiguous entities, relationship soup). Improve the document or ground with a schema; chapter 8 has per-code guidance. |
 | `INPUT_TRUNCATED` advisory flag | Document longer than 400k chars; pipeline continued on the head. | Usually fine for prose docs; for inventory-style docs, split or slim the input. |
 | `Could not load an input file: …` | Malformed `--source-schema`/`--profiling` (the loaders name file and problem). | Fix the named entry; the error is attributable by design — no LLM tokens were spent. |
+| `could not read <doc>: …` error flag | The document exists but is unreadable (non-UTF-8 text, corrupt PDF/`.docx`). | The file was skipped, not fatal: re-save it as UTF-8 / repair the document. A single-document run then has nothing to parse and fails attributably. |
 | Rate-limit / 5xx noise in `--debug` logs | Transient API failures. | Nothing — retried 3× with backoff automatically; only exhaustion surfaces as `LLMCallError`. |
 
 ## 12.2 Checkpoint & resume issues

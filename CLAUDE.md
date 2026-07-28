@@ -1188,6 +1188,42 @@ continuation, no-flags non-TTY reports instead of deciding, --discard, rescue ne
 orphan pruning spares the pending thread, pause-path phase regression + legacy phase-less
 pending, no false recovery promise), ruff clean, mypy strict clean (37 files).
 
+WP21 robustness + hygiene batch landed (as of 2026-07-28,
+docs/architecture/backlog-2026-07/wp21-robustness-hygiene-spec.md, review findings 6+7a–f),
+one behaviour fix and six cleanups. (§2.1) An unreadable document no longer kills a run:
+_read_document flagged-and-skipped an unsupported EXTENSION but let a Latin-1 .md
+(UnicodeDecodeError), a corrupt PDF (pypdf) or a broken .docx propagate — against the
+module's own contract. All three extraction branches are now wrapped; the catch is
+deliberately broad (`except Exception`, commented) because pypdf's and python-docx's
+exception surfaces are not a stable API, and the failure becomes an error flag
+(MISSING_INPUT, asset = the path, message naming the exception type) plus a skip, so one bad
+file in a multi-document run does not take the run down. (§2.2) The usage recorder is
+guarded like emit_trace — its docstring promised "never disturbs the call path" while having
+no try/except, and the response is already BILLED when it fires, so a broken accounting sink
+discarding it was the most expensive failure mode available. (§2.3) A collapsed review line
+derives its `source` from its members (one distinct source, else "multiple agents") instead
+of the hardcoded "data_contract" — the aggregatable groups come from three different agents,
+and the wrong name sends a reviewer to the wrong artifact. Rendering is unchanged in shape:
+md and the HTML report both print the derived source (the CLI checkpoint never printed a
+source, which stays as it was — no per-renderer logic was added). (§2.4) The validator
+docstring drops its literal gate count; the module already declares the code the source of
+truth, and the literal had been wrong twice. (§2.5) The WP10 multi-source satellite branch
+now emits _collision_warnings once per satellite, parity with _render_satellite, which it
+skipped by `continue`-ing. (§2.6) A dropped invalid construct carries its `name` as the
+flag's asset when the record still has a usable one — every other DROPPED_RECORD names its
+construct — and stays unattributed rather than inventing one when it does not. (§2.7)
+--no-write is decided and documented as ARTIFACTS-ONLY: run state (checkpoint, pending,
+trace) is always written, or a paused --no-write run would be unresumable. `resume` gains the
+matching --write/--no-write, both help texts state the scope, and a pause reached under
+--no-write warns that the printed resume WILL write unless --no-write is repeated. Docs:
+operations 06 (flag scope, resume, unreadable documents) and 12 (new troubleshooting row).
+The report fixture needed no regeneration — it carries no collapsed group, verified rather
+than assumed. 509 tests green (+12: three unreadable-document cases via parametrize, raising
+usage recorder, single- and multi-agent collapsed source, renderer parity for the derived
+source, one collision flag on the multi-source path, dropped-record asset present/absent,
+--no-write pause stays resumable + warns, resume --no-write finalises without artifacts),
+ruff clean, mypy strict clean (37 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

@@ -442,3 +442,16 @@ async def test_split_helper_stops_at_max_depth() -> None:
     # branch rather than walking a full binary tree: a partial result that silently
     # dropped half the input would be worse than a loud failure.
     assert calls == 3
+
+
+async def test_raising_usage_recorder_never_disturbs_the_call() -> None:
+    # WP21 §2.2: the docstring promised this; there was no try/except. The response is
+    # already generated and billed by then, so a broken accounting sink discarding it would
+    # be the most expensive possible failure mode.
+    def boom(model: str, input_tokens: int, output_tokens: int, cache_read: int) -> None:
+        raise RuntimeError("usage sink is broken")
+
+    client = _StubClient([_Message(content=[_tool_block({"ok": 1})])])
+    caller = ForcedToolCaller("test-model", client=client, sleep=_no_sleep, usage_recorder=boom)
+
+    assert await _call(caller) == {"ok": 1}

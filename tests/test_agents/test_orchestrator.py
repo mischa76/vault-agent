@@ -279,3 +279,36 @@ async def test_checkpoint_passthrough_when_nothing_blocks() -> None:
     assert result.decisions[-1] == {
         "agent": "human_checkpoint", "interrupted": False, "assigned": [],
     }
+
+
+# --- WP21 §2.3: a collapsed line is attributed to the agents it actually came from --------
+
+
+def test_collapsed_line_keeps_a_single_agent_source() -> None:
+    flags = [
+        ReviewItem(
+            kind="review_flag", summary=f"binding {i}", source="code_generator",
+            group="source_binding",
+        )
+        for i in range(AGGREGATE_THRESHOLD + 1)
+    ]
+    collapsed = aggregate_review_flags(flags)
+
+    assert len(collapsed) == 1
+    # Was hardcoded to "data_contract" — which sends a reviewer to the wrong artifact.
+    assert collapsed[0].source == "code_generator"
+
+
+def test_collapsed_line_from_several_agents_says_so() -> None:
+    flags = [
+        ReviewItem(
+            kind="review_flag", summary=f"mapping {i}",
+            source="source_mapper" if i % 2 else "code_generator",
+            group="source_binding",
+        )
+        for i in range(AGGREGATE_THRESHOLD + 1)
+    ]
+    collapsed = aggregate_review_flags(flags)
+
+    assert len(collapsed) == 1
+    assert collapsed[0].source == "multiple agents"  # honest, not a plausible single name

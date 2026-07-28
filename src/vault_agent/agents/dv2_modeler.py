@@ -261,9 +261,16 @@ class Dv2ModelerAgent(BaseAgent):
             try:
                 items.append(model_cls.model_validate(record))
             except ValidationError as exc:
+                # Attribute the drop when the record still carries a usable name (WP21 §2.6):
+                # every other DROPPED_RECORD flag names its construct, and a reviewer cannot
+                # act on "one hub was invalid" without knowing which one. A record too broken
+                # to carry a name stays unattributed rather than inventing one.
+                raw_name = record.get("name") if isinstance(record, dict) else None
+                asset = raw_name.strip() if isinstance(raw_name, str) and raw_name.strip() else None
                 state.flag(
                     "dv2_modeler",
                     f"dropped invalid {label}: {exc.error_count()} error(s)",
                     kind=FlagKind.DROPPED_RECORD,
+                    asset=asset,
                 )
         return items

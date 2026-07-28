@@ -1090,3 +1090,64 @@ def test_failure_before_the_checkpointer_promises_no_recovery(
     assert result.exit_code == 1
     assert "Pipeline failed:" in result.output
     assert "vault-agent resume" not in result.output
+
+
+# --- WP21 §2.7: --no-write governs ARTIFACTS; run state is always written -------------------
+
+
+def test_no_write_pause_still_leaves_a_resumable_run_and_says_what_resume_does(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: __import__(
+            "vault_agent.graph", fromlist=["build_graph"]
+        ).build_graph(_sqlite_stub_agents(block_signoff=True)),
+    )
+    out = tmp_path / "out"
+
+    result = runner.invoke(
+        app, ["run", str(doc), "--out", str(out), "--no-write", "--no-interactive"]
+    )
+
+    assert result.exit_code == 0
+    assert "nothing written to disk" in result.output
+    assert not (out / "report.html").exists()  # artifacts: none
+    assert _read_pending(out) is not None  # run state: written, or this would be unresumable
+    assert "--no-write" in result.output.split("Paused at the human-in-the-loop")[1]
+
+
+def test_resume_no_write_finalises_without_artifacts_but_clears_the_run_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: __import__(
+            "vault_agent.graph", fromlist=["build_graph"]
+        ).build_graph(_sqlite_stub_agents(block_signoff=True)),
+    )
+    out = tmp_path / "out"
+    runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-write", "--no-interactive"])
+
+    result = runner.invoke(
+        app,
+        ["resume", "--out", str(out), "--no-interactive", "--no-write",
+         "--owner", "customer=Data Team <data@x.io>", "--accept"],
+    )
+
+    assert result.exit_code == 0
+    assert "nothing written to disk" in result.output
+    assert "run finalized" in result.output
+    assert not (out / "report.html").exists()  # still no artifacts
+    assert _read_pending(out) is None  # but the run state is finished and cleaned up
+    import asyncio as _asyncio
+
+    assert _asyncio.run(_thread_ids(out)) == set()

@@ -3,6 +3,7 @@
 The LLM call is stubbed via the ``RequirementExtractor`` protocol so these tests run in
 CI without an Anthropic API key (``asyncio_mode = auto`` runs the async tests directly).
 """
+import re
 from pathlib import Path
 from typing import Any
 
@@ -358,3 +359,40 @@ async def test_indivisible_document_surfaces_the_truncation(tmp_path: Path) -> N
     with pytest.raises(LLMCallError, match="truncated"):
         await agent.run(VaultAgentState(input_documents=[str(doc)]))
     assert len(extractor.documents) == 1  # nothing to split, so no further calls
+
+
+# --- WP21 §2.1: an unreadable document is flagged and skipped, never fatal ------------------
+
+
+@pytest.mark.parametrize(
+    ("filename", "payload"),
+    [
+        # A Latin-1 encoded .md: read_text(encoding="utf-8") raises UnicodeDecodeError.
+        ("legacy.md", "Kundennummer: müssen eindeutig sein".encode("latin-1")),
+        # Bytes that are not a PDF at all — pypdf raises from inside its parser.
+        ("broken.pdf", b"%PDF-1.4\nnot really a pdf at all\n"),
+        # Same for python-docx (a .docx is a zip archive).
+        ("broken.docx", b"PK\x03\x04 corrupted archive"),
+    ],
+)
+async def test_unreadable_document_is_flagged_and_skipped(
+    tmp_path: Path, filename: str, payload: bytes
+) -> None:
+    """A supported extension is no promise that the bytes are readable. The module's
+    contract is flag-and-skip, so one bad file must not take the whole run down."""
+    bad = tmp_path / filename
+    bad.write_bytes(payload)
+    stub = StubExtractor(_valid_payload())
+    agent = RequirementsParserAgent(extractor=stub)
+
+    result = await agent.run(VaultAgentState(input_documents=[str(bad), str(EXAMPLE_DOC)]))
+
+    unreadable = [f for f in result.flags if "could not read" in f.message]
+    assert len(unreadable) == 1
+    assert unreadable[0].severity == "error"
+    assert unreadable[0].asset == str(bad)
+    assert filename in unreadable[0].message  # names the file …
+    assert re.search(r": \w+(Error|Exception)\b", unreadable[0].message)  # … and the cause
+    # the run continued: the good document was still parsed
+    assert len(stub.calls) == 1
+    assert len(result.requirements) == 2

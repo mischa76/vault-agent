@@ -858,7 +858,7 @@ def _report_written(console: Console, counts: dict[str, int], out: Path) -> None
     )
 
 
-def _report_paused(console: Console, out: Path) -> None:
+def _report_paused(console: Console, out: Path, write: bool = True) -> None:
     console.print(
         "\n[bold yellow]Paused at the human-in-the-loop checkpoint.[/bold yellow] "
         "Assign the contract owner(s) above and resume:\n"
@@ -866,6 +866,13 @@ def _report_paused(console: Console, out: Path) -> None:
         '--owner "<asset>=<Name> <<email>>"[/cyan]\n'
         "  (repeat --owner per asset; add --accept to proceed once owners are set)"
     )
+    if not write:
+        # The pause was reached under --no-write, but resume defaults to writing: say so,
+        # rather than letting the next command surprise the user with artifacts (WP21 §2.7).
+        console.print(
+            "  [dim]note: this run used --no-write; the resume above WILL write artifacts "
+            "unless you pass --no-write again[/dim]"
+        )
 
 
 def _report_crashed(console: Console, out: Path) -> None:
@@ -918,7 +925,12 @@ def run(
         ),
     ] = None,
     write: Annotated[
-        bool, typer.Option("--write/--no-write", help="Write artifacts to disk."),
+        bool,
+        typer.Option(
+            "--write/--no-write",
+            help="Write ARTIFACTS to disk (run state — checkpoint, pending, trace — is "
+                 "always written, or the run could not be resumed).",
+        ),
     ] = True,
     trace: Annotated[
         bool,
@@ -966,13 +978,16 @@ def run(
         console.print("\n[dim]--no-write: nothing written to disk.[/dim]")
 
     if paused:
+        # Run state (checkpoint, pending pointer, trace) is not an artifact and is written
+        # even under --no-write (WP21 §2.7): a paused run that could not be resumed would be
+        # strictly worse than useless.
         _write_pending(out, thread_id, input_doc)
         # WP12: answer the checkpoint in-terminal when interactive (needs write, since the
         # in-process resume finalises to disk); otherwise print today's resume instructions.
         if write and _is_interactive(interactive):
             _interactive_checkpoint(console, out, thread_id, state, trace)
         else:
-            _report_paused(console, out)
+            _report_paused(console, out, write)
     else:
         _clear_pending(out)
 
@@ -988,6 +1003,7 @@ def _resume_paused(
     map_: list[str] | None,
     trace: bool,
     interactive: bool | None,
+    write: bool = True,
 ) -> None:
     """Answer the HITL checkpoint of a paused run — the flag path and the WP12 prompt.
 
@@ -1001,7 +1017,11 @@ def _resume_paused(
     # WP12: with no decision flags and a TTY, drive the checkpoint interactively — load the
     # paused state from its checkpoint, then prompt + resume in-process. Flags win (no prompt),
     # and a non-TTY keeps today's flag-based path byte-identical.
-    if not _has_decision_flags(owner, accept, mappings, map_) and _is_interactive(interactive):
+    if (
+        not _has_decision_flags(owner, accept, mappings, map_)
+        and write
+        and _is_interactive(interactive)
+    ):
         try:
             state = asyncio.run(_paused_state(out, thread_id))
         except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly
@@ -1028,7 +1048,7 @@ def _resume_paused(
     console.print(f"[bold]Resuming[/bold] paused run in [cyan]{out}/[/cyan] …\n")
     try:
         state, paused = asyncio.run(
-            _resume_pipeline(out, thread_id, decision, trace, input_doc)
+            _resume_pipeline(out, thread_id, decision, trace, input_doc, write)
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
         console.print(f"[bold red]Resume failed:[/bold red] {exc}")
@@ -1038,12 +1058,17 @@ def _resume_paused(
         raise typer.Exit(code=1) from exc
 
     _print_summary(console, state)
-    counts = write_outputs(state, out)
-    _report_written(console, counts, out)
+    if write:
+        counts = write_outputs(state, out)
+        _report_written(console, counts, out)
+    else:
+        console.print("\n[dim]--no-write: nothing written to disk.[/dim]")
 
     if paused:
-        _report_paused(console, out)
+        _report_paused(console, out, write)
     else:
+        # Finalised: the run state goes regardless of --no-write — it governs artifacts, and
+        # a finished run has nothing left to resume (the thread is already pruned).
         _clear_pending(out)
         console.print("\n[bold green]Checkpoint cleared — run finalized.[/bold green]")
 
@@ -1086,6 +1111,14 @@ def resume(
             help="Answer the checkpoint in the terminal (default: auto — on when a TTY).",
         ),
     ] = None,
+    write: Annotated[
+        bool,
+        typer.Option(
+            "--write/--no-write",
+            help="Write ARTIFACTS to disk (run state — checkpoint, pending, trace — is "
+                 "always written); repeat --no-write to keep a --no-write run dry.",
+        ),
+    ] = True,
     discard: Annotated[
         bool,
         typer.Option(
@@ -1122,7 +1155,9 @@ def resume(
         )
         try:
             state, paused = asyncio.run(
-                _continue_pipeline(out, thread_id, trace, Path(pending.get("input", "unknown")))
+                _continue_pipeline(
+                    out, thread_id, trace, Path(pending.get("input", "unknown")), write
+                )
             )
         except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly
             # The rescue already refreshed the crashed pending file with THIS error, so the
@@ -1135,8 +1170,11 @@ def resume(
             raise typer.Exit(code=1) from exc
 
         _print_summary(console, state)
-        counts = write_outputs(state, out)
-        _report_written(console, counts, out)
+        if write:
+            counts = write_outputs(state, out)
+            _report_written(console, counts, out)
+        else:
+            console.print("\n[dim]--no-write: nothing written to disk.[/dim]")
         if not paused:
             _clear_pending(out)
             console.print("\n[bold green]Checkpoint cleared — run finalized.[/bold green]")
@@ -1150,16 +1188,16 @@ def resume(
         _write_pending(out, thread_id, input_path)
         pending = {"thread_id": thread_id, "input": str(input_path)}
         if not _has_decision_flags(owner, accept, mappings, map_):
-            if _is_interactive(interactive):
+            if write and _is_interactive(interactive):
                 _interactive_checkpoint(console, out, thread_id, state, trace)
             else:
-                _report_paused(console, out)
+                _report_paused(console, out, write)
             return
 
     _resume_paused(
         console, out, pending,
         owner=owner, accept=accept, mappings=mappings, map_=map_,
-        trace=trace, interactive=interactive,
+        trace=trace, interactive=interactive, write=write,
     )
 
 

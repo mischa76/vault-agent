@@ -174,3 +174,25 @@ def test_ratification_sources_round_trip(tmp_path) -> None:
     assert [s.source_table for s in hub.sources] == ["crm_customer", "victor_partner"]
     assert [s.business_key_column for s in hub.sources] == ["cust_id", "partn_id"]
     assert "customer id" not in state.mappings.unresolved
+
+
+# ── WP21 §2.5: the per-source path owes the same collision visibility ──────────────────────
+async def test_multi_source_satellite_still_warns_about_colliding_labels() -> None:
+    """The per-source branch renders the same column set as _render_satellite, so it must
+    surface the same COLUMN_COLLISION warning — once per satellite, not once per feed."""
+    from vault_agent.state import FlagKind
+
+    model = _multi_source_model()
+    # "customer name" and "customer-name" both normalise to CUSTOMER_NAME: one column, two
+    # labels, silently overwriting each other in the payload.
+    model.satellites[0].attributes = ["customer name", "customer-name"]
+    state = VaultAgentState(dv_model=model)
+
+    result = await CodeGeneratorAgent().run(state)
+
+    collisions = [f for f in result.flags if f.kind == FlagKind.COLUMN_COLLISION]
+    assert len(collisions) == 1  # the satellite, not each of its two feeds
+    assert collisions[0].asset == "sat_customer_details"
+    assert "CUSTOMER_NAME" in collisions[0].message
+    # generation still proceeds: one satellite per source
+    assert "sat_customer_details_crm_customer" in result.artifacts.dbt_models

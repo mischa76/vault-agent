@@ -340,9 +340,14 @@ class ForcedToolCaller:
         if recorder is None:
             return
         usage = getattr(message, "usage", None)
-        recorder(
-            self._model,
-            int(getattr(usage, "input_tokens", 0) or 0),
-            int(getattr(usage, "output_tokens", 0) or 0),
-            int(getattr(usage, "cache_read_input_tokens", 0) or 0),
-        )
+        try:
+            recorder(
+                self._model,
+                int(getattr(usage, "input_tokens", 0) or 0),
+                int(getattr(usage, "output_tokens", 0) or 0),
+                int(getattr(usage, "cache_read_input_tokens", 0) or 0),
+            )
+        except Exception:  # noqa: BLE001 - observational channel, never fatal (as emit_trace)
+            # The response is already generated and BILLED at this point; letting a broken
+            # accounting sink discard it would be the most expensive possible failure mode.
+            logger.warning("usage recorder failed for a %s call", self._model, exc_info=True)
