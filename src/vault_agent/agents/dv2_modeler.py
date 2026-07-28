@@ -30,7 +30,21 @@ from vault_agent.state import DVModel, FlagKind, Hub, Link, Satellite, VaultAgen
 logger = logging.getLogger(__name__)
 
 _TOOL_NAME = "emit_dv_model"
-_MAX_TOKENS = 8192
+
+# The modeler emits ONE coherent model, so the truncation-split that carries the
+# requirements parser and the business-key identifier (llm.call_with_truncation_split)
+# does NOT apply here: merging two half-models is a modelling problem, not a dedup one —
+# a link can span the halves, a hub proposed in both must be reconciled, a satellite's
+# parent can sit on the other side. The only lever left is the budget.
+#
+# Measured (2026-07-28, replaying the truncated scale_100 call): 30 source tables need
+# 7,225 output tokens, 100 need 13,889 — sub-linear (3.3x tables -> 1.9x tokens), but at
+# 8192 the 30-table case was already at 88% and 100 tables overflowed. 16384 clears 100
+# tables with ~15% headroom and is the ceiling that is safe WITHOUT streaming: the shared
+# ForcedToolCaller is non-streaming, and non-streaming requests risk HTTP timeouts above
+# roughly this size. Extrapolating, 300 tables lands near 26k and needs a real answer —
+# streaming in ForcedToolCaller, or staged modelling (hubs, then links, then satellites).
+_MAX_TOKENS = 16384
 
 
 def _tool_schema() -> dict[str, Any]:
