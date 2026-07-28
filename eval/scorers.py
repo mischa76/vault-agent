@@ -33,6 +33,14 @@ class ScorerResult(BaseModel):
 
 Scorer = Callable[[VaultAgentState, EvalCase], ScorerResult]
 
+# One vacuity convention for every scorer (WP18 §2.2): a scorer with **nothing to check**
+# returns score 1.0 and details starting with this prefix. An empty golden makes no claim, so
+# scoring it as a failure (the pre-2026-07-28 ``construct_f1`` 0.000) is misleading — but the
+# 1.0 must be recognisable as "nothing was checked", which is what the prefix is for:
+# ``eval.run.vacuous_scorers`` keys on it to mark the console summary AND to refuse a gate on
+# a scorer that was vacuous in every repeat. Never emit a vacuous verdict without it.
+VACUOUS_PREFIX = "vacuous — "
+
 
 def _norm_set(labels: Iterable[str]) -> frozenset[str]:
     return frozenset(normalize_identifier(label) for label in labels)
@@ -163,7 +171,7 @@ def construct_f1(state: VaultAgentState, case: EvalCase) -> ScorerResult:
         return ScorerResult(
             name="construct_f1",
             score=1.0,
-            details=f"vacuous — the golden declares no constructs ({details})",
+            details=f"{VACUOUS_PREFIX}the golden declares no constructs ({details})",
         )
     return ScorerResult(name="construct_f1", score=sum(scores) / len(scores), details=details)
 
@@ -177,7 +185,7 @@ def driving_key_accuracy(state: VaultAgentState, case: EvalCase) -> ScorerResult
         return ScorerResult(
             name="driving_key_accuracy",
             score=1.0,
-            details="vacuous — no golden driving keys declared",
+            details=f"{VACUOUS_PREFIX}no golden driving keys declared",
         )
     misses: list[str] = []
     for golden in golden_links:
@@ -328,7 +336,7 @@ def mapping_accuracy(proposed: ProposedMapping, golden: GoldenMapping) -> Scorer
             ff_hits.append(f"{p.concept} → {p.table}.{p.column}")
 
     if n_mappable == 0 and not scored:
-        details = "no mappable concepts"
+        details = f"{VACUOUS_PREFIX}no mappable concepts"
         if out_of_universe:
             details += f"; {out_of_universe} proposals outside the golden universe, unscored"
         return ScorerResult(name="mapping_accuracy", score=1.0, details=details)
@@ -360,11 +368,17 @@ def gap_detection(
     name, so in the scale cases' column mode — where the modeler's free-form concept names
     diverge from the golden's vocabulary (WP14) — this scorer is blind. ``reported_only``
     prefixes the details to mark the score non-gateable there; the loader rejects a
-    column-mode case that gates it (``datasets.load_eval_case``)."""
+    column-mode case that gates it (``datasets.load_eval_case``).
+
+    With no golden gaps the verdict is vacuous (WP18 §2.2): the ``vacuous`` marker comes
+    **first** and the reported-only note after it, so ``vacuous_scorers``' ``startswith`` key
+    holds in both modes."""
     prefix = "concept-coupled — reported only in column mode; " if reported_only else ""
     gap_concepts = _gap_concepts(golden)
     if not gap_concepts:
-        return ScorerResult(name="gap_detection", score=1.0, details=prefix + "no golden gaps")
+        return ScorerResult(
+            name="gap_detection", score=1.0, details=f"{VACUOUS_PREFIX}{prefix}no golden gaps"
+        )
 
     proposed_gaps = {normalize_identifier(g) for g in proposed.gaps}
     proposed_concepts = {normalize_identifier(p.concept) for p in proposed.proposals}
@@ -405,7 +419,7 @@ def mapping_coverage(proposed: ProposedMapping, golden: GoldenMapping) -> Scorer
     )
 
     if n_mappable == 0:
-        details = "no mappable golden entries"
+        details = f"{VACUOUS_PREFIX}no mappable golden entries"
         if out_of_golden:
             details += f"; {out_of_golden} proposal(s) outside the golden column set, unscored"
         return ScorerResult(name="mapping_coverage", score=1.0, details=details)
@@ -447,9 +461,19 @@ def false_friend_hits(proposed: ProposedMapping, golden: GoldenMapping) -> Score
             score=0.0,
             details=f"{len(hits)} FALSE-FRIEND HIT(S): {', '.join(hits)}",
         )
-    watched = f"{len(friends)} false-friend column(s) watched" if friends else "none declared"
+    if not friends:
+        # Nothing declared to watch for: vacuous, not a clean bill of health (WP18 §2.2).
+        return ScorerResult(
+            name="false_friend_hits",
+            score=1.0,
+            details=f"{VACUOUS_PREFIX}the golden declares no false friends",
+        )
     return ScorerResult(
-        name="false_friend_hits", score=1.0, details=f"no false-friend columns bound ({watched})"
+        name="false_friend_hits",
+        score=1.0,
+        details=(
+            f"no false-friend columns bound ({len(friends)} false-friend column(s) watched)"
+        ),
     )
 
 
@@ -478,7 +502,15 @@ def confidence_calibration(proposed: ProposedMapping, golden: GoldenMapping) -> 
             wrong_conf.append(p.confidence)
 
     if not correct_conf and not wrong_conf:
-        return ScorerResult(name="confidence_calibration", score=0.0, details="no scored proposals")
+        # Nothing to separate: vacuous 1.0, not 0.0 (WP18 §2.2 polarity fix). Scoring
+        # "nothing to check" as total failure is the pre-2026-07-28 ``construct_f1`` defect
+        # mirrored; the prefix keeps the 1.0 from reading as perfect calibration and stops
+        # the runner from letting it satisfy a gate.
+        return ScorerResult(
+            name="confidence_calibration",
+            score=1.0,
+            details=f"{VACUOUS_PREFIX}no scored proposals",
+        )
     mean_correct = sum(correct_conf) / len(correct_conf) if correct_conf else 0.0
     mean_wrong = sum(wrong_conf) / len(wrong_conf) if wrong_conf else 0.0
     if not wrong_conf:

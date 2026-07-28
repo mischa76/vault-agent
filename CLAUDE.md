@@ -1055,6 +1055,39 @@ never declared, so a total miss scored 2/3 — and
 test_construct_f1_zero_when_golden_expected_but_nothing_generated now matches its own name.
 465 tests green, ruff clean, mypy strict clean (37 files).
 
+WP18 eval gate integrity landed (as of 2026-07-28, eval/ only, no src/vault_agent change;
+docs/architecture/backlog-2026-07/wp18-eval-gate-integrity-spec.md), closing the last two
+holes of the "a gate passes on absence of evidence" class after WP9.2, WP14 and the
+vacuous-_f1 fix. (§2.1) A gated scorer that produced NO score — a typo in min_scores, or a
+case whose golden_mapping.yml is missing, which makes _score_run skip the entire mapping
+family — used to disable its gate silently and exit 0; eval.run.unsatisfiable_gates (pure,
+reported before any score verdict) now prints `GATE UNSATISFIABLE: <name> is gated but
+produced no score …` to stderr and exits 1. It is deliberately separate from failed_gates:
+a batch defect must never be reported as a failed score. It is skipped when ZERO repeats
+completed, where every gate is trivially unscored and the WP14.1 BATCH INCOMPLETE line
+already states the cause. (§2.2) One vacuity convention for every scorer, single-sourced as
+scorers.VACUOUS_PREFIX ("vacuous — "): nothing to check ⇒ score 1.0 AND details starting
+with the prefix. mapping_accuracy / mapping_coverage / false_friend_hits / gap_detection
+gained it (in column mode the marker composes FIRST, the reported-only note after, so the
+startswith key holds), and confidence_calibration's polarity was inverted — it scored
+"no scored proposals" as 0.0, the pre-fix construct_f1 defect mirrored. construct_f1 /
+driving_key_accuracy keep their exact wording, now via the shared constant. (§2.3) A vacuous
+score can never satisfy a gate: the loader keeps its cheap early rejection for the model
+scorers, and the runner adds the check the loader structurally cannot make — the golden
+mapping is a separate file load_eval_case never opens — so a gated scorer that was vacuous
+in EVERY repeat is also GATE UNSATISFIABLE, exit 1. false_friend_hits now distinguishes a
+real clean bill of health ("N false-friend column(s) watched") from "none were declared".
+eval.ablate carries no min_scores gate and pinned no vacuity text, so only the details
+strings reach it. Deliberately changed pins: none needed updating — the four vacuity
+branches were unpinned and confidence_calibration's 0.0 was untested, which is how it
+survived. Acceptance #1 (deleting scale_30's golden_mapping.yml makes the runner exit 1)
+is NOT verified: the gate check runs after scoring, so the check costs a full live run —
+and, as the kick-off anticipated, the LLM calls come first. 474 tests green (+9: two
+unsatisfiable_gates unit tests, three main-level exit-code tests via a keyless stub seam,
+the cross-scorer convention test incl. vacuous_scorers pickup, gap_detection prefix order,
+false-friend non-vacuous, confidence_calibration polarity regression), ruff clean, mypy
+strict clean (37 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
