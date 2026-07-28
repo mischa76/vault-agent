@@ -1150,6 +1150,44 @@ overlap across satellites, disjoint attributes stay clean, three write-guard ref
 nothing written outside out_dir, the steering rule's registry/ledger pins), ruff clean, mypy
 strict clean (37 files).
 
+WP17 gave the CLI the crash safety the eval harness got in WP14.1 (as of 2026-07-28,
+docs/architecture/backlog-2026-07/wp17-cli-crash-recovery-spec.md, review finding 1). Until
+now ANY node raising after expensive LLM work threw everything away: _run_pipeline
+propagated, write_outputs never ran, no pending.json was written, and `resume` refused —
+while the completed nodes sat in checkpoints.sqlite under a thread_id printed nowhere. Now:
+(§2.1) pending.json carries phase "paused" | "crashed" (+ an `error` summary when crashed);
+the shape stays dict[str,str] and a pre-WP17 file without the key reads as paused (pinned).
+(§2.2) A crash triggers a RESCUE inside the saver block: record the crashed pointer — that
+pointer is what makes the thread reachable at all — then load the thread's latest checkpoint
+and write the artifacts-so-far, then RE-RAISE. Every rescue step is individually guarded and
+its failures are logged, never raised: the user must see the exception that actually killed
+the run, not one from the recovery (pinned by a test that breaks the checkpoint read). The
+thread is deliberately NOT deleted, and --no-write is honoured (pointer only). (§2.3)
+`resume` continues a crashed run with ainvoke(None) on the same thread — VERIFIED against
+the installed langgraph 1.2.4 rather than assumed (the WP8 t_link lesson): LangGraph resumes
+from the latest checkpoint and re-executes ONLY the failed node, so completed agents are not
+paid for twice (pinned: code_generator runs once across the crash+continue). If the continued
+run reaches the HITL checkpoint it becomes a paused run and is handled exactly as `run` does
+— decision flags apply immediately, a TTY prompts, a pipe prints the instructions; it never
+decides for a human who has not seen that checkpoint yet. New `resume --discard` drops thread
++ pointer for a run not worth continuing. (§2.4) At `run` start, threads pending.json does
+not reference are pruned — the SIGKILL class that never reaches an except-branch, i.e. the
+unbounded growth WP5 §5.5 fixed, reintroduced through the crash path. Listing uses the
+documented aiosqlite `conn` (verified against langgraph-checkpoint-sqlite 3.1.0); any failure
+skips pruning silently, because hygiene must never be why a run cannot start. Internally the
+three invocation paths (run / resume-with-decision / continue-crashed) are now ONE
+_invoke_checkpointed with the crash rescue in it, and _paused_state shares
+_state_from_checkpoint with the rescue. One honest limit: `run` only advertises recovery when
+a crashed pointer actually exists — a failure before the checkpointer opened (a bad input
+file) promises nothing, since there is nothing to continue. Docs updated in the same commit
+(operations 03/06/10/12: crashed phase, --discard, single-slot pending, orphan pruning, the
+new troubleshooting rows). 497 tests green (+10, all keyless against the stub graph but the
+REAL sqlite saver in tmp: crash writes pointer+artifacts and keeps the thread, cross-connection
+continuation finalises and prunes, crash→checkpoint pauses, flags applied after a
+continuation, no-flags non-TTY reports instead of deciding, --discard, rescue never masks,
+orphan pruning spares the pending thread, pause-path phase regression + legacy phase-less
+pending, no false recovery promise), ruff clean, mypy strict clean (37 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

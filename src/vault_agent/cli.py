@@ -55,6 +55,11 @@ from vault_agent.trace import JsonlTraceWriter
 
 app = typer.Typer(help="Agentic AI for Data Vault 2.0 automation.", no_args_is_help=True)
 
+# The CLI's own module logger: crash recovery and checkpoint pruning report through it (both
+# are best-effort hygiene whose failures must never reach the user's console as noise —
+# `--debug` surfaces them, WP5 §5.4).
+logger = logging.getLogger(__name__)
+
 # Set by the --debug flag (WP5 §5.4). The CLI is the only place logging is configured —
 # library code only emits via module loggers and never touches handlers or levels.
 _DEBUG = False
@@ -285,12 +290,32 @@ def _pending_path(out_dir: Path) -> Path:
     return _checkpoint_dir(out_dir) / "pending.json"
 
 
-def _write_pending(out_dir: Path, thread_id: str, input_doc: Path) -> None:
+# ``pending.json`` is SINGLE-SLOT per output directory: one unfinished run per ``--out``.
+# Concurrent runs into one directory are unsupported (they would overwrite each other's
+# pointer); the run-start pruning below relies on this to recognise orphaned threads.
+PENDING_PAUSED = "paused"
+PENDING_CRASHED = "crashed"
+
+
+def _write_pending(
+    out_dir: Path,
+    thread_id: str,
+    input_doc: Path,
+    *,
+    phase: str = PENDING_PAUSED,
+    error: str | None = None,
+) -> None:
+    """Point at the unfinished run's thread, and say WHY it is unfinished (WP17 §2.1).
+
+    ``phase`` is ``paused`` (the HITL interrupt — today's semantics) or ``crashed`` (a node
+    raised); a crashed file also carries a one-line ``error`` summary. The shape stays
+    ``dict[str, str]``, and a file written before WP17 (no ``phase`` key) reads as paused."""
     path = _pending_path(out_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps({"thread_id": thread_id, "input": str(input_doc)}), encoding="utf-8"
-    )
+    payload = {"thread_id": thread_id, "input": str(input_doc), "phase": phase}
+    if error is not None:
+        payload["error"] = error
+    path.write_text(json.dumps(payload), encoding="utf-8")
 
 
 def _read_pending(out_dir: Path) -> dict[str, str] | None:
@@ -299,6 +324,11 @@ def _read_pending(out_dir: Path) -> dict[str, str] | None:
         return None
     data: dict[str, str] = json.loads(path.read_text(encoding="utf-8"))
     return data
+
+
+def _pending_phase(pending: dict[str, str]) -> str:
+    """The pending run's phase; a pre-WP17 file without the key is a paused run."""
+    return pending.get("phase") or PENDING_PAUSED
 
 
 def _clear_pending(out_dir: Path) -> None:
@@ -311,62 +341,210 @@ def _state_from_result(result: dict[str, Any]) -> VaultAgentState:
     return VaultAgentState.model_validate(data)
 
 
+async def _state_from_checkpoint(compiled: Any, config: RunnableConfig) -> VaultAgentState:
+    """The state as of the thread's latest checkpoint — every node that completed.
+
+    Shared by the interactive resume (a paused run's state) and the crash path (the
+    artifacts-so-far a failed run already paid for): both need "what is on disk for this
+    thread", and there must be exactly one way to ask that."""
+    snapshot = await compiled.aget_state(config)
+    return VaultAgentState.model_validate(snapshot.values)
+
+
+async def _prune_orphan_threads(saver: Any, out_dir: Path, keep: str) -> None:
+    """Delete checkpoint threads no longer reachable from the CLI (WP17 §2.4).
+
+    WP5 §5.5 prunes a *finalised* run's thread, but a run killed hard (SIGKILL, a closed
+    laptop) never reaches any except-branch, so its thread would linger forever — the
+    unbounded growth WP5 fixed, reintroduced through the crash path. ``pending.json`` is
+    single-slot, so exactly two threads are reachable: the pending one and the run starting
+    now. Everything else is unreachable by construction.
+
+    Pruning is hygiene: any failure here is logged and swallowed — it must never be the
+    reason a run cannot start."""
+    referenced = {keep}
+    try:
+        pending = _read_pending(out_dir)
+    except (OSError, ValueError):  # unreadable/corrupt pointer: keep everything, prune nothing
+        logger.debug("pending.json unreadable; skipping orphan pruning", exc_info=True)
+        return
+    if pending and pending.get("thread_id"):
+        referenced.add(pending["thread_id"])
+    try:
+        await saver.setup()
+        # Verified against langgraph-checkpoint-sqlite 3.1.0: `conn` is the documented
+        # aiosqlite connection and checkpoints are keyed by thread_id in `checkpoints`.
+        async with saver.conn.execute("SELECT DISTINCT thread_id FROM checkpoints") as cursor:
+            rows = await cursor.fetchall()
+        orphans = sorted({str(row[0]) for row in rows} - referenced)
+    except Exception:  # noqa: BLE001 - hygiene must never block a run
+        logger.debug("could not list checkpoint threads; skipping orphan pruning", exc_info=True)
+        return
+    for thread_id in orphans:
+        try:
+            await saver.adelete_thread(thread_id)
+        except Exception:  # noqa: BLE001 - same reason
+            logger.debug("could not prune orphan thread %s", thread_id, exc_info=True)
+    if orphans:
+        logger.info("pruned %d orphaned checkpoint thread(s)", len(orphans))
+
+
+async def _invoke_checkpointed(
+    out_dir: Path,
+    thread_id: str,
+    payload: Any,
+    *,
+    input_doc: Path,
+    trace: bool,
+    write: bool,
+    prune_orphans: bool = False,
+) -> tuple[VaultAgentState, bool]:
+    """One checkpointed graph invocation: trace on, saver open, crash recovery around it.
+
+    ``payload`` is what a run needs to continue: an initial ``VaultAgentState`` for a fresh
+    run, ``Command(resume=decision)`` past the HITL interrupt, or ``None`` to continue a
+    crashed thread (LangGraph resumes from the latest checkpoint and re-executes the failed
+    node — verified against langgraph 1.2.4, not assumed).
+
+    Returns ``(state, paused)``. A finalised run's thread is pruned (WP5 §5.5); a paused or
+    crashed one keeps its thread, since that is exactly what ``resume`` continues."""
+    config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
+    with _tracing(out_dir, thread_id, trace):
+        async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out_dir)) as saver:
+            saver.serde = _checkpoint_serde()
+            if prune_orphans:
+                await _prune_orphan_threads(saver, out_dir, keep=thread_id)
+            compiled = build_graph().compile(checkpointer=saver)
+            try:
+                result = await compiled.ainvoke(payload, config=config)
+            except Exception as exc:
+                await _rescue(out_dir, thread_id, input_doc, compiled, config, exc, write)
+                raise
+            paused = "__interrupt__" in result
+            if not paused:
+                await saver.adelete_thread(thread_id)
+    return _state_from_result(result), paused
+
+
+async def _rescue(
+    out_dir: Path,
+    thread_id: str,
+    input_doc: Path,
+    compiled: Any,
+    config: RunnableConfig,
+    exc: BaseException,
+    write: bool,
+) -> None:
+    """Record the crash and write the artifacts-so-far — never masking ``exc`` (WP17 §2.2).
+
+    Everything the completed nodes produced sits in the thread's latest checkpoint; without
+    this the user pays for the LLM work and gets nothing, since ``write_outputs`` never runs
+    and ``resume`` refuses without a pointer. The ``crashed`` pending file is what makes the
+    thread reachable again — the thread_id is printed nowhere else.
+
+    Every step is individually guarded: a rescue failure is logged and swallowed, so the
+    caller re-raises the ORIGINAL exception, which is the one the user needs to see."""
+    try:
+        _write_pending(
+            out_dir, thread_id, input_doc,
+            phase=PENDING_CRASHED, error=f"{type(exc).__name__}: {exc}",
+        )
+    except OSError:
+        logger.warning("could not record the crashed run's pending pointer", exc_info=True)
+    if not write:
+        return  # --no-write: the user asked for no artifacts; the pointer is enough
+    try:
+        state = await _state_from_checkpoint(compiled, config)
+        counts = write_outputs(state, out_dir)
+        logger.info("crash recovery wrote %d raw-vault model(s) so far", counts["models"])
+    except Exception:  # noqa: BLE001 - a rescue must never replace the failure it rescues
+        logger.warning("could not write the crashed run's artifacts-so-far", exc_info=True)
+
+
 async def _run_pipeline(
     input_doc: Path,
     out_dir: Path,
     source_schemas: list[SourceTable] | None = None,
     profiling: dict[str, dict[str, ColumnProfile]] | None = None,
     trace: bool = True,
+    write: bool = True,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
 
     ``source_schemas`` (from ``--source-schema``) activates ADR-0004 grounding; ``profiling``
     (from ``--profiling``, WP9) feeds the business↔source mapper. Empty/``None`` leaves both
-    inert. ``trace`` (WP15) writes the run's LLM transcript beside its checkpoint."""
+    inert. ``trace`` (WP15) writes the run's LLM transcript beside its checkpoint. ``write``
+    is the ``--no-write`` flag, honoured by the crash rescue as well."""
     thread_id = uuid4().hex
     _checkpoint_dir(out_dir).mkdir(parents=True, exist_ok=True)
-    config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
-    with _tracing(out_dir, thread_id, trace):
-        async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out_dir)) as saver:
-            saver.serde = _checkpoint_serde()
-            compiled = build_graph().compile(checkpointer=saver)
-            result = await compiled.ainvoke(
-                # LangGraph's generic ainvoke doesn't infer our pydantic state as StateT;
-                # passing VaultAgentState is correct at runtime.
-                VaultAgentState(  # type: ignore[arg-type]
-                    input_documents=[str(input_doc)],
-                    source_schemas=source_schemas or [],
-                    profiling=profiling or {},
-                ),
-                config=config,
-            )
-            paused = "__interrupt__" in result
-            if not paused:
-                # Checkpoint pruning (WP5 §5.5): a finalised run's thread is never resumed,
-                # so its rows would only grow checkpoints.sqlite unboundedly. Paused runs
-                # keep their thread — it is exactly what `vault-agent resume` continues.
-                await saver.adelete_thread(thread_id)
-    return _state_from_result(result), paused, thread_id
+    state, paused = await _invoke_checkpointed(
+        out_dir,
+        thread_id,
+        # LangGraph's generic ainvoke doesn't infer our pydantic state as StateT;
+        # passing VaultAgentState is correct at runtime.
+        VaultAgentState(
+            input_documents=[str(input_doc)],
+            source_schemas=source_schemas or [],
+            profiling=profiling or {},
+        ),
+        input_doc=input_doc,
+        trace=trace,
+        write=write,
+        prune_orphans=True,
+    )
+    return state, paused, thread_id
 
 
 async def _resume_pipeline(
-    out_dir: Path, thread_id: str, decision: dict[str, Any], trace: bool = True
+    out_dir: Path,
+    thread_id: str,
+    decision: dict[str, Any],
+    trace: bool = True,
+    input_doc: Path | None = None,
+    write: bool = True,
 ) -> tuple[VaultAgentState, bool]:
     """Resume a paused run on the same thread with the human's decision.
 
     The trace appends to the same thread's jsonl, so a paused+resumed run is one transcript."""
-    config: RunnableConfig = {"configurable": {"thread_id": thread_id}}
-    with _tracing(out_dir, thread_id, trace):
-        async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out_dir)) as saver:
-            saver.serde = _checkpoint_serde()
-            compiled = build_graph().compile(checkpointer=saver)
-            result = await compiled.ainvoke(Command(resume=decision), config=config)
-            paused = "__interrupt__" in result
-            if not paused:
-                # Finalised on resume: prune the thread's checkpoints (WP5 §5.5).
-                await saver.adelete_thread(thread_id)
-    return _state_from_result(result), paused
+    return await _invoke_checkpointed(
+        out_dir,
+        thread_id,
+        Command(resume=decision),
+        input_doc=input_doc or Path("unknown"),
+        trace=trace,
+        write=write,
+    )
+
+
+async def _continue_pipeline(
+    out_dir: Path,
+    thread_id: str,
+    trace: bool = True,
+    input_doc: Path | None = None,
+    write: bool = True,
+) -> tuple[VaultAgentState, bool]:
+    """Continue a CRASHED run on its own thread (WP17 §2.3).
+
+    ``ainvoke(None, ...)`` picks the thread up at its latest checkpoint and re-executes the
+    node that failed — verified against the installed langgraph 1.2.4 rather than assumed.
+    Completed nodes are not re-run, so only the failed step is paid for twice."""
+    return await _invoke_checkpointed(
+        out_dir,
+        thread_id,
+        None,
+        input_doc=input_doc or Path("unknown"),
+        trace=trace,
+        write=write,
+    )
+
+
+async def _discard_pending(out_dir: Path, thread_id: str) -> None:
+    """Drop an unfinished run: its checkpoint thread and the pending pointer (WP17 §2.3)."""
+    async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out_dir)) as saver:
+        saver.serde = _checkpoint_serde()
+        await saver.adelete_thread(thread_id)
+    _clear_pending(out_dir)
 
 
 def _parse_owner(spec: str) -> tuple[str, dict[str, str | None]]:
@@ -621,8 +799,7 @@ async def _paused_state(out: Path, thread_id: str) -> VaultAgentState:
     async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out)) as saver:
         saver.serde = _checkpoint_serde()
         compiled = build_graph().compile(checkpointer=saver)
-        snapshot = await compiled.aget_state(config)
-    return VaultAgentState.model_validate(snapshot.values)
+        return await _state_from_checkpoint(compiled, config)
 
 
 def _print_summary(console: Console, state: VaultAgentState) -> None:
@@ -691,6 +868,27 @@ def _report_paused(console: Console, out: Path) -> None:
     )
 
 
+def _report_crashed(console: Console, out: Path) -> None:
+    """What a crashed run leaves behind, and the two ways forward (WP17 §2.2).
+
+    Silent unless a crashed pointer actually exists: a failure before the checkpointer opened
+    (a bad input path, say) leaves nothing to resume, and promising recovery there would be a
+    lie the user would waste a command discovering."""
+    try:
+        pending = _read_pending(out)
+    except (OSError, ValueError):
+        return
+    if pending is None or _pending_phase(pending) != PENDING_CRASHED:
+        return
+    console.print(
+        f"\n[yellow]The work completed before the failure is checkpointed[/yellow] and any "
+        f"artifacts produced so far were written to [cyan]{out}/[/cyan]. Continue where it "
+        f"stopped, or throw it away:\n"
+        f"  [cyan]vault-agent resume --out {out}[/cyan]\n"
+        f"  [cyan]vault-agent resume --out {out} --discard[/cyan]"
+    )
+
+
 @app.command()
 def run(
     input_doc: Annotated[
@@ -699,7 +897,11 @@ def run(
                        help="Requirements document (.md, .txt, .pdf, or .docx)."),
     ],
     out: Annotated[
-        Path, typer.Option("--out", "-o", help="Output directory for generated artifacts."),
+        Path,
+        typer.Option(
+            "--out", "-o",
+            help="Output directory for generated artifacts (one unfinished run per directory).",
+        ),
     ] = Path("output"),
     source_schema: Annotated[
         Path | None,
@@ -744,12 +946,15 @@ def run(
         raise typer.Exit(code=1) from exc
     try:
         state, paused, thread_id = asyncio.run(
-            _run_pipeline(input_doc, out, schemas, profiles, trace)
+            _run_pipeline(input_doc, out, schemas, profiles, trace, write)
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
-        if _DEBUG:
-            raise  # --debug: full traceback instead of the one-line summary
+        # The run's checkpointed work is NOT lost: _run_pipeline's rescue already recorded a
+        # crashed pending pointer and wrote the artifacts-so-far (WP17 §2.2).
         console.print(f"[bold red]Pipeline failed:[/bold red] {exc}")
+        _report_crashed(console, out)
+        if _DEBUG:
+            raise  # --debug: full traceback on top of the recovery instructions
         raise typer.Exit(code=1) from exc
 
     _print_summary(console, state)
@@ -772,10 +977,85 @@ def run(
         _clear_pending(out)
 
 
+def _resume_paused(
+    console: Console,
+    out: Path,
+    pending: dict[str, str],
+    *,
+    owner: list[str] | None,
+    accept: bool,
+    mappings: Path | None,
+    map_: list[str] | None,
+    trace: bool,
+    interactive: bool | None,
+) -> None:
+    """Answer the HITL checkpoint of a paused run — the flag path and the WP12 prompt.
+
+    Shared by ``resume`` on a paused pending file and by ``resume`` on a CRASHED one that
+    reached the checkpoint after being continued: the capability-parity rule (WP12) says the
+    two must offer exactly the same ways to decide, which they only do if it is one code
+    path."""
+    thread_id = pending["thread_id"]
+    input_doc = Path(pending.get("input", "unknown"))
+
+    # WP12: with no decision flags and a TTY, drive the checkpoint interactively — load the
+    # paused state from its checkpoint, then prompt + resume in-process. Flags win (no prompt),
+    # and a non-TTY keeps today's flag-based path byte-identical.
+    if not _has_decision_flags(owner, accept, mappings, map_) and _is_interactive(interactive):
+        try:
+            state = asyncio.run(_paused_state(out, thread_id))
+        except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly
+            if _DEBUG:
+                raise
+            console.print(f"[bold red]Resume failed:[/bold red] {exc}")
+            raise typer.Exit(code=1) from exc
+        console.print(f"[bold]Resuming[/bold] paused run in [cyan]{out}/[/cyan] (interactive) …\n")
+        _print_checkpoint(console, assemble_review_queue(state))
+        _interactive_checkpoint(console, out, thread_id, state, trace)
+        return
+
+    try:
+        overrides = _mappings_from_file(mappings) if mappings else {}
+        for spec in map_ or []:
+            concept, target = _parse_map(spec)
+            overrides[concept] = target
+        multi = _mapping_sources_from_file(mappings) if mappings else {}
+        decision = _build_decision(owner or [], accept, overrides, multi)
+    except (ValueError, OSError) as exc:
+        console.print(f"[bold red]{exc}[/bold red]")
+        raise typer.Exit(code=1) from exc
+
+    console.print(f"[bold]Resuming[/bold] paused run in [cyan]{out}/[/cyan] …\n")
+    try:
+        state, paused = asyncio.run(
+            _resume_pipeline(out, thread_id, decision, trace, input_doc)
+        )
+    except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
+        console.print(f"[bold red]Resume failed:[/bold red] {exc}")
+        _report_crashed(console, out)
+        if _DEBUG:
+            raise  # --debug: full traceback on top of the recovery instructions
+        raise typer.Exit(code=1) from exc
+
+    _print_summary(console, state)
+    counts = write_outputs(state, out)
+    _report_written(console, counts, out)
+
+    if paused:
+        _report_paused(console, out)
+    else:
+        _clear_pending(out)
+        console.print("\n[bold green]Checkpoint cleared — run finalized.[/bold green]")
+
+
 @app.command()
 def resume(
     out: Annotated[
-        Path, typer.Option("--out", "-o", help="Output directory of the paused run."),
+        Path,
+        typer.Option(
+            "--out", "-o",
+            help="Output directory of the paused or crashed run (one unfinished run each).",
+        ),
     ] = Path("output"),
     owner: Annotated[
         list[str] | None,
@@ -806,61 +1086,81 @@ def resume(
             help="Answer the checkpoint in the terminal (default: auto — on when a TTY).",
         ),
     ] = None,
+    discard: Annotated[
+        bool,
+        typer.Option(
+            "--discard",
+            help="Throw the unfinished run away: delete its checkpoint thread and pending file.",
+        ),
+    ] = False,
 ) -> None:
-    """Resume a run paused at the human-in-the-loop checkpoint (owners and/or mappings)."""
+    """Continue an unfinished run: paused at the checkpoint, or crashed mid-pipeline."""
     console = Console()
     pending = _read_pending(out)
     if pending is None:
-        console.print(f"[bold red]No paused run found[/bold red] under [cyan]{out}/[/cyan].")
+        console.print(f"[bold red]No unfinished run found[/bold red] under [cyan]{out}/[/cyan].")
         raise typer.Exit(code=1)
+    thread_id = pending["thread_id"]
+    phase = _pending_phase(pending)
 
-    # WP12: with no decision flags and a TTY, drive the checkpoint interactively — load the
-    # paused state from its checkpoint, then prompt + resume in-process. Flags win (no prompt),
-    # and a non-TTY keeps today's flag-based path byte-identical.
-    if not _has_decision_flags(owner, accept, mappings, map_) and _is_interactive(interactive):
-        try:
-            state = asyncio.run(_paused_state(out, pending["thread_id"]))
-        except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly
-            if _DEBUG:
-                raise
-            console.print(f"[bold red]Resume failed:[/bold red] {exc}")
-            raise typer.Exit(code=1) from exc
-        console.print(f"[bold]Resuming[/bold] paused run in [cyan]{out}/[/cyan] (interactive) …\n")
-        _print_checkpoint(console, assemble_review_queue(state))
-        _interactive_checkpoint(console, out, pending["thread_id"], state, trace)
+    if discard:
+        # The escape hatch for a run not worth continuing (a deterministic failure, an input
+        # that was wrong in the first place): drop the thread AND the pointer, and say so.
+        asyncio.run(_discard_pending(out, thread_id))
+        console.print(
+            f"[bold]Discarded[/bold] the {phase} run (thread {thread_id}) in "
+            f"[cyan]{out}/[/cyan]: checkpoint thread and pending.json deleted. Artifacts "
+            f"already written are untouched."
+        )
         return
 
-    try:
-        overrides = _mappings_from_file(mappings) if mappings else {}
-        for spec in map_ or []:
-            concept, target = _parse_map(spec)
-            overrides[concept] = target
-        multi = _mapping_sources_from_file(mappings) if mappings else {}
-        decision = _build_decision(owner or [], accept, overrides, multi)
-    except (ValueError, OSError) as exc:
-        console.print(f"[bold red]{exc}[/bold red]")
-        raise typer.Exit(code=1) from exc
-
-    console.print(f"[bold]Resuming[/bold] paused run in [cyan]{out}/[/cyan] …\n")
-    try:
-        state, paused = asyncio.run(
-            _resume_pipeline(out, pending["thread_id"], decision, trace)
+    if phase == PENDING_CRASHED:
+        error = pending.get("error", "unknown error")
+        console.print(
+            f"[bold]Continuing[/bold] crashed run in [cyan]{out}/[/cyan] "
+            f"(it failed with: {error}) …\n"
         )
-    except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
-        if _DEBUG:
-            raise  # --debug: full traceback instead of the one-line summary
-        console.print(f"[bold red]Resume failed:[/bold red] {exc}")
-        raise typer.Exit(code=1) from exc
+        try:
+            state, paused = asyncio.run(
+                _continue_pipeline(out, thread_id, trace, Path(pending.get("input", "unknown")))
+            )
+        except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly
+            # The rescue already refreshed the crashed pending file with THIS error, so the
+            # thread stays continuable; a deterministic failure simply repeats until the human
+            # fixes the cause or discards the run.
+            console.print(f"[bold red]The run failed again:[/bold red] {exc}")
+            _report_crashed(console, out)
+            if _DEBUG:
+                raise
+            raise typer.Exit(code=1) from exc
 
-    _print_summary(console, state)
-    counts = write_outputs(state, out)
-    _report_written(console, counts, out)
+        _print_summary(console, state)
+        counts = write_outputs(state, out)
+        _report_written(console, counts, out)
+        if not paused:
+            _clear_pending(out)
+            console.print("\n[bold green]Checkpoint cleared — run finalized.[/bold green]")
+            return
+        # The continued run reached the HITL checkpoint: it is a paused run from here on.
+        # Record that first (so a hard kill right here still leaves a resumable pointer),
+        # then handle the checkpoint exactly as `run` does — decision flags apply
+        # immediately, a TTY prompts, a pipe prints the instructions. What must NOT happen
+        # is deciding for the human: they have not seen this checkpoint yet.
+        input_path = Path(pending.get("input", "unknown"))
+        _write_pending(out, thread_id, input_path)
+        pending = {"thread_id": thread_id, "input": str(input_path)}
+        if not _has_decision_flags(owner, accept, mappings, map_):
+            if _is_interactive(interactive):
+                _interactive_checkpoint(console, out, thread_id, state, trace)
+            else:
+                _report_paused(console, out)
+            return
 
-    if paused:
-        _report_paused(console, out)
-    else:
-        _clear_pending(out)
-        console.print("\n[bold green]Checkpoint cleared — run finalized.[/bold green]")
+    _resume_paused(
+        console, out, pending,
+        owner=owner, accept=accept, mappings=mappings, map_=map_,
+        trace=trace, interactive=interactive,
+    )
 
 
 if __name__ == "__main__":

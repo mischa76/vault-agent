@@ -773,3 +773,320 @@ def test_write_outputs_refuses_a_hostile_staging_name(tmp_path: Path) -> None:
     )
     with pytest.raises(ValueError, match="refusing to write staging model"):
         write_outputs(state, tmp_path / "out")
+
+
+# --- WP17: crash recovery -----------------------------------------------------------------
+# Nothing here needs an API key: the graph is stubbed, but the checkpointer is the REAL
+# AsyncSqliteSaver in tmp_path — crash recovery is exactly about what survives on disk.
+
+
+def _crashing_stub_agents(
+    *, crash_node: str, crashes: dict[str, int], block_signoff: bool = False
+) -> "dict[str, object]":
+    """Stub agents where ``crash_node`` raises on its FIRST execution only.
+
+    ``crashes`` is the shared counter, so the same agent map can be rebuilt per connection
+    (as the CLI does) while the "already crashed once" fact survives — which is what makes a
+    resume observably continue rather than repeat the failure."""
+    from vault_agent.agents.base import BaseAgent
+    from vault_agent.agents.orchestrator import HumanCheckpointAgent
+    from vault_agent.graph import NODES
+    from vault_agent.state import Artifacts, ValidationReport
+
+    class _Stub(BaseAgent):
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        async def run(self, state: VaultAgentState) -> VaultAgentState:
+            if self.name == crash_node:
+                crashes[self.name] = crashes.get(self.name, 0) + 1
+                if crashes[self.name] == 1:
+                    raise RuntimeError("credit balance too low")
+            if self.name == "code_generator":
+                state.artifacts.dbt_models = {"hub_customer": "-- paid for already\n"}
+            if self.name == "validator":
+                state.validation_report = ValidationReport(passed=True, issues=[])
+            if self.name == "data_contract" and block_signoff:
+                state.artifacts = Artifacts(
+                    contracts=[
+                        {"name": "customer", "owner": {"name": "TODO: assign", "email": None}}
+                    ]
+                )
+            state.decisions.append({"agent": self.name})
+            return state
+
+    agents: dict[str, object] = {name: _Stub(name) for name in NODES}
+    agents["human_checkpoint"] = HumanCheckpointAgent()  # the real gate
+    return agents
+
+
+def _use_crashing_graph(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    crash_node: str = "validator",
+    block_signoff: bool = False,
+) -> dict[str, int]:
+    from vault_agent.graph import build_graph
+
+    crashes: dict[str, int] = {}
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(  # type: ignore[arg-type]
+            _crashing_stub_agents(
+                crash_node=crash_node, crashes=crashes, block_signoff=block_signoff
+            )
+        ),
+    )
+    return crashes
+
+
+async def _thread_ids(out_dir: Path) -> set[str]:
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+    from vault_agent.cli import _checkpoint_db
+
+    async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out_dir)) as saver:
+        await saver.setup()
+        async with saver.conn.execute("SELECT DISTINCT thread_id FROM checkpoints") as cursor:
+            return {str(row[0]) for row in await cursor.fetchall()}
+
+
+async def test_crash_records_pending_and_writes_artifacts_so_far(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The core of WP17: a mid-run failure must not throw away paid-for LLM work."""
+    from vault_agent.cli import _read_pending, _run_pipeline
+
+    _use_crashing_graph(monkeypatch)
+    with pytest.raises(RuntimeError, match="credit balance too low"):
+        await _run_pipeline(tmp_path / "req.md", tmp_path)
+
+    pending = _read_pending(tmp_path)
+    assert pending is not None
+    assert pending["phase"] == "crashed"
+    assert pending["error"] == "RuntimeError: credit balance too low"
+    assert pending["input"] == str(tmp_path / "req.md")
+    # the code generator's output — completed before the crash — is on disk
+    assert (tmp_path / "models" / "raw_vault" / "hub_customer.sql").is_file()
+    # and the thread is still there, because that is what resume continues
+    assert pending["thread_id"] in await _thread_ids(tmp_path)
+
+
+async def test_resume_continues_a_crashed_run_to_finalisation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _continue_pipeline, _read_pending, _run_pipeline
+
+    crashes = _use_crashing_graph(monkeypatch)
+    with pytest.raises(RuntimeError):
+        await _run_pipeline(tmp_path / "req.md", tmp_path)
+    pending = _read_pending(tmp_path)
+    assert pending is not None
+    thread_id = pending["thread_id"]
+
+    # A separate saver connection, exactly like `vault-agent resume` in another process.
+    state, paused = await _continue_pipeline(tmp_path, thread_id)
+
+    assert paused is False
+    assert crashes["validator"] == 2  # only the failed node re-ran
+    agents_run = [d["agent"] for d in state.decisions if "agent" in d]
+    assert "adr_author" in agents_run  # the run went all the way through
+    assert agents_run.count("code_generator") == 1  # completed nodes were NOT re-executed
+    assert await _thread_ids(tmp_path) == set()  # finalised -> thread pruned
+
+
+async def test_crashed_run_that_reaches_the_checkpoint_pauses(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _continue_pipeline, _read_pending, _run_pipeline
+
+    _use_crashing_graph(monkeypatch, block_signoff=True)
+    with pytest.raises(RuntimeError):
+        await _run_pipeline(tmp_path / "req.md", tmp_path)
+    pending = _read_pending(tmp_path)
+    assert pending is not None
+
+    _, paused = await _continue_pipeline(tmp_path, pending["thread_id"])
+
+    assert paused is True  # the HITL gate still applies after a crash+continue
+    assert pending["thread_id"] in await _thread_ids(tmp_path)
+
+
+def test_resume_of_a_crashed_run_applies_decision_flags(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Continuation + checkpoint in one command: the crashed run runs on, hits the gate, and
+    the given --owner/--accept are applied immediately (capability parity, WP12)."""
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_crashing_graph(monkeypatch, block_signoff=True)
+    out = tmp_path / "out"
+    crashed = runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+    assert crashed.exit_code == 1
+    assert "Pipeline failed:" in crashed.output
+    assert "vault-agent resume" in crashed.output  # the run says how to get the work back
+    assert _read_pending(out)["phase"] == "crashed"  # type: ignore[index]
+
+    result = runner.invoke(
+        app,
+        [
+            "resume", "--out", str(out), "--no-interactive",
+            "--owner", "customer=Data Team <data@x.io>", "--accept",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Continuing" in result.output and "credit balance too low" in result.output
+    assert "run finalized" in result.output
+    assert _read_pending(out) is None  # pending cleared on finalisation
+
+
+def test_resume_of_a_crashed_run_without_flags_prints_instructions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Non-TTY, no flags: the crashed run is continued and the checkpoint is REPORTED, never
+    decided on the human's behalf — they have not seen it yet."""
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_crashing_graph(monkeypatch, block_signoff=True)
+    out = tmp_path / "out"
+    runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+
+    result = runner.invoke(app, ["resume", "--out", str(out), "--no-interactive"])
+
+    assert result.exit_code == 0
+    assert "Continuing" in result.output
+    assert "Paused at the human-in-the-loop checkpoint" in result.output
+    assert "run finalized" not in result.output
+    pending = _read_pending(out)
+    assert pending is not None and pending["phase"] == "paused"  # crashed -> paused
+
+
+def test_resume_discard_drops_thread_and_pending(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_crashing_graph(monkeypatch)
+    out = tmp_path / "out"
+    runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+    pending = _read_pending(out)
+    assert pending is not None
+
+    result = runner.invoke(app, ["resume", "--out", str(out), "--discard"])
+
+    assert result.exit_code == 0
+    assert "Discarded" in result.output and "crashed" in result.output
+    assert _read_pending(out) is None
+    import asyncio as _asyncio
+
+    assert _asyncio.run(_thread_ids(out)) == set()
+
+
+async def test_recovery_failure_never_masks_the_original_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The rescue is best-effort by construction: whatever it hits, the user must still see
+    the exception that actually killed the run."""
+    from vault_agent import cli
+
+    _use_crashing_graph(monkeypatch)
+
+    async def broken_checkpoint_read(*args: object, **kwargs: object) -> object:
+        raise OSError("checkpoint unreadable")
+
+    monkeypatch.setattr(cli, "_state_from_checkpoint", broken_checkpoint_read)
+    with pytest.raises(RuntimeError, match="credit balance too low"):
+        await cli._run_pipeline(tmp_path / "req.md", tmp_path)
+
+    # the pointer (written before the artifact rescue) still made it
+    assert cli._read_pending(tmp_path)["phase"] == "crashed"  # type: ignore[index]
+
+
+async def test_run_start_prunes_orphan_threads_but_spares_the_pending_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """SIGKILL-class crashes never reach an except-branch, so their threads linger — the
+    unbounded growth WP5 §5.5 fixed, reintroduced through the crash path."""
+    from vault_agent.cli import _read_pending, _run_pipeline
+
+    # Two crashed runs in a row: pending.json is single-slot, so the FIRST crashed thread
+    # loses its pointer when the second crash overwrites it — exactly how a checkpoint DB
+    # would otherwise accumulate dead threads run after run.
+    _use_crashing_graph(monkeypatch)
+    with pytest.raises(RuntimeError):
+        await _run_pipeline(tmp_path / "req.md", tmp_path)
+    first_thread = _read_pending(tmp_path)["thread_id"]  # type: ignore[index]
+
+    _use_crashing_graph(monkeypatch)  # fresh crash counter: this run fails too
+    with pytest.raises(RuntimeError):
+        await _run_pipeline(tmp_path / "req.md", tmp_path)
+    second_thread = _read_pending(tmp_path)["thread_id"]  # type: ignore[index]
+    assert {first_thread, second_thread} <= await _thread_ids(tmp_path)
+
+    # The next run prunes what pending.json no longer references — and only that.
+    _use_crashing_graph(monkeypatch, crash_node="__none__")
+    _, _, fresh_thread = await _run_pipeline(tmp_path / "req.md", tmp_path)
+
+    threads = await _thread_ids(tmp_path)
+    assert first_thread not in threads  # orphaned by the second crash: pruned
+    assert second_thread in threads  # still referenced by pending.json: kept
+    assert fresh_thread not in threads  # finalised in this run: pruned as usual
+
+
+def test_pause_writes_the_paused_phase_and_legacy_pending_still_resumes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression: the pause path only gains the phase key, and a pre-WP17 pending.json
+    (no phase at all) is still treated as paused."""
+    import json as _json
+
+    from vault_agent.cli import _pending_path, _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: __import__(
+            "vault_agent.graph", fromlist=["build_graph"]
+        ).build_graph(_sqlite_stub_agents(block_signoff=True)),
+    )
+    out = tmp_path / "out"
+    paused_run = runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+    assert paused_run.exit_code == 0
+    pending = _read_pending(out)
+    assert pending is not None and pending["phase"] == "paused"
+
+    # Rewrite it in the pre-WP17 shape and resume: no phase key reads as paused.
+    _pending_path(out).write_text(
+        _json.dumps({"thread_id": pending["thread_id"], "input": pending["input"]}),
+        encoding="utf-8",
+    )
+    result = runner.invoke(
+        app,
+        ["resume", "--out", str(out), "--no-interactive",
+         "--owner", "customer=Data Team <data@x.io>", "--accept"],
+    )
+
+    assert result.exit_code == 0
+    assert "Resuming" in result.output and "run finalized" in result.output
+    assert _read_pending(out) is None
+
+
+def test_failure_before_the_checkpointer_promises_no_recovery(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failure with nothing checkpointed must not advertise `resume` — there would be
+    nothing to continue, and the user would waste a command finding that out."""
+    doc = _failing_pipeline_doc(tmp_path, monkeypatch)  # _run_pipeline itself is stubbed out
+    result = runner.invoke(app, ["run", str(doc), "--out", str(tmp_path / "out")])
+
+    assert result.exit_code == 1
+    assert "Pipeline failed:" in result.output
+    assert "vault-agent resume" not in result.output

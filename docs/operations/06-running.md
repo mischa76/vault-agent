@@ -87,7 +87,7 @@ Everything a finalized run writes below `--out`:
 ├── report.html                # self-contained run report incl. model graph (WP11)
 └── .vault-agent/              # run infrastructure, NOT a deliverable
     ├── checkpoints.sqlite     # LangGraph checkpointer (pause/resume)
-    ├── pending.json           # only while a run is paused
+    ├── pending.json           # while a run is unfinished (paused or crashed)
     └── traces/<thread>.jsonl  # LLM transcript (chapter 10)
 ```
 
@@ -101,23 +101,35 @@ chapter 9.
 ## 6.5 `vault-agent resume`
 
 ```
-vault-agent [--debug] resume [--out <dir>] [DECISION FLAGS]
+vault-agent [--debug] resume [--out <dir>] [DECISION FLAGS] [--discard]
 ```
 
-Resume reattaches to the paused thread recorded in `pending.json` under `--out`
-(default `output`) — same shell or days later, the checkpoint is on disk. With
-**decision flags** (`--owner`, `--accept`, `--map`, `--mappings` — semantics in
-chapter 7) it applies the decision and continues. With **no flags in a TTY** it loads
-the paused state, re-prints the review queue, and drives the checkpoint interactively;
-on a non-TTY it prints the flag instructions instead. `--trace` (default on) appends
-the resume's LLM calls to the same transcript.
+Resume reattaches to the unfinished thread recorded in `pending.json` under `--out`
+(default `output`) — same shell or days later, the checkpoint is on disk. `pending.json`
+is **single-slot**: one unfinished run per output directory (concurrent runs into one
+`--out` are unsupported).
+
+**A paused run** (`phase: paused` — the HITL checkpoint). With **decision flags**
+(`--owner`, `--accept`, `--map`, `--mappings` — semantics in chapter 7) it applies the
+decision and continues. With **no flags in a TTY** it loads the paused state, re-prints
+the review queue, and drives the checkpoint interactively; on a non-TTY it prints the
+flag instructions instead.
+
+**A crashed run** (`phase: crashed` — a node raised, WP17). Resume continues the thread
+where it stopped: LangGraph re-executes only the failed node, so the completed agents are
+not paid for twice. If the continued run reaches the HITL checkpoint it is handled exactly
+as above (flags apply immediately, a TTY prompts, a pipe prints the instructions). A run
+not worth continuing is thrown away with `--discard`, which deletes the checkpoint thread
+and `pending.json` (artifacts already written are untouched).
+
+`--trace` (default on) appends the resume's LLM calls to the same transcript.
 
 ## 6.6 Exit codes & failure surface
 
 | Code | Meaning | On disk |
 |------|---------|---------|
 | 0 | Finalized — or paused, which is a normal outcome, not an error | Full artifacts; paused: + `pending.json`, kept checkpoint |
-| 1 | Input-file error (before any LLM call), pipeline failure, or `resume` with no paused run | Failure after start: artifacts-so-far + report + trace |
+| 1 | Input-file error (before any LLM call), pipeline failure, or `resume` with no unfinished run | Failure after start: artifacts-so-far + report + trace + a `crashed` `pending.json`, so `resume` continues it |
 | 2 | CLI usage error (unknown flag, missing argument — Click convention) | untouched |
 
 Failures print a one-line summary by default; global `--debug` re-raises with the full
