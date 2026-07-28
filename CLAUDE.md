@@ -1000,6 +1000,61 @@ document, merge identity for one segment, id de-collision + duplicate drop, one-
 guard, truncation→split→merge, non-truncation error propagates unsplit, indivisible truncation
 propagates), ruff clean, mypy strict clean (37 files).
 
+Output-budget hardening across the pipeline (2026-07-28), driven by three live scale_100
+attempts. STATUS FIRST, so nobody reads more into this than it says: **scale_100 has never
+completed end to end.** Each attempt died one agent further along, and the axis is verified
+at 30 tables only — do not read "the scale cases exist" as "100 tables works". What IS live-
+proven at 100 tables: the requirements-parser segmentation, the business-key segmentation,
+and the modeler at 16384. What is keyless-tested ONLY: the source-mapper segmentation (it
+has never run against the real API). The class behind all of it: an agent whose OUTPUT
+scales with the landscape while its budget is fixed. Sites, in the order they surfaced:
+emit_requirements (fixed 2026-07-28, above), emit_business_keys (was the last agent still at
+4096 while the other four sat at 8192), emit_dv_model, emit_mapping.
+
+Two shapes, and the difference decides the fix. A LIST-shaped output (requirements,
+business keys, mapping decisions, contract fields) can be SPLIT: the mechanism is
+llm.call_with_truncation_split() — try the whole unit, halve it only on
+LLMCallError.truncated, bounded by MAX_SPLIT_DEPTH=4 — with merging left to each agent
+because identity is domain knowledge (requirement ids collide across segments, business keys
+collide on (entity, field), mapping decisions on the concept). A failing branch
+short-circuits its sibling: a partial result that silently dropped half the input would be
+worse than a loud failure. The source mapper adds one asymmetry worth keeping in mind — only
+the CONCEPTS are split, never the schema, because a concept can only be mapped against the
+whole candidate column set. A SINGLE-ARTEFACT output cannot be split: the modeler emits one
+coherent model, and merging two half-models is a modelling problem (a link can span the
+halves, a hub proposed in both must be reconciled, a satellite's parent can sit on the other
+side), so the budget is the only lever there.
+
+Numbers to reason with, all measured rather than guessed. Modeler output: 30 tables ->
+7,225 tokens, 100 tables -> 13,889 (isolated replay) and 14,981 (in-pipeline) — sub-linear
+growth, 3.3x tables for ~1.9x tokens, extrapolating to ~26k at 300 tables. At 8192 the
+30-table case was already at 88%, so the 100-table failure was overdue, not surprising.
+16384 is the ceiling that is safe WITHOUT streaming (ForcedToolCaller is non-streaming;
+above roughly that size non-streaming requests risk HTTP timeouts), and at 91% in-pipeline
+utilisation it is a stopgap: 300 tables needs streaming in ForcedToolCaller or staged
+modelling (hubs, then links, then satellites). Peak-output-against-cap at 100 tables, the
+table to re-run before the next attempt rather than rediscovering serially:
+emit_requirements 100% (splits), emit_mapping 100% (splits), emit_business_keys 97%,
+emit_dv_model 91% at 16384, emit_contract_enrichment 61%. METHOD NOTE, recorded because it
+cost real money: three attempts at ~$5 each went into finding these one at a time, when
+every number was already sitting in the traces on disk. After the second failure, "next
+agent, same failure class" was a pattern, not a coincidence — audit the whole pipeline's
+utilisation from the existing traces before paying for another run.
+
+Also in this batch (eval only): a scorer with nothing to check is now vacuous rather than
+failing. construct_f1 returned 0.000 for the synthetic scale cases — they ship a golden
+mapping and no golden model — because _f1 scored matched==0 as total failure; it now means
+over the kinds the golden actually declares, names an undeclared kind in details, and a
+wholly empty golden reports 1.0 with a "vacuous —" prefix like driving_key_accuracy.
+Swapping a misleading 0.000 for a misleading 1.000 would be no fix, so load_eval_case
+REJECTS a case gating either scorer when the golden declares nothing for it (the gate would
+pass on absence of evidence), and eval.run's render_table marks a vacuous scorer inline
+since the console shows only mean/min/max. This also sharpened the existing pins rather than
+loosening them: every single-kind golden had been diluted by free 1.0s from the kinds it
+never declared, so a total miss scored 2/3 — and
+test_construct_f1_zero_when_golden_expected_but_nothing_generated now matches its own name.
+465 tests green, ruff clean, mypy strict clean (37 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
