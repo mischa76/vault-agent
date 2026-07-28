@@ -29,7 +29,7 @@ import re
 from typing import Any, Protocol, cast
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.llm import TraceEvent, emit_trace
+from vault_agent.llm import TraceEvent, call_with_truncation_split, emit_trace
 from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import (
     ColumnProfile,
@@ -104,6 +104,31 @@ class AnthropicMappingProposer:
             max_tokens=_MAX_TOKENS,
         )
         return cast(dict[str, Any], payload.get("mappings", {}))
+
+
+def _split_concepts(
+    concepts: list["_Concept"],
+) -> tuple[list["_Concept"], list["_Concept"]] | None:
+    """Halve the concept list; ``None`` when a single concept is left.
+
+    Only the concepts are split — the schema each segment sees stays whole (see run())."""
+    if len(concepts) < 2:
+        return None
+    midpoint = len(concepts) // 2
+    return concepts[:midpoint], concepts[midpoint:]
+
+
+def merge_decisions(segments: list[dict[str, Any]]) -> dict[str, Any]:
+    """Fold per-segment concept decisions into one map; the first decision for a concept wins.
+
+    Segments carry disjoint concept lists by construction, so a repeat means the model
+    answered about a concept it was not asked for — keeping the first is deterministic and
+    harmless, since ``_post_validate`` looks decisions up per requested concept anyway."""
+    merged: dict[str, Any] = {}
+    for segment in segments:
+        for concept, decision in segment.items():
+            merged.setdefault(concept, decision)
+    return merged
 
 
 class _Concept:
@@ -194,9 +219,29 @@ class SourceMapperAgent(BaseAgent):
         logger.info("mapping %d concept(s) against %d source table(s)",
                     len(concepts), len(state.source_schemas))
         system_prompt = self.load_prompt()
-        raw = await self._get_proposer().propose(
-            system_prompt=system_prompt, user_content=self._payload(state, concepts)
-        )
+        proposer = self._get_proposer()
+
+        async def propose(chunk: list[_Concept]) -> dict[str, Any]:
+            # The full schema goes into EVERY segment: a concept can only be mapped against
+            # the whole candidate column set, and withholding columns from a segment would
+            # make the mapper blind to the right one. That costs input tokens (cheap) to
+            # keep correctness; only the concept list — which drives the output size — is
+            # split.
+            return await proposer.propose(
+                system_prompt=system_prompt, user_content=self._payload(state, chunk)
+            )
+
+        segments = await call_with_truncation_split(propose, concepts, _split_concepts)
+        raw = merge_decisions(segments)
+        if len(segments) > 1:
+            logger.info("mapped over %d segment(s)", len(segments))
+            state.flag(
+                "source_mapper",
+                f"the {len(concepts)} concept(s) did not fit one model response; mapping "
+                f"ran over {len(segments)} segment(s) of the concept list (each saw the "
+                f"full source schema) — review the proposals for consistency",
+                kind=FlagKind.INPUT_SEGMENTED,
+            )
         state.mappings = self._post_validate(state, concepts, raw)
         self._rebind_staging(state)
         state.decisions.append(

@@ -1,7 +1,14 @@
 """Keyless tests for the SourceMapperAgent deterministic core (WP9 §4). Stubbed proposer."""
+import json
 from typing import Any
 
-from vault_agent.agents.source_mapper import SourceMapperAgent
+from vault_agent.agents.source_mapper import (
+    SourceMapperAgent,
+    _Concept,
+    _split_concepts,
+    merge_decisions,
+)
+from vault_agent.llm import LLMCallError
 from vault_agent.state import (
     ColumnProfile,
     DVModel,
@@ -325,3 +332,65 @@ def test_concept_worklist_dedups_and_orders() -> None:
     kinds = {c.concept: c.kind for c in concepts}
     assert kinds["national customer ID"] == "business_key"
     assert kinds["customer name"] == "attribute"
+
+
+# --- adaptive segmentation ----------------------------------------------------------
+# One decision per concept, so the output scales with the model's size: scale_100 died
+# here with "emit_mapping: response truncated at max_tokens=8192" on 2026-07-28, the
+# fourth site of the same class after the parser, business keys and the modeler.
+
+
+class _TruncatingProposer:
+    """Truncates while the payload holds more than ``fits_under`` concepts."""
+
+    def __init__(self, fits_under: int) -> None:
+        self.fits_under = fits_under
+        self.concept_counts: list[int] = []
+        self.schema_sizes: list[int] = []
+
+    async def propose(self, *, system_prompt: str, user_content: str) -> dict[str, Any]:
+        payload = json.loads(user_content)
+        self.concept_counts.append(len(payload["concepts"]))
+        self.schema_sizes.append(len(payload["schema"]))
+        if len(payload["concepts"]) > self.fits_under:
+            raise LLMCallError("truncated at max_tokens", truncated=True)
+        return {
+            c["concept"]: {"decision": "gap", "evidence": ["synthetic"]}
+            for c in payload["concepts"]
+        }
+
+
+def test_split_concepts_halves_and_stops_at_one() -> None:
+    concepts = [_Concept(f"c{i}", "e", "attribute") for i in range(5)]
+    halves = _split_concepts(concepts)
+    assert halves is not None
+    head, tail = halves
+    assert [c.concept for c in head + tail] == [c.concept for c in concepts]
+    assert len(head) == 2 and len(tail) == 3
+    assert _split_concepts(concepts[:1]) is None
+
+
+def test_merge_decisions_keeps_the_first_answer_per_concept() -> None:
+    merged = merge_decisions(
+        [{"a": {"decision": "map"}}, {"a": {"decision": "gap"}, "b": {"decision": "gap"}}]
+    )
+    assert merged["a"] == {"decision": "map"}  # first wins
+    assert set(merged) == {"a", "b"}
+
+
+async def test_truncated_mapping_splits_concepts_but_never_the_schema() -> None:
+    state = _state()
+    concepts = SourceMapperAgent._concepts(state)
+    assert len(concepts) >= 2, "fixture must have enough concepts to split"
+
+    proposer = _TruncatingProposer(fits_under=len(concepts) - 1)
+    agent = SourceMapperAgent(proposer=proposer)
+
+    result = await agent.run(state)
+
+    assert proposer.concept_counts[0] == len(concepts)  # whole list tried first
+    assert sum(proposer.concept_counts[1:]) == len(concepts)  # halves cover it exactly
+    # Every segment sees the FULL schema — a concept can only be mapped against all of it.
+    assert len(set(proposer.schema_sizes)) == 1
+    [flag] = [f for f in result.flags if f.kind == FlagKind.INPUT_SEGMENTED]
+    assert "2 segment(s)" in flag.message
