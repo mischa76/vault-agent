@@ -733,3 +733,43 @@ def test_run_and_resume_expose_the_trace_flag() -> None:
         )
         assert result.exit_code == 0
         assert "--no-trace" in re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+
+
+# --- WP20: the write path refuses hostile filename components -----------------------------
+
+
+def test_write_outputs_refuses_a_hostile_model_name(tmp_path: Path) -> None:
+    """report.py treats every state string as hostile; the write path now does too. A name
+    with a path separator would write outside out_dir — refuse, never rename."""
+    from vault_agent.cli import write_outputs
+
+    out_dir = tmp_path / "out"
+    state = VaultAgentState(
+        artifacts=Artifacts(dbt_models={"../../hub_customer": "select 1"})
+    )
+    with pytest.raises(ValueError, match="refusing to write raw-vault model"):
+        write_outputs(state, out_dir)
+    # nothing escaped the output directory
+    assert list(tmp_path.rglob("*.sql")) == []
+
+
+def test_write_outputs_refuses_a_hostile_contract_asset_name(tmp_path: Path) -> None:
+    from vault_agent.cli import write_outputs
+
+    out_dir = tmp_path / "out"
+    state = VaultAgentState(
+        artifacts=Artifacts(contracts=[{"name": "../escape", "namespace": "source"}])
+    )
+    with pytest.raises(ValueError, match="refusing to write contract"):
+        write_outputs(state, out_dir)
+    assert list(tmp_path.rglob("*.contract.yml")) == []
+
+
+def test_write_outputs_refuses_a_hostile_staging_name(tmp_path: Path) -> None:
+    from vault_agent.cli import write_outputs
+
+    state = VaultAgentState(
+        artifacts=Artifacts(staging_models={"stg_a\nb": "select 1"})
+    )
+    with pytest.raises(ValueError, match="refusing to write staging model"):
+        write_outputs(state, tmp_path / "out")

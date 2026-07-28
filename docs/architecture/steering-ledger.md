@@ -74,6 +74,7 @@ this table and the registry disagree, the registry wins.
 | `masat_source_table` | — | — | not yet ablated | keep |
 | `bk_collision_code` | — | — | not yet ablated | keep |
 | `role_qualified_participation` | — | — | not yet ablated | keep |
+| `construct_naming` | — (gated by `E_BAD_NAME`) | — | not yet ablated; added WP20 (2026-07-28) so a deterministic naming formality never burns a modeling retry — the gate, not the steering, is the guarantee | keep |
 
 ### Inventoried but not mechanically ablatable (v1)
 

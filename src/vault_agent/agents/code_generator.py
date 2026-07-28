@@ -85,7 +85,9 @@ def _base_name(name: str) -> str:
 
 
 def _staging_model(name: str) -> str:
-    return STAGING_PREFIX + _base_name(name)
+    # Mirrors staging_generator._staging_name exactly — one normalisation path for every
+    # staging name (WP20 §2.4); byte-identical for well-formed names (E_BAD_NAME).
+    return STAGING_PREFIX + normalize_identifier(_base_name(name)).lower()
 
 
 def _sat_staging_model(sat: Satellite) -> str:
@@ -97,7 +99,7 @@ def _sat_staging_model(sat: Satellite) -> str:
     always read the parent link's staging — their date pair lives in the relationship's
     own relation — so ``source_table`` is ignored for them."""
     if sat.source_table and sat.sat_type != "effectivity":
-        return STAGING_PREFIX + normalize_identifier(_base_name(sat.name)).lower()
+        return _staging_model(sat.name)
     return _staging_model(sat.parent)
 
 

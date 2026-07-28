@@ -92,18 +92,50 @@ def _adr_filename(adr_text: str) -> str:
     return f"{number}-{slug}.md" if slug else f"{number}.md"
 
 
+def _safe_component(name: str, artifact: str) -> str:
+    """Return ``name`` if it is a safe single filename component, else raise (WP20 §2.3).
+
+    Defense in depth at the filesystem boundary: model, staging and contract-asset names are
+    LLM-derived, and ``models_dir / f"{name}.sql"`` with a path separator or ``..`` in the
+    name writes outside the output directory. ``report.py`` already treats every state string
+    as hostile; the write path did not. The validator's ``E_BAD_NAME`` gate should make this
+    unreachable for constructs — this is the second lock, and it covers contract asset names,
+    which come from declared source tables or LLM entity names and pass no such gate.
+
+    **Refuses, never renames** (house rule: never silently guess) — a sanitised name would
+    silently disagree with the dbt ``ref()`` inside the generated SQL."""
+    unsafe = (
+        not name.strip()
+        or "/" in name
+        or "\\" in name
+        or ".." in name
+        or any(ch < " " or ch == "\x7f" for ch in name)
+    )
+    if unsafe:
+        raise ValueError(
+            f"refusing to write {artifact} {name!r}: a filename component must not contain a "
+            f"path separator, '..', or control characters, and must not be blank; fix the "
+            f"name at its source (the writer never renames it)"
+        )
+    return name
+
+
 def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
     """Write dbt models, AutomateDV metadata, and ADRs to ``out_dir``; return counts."""
     models_dir = out_dir / "models" / "raw_vault"
     models_dir.mkdir(parents=True, exist_ok=True)
     for name, sql in state.artifacts.dbt_models.items():
-        (models_dir / f"{name}.sql").write_text(sql, encoding="utf-8")
+        (models_dir / f"{_safe_component(name, 'raw-vault model')}.sql").write_text(
+            sql, encoding="utf-8"
+        )
 
     if state.artifacts.staging_models:
         staging_dir = out_dir / "models" / "staging"
         staging_dir.mkdir(parents=True, exist_ok=True)
         for name, sql in state.artifacts.staging_models.items():
-            (staging_dir / f"{name}.sql").write_text(sql, encoding="utf-8")
+            (staging_dir / f"{_safe_component(name, 'staging model')}.sql").write_text(
+                sql, encoding="utf-8"
+            )
 
     # Project scaffolding (dbt_project.yml, packages.yml, sources.yml, README.md) —
     # relative paths inside the output dir, so the output is a runnable dbt project.
@@ -124,18 +156,21 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         adr_dir = out_dir / "adrs"
         adr_dir.mkdir(parents=True, exist_ok=True)
         for adr in state.adrs:
-            (adr_dir / _adr_filename(adr)).write_text(adr, encoding="utf-8")
+            filename = _safe_component(_adr_filename(adr), "ADR")
+            (adr_dir / filename).write_text(adr, encoding="utf-8")
 
     if state.artifacts.contracts or state.artifacts.dbt_tests:
         contracts_dir = out_dir / "contracts"
         contracts_dir.mkdir(parents=True, exist_ok=True)
         for contract in state.artifacts.contracts:
-            asset = str(contract.get("name", "contract"))
+            asset = _safe_component(str(contract.get("name", "contract")), "contract")
             (contracts_dir / f"{asset}.contract.yml").write_text(
                 yaml.safe_dump(contract, sort_keys=False), encoding="utf-8"
             )
         for asset, tests_yaml in state.artifacts.dbt_tests.items():
-            (contracts_dir / f"{asset}.tests.yml").write_text(tests_yaml, encoding="utf-8")
+            (contracts_dir / f"{_safe_component(asset, 'contract tests')}.tests.yml").write_text(
+                tests_yaml, encoding="utf-8"
+            )
 
     mapping = state.mappings
     if mapping.proposals or mapping.gaps or mapping.unresolved:

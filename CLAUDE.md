@@ -1111,6 +1111,45 @@ untouched. 478 tests green (+4: truncated chunk → halves → full field covera
 non-truncation error propagates after exactly one call, indivisible truncation re-raises,
 no flag when nothing truncates), ruff clean, mypy strict clean (37 files).
 
+WP20 closed the trust gap between report.py and the write path (as of 2026-07-28,
+docs/architecture/backlog-2026-07/wp20-name-gates-spec.md, review findings 4+5). report.py
+treats every state string as hostile; cli.write_outputs did not — it built
+`models_dir / f"{name}.sql"` and `contracts_dir / f"{asset}.contract.yml"` straight from
+LLM-derived names, so a name carrying a path separator or `..` would have written OUTSIDE the
+output directory, and a name with spaces or uppercase produces dbt models that cannot be
+ref()'d. Four changes, all deterministic. (§2.1) A new validator gate E_BAD_NAME (error) on
+every hub/link/satellite name, against rules.CONSTRUCT_NAME_PATTERN
+(^(hub|link|sat)_[a-z0-9][a-z0-9_]*$) + is_valid_construct_name() — one source of truth in
+rules/, message naming the offending characters. It blocks BEFORE generation, so the re-model
+loop fixes it (the E_SAT_DUP_ATTR pattern). Validator codes are now 33 (22 E_/11 W_; the code
+stays the source of truth — the docstring said 30 while the ops catalogue said 32, both are
+now 33). (§2.2) A DELIBERATE prompt change: SteeringRule construct_naming (backstop=None —
+a gate refuses, it does not repair) so a deterministic formality never burns a modeling
+retry. That makes the registry 16 rules, so tests/fixtures/steering/modeler_rules_pre_wp16.txt
+was updated in the same commit — the pre-WP16 block is still a byte-identical PREFIX of the
+file (asserted while regenerating), the test comment now records the addition, and the
+steering ledger carries the new row. (§2.3) write_outputs gains cli._safe_component: every
+filename component derived from state (raw-vault models, staging models, contract assets,
+contract tests, ADR filenames) is rejected with an attributable ValueError when it holds a
+path separator, `..`, control characters, or is blank. It REFUSES, never renames — a
+sanitised name would silently disagree with the ref() inside the generated SQL. With §2.1
+upstream this is unreachable for constructs; contract asset names, which pass no such gate,
+are the reason it exists. (§2.4) The two staging-name paths are unified on
+normalize_identifier(base).lower(): staging_generator._staging_name and
+code_generator._staging_model now normalise the way _sat_staging_model already did (which in
+turn just calls _staging_model). Byte-identical for every well-formed name — the ungrounded
+staging baseline fixture and the bank demo guardrails pass untouched. (§2.5)
+E_SAT_ATTR_OVERLAP keys on the NORMALISED attribute like E_SAT_DUP_ATTR, so "Customer ID" in
+one satellite and customer_id in another satellite of the same parent — one generated column
+on that parent — is now the error it always was; both original labels are reported, and the
+single-label message is byte-identical to before. Docs updated in the same commit
+(08-validation-gates catalogue + count, dv2-rules cheatsheet, and one 02-concepts example
+that used an `eff_sat_` name the new gate rejects). 487 tests green (+9: clean model has no
+name issue, four malformed names caught with the offending character named, normalised
+overlap across satellites, disjoint attributes stay clean, three write-guard refusals with
+nothing written outside out_dir, the steering rule's registry/ledger pins), ruff clean, mypy
+strict clean (37 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

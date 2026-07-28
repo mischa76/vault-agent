@@ -94,7 +94,11 @@ def _base_name(construct_name: str) -> str:
 
 
 def _staging_name(construct_name: str) -> str:
-    return STAGING_PREFIX + _base_name(construct_name)
+    # Normalised through the one identifier helper (WP20 §2.4), the way _sat_staging_model
+    # already did — two naming paths that merely happen to agree on well-formed names are a
+    # latent split. Byte-identical for every valid construct name (E_BAD_NAME enforces
+    # lowercase snake_case, and normalize("account").lower() == "account").
+    return STAGING_PREFIX + normalize_identifier(_base_name(construct_name)).lower()
 
 
 def multi_source_staging_name(hub: Hub, source: HubSource) -> str:

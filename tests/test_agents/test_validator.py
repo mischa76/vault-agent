@@ -563,3 +563,68 @@ async def test_happy_path_trips_none_of_the_wp1_gates() -> None:
         result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
         assert result.validation_report.passed is True
         assert not _codes(result.validation_report.issues) & wp1_codes
+
+
+# --- WP20: construct-name gate and normalised attribute overlap ---------------------------
+
+
+async def test_valid_model_has_no_name_issue() -> None:
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=_valid_model()))
+    assert "E_BAD_NAME" not in _codes(result.validation_report.issues)
+
+
+async def test_malformed_construct_names_are_rejected() -> None:
+    """A construct name becomes a dbt model name and a file on disk — gate it before
+    generation, so the re-model loop (not a build error, and not the filesystem) fixes it."""
+    model = _valid_model()
+    model.hubs.append(
+        Hub(name="hub_Customer Master", business_key="k", source_entity="e", description="d")
+    )
+    model.hubs.append(
+        Hub(name="../../etc/passwd", business_key="k2", source_entity="e2", description="d")
+    )
+    model.links.append(
+        Link(name="customer_account", connected_hubs=["hub_customer", "hub_account"],
+             description="no kind prefix")
+    )
+    model.satellites.append(
+        Satellite(name="sat_", parent="hub_customer", attributes=["x"], description="empty base")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    issues = [i for i in result.validation_report.issues if i.code == "E_BAD_NAME"]
+    assert result.validation_report.passed is False
+    assert {i.construct for i in issues} == {
+        "hub_Customer Master", "../../etc/passwd", "customer_account", "sat_",
+    }
+    assert all(i.severity == "error" for i in issues)
+    # the message names the offending characters and the expected shape
+    spaced = next(i for i in issues if i.construct == "hub_Customer Master")
+    assert "' '" in spaced.message and "hub_/link_/sat_" in spaced.message
+
+
+async def test_attribute_overlap_matches_normalised_labels() -> None:
+    """Two casing/spacing variants across two satellites of one parent are ONE generated
+    column on that parent — the same duplicate E_SAT_DUP_ATTR blocks within a satellite."""
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_extra", parent="hub_customer",
+                  attributes=["Name", "segment"], description="same column, other spelling")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+
+    issues = [i for i in result.validation_report.issues if i.code == "E_SAT_ATTR_OVERLAP"]
+    assert result.validation_report.passed is False
+    assert len(issues) == 1
+    # both original labels are reported — they are what the human has to reconcile
+    assert "'Name'" in issues[0].message and "'name'" in issues[0].message
+
+
+async def test_disjoint_attributes_across_satellites_stay_clean() -> None:
+    model = _valid_model()
+    model.satellites.append(
+        Satellite(name="sat_customer_ids", parent="hub_customer",
+                  attributes=["segment"], description="disjoint payload")
+    )
+    result = await ValidatorAgent().run(VaultAgentState(dv_model=model))
+    assert "E_SAT_ATTR_OVERLAP" not in _codes(result.validation_report.issues)

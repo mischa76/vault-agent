@@ -18,6 +18,23 @@ def normalize_identifier(label: str) -> str:
     return re.sub(r"[^0-9a-zA-Z]+", "_", label).strip("_").upper()
 
 
+# Well-formed construct names (WP20 §2.1). A construct name is not decoration: it becomes a
+# dbt model name, a file on disk (``<name>.sql``), and the stem of the staging model feeding
+# it. DV2.0 convention prefixes the construct kind (hub_/link_/sat_ — the prefix the
+# generators strip to derive the staging base), and dbt/warehouse portability wants plain
+# lowercase snake_case: a space or a dot breaks the dbt ``ref()``, a path separator or ``..``
+# would write outside the output directory. Single source of truth for the pattern; the
+# validator gates on it (E_BAD_NAME) so the modeler's re-model loop can fix it, and
+# ``cli.write_outputs`` re-checks the filename components as defense in depth.
+CONSTRUCT_NAME_PATTERN = r"^(hub|link|sat)_[a-z0-9][a-z0-9_]*$"
+_CONSTRUCT_NAME_RE = re.compile(CONSTRUCT_NAME_PATTERN)
+
+
+def is_valid_construct_name(name: str) -> bool:
+    """True when ``name`` is a well-formed hub/link/satellite name (see the pattern above)."""
+    return bool(_CONSTRUCT_NAME_RE.match(name))
+
+
 REQUIRED_HUB_COLUMNS = {"hash_key", "business_key", "load_date_time", "record_source"}
 REQUIRED_LINK_COLUMNS = {"hash_key", "load_date_time", "record_source"}
 REQUIRED_SAT_COLUMNS = {"hash_key", "load_date_time", "record_source", "hash_diff"}
@@ -216,6 +233,14 @@ DV_MODELING_RULES = [
         "duplicating the hub; role-qualify the driving key as \"hub_account:counterparty\" "
         "when it names a role",
         origin="WP8 / ADR-0009 (2026-07-08); E_LINK_DUP_ROLE",
+    ),
+    SteeringRule(
+        id="construct_naming",
+        text="Name every construct hub_/link_/sat_ followed by lowercase snake_case (e.g. "
+        "hub_customer, link_account_customer, sat_customer_details) — nothing else; the name "
+        "becomes a dbt model name and a file on disk",
+        origin="review 2026-07-28 finding 4 / WP20: gated by E_BAD_NAME — steering keeps a "
+        "deterministic formality from burning a modeling retry",
     ),
 ]
 

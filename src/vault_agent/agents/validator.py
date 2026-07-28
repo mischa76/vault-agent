@@ -10,15 +10,18 @@ Results land in ``VaultAgentState.validation_report`` as a list of typed
 :class:`~vault_agent.state.ValidationIssue` records (``severity`` / ``code`` /
 ``construct`` / ``message``); ``passed`` is true when there are no error-severity issues.
 
-The gates cover structural invariants (names, keys, parents, required columns), grain and
-attribute overlap across constructs, satellite-internal duplicate attributes
+The gates cover structural invariants (names — uniqueness and well-formedness
+(``E_BAD_NAME``, WP20) — keys, parents, required columns), grain and
+attribute overlap across constructs (matched on the *normalised* attribute, so two casing
+variants of one column across two satellites of a parent are the same duplicate),
+satellite-internal duplicate attributes
 (``E_SAT_DUP_ATTR``), effectivity-satellite date count and (start, end) order
 (``E_EFFSAT_DATE_ORDER`` / ``W_EFFSAT_DATE_ORDER_UNVERIFIED``), hub hash-key/staging
 collisions on a shared source entity (``E_HUB_HK_COLLISION``), duplicate hubs over the same
 business key and source (``E_DUP_HUB``), role-qualified link participations
 (``E_LINK_DUP_ROLE`` and the grounded ``W_ROLE_BK_NOT_IN_SOURCE``, ADR-0009/WP8), and
 optional source-schema grounding. Count the ``E_``/``W_`` codes in this module for the
-authoritative gate count — 30 as of WP8 (backlog-2026-07); the code, not this prose, is
+authoritative gate count — 33 as of WP20 (backlog-2026-07); the code, not this prose, is
 the source of truth.
 """
 import logging
@@ -27,11 +30,13 @@ from typing import Any
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import is_grounded, known_columns
 from vault_agent.rules.dv2_rules import (
+    CONSTRUCT_NAME_PATTERN,
     REQUIRED_HUB_COLUMNS,
     REQUIRED_LINK_COLUMNS,
     REQUIRED_SAT_COLUMNS,
     SAT_WIDE_ATTRIBUTE_THRESHOLD,
     effectivity_date_pair,
+    is_valid_construct_name,
     normalize_identifier,
     role_bk_column,
 )
@@ -97,6 +102,24 @@ class ValidatorAgent(BaseAgent):
         for name in sorted({n for n in all_names if all_names.count(n) > 1}):
             issues.append(
                 _issue("error", "E_DUP_NAME", name, f"construct name {name!r} is not unique")
+            )
+
+        # E_BAD_NAME: a construct name becomes a dbt model name AND a file on disk, so it must
+        # be well-formed before anything is generated (the re-model loop gets the feedback,
+        # mirroring how E_SAT_DUP_ATTR pre-empts the build error). write_outputs re-checks the
+        # filename components as defense in depth; this gate is what keeps that unreachable.
+        for name in all_names:
+            if is_valid_construct_name(name):
+                continue
+            offending = sorted({c for c in name if not (c.islower() or c.isdigit() or c == "_")})
+            rendered = ", ".join(repr(c) for c in offending) if offending else "the name shape"
+            issues.append(
+                _issue(
+                    "error", "E_BAD_NAME", name,
+                    f"construct name {name!r} is not well-formed ({rendered}); expected "
+                    f"hub_/link_/sat_ followed by lowercase snake_case, i.e. "
+                    f"{CONSTRUCT_NAME_PATTERN}",
+                )
             )
 
         for hub in model.hubs:
@@ -364,19 +387,27 @@ class ValidatorAgent(BaseAgent):
                 )
 
         # E_SAT_ATTR_OVERLAP: an attribute must live in at most one satellite per parent.
-        attr_owners: dict[str, dict[str, set[str]]] = {}
+        # Keyed on the NORMALISED attribute (WP20 §2.5), like the within-satellite
+        # E_SAT_DUP_ATTR: what would collide on the parent is the generated column, so
+        # "Customer ID" in one satellite and "customer_id" in another is the same duplicate.
+        # The original labels are reported, since they are what the human has to reconcile.
+        attr_owners: dict[str, dict[str, dict[str, set[str]]]] = {}
         for sat in model.satellites:
             per_parent = attr_owners.setdefault(sat.parent, {})
             for attr in sat.attributes:
-                per_parent.setdefault(attr, set()).add(sat.name)
+                per_parent.setdefault(normalize_identifier(attr), {}).setdefault(
+                    attr, set()
+                ).add(sat.name)
         for parent, attrs in sorted(attr_owners.items()):
-            for attr, owners in sorted(attrs.items()):
+            for _norm, labels in sorted(attrs.items()):
+                owners = {name for names in labels.values() for name in names}
                 if len(owners) > 1:
                     joined = ", ".join(sorted(owners))
+                    rendered = " / ".join(repr(label) for label in sorted(labels))
                     issues.append(
                         _issue(
                             "error", "E_SAT_ATTR_OVERLAP", parent,
-                            f"attribute {attr!r} appears in multiple satellites of "
+                            f"attribute {rendered} appears in multiple satellites of "
                             f"{parent!r}: {joined}",
                         )
                     )
