@@ -289,6 +289,108 @@ golden column set, unscored` — expected WP9.2/WP14 semantics, not a defect: th
 deliberately only Microsoft's own natural keys (§7.2), so everything the mapper proposes for
 descriptive attributes is out of universe by construction.
 
+#### The five subject areas — 1 repeat each, 2026-07-29/30 (acceptance #2)
+
+One repeat per area (the §7.3 budget finding below is why not three). Total **$11.97**, 100 calls,
+2,376 s wall clock.
+
+| case | tables | `mapping_coverage` | `false_friend_hits` | `pipeline_health` | `validation_gate` (reported) | constructs (h/l/s) | review items / lines | calls | cost |
+|---|---|---|---|---|---|---|---|---|---|
+| `purchasing` | 5 | **1.000** (2/2) | 1.0 | 1.0 | PASS (3 warn) | 6 / 5 / 8 | 15 / 23 | 11 | $1.62 |
+| `humanresources` | 6 | 0.750 (3/4) | 1.0 | 1.0 | PASS (3 warn) | 4 / 3 / 8 | 12 / 25 | 11 | $1.14 |
+| `person` | 13 | 0.000 (0/4) | 1.0 | 1.0 | PASS (3 warn) | 9 / 7 / 16 | 24 / 31 | 20 | $1.92 |
+| `sales` | 19 | 0.000 (0/5) | 1.0 | 1.0 | **FAIL** | 15 / 19 / 17 | 128 / 50 | 26 | $3.59 |
+| `production` | 25 | 0.000 (0/9) | 1.0 | 1.0 | **FAIL** | 15 / 14 / 24 | 101 / 52 | 32 | $3.69 |
+
+`false_friend_hits` and `pipeline_health` hold at 1.0 everywhere: **no run ever bound a `rowguid`**
+— the GUID-shadow trap, occurring organically here, was resisted on all five areas — and no run
+raised an error flag. `mapping_coverage` fails its 0.8 gate on three areas and `validation_gate`
+(reported, not gated — §2.5) fails on the two largest. §2.5's prediction that an independent
+schema would trip gates we have never exercised **held**, and the instrument earned its keep on
+day one: three distinct findings, two of them product defects, one of them the class that
+produces wrong *data*.
+
+**Finding 1 — a wrong-data defect in the source mapper (WP24 class). Own WP.** Reproduced
+keylessly, so it needs no further live runs:
+
+```
+hubs sharing the business-key label "Name": hub_phone_number_type (PhoneNumberType),
+                                           hub_address_type      (AddressType),
+                                           hub_contact_type      (ContactType)
+SourceMapperAgent._concepts  -> [('Name', 'PhoneNumberType')]        # ONE concept asked
+source_overrides             -> {'PHONE_NUMBER_TYPE': 'PhoneNumberType',
+                                 'ADDRESS_TYPE':      'PhoneNumberType',   # <-- wrong table
+                                 'CONTACT_TYPE':      'PhoneNumberType'}   # <-- wrong table
+```
+
+`_concepts` de-duplicates the work-list on `normalize_identifier(concept)` **alone, ignoring the
+entity**, so hubs whose business keys share a generic label are asked about once; two of the three
+hubs above are never asked at all. `source_overrides` then looks the answer up **by label alone**,
+so the single proposal's table is applied to *every* hub carrying that label — `stg_address_type`
+is bound to `PhoneNumberType` and hashes `ADDRESS_TYPE_HK` from the wrong relation's rows. It is
+silent: no flag, no warning, and the SOURCE_BINDING flag that would have said "inferred" is
+*cleared* by the re-bind. This is the WP24 defect class (wrong data, not a wrong message), and the
+shape is not exotic — reference tables keyed on `Name`/`Code`/`Description` are ubiquitous, and
+`Person` alone supplies three. The entity is available at both sites (`_Concept.entity`,
+`Hub.source_entity`); the fix is to key concept identity on (label, entity) rather than label.
+Whether the mapper's *tool schema* — one decision per concept, keyed under
+`additionalProperties` — can express two same-labelled concepts is the part that makes this a WP
+and not a one-liner.
+
+**Finding 2 — `E_SAT_ATTR_OVERLAP` fails on an organic schema shape. Needs a decision, not a
+patch.** Both validation failures trace to the same cause. Replaying the stored traces through the
+validator at zero API cost (the 2026-07-28 method) gives, on `production`:
+
+```
+E_SAT_DUP_ATTR      sat_product_cost_history / sat_product_list_price_history
+E_SAT_ATTR_OVERLAP  hub_product  x4
+  sat_product_cost_history        (source_table=ProductCostHistory)       StartDate, EndDate, StandardCost
+  sat_product_list_price_history  (source_table=ProductListPriceHistory)  StartDate, EndDate, ListPrice
+  sat_product_current_price_cost  (from Product)                          StandardCost, ListPrice
+```
+
+The modeler produced three modeler responses (the full `MAX_MODELING_ATTEMPTS` budget) and never
+converged, on both `production` and `sales` — the signature of a gate asking for something the
+schema cannot give. AdventureWorks carries per-entity history tables (`ProductCostHistory`,
+`ProductListPriceHistory`), and WP7's `source_table` is exactly the feature that makes modelling
+them correctly possible: two satellites on one parent, each from a *different* relation. Their
+`StartDate`/`EndDate` columns are then different attributes that merely share a generic name, and
+nothing collides — the satellites are separate tables, so the gate's stated rationale ("what would
+collide on the parent is the generated column") does not apply across satellites the way it does
+within one. State the counter-argument fairly rather than assuming the gate is simply wrong:
+`StandardCost` in both `sat_product_current_price_cost` and `sat_product_cost_history` **is**
+duplicated payload in the DV2.0 sense, so part of what fired here is a real modelling smell. The
+two cases need separating, which is a modelling decision (an ADR, like ADR-0011 narrowing the
+WP24 gate) and not a quick fix. Note the asymmetry the current shape creates: a false-positive
+*error* burns the whole re-model budget and ends the run, whereas the same signal as a warning
+would have surfaced for a human.
+
+**Finding 3 — the gate conflates mapper quality with modeler key choice (instrument calibration,
+NOT to be fixed by weakening it).** `mapping_coverage` was built (WP14) to be concept-decoupled,
+and it is — it matches `(source_table, source_column)` pairs. But the *universe it can bind from*
+is still the modeler's concept list, so the score is bounded by the modeler's business-key
+choices. Person's four misses split into two different stories:
+
+| golden pair | what happened | reading |
+|---|---|---|
+| `ADDRESSTYPE.NAME`, `CONTACTTYPE.NAME` | hub modelled correctly, never asked about | Finding 1 — a real defect |
+| `COUNTRYREGION.NAME` | modeler chose `CountryRegionCode` — the table's PK and a defensible business key | legitimate disagreement with Microsoft's `AK_*` |
+| `STATEPROVINCE.NAME` | modeler chose `StateProvinceID` — a **surrogate** | a real modelling weakness, against our own `[GUIDE]` rules |
+
+So a 0.000 here does **not** mean "the mapper failed", and the number must not be quoted as if it
+did. The honest statement of what these cases measure is narrower than §2.5 claimed: *did the
+pipeline, having chosen its own business keys, bind the real natural-key columns?* — with three
+distinguishable failure modes folded into one number. §2.5 pre-committed to not weakening a gate
+under pressure from a bad result, and that stands: **the 0.8 gate stays**, and the split above is
+the finding. Separating the three modes properly (e.g. reporting coverage against the golden pairs
+the modeler's key choice *made reachable*, alongside a business-key-choice score) is its own eval
+WP; inventing it in reaction to this run is how the WP9.2/WP14 mistakes happened.
+
+Cross-cutting observation for the arm comparison, recorded now because it is the axis §2.6 is
+about: review load grows steeply and super-linearly in area size — 12/15 items for the 5-6 table
+areas, 101 and **128** for Production and Sales. Rendered lines grow far more slowly (23 → 52), so
+WP5's aggregation is doing real work at this size.
+
 **Budget finding, recorded because it changes the plan rather than the result.** Extrapolating
 from this run by column count (465 total vs Purchasing's 49) and requirements size (263 KB total
 vs 17 KB), the full §4 acceptance list at 3 repeats — five areas plus both arms — lands at
