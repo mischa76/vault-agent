@@ -38,13 +38,26 @@ _TOOL_NAME = "emit_dv_model"
 # parent can sit on the other side. The only lever left is the budget.
 #
 # Measured (2026-07-28, replaying the truncated scale_100 call): 30 source tables need
-# 7,225 output tokens, 100 need 13,889 — sub-linear (3.3x tables -> 1.9x tokens), but at
-# 8192 the 30-table case was already at 88% and 100 tables overflowed. 16384 clears 100
-# tables with ~15% headroom and is the ceiling that is safe WITHOUT streaming: the shared
-# ForcedToolCaller is non-streaming, and non-streaming requests risk HTTP timeouts above
-# roughly this size. Extrapolating, 300 tables lands near 26k and needs a real answer —
-# streaming in ForcedToolCaller, or staged modelling (hubs, then links, then satellites).
-_MAX_TOKENS = 16384
+# 7,225 output tokens, 100 need 13,889 in an isolated replay and 14,981 in-pipeline —
+# sub-linear (3.3x tables -> ~1.9x tokens), extrapolating to ~26k at 300 tables.
+#
+# 16384 was a STOPGAP bounded by the transport, not by the model (91% utilisation at 100
+# tables). WP22 removed that bound by making ForcedToolCaller stream (ADR-0010), so the
+# ceiling is now the model's: claude-opus-4-8 allows 128,000 output tokens (verified
+# 2026-07-29 against the live Models API, not from memory). For the record, the
+# non-streaming limit was never "roughly 16k" — the installed SDK raises when
+# 3600 * max_tokens / 128_000 > 600, i.e. above 21,333 tokens.
+#
+# 32768 is chosen deliberately rather than taking the model maximum: it clears the
+# 300-table extrapolation with ~26% headroom while keeping a runaway generation's cost
+# bounded (a full 128k burn is ~4x this one). The cap is not a spend — output tokens are
+# billed as generated — so the only thing a lower cap costs is a failed run, and the only
+# thing a higher cap costs is how long a runaway takes to fail.
+#
+# Exit condition (ADR-0010): if a real landscape ever exceeds this, the answer is staged
+# modelling / domain partitioning, NOT another budget bump — a single coherent model that
+# needs more than 32k output tokens is past what one call should carry.
+_MAX_TOKENS = 32768
 
 
 def _tool_schema() -> dict[str, Any]:

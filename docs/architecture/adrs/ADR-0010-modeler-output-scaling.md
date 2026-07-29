@@ -133,6 +133,23 @@ staged-modelling discussion does not resurface as its accidental substitute.
   configured model's output limit, OR the scale evals show construct quality degrading
   with emission length at unchanged inputs.
 
+## Implementation note (2026-07-29, WP22)
+
+Implemented. Two numbers this ADR reasoned about are now verified rather than estimated:
+
+- **The non-streaming ceiling was never "roughly 16k".** The installed SDK raises
+  `ValueError("Streaming is required for operations that may take longer than 10
+  minutes")` when `3600 * max_tokens / 128_000 > 600` — i.e. above **21,333** output
+  tokens (plus a per-model table that does not list `claude-opus-4-8`). 16384 was
+  conservative, but the decision it forced was the right one.
+- **The model ceiling is 128,000 output tokens** for `claude-opus-4-8`, confirmed against
+  the live Models API, not from memory.
+
+The modeler budget went to **32768**, not to the model maximum: it clears the ~26k
+300-table extrapolation with ~26% headroom while keeping a runaway generation's cost
+bounded. The exit condition stands unchanged — a model needing more than that is a case
+for staged modelling / domain partitioning, not another budget bump.
+
 ## References
 
 - CLAUDE.md milestone "Output-budget hardening" (2026-07-28): the measured token table,

@@ -260,7 +260,21 @@ class ForcedToolCaller:
                 )
                 await self._sleep(delay)
             try:
-                message = await self._client.messages.create(
+                # STREAMING (WP22 / ADR-0010), one path — there is deliberately no
+                # streaming/non-streaming conditional, because a second path is a second
+                # thing that can rot. The request kwargs are byte-identical to the previous
+                # non-streaming call, so prompt caching and every fixture pin are
+                # untouched; only the transport changed. get_final_message() returns the
+                # accumulated Message — same content blocks, stop_reason and usage (incl.
+                # cache_read_input_tokens, verified against the installed SDK's accumulator)
+                # — so truncation detection, _tool_payload, usage capture and the WP15 trace
+                # events all read exactly what they read before.
+                #
+                # Both failure surfaces stay inside this try: the initial request is awaited
+                # by __aenter__ (an APIStatusError there still carries status_code, which the
+                # retry matrix keys on), and a mid-stream failure surfaces from
+                # get_final_message().
+                async with self._client.messages.stream(
                     model=self._model,
                     max_tokens=max_tokens,
                     # Prompt caching (WP3): the system prompt is byte-identical across
@@ -284,7 +298,8 @@ class ForcedToolCaller:
                     ],
                     tool_choice={"type": "tool", "name": tool_name},
                     messages=[{"role": "user", "content": user_content}],
-                )
+                ) as stream:
+                    message = await stream.get_final_message()
             except anthropic.APIConnectionError as exc:  # includes APITimeoutError
                 last_exc = exc
                 continue

@@ -47,18 +47,37 @@ class _Message:
     usage: _Usage | None = None
 
 
+class _StubStream:
+    """The streaming context manager (WP22): `messages.stream(...)` is a plain method
+    returning an async CM whose `get_final_message()` awaits the accumulated message.
+
+    The outcome is raised from `__aenter__` when it stands for an initial-request failure —
+    which is where the real SDK raises it, since `__aenter__` awaits the request."""
+
+    def __init__(self, outcome: Any) -> None:
+        self._outcome = outcome
+
+    async def __aenter__(self) -> "_StubStream":
+        if isinstance(self._outcome, Exception):
+            raise self._outcome
+        return self
+
+    async def __aexit__(self, *exc_info: Any) -> None:
+        return None
+
+    async def get_final_message(self) -> "_Message":
+        return self._outcome  # type: ignore[no-any-return]
+
+
 class _StubMessages:
     def __init__(self, outcomes: list[Any]) -> None:
         # Each outcome is either an Exception to raise or a _Message to return.
         self._outcomes = outcomes
         self.calls: list[dict[str, Any]] = []
 
-    async def create(self, **kwargs: Any) -> _Message:
+    def stream(self, **kwargs: Any) -> _StubStream:
         self.calls.append(kwargs)
-        outcome = self._outcomes.pop(0)
-        if isinstance(outcome, Exception):
-            raise outcome
-        return outcome  # type: ignore[no-any-return]
+        return _StubStream(self._outcomes.pop(0))
 
 
 class _StubClient:
@@ -539,3 +558,85 @@ async def test_connection_error_without_a_response_uses_exponential_backoff() ->
 
     assert await _call(caller) == {}
     assert _SLEEPS == [2.0]
+
+
+# --- WP22: the streaming transport (ADR-0010) ---------------------------------------------
+# The behaviours above are all re-pinned against streaming by construction — the stub client
+# only offers `messages.stream`. These add what is specific to the transport itself.
+
+
+async def test_the_call_path_streams_and_sends_no_nonstreaming_request() -> None:
+    """§4.1: one code path. A stub that offers ONLY `stream` proves there is no
+    non-streaming fallback hiding behind a conditional."""
+    client = _StubClient([_Message(content=[_tool_block({"ok": True})])])
+    assert not hasattr(client.messages, "create")
+    caller = ForcedToolCaller("test-model", client=client, sleep=_no_sleep, rng=lambda: 1.0)
+
+    assert await _call(caller) == {"ok": True}
+
+
+async def test_request_kwargs_are_unchanged_by_the_transport_switch() -> None:
+    """§2.4: prompt caching and the WP16 fixture pins rest on the request being identical."""
+    caller, client = _caller([_Message(content=[_tool_block()])])
+
+    await _call(caller)
+
+    (kwargs,) = client.messages.calls
+    assert kwargs["model"] == "test-model"
+    assert kwargs["max_tokens"] == 64
+    assert kwargs["system"] == [
+        {"type": "text", "text": "system", "cache_control": {"type": "ephemeral"}}
+    ]
+    assert kwargs["tools"] == [
+        {"name": _TOOL, "description": "emit", "input_schema": {"type": "object"}}
+    ]
+    assert kwargs["tool_choice"] == {"type": "tool", "name": _TOOL}
+    assert kwargs["messages"] == [{"role": "user", "content": "user"}]
+    assert "stream" not in kwargs  # the helper streams; it is not a request flag
+
+
+async def test_payload_usage_and_trace_come_from_the_final_message() -> None:
+    """The accumulated final message carries content blocks, stop_reason and usage — incl.
+    cache_read_input_tokens — so nothing downstream had to change."""
+    usage = _Usage(input_tokens=900, output_tokens=120, cache_read_input_tokens=800)
+    events: list[TraceEvent] = []
+    recorded: list[tuple[str, int, int, int]] = []
+    client = _StubClient([_Message(content=[_tool_block({"x": 1})], usage=usage)])
+    _SLEEPS.clear()
+    caller = ForcedToolCaller(
+        "test-model", client=client, sleep=_no_sleep,
+        usage_recorder=lambda m, i, o, c: recorded.append((m, i, o, c)),
+        trace_recorder=events.append,
+    )
+
+    assert await _call(caller) == {"x": 1}
+    assert recorded == [("test-model", 900, 120, 800)]
+    (event,) = events
+    assert event.kind == "llm_call"
+    assert event.payload == {"x": 1}
+    assert event.stop_reason == "tool_use"
+    assert (event.input_tokens, event.output_tokens, event.cache_read_tokens) == (900, 120, 800)
+
+
+async def test_error_raised_while_opening_the_stream_is_retried() -> None:
+    """The initial request is awaited by the manager's __aenter__, so a retryable status
+    surfaces there — the retry matrix keys on status_code exactly as before."""
+    caller, client = _caller([_status_error(529), _Message(content=[_tool_block()])])
+
+    assert await _call(caller) == {}
+    assert len(client.messages.calls) == 2
+    assert _SLEEPS == [2.0]
+
+
+async def test_non_retryable_error_while_opening_the_stream_propagates_traced() -> None:
+    events: list[TraceEvent] = []
+    client = _StubClient([_status_error(400)])
+    _SLEEPS.clear()
+    caller = ForcedToolCaller(
+        "test-model", client=client, sleep=_no_sleep, trace_recorder=events.append
+    )
+
+    with pytest.raises(anthropic.APIStatusError):
+        await _call(caller)
+    assert len(client.messages.calls) == 1
+    assert [event.kind for event in events] == ["llm_error"]

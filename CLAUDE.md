@@ -1400,6 +1400,40 @@ back, jitter halves at rng()==0 and never exceeds base, connection error without
 CI workflow drift guard, corrupt pointer message, missing thread_id, guarded callers still
 swallow), ruff clean, mypy strict clean (37 files).
 
+WP22 streaming landed (as of 2026-07-29, ADR-0010 Accepted,
+docs/architecture/backlog-2026-07/wp22-streaming-spec.md), lifting the transport ceiling
+that blocked scale_100/300. ForcedToolCaller.call moved from the non-streaming create to
+the SDK's streaming helper (`async with client.messages.stream(...) as stream:` +
+`await stream.get_final_message()`) as ONE code path — no streaming/non-streaming
+conditional, because a second path is a second thing that can rot. Everything else is
+byte-identical: same forced single tool + tool_choice, same cache-controlled system block
+(WP3 caching and the WP16 fixture pins untouched), same retry matrix, same truncation
+detection, same usage capture and WP15 trace events. Verified against the INSTALLED SDK
+rather than assumed (the WP8 t_link lesson): `get_final_message()` returns the accumulated
+Message with cache_read_input_tokens folded in by the accumulator, and both failure
+surfaces stay inside the existing try — the initial request is awaited by the manager's
+`__aenter__` (so an APIStatusError there still carries status_code for the retry matrix),
+a mid-stream failure surfaces from `get_final_message()`. Two numbers corrected while
+implementing: the non-streaming limit was never "roughly 16k" — the SDK raises when
+3600*max_tokens/128_000 > 600, i.e. above 21,333 — and `claude-opus-4-8` allows 128,000
+output tokens (confirmed against the live Models API, not memory). The modeler budget went
+16384 -> 32768, deliberately NOT to the model maximum: it clears the ~26k 300-table
+extrapolation with ~26% headroom while bounding a runaway generation's cost, and the
+constant is now PINNED by a test (it had been unpinned) that also asserts the rationale
+cites ADR-0010, so the next person raising it finds the exit condition — staged modelling /
+domain partitioning — instead of just bumping the number again. Test seam: the stub client
+offers ONLY `messages.stream` (a plain method returning an async CM), which is what proves
+acceptance #1's single path — `grep messages.create src/vault_agent` finds nothing. Every
+pre-existing test_llm.py behaviour is re-pinned against streaming by construction.
+Acceptance #3 (live smoke) is CLOSED, not deferred: a real emit_dv_model call on
+claude-opus-4-8 streamed at max_tokens=32768 and landed in the trace with
+stop_reason=tool_use, 629 in / 759 out tokens and the full payload (2 hubs, 1 link, 2
+satellites incl. an effectivity sat). 573 tests green (+6: single-path proof, request-kwargs
+identity, payload/usage/trace from the final message, retryable and non-retryable errors
+while opening the stream, budget pin), ruff clean, mypy strict clean (37 files). NB the
+scale_100/300 measurements this unblocks are still OPEN — the transport no longer caps them,
+which is not the same as having run them.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
