@@ -161,6 +161,7 @@ about itself when things go wrong.
 | WP25 | `wp25-failed-run-outcome-spec.md` | A failed run is first-class: route the exhausted re-model loop into the checkpoint (ADR-0006), exit code 3, ADR caveat when accepted over errors (finding 1) | M | — |
 | WP26 | `wp26-adr-completeness-spec.md` | ADR renders driving keys, multi-source feeds, satellite types, ratified mappings; determinism claim made true (finding 4) | S | — |
 | WP27 | `wp27-ci-retry-hygiene-spec.md` | CI runs the canonical `uv run mypy`; `Retry-After` + jitter; attributable error on a corrupt `pending.json` (finding 5) | S | — |
+| WP28 | `wp28-satellite-feed-binding-spec.md` | ADR-0011 (Accepted 2026-07-29): a satellite naming one of its multi-source hub's feeds binds to that feed (generated once); gate narrows, steering rule deleted, composition cells move | S/M | WP24, WP23, ADR-0011 |
 
 Waves (file-overlap driven): **wave 1 = WP24 alone** — it is the only finding producing
 wrong *data*, it must precede any further multi-source work (WP23's merge path inherits the

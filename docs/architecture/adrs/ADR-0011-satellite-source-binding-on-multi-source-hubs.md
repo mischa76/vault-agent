@@ -1,6 +1,8 @@
 # ADR-0011: Satellite source binding on multi-source hubs
 
-**Status:** Proposed
+**Status:** Accepted (2026-07-29, with one amendment: the acceptance signal in the
+implementation sketch was sharpened — see step 5 — because `bank_extension`'s
+`validation_gate` is confounded by a second, independent failure cause)
 **Date:** 2026-07-29
 **Decision makers:** Mischa Eismann
 
@@ -69,7 +71,7 @@ Three cases, exhaustively:
 | Satellite on a multi-source hub | Behaviour |
 |---|---|
 | No `source_table` | **Unchanged** — WP10 split, one satellite per feed. The attributes are taken to come from every source. |
-| `source_table` naming one of the hub's `sources` | **New** — one satellite, bound to that feed's staging, named without a per-source suffix. |
+| `source_table` naming one of the hub's `sources` | **New** — one satellite, bound to that feed's staging, named without a per-source suffix. "Naming a feed" matches by normalised table name and INCLUDES the materialised legacy feed of a grandfathered hub (WP23 §2.4/§2.6) — the brownfield case is the motivating one and must not fall through the match. |
 | `source_table` naming anything else | **Still an error**, with a message that says which feeds are available. |
 
 The third row keeps a real ambiguity out: a finer-grain relation *under* one of the feeds
@@ -139,8 +141,15 @@ declares. Rejected.
    every per-source spec (this is what fixes the probe above).
 4. Delete the `no_source_table_on_multi_source_hub` steering rule; regenerate the prompt
    fixture and update the steering ledger in the same commit (the WP20 precedent).
-5. Add the WP24-style composition cells and re-measure `bank_extension` live — its
-   `validation_gate` is the acceptance signal, and it is currently 0.0.
+5. Add the WP24-style composition cells and re-measure `bank_extension` live. The
+   acceptance signal, sharpened at acceptance (2026-07-29): **primary** —
+   `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` no longer fires on the natural brownfield
+   shape (the REQ-107 satellite), measured over ≥ 3 runs; that is the outcome this ADR
+   owns. `validation_gate = 1.0` is the *hoped* aggregate but is confounded: the live
+   runs fail on a SECOND, independent cause (`E_HUB_HK_COLLISION` on
+   hub_campaign/hub_employee — a genuine modelling smell this ADR deliberately does not
+   address), so a perfect implementation can still show a failing gate. Report both
+   numbers; only the primary one decides.
 
 ## References
 
