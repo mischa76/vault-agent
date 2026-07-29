@@ -182,3 +182,24 @@ one-line-per-construct precisely so an extension run can render a SUBSET without
 the formatting. WP24's `canonical_hub_key_column` routing is likewise a precondition of
 the merge path, and WP25's exit code 3 is the outcome an extension run inherits when a
 merged model does not validate.
+
+## Addendum 2026-07-29 — brownfield Phase 2 (spike, not a WP)
+
+Phase 1 of the incremental-extension charter is complete (WP23 + WP28, all acceptance items
+met incl. the live Postgres on-top build). Phase 2 — entity resolution against the existing
+vault — is **a timeboxed design spike, not a speccable WP**, per the charter's own phasing:
+its mechanism choice, calibration and trap design are open questions that need measurement
+first, exactly as ADR-0008's mapping question did.
+
+| Artifact | Status |
+|---|---|
+| `spike-entity-resolution-charter.md` | **Proposed** — awaiting a decision to run |
+
+The charter sets one thing apart from its mapping-spike template, and it is the reason to
+read it before approving: entity resolution is **not symmetric**. A false merge feeds foreign
+business keys into a hub that holds live history — the destructive migration the whole
+brownfield track refuses — while a false split costs a redundant hub a reviewer deletes.
+So the primary metric is a **zero false-merge requirement**, not accuracy, and "do not build
+the assist" is an explicitly cheap outcome because Phase 1 already works with the human
+answering the question.
+
