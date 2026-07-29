@@ -55,25 +55,37 @@ boundaries, merging them, or excluding a schema to make a case tidier is forbidd
 value of this WP is that the domain partitioning is not ours. If a boundary turns out to be
 awkward, that is a finding to record, not a thing to fix.
 
-### 2.3 Deliberately: types but NO column comments
+### 2.3 Types AND comments — taken verbatim, never authored (corrected 2026-07-29)
 
-The install script carries no `MS_Description` extended properties (verified) — AdventureWorks
-gives clean English names and types, no documentation. **Do not author comments to fill the
-gap.** Inventing the comment channel would put author bias exactly where the mapper is most
-sensitive, which is the confound this WP exists to remove.
+**This section originally asserted the opposite and was wrong.** It claimed the install script
+carries no `MS_Description` extended properties. It carries **440 column descriptions** and 69
+table descriptions across the five business schemas. The error survived two verifications that
+both failed in the same direction: a WebFetch summary of a truncated markdown conversion, and a
+grep for the named-parameter form `@level2type=N'COLUMN'` when the script uses positional
+arguments. Recorded rather than quietly fixed, because "verified" appeared in the original text.
 
-This makes AdventureWorks a genuinely new point in the input-quality space, complementary to
-what we have rather than a replacement:
+The correction makes the instrument stronger, not weaker: AdventureWorks supplies the full
+ADR-0008 precondition (c) — clean names, types **and** documentation — **none of it ours**. The
+prohibition therefore stays, and it prohibits what it always meant to: **authorship**. Comments
+are transcribed VERBATIM from `sp_addextendedproperty`; a column Microsoft left undescribed
+stays undescribed (25 of 465 do). Nothing is written, extended or paraphrased by us.
+
+The case's position in the input-quality space, restated:
 
 | case | names | comments | what it tests |
 |---|---|---|---|
-| `messy_insurance` | cryptic DACH abbreviations | rich | mapper reasoning under bad names, good docs |
+| `messy_insurance` | cryptic DACH abbreviations | rich, ours | mapper reasoning under bad names, good docs |
 | WP9 §10.7 opacity probe | masked | stripped | honest degradation with no signal |
-| **AdventureWorks** | **clean, English** | **none** | **semantic breadth with no documentation** |
+| **AdventureWorks** | **clean, English** | **rich, INDEPENDENT** | **semantic breadth, zero author bias in either channel** |
 
-State the consequence plainly in the case file: for the mapper this is an *easy naming* case and
-a *hard documentation* case, and it does **not** exercise the cryptic-legacy-naming trap classes.
-It complements `messy_insurance`; it does not replace it.
+Two trap classes come for free and must be preserved rather than tidied away: Microsoft's own
+`AK_*` unique indexes declare the natural keys (which is why the golden mappings are defensible
+rather than our modelling opinion), and beside them sit `AK_*_rowguid` indexes — a perfectly
+unique technical GUID next to the true business key, i.e. the GUID-shadow trap `messy_insurance`
+had to synthesise, occurring here organically.
+
+State plainly in the case files what this does **not** exercise: the cryptic-legacy-naming trap
+classes. It complements `messy_insurance`; it does not replace it.
 
 ### 2.4 Cases
 

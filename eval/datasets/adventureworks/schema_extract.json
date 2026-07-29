@@ -1,0 +1,4874 @@
+{
+  "schemas": [
+    "HumanResources",
+    "Person",
+    "Production",
+    "Purchasing",
+    "Sales"
+  ],
+  "source": "microsoft/sql-server-samples — samples/databases/adventure-works/oltp-install-script/instawdb.sql (MIT, see NOTICE)",
+  "tables": [
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_Department_Name",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for Department records.",
+          "identity": true,
+          "name": "DepartmentID",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Name of the department.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Name of the group to which the department belongs.",
+          "identity": false,
+          "name": "GroupName",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Lookup table containing the departments within the Adventure Works Cycles company.",
+      "foreign_keys": [],
+      "name": "Department",
+      "primary_key": [],
+      "schema": "HumanResources"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "LoginID"
+          ],
+          "name": "AK_Employee_LoginID",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "NationalIDNumber"
+          ],
+          "name": "AK_Employee_NationalIDNumber",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_Employee_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for Employee records.  Foreign key to BusinessEntity.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Unique national identification number such as a social security number.",
+          "identity": false,
+          "name": "NationalIDNumber",
+          "nullable": false,
+          "type": "nvarchar(15)"
+        },
+        {
+          "description": "Network login.",
+          "identity": false,
+          "name": "LoginID",
+          "nullable": false,
+          "type": "nvarchar(256)"
+        },
+        {
+          "description": "Where the employee is located in corporate hierarchy.",
+          "identity": false,
+          "name": "OrganizationNode",
+          "nullable": true,
+          "type": "hierarchyid"
+        },
+        {
+          "description": "The depth of the employee in the corporate hierarchy.",
+          "identity": false,
+          "name": "OrganizationLevel",
+          "nullable": true,
+          "type": "AS"
+        },
+        {
+          "description": "Work title such as Buyer or Sales Representative.",
+          "identity": false,
+          "name": "JobTitle",
+          "nullable": false,
+          "type": "nvarchar(50)"
+        },
+        {
+          "description": "Date of birth.",
+          "identity": false,
+          "name": "BirthDate",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "description": "M = Married, S = Single",
+          "identity": false,
+          "name": "MaritalStatus",
+          "nullable": false,
+          "type": "nchar(1)"
+        },
+        {
+          "description": "M = Male, F = Female",
+          "identity": false,
+          "name": "Gender",
+          "nullable": false,
+          "type": "nchar(1)"
+        },
+        {
+          "description": "Employee hired on this date.",
+          "identity": false,
+          "name": "HireDate",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "description": "Job classification. 0 = Hourly, not exempt from collective bargaining. 1 = Salaried, exempt from collective bargaining.",
+          "identity": false,
+          "name": "SalariedFlag",
+          "nullable": false,
+          "type": "Flag"
+        },
+        {
+          "description": "Number of available vacation hours.",
+          "identity": false,
+          "name": "VacationHours",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Number of available sick leave hours.",
+          "identity": false,
+          "name": "SickLeaveHours",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "0 = Inactive, 1 = Active",
+          "identity": false,
+          "name": "CurrentFlag",
+          "nullable": false,
+          "type": "Flag"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Employee information such as salary, department, and title.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "Person"
+        }
+      ],
+      "name": "Employee",
+      "primary_key": [],
+      "schema": "HumanResources"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Employee identification number. Foreign key to Employee.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Department in which the employee worked including currently. Foreign key to Department.DepartmentID.",
+          "identity": false,
+          "name": "DepartmentID",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Identifies which 8-hour shift the employee works. Foreign key to Shift.Shift.ID.",
+          "identity": false,
+          "name": "ShiftID",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "Date the employee started work in the department.",
+          "identity": false,
+          "name": "StartDate",
+          "nullable": false,
+          "type": "date"
+        },
+        {
+          "description": "Date the employee left the department. NULL = Current department.",
+          "identity": false,
+          "name": "EndDate",
+          "nullable": true,
+          "type": "date"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Employee department transfers.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "DepartmentID"
+          ],
+          "references_columns": [
+            "DepartmentID"
+          ],
+          "references_schema": "HumanResources",
+          "references_table": "Department"
+        }
+      ],
+      "name": "EmployeeDepartmentHistory",
+      "primary_key": [],
+      "schema": "HumanResources"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Employee identification number. Foreign key to Employee.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Date the change in pay is effective",
+          "identity": false,
+          "name": "RateChangeDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Salary hourly rate.",
+          "identity": false,
+          "name": "Rate",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "1 = Salary received monthly, 2 = Salary received biweekly",
+          "identity": false,
+          "name": "PayFrequency",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Employee pay history.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "HumanResources",
+          "references_table": "Employee"
+        }
+      ],
+      "name": "EmployeePayHistory",
+      "primary_key": [],
+      "schema": "HumanResources"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key for JobCandidate records.",
+          "identity": true,
+          "name": "JobCandidateID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Employee identification number if applicant was hired. Foreign key to Employee.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Résumé in XML format.",
+          "identity": false,
+          "name": "Resume",
+          "nullable": true,
+          "type": "XML(HumanResources.HRResumeSchemaCollection)"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Résumés submitted to Human Resources by job applicants.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "HumanResources",
+          "references_table": "Employee"
+        }
+      ],
+      "name": "JobCandidate",
+      "primary_key": [],
+      "schema": "HumanResources"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_Shift_Name",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "StartTime",
+            "EndTime"
+          ],
+          "name": "AK_Shift_StartTime_EndTime",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for Shift records.",
+          "identity": true,
+          "name": "ShiftID",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "Shift description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Shift start time.",
+          "identity": false,
+          "name": "StartTime",
+          "nullable": false,
+          "type": "time"
+        },
+        {
+          "description": "Shift end time.",
+          "identity": false,
+          "name": "EndTime",
+          "nullable": false,
+          "type": "time"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Work shift lookup table.",
+      "foreign_keys": [],
+      "name": "Shift",
+      "primary_key": [],
+      "schema": "HumanResources"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_Address_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for Address records.",
+          "identity": true,
+          "name": "AddressID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "First street address line.",
+          "identity": false,
+          "name": "AddressLine1",
+          "nullable": false,
+          "type": "nvarchar(60)"
+        },
+        {
+          "description": "Second street address line.",
+          "identity": false,
+          "name": "AddressLine2",
+          "nullable": true,
+          "type": "nvarchar(60)"
+        },
+        {
+          "description": "Name of the city.",
+          "identity": false,
+          "name": "City",
+          "nullable": false,
+          "type": "nvarchar(30)"
+        },
+        {
+          "description": "Unique identification number for the state or province. Foreign key to StateProvince table.",
+          "identity": false,
+          "name": "StateProvinceID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Postal code for the street address.",
+          "identity": false,
+          "name": "PostalCode",
+          "nullable": false,
+          "type": "nvarchar(15)"
+        },
+        {
+          "description": "Latitude and longitude of this address.",
+          "identity": false,
+          "name": "SpatialLocation",
+          "nullable": true,
+          "type": "geography"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Street address information for customers, employees, and vendors.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "StateProvinceID"
+          ],
+          "references_columns": [
+            "StateProvinceID"
+          ],
+          "references_schema": "Person",
+          "references_table": "StateProvince"
+        }
+      ],
+      "name": "Address",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_AddressType_rowguid",
+          "technical_guid": true
+        },
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_AddressType_Name",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for AddressType records.",
+          "identity": true,
+          "name": "AddressTypeID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Address type description. For example, Billing, Home, or Shipping.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Types of addresses stored in the Address table.",
+      "foreign_keys": [],
+      "name": "AddressType",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_BusinessEntity_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for all customers, vendors, and employees.",
+          "identity": true,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Source of the ID that connects vendors, customers, and employees with address and contact information.",
+      "foreign_keys": [],
+      "name": "BusinessEntity",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_BusinessEntityAddress_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key. Foreign key to BusinessEntity.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. Foreign key to Address.AddressID.",
+          "identity": false,
+          "name": "AddressID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. Foreign key to AddressType.AddressTypeID.",
+          "identity": false,
+          "name": "AddressTypeID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Cross-reference table mapping customers, vendors, and employees to their addresses.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "AddressID"
+          ],
+          "references_columns": [
+            "AddressID"
+          ],
+          "references_schema": "Person",
+          "references_table": "Address"
+        }
+      ],
+      "name": "BusinessEntityAddress",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_BusinessEntityContact_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key. Foreign key to BusinessEntity.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. Foreign key to Person.BusinessEntityID.",
+          "identity": false,
+          "name": "PersonID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key.  Foreign key to ContactType.ContactTypeID.",
+          "identity": false,
+          "name": "ContactTypeID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Cross-reference table mapping stores, vendors, and employees to people",
+      "foreign_keys": [
+        {
+          "columns": [
+            "PersonID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "Person"
+        }
+      ],
+      "name": "BusinessEntityContact",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_ContactType_Name",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for ContactType records.",
+          "identity": true,
+          "name": "ContactTypeID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Contact type description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Lookup table containing the types of business entity contacts.",
+      "foreign_keys": [],
+      "name": "ContactType",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_CountryRegion_Name",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "ISO standard code for countries and regions.",
+          "identity": false,
+          "name": "CountryRegionCode",
+          "nullable": false,
+          "type": "nvarchar(3)"
+        },
+        {
+          "description": "Country or region name.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Lookup table containing the ISO standard codes for countries and regions.",
+      "foreign_keys": [],
+      "name": "CountryRegion",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key. Person associated with this email address.  Foreign key to Person.BusinessEntityID",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. ID of this email address.",
+          "identity": true,
+          "name": "EmailAddressID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "E-mail address for the person.",
+          "identity": false,
+          "name": "EmailAddress",
+          "nullable": true,
+          "type": "nvarchar(50)"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Where to send a person email.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "Person"
+        }
+      ],
+      "name": "EmailAddress",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": null,
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Password for the e-mail account.",
+          "identity": false,
+          "name": "PasswordHash",
+          "nullable": false,
+          "type": "varchar(128)"
+        },
+        {
+          "description": "Random value concatenated with the password string before the password is hashed.",
+          "identity": false,
+          "name": "PasswordSalt",
+          "nullable": false,
+          "type": "varchar(10)"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "One way hashed authentication information",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "Person"
+        }
+      ],
+      "name": "Password",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_Person_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for Person records.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary type of person: SC = Store Contact, IN = Individual (retail) customer, SP = Sales person, EM = Employee (non-sales), VC = Vendor contact, GC = General contact",
+          "identity": false,
+          "name": "PersonType",
+          "nullable": false,
+          "type": "nchar(2)"
+        },
+        {
+          "description": "0 = The data in FirstName and LastName are stored in western style (first name, last name) order.  1 = Eastern style (last name, first name) order.",
+          "identity": false,
+          "name": "NameStyle",
+          "nullable": false,
+          "type": "NameStyle"
+        },
+        {
+          "description": "A courtesy title. For example, Mr. or Ms.",
+          "identity": false,
+          "name": "Title",
+          "nullable": true,
+          "type": "nvarchar(8)"
+        },
+        {
+          "description": "First name of the person.",
+          "identity": false,
+          "name": "FirstName",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Middle name or middle initial of the person.",
+          "identity": false,
+          "name": "MiddleName",
+          "nullable": true,
+          "type": "Name"
+        },
+        {
+          "description": "Last name of the person.",
+          "identity": false,
+          "name": "LastName",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Surname suffix. For example, Sr. or Jr.",
+          "identity": false,
+          "name": "Suffix",
+          "nullable": true,
+          "type": "nvarchar(10)"
+        },
+        {
+          "description": "0 = Contact does not wish to receive e-mail promotions, 1 = Contact does wish to receive e-mail promotions from AdventureWorks, 2 = Contact does wish to receive e-mail promotions from AdventureWorks and selected partners.",
+          "identity": false,
+          "name": "EmailPromotion",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Additional contact information about the person stored in xml format.",
+          "identity": false,
+          "name": "AdditionalContactInfo",
+          "nullable": true,
+          "type": "XML(Person.AdditionalContactInfoSchemaCollection)"
+        },
+        {
+          "description": "Personal information such as hobbies, and income collected from online shoppers. Used for sales analysis.",
+          "identity": false,
+          "name": "Demographics",
+          "nullable": true,
+          "type": "XML(Person.IndividualSurveySchemaCollection)"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Human beings involved with AdventureWorks: employees, customer contacts, and vendor contacts.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "BusinessEntity"
+        }
+      ],
+      "name": "Person",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Business entity identification number. Foreign key to Person.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Telephone number identification number.",
+          "identity": false,
+          "name": "PhoneNumber",
+          "nullable": false,
+          "type": "Phone"
+        },
+        {
+          "description": "Kind of phone number. Foreign key to PhoneNumberType.PhoneNumberTypeID.",
+          "identity": false,
+          "name": "PhoneNumberTypeID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Telephone number and type of a person.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "Person"
+        }
+      ],
+      "name": "PersonPhone",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key for telephone number type records.",
+          "identity": true,
+          "name": "PhoneNumberTypeID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Name of the telephone number type",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Type of phone number of a person.",
+      "foreign_keys": [],
+      "name": "PhoneNumberType",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_StateProvince_Name",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "StateProvinceCode",
+            "CountryRegionCode"
+          ],
+          "name": "AK_StateProvince_StateProvinceCode_CountryRegionCode",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_StateProvince_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for StateProvince records.",
+          "identity": true,
+          "name": "StateProvinceID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "ISO standard state or province code.",
+          "identity": false,
+          "name": "StateProvinceCode",
+          "nullable": false,
+          "type": "nchar(3)"
+        },
+        {
+          "description": "ISO standard country or region code. Foreign key to CountryRegion.CountryRegionCode.",
+          "identity": false,
+          "name": "CountryRegionCode",
+          "nullable": false,
+          "type": "nvarchar(3)"
+        },
+        {
+          "description": "0 = StateProvinceCode exists. 1 = StateProvinceCode unavailable, using CountryRegionCode.",
+          "identity": false,
+          "name": "IsOnlyStateProvinceFlag",
+          "nullable": false,
+          "type": "Flag"
+        },
+        {
+          "description": "State or province description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "ID of the territory in which the state or province is located. Foreign key to SalesTerritory.SalesTerritoryID.",
+          "identity": false,
+          "name": "TerritoryID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "State and province lookup table.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "CountryRegionCode"
+          ],
+          "references_columns": [
+            "CountryRegionCode"
+          ],
+          "references_schema": "Person",
+          "references_table": "CountryRegion"
+        }
+      ],
+      "name": "StateProvince",
+      "primary_key": [],
+      "schema": "Person"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key for BillOfMaterials records.",
+          "identity": true,
+          "name": "BillOfMaterialsID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Parent product identification number. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductAssemblyID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Component identification number. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ComponentID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Date the component started being used in the assembly item.",
+          "identity": false,
+          "name": "StartDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Date the component stopped being used in the assembly item.",
+          "identity": false,
+          "name": "EndDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": "Standard code identifying the unit of measure for the quantity.",
+          "identity": false,
+          "name": "UnitMeasureCode",
+          "nullable": false,
+          "type": "nchar(3)"
+        },
+        {
+          "description": "Indicates the depth the component is from its parent (AssemblyID).",
+          "identity": false,
+          "name": "BOMLevel",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Quantity of the component needed to create the assembly.",
+          "identity": false,
+          "name": "PerAssemblyQty",
+          "nullable": false,
+          "type": "decimal(8, 2)"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Items required to make bicycles and bicycle subassemblies. It identifies the heirarchical relationship between a parent product and its components.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductAssemblyID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "BillOfMaterials",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_Culture_Name",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for Culture records.",
+          "identity": false,
+          "name": "CultureID",
+          "nullable": false,
+          "type": "nchar(6)"
+        },
+        {
+          "description": "Culture description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Lookup table containing the languages in which some AdventureWorks data is stored.",
+      "foreign_keys": [],
+      "name": "Culture",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_Document_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for Document records.",
+          "identity": false,
+          "name": "DocumentNode",
+          "nullable": false,
+          "type": "hierarchyid"
+        },
+        {
+          "description": "Depth in the document hierarchy.",
+          "identity": false,
+          "name": "DocumentLevel",
+          "nullable": true,
+          "type": "AS"
+        },
+        {
+          "description": "Title of the document.",
+          "identity": false,
+          "name": "Title",
+          "nullable": false,
+          "type": "nvarchar(50)"
+        },
+        {
+          "description": "Employee who controls the document.  Foreign key to Employee.BusinessEntityID",
+          "identity": false,
+          "name": "Owner",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "0 = This is a folder, 1 = This is a document.",
+          "identity": false,
+          "name": "FolderFlag",
+          "nullable": false,
+          "type": "bit"
+        },
+        {
+          "description": "File name of the document",
+          "identity": false,
+          "name": "FileName",
+          "nullable": false,
+          "type": "nvarchar(400)"
+        },
+        {
+          "description": "File extension indicating the document type. For example, .doc or .txt.",
+          "identity": false,
+          "name": "FileExtension",
+          "nullable": false,
+          "type": "nvarchar(8)"
+        },
+        {
+          "description": "Revision number of the document.",
+          "identity": false,
+          "name": "Revision",
+          "nullable": false,
+          "type": "nchar(5)"
+        },
+        {
+          "description": "Engineering change approval number.",
+          "identity": false,
+          "name": "ChangeNumber",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "1 = Pending approval, 2 = Approved, 3 = Obsolete",
+          "identity": false,
+          "name": "Status",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "Document abstract.",
+          "identity": false,
+          "name": "DocumentSummary",
+          "nullable": true,
+          "type": "nvarchar(max)"
+        },
+        {
+          "description": "Complete document.",
+          "identity": false,
+          "name": "Document",
+          "nullable": true,
+          "type": "varbinary(max)"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Required for FileStream.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Product maintenance documents.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "Owner"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "HumanResources",
+          "references_table": "Employee"
+        }
+      ],
+      "name": "Document",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key for Illustration records.",
+          "identity": true,
+          "name": "IllustrationID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Illustrations used in manufacturing instructions. Stored as XML.",
+          "identity": false,
+          "name": "Diagram",
+          "nullable": true,
+          "type": "XML"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Bicycle assembly diagrams.",
+      "foreign_keys": [],
+      "name": "Illustration",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_Location_Name",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for Location records.",
+          "identity": true,
+          "name": "LocationID",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Location description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Standard hourly cost of the manufacturing location.",
+          "identity": false,
+          "name": "CostRate",
+          "nullable": false,
+          "type": "smallmoney"
+        },
+        {
+          "description": "Work capacity (in hours) of the manufacturing location.",
+          "identity": false,
+          "name": "Availability",
+          "nullable": false,
+          "type": "decimal(8, 2)"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Product inventory and manufacturing locations.",
+      "foreign_keys": [],
+      "name": "Location",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "ProductNumber"
+          ],
+          "name": "AK_Product_ProductNumber",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_Product_Name",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_Product_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for Product records.",
+          "identity": true,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Name of the product.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Unique product identification number.",
+          "identity": false,
+          "name": "ProductNumber",
+          "nullable": false,
+          "type": "nvarchar(25)"
+        },
+        {
+          "description": "0 = Product is purchased, 1 = Product is manufactured in-house.",
+          "identity": false,
+          "name": "MakeFlag",
+          "nullable": false,
+          "type": "Flag"
+        },
+        {
+          "description": "0 = Product is not a salable item. 1 = Product is salable.",
+          "identity": false,
+          "name": "FinishedGoodsFlag",
+          "nullable": false,
+          "type": "Flag"
+        },
+        {
+          "description": "Product color.",
+          "identity": false,
+          "name": "Color",
+          "nullable": true,
+          "type": "nvarchar(15)"
+        },
+        {
+          "description": "Minimum inventory quantity.",
+          "identity": false,
+          "name": "SafetyStockLevel",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Inventory level that triggers a purchase order or work order.",
+          "identity": false,
+          "name": "ReorderPoint",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Standard cost of the product.",
+          "identity": false,
+          "name": "StandardCost",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Selling price.",
+          "identity": false,
+          "name": "ListPrice",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Product size.",
+          "identity": false,
+          "name": "Size",
+          "nullable": true,
+          "type": "nvarchar(5)"
+        },
+        {
+          "description": "Unit of measure for Size column.",
+          "identity": false,
+          "name": "SizeUnitMeasureCode",
+          "nullable": true,
+          "type": "nchar(3)"
+        },
+        {
+          "description": "Unit of measure for Weight column.",
+          "identity": false,
+          "name": "WeightUnitMeasureCode",
+          "nullable": true,
+          "type": "nchar(3)"
+        },
+        {
+          "description": "Product weight.",
+          "identity": false,
+          "name": "Weight",
+          "nullable": true,
+          "type": "decimal(8, 2)"
+        },
+        {
+          "description": "Number of days required to manufacture the product.",
+          "identity": false,
+          "name": "DaysToManufacture",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "R = Road, M = Mountain, T = Touring, S = Standard",
+          "identity": false,
+          "name": "ProductLine",
+          "nullable": true,
+          "type": "nchar(2)"
+        },
+        {
+          "description": "H = High, M = Medium, L = Low",
+          "identity": false,
+          "name": "Class",
+          "nullable": true,
+          "type": "nchar(2)"
+        },
+        {
+          "description": "W = Womens, M = Mens, U = Universal",
+          "identity": false,
+          "name": "Style",
+          "nullable": true,
+          "type": "nchar(2)"
+        },
+        {
+          "description": "Product is a member of this product subcategory. Foreign key to ProductSubCategory.ProductSubCategoryID.",
+          "identity": false,
+          "name": "ProductSubcategoryID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Product is a member of this product model. Foreign key to ProductModel.ProductModelID.",
+          "identity": false,
+          "name": "ProductModelID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Date the product was available for sale.",
+          "identity": false,
+          "name": "SellStartDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Date the product was no longer available for sale.",
+          "identity": false,
+          "name": "SellEndDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": "Date the product was discontinued.",
+          "identity": false,
+          "name": "DiscontinuedDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Products sold or used in the manfacturing of sold products.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "SizeUnitMeasureCode"
+          ],
+          "references_columns": [
+            "UnitMeasureCode"
+          ],
+          "references_schema": "Production",
+          "references_table": "UnitMeasure"
+        }
+      ],
+      "name": "Product",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_ProductCategory_Name",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_ProductCategory_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for ProductCategory records.",
+          "identity": true,
+          "name": "ProductCategoryID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Category description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "High-level product categorization.",
+      "foreign_keys": [],
+      "name": "ProductCategory",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Product identification number. Foreign key to Product.ProductID",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Product cost start date.",
+          "identity": false,
+          "name": "StartDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Product cost end date.",
+          "identity": false,
+          "name": "EndDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": "Standard cost of the product.",
+          "identity": false,
+          "name": "StandardCost",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Changes in the cost of a product over time.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "ProductCostHistory",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_ProductDescription_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for ProductDescription records.",
+          "identity": true,
+          "name": "ProductDescriptionID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Description of the product.",
+          "identity": false,
+          "name": "Description",
+          "nullable": false,
+          "type": "nvarchar(400)"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Product descriptions in several languages.",
+      "foreign_keys": [],
+      "name": "ProductDescription",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Product identification number. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Document identification number. Foreign key to Document.DocumentNode.",
+          "identity": false,
+          "name": "DocumentNode",
+          "nullable": false,
+          "type": "hierarchyid"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Cross-reference table mapping products to related product documents.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "ProductDocument",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Product identification number. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Inventory location identification number. Foreign key to Location.LocationID.",
+          "identity": false,
+          "name": "LocationID",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Storage compartment within an inventory location.",
+          "identity": false,
+          "name": "Shelf",
+          "nullable": false,
+          "type": "nvarchar(10)"
+        },
+        {
+          "description": "Storage container on a shelf in an inventory location.",
+          "identity": false,
+          "name": "Bin",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "Quantity of products in the inventory location.",
+          "identity": false,
+          "name": "Quantity",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Product inventory information.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "LocationID"
+          ],
+          "references_columns": [
+            "LocationID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Location"
+        }
+      ],
+      "name": "ProductInventory",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Product identification number. Foreign key to Product.ProductID",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "List price start date.",
+          "identity": false,
+          "name": "StartDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "List price end date",
+          "identity": false,
+          "name": "EndDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": "Product list price.",
+          "identity": false,
+          "name": "ListPrice",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Changes in the list price of a product over time.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "ProductListPriceHistory",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_ProductModel_Name",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_ProductModel_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for ProductModel records.",
+          "identity": true,
+          "name": "ProductModelID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Product model description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Detailed product catalog information in xml format.",
+          "identity": false,
+          "name": "CatalogDescription",
+          "nullable": true,
+          "type": "XML(Production.ProductDescriptionSchemaCollection)"
+        },
+        {
+          "description": "Manufacturing instructions in xml format.",
+          "identity": false,
+          "name": "Instructions",
+          "nullable": true,
+          "type": "XML(Production.ManuInstructionsSchemaCollection)"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Product model classification.",
+      "foreign_keys": [],
+      "name": "ProductModel",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key. Foreign key to ProductModel.ProductModelID.",
+          "identity": false,
+          "name": "ProductModelID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. Foreign key to Illustration.IllustrationID.",
+          "identity": false,
+          "name": "IllustrationID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Cross-reference table mapping product models and illustrations.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductModelID"
+          ],
+          "references_columns": [
+            "ProductModelID"
+          ],
+          "references_schema": "Production",
+          "references_table": "ProductModel"
+        }
+      ],
+      "name": "ProductModelIllustration",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key. Foreign key to ProductModel.ProductModelID.",
+          "identity": false,
+          "name": "ProductModelID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. Foreign key to ProductDescription.ProductDescriptionID.",
+          "identity": false,
+          "name": "ProductDescriptionID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Culture identification number. Foreign key to Culture.CultureID.",
+          "identity": false,
+          "name": "CultureID",
+          "nullable": false,
+          "type": "nchar(6)"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Cross-reference table mapping product descriptions and the language the description is written in.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductDescriptionID"
+          ],
+          "references_columns": [
+            "ProductDescriptionID"
+          ],
+          "references_schema": "Production",
+          "references_table": "ProductDescription"
+        }
+      ],
+      "name": "ProductModelProductDescriptionCulture",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key for ProductPhoto records.",
+          "identity": true,
+          "name": "ProductPhotoID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Small image of the product.",
+          "identity": false,
+          "name": "ThumbNailPhoto",
+          "nullable": true,
+          "type": "varbinary(max)"
+        },
+        {
+          "description": "Small image file name.",
+          "identity": false,
+          "name": "ThumbnailPhotoFileName",
+          "nullable": true,
+          "type": "nvarchar(50)"
+        },
+        {
+          "description": "Large image of the product.",
+          "identity": false,
+          "name": "LargePhoto",
+          "nullable": true,
+          "type": "varbinary(max)"
+        },
+        {
+          "description": "Large image file name.",
+          "identity": false,
+          "name": "LargePhotoFileName",
+          "nullable": true,
+          "type": "nvarchar(50)"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Product images.",
+      "foreign_keys": [],
+      "name": "ProductPhoto",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Product identification number. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Product photo identification number. Foreign key to ProductPhoto.ProductPhotoID.",
+          "identity": false,
+          "name": "ProductPhotoID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "0 = Photo is not the principal image. 1 = Photo is the principal image.",
+          "identity": false,
+          "name": "Primary",
+          "nullable": false,
+          "type": "Flag"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Cross-reference table mapping products and product photos.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "ProductProductPhoto",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key for ProductReview records.",
+          "identity": true,
+          "name": "ProductReviewID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Product identification number. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Name of the reviewer.",
+          "identity": false,
+          "name": "ReviewerName",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Date review was submitted.",
+          "identity": false,
+          "name": "ReviewDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Reviewer's e-mail address.",
+          "identity": false,
+          "name": "EmailAddress",
+          "nullable": false,
+          "type": "nvarchar(50)"
+        },
+        {
+          "description": "Product rating given by the reviewer. Scale is 1 to 5 with 5 as the highest rating.",
+          "identity": false,
+          "name": "Rating",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Reviewer's comments",
+          "identity": false,
+          "name": "Comments",
+          "nullable": true,
+          "type": "nvarchar(3850)"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Customer reviews of products they have purchased.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "ProductReview",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_ProductSubcategory_Name",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_ProductSubcategory_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for ProductSubcategory records.",
+          "identity": true,
+          "name": "ProductSubcategoryID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Product category identification number. Foreign key to ProductCategory.ProductCategoryID.",
+          "identity": false,
+          "name": "ProductCategoryID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Subcategory description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Product subcategories. See ProductCategory table.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductCategoryID"
+          ],
+          "references_columns": [
+            "ProductCategoryID"
+          ],
+          "references_schema": "Production",
+          "references_table": "ProductCategory"
+        }
+      ],
+      "name": "ProductSubcategory",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_ScrapReason_Name",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for ScrapReason records.",
+          "identity": true,
+          "name": "ScrapReasonID",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Failure description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Manufacturing failure reasons lookup table.",
+      "foreign_keys": [],
+      "name": "ScrapReason",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key for TransactionHistory records.",
+          "identity": true,
+          "name": "TransactionID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Product identification number. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Purchase order, sales order, or work order identification number.",
+          "identity": false,
+          "name": "ReferenceOrderID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Line number associated with the purchase order, sales order, or work order.",
+          "identity": false,
+          "name": "ReferenceOrderLineID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Date and time of the transaction.",
+          "identity": false,
+          "name": "TransactionDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "W = WorkOrder, S = SalesOrder, P = PurchaseOrder",
+          "identity": false,
+          "name": "TransactionType",
+          "nullable": false,
+          "type": "nchar(1)"
+        },
+        {
+          "description": "Product quantity.",
+          "identity": false,
+          "name": "Quantity",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Product cost.",
+          "identity": false,
+          "name": "ActualCost",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Record of each purchase order, sales order, or work order transaction year to date.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "TransactionHistory",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key for TransactionHistoryArchive records.",
+          "identity": false,
+          "name": "TransactionID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Product identification number. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Purchase order, sales order, or work order identification number.",
+          "identity": false,
+          "name": "ReferenceOrderID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Line number associated with the purchase order, sales order, or work order.",
+          "identity": false,
+          "name": "ReferenceOrderLineID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Date and time of the transaction.",
+          "identity": false,
+          "name": "TransactionDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "W = Work Order, S = Sales Order, P = Purchase Order",
+          "identity": false,
+          "name": "TransactionType",
+          "nullable": false,
+          "type": "nchar(1)"
+        },
+        {
+          "description": "Product quantity.",
+          "identity": false,
+          "name": "Quantity",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Product cost.",
+          "identity": false,
+          "name": "ActualCost",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Transactions for previous years.",
+      "foreign_keys": [],
+      "name": "TransactionHistoryArchive",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_UnitMeasure_Name",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key.",
+          "identity": false,
+          "name": "UnitMeasureCode",
+          "nullable": false,
+          "type": "nchar(3)"
+        },
+        {
+          "description": "Unit of measure description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Unit of measure lookup table.",
+      "foreign_keys": [],
+      "name": "UnitMeasure",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": null,
+          "identity": true,
+          "name": "WorkOrderID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "OrderQty",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "StockedQty",
+          "nullable": true,
+          "type": "AS"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ScrappedQty",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "StartDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "EndDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "DueDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ScrapReasonID",
+          "nullable": true,
+          "type": "smallint"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": null,
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "WorkOrder",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": null,
+          "identity": false,
+          "name": "WorkOrderID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "OperationSequence",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "LocationID",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ScheduledStartDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ScheduledEndDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ActualStartDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ActualEndDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ActualResourceHrs",
+          "nullable": true,
+          "type": "decimal(9, 4)"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "PlannedCost",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ActualCost",
+          "nullable": true,
+          "type": "money"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": null,
+      "foreign_keys": [
+        {
+          "columns": [
+            "LocationID"
+          ],
+          "references_columns": [
+            "LocationID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Location"
+        }
+      ],
+      "name": "WorkOrderRouting",
+      "primary_key": [],
+      "schema": "Production"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. Foreign key to Vendor.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "The average span of time (in days) between placing an order with the vendor and receiving the purchased product.",
+          "identity": false,
+          "name": "AverageLeadTime",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "The vendor's usual selling price.",
+          "identity": false,
+          "name": "StandardPrice",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "The selling price when last purchased.",
+          "identity": false,
+          "name": "LastReceiptCost",
+          "nullable": true,
+          "type": "money"
+        },
+        {
+          "description": "Date the product was last received by the vendor.",
+          "identity": false,
+          "name": "LastReceiptDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": "The maximum quantity that should be ordered.",
+          "identity": false,
+          "name": "MinOrderQty",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "The minimum quantity that should be ordered.",
+          "identity": false,
+          "name": "MaxOrderQty",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "The quantity currently on order.",
+          "identity": false,
+          "name": "OnOrderQty",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "The product's unit of measure.",
+          "identity": false,
+          "name": "UnitMeasureCode",
+          "nullable": false,
+          "type": "nchar(3)"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Cross-reference table mapping vendors with the products they supply.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "ProductVendor",
+      "primary_key": [],
+      "schema": "Purchasing"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key. Foreign key to PurchaseOrderHeader.PurchaseOrderID.",
+          "identity": false,
+          "name": "PurchaseOrderID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. One line number per purchased product.",
+          "identity": true,
+          "name": "PurchaseOrderDetailID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Date the product is expected to be received.",
+          "identity": false,
+          "name": "DueDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Quantity ordered.",
+          "identity": false,
+          "name": "OrderQty",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Product identification number. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Vendor's selling price of a single product.",
+          "identity": false,
+          "name": "UnitPrice",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Per product subtotal. Computed as OrderQty * UnitPrice.",
+          "identity": false,
+          "name": "LineTotal",
+          "nullable": true,
+          "type": "AS"
+        },
+        {
+          "description": "Quantity actually received from the vendor.",
+          "identity": false,
+          "name": "ReceivedQty",
+          "nullable": false,
+          "type": "decimal(8, 2)"
+        },
+        {
+          "description": "Quantity rejected during inspection.",
+          "identity": false,
+          "name": "RejectedQty",
+          "nullable": false,
+          "type": "decimal(8, 2)"
+        },
+        {
+          "description": "Quantity accepted into inventory. Computed as ReceivedQty - RejectedQty.",
+          "identity": false,
+          "name": "StockedQty",
+          "nullable": true,
+          "type": "AS"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Individual products associated with a specific purchase order. See PurchaseOrderHeader.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "PurchaseOrderDetail",
+      "primary_key": [],
+      "schema": "Purchasing"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key.",
+          "identity": true,
+          "name": "PurchaseOrderID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Incremental number to track changes to the purchase order over time.",
+          "identity": false,
+          "name": "RevisionNumber",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "Order current status. 1 = Pending; 2 = Approved; 3 = Rejected; 4 = Complete",
+          "identity": false,
+          "name": "Status",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "Employee who created the purchase order. Foreign key to Employee.BusinessEntityID.",
+          "identity": false,
+          "name": "EmployeeID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Vendor with whom the purchase order is placed. Foreign key to Vendor.BusinessEntityID.",
+          "identity": false,
+          "name": "VendorID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Shipping method. Foreign key to ShipMethod.ShipMethodID.",
+          "identity": false,
+          "name": "ShipMethodID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Purchase order creation date.",
+          "identity": false,
+          "name": "OrderDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Estimated shipment date from the vendor.",
+          "identity": false,
+          "name": "ShipDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": "Purchase order subtotal. Computed as SUM(PurchaseOrderDetail.LineTotal)for the appropriate PurchaseOrderID.",
+          "identity": false,
+          "name": "SubTotal",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Tax amount.",
+          "identity": false,
+          "name": "TaxAmt",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Shipping cost.",
+          "identity": false,
+          "name": "Freight",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Total due to vendor. Computed as Subtotal + TaxAmt + Freight.",
+          "identity": false,
+          "name": "TotalDue",
+          "nullable": false,
+          "type": "AS"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "General purchase order information. See PurchaseOrderDetail.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "EmployeeID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "HumanResources",
+          "references_table": "Employee"
+        }
+      ],
+      "name": "PurchaseOrderHeader",
+      "primary_key": [],
+      "schema": "Purchasing"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_ShipMethod_Name",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_ShipMethod_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for ShipMethod records.",
+          "identity": true,
+          "name": "ShipMethodID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Shipping company name.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Minimum shipping charge.",
+          "identity": false,
+          "name": "ShipBase",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Shipping charge per pound.",
+          "identity": false,
+          "name": "ShipRate",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Shipping company lookup table.",
+      "foreign_keys": [],
+      "name": "ShipMethod",
+      "primary_key": [],
+      "schema": "Purchasing"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "AccountNumber"
+          ],
+          "name": "AK_Vendor_AccountNumber",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for Vendor records.  Foreign key to BusinessEntity.BusinessEntityID",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Vendor account (identification) number.",
+          "identity": false,
+          "name": "AccountNumber",
+          "nullable": false,
+          "type": "AccountNumber"
+        },
+        {
+          "description": "Company name.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "1 = Superior, 2 = Excellent, 3 = Above average, 4 = Average, 5 = Below average",
+          "identity": false,
+          "name": "CreditRating",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "0 = Do not use if another vendor is available. 1 = Preferred over other vendors supplying the same product.",
+          "identity": false,
+          "name": "PreferredVendorStatus",
+          "nullable": false,
+          "type": "Flag"
+        },
+        {
+          "description": "0 = Vendor no longer used. 1 = Vendor is actively used.",
+          "identity": false,
+          "name": "ActiveFlag",
+          "nullable": false,
+          "type": "Flag"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "PurchasingWebServiceURL",
+          "nullable": true,
+          "type": "nvarchar(1024)"
+        },
+        {
+          "description": null,
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Companies from whom Adventure Works Cycles purchases parts or other goods.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "BusinessEntity"
+        }
+      ],
+      "name": "Vendor",
+      "primary_key": [],
+      "schema": "Purchasing"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "ISO code for countries and regions. Foreign key to CountryRegion.CountryRegionCode.",
+          "identity": false,
+          "name": "CountryRegionCode",
+          "nullable": false,
+          "type": "nvarchar(3)"
+        },
+        {
+          "description": "ISO standard currency code. Foreign key to Currency.CurrencyCode.",
+          "identity": false,
+          "name": "CurrencyCode",
+          "nullable": false,
+          "type": "nchar(3)"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Cross-reference table mapping ISO currency codes to a country or region.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "CountryRegionCode"
+          ],
+          "references_columns": [
+            "CountryRegionCode"
+          ],
+          "references_schema": "Person",
+          "references_table": "CountryRegion"
+        }
+      ],
+      "name": "CountryRegionCurrency",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "CardNumber"
+          ],
+          "name": "AK_CreditCard_CardNumber",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for CreditCard records.",
+          "identity": true,
+          "name": "CreditCardID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Credit card name.",
+          "identity": false,
+          "name": "CardType",
+          "nullable": false,
+          "type": "nvarchar(50)"
+        },
+        {
+          "description": "Credit card number.",
+          "identity": false,
+          "name": "CardNumber",
+          "nullable": false,
+          "type": "nvarchar(25)"
+        },
+        {
+          "description": "Credit card expiration month.",
+          "identity": false,
+          "name": "ExpMonth",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "Credit card expiration year.",
+          "identity": false,
+          "name": "ExpYear",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Customer credit card information.",
+      "foreign_keys": [],
+      "name": "CreditCard",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_Currency_Name",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "The ISO code for the Currency.",
+          "identity": false,
+          "name": "CurrencyCode",
+          "nullable": false,
+          "type": "nchar(3)"
+        },
+        {
+          "description": "Currency name.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Lookup table containing standard ISO currencies.",
+      "foreign_keys": [],
+      "name": "Currency",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "CurrencyRateDate",
+            "FromCurrencyCode",
+            "ToCurrencyCode"
+          ],
+          "name": "AK_CurrencyRate_CurrencyRateDate_FromCurrencyCode_ToCurrencyCode",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for CurrencyRate records.",
+          "identity": true,
+          "name": "CurrencyRateID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Date and time the exchange rate was obtained.",
+          "identity": false,
+          "name": "CurrencyRateDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Exchange rate was converted from this currency code.",
+          "identity": false,
+          "name": "FromCurrencyCode",
+          "nullable": false,
+          "type": "nchar(3)"
+        },
+        {
+          "description": "Exchange rate was converted to this currency code.",
+          "identity": false,
+          "name": "ToCurrencyCode",
+          "nullable": false,
+          "type": "nchar(3)"
+        },
+        {
+          "description": "Average exchange rate for the day.",
+          "identity": false,
+          "name": "AverageRate",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Final exchange rate for the day.",
+          "identity": false,
+          "name": "EndOfDayRate",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Currency exchange rates.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "FromCurrencyCode"
+          ],
+          "references_columns": [
+            "CurrencyCode"
+          ],
+          "references_schema": "Sales",
+          "references_table": "Currency"
+        }
+      ],
+      "name": "CurrencyRate",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_Customer_rowguid",
+          "technical_guid": true
+        },
+        {
+          "columns": [
+            "AccountNumber"
+          ],
+          "name": "AK_Customer_AccountNumber",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key.",
+          "identity": true,
+          "name": "CustomerID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Foreign key to Person.BusinessEntityID",
+          "identity": false,
+          "name": "PersonID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Foreign key to Store.BusinessEntityID",
+          "identity": false,
+          "name": "StoreID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "ID of the territory in which the customer is located. Foreign key to SalesTerritory.SalesTerritoryID.",
+          "identity": false,
+          "name": "TerritoryID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Unique number identifying the customer assigned by the accounting system.",
+          "identity": false,
+          "name": "AccountNumber",
+          "nullable": true,
+          "type": "AS"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Current customer information. Also see the Person and Store tables.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "PersonID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "Person"
+        }
+      ],
+      "name": "Customer",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Business entity identification number. Foreign key to Person.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Credit card identification number. Foreign key to CreditCard.CreditCardID.",
+          "identity": false,
+          "name": "CreditCardID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Cross-reference table mapping people to their credit card information in the CreditCard table.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "Person"
+        }
+      ],
+      "name": "PersonCreditCard",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_SalesOrderDetail_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key. Foreign key to SalesOrderHeader.SalesOrderID.",
+          "identity": false,
+          "name": "SalesOrderID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. One incremental unique number per product sold.",
+          "identity": true,
+          "name": "SalesOrderDetailID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Shipment tracking number supplied by the shipper.",
+          "identity": false,
+          "name": "CarrierTrackingNumber",
+          "nullable": true,
+          "type": "nvarchar(25)"
+        },
+        {
+          "description": "Quantity ordered per product.",
+          "identity": false,
+          "name": "OrderQty",
+          "nullable": false,
+          "type": "smallint"
+        },
+        {
+          "description": "Product sold to customer. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Promotional code. Foreign key to SpecialOffer.SpecialOfferID.",
+          "identity": false,
+          "name": "SpecialOfferID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Selling price of a single product.",
+          "identity": false,
+          "name": "UnitPrice",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Discount amount.",
+          "identity": false,
+          "name": "UnitPriceDiscount",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Per product subtotal. Computed as UnitPrice * (1 - UnitPriceDiscount) * OrderQty.",
+          "identity": false,
+          "name": "LineTotal",
+          "nullable": true,
+          "type": "AS"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Individual products associated with a specific sales order. See SalesOrderHeader.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "SalesOrderID"
+          ],
+          "references_columns": [
+            "SalesOrderID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesOrderHeader"
+        }
+      ],
+      "name": "SalesOrderDetail",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_SalesOrderHeader_rowguid",
+          "technical_guid": true
+        },
+        {
+          "columns": [
+            "SalesOrderNumber"
+          ],
+          "name": "AK_SalesOrderHeader_SalesOrderNumber",
+          "technical_guid": false
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key.",
+          "identity": true,
+          "name": "SalesOrderID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Incremental number to track changes to the sales order over time.",
+          "identity": false,
+          "name": "RevisionNumber",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "Dates the sales order was created.",
+          "identity": false,
+          "name": "OrderDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Date the order is due to the customer.",
+          "identity": false,
+          "name": "DueDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Date the order was shipped to the customer.",
+          "identity": false,
+          "name": "ShipDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": "Order current status. 1 = In process; 2 = Approved; 3 = Backordered; 4 = Rejected; 5 = Shipped; 6 = Cancelled",
+          "identity": false,
+          "name": "Status",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "0 = Order placed by sales person. 1 = Order placed online by customer.",
+          "identity": false,
+          "name": "OnlineOrderFlag",
+          "nullable": false,
+          "type": "Flag"
+        },
+        {
+          "description": "Unique sales order identification number.",
+          "identity": false,
+          "name": "SalesOrderNumber",
+          "nullable": true,
+          "type": "AS"
+        },
+        {
+          "description": "Customer purchase order number reference.",
+          "identity": false,
+          "name": "PurchaseOrderNumber",
+          "nullable": true,
+          "type": "OrderNumber"
+        },
+        {
+          "description": "Financial accounting number reference.",
+          "identity": false,
+          "name": "AccountNumber",
+          "nullable": true,
+          "type": "AccountNumber"
+        },
+        {
+          "description": "Customer identification number. Foreign key to Customer.BusinessEntityID.",
+          "identity": false,
+          "name": "CustomerID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Sales person who created the sales order. Foreign key to SalesPerson.BusinessEntityID.",
+          "identity": false,
+          "name": "SalesPersonID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Territory in which the sale was made. Foreign key to SalesTerritory.SalesTerritoryID.",
+          "identity": false,
+          "name": "TerritoryID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Customer billing address. Foreign key to Address.AddressID.",
+          "identity": false,
+          "name": "BillToAddressID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Customer shipping address. Foreign key to Address.AddressID.",
+          "identity": false,
+          "name": "ShipToAddressID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Shipping method. Foreign key to ShipMethod.ShipMethodID.",
+          "identity": false,
+          "name": "ShipMethodID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Credit card identification number. Foreign key to CreditCard.CreditCardID.",
+          "identity": false,
+          "name": "CreditCardID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Approval code provided by the credit card company.",
+          "identity": false,
+          "name": "CreditCardApprovalCode",
+          "nullable": true,
+          "type": "varchar(15)"
+        },
+        {
+          "description": "Currency exchange rate used. Foreign key to CurrencyRate.CurrencyRateID.",
+          "identity": false,
+          "name": "CurrencyRateID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Sales subtotal. Computed as SUM(SalesOrderDetail.LineTotal)for the appropriate SalesOrderID.",
+          "identity": false,
+          "name": "SubTotal",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Tax amount.",
+          "identity": false,
+          "name": "TaxAmt",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Shipping cost.",
+          "identity": false,
+          "name": "Freight",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Total due from customer. Computed as Subtotal + TaxAmt + Freight.",
+          "identity": false,
+          "name": "TotalDue",
+          "nullable": true,
+          "type": "AS"
+        },
+        {
+          "description": "Sales representative comments.",
+          "identity": false,
+          "name": "Comment",
+          "nullable": true,
+          "type": "nvarchar(128)"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "General sales order information.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BillToAddressID"
+          ],
+          "references_columns": [
+            "AddressID"
+          ],
+          "references_schema": "Person",
+          "references_table": "Address"
+        }
+      ],
+      "name": "SalesOrderHeader",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key. Foreign key to SalesOrderHeader.SalesOrderID.",
+          "identity": false,
+          "name": "SalesOrderID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. Foreign key to SalesReason.SalesReasonID.",
+          "identity": false,
+          "name": "SalesReasonID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Cross-reference table mapping sales orders to sales reason codes.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "SalesReasonID"
+          ],
+          "references_columns": [
+            "SalesReasonID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesReason"
+        }
+      ],
+      "name": "SalesOrderHeaderSalesReason",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_SalesPerson_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for SalesPerson records. Foreign key to Employee.BusinessEntityID",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Territory currently assigned to. Foreign key to SalesTerritory.SalesTerritoryID.",
+          "identity": false,
+          "name": "TerritoryID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Projected yearly sales.",
+          "identity": false,
+          "name": "SalesQuota",
+          "nullable": true,
+          "type": "money"
+        },
+        {
+          "description": "Bonus due if quota is met.",
+          "identity": false,
+          "name": "Bonus",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Commision percent received per sale.",
+          "identity": false,
+          "name": "CommissionPct",
+          "nullable": false,
+          "type": "smallmoney"
+        },
+        {
+          "description": "Sales total year to date.",
+          "identity": false,
+          "name": "SalesYTD",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Sales total of previous year.",
+          "identity": false,
+          "name": "SalesLastYear",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Sales representative current information.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "HumanResources",
+          "references_table": "Employee"
+        }
+      ],
+      "name": "SalesPerson",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_SalesPersonQuotaHistory_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Sales person identification number. Foreign key to SalesPerson.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Sales quota date.",
+          "identity": false,
+          "name": "QuotaDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Sales quota amount.",
+          "identity": false,
+          "name": "SalesQuota",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Sales performance tracking.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesPerson"
+        }
+      ],
+      "name": "SalesPersonQuotaHistory",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key for SalesReason records.",
+          "identity": true,
+          "name": "SalesReasonID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Sales reason description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Category the sales reason belongs to.",
+          "identity": false,
+          "name": "ReasonType",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Lookup table of customer purchase reasons.",
+      "foreign_keys": [],
+      "name": "SalesReason",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "StateProvinceID",
+            "TaxType"
+          ],
+          "name": "AK_SalesTaxRate_StateProvinceID_TaxType",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_SalesTaxRate_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for SalesTaxRate records.",
+          "identity": true,
+          "name": "SalesTaxRateID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "State, province, or country/region the sales tax applies to.",
+          "identity": false,
+          "name": "StateProvinceID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "1 = Tax applied to retail transactions, 2 = Tax applied to wholesale transactions, 3 = Tax applied to all sales (retail and wholesale) transactions.",
+          "identity": false,
+          "name": "TaxType",
+          "nullable": false,
+          "type": "tinyint"
+        },
+        {
+          "description": "Tax rate amount.",
+          "identity": false,
+          "name": "TaxRate",
+          "nullable": false,
+          "type": "smallmoney"
+        },
+        {
+          "description": "Tax rate description.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Tax rate lookup table.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "StateProvinceID"
+          ],
+          "references_columns": [
+            "StateProvinceID"
+          ],
+          "references_schema": "Person",
+          "references_table": "StateProvince"
+        }
+      ],
+      "name": "SalesTaxRate",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "Name"
+          ],
+          "name": "AK_SalesTerritory_Name",
+          "technical_guid": false
+        },
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_SalesTerritory_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for SalesTerritory records.",
+          "identity": true,
+          "name": "TerritoryID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Sales territory description",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "ISO standard country or region code. Foreign key to CountryRegion.CountryRegionCode.",
+          "identity": false,
+          "name": "CountryRegionCode",
+          "nullable": false,
+          "type": "nvarchar(3)"
+        },
+        {
+          "description": "Geographic area to which the sales territory belong.",
+          "identity": false,
+          "name": "Group",
+          "nullable": false,
+          "type": "nvarchar(50)"
+        },
+        {
+          "description": "Sales in the territory year to date.",
+          "identity": false,
+          "name": "SalesYTD",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Sales in the territory the previous year.",
+          "identity": false,
+          "name": "SalesLastYear",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Business costs in the territory year to date.",
+          "identity": false,
+          "name": "CostYTD",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "Business costs in the territory the previous year.",
+          "identity": false,
+          "name": "CostLastYear",
+          "nullable": false,
+          "type": "money"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Sales territory lookup table.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "CountryRegionCode"
+          ],
+          "references_columns": [
+            "CountryRegionCode"
+          ],
+          "references_schema": "Person",
+          "references_table": "CountryRegion"
+        }
+      ],
+      "name": "SalesTerritory",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_SalesTerritoryHistory_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key. The sales rep.  Foreign key to SalesPerson.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. Territory identification number. Foreign key to SalesTerritory.SalesTerritoryID.",
+          "identity": false,
+          "name": "TerritoryID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Primary key. Date the sales representive started work in the territory.",
+          "identity": false,
+          "name": "StartDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Date the sales representative left work in the territory.",
+          "identity": false,
+          "name": "EndDate",
+          "nullable": true,
+          "type": "datetime"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Sales representative transfers to other sales territories.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesPerson"
+        }
+      ],
+      "name": "SalesTerritoryHistory",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [],
+      "columns": [
+        {
+          "description": "Primary key for ShoppingCartItem records.",
+          "identity": true,
+          "name": "ShoppingCartItemID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Shopping cart identification number.",
+          "identity": false,
+          "name": "ShoppingCartID",
+          "nullable": false,
+          "type": "nvarchar(50)"
+        },
+        {
+          "description": "Product quantity ordered.",
+          "identity": false,
+          "name": "Quantity",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Product ordered. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Date the time the record was created.",
+          "identity": false,
+          "name": "DateCreated",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Contains online customer orders until the order is submitted or cancelled.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "ShoppingCartItem",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_SpecialOffer_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for SpecialOffer records.",
+          "identity": true,
+          "name": "SpecialOfferID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Discount description.",
+          "identity": false,
+          "name": "Description",
+          "nullable": false,
+          "type": "nvarchar(255)"
+        },
+        {
+          "description": "Discount precentage.",
+          "identity": false,
+          "name": "DiscountPct",
+          "nullable": false,
+          "type": "smallmoney"
+        },
+        {
+          "description": "Discount type category.",
+          "identity": false,
+          "name": "Type",
+          "nullable": false,
+          "type": "nvarchar(50)"
+        },
+        {
+          "description": "Group the discount applies to such as Reseller or Customer.",
+          "identity": false,
+          "name": "Category",
+          "nullable": false,
+          "type": "nvarchar(50)"
+        },
+        {
+          "description": "Discount start date.",
+          "identity": false,
+          "name": "StartDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Discount end date.",
+          "identity": false,
+          "name": "EndDate",
+          "nullable": false,
+          "type": "datetime"
+        },
+        {
+          "description": "Minimum discount percent allowed.",
+          "identity": false,
+          "name": "MinQty",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Maximum discount percent allowed.",
+          "identity": false,
+          "name": "MaxQty",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Sale discounts lookup table.",
+      "foreign_keys": [],
+      "name": "SpecialOffer",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_SpecialOfferProduct_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key for SpecialOfferProduct records.",
+          "identity": false,
+          "name": "SpecialOfferID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Product identification number. Foreign key to Product.ProductID.",
+          "identity": false,
+          "name": "ProductID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Cross-reference table mapping products to special offer discounts.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        }
+      ],
+      "name": "SpecialOfferProduct",
+      "primary_key": [],
+      "schema": "Sales"
+    },
+    {
+      "alternate_keys": [
+        {
+          "columns": [
+            "rowguid"
+          ],
+          "name": "AK_Store_rowguid",
+          "technical_guid": true
+        }
+      ],
+      "columns": [
+        {
+          "description": "Primary key. Foreign key to Customer.BusinessEntityID.",
+          "identity": false,
+          "name": "BusinessEntityID",
+          "nullable": false,
+          "type": "int"
+        },
+        {
+          "description": "Name of the store.",
+          "identity": false,
+          "name": "Name",
+          "nullable": false,
+          "type": "Name"
+        },
+        {
+          "description": "ID of the sales person assigned to the customer. Foreign key to SalesPerson.BusinessEntityID.",
+          "identity": false,
+          "name": "SalesPersonID",
+          "nullable": true,
+          "type": "int"
+        },
+        {
+          "description": "Demographic informationg about the store such as the number of employees, annual sales and store type.",
+          "identity": false,
+          "name": "Demographics",
+          "nullable": true,
+          "type": "XML(Sales.StoreSurveySchemaCollection)"
+        },
+        {
+          "description": "ROWGUIDCOL number uniquely identifying the record. Used to support a merge replication sample.",
+          "identity": false,
+          "name": "rowguid",
+          "nullable": false,
+          "type": "uniqueidentifier"
+        },
+        {
+          "description": "Date and time the record was last updated.",
+          "identity": false,
+          "name": "ModifiedDate",
+          "nullable": false,
+          "type": "datetime"
+        }
+      ],
+      "description": "Customers (resellers) of Adventure Works products.",
+      "foreign_keys": [
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "BusinessEntity"
+        }
+      ],
+      "name": "Store",
+      "primary_key": [],
+      "schema": "Sales"
+    }
+  ]
+}
