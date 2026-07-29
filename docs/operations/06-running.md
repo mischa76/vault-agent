@@ -208,5 +208,7 @@ and pointing at the diff.
 **Known limitation (2026-07-29).** A satellite fed by ONE source of a now-multi-source hub —
 the natural shape when a new system brings its own attributes — currently trips
 `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` and is flagged rather than generated. Leave the
-satellite's `source_table` unset and it splits per feed instead. Giving the declared-source
-form real semantics needs a modelling decision that has not been taken.
+satellite's `source_table` unset and it splits per feed instead — but note that this only
+helps when the attributes really do arrive from every feed. **ADR-0011** (Proposed) decides
+how to bind such a satellite to one feed; until it is accepted and implemented, the
+combination is flagged rather than generated.

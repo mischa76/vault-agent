@@ -1548,8 +1548,14 @@ correctly reads REQ-107 and emits a satellite fed by crm_contact on the now-mult
 hub_customer. WP24 rejected that combination on the grounds that one relation cannot feed
 two independent feeds, which is true when the satellite describes ALL of them and false
 here, where it describes ONE. A steering rule was added through the WP16 registry and did
-NOT prevent it (0/3 runs) — a clean datapoint that this needs the modelling decision + ADR
-WP24 §5 anticipated, not more prompt text. The prompt fixture and the steering ledger were
+NOT prevent it (0/3 runs) — a clean datapoint that this needed a modelling decision rather
+than more prompt text. That decision is now written: ADR-0011 (Proposed, 2026-07-29), which
+narrows the gate instead of removing it — a satellite whose source_table NAMES one of the
+hub's feeds binds to that feed and is generated once; everything else stays an error. It
+rests on a measured fact worth keeping: with source_table left unset (what the steering
+asks for) the WP10 split demands the CRM's columns from the CORE banking staging too, so
+the alternative the gate steers to does not build either. bank_extension's validation_gate
+is that ADR's acceptance signal. The prompt fixture and the steering ledger were
 updated deliberately in the same commit (WP20 precedent), with the pre-WP16 block asserted
 to still be a byte-identical prefix. (b) E_HUB_HK_COLLISION on hub_campaign/hub_employee:
 the modeler gives both source_entity 'crm_campaign'; a genuine modelling smell the gate

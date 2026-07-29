@@ -108,5 +108,10 @@ exactly one input set. That single invariant catches finding 2 and any future re
 ## 5. Out of scope
 
 Giving the WP7+WP10 combination real semantics (per-source finer-grain payloads) — that
-needs a modelling decision and an ADR, not a bug fix. Same-as links, and any change to
+needs a modelling decision and an ADR, not a bug fix.
+
+> **Followed up (2026-07-29):** that decision is now written as **ADR-0011** (Proposed),
+> prompted by WP23's live `bank_extension` run, which showed the rejection firing on the
+> natural brownfield shape — and, measurably, that the alternative this gate steers to
+> does not build either. ADR-0011 narrows the gate rather than removing it. Same-as links, and any change to
 `canonical_hub_key_column`'s policy (WP10 §2.2 stands).
