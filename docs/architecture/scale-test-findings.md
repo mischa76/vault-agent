@@ -191,11 +191,16 @@ ADR-0010's deferred exit condition (staged modelling / domain partitioning) is n
 | `emit_business_keys` | 1 | 4,606 | 8,192 | 56% | 0 |
 | `emit_dv_model` | 1 | 13,833 | 32,768 | **42%** | 0 |
 
-13,833 against a predicted ~23,080. That gap is the finding, not the good news — see
-Candidate #5. The modeler was never handed a 300-table problem: it produced **38 hubs / 41 links
-/ 55 satellites at 300 tables, against 68 / 21 / 35 at 100**. Its output plateaued because its
-input did. **The modeler's scaling question is therefore still OPEN**, and the ~$18 full run
-would currently measure the upstream collapse rather than the scale.
+13,833 against a predicted ~23,080, and 38 hubs / 41 links / 55 satellites against 68 / 21 / 35
+at 100 tables. The first reading of this was that the pipeline had silently collapsed upstream;
+**that reading was wrong** — the 300-table landscape simply does not contain 3× the information
+(Candidate #5). The modeler's output did not grow because the problem did not grow.
+
+So the ADR-0010 question — does one coherent model still fit at 300 tables *of real semantic
+variety* — is **not answered by this probe**, and cannot be answered by the current generator.
+The full `scale_300` would measure the same repetition tolerance for ~$18. What the probe does
+establish, cheaply and usefully: nothing in the chain truncates or errors at this document size,
+and the 32,768 budget is nowhere near binding.
 
 (An earlier attempt the same day was blocked by the account's API usage limit — `400
 invalid_request_error`, nothing spent, the failure came on the first call. Worth one line
@@ -352,51 +357,67 @@ Each entry: symptom, size at which it appears, which agent/limit, proposed follo
 - **Method note, the same lesson as 2026-07-28 and worth repeating:** the diagnosis cost nothing
   because the trace was already on disk. Read it before paying for another run.
 
-### Candidate #5 — `requirements_parser` under-extracts SILENTLY at 300 tables (OPEN)
+### Candidate #5 — the synthetic landscape does not scale INFORMATION with table count (OPEN)
 
-- **Observed 2026-07-29** by the 300-table modeler probe. The measurement, against the
-  100-table run of the same day:
+**This entry replaces an earlier, wrong one.** It was first written as
+"`requirements_parser` under-extracts silently at 300 tables", from this comparison:
 
-  | | doc chars | bullets | calls | requirements extracted | truncations |
-  |---|---|---|---|---|---|
-  | 100 tables | 9,027 | 93 | 4 | **113** | 2 → split, recovered |
-  | 300 tables | 24,239 | 281 | 1 | **79** | 0 |
+| | doc chars | bullets | calls | requirements extracted | truncations |
+|---|---|---|---|---|---|
+| 100 tables | 9,027 | 93 | 4 | 113 | 2 → split, recovered |
+| 300 tables | 24,239 | 281 | 1 | 79 | 0 |
 
-  A 2.7× larger document with 3× the bullets yielded **fewer** requirements, in one call, with
-  no truncation. The parser summarised where it previously enumerated.
-- **Why nothing caught it.** Every safety net in this pipeline keys on *truncation*:
-  `stop_reason == "max_tokens"` triggers the adaptive split and the `INPUT_SEGMENTED` flag.
-  Summarisation is not truncation. The response was well-formed, ended `tool_use`, and sat at
-  86% of cap — indistinguishable, from the outside, from a document that genuinely contained 79
-  requirements. There is no flag, no warning, and no scorer that fires. **This is the first
-  failure mode found in this project that is silent by construction.**
-- **Downstream consequence, measured:** 38 hubs / 41 links / 55 satellites at 300 tables against
-  68 / 21 / 35 at 100. Fewer hubs from three times the landscape. Everything after the parser —
-  business keys, the model, the mapping, the review queue — works from a compressed view of the
-  source landscape and cannot know it.
-- **It invalidates the probe's headline.** `emit_dv_model` used 42% of its budget not because it
-  scales beautifully but because it was handed a 300-table *document* describing what amounts to
-  a smaller problem. The ADR-0010 question — does one coherent model still fit at 300 tables —
-  is **unanswered**, and the full `scale_300` should not be paid for until this is fixed, or it
-  will measure the collapse instead of the scale.
-- **Proposed follow-up (product, M).** Deliberately NOT specced here, because the obvious lever
-  is one this project already rejected on evidence: a fixed character threshold is the wrong
-  proxy, since output tracks content *density*, not length (the 2026-07-28 output-budget note —
-  `messy_insurance` is larger than the 30-table document and yields far fewer requirements). The
-  new datapoint is the mirror image and does not restore the threshold idea; it argues for a
-  *coverage* signal instead. Candidate directions, in the order I would test them:
-  1. a **structural completeness check** — compare extracted requirement count against countable
-     structure in the document (bullets, headings) and flag a large shortfall for human review.
-     Cheap, deterministic, and honest: it flags rather than guesses. Needs care not to fire on
-     legitimately prose-heavy documents;
-  2. **proactive segmentation above a structural size** (bullet/heading count, not characters),
-     accepting the extra calls as the price of coverage;
-  3. leaving it and documenting the ceiling — defensible only if the brownfield/domain-by-domain
-     path (incremental-extension charter) is accepted as the sole supported route past ~100
-     tables, which is in fact what that charter argues.
-- **Method note:** the probe cost ~$1 and roughly 4 minutes and produced a finding the ~$18 full
-  run would have buried in a plausible-looking result. Probing the one unknown before buying the
-  whole measurement is the pattern to keep.
+A 2.7× larger document yielding fewer requirements looked like a silent coverage collapse.
+**The inference was wrong, because it never checked whether the extra bullets carry
+information.** They do not:
+
+- Both documents contain **exactly 87 distinct sentence templates** (bullets with
+  identifiers and digits masked). 93 bullets / 87 templates at 100 tables; 281 / 87 at 300.
+  The 300-table document is the same 87 patterns repeated ~3× with different generated
+  abbreviations — one template alone appears 45 times.
+- The landscape has 296 distinct entities at 300 tables, of which **200 are index variants**
+  of an existing archetype: `extra_aufgabe_3` … `extra_aufgabe_8`, `extra_beitrag_3` … `_8`.
+  Structurally identical, no distinct business meaning.
+
+So a model that reads six near-identical filler entities and emits one generalised
+requirement instead of six is plausibly doing the *right* thing. The parser is **not shown
+to be defective**; the measurement could not tell the difference.
+
+**The real finding is about the instrument.** `generate_landscape` scales table *count*
+linearly (entity/relationship/wide hold at 21/7/2 → 72/22/6 → 216/66/18) but scales distinct
+business *semantics* not at all beyond a fixed vocabulary. Above roughly the 30-table step,
+`scale_100` and `scale_300` therefore measure **tolerance for repetitive boilerplate**, not
+modelling complexity at scale. The case names imply the second; they deliver the first.
+
+This is the fifth instance of the recurring pattern in this project — the eval measuring
+something other than what it claims (after WP9.2, WP14, the link-grain fix, and the
+mapping-coverage/deferral conflation above). The pattern is now frequent enough to be worth
+stating as a standing rule: **before reading a scale number as a product signal, verify that
+the input actually varies along the axis the case claims to test.**
+
+**What this invalidates, explicitly:**
+
+- The "silent under-extraction" defect claim. Withdrawn.
+- The reading of the 300-table probe's 38 hubs vs the 100-table run's 68 as a collapse. It
+  may equally be *better* consolidation of filler; this data cannot distinguish them, and the
+  smaller number is certainly not evidence of failure.
+- The sizing claim "~30 tables is the ratifiable subject-area size", which was derived from
+  the 161 → 1,121 review-item growth. The workload numbers are real *as workload*, but much
+  of that load is generated by filler entities, so they bound nuisance rather than measure
+  genuine domain complexity. A defensible subject-area size needs a landscape whose semantics
+  actually grow.
+
+**What is untouched:** Candidate #4 and its fix (wall clock, measured directly); the fact
+that `scale_100` completed and validated; the modeler's 13,261 / 13,833 output measurements
+(real numbers, just not from a 3× harder problem); and the mapping-coverage/deferral reading,
+which is structural and does not depend on the data's information content.
+
+**Proposed follow-up (eval, M).** Give the generator a semantic axis independent of its table
+count — genuinely distinct entities, relationships and vocabulary — or relabel the upper scale
+cases for what they measure (width and repetition tolerance) and stop treating them as scale
+evidence. Until then the honest position is that **the pipeline is verified at ~30 tables of
+real semantic variety and unverified above it**, which is also precisely the regime the
+incremental-extension charter argues for.
 
 ## Landscape composition (for interpreting the numbers)
 
