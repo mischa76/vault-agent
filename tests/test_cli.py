@@ -1292,3 +1292,66 @@ def test_source_mapper_does_not_run_on_the_failed_path(
     agents_run = [d.get("agent") for d in state.decisions]
     assert "source_mapper" not in agents_run
     assert "human_checkpoint" not in agents_run  # interrupted before it recorded a decision
+
+
+# --- WP27: hygiene (CI parity, corrupt pointer) -------------------------------------------
+
+
+def test_ci_type_check_is_the_canonical_invocation() -> None:
+    """§3.1: cheap drift protection for exactly the defect this was.
+
+    `uv run mypy src` type-checks LESS than the DoD: an explicit path overrides
+    pyproject's `files = ["src/vault_agent", "eval"]`, so eval/ — which carries the quality
+    gates — was strict-checked locally and not in CI."""
+    workflow = (
+        Path(__file__).parents[1] / ".github" / "workflows" / "ci.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "run: uv run mypy\n" in workflow
+    assert "uv run mypy src" not in workflow
+
+
+def test_corrupt_pending_is_an_attributable_message_not_a_traceback(tmp_path: Path) -> None:
+    """§3.5: pending.json is a documented file users may hand-edit (WP17)."""
+    from vault_agent.cli import _checkpoint_dir
+
+    out = tmp_path / "out"
+    _checkpoint_dir(out).mkdir(parents=True)
+    (_checkpoint_dir(out) / "pending.json").write_text('{"thread_id": "abc', encoding="utf-8")
+
+    result = runner.invoke(app, ["resume", "--out", str(out)])
+
+    assert result.exit_code == 1
+    assert "Cannot read the unfinished-run pointer" in result.output
+    assert "not valid JSON" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_pending_without_a_thread_id_is_rejected(tmp_path: Path) -> None:
+    from vault_agent.cli import _checkpoint_dir
+
+    out = tmp_path / "out"
+    _checkpoint_dir(out).mkdir(parents=True)
+    (_checkpoint_dir(out) / "pending.json").write_text('{"input": "req.md"}', encoding="utf-8")
+
+    result = runner.invoke(app, ["resume", "--out", str(out)])
+
+    assert result.exit_code == 1
+    assert "expected a JSON object with a 'thread_id' key" in result.output
+
+
+def test_crash_report_and_orphan_pruning_still_swallow_a_corrupt_pointer(
+    tmp_path: Path,
+) -> None:
+    """The already-guarded callers keep treating a broken pointer as "no pointer" — hygiene
+    must never be the reason a run cannot start (WP17 §2.4)."""
+    import asyncio as _asyncio
+
+    from vault_agent.cli import _checkpoint_dir, _prune_orphan_threads, _report_crashed
+
+    out = tmp_path / "out"
+    _checkpoint_dir(out).mkdir(parents=True)
+    (_checkpoint_dir(out) / "pending.json").write_text("not json at all", encoding="utf-8")
+
+    _report_crashed(Console(), out)  # no raise, prints nothing actionable
+    _asyncio.run(_prune_orphan_threads(None, out, keep="whatever"))  # no raise

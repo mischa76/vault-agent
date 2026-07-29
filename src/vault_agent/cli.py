@@ -15,7 +15,7 @@ import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated, Any, cast
 from uuid import uuid4
 
 import typer
@@ -324,11 +324,27 @@ def _write_pending(
 
 
 def _read_pending(out_dir: Path) -> dict[str, str] | None:
+    """The unfinished-run pointer, or None when there is none.
+
+    Raises an attributable ``ValueError`` naming the file and the problem when the pointer
+    exists but is unusable (WP27 §2.3, house loader style — see
+    ``source_schema.load_source_schemas``). ``pending.json`` is a documented file users are
+    pointed at and may hand-edit, so a truncated or reshaped one must not surface as a raw
+    ``JSONDecodeError`` traceback. Callers that treat a broken pointer as "no pointer"
+    (crash reporting, orphan pruning) already catch it."""
     path = _pending_path(out_dir)
     if not path.exists():
         return None
-    data: dict[str, str] = json.loads(path.read_text(encoding="utf-8"))
-    return data
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{path}: not valid JSON ({exc})") from exc
+    if not isinstance(data, dict) or not data.get("thread_id"):
+        raise ValueError(
+            f"{path}: expected a JSON object with a 'thread_id' key naming the run's "
+            f"checkpoint thread"
+        )
+    return cast(dict[str, str], data)
 
 
 def _pending_phase(pending: dict[str, str]) -> str:
@@ -1186,7 +1202,19 @@ def resume(
 ) -> None:
     """Continue an unfinished run: paused at the checkpoint, or crashed mid-pipeline."""
     console = Console()
-    pending = _read_pending(out)
+    try:
+        pending = _read_pending(out)
+    except (OSError, ValueError) as exc:
+        # The pointer exists but is unusable — say which file and why, and offer the two ways
+        # out. A raw traceback here would be the product's fault, not the user's (WP27 §2.3).
+        # NOT offering --discard here on purpose: it reads the same pointer and would fail
+        # with the same message. Deleting the file by hand is the only way through.
+        console.print(
+            f"[bold red]Cannot read the unfinished-run pointer:[/bold red] {exc}\n"
+            f"  Repair that file, or delete it to abandon the run (its checkpoint thread "
+            f"is then pruned by the next [cyan]vault-agent run[/cyan] into [cyan]{out}/[/cyan])."
+        )
+        raise typer.Exit(code=1) from exc
     if pending is None:
         console.print(f"[bold red]No unfinished run found[/bold red] under [cyan]{out}/[/cyan].")
         raise typer.Exit(code=1)

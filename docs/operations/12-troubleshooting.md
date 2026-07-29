@@ -10,13 +10,14 @@
 | `INPUT_TRUNCATED` advisory flag | Document longer than 400k chars; pipeline continued on the head. | Usually fine for prose docs; for inventory-style docs, split or slim the input. |
 | `Could not load an input file: …` | Malformed `--source-schema`/`--profiling` (the loaders name file and problem). | Fix the named entry; the error is attributable by design — no LLM tokens were spent. |
 | `could not read <doc>: …` error flag | The document exists but is unreadable (non-UTF-8 text, corrupt PDF/`.docx`). | The file was skipped, not fatal: re-save it as UTF-8 / repair the document. A single-document run then has nothing to parse and fails attributably. |
-| Rate-limit / 5xx noise in `--debug` logs | Transient API failures. | Nothing — retried 3× with backoff automatically; only exhaustion surfaces as `LLMCallError`. |
+| Rate-limit / 5xx noise in `--debug` logs | Transient API failures. | Nothing — retried 3× automatically; only exhaustion surfaces as `LLMCallError`. Each wait is logged at INFO with its length and where it came from: a server `Retry-After` header wins (capped at 60 s), otherwise exponential backoff with equal jitter so parallel runs stop colliding. |
 
 ## 12.2 Checkpoint & resume issues
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
 | `No unfinished run found under <out>/` | Nothing paused or crashed there: wrong `--out`, already finalized, or `.vault-agent/` deleted. | Point `--out` at the run's output dir; check for `pending.json` under `<out>/.vault-agent/`. |
+| `Cannot read the unfinished-run pointer: …` | `pending.json` exists but is truncated, not JSON, or has no `thread_id` (usually a hand-edit or an interrupted write). | Repair the file, or delete it to abandon the run — the next `run` into that directory prunes the orphaned checkpoint thread. `--discard` cannot help here: it reads the same pointer. |
 | Pipeline failed mid-run — is the LLM work lost? | No (WP17): the crash writes a `crashed` `pending.json` and the artifacts-so-far. | `vault-agent resume --out <dir>` continues at the failed node; `--discard` throws the run away. |
 | `The run failed again: …` on resume | A deterministic failure (corrupt input, a bug) repeats on every continuation. | Read the named error and the trace (chapter 10); fix the cause, or `resume --discard` and start over. |
 | `resume` prints instructions instead of prompting | Non-TTY (pipe, CI) with no decision flags. | Use the flags (7.5) or force `--interactive` in a real terminal. |

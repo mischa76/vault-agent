@@ -1359,6 +1359,47 @@ finalise with the caveat, CLI exit 3 + resumable pending + no ADR yet, accept �
 the caveat on disk, --discard, mapper absent from the failed path), ruff clean, mypy strict
 clean (37 files).
 
+WP27 hygiene landed (as of 2026-07-29,
+docs/architecture/backlog-2026-07/wp27-ci-retry-hygiene-spec.md, review finding 5), three
+small things. (§2.1) CI type-checked LESS than the DoD: `.github/workflows/ci.yml` ran
+`uv run mypy src`, and an explicit path OVERRIDES pyproject's
+`files = ["src/vault_agent", "eval"]` — so eval/ (2,000+ lines carrying the quality gates
+everything else leans on) was strict-checked locally and not in CI. The workflow now runs
+the bare `uv run mypy`, with a comment stating why the invocation must stay bare.
+METHOD NOTE worth keeping: the first verification of this used
+`uv venv` + `uv pip install -e ".[dev]"` and reported a FAILURE
+(`eval/run.py:190: Unused "type: ignore"`), which would have been a false alarm —
+`uv pip install` ignores uv.lock and resolves fresh versions, while CI uses `uv sync`.
+Re-run CI-faithfully via `UV_PROJECT_ENVIRONMENT=<tmp> uv sync --extra dev`, the whole CI
+job is green (mypy 37 files, 567 tests, ruff) with no extra dependency needed. It does show
+the ignore is version-sensitive: an unlocked resolution flags it, so a langgraph bump may
+require touching that pragma. (§2.2) The retry policy honoured no server advice: 408/429/5xx
+were retried at a fixed 2/4/8 s, so a key answering `Retry-After: 30` failed the whole call
+after ~14 s of waiting guaranteed to be too short, and parallel runs (eval --repeat, ablation
+arms) retried in lockstep and re-collided. ForcedToolCaller now derives each delay from the
+failure that caused THAT retry: `retry-after-ms` then `retry-after` (read defensively —
+verified against the installed anthropic 0.107.0, where APIStatusError.response is an
+httpx.Response; a non-numeric HTTP-date value falls through rather than being guessed at),
+else the exponential base with EQUAL jitter (d/2 + rng()*d/2, chosen over full jitter because
+the failure mode is a rate-limit collision: decorrelate, but never retry almost immediately).
+Every wait is capped at _MAX_RETRY_DELAY_SECONDS=60 so a hostile header cannot hang a run,
+and logged at INFO with its length and which policy applied. rng is injectable next to the
+existing sleep seam; the test helper injects rng()==1.0, which collapses equal jitter to
+exactly the base delay, so the pre-WP27 2/4/8 assertions keep pinning the same ladder
+unchanged. Status set, _MAX_RETRIES, non-retryable propagation and trace events are
+untouched. (§2.3) cli._read_pending did a bare json.loads and `resume` called it outside any
+try, so a truncated or hand-edited pending.json — a file WP17 now points users at — surfaced
+as a raw JSONDecodeError traceback. It raises an attributable ValueError naming file and
+problem (house loader style), also rejecting a document without a thread_id; `resume` catches
+it and exits 1 with the message. The instructions deliberately do NOT offer `--discard`: it
+reads the same pointer and would fail identically — deleting the file by hand is the only way
+through, and the orphaned thread is pruned by the next run. The already-guarded callers
+(_report_crashed, _prune_orphan_threads) keep swallowing it, pinned by a test. 567 tests green
+(+10: Retry-After honoured, retry-after-ms, absurd header capped, unparseable header falls
+back, jitter halves at rng()==0 and never exceeds base, connection error without a response,
+CI workflow drift guard, corrupt pointer message, missing thread_id, guarded callers still
+swallow), ruff clean, mypy strict clean (37 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

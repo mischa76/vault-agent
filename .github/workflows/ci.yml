@@ -18,7 +18,11 @@ jobs:
         run: uv sync --extra dev
       - name: Lint
         run: uv run ruff check .
+      # Bare invocation ON PURPOSE (WP27 §2.1): an explicit path OVERRIDES pyproject's
+      # `files = ["src/vault_agent", "eval"]`, so `mypy src` silently skipped eval/ — the
+      # 2,000+ lines carrying the quality gates everything else leans on. A green CI must
+      # be the same statement as a green local check, not a weaker one.
       - name: Type-check
-        run: uv run mypy src
+        run: uv run mypy
       - name: Test
         run: uv run pytest -q

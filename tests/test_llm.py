@@ -13,6 +13,7 @@ import httpx
 import pytest
 
 from vault_agent.llm import (
+    _MAX_RETRY_DELAY_SECONDS,
     ForcedToolCaller,
     LLMCallError,
     TraceEvent,
@@ -65,9 +66,11 @@ class _StubClient:
         self.messages = _StubMessages(outcomes)
 
 
-def _status_error(status_code: int) -> anthropic.APIStatusError:
+def _status_error(
+    status_code: int, headers: dict[str, str] | None = None
+) -> anthropic.APIStatusError:
     request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
-    response = httpx.Response(status_code, request=request)
+    response = httpx.Response(status_code, request=request, headers=headers)
     return anthropic.APIStatusError("boom", response=response, body=None)
 
 
@@ -78,10 +81,20 @@ async def _no_sleep(seconds: float) -> None:
     _SLEEPS.append(seconds)
 
 
-def _caller(outcomes: list[Any]) -> tuple[ForcedToolCaller, _StubClient]:
+def _caller(
+    outcomes: list[Any], rng: Any = None
+) -> tuple[ForcedToolCaller, _StubClient]:
     client = _StubClient(outcomes)
     _SLEEPS.clear()
-    return ForcedToolCaller("test-model", client=client, sleep=_no_sleep), client
+    # rng() == 1.0 makes equal jitter (d/2 + rng()*d/2) collapse to exactly the base delay,
+    # so the pre-WP27 backoff assertions keep pinning the same ladder (2/4/8) — jitter is
+    # an addition to the policy, not a change of it.
+    return (
+        ForcedToolCaller(
+            "test-model", client=client, sleep=_no_sleep, rng=rng or (lambda: 1.0)
+        ),
+        client,
+    )
 
 
 async def _call(caller: ForcedToolCaller) -> dict[str, Any]:
@@ -455,3 +468,74 @@ async def test_raising_usage_recorder_never_disturbs_the_call() -> None:
     caller = ForcedToolCaller("test-model", client=client, sleep=_no_sleep, usage_recorder=boom)
 
     assert await _call(caller) == {"ok": 1}
+
+
+# --- WP27 §2.2: Retry-After and jitter ----------------------------------------------------
+
+
+async def test_retry_after_header_wins_over_exponential_backoff() -> None:
+    """A rate-limited key answering `Retry-After: 30` used to be retried after 2s, three
+    times, and then fail — ~14s of waiting guaranteed to be too short."""
+    caller, client = _caller(
+        [_status_error(429, {"retry-after": "30"}), _Message(content=[_tool_block()])]
+    )
+
+    assert await _call(caller) == {}
+    assert _SLEEPS == [30.0]
+    assert len(client.messages.calls) == 2
+
+
+async def test_retry_after_ms_header_is_read() -> None:
+    # The SDK's own client prefers retry-after-ms; so do we.
+    caller, _ = _caller(
+        [_status_error(429, {"retry-after-ms": "1500"}), _Message(content=[_tool_block()])]
+    )
+
+    assert await _call(caller) == {}
+    assert _SLEEPS == [1.5]
+
+
+async def test_absurd_retry_after_is_capped() -> None:
+    caller, _ = _caller(
+        [_status_error(429, {"retry-after": "3600"}), _Message(content=[_tool_block()])]
+    )
+
+    assert await _call(caller) == {}
+    assert _SLEEPS == [_MAX_RETRY_DELAY_SECONDS]
+
+
+async def test_unparseable_retry_after_falls_back_to_exponential() -> None:
+    # The RFC also permits an HTTP date; we do not guess at it, we back off as usual.
+    caller, _ = _caller(
+        [
+            _status_error(429, {"retry-after": "Wed, 29 Jul 2026 12:00:00 GMT"}),
+            _Message(content=[_tool_block()]),
+        ]
+    )
+
+    assert await _call(caller) == {}
+    assert _SLEEPS == [2.0]  # rng()==1.0 → the base delay
+
+
+async def test_jitter_halves_the_delay_at_the_low_end_and_never_exceeds_base() -> None:
+    caller, _ = _caller(
+        [_status_error(500), _status_error(500), _Message(content=[_tool_block()])],
+        rng=lambda: 0.0,
+    )
+
+    assert await _call(caller) == {}
+    # Equal jitter: exactly half the base delay at rng()==0, so a retry never lands
+    # immediately — which is what a 429 is asking us not to do.
+    assert _SLEEPS == [1.0, 2.0]
+    assert all(slept <= base for slept, base in zip(_SLEEPS, [2.0, 4.0], strict=True))
+
+
+async def test_connection_error_without_a_response_uses_exponential_backoff() -> None:
+    # No response object at all — the header read must not blow up on it.
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    caller, _ = _caller(
+        [anthropic.APIConnectionError(request=request), _Message(content=[_tool_block()])]
+    )
+
+    assert await _call(caller) == {}
+    assert _SLEEPS == [2.0]
