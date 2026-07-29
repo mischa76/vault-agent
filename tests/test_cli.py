@@ -1151,3 +1151,144 @@ def test_resume_no_write_finalises_without_artifacts_but_clears_the_run_state(
     import asyncio as _asyncio
 
     assert _asyncio.run(_thread_ids(out)) == set()
+
+
+# --- WP25: a failed run is a first-class outcome ------------------------------------------
+# Keyless: the graph is stubbed with a permanently-failing validator, but the human
+# checkpoint and the ADR author are REAL — the point is what the product reports about
+# itself when the model never validates.
+
+
+def _unvalidatable_stub_agents() -> "dict[str, object]":
+    """Stub agents whose validator never passes, mirroring the real modeler's counter.
+
+    ``modeling_attempts`` is what bounds the re-model loop, so the stub modeler has to
+    increment it or the graph would loop forever."""
+    from vault_agent.agents.adr_author import AdrAuthorAgent
+    from vault_agent.agents.base import BaseAgent
+    from vault_agent.agents.orchestrator import HumanCheckpointAgent
+    from vault_agent.graph import NODES
+    from vault_agent.state import DVModel, Hub, ValidationIssue, ValidationReport
+
+    class _Stub(BaseAgent):
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        async def run(self, state: VaultAgentState) -> VaultAgentState:
+            if self.name == "dv2_modeler":
+                state.modeling_attempts += 1
+                state.dv_model = DVModel(
+                    hubs=[Hub(name="hub_customer", business_key="customer_id",
+                              source_entity="customer", description="The customer.")]
+                )
+            if self.name == "validator":
+                state.validation_report = ValidationReport(
+                    passed=False,
+                    issues=[ValidationIssue(severity="error", code="E_SAT_DUP_ATTR",
+                                            construct="sat_customer_details",
+                                            message="duplicate payload column")],
+                )
+            state.decisions.append({"agent": self.name})
+            return state
+
+    agents: dict[str, object] = {name: _Stub(name) for name in NODES}
+    agents["human_checkpoint"] = HumanCheckpointAgent()  # the real gate
+    agents["adr_author"] = AdrAuthorAgent(today="2026-07-29")  # the real renderer
+    return agents
+
+
+def _use_unvalidatable_graph(monkeypatch: pytest.MonkeyPatch) -> None:
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_unvalidatable_stub_agents()),  # type: ignore[arg-type]
+    )
+
+
+def test_unvalidatable_run_exits_3_and_stays_resumable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """§3.2 / acceptance #1+#2: exit 3, an explanation, and a checkpoint that EXISTS.
+
+    Before WP25 this exact run exited 0 while review-queue.md said "requires sign-off" and
+    `resume` answered "No unfinished run found"."""
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_unvalidatable_graph(monkeypatch)
+    out = tmp_path / "out"
+
+    result = runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+
+    assert result.exit_code == 3
+    assert "The model did not validate" in result.output
+    assert "not for deployment" in result.output
+    pending = _read_pending(out)
+    assert pending is not None and pending["phase"] == "paused"  # resumable, not a dead end
+    assert "requires sign-off" in (out / "review-queue.md").read_text(encoding="utf-8")
+    assert list((out / "adrs").glob("*.md")) == []  # nothing documented yet
+
+
+def test_accepting_an_unvalidatable_model_finalises_but_still_exits_3(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """§3.3: accepted ≠ validated — the artifacts still carry the known errors."""
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_unvalidatable_graph(monkeypatch)
+    out = tmp_path / "out"
+    runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+
+    result = runner.invoke(
+        app, ["resume", "--out", str(out), "--no-interactive", "--accept"]
+    )
+
+    assert result.exit_code == 3
+    assert "run finalized" in result.output
+    assert _read_pending(out) is None
+    adr = next((out / "adrs").glob("ADR-*.md")).read_text(encoding="utf-8")
+    assert "This model did not pass validation." in adr
+    assert "E_SAT_DUP_ATTR (sat_customer_details)" in adr
+
+
+def test_unvalidatable_run_can_be_discarded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """§3.4: the other half of the human's decision — throw the failed model away."""
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_unvalidatable_graph(monkeypatch)
+    out = tmp_path / "out"
+    runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+
+    result = runner.invoke(app, ["resume", "--out", str(out), "--discard"])
+
+    assert result.exit_code == 0  # discarding is a decision, not a failure
+    assert "Discarded" in result.output
+    assert _read_pending(out) is None
+    import asyncio as _asyncio
+
+    assert _asyncio.run(_thread_ids(out)) == set()
+
+
+def test_source_mapper_does_not_run_on_the_failed_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """§3.6: no LLM call is spent mapping a model the human may discard."""
+    from vault_agent.cli import _run_pipeline
+
+    _use_unvalidatable_graph(monkeypatch)
+    import asyncio as _asyncio
+
+    state, paused, _ = _asyncio.run(_run_pipeline(tmp_path / "req.md", tmp_path / "out"))
+
+    assert paused is True
+    agents_run = [d.get("agent") for d in state.decisions]
+    assert "source_mapper" not in agents_run
+    assert "human_checkpoint" not in agents_run  # interrupted before it recorded a decision

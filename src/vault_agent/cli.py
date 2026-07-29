@@ -38,7 +38,7 @@ from vault_agent.agents.orchestrator import (
     assemble_review_queue,
     render_review_queue_md,
 )
-from vault_agent.graph import build_graph
+from vault_agent.graph import MAX_MODELING_ATTEMPTS, build_graph
 from vault_agent.models.contract import ContractOwner
 from vault_agent.profiling import load_profiling
 from vault_agent.report import build_report
@@ -295,6 +295,11 @@ def _pending_path(out_dir: Path) -> Path:
 # pointer); the run-start pruning below relies on this to recognise orphaned threads.
 PENDING_PAUSED = "paused"
 PENDING_CRASHED = "crashed"
+
+# Exit codes. 0 = finalized or paused, 1 = the pipeline failed, 2 = Click/typer usage error;
+# 3 (WP25 §2.2) = the run completed but its model does not validate, so a wrapper script can
+# tell a failed model from a good one instead of reading the console.
+EXIT_NOT_VALIDATED = 3
 
 
 def _write_pending(
@@ -774,11 +779,11 @@ def _interactive_checkpoint(
                 if issue.severity == "error":
                     console.print(f"[red]validation error[/red] {issue.code}: {issue.message}")
             if not _prompter.confirm(console, "Accept and finalize?", default=False):
-                _report_paused(console, out)
+                _report_paused(console, out, state=state)
                 return
         except KeyboardInterrupt:
             console.print("\n[yellow]Aborted — checkpoint kept.[/yellow]")
-            _report_paused(console, out)
+            _report_paused(console, out, state=state)
             return
 
         decision = _build_decision(owners, True, overrides, {})
@@ -858,14 +863,36 @@ def _report_written(console: Console, counts: dict[str, int], out: Path) -> None
     )
 
 
-def _report_paused(console: Console, out: Path, write: bool = True) -> None:
-    console.print(
-        "\n[bold yellow]Paused at the human-in-the-loop checkpoint.[/bold yellow] "
-        "Assign the contract owner(s) above and resume:\n"
-        f"  [cyan]vault-agent resume --out {out} "
-        '--owner "<asset>=<Name> <<email>>"[/cyan]\n'
-        "  (repeat --owner per asset; add --accept to proceed once owners are set)"
+def _report_paused(
+    console: Console, out: Path, write: bool = True, state: VaultAgentState | None = None
+) -> None:
+    """Print how to answer the checkpoint — in terms of what actually blocks it.
+
+    WP25 made the validation-error blocker reachable, and for it there is no owner to
+    assign: telling the human to pass ``--owner`` would send them looking for an asset that
+    does not exist. When no contract is waiting for an owner, the instructions name the two
+    decisions that DO apply. Without a state (or with owners pending) the message is
+    byte-identical to the pre-WP25 one."""
+    no_owner_to_assign = state is not None and not any(
+        item.kind == "contract_owner" for item in assemble_review_queue(state).items
     )
+    if no_owner_to_assign:
+        console.print(
+            "\n[bold yellow]Paused at the human-in-the-loop checkpoint.[/bold yellow] "
+            "Nothing here can be fixed by assigning an owner — decide on the model:\n"
+            f"  [cyan]vault-agent resume --out {out} --accept[/cyan]   "
+            "(keep it, errors and all — for diagnosis)\n"
+            f"  [cyan]vault-agent resume --out {out} --discard[/cyan]  "
+            "(throw the run away and start over)"
+        )
+    else:
+        console.print(
+            "\n[bold yellow]Paused at the human-in-the-loop checkpoint.[/bold yellow] "
+            "Assign the contract owner(s) above and resume:\n"
+            f"  [cyan]vault-agent resume --out {out} "
+            '--owner "<asset>=<Name> <<email>>"[/cyan]\n'
+            "  (repeat --owner per asset; add --accept to proceed once owners are set)"
+        )
     if not write:
         # The pause was reached under --no-write, but resume defaults to writing: say so,
         # rather than letting the next command surprise the user with artifacts (WP21 §2.7).
@@ -873,6 +900,27 @@ def _report_paused(console: Console, out: Path, write: bool = True) -> None:
             "  [dim]note: this run used --no-write; the resume above WILL write artifacts "
             "unless you pass --no-write again[/dim]"
         )
+
+
+def _exit_unvalidated(console: Console, state: VaultAgentState, out: Path) -> None:
+    """Exit 3 when the run ends carrying a model that did not validate (WP25 §2.2).
+
+    Called at every point where a CLI invocation ENDS — finalized or paused. The
+    discriminator is ``validation_report.passed``, not paused-ness: a pause for an
+    unassigned contract owner is a normal outcome and keeps exit 0, while a run whose model
+    never validated must not report success even after a human accepted it, because the
+    artifacts on disk still carry the known errors. Exit 1 stays "the pipeline failed", 2
+    stays Click's usage error, so 3 is unambiguous for a wrapper script."""
+    if state.validation_report.passed:
+        return
+    errors = sum(1 for issue in state.validation_report.issues if issue.severity == "error")
+    console.print(
+        f"\n[bold red]The model did not validate[/bold red] after "
+        f"{MAX_MODELING_ATTEMPTS} modeling attempt(s): {errors} validation error(s) remain. "
+        f"They are listed in the review queue and in [cyan]{out}/report.html[/cyan]. These "
+        f"artifacts are for diagnosis and remediation — not for deployment."
+    )
+    raise typer.Exit(code=EXIT_NOT_VALIDATED)
 
 
 def _report_crashed(console: Console, out: Path) -> None:
@@ -987,9 +1035,14 @@ def run(
         if write and _is_interactive(interactive):
             _interactive_checkpoint(console, out, thread_id, state, trace)
         else:
-            _report_paused(console, out, write)
+            _report_paused(console, out, write, state)
     else:
         _clear_pending(out)
+
+    # Last statement on every path: the validator is the only writer of the report, and no
+    # node after it revises the verdict, so this reads the same value whether the run
+    # finalized, paused, or was finalized in-terminal by the interactive checkpoint.
+    _exit_unvalidated(console, state, out)
 
 
 def _resume_paused(
@@ -1032,6 +1085,7 @@ def _resume_paused(
         console.print(f"[bold]Resuming[/bold] paused run in [cyan]{out}/[/cyan] (interactive) …\n")
         _print_checkpoint(console, assemble_review_queue(state))
         _interactive_checkpoint(console, out, thread_id, state, trace)
+        _exit_unvalidated(console, state, out)
         return
 
     try:
@@ -1065,12 +1119,15 @@ def _resume_paused(
         console.print("\n[dim]--no-write: nothing written to disk.[/dim]")
 
     if paused:
-        _report_paused(console, out, write)
+        _report_paused(console, out, write, state)
     else:
         # Finalised: the run state goes regardless of --no-write — it governs artifacts, and
         # a finished run has nothing left to resume (the thread is already pruned).
         _clear_pending(out)
         console.print("\n[bold green]Checkpoint cleared — run finalized.[/bold green]")
+
+    # Accepting at the checkpoint does not make an invalid model valid (WP25 §2.2).
+    _exit_unvalidated(console, state, out)
 
 
 @app.command()
@@ -1178,6 +1235,7 @@ def resume(
         if not paused:
             _clear_pending(out)
             console.print("\n[bold green]Checkpoint cleared — run finalized.[/bold green]")
+            _exit_unvalidated(console, state, out)
             return
         # The continued run reached the HITL checkpoint: it is a paused run from here on.
         # Record that first (so a hard kill right here still leaves a resumable pointer),
@@ -1191,7 +1249,8 @@ def resume(
             if write and _is_interactive(interactive):
                 _interactive_checkpoint(console, out, thread_id, state, trace)
             else:
-                _report_paused(console, out, write)
+                _report_paused(console, out, write, state)
+            _exit_unvalidated(console, state, out)
             return
 
     _resume_paused(

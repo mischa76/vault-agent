@@ -49,6 +49,7 @@ from vault_agent.state import (
     LinkHubRef,
     ProposedMapping,
     Satellite,
+    ValidationReport,
     VaultAgentState,
 )
 
@@ -134,6 +135,42 @@ def _sat_line(sat: Satellite) -> str:
         f"- **{sat.name}** — on {sat.parent}; payload: {payload}. "
         f"{sat.description}{kind}{source}{split} _(requirements: {_ids(sat.requirement_ids)})_"
     )
+
+
+def _accepted_over_errors_block(report: ValidationReport) -> list[str]:
+    """The prominent caveat for a model accepted at the checkpoint despite errors (WP25 §2.3).
+
+    The ADR author only runs past the human checkpoint, so reaching it with
+    ``passed`` false means a human accepted the model over its surviving errors — an ADR
+    documenting a known-broken model without saying so would be worse than no ADR. Placed
+    directly under the header, not in Consequences: a reader must not have to scroll to
+    learn that the record describes something that does not validate. Matched on
+    ``severity``, never message text.
+
+    Keyed on the surviving ERROR ISSUES, not on ``passed`` alone: ``ValidationReport.passed``
+    defaults to False, so a state that never reached the validator (a unit test, a future
+    caller) would otherwise get a caveat announcing "0 surviving errors". In a real run the
+    two are equivalent — the validator sets ``passed`` to exactly "no error issues"."""
+    if report.passed:
+        return []
+    errors: list[str] = []
+    for issue in report.issues:
+        if issue.severity != "error":
+            continue
+        code = issue.code or "issue"
+        entry = f"{code} ({issue.construct})" if issue.construct else code
+        if entry not in errors:  # a code can repeat per construct; the same pair cannot
+            errors.append(entry)
+    if not errors:
+        return []
+    listed = ", ".join(errors)
+    return [
+        f"> ⚠ **This model did not pass validation.** It was accepted at the "
+        f"human-in-the-loop checkpoint over {len(errors)} surviving validation error(s): "
+        f"{listed}. The generated artifacts are for diagnosis and remediation — not for "
+        f"deployment.",
+        "",
+    ]
 
 
 def _mappings_section(mappings: ProposedMapping) -> list[str]:
@@ -237,6 +274,7 @@ class AdrAuthorAgent(BaseAgent):
             f"**Date:** {today}",
             "**Decision makers:** Vault-Agent (generated) — pending human review",
             "",
+            *_accepted_over_errors_block(state.validation_report),
             "## Context",
             "",
             f"This model was derived automatically by the Vault-Agent pipeline from "

@@ -1316,6 +1316,49 @@ type+CDK+source_table with standard staying silent, transactional link, no secti
 ungrounded, full mappings section, gaps-only section, extended determinism), ruff clean,
 mypy strict clean (37 files).
 
+WP25 made a failed run a first-class outcome (as of 2026-07-29,
+docs/architecture/backlog-2026-07/wp25-failed-run-outcome-spec.md, review finding 1),
+closing the last place where the product's self-assessment and its externally visible
+behaviour contradicted each other. A model that never validated ended the run as a SUCCESS:
+route_after_validation sent an exhausted re-model budget to END, so the CLI printed
+"requires sign-off", wrote review-queue.md saying **requires sign-off**, wrote no ADR, wrote
+no pending.json — and exited 0. Three independently wrong consequences: automation could not
+tell a failed model from a good one; the queue pointed at a checkpoint that did not exist
+(`resume` answered "No unfinished run found"); and — the structural one —
+HumanReviewQueue.requires_signoff has ALWAYS counted a validation error as blocking, but
+`passed` is false precisely when an error issue exists, so that branch could never fire from
+the graph. The product documented a human gate it never opened. (§2.1) The exhausted budget
+now routes to HUMAN_CHECKPOINT_NODE, so that branch is LIVE: the run pauses with the errors
+in the queue and the human decides. It deliberately does NOT go through the source mapper
+first, unlike the passing path — mapping concepts of a model that may be discarded spends
+LLM calls on output that may never be used (pinned by a test asserting source_mapper is
+absent from the failed path's decisions). (§2.2) New exit code 3 = "completed, but the model
+does not validate", keyed on validation_report.passed at every point a CLI invocation ends —
+1 stays pipeline failure, 2 stays Click usage, and a pause for an unassigned contract owner
+stays 0. It fires whether the run is still paused OR a human accepted at the checkpoint:
+accepting does not make the artifacts valid. One plain line says what the artifacts are for
+(diagnosis, not deployment). (§2.3) adr_author renders a prominent caveat directly under the
+header — not buried in Consequences — naming the surviving error codes and constructs
+(matched on severity, never message text) and stating the model was accepted despite them;
+an ADR documenting a known-broken model silently would be worse than no ADR. It keys on the
+error ISSUES rather than on `passed` alone, because ValidationReport.passed defaults to False
+and a state that never reached the validator would otherwise get a caveat announcing "0
+surviving errors". Also fixed, a wrongness this WP made reachable: the pause message told the
+human to "assign the contract owner(s)" even when nothing was waiting for an owner — it now
+names the two decisions that actually apply (--accept / --discard) when no contract_owner item
+is in the queue, and is byte-identical otherwise. Live evidence, both paths: `run` → exit 3
+with the pause and the explanation; `resume --accept` → "run finalized" + exit 3, ADR carrying
+"E_SAT_DUP_ATTR (sat_customer_details)". Docs: exit-code table (operations 06 §6.6, incl. why
+3 is the one to script against), the "three failed attempts" line that was NOT true of the
+exit code, two troubleshooting rows, and a dated refinement note in ADR-0006 (the architecture
+overview needed none — it already described this behaviour, which is the point).
+test_persistent_failure_stops_at_retry_cap was updated DELIBERATELY (it encoded the old
+contract) and still pins the bound: the modeler runs exactly MAX_MODELING_ATTEMPTS times.
+557 tests green (+6: checkpoint reached with requires_signoff and an interrupt, accept →
+finalise with the caveat, CLI exit 3 + resumable pending + no ADR yet, accept → exit 3 with
+the caveat on disk, --discard, mapper absent from the failed path), ruff clean, mypy strict
+clean (37 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

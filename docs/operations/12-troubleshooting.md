@@ -22,6 +22,8 @@
 | `resume` prints instructions instead of prompting | Non-TTY (pipe, CI) with no decision flags. | Use the flags (7.5) or force `--interactive` in a real terminal. |
 | Paused run's `report.html` looks incomplete | By design — it shows the pending state. | Resume; finalization overwrites it. |
 | Aborted the interactive prompt — is anything lost? | No: abort/skip/Ctrl-C keep `pending.json` and the checkpoint thread. | Resume again anytime. |
+| Exit code 3, `The model did not validate after 3 modeling attempt(s)` | The re-model budget was exhausted with validation errors remaining; the run paused at the checkpoint for your decision (WP25). | Read the errors in `review-queue.md` / `report.html`. Fix the requirements or source schema and re-run; or `resume --accept` to keep the model for diagnosis (the ADR records that it was accepted over its errors); or `resume --discard`. |
+| `resume --accept` succeeded but the command still exits 3 | By design: accepting does not make an invalid model valid, and the artifacts carry the known errors. | Nothing — treat exit 3 as "not deployable". A wrapper script should branch on it, not on the console text. |
 
 ## 12.3 dbt build failures
 

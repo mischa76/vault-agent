@@ -7,16 +7,25 @@ per-agent unit tests.
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
 
+from vault_agent.agents.adr_author import AdrAuthorAgent
 from vault_agent.agents.base import BaseAgent
-from vault_agent.agents.orchestrator import HumanCheckpointAgent
+from vault_agent.agents.orchestrator import HumanCheckpointAgent, HumanReviewQueue
 from vault_agent.graph import (
     HUMAN_CHECKPOINT_NODE,
     MAX_MODELING_ATTEMPTS,
     NODES,
+    SOURCE_MAPPER_NODE,
     build_graph,
     default_agents,
 )
-from vault_agent.state import Artifacts, ValidationIssue, ValidationReport, VaultAgentState
+from vault_agent.state import (
+    Artifacts,
+    DVModel,
+    Hub,
+    ValidationIssue,
+    ValidationReport,
+    VaultAgentState,
+)
 
 
 class _RecordingAgent(BaseAgent):
@@ -64,6 +73,19 @@ def _routing_agents(validator: BaseAgent) -> dict[str, BaseAgent]:
     return agents
 
 
+def _modelled_state() -> VaultAgentState:
+    """A state carrying a model, so the real ADR author has something to document.
+
+    The recording stub modeler does not build one, and ``adr_author`` refuses an empty
+    model — this seeds what the failing path would carry in a real run."""
+    return VaultAgentState(
+        dv_model=DVModel(
+            hubs=[Hub(name="hub_customer", business_key="customer_id",
+                      source_entity="customer", description="The customer.")]
+        )
+    )
+
+
 def _modeler_runs(state: VaultAgentState) -> int:
     # The retry cap is enforced via the explicit counter, not by counting decisions.
     return state.modeling_attempts
@@ -103,6 +125,10 @@ async def test_failing_validation_loops_back_to_modeler_then_passes() -> None:
 
 
 async def test_persistent_failure_stops_at_retry_cap() -> None:
+    # WP25 §2.1 changed this contract DELIBERATELY: the exhausted re-model budget used to
+    # route to END (exit 0, no ADR, and a review queue pointing at a checkpoint that did not
+    # exist). It now hands the failing model to the human checkpoint. The bound itself is
+    # unchanged — the modeler still runs exactly MAX_MODELING_ATTEMPTS times.
     compiled = build_graph(_routing_agents(_StubValidator([False]))).compile()
 
     out = await compiled.ainvoke(VaultAgentState())
@@ -110,8 +136,49 @@ async def test_persistent_failure_stops_at_retry_cap() -> None:
 
     assert result.validation_report.passed is False
     assert _modeler_runs(result) == MAX_MODELING_ATTEMPTS  # bounded, no infinite loop
-    # L-4: the run ends without the ADR author, and the modeler accumulates no drafts.
-    assert result.adrs == []
+    agents_run = [d["agent"] for d in result.decisions]
+    assert HUMAN_CHECKPOINT_NODE in agents_run
+    # The failing path skips the source mapper on purpose: mapping concepts of a model the
+    # human may discard spends LLM calls on output that may never be used.
+    assert SOURCE_MAPPER_NODE not in agents_run
+
+
+async def test_failed_model_reaches_a_blocking_checkpoint_and_interrupts() -> None:
+    """§3.1: the review queue's `requires_signoff` branch is finally reachable.
+
+    Before WP25 `passed` was false precisely when an error issue existed, and such a state
+    never reached the node — so the product documented a human gate it never opened."""
+    agents = _routing_agents(_StubValidator([False]))
+    agents[HUMAN_CHECKPOINT_NODE] = HumanCheckpointAgent()  # the real gate
+    compiled = build_graph(agents).compile(checkpointer=MemorySaver())
+
+    out = await compiled.ainvoke(VaultAgentState(), config=_thread_config("failed-model"))
+
+    assert "__interrupt__" in out  # paused, not ended
+    queue = HumanReviewQueue.model_validate(out["__interrupt__"][0].value["review_queue"])
+    assert queue.requires_signoff is True
+    assert any(item.kind == "validation_error" for item in queue.items)
+    assert "adr_author" not in [d.get("agent") for d in out["decisions"]]
+
+
+async def test_accepting_a_failed_model_finalises_with_the_error_caveat() -> None:
+    """§3.3: accepting is allowed, but the ADR must say what was accepted."""
+    agents = _routing_agents(_StubValidator([False]))
+    agents[HUMAN_CHECKPOINT_NODE] = HumanCheckpointAgent()
+    agents["adr_author"] = AdrAuthorAgent(today="2026-07-29")  # the real renderer
+    compiled = build_graph(agents).compile(checkpointer=MemorySaver())
+    config = _thread_config("accepted-over-errors")
+
+    await compiled.ainvoke(_modelled_state(), config=config)
+    out = await compiled.ainvoke(Command(resume={"accept": True}), config=config)
+    result = VaultAgentState.model_validate(
+        {k: v for k, v in out.items() if k != "__interrupt__"}
+    )
+
+    assert len(result.adrs) == 1
+    assert "This model did not pass validation." in result.adrs[0]
+    assert "accepted at the human-in-the-loop checkpoint over 1 surviving validation " \
+           "error(s): X (model)" in result.adrs[0]
 
 
 # --- Human-in-the-loop interrupt / resume (ADR-0006) -------------------------------------

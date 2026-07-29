@@ -56,8 +56,10 @@ Operationally, a run is the topology from 3.2. The stages you see in the console
 to it directly: parse → identify business keys → draft contracts → model → generate →
 validate. A line like *validation failed, re-modeling (attempt 2/3)* is the
 self-correction loop working — the modeler retries with the validation errors as
-feedback, and this is normal, not a fault. Three failed attempts end the run as failed
-with everything written for diagnosis (report, review queue, trace).
+feedback, and this is normal, not a fault. Three failed attempts hand the model to the
+human-in-the-loop checkpoint (WP25) with everything written for diagnosis (report, review
+queue, trace): the run pauses, exits **3**, and you decide — `resume --accept` keeps the
+model (the ADR then says it was accepted over its errors) or `resume --discard` drops it.
 
 On the validated path the source mapper proposes business↔source bindings (grounded
 runs only — ungrounded it is inert), then the checkpoint decides: clean runs finalize
@@ -136,6 +138,14 @@ transcript.
 | 0 | Finalized — or paused, which is a normal outcome, not an error | Full artifacts; paused: + `pending.json`, kept checkpoint |
 | 1 | Input-file error (before any LLM call), pipeline failure, or `resume` with no unfinished run | Failure after start: artifacts-so-far + report + trace + a `crashed` `pending.json`, so `resume` continues it |
 | 2 | CLI usage error (unknown flag, missing argument — Click convention) | untouched |
+| 3 | The run completed, but **the model does not validate** — the re-model budget was exhausted and validation errors remain | Full artifacts + `report.html`; paused at the checkpoint, or finalized (with the ADR carrying the error caveat) if a human accepted |
+
+Exit **3** is the one to script against: it means the pipeline itself worked and the
+*model* did not. It is returned whether the run is still paused at the checkpoint or a
+human accepted it there — accepting does not make an invalid model valid, and the
+artifacts on disk still carry the known errors. Three attempts (`MAX_MODELING_ATTEMPTS`)
+that all fail validation end at the human-in-the-loop checkpoint, not silently: you can
+`resume --accept` to keep the model for diagnosis, or `resume --discard` to throw it away.
 
 Failures print a one-line summary by default; global `--debug` re-raises with the full
 traceback. Nothing is ever deleted on failure — a paused or crashed run keeps its
