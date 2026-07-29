@@ -58,3 +58,15 @@ source_schemas:
       - {name: vertrag_nr, type: varchar, comment: "Vertragsnummer."}
       - {name: vertrag_beginn, type: date, comment: "Vertragsbeginn."}
       - {name: vp_nummer, type: varchar, comment: "FK auf vic_vertragspartner.vp_nummer."}
+
+  # TRAP 5 — the hardest one, added after the spike (memo §4: "the mechanism was never
+  # offered the hardest case"). A legacy migration table whose key values OVERLAP the
+  # national customer ID range — same format, same look, genuinely different population —
+  # with NO cross-reference table to disambiguate. Nothing in the schema settles it, so the
+  # only correct answer is `unresolved`: a mechanism that decides here is guessing, and a
+  # mechanism that MERGES here corrupts the customer hub.
+  - table: vic_migration_altbestand
+    columns:
+      - {name: alt_nr, type: varchar, comment: "Nummer aus dem Altsystem; Format wie die Kundennummer."}
+      - {name: alt_bezeichnung, type: varchar, comment: "Bezeichnung im Altsystem."}
+      - {name: uebernahme_datum, type: date, comment: "Datum der Übernahme."}

@@ -212,3 +212,13 @@ honestly rather than guessing confidently, which is what the charter set as the 
 test. The memo is deliberately explicit about what six concepts on one case does *not*
 establish, and makes growing the golden set a condition on the WP.
 
+| WP | Spec | What | Size | Depends on |
+|----|------|------|------|------------|
+| WP29 | `wp29-entity-resolution-spec.md` | Entity-resolution assist: propose whether a new source's concept IS an existing construct; same-as as a first-class output | M | WP23 + WP28 (landed), spike memo |
+
+Kick-off: `kickoff/WP29-entity-resolution.md`. Note its acceptance #2, which is deliberately
+sequenced FIRST: the golden set gained an `undecidable` trap AFTER the spike ran (the
+prototype had already been deleted per the charter), so it is **unmeasured**. If the
+mechanism cannot decline when nothing in the schema settles the question, the WP stops and
+the recommendation is revisited rather than worked around.
+

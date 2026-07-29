@@ -85,3 +85,21 @@ resolutions:
     rationale: >
       No similarity to anything the vault holds. Establishes the floor: a mechanism that
       cannot say NEW here has no usable "new" branch at all.
+
+  # ── TRAP 5: undecidable — the only correct answer is `unresolved` ──────────────────────
+  - concept: altbestand
+    source_table: vic_migration_altbestand
+    source_key: alt_nr
+    expected: unresolved
+    trap: undecidable
+    rationale: >
+      Added after the first spike run, which the memo criticised for never offering the
+      hardest case. The key has the SAME FORMAT as the national customer ID and the comment
+      says so, but there is no cross-reference table, no shared column, and nothing that
+      establishes whether the populations are the same. A legacy migration register may hold
+      the same customers, adjacent ones, or none. Nothing in the schema settles it.
+
+      This is the trap that separates "knows" from "sounds confident": the correct answer is
+      `unresolved`, so answering hub_customer is a FALSE MERGE, and answering NEW is merely
+      wrong. A mechanism that reaches for either rather than declining is not calibrated,
+      whatever its score on the other five.

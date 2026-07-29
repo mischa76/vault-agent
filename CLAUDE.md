@@ -1634,6 +1634,23 @@ Surviving assets: eval/datasets/brownfield_resolution/, eval/resolution.py, four
 eval/scorers.py with 15 keyless tests, and the raw runs under eval/results/spike_resolution/.
 655 tests green, ruff clean, mypy strict clean (41 files). Spike cost: ~$0.30.
 
+The spike's recommendation was accepted and specced as WP29
+(docs/architecture/backlog-2026-07/wp29-entity-resolution-spec.md + kick-off), NOT yet built.
+Two things about it are worth knowing before someone picks it up. (1) The golden set gained a
+FIFTH trap after the spike ran — `undecidable`: a legacy migration register whose key has the
+same format as the national customer ID, with no cross-reference table and nothing in the
+schema that settles whether the populations overlap. The only correct answer is `unresolved`.
+It exists because the memo criticised its own measurement for never offering the hardest case,
+and it is **UNMEASURED**: the spike's prototype had already been deleted per the charter when
+the trap was written. WP29's acceptance #2 therefore runs it FIRST and stops the WP if the
+mechanism merges or guesses — a resolver that cannot decline when the evidence is genuinely
+absent is not safe against a live vault, whatever it scores on the other traps. (2) Two spec
+decisions come from measured failures rather than taste: the confidence CATEGORY is derived in
+rules/ because the model self-reported `semantic` for every case including the exact-key ones
+where it was right, and the resolver is a PRE-MODELING step with its own ratification file
+because once the modeler names a construct, WP23's merge_models folds it by name and the
+decision is already made.
+
 WP28 satellite feed binding landed (as of 2026-07-29, ADR-0011 Accepted,
 docs/architecture/backlog-2026-07/wp28-satellite-feed-binding-spec.md), implementing the
 decision WP24 §5 deferred and WP23's live run forced. A satellite whose `source_table` NAMES
