@@ -75,6 +75,7 @@ this table and the registry disagree, the registry wins.
 | `bk_collision_code` | — | — | not yet ablated | keep |
 | `role_qualified_participation` | — | — | not yet ablated | keep |
 | `construct_naming` | — (gated by `E_BAD_NAME`) | — | not yet ablated; added WP20 (2026-07-28) so a deterministic naming formality never burns a modeling retry — the gate, not the steering, is the guarantee | keep |
+| `no_source_table_on_multi_source_hub` | — (gated by `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB`) | — | not yet ablated; added WP23 (2026-07-29) after the LIVE bank_extension run emitted exactly this combination on a hub that had just become multi-source. Steering only — the WP24 gate stays the guarantee, and giving the combination real semantics needs an ADR (WP24 §5) | keep |
 
 ### Inventoried but not mechanically ablatable (v1)
 

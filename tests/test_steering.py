@@ -50,7 +50,9 @@ def test_rendered_rules_are_byte_identical_to_pre_wp16() -> None:
     # It is now also the standing pin on the modeler prompt: a rule may only be added or
     # changed together with this fixture, in the same commit, named in the commit body. A
     # silent update is exactly what the pin exists to prevent. Deliberate additions so far:
-    # WP20 `construct_naming` (2026-07-28) — the pre-WP16 block is still a prefix of the file.
+    # WP20 `construct_naming` (2026-07-28) and WP23 `no_source_table_on_multi_source_hub`
+    # (2026-07-29, from the live bank_extension run) — the pre-WP16 block is still a
+    # byte-identical prefix, asserted while regenerating the fixture.
     assert _render_rules() + "\n" == _RULES_FIXTURE.read_text(encoding="utf-8")
 
 

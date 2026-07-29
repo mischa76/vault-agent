@@ -82,17 +82,15 @@ def _extend_hub(prior: Hub, delta_hub: Hub, state: VaultAgentState) -> None:
             kind=FlagKind.EXTENSION_CONFLICT,
             asset=prior.name,
         )
-    if normalize_identifier(delta_hub.source_entity) != normalize_identifier(
-        prior.source_entity
-    ):
-        state.flag(
-            _AGENT,
-            f"the delta re-states existing hub {prior.name!r} with source entity "
-            f"{delta_hub.source_entity!r} instead of {prior.source_entity!r}; kept as it was",
-            severity="error",
-            kind=FlagKind.EXTENSION_CONFLICT,
-            asset=prior.name,
-        )
+    # source_entity is deliberately NOT checked, and the live bank_extension run is why.
+    # Hub.source_entity is required, so a delta that re-states a hub to add a feed must
+    # supply one — and the only sensible value it has is the NEW source's entity
+    # (`crm_contact`), which differed from the existing `customer` on all three runs and
+    # produced an error flag on a delta that was in fact perfectly correct. Unlike the
+    # business key, source_entity is a modelling input the validator's collision gates read,
+    # not part of the hub's stored identity: nothing hashed depends on it (WP26 lists it
+    # among the fields that do not change generated SQL). The existing value is kept either
+    # way, so there is nothing to warn about.
 
     # New feeds are the point of the S1 scenario. Dedup per E_HUB_DUP_FEED semantics: a feed
     # already present (same normalised table+column) is not an addition, it is the delta

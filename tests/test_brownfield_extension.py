@@ -523,3 +523,44 @@ async def test_extension_section_escapes_hostile_construct_names() -> None:
 
     assert "<script>x</script>" not in html
     assert "&lt;script&gt;" in html
+
+
+async def test_grounding_skips_pre_existing_constructs_on_an_extension_run() -> None:
+    """The declared schema describes the NEW source; the existing constructs were grounded
+    against a different one when they were created. Re-checking them is noise — found by
+    the live bank_extension run, which it pushed over its warning tolerance."""
+    from vault_agent.state import SourceTable
+
+    existing = _vault()
+    merged = existing.model_copy(deep=True)
+    merged.hubs.append(
+        Hub(name="hub_campaign", business_key="nowhere_column", source_entity="campaign",
+            description="")
+    )
+    state = _state(existing, merged)
+    state.source_schemas = [SourceTable(table="crm_campaign", columns=["campaign_code"])]
+
+    result = await ValidatorAgent().run(state)
+    ungrounded = [
+        i for i in result.validation_report.issues if i.code == "W_BK_NOT_IN_SOURCE"
+    ]
+
+    # Only the NEW hub is judged against the CRM schema; hub_customer/hub_account are not.
+    assert [i.construct for i in ungrounded] == ["hub_campaign"]
+
+
+def test_a_restated_hub_naming_the_new_source_entity_is_not_a_conflict() -> None:
+    """Hub.source_entity is required, so a delta adding a feed must supply one — and the only
+    sensible value it has is the NEW source's. Flagging that as a conflict fired on all three
+    live runs against a delta that was correct."""
+    existing = _vault()
+    delta = DVModel(hubs=[Hub(name="hub_customer", business_key="customer_id",
+                              source_entity="crm_contact", description="",
+                              sources=[HubSource(source_table="crm_contact",
+                                                 business_key_column="customer_id")])])
+    state = _state(existing)
+
+    merged = merge_models(existing, delta, state)
+
+    assert not [f for f in state.flags if f.kind == FlagKind.EXTENSION_CONFLICT]
+    assert merged.hubs[0].source_entity == "customer"  # the existing value is kept

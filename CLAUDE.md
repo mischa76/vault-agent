@@ -1525,11 +1525,40 @@ bypassed by a future re-model mode. It is vacuous (1.0, VACUOUS_PREFIX) on green
 load_eval_case now REFUSES to let a greenfield case gate it — the WP18 rule applied to the
 new scorer. Two pins updated deliberately: the shipped-case list and the bank case's exact
 score set (which gains the vacuous 1.0). 620 tests green, ruff clean, mypy strict clean.
+bank_extension was then RUN LIVE (2026-07-29, 3x3 runs) and earned its keep immediately by
+finding two product defects and one design limitation — which is what an eval case is for.
+Measured after the fixes: existing_construct_preservation 1.000 (the promise holds against a
+real LLM), construct_f1 0.855, driving_key_accuracy 1.000, pipeline_health 1.000; the case's
+gates pass and `eval.run` exits 0. (Defect 1) The merger flagged EXTENSION_CONFLICT on every
+run for a delta that was CORRECT: Hub.source_entity is required, so a delta re-stating a hub
+to add a feed must supply one, and the only sensible value it has is the NEW source's
+(`crm_contact` vs the existing `customer`). Unlike the business key, source_entity is a
+modelling input the collision gates read, not part of the hub's stored identity — nothing
+hashed depends on it — so the check is gone and the existing value is simply kept. (Defect 2)
+Source-schema grounding warned about every PRE-EXISTING attribute, because the declared
+schema describes the source this increment integrates while the existing constructs were
+grounded against a different one when they were created. One warning per old attribute is
+pure noise and it is what pushed the case over its warning tolerance; grounding now skips
+constructs present in existing_model (inert on greenfield). Warnings fell 16 -> 9.
+(Limitation, NOT fixed — recorded in the case file and here) Validation still FAILS on this
+case, so validation_gate reports 0.0; it is reported, not gated, and the expectation was
+deliberately NOT flipped to hide it. Two stable causes across all 6 runs: (a)
+E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB fires on the NATURAL brownfield shape — the modeler
+correctly reads REQ-107 and emits a satellite fed by crm_contact on the now-multi-source
+hub_customer. WP24 rejected that combination on the grounds that one relation cannot feed
+two independent feeds, which is true when the satellite describes ALL of them and false
+here, where it describes ONE. A steering rule was added through the WP16 registry and did
+NOT prevent it (0/3 runs) — a clean datapoint that this needs the modelling decision + ADR
+WP24 §5 anticipated, not more prompt text. The prompt fixture and the steering ledger were
+updated deliberately in the same commit (WP20 precedent), with the pre-WP16 block asserted
+to still be a byte-identical prefix. (b) E_HUB_HK_COLLISION on hub_campaign/hub_employee:
+the modeler gives both source_entity 'crm_campaign'; a genuine modelling smell the gate
+correctly catches, and hub_employee is not golden. Method note: after the first live run,
+the second and third diagnoses came from REPLAYING the stored trace through merge+validate
+at zero API cost — the 2026-07-28 lesson applied.
 STILL OPEN — do not assume otherwise: acceptance #3 (the live Postgres on-top build:
 `dbt build` WITHOUT full-refresh over the previously built bank vault, pre-existing row
-history intact), a LIVE run of bank_extension (the case is wired and loads, but has never
-been executed against the API — its gates are therefore unmeasured), the CLI-level
---existing tests of spec §3.8, and the operations docs.
+history intact), the CLI-level --existing tests of spec §3.8, and the operations docs.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF

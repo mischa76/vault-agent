@@ -677,13 +677,30 @@ class ValidatorAgent(BaseAgent):
         """Phase 1 grounding (ADR-0004): flag keys/attributes absent from the source schema.
 
         No-ops when no schema is declared, so output is unchanged from today. When a schema
-        is present, unknowns are *warnings* (the schema may be partial), never errors."""
+        is present, unknowns are *warnings* (the schema may be partial), never errors.
+
+        WP23: on an extension run, constructs that ALREADY EXIST are skipped. The declared
+        schema describes the source system this increment integrates — the CRM — while the
+        existing constructs were grounded against the core system's schema when they were
+        created. Re-checking them against a schema that was never meant to describe them
+        produces one warning per pre-existing attribute, which is pure noise and drowns the
+        warnings that are about this run. Found by the live bank_extension run: it is what
+        pushed the case over its warning tolerance."""
         issues: list[ValidationIssue] = []
         if not state.source_schemas:
             return issues
+        pre_existing = (
+            {hub.name for hub in state.existing_model.hubs}
+            | {link.name for link in state.existing_model.links}
+            | {sat.name for sat in state.existing_model.satellites}
+            if state.existing_model is not None
+            else set()
+        )
         columns = known_columns(state.source_schemas)
         hub_by_name = {hub.name: hub for hub in state.dv_model.hubs}
         for hub in state.dv_model.hubs:
+            if hub.name in pre_existing:
+                continue
             if hub.business_key.strip() and not is_grounded(hub.business_key, columns):
                 issues.append(
                     _issue(
@@ -709,6 +726,8 @@ class ValidatorAgent(BaseAgent):
         # mirroring W_BK_NOT_IN_SOURCE — the schema may be partial. Unqualified refs are
         # already covered by the hub loop above.
         for link in state.dv_model.links:
+            if link.name in pre_existing:
+                continue
             for ref in link.hub_refs:
                 if ref.role is None:
                     continue
@@ -729,6 +748,8 @@ class ValidatorAgent(BaseAgent):
                         )
                     )
         for sat in state.dv_model.satellites:
+            if sat.name in pre_existing:
+                continue
             for attr in sat.attributes:
                 if not is_grounded(attr, columns):
                     issues.append(

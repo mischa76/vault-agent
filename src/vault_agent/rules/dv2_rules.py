@@ -242,6 +242,18 @@ DV_MODELING_RULES = [
         origin="review 2026-07-28 finding 4 / WP20: gated by E_BAD_NAME — steering keeps a "
         "deterministic formality from burning a modeling retry",
     ),
+    SteeringRule(
+        id="no_source_table_on_multi_source_hub",
+        text="Do not set a satellite's source_table when its parent hub is fed by several "
+        "sources; leave it unset and the generator emits one satellite per feed. Declare "
+        "source_table only for a satellite whose rows live in their own finer-grain relation "
+        "under a SINGLE-source parent",
+        origin="WP23 live bank_extension run (2026-07-29): the modeler emitted a CRM "
+        "satellite with source_table on the now-multi-source hub_customer, which "
+        "E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB (WP24) rejects. Steering only — the gate "
+        "stays the guarantee, and giving that combination real semantics needs an ADR "
+        "(WP24 §5)",
+    ),
 ]
 
 # Ablation seam (WP16 §2.2). Module-level, mirroring llm.set_usage_recorder: the harness

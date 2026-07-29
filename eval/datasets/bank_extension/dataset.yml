@@ -42,9 +42,25 @@ golden:
     - {name: sat_customer_marketing, parent: hub_customer, sat_type: standard}
     - {name: sat_campaign_details, parent: hub_campaign, sat_type: standard}
 expectations:
+  # KNOWN LIMITATION, measured over 6 live runs on 2026-07-29 and deliberately NOT hidden by
+  # flipping this to false: validation currently FAILS on this case, so validation_gate
+  # reports 0.0. It is reported, not gated — the gates below are what brownfield mode
+  # promises. Two stable causes, both worth fixing outside this case:
+  #
+  # 1. E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB fires on the *natural* brownfield shape. The
+  #    modeler correctly reads REQ-107 ("historise CRM attributes separately") and emits a
+  #    satellite fed by crm_contact on the now-multi-source hub_customer. WP24 rejected that
+  #    combination because one relation cannot feed two independent feeds — true when the
+  #    satellite describes ALL of them, but here it describes ONE, which is legitimate.
+  #    A steering rule was added and did NOT prevent it (0/3 runs), so this needs the
+  #    modelling decision + ADR that WP24 §5 already anticipated, not more prompt text.
+  # 2. E_HUB_HK_COLLISION on hub_campaign/hub_employee: the modeler gives both source_entity
+  #    'crm_campaign' (the employee number does come from that table). A genuine modelling
+  #    smell the gate correctly catches; hub_employee is not golden here.
   validation_passed: true
   # Extension runs are noisier by construction: every legitimate addition raises one
-  # advisory W_EXISTING_EXTENDED, which is the inventory the review queue wants.
+  # advisory W_EXISTING_EXTENDED, which is the inventory the review queue wants. Measured:
+  # 9 warnings (8x W_EXISTING_EXTENDED + 1x W_HUB_NO_SAT).
   max_validation_warnings: 15
   min_scores:
     # The promise brownfield mode makes. Anything below 1.0 means the run disturbed a vault
