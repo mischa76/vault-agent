@@ -265,7 +265,9 @@ untyped audit log by design. 169 tests green, ruff clean, mypy strict clean.
 The ADR author is remediated (as of 2026-07-07, WP2:
 docs/architecture/backlog-2026-07/wp2-adr-author-spec.md). The generated model ADR is now a
 per-output artifact: always ADR-0001 within its output directory, deterministic and idempotent
-(same state in → byte-identical ADR out); repo-level ADR numbering happens only when a human
+(same state AND date in → byte-identical ADR out — the date qualifier is a WP26 correction:
+`today` is injectable but defaults to the clock, so this paragraph originally overclaimed);
+repo-level ADR numbering happens only when a human
 accepts the proposal and moves it into docs/architecture/adrs/. The repo-layout coupling is
 gone (_DEFAULT_ADR_DIR/_next_adr_number/adr_dir removed — the old scheme resolved
 parents[3] into site-packages when installed as a wheel and made numbers depend on the repo's
@@ -1274,6 +1276,45 @@ canonical role-qualified FK, sat-on-link-parent canonical hash, the rejected cel
 gate+flag+no-sat+no-orphan-staging, WP7-alone still generates, and 6 parametrized predicate
 cases incl. the effectivity exclusion), ruff clean, mypy strict clean (37 files). Docs:
 operations 08 gate catalogue (count + new row) and the dv2-rules cheatsheet.
+
+WP26 ADR completeness landed (as of 2026-07-29,
+docs/architecture/backlog-2026-07/wp26-adr-completeness-spec.md, review finding 4). The
+generated ADR is the pipeline's human-facing architecture record, and it omitted most of
+what WP7-WP10 taught the model to express: driving keys were not rendered AT ALL (while
+this file claimed they were — that claim is now true rather than corrected), a hub
+integrating two source systems read exactly like a single-source hub, a multi-active or
+effectivity satellite was indistinguishable from a standard one, and the ratified
+business↔source mappings lived only in mappings.review.yml. The agent stays LLM-free —
+every addition is a projection of typed state, which is what makes the record
+non-hallucinated. (§2.1) Hub lines carry the feeds plus the canonical staging key column
+read from rules.canonical_hub_key_column (never re-derived — the ADR must name the column
+staging actually builds, WP24's lesson applied to the renderer); link lines carry the
+driving key through Link.resolve_driving_refs(), rendered by the SAME helper as the
+participation list so a reader comparing the two lines needs no translation, with
+unresolvable entries silently absent (E_DRIVING_KEY_NOT_IN_LINK owns that complaint);
+satellite lines carry non-standard sat_type + child_dependent_key and the WP7 source_table.
+Beyond the spec's list: the transactional link's payload/event timestamp, because
+link_type selects automate_dv.t_link and acceptance #1 demands that anything changing what
+is BUILT is either visible or listed as omitted — the deliberate omissions (Hub.source_entity,
+a proposal's confidence/evidence, the data contracts) are now enumerated in the module
+docstring rather than left implicit. (§2.2) A conditional Source mappings section renders
+proposals (concept → TABLE.COLUMN, category, ratification status), gaps and unresolved
+concepts; absent entirely when the mapper was inert, so an ungrounded ADR is byte-identical.
+A gaps-only run still gets the section — a gap is first-class output (ADR-0008 #3), not an
+absence of one. (§2.3) The determinism claim is made TRUE by making it precise instead of
+by removing the date: byte-identical for a given state AND date, `today` injectable,
+defaulting to the clock, which is correct for a dated decision record; docstring, the WP2
+paragraph above and the (renamed, extended) determinism test now agree. Guard: the three
+construct renderers are module-level one-line-per-construct functions so WP23's delta-ADR
+can render a SUBSET without forking the formatting, and a pre-WP26 fixture
+(tests/fixtures/adr/adr_pre_wp26.md) pins the additions as strictly additive — it was
+generated from the OLD renderer with the src changes stashed, so it proves compatibility
+rather than merely self-consistency. 551 tests green (+11: the byte-identity fixture,
+multi-source feeds, canonical name from the helper on agreeing feeds, role-qualified
+driving key matching the participation list, unresolvable driving key absent, sat
+type+CDK+source_table with standard staying silent, transactional link, no section when
+ungrounded, full mappings section, gaps-only section, extended determinism), ruff clean,
+mypy strict clean (37 files).
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF

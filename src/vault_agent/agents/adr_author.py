@@ -12,25 +12,166 @@ status ``Proposed``: a human must review and accept it.
 
 Numbering: the generated ADR is a per-run output artifact documenting *one* pipeline run
 inside *one* output project, so it is numbered ADR-0001 within that output —
-deterministically, never derived from any repository directory. Same state in,
-byte-identical ADR out. Repo-level ADR numbering happens only when a human *accepts* the
-proposal and moves it into ``docs/architecture/adrs/``; the pipeline never numbers into
-the repo sequence.
+deterministically, never derived from any repository directory. Repo-level ADR numbering
+happens only when a human *accepts* the proposal and moves it into
+``docs/architecture/adrs/``; the pipeline never numbers into the repo sequence.
+
+Determinism (WP26 §2.3), stated precisely because the previous wording was not true: the
+ADR is byte-identical for a given state **and date**. The date is the single input that
+does not come from state — ``today`` is injectable and defaults to the clock, which is
+correct for a dated decision record but means two runs of identical state on either side
+of midnight differ in exactly that line. Nothing else here reads a clock, an environment,
+or a filesystem.
+
+What the ADR renders, and what it deliberately does not (WP26 §4.1 — every typed field
+that changes how the vault *behaves* is either visible or listed here):
+
+* Rendered: hub business key + multi-source feeds and their canonical staging key column
+  (WP10); link participations with ADR-0009 roles, unit of work, driving key (WP8), and
+  the transactional link's payload/event timestamp (which selects ``automate_dv.t_link``);
+  satellite parent, payload, non-standard type + child dependent key, ``source_table``
+  (WP7), split rationale; the ratified business↔source mappings (WP9); requirement traces.
+* Deliberately omitted: ``Hub.source_entity`` (a modelling input the validator's collision
+  gates read — it does not change generated SQL); a proposal's ``confidence``/``evidence``
+  (the ratification trail belongs to ``mappings.review.yml``, which the reviewer has open
+  next to this); and the data contracts (their own artifact, per WP26 §5).
 """
 import logging
 from datetime import date
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.state import DVModel, FlagKind, VaultAgentState
+from vault_agent.rules.dv2_rules import canonical_hub_key_column
+from vault_agent.state import (
+    DVModel,
+    FlagKind,
+    Hub,
+    Link,
+    LinkHubRef,
+    ProposedMapping,
+    Satellite,
+    VaultAgentState,
+)
 
 logger = logging.getLogger(__name__)
 
 # The generated ADR is always the first (and only) ADR of its output project.
 _OUTPUT_ADR_NUMBER = 1
 
+# A standard satellite says nothing about its type — silence means standard, so only the
+# types that change what AutomateDV macro is rendered get a label.
+_SAT_TYPE_LABELS = {
+    "multi_active": "Multi-active satellite",
+    "effectivity": "Effectivity satellite",
+}
+
 
 def _ids(requirement_ids: list[str]) -> str:
     return ", ".join(requirement_ids) if requirement_ids else "—"
+
+
+def _ref(ref: LinkHubRef) -> str:
+    """One participation as ``hub_account`` / ``hub_account (counterparty)`` (ADR-0009).
+
+    The single formatting point, so the driving key reads exactly like the participation
+    list it names — a reader comparing the two lines must not have to translate."""
+    return ref.hub if ref.role is None else f"{ref.hub} ({ref.role})"
+
+
+# Construct renderers are module-level and one-line-per-construct on purpose: WP23's
+# delta-ADR renders a *subset* of the same constructs, so it can reuse these rather than
+# fork the formatting (§2.4 keeps the untouched lines' wording stable).
+def _hub_line(hub: Hub) -> str:
+    integration = ""
+    if hub.sources:
+        feeds = ", ".join(
+            f"{source.source_table}.{source.business_key_column}" for source in hub.sources
+        )
+        # The canonical name comes from rules/ (WP10 §2.2, WP24) — never re-derived here,
+        # or the ADR would document a column the staging models do not build.
+        integration = (
+            f" Integrated from {len(hub.sources)} source(s): {feeds}; "
+            f"canonical staging key column `{canonical_hub_key_column(hub)}`."
+        )
+    return (
+        f"- **{hub.name}** — business key `{hub.business_key}`. {hub.description}"
+        f"{integration} _(requirements: {_ids(hub.requirement_ids)})_"
+    )
+
+
+def _link_line(link: Link) -> str:
+    uow = f" Unit of work: {link.unit_of_work}." if link.unit_of_work else ""
+    connected = ", ".join(_ref(ref) for ref in link.hub_refs)
+    # Unresolvable driving-key entries simply do not appear — the validator's
+    # E_DRIVING_KEY_NOT_IN_LINK owns that complaint, the ADR does not duplicate it.
+    driving_refs = link.resolve_driving_refs()
+    driving = ""
+    if driving_refs:
+        driving = f" Driving key: {', '.join(_ref(ref) for ref in driving_refs)}."
+    transactional = ""
+    if link.link_type == "transactional":
+        payload = ", ".join(link.payload) if link.payload else "—"
+        event = link.event_timestamp or "—"
+        transactional = (
+            f" Transactional link (non-historized): payload {payload}; "
+            f"event timestamp {event}."
+        )
+    return (
+        f"- **{link.name}** — connects {connected}. {link.description}"
+        f"{transactional}{uow}{driving} _(requirements: {_ids(link.requirement_ids)})_"
+    )
+
+
+def _sat_line(sat: Satellite) -> str:
+    payload = ", ".join(sat.attributes) if sat.attributes else "—"
+    kind = ""
+    label = _SAT_TYPE_LABELS.get(sat.sat_type)
+    if label:
+        cdk = ", ".join(sat.child_dependent_key)
+        kind = f" {label}" + (f", child dependent key: {cdk}." if cdk else ".")
+    source = f" Source table: {sat.source_table}." if sat.source_table else ""
+    split = f" Split rationale: {sat.split_rationale}." if sat.split_rationale else ""
+    return (
+        f"- **{sat.name}** — on {sat.parent}; payload: {payload}. "
+        f"{sat.description}{kind}{source}{split} _(requirements: {_ids(sat.requirement_ids)})_"
+    )
+
+
+def _mappings_section(mappings: ProposedMapping) -> list[str]:
+    """The WP9 business↔source mappings, or nothing at all when the mapper was inert.
+
+    An ungrounded run produces no proposals, no gaps and no unresolved concepts, and then
+    this section is absent entirely — so an ungrounded ADR stays byte-identical to the
+    pre-WP26 one (§2.2, pinned by test). A gap is first-class output, not a non-answer, so
+    a run that produced only gaps still gets the section."""
+    if not (mappings.proposals or mappings.gaps or mappings.unresolved):
+        return []
+    lines = [
+        "",
+        f"### Source mappings ({len(mappings.proposals)})",
+        "",
+        "Where each modelled concept's values come from (ADR-0008). The category is the "
+        "deterministic confidence tier; `accepted` / `overridden` mark a human decision, "
+        "`proposed` still awaits one.",
+        "",
+    ]
+    for proposal in mappings.proposals:
+        lines.append(
+            f"- `{proposal.concept}` → `{proposal.table}`.`{proposal.column}` — "
+            f"{proposal.category}, {proposal.ratification_status}"
+        )
+    if mappings.gaps:
+        lines += [
+            "",
+            f"No in-scope source — Business Vault / marts ({len(mappings.gaps)}): "
+            f"{', '.join(mappings.gaps)}.",
+        ]
+    if mappings.unresolved:
+        lines += [
+            "",
+            f"Unresolved — the mapper could not decide ({len(mappings.unresolved)}): "
+            f"{', '.join(mappings.unresolved)}.",
+        ]
+    return lines
 
 
 class AdrAuthorAgent(BaseAgent):
@@ -110,34 +251,15 @@ class AdrAuthorAgent(BaseAgent):
             f"### Hubs ({len(model.hubs)})",
             "",
         ]
-        for hub in model.hubs:
-            lines.append(
-                f"- **{hub.name}** — business key `{hub.business_key}`. {hub.description} "
-                f"_(requirements: {_ids(hub.requirement_ids)})_"
-            )
+        lines += [_hub_line(hub) for hub in model.hubs]
 
         lines += ["", f"### Links ({len(model.links)})", ""]
-        for link in model.links:
-            uow = f" Unit of work: {link.unit_of_work}." if link.unit_of_work else ""
-            # Render each participation as "hub_account (counterparty)" for a role-qualified
-            # ref (ADR-0009); unqualified refs render as the bare hub name (unchanged).
-            connected = ", ".join(
-                ref.hub if ref.role is None else f"{ref.hub} ({ref.role})"
-                for ref in link.hub_refs
-            )
-            lines.append(
-                f"- **{link.name}** — connects {connected}. "
-                f"{link.description}{uow} _(requirements: {_ids(link.requirement_ids)})_"
-            )
+        lines += [_link_line(link) for link in model.links]
 
         lines += ["", f"### Satellites ({len(model.satellites)})", ""]
-        for sat in model.satellites:
-            payload = ", ".join(sat.attributes) if sat.attributes else "—"
-            split = f" Split rationale: {sat.split_rationale}." if sat.split_rationale else ""
-            lines.append(
-                f"- **{sat.name}** — on {sat.parent}; payload: {payload}. "
-                f"{sat.description}{split} _(requirements: {_ids(sat.requirement_ids)})_"
-            )
+        lines += [_sat_line(sat) for sat in model.satellites]
+
+        lines += _mappings_section(state.mappings)
 
         lines += [
             "",
