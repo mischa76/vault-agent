@@ -22,6 +22,7 @@ from typing import Any, Protocol
 from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.existing_model import render_extension_prompt_section
 from vault_agent.grounding import render_schema_prompt_section
 from vault_agent.llm import TraceEvent, emit_trace
 from vault_agent.rules.dv2_rules import active_modeling_rules, attributes_without_cdk
@@ -137,7 +138,11 @@ class Dv2ModelerAgent(BaseAgent):
         # honours the ablation seam (empty in production, so the prompt is byte-identical).
         rules = "\n".join(f"- {rule.text}" for rule in active_modeling_rules())
         schema_section = render_schema_prompt_section(state.source_schemas)
-        return f"{template}\n\n## Data Vault modelling rules to apply\n\n{rules}\n{schema_section}"
+        extension_section = render_extension_prompt_section(state.existing_model)
+        return (
+            f"{template}\n\n## Data Vault modelling rules to apply\n\n{rules}\n"
+            f"{schema_section}{extension_section}"
+        )
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
         if not state.business_keys:
@@ -180,6 +185,15 @@ class Dv2ModelerAgent(BaseAgent):
         raw = await extractor.model(system_prompt=system_prompt, payload_json=payload_json)
 
         model = self._validate_model(raw, state)
+        delta_counts = (len(model.hubs), len(model.links), len(model.satellites))
+        if state.existing_model is not None:
+            # WP23 §2.9: brownfield mode. The model just produced is a DELTA against the
+            # existing vault; merging happens here (the modeler owns dv_model, and graph.py
+            # stays orchestration-only) so everything downstream — code generation,
+            # validation, mapping, the ADR — sees one complete model, as in greenfield.
+            from vault_agent.agents.model_merger import merge_models
+
+            model = merge_models(state.existing_model, model, state)
         state.dv_model = model
         logger.info(
             "modeled %d hub(s), %d link(s), %d satellite(s)",
@@ -187,14 +201,22 @@ class Dv2ModelerAgent(BaseAgent):
             len(model.links),
             len(model.satellites),
         )
-        state.decisions.append(
-            {
-                "agent": "dv2_modeler",
-                "hubs": len(model.hubs),
-                "links": len(model.links),
-                "satellites": len(model.satellites),
+        decision: dict[str, Any] = {
+            "agent": "dv2_modeler",
+            "hubs": len(model.hubs),
+            "links": len(model.links),
+            "satellites": len(model.satellites),
+        }
+        if state.existing_model is not None:
+            # The delta is what this pass actually decided; the totals above include the
+            # existing vault, so recording only those would make an extension run look like
+            # it re-modelled everything.
+            decision["delta"] = {
+                "hubs": delta_counts[0],
+                "links": delta_counts[1],
+                "satellites": delta_counts[2],
             }
-        )
+        state.decisions.append(decision)
         return state
 
     def _validate_model(self, raw: dict[str, Any], state: VaultAgentState) -> DVModel:

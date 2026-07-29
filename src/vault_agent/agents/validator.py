@@ -44,6 +44,7 @@ from vault_agent.rules.dv2_rules import (
 from vault_agent.state import (
     Hub,
     IssueSeverity,
+    Link,
     ValidationIssue,
     ValidationReport,
     VaultAgentState,
@@ -65,6 +66,15 @@ _REQUIRED_COLUMNS = {
     ("links", "link"): REQUIRED_LINK_COLUMNS,
     ("satellites", "satellite"): REQUIRED_SAT_COLUMNS,
 }
+
+
+def _link_grain(link: Link) -> tuple[tuple[str, str], ...]:
+    """A link's grain: the sorted multiset of (hub, role) participations (ADR-0009).
+
+    The same shape ``W_LINK_REDUNDANT_GRAIN`` groups on — a role-qualified self-reference is
+    a different grain from a plain link over the same hub. Used by ``E_EXISTING_GRAIN_CHANGED``
+    (WP23) to decide whether an existing link still hashes the same way."""
+    return tuple(sorted((ref.hub, ref.role or "") for ref in link.hub_refs))
 
 
 def _issue(
@@ -339,6 +349,7 @@ class ValidatorAgent(BaseAgent):
                     )
 
         issues.extend(self._check_cross_construct(state))
+        issues.extend(self._check_additive_extension(state))
         issues.extend(self._check_source_grounding(state))
         issues.extend(self._check_artifact_columns(state.artifacts.automatedv_yaml))
 
@@ -524,6 +535,140 @@ class ValidatorAgent(BaseAgent):
                         f"satellite splits per feed, or model one satellite per source",
                     )
                 )
+
+        return issues
+
+    @staticmethod
+    def _check_additive_extension(state: VaultAgentState) -> list[ValidationIssue]:
+        """Additivity gates for brownfield mode (WP23 §2.5, charter §3.3).
+
+        Inert unless ``state.existing_model`` is set, so greenfield output is unchanged.
+        These compare the MERGED model back to the vault it extends and enforce the one
+        promise the whole track makes: an extension run never changes what already exists.
+
+        They are invariants over the merger's output, not a check on the LLM — the merger
+        already refuses non-additive deltas. That is the point: these are the guarantee, the
+        steering is only the shortcut. A merger bug, or any future re-model mode, hits them
+        instead of silently reshaping a live vault.
+
+        On growth vs shrink (charter Q3): BOTH count as a reshape of an existing satellite.
+        Adding an attribute to a satellite that already has history means backfilling a
+        column for every past row — a migration, not an extension. New attributes belong in
+        a NEW satellite on the same parent, which is what the modeler is steered to emit."""
+        prior = state.existing_model
+        if prior is None:
+            return []
+        issues: list[ValidationIssue] = []
+        merged = state.dv_model
+
+        hubs = {hub.name: hub for hub in merged.hubs}
+        links = {link.name: link for link in merged.links}
+        sats = {sat.name: sat for sat in merged.satellites}
+
+        for construct_name, kind in [
+            *[(hub.name, "hub") for hub in prior.hubs],
+            *[(link.name, "link") for link in prior.links],
+            *[(sat.name, "satellite") for sat in prior.satellites],
+        ]:
+            if construct_name not in {**hubs, **links, **sats}:
+                issues.append(
+                    _issue(
+                        "error", "E_EXISTING_REMOVED", construct_name,
+                        f"existing {kind} {construct_name!r} is absent from the extended "
+                        f"model; an extension run must never drop what the vault already "
+                        f"contains",
+                    )
+                )
+
+        for hub in prior.hubs:
+            current = hubs.get(hub.name)
+            if current is None:
+                continue  # already reported as removed
+            if normalize_identifier(current.business_key) != normalize_identifier(
+                hub.business_key
+            ) or normalize_identifier(current.source_entity) != normalize_identifier(
+                hub.source_entity
+            ):
+                issues.append(
+                    _issue(
+                        "error", "E_EXISTING_BK_CHANGED", hub.name,
+                        f"existing hub {hub.name!r} changed identity: business key "
+                        f"{hub.business_key!r}/{hub.source_entity!r} became "
+                        f"{current.business_key!r}/{current.source_entity!r}. The key is what "
+                        f"every stored hash was derived from — changing it is a migration",
+                    )
+                )
+            gained = len(current.sources) - len(hub.sources)
+            if gained > 0:
+                issues.append(
+                    _issue(
+                        "warning", "W_EXISTING_EXTENDED", hub.name,
+                        f"existing hub {hub.name!r} gained {gained} source feed(s): "
+                        f"{', '.join(s.source_table for s in current.sources[len(hub.sources):])}",
+                    )
+                )
+
+        for link in prior.links:
+            current_link = links.get(link.name)
+            if current_link is None:
+                continue
+            if _link_grain(current_link) != _link_grain(link) or set(
+                current_link.driving_key
+            ) != set(link.driving_key):
+                issues.append(
+                    _issue(
+                        "error", "E_EXISTING_GRAIN_CHANGED", link.name,
+                        f"existing link {link.name!r} changed grain or driving key; its "
+                        f"participations define the hash key of every stored row",
+                    )
+                )
+
+        for sat in prior.satellites:
+            current_sat = sats.get(sat.name)
+            if current_sat is None:
+                continue
+            reshaped = (
+                current_sat.parent != sat.parent
+                or current_sat.sat_type != sat.sat_type
+                or current_sat.source_table != sat.source_table
+                or {normalize_identifier(a) for a in current_sat.child_dependent_key}
+                != {normalize_identifier(a) for a in sat.child_dependent_key}
+                or {normalize_identifier(a) for a in current_sat.attributes}
+                != {normalize_identifier(a) for a in sat.attributes}
+            )
+            if reshaped:
+                issues.append(
+                    _issue(
+                        "error", "E_EXISTING_SAT_RESHAPED", sat.name,
+                        f"existing satellite {sat.name!r} was reshaped (parent, type, child "
+                        f"dependent key, source table or attribute set). Growth counts too: "
+                        f"a new attribute on a satellite with history is a backfill. Put new "
+                        f"attributes in a NEW satellite on {sat.parent!r}",
+                    )
+                )
+
+        # Advisory inventory of every legitimate extension — the review queue's extension
+        # category (charter Q5: validation warnings already flow into the queue, so no new
+        # ReviewKind is needed). Hubs that gained feeds are reported above.
+        prior_names = (
+            {hub.name for hub in prior.hubs}
+            | {link.name for link in prior.links}
+            | {sat.name for sat in prior.satellites}
+        )
+        for name, kind, parent in [
+            *[(hub.name, "hub", "") for hub in merged.hubs],
+            *[(link.name, "link", "") for link in merged.links],
+            *[(sat.name, "satellite", sat.parent) for sat in merged.satellites],
+        ]:
+            if name in prior_names:
+                continue
+            attached = f" on {parent}" if parent and parent in prior_names else ""
+            issues.append(
+                _issue(
+                    "warning", "W_EXISTING_EXTENDED", name,
+                    f"new {kind} {name!r}{attached} added by this extension run",
+                )
+            )
 
         return issues
 

@@ -25,6 +25,10 @@ class FlagKind:
     INPUT_SEGMENTED = "input_segmented"  # document extracted over several bounded calls
     MAPPING_GAP = "mapping_gap"  # concept has no in-scope source (WP9; belongs downstream)
     MAPPING_UNRESOLVED = "mapping_unresolved"  # concept's source undecided; human ratifies
+    # WP23 brownfield: the extension delta asks for something that is not an extension
+    # (an existing hub's key changed, an existing link/satellite re-stated). Never
+    # applied — flagged, and the additive gates fail the run.
+    EXTENSION_CONFLICT = "extension_conflict"
     GENERIC = "generic"
 
 
@@ -379,6 +383,9 @@ class ExecutionPlan(BaseModel):
     stages: list[str] = Field(default_factory=list)  # node ids planned after planning
     input_documents: int = 0
     grounded: bool = False
+    # WP23: this run extends an existing vault (`--existing`) rather than modelling into
+    # an empty target. Observability only — the behaviour hangs off state.existing_model.
+    extending: bool = False
     notes: list[str] = Field(default_factory=list)  # planning observations, e.g. missing inputs
 
 
@@ -392,6 +399,12 @@ class VaultAgentState(BaseModel):
     # file, table -> column -> ColumnProfile. Empty = no profiling (mapper leans on
     # names/comments, which the spike found sufficient for intent).
     profiling: dict[str, dict[str, ColumnProfile]] = Field(default_factory=dict)
+    # WP23 brownfield mode: the logical model of the vault being EXTENDED, loaded from a
+    # previous run's metadata/dv_model.yml via `run --existing`. None = greenfield, which is
+    # the default and the byte-identity baseline. It is immutable context for the whole run:
+    # the modeler emits only a delta against it, the merger never mutates it, and the
+    # additive E_EXISTING_* gates compare the merged model back to it.
+    existing_model: DVModel | None = None
     # Working state
     # Business↔source mapping proposals (WP9): written by the source_mapper on grounded runs,
     # ratified at the HITL checkpoint, and consumed by staging binding. Empty when ungrounded.

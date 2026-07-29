@@ -38,6 +38,7 @@ from vault_agent.agents.orchestrator import (
     assemble_review_queue,
     render_review_queue_md,
 )
+from vault_agent.existing_model import DV_MODEL_FILENAME, load_existing_model
 from vault_agent.graph import MAX_MODELING_ATTEMPTS, build_graph
 from vault_agent.models.contract import ContractOwner
 from vault_agent.profiling import load_profiling
@@ -46,6 +47,7 @@ from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import (
     ColumnProfile,
+    DVModel,
     FlagKind,
     ProposedMapping,
     SourceTable,
@@ -154,6 +156,19 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         meta_dir.mkdir(parents=True, exist_ok=True)
         (meta_dir / "automatedv.yml").write_text(
             yaml.safe_dump(state.artifacts.automatedv_yaml, sort_keys=True),
+            encoding="utf-8",
+        )
+
+    # WP23 §2.1: the LOGICAL model as a first-class output — the round-trip source a later
+    # `run --existing <this dir>` reads. automatedv.yml is RENDERED macro metadata and
+    # cannot yield it back losslessly (it has no descriptions, requirement_ids, sat_type,
+    # driving keys, source_table or Hub.sources), so brownfield mode gets its own file
+    # rather than a lossy reconstruction. Deterministic: sorted keys, no timestamps.
+    if state.dv_model.hubs or state.dv_model.links or state.dv_model.satellites:
+        meta_dir = out_dir / "metadata"
+        meta_dir.mkdir(parents=True, exist_ok=True)
+        (meta_dir / DV_MODEL_FILENAME).write_text(
+            yaml.safe_dump(state.dv_model.model_dump(mode="json"), sort_keys=True),
             encoding="utf-8",
         )
 
@@ -489,6 +504,7 @@ async def _run_pipeline(
     profiling: dict[str, dict[str, ColumnProfile]] | None = None,
     trace: bool = True,
     write: bool = True,
+    existing_model: DVModel | None = None,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
@@ -496,7 +512,9 @@ async def _run_pipeline(
     ``source_schemas`` (from ``--source-schema``) activates ADR-0004 grounding; ``profiling``
     (from ``--profiling``, WP9) feeds the business↔source mapper. Empty/``None`` leaves both
     inert. ``trace`` (WP15) writes the run's LLM transcript beside its checkpoint. ``write``
-    is the ``--no-write`` flag, honoured by the crash rescue as well."""
+    is the ``--no-write`` flag, honoured by the crash rescue as well. ``existing_model``
+    (from ``--existing``, WP23) switches the run to brownfield mode; ``None`` = greenfield,
+    and resume needs no flag because the model is persisted in the checkpoint."""
     thread_id = uuid4().hex
     _checkpoint_dir(out_dir).mkdir(parents=True, exist_ok=True)
     state, paused = await _invoke_checkpointed(
@@ -508,6 +526,7 @@ async def _run_pipeline(
             input_documents=[str(input_doc)],
             source_schemas=source_schemas or [],
             profiling=profiling or {},
+            existing_model=existing_model,
         ),
         input_doc=input_doc,
         trace=trace,
@@ -823,13 +842,24 @@ async def _paused_state(out: Path, thread_id: str) -> VaultAgentState:
         return await _state_from_checkpoint(compiled, config)
 
 
+def _construct_count(model: DVModel) -> int:
+    return len(model.hubs) + len(model.links) + len(model.satellites)
+
+
 def _print_summary(console: Console, state: VaultAgentState) -> None:
     model = state.dv_model
     report = state.validation_report
     verdict = "[bold green]PASSED[/bold green]" if report.passed else "[bold red]FAILED[/bold red]"
     n_schemas = len(state.source_schemas)
     grounding = f"on ({n_schemas} source table(s))" if n_schemas else "off"
+    prior = state.existing_model
+    mode = (
+        f"extension ({_construct_count(prior)} existing construct(s))"
+        if prior is not None
+        else "greenfield"
+    )
     console.print(
+        f"  mode:          {mode}\n"
         f"  requirements:  {len(state.requirements)}\n"
         f"  business keys: {len(state.business_keys)}\n"
         f"  grounding:     {grounding}\n"
@@ -988,6 +1018,14 @@ def run(
             help="Optional profiling-evidence file (YAML/JSON) for the WP9 source mapper.",
         ),
     ] = None,
+    existing: Annotated[
+        Path | None,
+        typer.Option(
+            "--existing", "-e", exists=True,
+            help="Extend a previously generated vault: its output directory (or its "
+                 "metadata/dv_model.yml). Without this, the run is greenfield.",
+        ),
+    ] = None,
     write: Annotated[
         bool,
         typer.Option(
@@ -1017,12 +1055,15 @@ def run(
     try:
         schemas = load_source_schemas(source_schema) if source_schema else []
         profiles = load_profiling(profiling) if profiling else {}
+        # WP23: brownfield mode. A malformed/pre-WP23 --existing is an attributable message
+        # here, before any LLM token is spent — same reasoning as the other input loaders.
+        prior_model = load_existing_model(existing) if existing else None
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]Could not load an input file:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
     try:
         state, paused, thread_id = asyncio.run(
-            _run_pipeline(input_doc, out, schemas, profiles, trace, write)
+            _run_pipeline(input_doc, out, schemas, profiles, trace, write, prior_model)
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
         # The run's checkpointed work is NOT lost: _run_pipeline's rescue already recorded a

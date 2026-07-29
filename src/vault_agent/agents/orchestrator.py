@@ -269,6 +269,7 @@ class OrchestratorAgent(BaseAgent):
             stages=list(self._planned_stages),
             input_documents=len(state.input_documents),
             grounded=bool(state.source_schemas),
+            extending=state.existing_model is not None,
             notes=notes,
         )
         state.plan = plan

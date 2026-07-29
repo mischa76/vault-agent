@@ -129,7 +129,9 @@ def _link_hashkey(link: Link) -> str:
     return _to_column(link.name) + HASHKEY_SUFFIX
 
 
-def _render_hub(hub: Hub) -> tuple[str, dict[str, Any]]:
+def _render_hub(
+    hub: Hub, legacy: set[tuple[str, str, str]] | None = None
+) -> tuple[str, dict[str, Any]]:
     # WP10: a multi-source hub unions one staging model per feed (AutomateDV's hub macro
     # accepts source_model as a list — verified against 0.11.4 postgres__hub) and keys off
     # the canonical column each stage aliases to. Single-source stays a bare string + the
@@ -137,7 +139,12 @@ def _render_hub(hub: Hub) -> tuple[str, dict[str, Any]]:
     if hub.sources:
         from vault_agent.agents.staging_generator import multi_source_staging_name
 
-        source_models = [multi_source_staging_name(hub, source) for source in hub.sources]
+        # WP23 §2.6: a grandfathered feed keeps its legacy staging name, so the hub's
+        # source_model list mixes [legacy staging, new per-source stagings]. Its SQL
+        # legitimately changes — the extension diff names that file explicitly.
+        source_models = [
+            multi_source_staging_name(hub, source, legacy) for source in hub.sources
+        ]
         source_model: str | list[str] = source_models
         src_nk = canonical_hub_key_column(hub)
         source_model_literal = _sql_list(source_models)
@@ -389,6 +396,16 @@ class CodeGeneratorAgent(BaseAgent):
         )
         hub_hashkeys = {hub.name: _hub_hashkey(hub) for hub in model.hubs}
         hub_by_name = {hub.name: hub for hub in model.hubs}
+        # WP23 §2.6 grandfathering: feeds and satellites the extended vault already had.
+        # Both are EMPTY on a greenfield run, which is what keeps its output identical.
+        from vault_agent.agents.staging_generator import legacy_feeds
+
+        legacy = legacy_feeds(state.existing_model)
+        existing_sats = (
+            {sat.name for sat in state.existing_model.satellites}
+            if state.existing_model is not None
+            else set()
+        )
         parent_hashkeys: dict[str, str] = dict(hub_hashkeys)
         # link name -> the hub hashkeys it connects, in declared order. Membership marks a
         # parent as a generated link (eff_sat must hang off one).
@@ -402,7 +419,7 @@ class CodeGeneratorAgent(BaseAgent):
         metadata: dict[str, dict[str, Any]] = {"hubs": {}, "links": {}, "satellites": {}}
 
         for hub in model.hubs:
-            sql, meta = _render_hub(hub)
+            sql, meta = _render_hub(hub, legacy)
             dbt_models[hub.name] = sql
             metadata["hubs"][hub.name] = meta
 
@@ -483,6 +500,21 @@ class CodeGeneratorAgent(BaseAgent):
                         asset=sat.name,
                     )
                     continue
+                if sat.name in existing_sats:
+                    # WP23 §2.6: an EXISTING satellite is never split when its hub gains a
+                    # feed. Splitting would rename a materialised model holding history —
+                    # the destructive migration this track refuses. It keeps its name and
+                    # its binding to the legacy staging; only NEW satellites on this hub
+                    # follow the WP10 per-source shape against the new feeds.
+                    rendered = self._render_satellite(
+                        sat, parent_hashkeys, link_fks, link_driving_fks,
+                        link_secondary_fks, state,
+                    )
+                    if rendered is not None:
+                        sql, meta = rendered
+                        dbt_models[sat.name] = sql
+                        metadata["satellites"][sat.name] = meta
+                    continue
                 from vault_agent.agents.staging_generator import multi_source_staging_name
 
                 # Parity with _render_satellite (WP21 §2.5): the per-source branch renders
@@ -493,7 +525,7 @@ class CodeGeneratorAgent(BaseAgent):
                 )
                 for source in parent_hub.sources:
                     per_name = _sat_source_name(sat, source)
-                    staging_model = multi_source_staging_name(parent_hub, source)
+                    staging_model = multi_source_staging_name(parent_hub, source, legacy)
                     sql, meta = _render_sat(
                         sat, parent_hashkeys[sat.parent], source_model=staging_model
                     )
@@ -520,7 +552,8 @@ class CodeGeneratorAgent(BaseAgent):
         # Contracts (drafted upstream by the data-contract agent) pin seed column
         # types for matching staging sources (WP7 §7.3).
         staging = build_staging(
-            model, state.source_schemas, contracts=state.artifacts.contracts
+            model, state.source_schemas, contracts=state.artifacts.contracts,
+            existing=state.existing_model,
         )
         state.artifacts.staging_models = staging.models
         state.artifacts.scaffolding = staging.scaffolding
