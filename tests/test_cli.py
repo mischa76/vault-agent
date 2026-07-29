@@ -54,6 +54,8 @@ def test_write_outputs_creates_files(tmp_path: Path) -> None:
 
     assert counts == {
         "models": 2, "staging": 1, "scaffolding": 2, "adrs": 1, "metadata": 1,
+        # 0: this fixture carries generated artifacts but no logical dv_model to dump.
+        "model": 0,
         "contracts": 0, "mappings": 0, "review_items": 0, "report": 1,
         # WP23: 0 on a greenfield run — the diff artifact is extension-only.
         "extension_diff": 0,
@@ -78,6 +80,7 @@ def test_write_outputs_skips_empty_sections(tmp_path: Path) -> None:
 
     assert counts == {
         "models": 0, "staging": 0, "scaffolding": 0, "adrs": 0, "metadata": 0,
+        "model": 0,
         "contracts": 0, "mappings": 0, "review_items": 0, "report": 1,
         # WP23: 0 on a greenfield run — the diff artifact is extension-only.
         "extension_diff": 0,
@@ -1359,3 +1362,146 @@ def test_crash_report_and_orphan_pruning_still_swallow_a_corrupt_pointer(
 
     _report_crashed(Console(), out)  # no raise, prints nothing actionable
     _asyncio.run(_prune_orphan_threads(None, out, keep="whatever"))  # no raise
+
+
+# --- WP23 §3.8: the --existing flag --------------------------------------------------------
+
+
+def _bank_vault_dir(tmp_path: Path) -> Path:
+    """A previously generated vault: an output directory carrying metadata/dv_model.yml."""
+    import yaml as _yaml
+
+    from vault_agent.existing_model import DV_MODEL_FILENAME
+    from vault_agent.state import DVModel, Hub
+
+    model = DVModel(
+        hubs=[Hub(name="hub_customer", business_key="customer_id",
+                  source_entity="customer", description="The customer.")]
+    )
+    out = tmp_path / "vault"
+    (out / "metadata").mkdir(parents=True)
+    (out / "metadata" / DV_MODEL_FILENAME).write_text(
+        _yaml.safe_dump(model.model_dump(mode="json"), sort_keys=True), encoding="utf-8"
+    )
+    return out
+
+
+def _extension_stub_agents() -> "dict[str, object]":
+    """Stub agents that emit a delta, so the graph exercises the real merger + gates."""
+    from vault_agent.agents.base import BaseAgent
+    from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
+    from vault_agent.agents.model_merger import merge_models
+    from vault_agent.agents.orchestrator import HumanCheckpointAgent
+    from vault_agent.graph import NODES
+    from vault_agent.state import DVModel, Hub, ValidationReport
+
+    class _Stub(BaseAgent):
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        async def run(self, state: VaultAgentState) -> VaultAgentState:
+            if self.name == "dv2_modeler":
+                delta = DVModel(hubs=[Hub(name="hub_campaign", business_key="campaign_code",
+                                          source_entity="campaign", description="New.")])
+                state.dv_model = (
+                    merge_models(state.existing_model, delta, state)
+                    if state.existing_model is not None
+                    else delta
+                )
+            if self.name == "validator":
+                state.validation_report = ValidationReport(passed=True, issues=[])
+            state.decisions.append({"agent": self.name})
+            return state
+
+    from vault_agent.agents.code_generator import CodeGeneratorAgent
+
+    agents: dict[str, object] = {name: _Stub(name) for name in NODES}
+    agents["human_checkpoint"] = HumanCheckpointAgent()
+    # The REAL generator: it is what computes the extension diff, so stubbing it would make
+    # this test assert nothing about the artifact it claims to check.
+    agents["code_generator"] = CodeGeneratorAgent()
+    assert Dv2ModelerAgent  # named for the reader: the real modeler is what _Stub stands in for
+    return agents
+
+
+def _use_extension_graph(monkeypatch: pytest.MonkeyPatch) -> None:
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_extension_stub_agents()),  # type: ignore[arg-type]
+    )
+
+
+@pytest.mark.parametrize("as_file", [False, True], ids=["directory", "yaml-file"])
+def test_existing_accepts_a_directory_or_the_file_itself(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, as_file: bool
+) -> None:
+    from vault_agent.existing_model import DV_MODEL_FILENAME
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    vault = _bank_vault_dir(tmp_path)
+    target = (vault / "metadata" / DV_MODEL_FILENAME) if as_file else vault
+    _use_extension_graph(monkeypatch)
+    out = tmp_path / "out"
+
+    result = runner.invoke(
+        app, ["run", str(doc), "--out", str(out), "--existing", str(target),
+              "--no-interactive"]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "mode:          extension (1 existing construct(s))" in result.output
+    # The extension produced the diff artifact and carried the existing hub through.
+    assert (out / "extension-diff.md").is_file()
+    assert (out / "models" / "raw_vault" / "hub_customer.sql").is_file()
+    assert (out / "models" / "raw_vault" / "hub_campaign.sql").is_file()
+
+
+def test_a_greenfield_run_reports_greenfield_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_extension_graph(monkeypatch)
+    out = tmp_path / "out"
+
+    result = runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+
+    assert "mode:          greenfield" in result.output
+    assert not (out / "extension-diff.md").exists()
+
+
+def test_existing_pointing_at_a_pre_wp23_output_is_attributable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The message must say what to do, and no LLM token may be spent discovering it."""
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    old = tmp_path / "old"
+    (old / "metadata").mkdir(parents=True)
+    (old / "metadata" / "automatedv.yml").write_text("hubs: {}\n", encoding="utf-8")
+    _use_extension_graph(monkeypatch)
+
+    result = runner.invoke(
+        app, ["run", str(doc), "--out", str(tmp_path / "out"), "--existing", str(old)]
+    )
+
+    assert result.exit_code == 1
+    assert "Could not load an input file" in result.output
+    assert "regenerate that vault once" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_existing_pointing_at_a_missing_path_is_rejected_by_the_cli(tmp_path: Path) -> None:
+    """typer's exists=True catches it before the loader — a usage error, exit 2."""
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+
+    result = runner.invoke(
+        app, ["run", str(doc), "--out", str(tmp_path / "out"), "--existing",
+              str(tmp_path / "nope")]
+    )
+
+    assert result.exit_code == 2

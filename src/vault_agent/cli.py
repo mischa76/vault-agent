@@ -165,7 +165,7 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
     # cannot yield it back losslessly (it has no descriptions, requirement_ids, sat_type,
     # driving keys, source_table or Hub.sources), so brownfield mode gets its own file
     # rather than a lossy reconstruction. Deterministic: sorted keys, no timestamps.
-    if state.dv_model.hubs or state.dv_model.links or state.dv_model.satellites:
+    if _has_constructs(state.dv_model):
         meta_dir = out_dir / "metadata"
         meta_dir.mkdir(parents=True, exist_ok=True)
         (meta_dir / DV_MODEL_FILENAME).write_text(
@@ -227,6 +227,8 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         "scaffolding": len(state.artifacts.scaffolding),
         "adrs": len(state.adrs),
         "metadata": 1 if state.artifacts.automatedv_yaml else 0,
+        # WP23 §2.1: the logical model dump — the round-trip source for `run --existing`.
+        "model": 1 if _has_constructs(state.dv_model) else 0,
         "contracts": len(state.artifacts.contracts),
         "mappings": len(mapping.proposals),
         "review_items": len(review_queue.items),
@@ -855,6 +857,10 @@ async def _paused_state(out: Path, thread_id: str) -> VaultAgentState:
         saver.serde = _checkpoint_serde()
         compiled = build_graph().compile(checkpointer=saver)
         return await _state_from_checkpoint(compiled, config)
+
+
+def _has_constructs(model: DVModel) -> bool:
+    return bool(model.hubs or model.links or model.satellites)
 
 
 def _construct_count(model: DVModel) -> int:

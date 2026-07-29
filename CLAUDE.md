@@ -1556,9 +1556,18 @@ the modeler gives both source_entity 'crm_campaign'; a genuine modelling smell t
 correctly catches, and hub_employee is not golden. Method note: after the first live run,
 the second and third diagnoses came from REPLAYING the stored trace through merge+validate
 at zero API cost — the 2026-07-28 lesson applied.
-STILL OPEN — do not assume otherwise: acceptance #3 (the live Postgres on-top build:
-`dbt build` WITHOUT full-refresh over the previously built bank vault, pre-existing row
-history intact), the CLI-level --existing tests of spec §3.8, and the operations docs.
+Spec §3.8 and the docs are done: CLI tests cover --existing as a directory and as the file
+itself (both reaching a real extension through the graph with the REAL code generator, so the
+diff artifact is actually asserted rather than stubbed away), the greenfield mode line, the
+attributable pre-WP23 error, and typer's exists=True usage error; operations 06 gains §6.7
+(brownfield mode: the may/may-not table keyed to the E_EXISTING_* codes, why regenerating
+everything is safe, grandfathering, the delta-ADR, and the known limitation), plus the
+--existing row, the mode line, dv_model.yml and extension-diff.md in the output anatomy, and
+three troubleshooting rows. Also implemented here: the counts key `model` that §2.1 asked for
+and the core commit missed. 627 tests green, ruff clean, mypy strict clean (40 files).
+STILL OPEN — the last item: acceptance #3, the live Postgres on-top build (`dbt build`
+WITHOUT full-refresh over the previously built bank vault, pre-existing row history intact,
+the new link/sat populated). Everything else in WP23 Phase 1 is built, tested and documented.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF

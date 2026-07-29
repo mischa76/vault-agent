@@ -37,13 +37,15 @@ vault-agent [--debug] run <input_doc> [OPTIONS]
 | `--out`, `-o <dir>` | `output` | Output directory (also holds the run's checkpoint) |
 | `--source-schema`, `-s <file>` | — | Ground against a declared schema (6.1) |
 | `--profiling <file>` | — | Mapper evidence (6.1) |
+| `--existing`, `-e <dir\|file>` | — | **Extend** an existing vault instead of modelling into an empty one (6.7) |
 | `--write / --no-write` | write | Write **artifacts** to disk. Run state (checkpoint, `pending.json`, trace) is written regardless — a paused `--no-write` run must stay resumable |
 | `--trace / --no-trace` | trace | LLM transcript under `.vault-agent/traces/` (10.2) |
 | `--interactive / --no-interactive` | auto | Checkpoint prompt in-terminal; auto = only when run in a TTY |
 | `--debug` (global, before the command) | off | DEBUG logging + full tracebacks |
 
 Console output, in order: the execution plan, per-agent progress with construct
-counts, a `grounding: on (N source table(s))` / `off` line, the run summary, and — when
+counts, a `mode: greenfield` / `extension (N existing construct(s))` line, a
+`grounding: on (N source table(s))` / `off` line, the run summary, and — when
 the run pauses — the review queue, blocking items first. A malformed
 `--source-schema`/`--profiling` fails before any LLM call with an attributable message. An
 input document that exists but cannot be read (a Latin-1 `.md`, a corrupt PDF/`.docx`) is
@@ -80,7 +82,8 @@ Everything a finalized run writes below `--out`:
 │   ├── raw_vault/             # hubs, links, satellites (one .sql each)
 │   └── staging/               # stg_* hash/hashdiff models + sources.yml
 ├── metadata/
-│   └── automatedv.yml         # construct metadata (machine-readable)
+│   ├── automatedv.yml         # construct metadata (machine-readable)
+│   └── dv_model.yml           # the LOGICAL model — point a later --existing here (6.7)
 ├── contracts/
 │   ├── <asset>.contract.yml   # one data contract per source asset
 │   └── <asset>.tests.yml      # dbt schema tests derived from the contract
@@ -88,6 +91,7 @@ Everything a finalized run writes below `--out`:
 │   └── ADR-0001-<slug>.md     # the model ADR (per-output numbering, WP2)
 ├── mappings.review.yml        # business↔source mapping — review & ratify (WP9)
 ├── review-queue.md            # the HITL review queue (chapter 7)
+├── extension-diff.md          # extension runs only: unchanged / extended / new (6.7)
 ├── report.html                # self-contained run report incl. model graph (WP11)
 └── .vault-agent/              # run infrastructure, NOT a deliverable
     ├── checkpoints.sqlite     # LangGraph checkpointer (pause/resume)
@@ -150,3 +154,59 @@ that all fail validation end at the human-in-the-loop checkpoint, not silently: 
 Failures print a one-line summary by default; global `--debug` re-raises with the full
 traceback. Nothing is ever deleted on failure — a paused or crashed run keeps its
 checkpoint and trace for diagnosis (chapter 10) or a later resume.
+
+## 6.7 Extending an existing vault (brownfield mode)
+
+Non-destructive extensibility is the point of Data Vault 2.0, and the everyday enterprise
+scenario is not a greenfield build: a new source system starts feeding entities you already
+model, or new entities attach to hubs that already exist. `--existing` runs the pipeline in
+**extension mode**.
+
+```
+vault-agent run crm_requirements.md --out output/v2 \
+    --existing output/v1 --source-schema crm_schema.yml
+```
+
+`--existing` takes a previous run's **output directory** (its `metadata/dv_model.yml` is
+read) or that file directly. An output generated before this file existed cannot be
+extended — regenerate that vault once with the current version first; the generator is
+deterministic, so the regenerated project is identical. The error message says so.
+
+**What the agent may and may not do.** An extension is additive, and that is enforced, not
+merely encouraged:
+
+| The run may | The run may not |
+|---|---|
+| Add hubs, links, satellites | Remove an existing construct (`E_EXISTING_REMOVED`) |
+| Add a source feed to an existing hub | Change an existing hub's business key (`E_EXISTING_BK_CHANGED`) |
+| Add a satellite to an existing parent | Change an existing link's grain (`E_EXISTING_GRAIN_CHANGED`) |
+| | Reshape an existing satellite — **including adding an attribute** (`E_EXISTING_SAT_RESHAPED`) |
+
+Attribute *growth* counts as a reshape because a satellite that already holds history would
+need every past row backfilled. New attributes for an existing parent belong in a **new
+satellite** on it — which is what the modeler is steered to produce.
+
+Every legitimate addition also raises an advisory `W_EXISTING_EXTENDED`, so the review queue
+(chapter 7) inventories the increment rather than staying silent about it.
+
+**Why regenerating everything is safe.** The generator is deterministic: an untouched
+construct renders byte-identically, so rebuilding it changes no table. That promise is made
+checkable by `extension-diff.md` (and the report's *Extension* section), which lists
+unchanged / extended / new constructs and — the part that matters — **which generated files
+actually changed content**, computed by regenerating the existing model alone and comparing.
+A hub that starts unioning a second staging model legitimately changes; the diff names that
+file.
+
+**Grandfathering.** When a single-source hub gains a feed, its original staging model keeps
+its name (`stg_<entity>`) and only the new feed gets the suffixed `stg_<entity>_<source>`;
+existing satellites keep their names and their binding. Renaming them would drop and rebuild
+tables that hold history.
+
+**The ADR** documents only the delta, plus an *Extends* section naming the vault it extends
+and pointing at the diff.
+
+**Known limitation (2026-07-29).** A satellite fed by ONE source of a now-multi-source hub —
+the natural shape when a new system brings its own attributes — currently trips
+`E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` and is flagged rather than generated. Leave the
+satellite's `source_table` unset and it splits per feed instead. Giving the declared-source
+form real semantics needs a modelling decision that has not been taken.
