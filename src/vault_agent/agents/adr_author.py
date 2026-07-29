@@ -137,6 +137,18 @@ def _sat_line(sat: Satellite) -> str:
     )
 
 
+def _existing_names(state: VaultAgentState) -> set[str]:
+    """Names the extended vault already carried; empty set on a greenfield run."""
+    prior = state.existing_model
+    if prior is None:
+        return set()
+    return (
+        {hub.name for hub in prior.hubs}
+        | {link.name for link in prior.links}
+        | {sat.name for sat in prior.satellites}
+    )
+
+
 def _accepted_over_errors_block(report: ValidationReport) -> list[str]:
     """The prominent caveat for a model accepted at the checkpoint despite errors (WP25 §2.3).
 
@@ -169,6 +181,34 @@ def _accepted_over_errors_block(report: ValidationReport) -> list[str]:
         f"human-in-the-loop checkpoint over {len(errors)} surviving validation error(s): "
         f"{listed}. The generated artifacts are for diagnosis and remediation — not for "
         f"deployment.",
+        "",
+    ]
+
+
+def _extends_section(state: VaultAgentState) -> list[str]:
+    """The "Extends" section of a delta-ADR (WP23 §2.8); empty on a greenfield run.
+
+    An extension run's ADR documents only what this run DECIDED — re-listing an existing
+    vault's constructs would bury the delta and imply the run re-derived them. What the
+    reader needs instead is the anchor: which vault was extended, how big it was, and where
+    the full before/after lives."""
+    prior = state.existing_model
+    if prior is None:
+        return []
+    diff = state.artifacts.extension_diff or {}
+    unchanged = len(diff.get("unchanged", []))
+    extended = len(diff.get("extended", {}))
+    return [
+        "## Extends",
+        "",
+        f"This is an EXTENSION of an existing vault (`{state.existing_source or 'unknown'}`) "
+        f"carrying {len(prior.hubs)} hub(s), {len(prior.links)} link(s) and "
+        f"{len(prior.satellites)} satellite(s). Those constructs are unchanged by this run "
+        f"and are deliberately not re-listed below — this record documents the delta only.",
+        "",
+        f"{unchanged} construct(s) were left untouched and {extended} were extended; see "
+        f"`extension-diff.md` for the per-construct detail, including which generated files "
+        f"changed content.",
         "",
     ]
 
@@ -286,18 +326,26 @@ class AdrAuthorAgent(BaseAgent):
             "",
             "Model the following Data Vault 2.0 structures.",
             "",
-            f"### Hubs ({len(model.hubs)})",
-            "",
         ]
-        lines += [_hub_line(hub) for hub in model.hubs]
+        # WP23 §2.8: on an extension run the ADR documents the DELTA. `prior_names` is empty
+        # on greenfield, so the rendered sections are byte-identical there.
+        prior_names = _existing_names(state)
+        hubs = [hub for hub in model.hubs if hub.name not in prior_names]
+        links = [link for link in model.links if link.name not in prior_names]
+        sats = [sat for sat in model.satellites if sat.name not in prior_names]
+        lines += [f"### Hubs ({len(hubs)})", ""]
+        lines += [_hub_line(hub) for hub in hubs]
 
-        lines += ["", f"### Links ({len(model.links)})", ""]
-        lines += [_link_line(link) for link in model.links]
+        lines += ["", f"### Links ({len(links)})", ""]
+        lines += [_link_line(link) for link in links]
 
-        lines += ["", f"### Satellites ({len(model.satellites)})", ""]
-        lines += [_sat_line(sat) for sat in model.satellites]
+        lines += ["", f"### Satellites ({len(sats)})", ""]
+        lines += [_sat_line(sat) for sat in sats]
 
         lines += _mappings_section(state.mappings)
+        extends = _extends_section(state)
+        if extends:
+            lines += ["", *extends]
 
         lines += [
             "",

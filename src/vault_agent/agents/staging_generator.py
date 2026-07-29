@@ -103,29 +103,28 @@ def _staging_name(construct_name: str) -> str:
 
 
 def legacy_feeds(existing: DVModel | None) -> set[tuple[str, str, str]]:
-    """The (hub, table, column) feeds a previously generated vault already had (WP23 §2.6).
+    """The (hub, table, column) feeds that carry an UNSUFFIXED staging name (WP23 §2.6).
 
-    Grandfathering needs exactly one fact: was this feed present before the extension? The
-    answer is derived from the existing model rather than stored on the state, so nothing new
-    has to survive the checkpointer and a greenfield run has nothing to derive. A hub that was
-    single-source there has no ``sources`` entries, so the merger materialises its implicit
-    feed as (source_entity, business_key) — the same shape recorded here."""
+    Grandfathering needs exactly one fact: which feed is already materialised as
+    ``stg_<entity>``? Only one ever is — the implicit feed of a hub that was SINGLE-source in
+    the existing vault. The merger materialises it as (source_entity, business_key), which is
+    the shape recorded here.
+
+    A hub that was ALREADY multi-source there is deliberately excluded: its feeds were
+    generated with WP10 suffixed names (``stg_<entity>_<source>``) and keeping those is what
+    preserves them. Grandfathering them would be wrong twice over — it would rename existing
+    models, and every one of them would collapse onto the same unsuffixed name.
+
+    Derived from the existing model rather than stored on the state, so nothing new has to
+    survive the checkpointer and a greenfield run has nothing to derive."""
     if existing is None:
         return set()
-    feeds: set[tuple[str, str, str]] = set()
-    for hub in existing.hubs:
-        if hub.sources:
-            feeds.update(
-                (hub.name, normalize_identifier(s.source_table),
-                 normalize_identifier(s.business_key_column))
-                for s in hub.sources
-            )
-        else:
-            feeds.add(
-                (hub.name, normalize_identifier(hub.source_entity),
-                 normalize_identifier(hub.business_key))
-            )
-    return feeds
+    return {
+        (hub.name, normalize_identifier(hub.source_entity),
+         normalize_identifier(hub.business_key))
+        for hub in existing.hubs
+        if not hub.sources
+    }
 
 
 def is_legacy_feed(hub: Hub, source: HubSource, legacy: set[tuple[str, str, str]]) -> bool:

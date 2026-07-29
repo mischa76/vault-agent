@@ -55,6 +55,8 @@ def test_write_outputs_creates_files(tmp_path: Path) -> None:
     assert counts == {
         "models": 2, "staging": 1, "scaffolding": 2, "adrs": 1, "metadata": 1,
         "contracts": 0, "mappings": 0, "review_items": 0, "report": 1,
+        # WP23: 0 on a greenfield run — the diff artifact is extension-only.
+        "extension_diff": 0,
     }
     assert (tmp_path / "report.html").exists()
     assert (tmp_path / "models" / "raw_vault" / "hub_customer.sql").read_text() == "-- hub sql"
@@ -77,6 +79,8 @@ def test_write_outputs_skips_empty_sections(tmp_path: Path) -> None:
     assert counts == {
         "models": 0, "staging": 0, "scaffolding": 0, "adrs": 0, "metadata": 0,
         "contracts": 0, "mappings": 0, "review_items": 0, "report": 1,
+        # WP23: 0 on a greenfield run — the diff artifact is extension-only.
+        "extension_diff": 0,
     }
     # The report is always written, even for an empty run (header + empty-model note).
     assert (tmp_path / "report.html").exists()

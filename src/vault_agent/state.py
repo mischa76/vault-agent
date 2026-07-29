@@ -342,6 +342,10 @@ class Artifacts(BaseModel):
     # Generated AutomateDV staging models (stg_* -> SQL), kept separate from the raw-vault
     # dbt_models so each layer can be written/tested/asserted independently.
     staging_models: dict[str, str] = Field(default_factory=dict)
+    # WP23 §2.7: the computed extension diff (unchanged/extended/changed_files/new) on a
+    # brownfield run; empty on greenfield. Plain dict so it round-trips the checkpointer,
+    # and so the Markdown artifact and the HTML report render the SAME data.
+    extension_diff: dict[str, Any] = Field(default_factory=dict)
     # dbt project scaffolding (relative path -> content): dbt_project.yml, packages.yml,
     # models/staging/sources.yml, README.md — what makes the output a runnable project.
     scaffolding: dict[str, str] = Field(default_factory=dict)
@@ -405,6 +409,9 @@ class VaultAgentState(BaseModel):
     # the modeler emits only a delta against it, the merger never mutates it, and the
     # additive E_EXISTING_* gates compare the merged model back to it.
     existing_model: DVModel | None = None
+    # The --existing path as the user gave it, for the diff artifact and the delta-ADR's
+    # "Extends" section. Presentation only — nothing branches on it.
+    existing_source: str | None = None
     # Working state
     # Business↔source mapping proposals (WP9): written by the source_mapper on grounded runs,
     # ratified at the HITL checkpoint, and consumed by staging binding. Empty when ungrounded.

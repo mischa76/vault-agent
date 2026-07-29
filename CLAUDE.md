@@ -1476,13 +1476,40 @@ an extension prompt section: a compact IMMUTABLE inventory plus delta-only instr
 returning '' when greenfield so the WP16 steering fixture and prompt caching are untouched.
 604 tests green (+31 across loader round-trip, merger, the five gates, grandfathering and
 the prompt section), ruff clean, mypy strict clean (39 files).
-OPEN and NOT built — do not assume otherwise: §2.7 (extension-diff.md artifact + the HTML
-report's Extension section), §2.8 (the delta-ADR with its "Extends" section — WP26 left the
-renderer ready for it, but it is not wired), acceptance #2 (the bank_extension eval case),
+(§2.7) The extension diff is a first-class artifact: extension-diff.md plus an Extension
+section in the HTML report, both rendering the SAME state.artifacts.extension_diff so they
+can never disagree. Three sections — unchanged / extended / new — and the load-bearing part,
+FILE-CHANGE ATTRIBUTION: which generated files a pre-existing construct's SQL actually
+changed in, computed by regenerating the existing model alone through the real generator and
+diffing the rendered artifacts (no heuristics; the same generator means any difference is a
+real one). That is what makes charter §3.2's "unchanged SQL means unchanged tables" a promise
+a reviewer can CHECK rather than take on faith — a grandfathered hub's SQL legitimately
+changes when it starts unioning a second staging model, and the diff names that file.
+Attribution failures are logged, never fatal: the diff is a reporting aid and must not cost
+a user their artifacts. (§2.8) The delta-ADR documents only what this run decided — existing
+constructs are not re-listed — plus an "Extends" section naming the source vault, its
+construct counts and the diff artifact. WP26's module-level construct renderers were built
+for exactly this and needed no forking, as intended.
+Two bugs found and fixed while building the diff, both worth recording because they are the
+same class — an implicit feed counted as if it were explicit. (1) legacy_feeds originally
+grandfathered EVERY feed of a multi-source hub; for a hub that was already multi-source in
+the existing vault that is wrong twice over — it would rename models generated with WP10
+suffixed names, and every one of them would collapse onto the same unsuffixed name. Only the
+implicit feed of a hub that was SINGLE-source can own stg_<entity>, which is now what the
+helper returns (pinned by a three-feed no-collision test). (2) The diff's "new feeds" count
+used positional slicing and so reported the materialised legacy feed as an addition; it now
+asks the same legacy_feeds helper, so a reviewer is never told a feed appeared that has been
+there all along.
+613 tests green (+9 over the core commit: diff classification, file attribution, the
+markdown artifact, the delta-ADR and its greenfield absence, the report section incl. hostile-
+name escaping, and the multi-source grandfathering regression), ruff clean, mypy strict clean
+(40 files). The two write_outputs count assertions were updated deliberately for the new
+extension_diff key (the WP11 "report" precedent).
+STILL OPEN — do not assume otherwise: acceptance #2 (the bank_extension eval case),
 acceptance #3 (the live Postgres on-top build: `dbt build` WITHOUT full-refresh over the
 previously built bank vault, pre-existing row history intact), the CLI-level --existing
-tests of spec §3.8, and the operations docs. The mode works end to end in the pipeline; what
-is missing is its reporting surface, its eval coverage and its live proof.
+tests of spec §3.8, and the operations docs. Everything the mode DOES is built and tested;
+what is missing is its eval coverage, its live proof, and its user documentation.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF

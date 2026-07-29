@@ -560,6 +560,16 @@ class CodeGeneratorAgent(BaseAgent):
         metadata["staging"] = staging.metadata
         state.flags.extend(staging.flags)
 
+        if state.existing_model is not None:
+            # WP23 §2.7: computed here because file-change attribution needs the freshly
+            # rendered artifacts AND a regeneration of the existing model — both async,
+            # both this agent's business. write_outputs and the report only render it.
+            from dataclasses import asdict
+
+            from vault_agent.extension_diff import build_extension_diff
+
+            state.artifacts.extension_diff = asdict(await build_extension_diff(state))
+
         logger.info(
             "generated %d raw-vault + %d staging model(s), %d scaffolding file(s)",
             len(dbt_models),

@@ -372,3 +372,154 @@ def test_extension_prompt_section_inventories_the_existing_vault() -> None:
     assert "satellite **sat_customer_details** — standard, on hub_customer" in section
     assert "Emit ONLY the delta" in section
     assert "NEW satellite on the same parent" in section
+
+
+def test_an_already_multi_source_hub_keeps_its_suffixed_names() -> None:
+    """Only ONE feed can own the unsuffixed stg_<entity> name — the implicit feed of a hub
+    that was single-source. A hub already multi-source in the existing vault had WP10
+    suffixed names generated for it; grandfathering those would both rename them and
+    collapse every one of them onto the same name."""
+    existing = DVModel(hubs=[
+        Hub(name="hub_customer", business_key="customer_id", source_entity="customer",
+            description="", sources=[
+                HubSource(source_table="crm", business_key_column="cust_no"),
+                HubSource(source_table="victor", business_key_column="partn_id"),
+            ])
+    ])
+    extended = existing.hubs[0].model_copy(deep=True)
+    extended.sources.append(HubSource(source_table="sap", business_key_column="kunde"))
+    legacy = legacy_feeds(existing)
+
+    names = [multi_source_staging_name(extended, s, legacy) for s in extended.sources]
+
+    assert names == ["stg_customer_crm", "stg_customer_victor", "stg_customer_sap"]
+    assert len(set(names)) == 3  # no collision
+
+
+# ── §2.7 the diff artifact ────────────────────────────────────────────────────────────────
+async def _extended_state() -> VaultAgentState:
+    """A mixed S1+S2 extension: an existing hub gains a feed and a new satellite; a whole
+    new hub+satellite arrive."""
+    existing = _vault()
+    merged = existing.model_copy(deep=True)
+    merged.hubs[0].sources = [
+        HubSource(source_table="customer", business_key_column="customer_id"),
+        HubSource(source_table="crm_account", business_key_column="cust_no"),
+    ]
+    merged.satellites.append(
+        Satellite(name="sat_customer_marketing", parent="hub_customer",
+                  attributes=["segment"], description="New concern.")
+    )
+    merged.hubs.append(
+        Hub(name="hub_campaign", business_key="campaign_id", source_entity="campaign",
+            description="A campaign.")
+    )
+    merged.satellites.append(
+        Satellite(name="sat_campaign_details", parent="hub_campaign",
+                  attributes=["title"], description="Campaign payload.")
+    )
+    state = _state(existing, merged)
+    state.existing_source = "output/bank"
+    await CodeGeneratorAgent().run(state)
+    return state
+
+
+async def test_extension_diff_classifies_unchanged_extended_and_new() -> None:
+    state = await _extended_state()
+    diff = state.artifacts.extension_diff
+
+    assert set(diff["extended"]) == {"hub_customer"}
+    assert "1 source feed(s): crm_account.cust_no" in diff["extended"]["hub_customer"][0]
+    assert "sat_customer_marketing" in diff["extended"]["hub_customer"][1]
+    assert set(diff["new"]) == {
+        "hub_campaign", "sat_customer_marketing", "sat_campaign_details"
+    }
+    assert set(diff["unchanged"]) == {
+        "hub_account", "link_account_customer", "sat_customer_details"
+    }
+
+
+async def test_extension_diff_names_the_hub_sql_that_actually_changed() -> None:
+    """§3.6: file-change attribution must name the hub SQL (it now unions a second staging
+    model) and NOT the untouched satellites."""
+    state = await _extended_state()
+    changed = state.artifacts.extension_diff["changed_files"]
+
+    assert "models/raw_vault/hub_customer.sql" in changed["hub_customer"]
+    assert "sat_customer_details" not in changed
+    assert "link_account_customer" not in changed
+
+
+async def test_extension_diff_markdown_renders_the_three_sections(tmp_path: Path) -> None:
+    from vault_agent.cli import write_outputs
+    from vault_agent.extension_diff import DIFF_FILENAME
+
+    state = await _extended_state()
+    counts = write_outputs(state, tmp_path / "out")
+    text = (tmp_path / "out" / DIFF_FILENAME).read_text(encoding="utf-8")
+
+    assert counts["extension_diff"] == 1
+    assert "extended the vault at `output/bank`" in text
+    assert "## Unchanged (3)" in text and "## Extended (1)" in text and "## New (3)" in text
+    assert "changed file: `models/raw_vault/hub_customer.sql`" in text
+
+
+# ── §2.8 the delta-ADR ────────────────────────────────────────────────────────────────────
+async def test_delta_adr_documents_only_the_delta_and_says_what_it_extends() -> None:
+    from vault_agent.agents.adr_author import AdrAuthorAgent
+
+    state = await _extended_state()
+    result = await AdrAuthorAgent(today="2026-07-29").run(state)
+    adr = result.adrs[0]
+
+    assert "## Extends" in adr
+    assert "`output/bank`" in adr
+    assert "2 hub(s), 1 link(s) and 1 satellite(s)" in adr
+    assert "extension-diff.md" in adr
+    # Only the delta is listed; the existing constructs are not re-documented.
+    assert "### Hubs (1)" in adr and "**hub_campaign**" in adr
+    assert "**hub_account**" not in adr
+    assert "**sat_customer_details**" not in adr
+    assert "**sat_customer_marketing**" in adr
+
+
+async def test_greenfield_adr_has_no_extends_section() -> None:
+    from vault_agent.agents.adr_author import AdrAuthorAgent
+
+    state = _state(None, _vault())
+    result = await AdrAuthorAgent(today="2026-07-29").run(state)
+
+    assert "## Extends" not in result.adrs[0]
+    assert "**hub_account**" in result.adrs[0]  # greenfield lists everything, as before
+
+
+async def test_report_extension_section_renders_the_same_data(tmp_path: Path) -> None:
+    from vault_agent.report import build_report
+
+    state = await _extended_state()
+    html = build_report(state)
+
+    assert "<h2>Extension</h2>" in html
+    assert "hub_customer" in html and "models/raw_vault/hub_customer.sql" in html
+    assert "hub_campaign" in html
+
+
+def test_report_has_no_extension_section_on_a_greenfield_run() -> None:
+    from vault_agent.report import build_report
+
+    assert "<h2>Extension</h2>" not in build_report(_state(None, _vault()))
+
+
+async def test_extension_section_escapes_hostile_construct_names() -> None:
+    """report.py's posture: every state string is hostile — including a diff's keys."""
+    from vault_agent.report import build_report
+
+    state = _state(_vault(), _vault())
+    state.artifacts.extension_diff = {
+        "unchanged": [], "extended": {"<script>x</script>": ["gained"]},
+        "changed_files": {}, "new": {},
+    }
+    html = build_report(state)
+
+    assert "<script>x</script>" not in html
+    assert "&lt;script&gt;" in html

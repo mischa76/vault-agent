@@ -39,6 +39,7 @@ from vault_agent.agents.orchestrator import (
     render_review_queue_md,
 )
 from vault_agent.existing_model import DV_MODEL_FILENAME, load_existing_model
+from vault_agent.extension_diff import DIFF_FILENAME, ExtensionDiff, render_extension_diff_md
 from vault_agent.graph import MAX_MODELING_ATTEMPTS, build_graph
 from vault_agent.models.contract import ContractOwner
 from vault_agent.profiling import load_profiling
@@ -204,6 +205,17 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
             render_review_queue_md(review_queue), encoding="utf-8"
         )
 
+    # WP23 §2.7: the extension diff — what this run changed about the vault it extends.
+    # Extension runs only; a greenfield tree must not gain the file (pinned).
+    if state.artifacts.extension_diff:
+        (out_dir / DIFF_FILENAME).write_text(
+            render_extension_diff_md(
+                ExtensionDiff(**state.artifacts.extension_diff),
+                state.existing_source or "the existing vault",
+            ),
+            encoding="utf-8",
+        )
+
     # WP11: a single self-contained HTML report per run, always written (both the interrupt
     # path — artifacts-so-far — and the finalize path call write_outputs, so a paused run's
     # report shows the pending state and a resumed run overwrites it).
@@ -219,6 +231,7 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         "mappings": len(mapping.proposals),
         "review_items": len(review_queue.items),
         "report": 1,
+        "extension_diff": 1 if state.artifacts.extension_diff else 0,
     }
 
 
@@ -505,6 +518,7 @@ async def _run_pipeline(
     trace: bool = True,
     write: bool = True,
     existing_model: DVModel | None = None,
+    existing_source: str | None = None,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
@@ -527,6 +541,7 @@ async def _run_pipeline(
             source_schemas=source_schemas or [],
             profiling=profiling or {},
             existing_model=existing_model,
+            existing_source=existing_source,
         ),
         input_doc=input_doc,
         trace=trace,
@@ -1063,7 +1078,10 @@ def run(
         raise typer.Exit(code=1) from exc
     try:
         state, paused, thread_id = asyncio.run(
-            _run_pipeline(input_doc, out, schemas, profiles, trace, write, prior_model)
+            _run_pipeline(
+                input_doc, out, schemas, profiles, trace, write, prior_model,
+                str(existing) if existing else None,
+            )
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
         # The run's checkpointed work is NOT lost: _run_pipeline's rescue already recorded a
