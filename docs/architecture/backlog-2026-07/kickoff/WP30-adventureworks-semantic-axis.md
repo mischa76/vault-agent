@@ -19,7 +19,12 @@ obvious question I had not asked.
    Option C — the claim under test. Note that ADR-0010 explicitly recorded Option C so the
    staged-modelling discussion "does not resurface as its accidental substitute". That is a
    warning this WP must respect: do not let it drift into making one big pass work.
-4. `wp30-adventureworks-semantic-axis-spec.md` — binding.
+4. `wp30-adventureworks-semantic-axis-spec.md` — binding, **including the two acceptance
+   amendments (2026-07-29)**: §2.4a blinded requirements authoring (author them in a separate
+   session that sees only the one subject area's schema; record how in the case file) and
+   §2.7 the arm-B chaining machinery (chained case in the runner, output→input threading,
+   mid-chain auto-accept semantics stated in the writeup, per-step preservation scoring) —
+   §2.7 is the real implementation effort of this WP, plan it first, not last.
 5. `spike-entity-resolution-results.md` §4 — the author-bias confound, in the memo's own words.
 6. Code: `eval/datasets.py` (`EvalCase`, `materialize_case`, the loader's refusals),
    `eval/run.py`, `eval/scorers.py` (WP14 column mode, WP18 vacuity), `existing_model.py`.

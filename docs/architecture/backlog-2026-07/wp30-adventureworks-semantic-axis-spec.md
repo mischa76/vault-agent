@@ -1,6 +1,8 @@
 # WP30 — An independent semantic axis, and the domain-partitioning experiment
 
-Status: **Proposed** · Owner: Mischa Eismann · Date: 2026-07-29
+Status: **Approved** (2026-07-29, Mischa — with two amendments from the review: §2.4a
+blinded requirements authoring, §2.7 the arm-B chaining machinery made explicit) ·
+Owner: Mischa Eismann · Date: 2026-07-29
 Depends on: WP23 (brownfield mode, Accepted and proven), WP13/WP14 (scale cases and the
 column-based scorers). Eval-only — **no `src/vault_agent/` change is in scope.**
 
@@ -92,6 +94,16 @@ Arm B's order is derived from the FK graph (a schema referencing another comes l
 and **recorded in the spec's results section before the first run**, so the order is not chosen
 after seeing an outcome.
 
+### 2.4a Blinded authoring (review amendment 2026-07-29)
+
+The requirements documents are authored in a SEPARATE session/agent that is given ONLY the
+DDL-derived schema of one subject area — no access to the pipeline's prompts, steering rules,
+scorers, or the other cases. This is the cheap blinding measure the entity-resolution spike's
+blinded probe established: it does not remove the author confound (§1b names why nothing fully
+can), but it removes the specific channel where it matters most — requirements phrased in the
+vocabulary the prompts reward. Record in each case file HOW its requirements were authored
+(session, inputs given), so the mitigation is checkable rather than claimed.
+
 ### 2.5 What is gated, and what is only reported
 
 The scorers that key on free-form LLM names (`construct_f1`, and hubs/satellites generally) stay
@@ -135,6 +147,26 @@ Note the one asymmetry to keep honest: arm B pays LLM cost five times over the *
 inventory (each extension prompt carries the existing model), so a total-cost tie is a win for
 arm B on the review axis and a loss on the token axis. Report both; do not collapse them into
 one number.
+
+### 2.7 Arm-B chaining machinery (review amendment 2026-07-29 — the real implementation effort)
+
+The spec's `existing:` so far means a STATIC case input (`bank_extension` ships a checked-in
+`existing_vault.yml`). Arm B needs something new in the runner: a CHAINED case, where step N+1
+consumes step N's `metadata/dv_model.yml` **output**. Make it explicit rather than implied:
+
+- `EvalCase` (or a new `ChainSpec`) declares the ordered step list; `eval.run` executes steps
+  sequentially in one repeat, threading each step's output directory into the next step's
+  `existing` input. One repeat = one full chain; repeats re-run the whole chain.
+- **Mid-chain HITL semantics, stated up front:** every step auto-resumes with the standard
+  `AUTO_RESUME_DECISION` (accept, no owners) — the same unattended behaviour every eval run has.
+  This means arm B measures the pipeline WITHOUT human ratification quality; say so in the
+  writeup, because it biases arm B's review-load numbers upward (unratified mappings carry
+  forward), which is conservative for the hypothesis, not flattering.
+- A step failing fails the chain's repeat at that step (WP14.1 semantics: completed steps'
+  results are already persisted); `existing_construct_preservation` is scored PER STEP against
+  that step's input model, not only at the end.
+- Keyless tests for the chaining: output→input threading, attributable error on a missing
+  predecessor output, per-step scoring shape.
 
 ## 3. Tests (keyless)
 
