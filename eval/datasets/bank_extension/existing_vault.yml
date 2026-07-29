@@ -1,0 +1,65 @@
+# The bank vault this case EXTENDS — the logical model a previous greenfield run
+# wrote as metadata/dv_model.yml. Identical to demo/bank_postgres' fixed model, the
+# one model in this repo verified on a real warehouse.
+hubs:
+- business_key: national customer ID
+  description: A bank customer, anchored on the national customer ID.
+  name: hub_customer
+  requirement_ids: []
+  source_entity: customer
+  sources: []
+- business_key: account number
+  description: A bank account, anchored on the bank-issued account number.
+  name: hub_account
+  requirement_ids: []
+  source_entity: account
+  sources: []
+links:
+- connected_hubs:
+  - hub: hub_account
+    role: null
+  - hub: hub_customer
+    role: null
+  description: Ownership of an account by a customer (one owner at a time).
+  driving_key:
+  - hub_account
+  event_timestamp: null
+  link_type: standard
+  name: link_account_customer
+  payload: []
+  requirement_ids: []
+  unit_of_work: One account is owned by exactly one customer at any point in time.
+satellites:
+- attributes:
+  - customer name
+  - date of birth
+  child_dependent_key: []
+  description: Descriptive customer attributes.
+  name: sat_customer_details
+  parent: hub_customer
+  requirement_ids: []
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - balance
+  - status
+  child_dependent_key: []
+  description: Descriptive account attributes that change over time.
+  name: sat_account_details
+  parent: hub_account
+  requirement_ids: []
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - effective from
+  - effective to
+  child_dependent_key: []
+  description: Active period of the account-customer ownership relationship.
+  name: sat_account_customer_eff
+  parent: link_account_customer
+  requirement_ids: []
+  sat_type: effectivity
+  source_table: null
+  split_rationale: null

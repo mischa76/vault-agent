@@ -47,6 +47,7 @@ from vault_agent import llm
 from vault_agent.agents.orchestrator import assemble_review_queue, render_review_queue_md
 from vault_agent.cli import _checkpoint_serde
 from vault_agent.config import get_settings
+from vault_agent.existing_model import load_existing_model
 from vault_agent.graph import build_graph
 from vault_agent.llm import TraceEvent
 from vault_agent.profiling import load_profiling
@@ -177,6 +178,9 @@ async def run_case_once(case: EvalCase) -> VaultAgentState:
     case carries them — the WP13 scale cases always do."""
     source_schemas = load_source_schemas(case.source_schema) if case.source_schema else []
     profiling = load_profiling(case.profiling) if case.profiling else {}
+    # WP23: an extension case runs brownfield mode — the same input the CLI's --existing
+    # provides. None for every greenfield case, which is all the pre-WP23 ones.
+    existing = load_existing_model(case.existing) if case.existing else None
     saver = MemorySaver()
     # Same state-model allow-list the CLI registers on its sqlite saver: without it every
     # HITL resume deserialises our pydantic models as "unregistered types" (deprecation
@@ -191,6 +195,8 @@ async def run_case_once(case: EvalCase) -> VaultAgentState:
             input_documents=[str(case.input_document)],
             source_schemas=source_schemas,
             profiling=profiling,
+            existing_model=existing,
+            existing_source=str(case.existing) if case.existing else None,
         ),
         config=config,
     )

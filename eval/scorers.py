@@ -242,11 +242,67 @@ def pipeline_health(state: VaultAgentState, case: EvalCase) -> ScorerResult:
 
 # All scorers, keyed by their result name — the runner applies every one of these and the
 # min_scores gate looks thresholds up by the same key.
+def existing_construct_preservation(state: VaultAgentState, case: EvalCase) -> ScorerResult:
+    """Did the extension run leave the vault it extends exactly as it was? (WP23, charter §6)
+
+    Deterministic and binary in spirit: this is the promise brownfield mode makes, so the
+    gate is 1.0 and anything less is a defect, not a quality signal. It checks the three
+    things a rebuild would notice — a construct that disappeared, a hub whose business key
+    moved, a satellite whose payload changed shape — against the model the run was told to
+    extend.
+
+    It deliberately duplicates what the validator's ``E_EXISTING_*`` gates enforce in the
+    product. That is the point of an eval scorer: the gates could themselves be wrong or be
+    bypassed by a future re-model mode, and this measures the OUTCOME rather than trusting
+    the mechanism. Vacuous (1.0, prefixed) for a greenfield case, which never had a vault to
+    preserve — and ``load_eval_case`` refuses to let such a case gate it."""
+    prior = state.existing_model
+    if prior is None:
+        return ScorerResult(
+            name="existing_construct_preservation",
+            score=1.0,
+            details=f"{VACUOUS_PREFIX}greenfield case: no existing vault to preserve",
+        )
+    merged = state.dv_model
+    hubs = {hub.name: hub for hub in merged.hubs}
+    sats = {sat.name: sat for sat in merged.satellites}
+    present = set(hubs) | {link.name for link in merged.links} | set(sats)
+
+    violations: list[str] = []
+    total = len(prior.hubs) + len(prior.links) + len(prior.satellites)
+    for hub in prior.hubs:
+        if hub.name not in present:
+            violations.append(f"{hub.name} removed")
+        elif _norm_set([hubs[hub.name].business_key]) != _norm_set([hub.business_key]):
+            violations.append(f"{hub.name} business key changed")
+    for link in prior.links:
+        if link.name not in present:
+            violations.append(f"{link.name} removed")
+    for sat in prior.satellites:
+        if sat.name not in present:
+            violations.append(f"{sat.name} removed")
+        elif _norm_set(sats[sat.name].attributes) != _norm_set(sat.attributes):
+            violations.append(f"{sat.name} payload reshaped")
+
+    kept = total - len(violations)
+    score = kept / total if total else 1.0
+    details = (
+        f"{kept}/{total} existing construct(s) preserved"
+        if not violations
+        else f"{kept}/{total} preserved; violations: {', '.join(violations)}"
+    )
+    return ScorerResult(
+        name="existing_construct_preservation", score=score, details=details
+    )
+
+
 SCORERS: dict[str, Scorer] = {
     "construct_f1": construct_f1,
     "driving_key_accuracy": driving_key_accuracy,
     "validation_gate": validation_gate,
     "pipeline_health": pipeline_health,
+    # WP23: inert (vacuous 1.0) on greenfield cases, the gate on extension cases.
+    "existing_construct_preservation": existing_construct_preservation,
 }
 
 

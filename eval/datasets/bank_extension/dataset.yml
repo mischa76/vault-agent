@@ -1,0 +1,55 @@
+# Golden case: brownfield extension of the bank vault (WP23 acceptance #2, charter §6).
+#
+# The one case in the suite that runs the pipeline in EXTENSION mode. It answers the question
+# the whole brownfield track exists for: given a vault that already holds history and a new
+# source system, does the agent ADD to it without disturbing what is there?
+#
+# `existing` is the logical model of the previously generated bank vault (identical to
+# demo/bank_postgres' fixed model — the one model in this repo verified on a real warehouse).
+# The golden below is the expected MERGED model: the existing five constructs, unchanged,
+# plus what the CRM increment introduces.
+#
+# Deliberately conservative about the delta, in the bank case's tradition: the requirements
+# also describe a responsible marketing manager (REQ-105, a hub_employee candidate) and
+# campaign response timestamps (an effectivity- or transactional-link candidate). Both are
+# reasonable models and neither is golden — a run that produces them loses a little
+# precision rather than being required to guess the same way.
+name: bank_extension
+input_document: ../../../examples/inputs/bank_crm_extension_requirements.md
+source_schema: ../../../examples/inputs/bank_crm_source_schema.yml
+existing: existing_vault.yml
+golden:
+  hubs:
+    # Unchanged from the existing vault — hub_customer now ALSO fed by the CRM, which is a
+    # source-feed extension, not a new hub. A run that invents a second customer hub fails
+    # the preservation scorer's spirit and shows up as a precision loss here.
+    - {name: hub_customer, business_key: national customer ID}
+    - {name: hub_account, business_key: account number}
+    # New: the campaign the CRM introduces.
+    - {name: hub_campaign, business_key: campaign code}
+  links:
+    - {name: link_account_customer, connected_hubs: [hub_account, hub_customer],
+       driving_key: [hub_account]}
+    # New: campaign targeting is a many-to-many between customer and campaign.
+    - {name: link_campaign_customer, connected_hubs: [hub_campaign, hub_customer]}
+  satellites:
+    - {name: sat_customer_details, parent: hub_customer, sat_type: standard}
+    - {name: sat_account_details, parent: hub_account, sat_type: standard}
+    - {name: sat_account_customer_eff, parent: link_account_customer, sat_type: effectivity}
+    # New: REQ-107 requires the CRM's customer attributes to be historised SEPARATELY from
+    # the core system's, so this must be its own satellite on the existing hub — never an
+    # extension of sat_customer_details (which would be a backfill migration).
+    - {name: sat_customer_marketing, parent: hub_customer, sat_type: standard}
+    - {name: sat_campaign_details, parent: hub_campaign, sat_type: standard}
+expectations:
+  validation_passed: true
+  # Extension runs are noisier by construction: every legitimate addition raises one
+  # advisory W_EXISTING_EXTENDED, which is the inventory the review queue wants.
+  max_validation_warnings: 15
+  min_scores:
+    # The promise brownfield mode makes. Anything below 1.0 means the run disturbed a vault
+    # that holds live history — a defect, not a quality signal, so the gate is exact.
+    existing_construct_preservation: 1.0
+    # The delta itself is LLM work and is gated like the other golden cases: a conservative
+    # floor, not a target (the golden deliberately omits two defensible constructs).
+    construct_f1: 0.5

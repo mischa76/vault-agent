@@ -153,6 +153,8 @@ def test_shipped_cases_load_with_unique_names() -> None:
     # Sorted by directory name; the WP13 scale cases join the original three.
     assert [case.name for case in cases] == [
         "bank",
+        # WP23: the one case that runs the pipeline in extension mode.
+        "bank_extension",
         "health_insurance",
         "messy_insurance",
         "scale_100",
@@ -201,3 +203,32 @@ def test_messy_insurance_case_is_loose() -> None:
     assert case.expectations.min_scores == {}  # informational case, no gate
     assert case.expectations.max_validation_warnings == 25
     assert all(not link.driving_key for link in case.golden.links)
+
+
+def test_an_extension_case_resolves_its_existing_vault() -> None:
+    """WP23: the brownfield eval case carries the model it extends."""
+    from eval.datasets import DATASETS_ROOT, load_eval_case
+
+    case = load_eval_case(DATASETS_ROOT / "bank_extension" / "dataset.yml")
+
+    assert case.existing is not None and case.existing.is_file()
+    assert case.expectations.min_scores["existing_construct_preservation"] == 1.0
+
+
+def test_a_greenfield_case_may_not_gate_the_preservation_scorer(tmp_path) -> None:  # type: ignore[no-untyped-def]
+    """The WP18 rule applied to WP23's scorer: it is vacuous without an existing vault, so
+    gating it there would pass on absence of evidence."""
+    from eval.datasets import load_eval_case
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# reqs", encoding="utf-8")
+    case_file = tmp_path / "dataset.yml"
+    case_file.write_text(
+        "name: t\ninput_document: req.md\n"
+        "golden:\n  hubs: [{name: hub_a, business_key: a}]\n"
+        "expectations:\n  min_scores: {existing_construct_preservation: 1.0}\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="pass on absence of evidence"):
+        load_eval_case(case_file)

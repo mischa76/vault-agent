@@ -1,0 +1,25 @@
+# Declared source schema for the CRM system joining the existing bank vault (WP23 eval case).
+#
+# ADR-0004 grounding: business keys and attributes are steered to these real columns. The
+# CRM's customer table carries the SAME national customer ID the core system uses — that is
+# what makes hub_customer a multi-source hub rather than a second, duplicate hub.
+source_schemas:
+  - table: crm_contact
+    columns:
+      - {name: national_customer_id, type: varchar, comment: "The bank-wide customer number; same key the core banking system uses."}
+      - {name: marketing_segment, type: varchar, comment: "Segment assigned by marketing, e.g. RETAIL/PRIVATE/BUSINESS."}
+      - {name: preferred_channel, type: varchar, comment: "Preferred contact channel: EMAIL, PHONE or POST."}
+      - {name: marketing_opt_out, type: boolean, comment: "True when the customer refused marketing contact."}
+  - table: crm_campaign
+    columns:
+      - {name: campaign_code, type: varchar, comment: "Business key of the campaign."}
+      - {name: campaign_name, type: varchar, comment: "Human-readable campaign name."}
+      - {name: start_date, type: date, comment: "First day the campaign runs."}
+      - {name: end_date, type: date, comment: "Last day the campaign runs."}
+      - {name: owner_employee_no, type: varchar, comment: "Employee number of the responsible marketing manager."}
+  - table: crm_campaign_target
+    columns:
+      - {name: campaign_code, type: varchar, comment: "FK to crm_campaign.campaign_code."}
+      - {name: national_customer_id, type: varchar, comment: "FK to crm_contact.national_customer_id."}
+      - {name: enrolled_at, type: timestamp, comment: "When the customer entered the campaign."}
+      - {name: responded_at, type: timestamp, comment: "When the customer responded; null if they did not."}

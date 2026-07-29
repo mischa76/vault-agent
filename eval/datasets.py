@@ -104,6 +104,9 @@ class EvalCase(BaseModel):
     input_document: Path | None = None
     source_schema: Path | None = None
     profiling: Path | None = None
+    # WP23 brownfield: the logical model of the vault this case EXTENDS (a dv_model.yml).
+    # Unset = greenfield, which is every pre-WP23 case.
+    existing: Path | None = None
     generate: GenerateSpec | None = None
     golden: GoldenModel
     expectations: Expectations = Field(default_factory=Expectations)
@@ -183,6 +186,9 @@ def load_eval_case(path: Path) -> EvalCase:
         vacuous.append("construct_f1")
     if not any(link.driving_key for link in golden.links):
         vacuous.append("driving_key_accuracy")
+    # WP23: the preservation scorer has nothing to preserve on a greenfield case.
+    if case.existing is None:
+        vacuous.append("existing_construct_preservation")
     gated_vacuous = sorted(set(case.expectations.min_scores) & set(vacuous))
     if gated_vacuous:
         raise ValueError(
@@ -205,6 +211,8 @@ def load_eval_case(path: Path) -> EvalCase:
             )
         if case.profiling is not None:
             case.profiling = _resolve_existing(path.parent, case.profiling, "profiling", path)
+    if case.existing is not None:
+        case.existing = _resolve_existing(path.parent, case.existing, "existing", path)
     return case
 
 

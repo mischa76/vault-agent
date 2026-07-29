@@ -1505,11 +1505,31 @@ markdown artifact, the delta-ADR and its greenfield absence, the report section 
 name escaping, and the multi-source grandfathering regression), ruff clean, mypy strict clean
 (40 files). The two write_outputs count assertions were updated deliberately for the new
 extension_diff key (the WP11 "report" precedent).
-STILL OPEN — do not assume otherwise: acceptance #2 (the bank_extension eval case),
-acceptance #3 (the live Postgres on-top build: `dbt build` WITHOUT full-refresh over the
-previously built bank vault, pre-existing row history intact), the CLI-level --existing
-tests of spec §3.8, and the operations docs. Everything the mode DOES is built and tested;
-what is missing is its eval coverage, its live proof, and its user documentation.
+Acceptance #2 is MET: the bank_extension eval case is the first case that runs the pipeline
+in extension mode. It ships the previously generated bank vault as existing_vault.yml (the
+demo/bank_postgres model, the one verified on a real warehouse), a CRM source schema and CRM
+extension requirements; the golden is the expected MERGED model — the five existing
+constructs unchanged plus hub_campaign, link_campaign_customer, sat_campaign_details and,
+per REQ-107, sat_customer_marketing as its OWN satellite on the existing hub rather than an
+extension of sat_customer_details (which would be a backfill migration). Deliberately
+conservative in the bank case's tradition: a responsible-manager hub and campaign-response
+timing are defensible and are NOT golden, so a run that models them loses a little precision
+instead of being required to guess the same way. EvalCase gains `existing` (resolved like the
+other input paths) and eval/run.py feeds it as state.existing_model — the same input the
+CLI's --existing provides. New scorer existing_construct_preservation: the share of the
+extended vault's constructs that survived unchanged (not removed, not re-keyed, payload not
+reshaped), gated at exactly 1.0 because this is the promise the mode makes — anything less
+is a defect, not a quality signal. It deliberately re-measures what the E_EXISTING_* gates
+enforce: an eval scorer checks the OUTCOME, since the mechanism could itself be wrong or be
+bypassed by a future re-model mode. It is vacuous (1.0, VACUOUS_PREFIX) on greenfield, and
+load_eval_case now REFUSES to let a greenfield case gate it — the WP18 rule applied to the
+new scorer. Two pins updated deliberately: the shipped-case list and the bank case's exact
+score set (which gains the vacuous 1.0). 620 tests green, ruff clean, mypy strict clean.
+STILL OPEN — do not assume otherwise: acceptance #3 (the live Postgres on-top build:
+`dbt build` WITHOUT full-refresh over the previously built bank vault, pre-existing row
+history intact), a LIVE run of bank_extension (the case is wired and loads, but has never
+been executed against the API — its gates are therefore unmeasured), the CLI-level
+--existing tests of spec §3.8, and the operations docs.
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF

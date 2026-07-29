@@ -96,6 +96,14 @@ their rationale are documented as comments inside each `dataset.yml`.
   `expectations.validation_passed` and the warning count stays within
   `max_validation_warnings` (when set); else 0.0 with details.
 - **pipeline_health** — 1.0 iff no `PipelineFlag` with `severity == "error"` was raised.
+- **existing_construct_preservation** (WP23) — for a brownfield case (`existing:` in
+  `dataset.yml`), the share of the extended vault's constructs that survived the run
+  unchanged: not removed, not re-keyed, payload not reshaped. This is the promise the
+  extension mode makes, so it is gated at exactly **1.0** — anything less is a defect,
+  not a quality signal. It deliberately re-measures what the validator's `E_EXISTING_*`
+  gates enforce: an eval scorer checks the OUTCOME, because the mechanism could itself
+  be wrong. Vacuous (1.0, prefixed) on greenfield cases, and `load_eval_case` refuses to
+  let one gate it.
 
 ### Mapping scorers (WP9)
 

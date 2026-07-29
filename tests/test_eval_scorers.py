@@ -1,4 +1,6 @@
 """Pinned-score tests for the deterministic scorers (WP6 layer 2). No API key."""
+from pathlib import Path
+
 import pytest
 
 from eval.datasets import (
@@ -13,8 +15,10 @@ from eval.datasets import (
 )
 from eval.scorers import (
     SCORERS,
+    VACUOUS_PREFIX,
     construct_f1,
     driving_key_accuracy,
+    existing_construct_preservation,
     pipeline_health,
     score_state,
     validation_gate,
@@ -424,4 +428,72 @@ def test_bank_case_scores_perfectly_against_the_durchstich_model() -> None:
         "driving_key_accuracy": 1.0,
         "validation_gate": 1.0,
         "pipeline_health": 1.0,
+        # WP23: vacuous 1.0 — the bank case is greenfield, with no vault to preserve.
+        "existing_construct_preservation": 1.0,
     }
+
+
+# --- WP23: existing-construct preservation ------------------------------------------------
+
+
+def _extension_case() -> EvalCase:
+    return EvalCase(
+        name="ext",
+        input_document=Path("doc.md"),
+        existing=Path("existing.yml"),
+        golden=GoldenModel(hubs=[GoldenHub(name="hub_a", business_key="a")]),
+    )
+
+
+def _prior() -> DVModel:
+    return DVModel(
+        hubs=[Hub(name="hub_a", business_key="a", source_entity="a", description="")],
+        links=[Link(name="link_ab", connected_hubs=["hub_a", "hub_b"], description="")],
+        satellites=[Satellite(name="sat_a", parent="hub_a", attributes=["x"], description="")],
+    )
+
+
+def _extended_state(mutate=None) -> VaultAgentState:  # type: ignore[no-untyped-def]
+    prior = _prior()
+    merged = prior.model_copy(deep=True)
+    if mutate is not None:
+        mutate(merged)
+    state = VaultAgentState(dv_model=merged)
+    state.existing_model = prior
+    return state
+
+
+def test_preservation_is_one_when_the_existing_vault_is_untouched() -> None:
+    result = existing_construct_preservation(_extended_state(), _extension_case())
+
+    assert result.score == 1.0
+    assert "3/3 existing construct(s) preserved" in result.details
+
+
+@pytest.mark.parametrize(
+    ("mutate", "expected"),
+    [
+        pytest.param(lambda m: m.satellites.clear(), "sat_a removed", id="removed"),
+        pytest.param(lambda m: setattr(m.hubs[0], "business_key", "z"),
+                     "hub_a business key changed", id="rekeyed"),
+        pytest.param(lambda m: m.satellites[0].attributes.append("y"),
+                     "sat_a payload reshaped", id="reshaped"),
+    ],
+)
+def test_preservation_drops_and_names_the_violation(mutate, expected: str) -> None:  # type: ignore[no-untyped-def]
+    result = existing_construct_preservation(_extended_state(mutate), _extension_case())
+
+    assert result.score < 1.0
+    assert expected in result.details
+
+
+def test_preservation_is_vacuous_on_a_greenfield_run() -> None:
+    """Inert for every pre-WP23 case — and marked, so the WP18 convention holds."""
+    result = existing_construct_preservation(
+        VaultAgentState(dv_model=_prior()),
+        EvalCase(name="g", input_document=Path("d.md"),
+                 golden=GoldenModel(hubs=[GoldenHub(name="hub_a", business_key="a")])),
+    )
+
+    assert result.score == 1.0
+    assert result.details.startswith(VACUOUS_PREFIX)
