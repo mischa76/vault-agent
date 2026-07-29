@@ -1663,6 +1663,24 @@ where it was right, and the resolver is a PRE-MODELING step with its own ratific
 because once the modeler names a construct, WP23's merge_models folds it by name and the
 decision is already made.
 
+WP29's DETERMINISTIC CORE is built (2026-07-29) — the agent, graph wiring, ratification file
+and CLI are NOT, and that split is deliberate rather than an accident of where the session
+ended: the core is the part that is fully testable without an LLM, so it is worth landing on
+its own. state.py gains ResolutionProposal / EntityResolution (with `is_merge`, the property
+the zero-false-merge requirement is expressed in) plus the reserved answers NEW /
+same_as_candidate / unresolved as RESOLUTION_CLASSES, and state.resolutions. rules/ gains
+resolution_category(), which DERIVES the confidence tier — exact_key > key_overlap >
+comment_grounded > semantic — from the schema and the evidence rather than trusting the
+resolver's own claim. That helper exists because of a measurement, not a preference: the
+spike's resolver reported `semantic` for every case including the exact-key ones where its
+answer was right, so a self-reported category cannot carry a reviewer's attention. A test
+pins exactly that contrast (claimed `semantic` vs derived `exact_key` on the same proposal).
+660 tests green (+5), ruff clean, mypy strict clean (41 files). What remains for WP29:
+agents/entity_resolver.py (one forced-tool pass, grounding-gated, inert without BOTH an
+existing model and a declared schema), graph placement before dv2_modeler,
+resolutions.review.yml + `resume --resolve`, the two review-queue flag kinds, and the live
+acceptance runs of spec §4.
+
 WP28 satellite feed binding landed (as of 2026-07-29, ADR-0011 Accepted,
 docs/architecture/backlog-2026-07/wp28-satellite-feed-binding-spec.md), implementing the
 decision WP24 §5 deferred and WP23's live run forced. A satellite whose `source_table` NAMES

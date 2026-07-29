@@ -418,3 +418,49 @@ AUTOMATE_DV_VERSION = "0.11.4"
 # Vos revisions (NBK over hash, insert-only over persisted end-dating, ELM relationship-hubs,
 # foreign-key links, PSA, PIT/Bridge) are deliberately out of scope here — they are ADR-gated
 # alternatives, never silent defaults, tracked in docs/methodology/dsaf-mapping.md.
+
+
+def resolution_category(
+    concept_key: str, resolution: str, hubs: Any, source_tables: Any, evidence: Any
+) -> str:
+    """The DERIVED confidence tier of an entity resolution (WP29 §2.3, ADR-free rule).
+
+    Deliberately not the resolver's own claim. The Phase 2 spike measured the model reporting
+    ``semantic`` for every case, INCLUDING the exact-key ones where its answer was right — so
+    a self-reported category cannot carry a reviewer's attention, and this computes it from
+    what is actually on the table:
+
+    * ``exact_key`` — the concept's key normalises to the resolved hub's business key. The
+      strongest fact available and the one a reviewer can check in one glance.
+    * ``key_overlap`` — a cross-reference relation carries both keys. This is the same-as
+      shape: asserted equivalence, not identity.
+    * ``comment_grounded`` — a declared column comment names the hub's business key. Weaker
+      than a key match and stronger than a guess, mirroring WP9 §7's middle tier.
+    * ``semantic`` — everything else, i.e. the model reasoned it out. Not a failure grade;
+      it is the tier that says "a human should look".
+
+    Takes ``Any`` for the state models to keep rules/ dependency-free, as the neighbouring
+    helpers do."""
+    key = normalize_identifier(concept_key)
+    target = next((h for h in hubs if h.name == resolution), None)
+    if target is not None and normalize_identifier(target.business_key) == key:
+        return "exact_key"
+
+    hub_keys = {normalize_identifier(h.business_key): h.name for h in hubs}
+    for table in source_tables:
+        columns = {normalize_identifier(c.name) for c in table.column_refs}
+        if key in columns and columns & set(hub_keys):
+            return "key_overlap"
+
+    for table in source_tables:
+        for column in table.column_refs:
+            if normalize_identifier(column.name) != key or not column.comment:
+                continue
+            if any(hub_key in normalize_identifier(column.comment) for hub_key in hub_keys):
+                return "comment_grounded"
+
+    joined = normalize_identifier(" ".join(str(item) for item in (evidence or [])))
+    if any(hub_key and hub_key in joined for hub_key in hub_keys):
+        return "comment_grounded"
+    return "semantic"
+

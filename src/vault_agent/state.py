@@ -186,6 +186,52 @@ class ProposedMapping(BaseModel):
     unresolved: list[str] = Field(default_factory=list)
 
 
+# Brownfield Phase 2 (WP29): what an entity resolution can say about one concept the new
+# source introduces. A construct NAME means "this IS that construct" — the only answer that
+# writes foreign keys into a table holding history, and therefore the one the spike's
+# zero-false-merge requirement is about. The three reserved words are the safe answers.
+RESOLUTION_NEW = "NEW"
+RESOLUTION_SAME_AS = "same_as_candidate"
+RESOLUTION_UNRESOLVED = "unresolved"
+RESOLUTION_CLASSES = (RESOLUTION_NEW, RESOLUTION_SAME_AS, RESOLUTION_UNRESOLVED)
+
+# Deterministic confidence tier, DERIVED from the evidence — never the model's own claim.
+# Measured reason (spike memo §3.3): the resolver reported "semantic" for every case,
+# including the exact-key ones where its answer was right.
+ResolutionCategory = Literal["exact_key", "key_overlap", "comment_grounded", "semantic"]
+
+
+class ResolutionProposal(BaseModel):
+    """One proposed answer to "is this new concept an existing construct?" (WP29).
+
+    ``resolution`` is an existing construct's name, or one of :data:`RESOLUTION_CLASSES`.
+    ``same_as`` names the construct a ``same_as_candidate`` corresponds to: asserted
+    equivalence on a DIFFERENT key produces two constructs plus this flag, never a merge
+    (brownfield charter §3.5, measured reliable in the Phase 2 spike)."""
+
+    concept: str
+    resolution: str
+    same_as: str | None = None
+    confidence: float = 0.0
+    category: ResolutionCategory = "semantic"
+    evidence: list[str] = Field(default_factory=list)
+    ratification_status: RatificationStatus = "proposed"
+
+    @property
+    def is_merge(self) -> bool:
+        """True when this claims the concept IS an existing construct — the unsafe direction."""
+        return self.resolution not in RESOLUTION_CLASSES
+
+
+class EntityResolution(BaseModel):
+    """The resolver's full answer for one extension run; empty on greenfield/ungrounded."""
+
+    proposals: list[ResolutionProposal] = Field(default_factory=list)
+
+    def by_concept(self) -> dict[str, ResolutionProposal]:
+        return {p.concept: p for p in self.proposals}
+
+
 class HubSource(BaseModel):
     """One source feeding a multi-source hub (WP10): the physical key column in that source.
 
@@ -412,6 +458,10 @@ class VaultAgentState(BaseModel):
     # The --existing path as the user gave it, for the diff artifact and the delta-ADR's
     # "Extends" section. Presentation only — nothing branches on it.
     existing_source: str | None = None
+    # WP29: entity-resolution proposals for an extension run (concept -> existing
+    # construct / NEW / same-as candidate / unresolved). Empty unless BOTH an existing
+    # model and a declared schema are present — the grounding gate.
+    resolutions: EntityResolution = Field(default_factory=EntityResolution)
     # Working state
     # Business↔source mapping proposals (WP9): written by the source_mapper on grounded runs,
     # ratified at the HITL checkpoint, and consumed by staging binding. Empty when ungrounded.

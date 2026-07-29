@@ -199,3 +199,78 @@ def test_the_loader_rejects_a_same_as_without_a_valid_target(tmp_path: Path) -> 
 
     with pytest.raises(ValueError, match="`same_as` target"):
         load_golden_resolution(path)
+
+
+# ── WP29: the DERIVED category (spec §2.3, from a measured failure) ────────────────────────
+def _hubs():  # type: ignore[no-untyped-def]
+    from vault_agent.state import Hub
+
+    return [
+        Hub(name="hub_customer", business_key="national customer ID",
+            source_entity="customer", description=""),
+        Hub(name="hub_account", business_key="account number", source_entity="account",
+            description=""),
+    ]
+
+
+def _tables(**cols: dict[str, str | None]):  # type: ignore[no-untyped-def]
+    from vault_agent.state import SourceColumn, SourceTable
+
+    return [
+        SourceTable(table=name, columns=[
+            SourceColumn(name=c, type="varchar", comment=comment)
+            for c, comment in spec.items()
+        ])
+        for name, spec in cols.items()
+    ]
+
+
+def test_category_exact_key_when_the_concept_key_is_the_business_key() -> None:
+    from vault_agent.rules.dv2_rules import resolution_category
+
+    assert resolution_category(
+        "national_customer_id", "hub_customer", _hubs(), [], []
+    ) == "exact_key"
+
+
+def test_category_key_overlap_when_a_cross_reference_carries_both_keys() -> None:
+    """The same-as shape: asserted equivalence, not identity."""
+    from vault_agent.rules.dv2_rules import resolution_category
+
+    tables = _tables(crm_xref={"crm_guid": None, "national_customer_id": None})
+
+    assert resolution_category(
+        "crm_guid", "same_as_candidate", _hubs(), tables, []
+    ) == "key_overlap"
+
+
+def test_category_comment_grounded_when_a_comment_names_the_business_key() -> None:
+    from vault_agent.rules.dv2_rules import resolution_category
+
+    tables = _tables(vic_partner={"partn_nr": "Nationale Kundennummer / national customer ID"})
+
+    assert resolution_category(
+        "partn_nr", "hub_customer", _hubs(), tables, []
+    ) == "comment_grounded"
+
+
+def test_category_falls_back_to_semantic() -> None:
+    from vault_agent.rules.dv2_rules import resolution_category
+
+    tables = _tables(t={"alt_nr": None})
+
+    assert resolution_category("alt_nr", "NEW", _hubs(), tables, []) == "semantic"
+
+
+def test_the_models_own_category_claim_is_ignored() -> None:
+    """The measured reason this helper exists: the resolver reported `semantic` for every
+    case, including exact-key ones where its answer was right (spike memo §3.3)."""
+    from vault_agent.rules.dv2_rules import resolution_category
+    from vault_agent.state import ResolutionProposal
+
+    claimed = ResolutionProposal(concept="konto", resolution="hub_account",
+                                 category="semantic", confidence=0.97)
+    derived = resolution_category("account_number", claimed.resolution, _hubs(), [], [])
+
+    assert claimed.category == "semantic"  # what the model said
+    assert derived == "exact_key"          # what is actually true
