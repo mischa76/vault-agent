@@ -28,6 +28,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
+import yaml
 from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.types import Command
@@ -42,12 +43,17 @@ from eval.datasets import (
     materialize_case,
 )
 from eval.mapping import load_golden_mapping
-from eval.scorers import ScorerResult, score_mapping, score_state
+from eval.scorers import (
+    ScorerResult,
+    existing_construct_preservation,
+    score_mapping,
+    score_state,
+)
 from vault_agent import llm
 from vault_agent.agents.orchestrator import assemble_review_queue, render_review_queue_md
 from vault_agent.cli import _checkpoint_serde
 from vault_agent.config import get_settings
-from vault_agent.existing_model import load_existing_model
+from vault_agent.existing_model import DV_MODEL_FILENAME, load_existing_model
 from vault_agent.graph import build_graph
 from vault_agent.llm import TraceEvent
 from vault_agent.profiling import load_profiling
@@ -168,6 +174,46 @@ def run_metrics(
     }
     if trace_path is not None:
         metrics["trace_path"] = str(trace_path)
+    return metrics
+
+
+def chain_metrics(
+    chain: list[tuple[EvalCase, VaultAgentState]],
+    wall_clock_seconds: float,
+    usage: UsageTotals,
+    trace_path: Path | None = None,
+    backstops: dict[str, int] | None = None,
+) -> dict[str, Any]:
+    """Metrics for a chained run (WP30 §2.7), aggregated the way the ARM COMPARISON needs.
+
+    Review load is the **sum** across steps, not the final step's: a human reviews every
+    increment, so five checkpoints of 40 items each is 200 items of work, not 40. Reporting
+    the last step alone would flatter the incremental arm precisely on the axis the WP30
+    hypothesis is about. Construct counts and flags come from the final state, which is the
+    vault that actually exists at the end; per-step review load is kept alongside so a
+    growing or shrinking per-increment burden is visible rather than averaged away."""
+    per_step = [
+        {
+            "case": step_case.name,
+            "review_items": len(assemble_review_queue(state).items),
+            "review_queue_lines": render_review_queue_md(assemble_review_queue(state)).count(
+                "\n"
+            )
+            + 1,
+            "constructs": {
+                "hubs": len(state.dv_model.hubs),
+                "links": len(state.dv_model.links),
+                "satellites": len(state.dv_model.satellites),
+            },
+        }
+        for step_case, state in chain
+    ]
+    metrics = run_metrics(chain[-1][1], wall_clock_seconds, usage, trace_path, backstops)
+    metrics["review_items_total"] = sum(step["review_items"] for step in per_step)
+    metrics["review_queue_lines"] = sum(
+        step["review_queue_lines"] for step in per_step
+    )
+    metrics["chain_steps"] = per_step
     return metrics
 
 
@@ -362,6 +408,83 @@ def _load_cases(args: argparse.Namespace) -> list[EvalCase]:
     return [load_eval_case(DATASETS_ROOT / args.dataset / DATASET_FILENAME)]
 
 
+def write_step_vault(state: VaultAgentState, step_dir: Path) -> Path:
+    """Serialise a chain step's model exactly as ``cli.write_outputs`` does (WP30 §2.7).
+
+    Deliberately the same bytes and the same location the CLI produces, so the next step
+    consumes the real WP23 artifact through ``load_existing_model`` rather than a shortcut
+    that could diverge from what a user's ``--existing`` would actually see."""
+    meta_dir = step_dir / "metadata"
+    meta_dir.mkdir(parents=True, exist_ok=True)
+    path = meta_dir / DV_MODEL_FILENAME
+    path.write_text(
+        yaml.safe_dump(state.dv_model.model_dump(mode="json"), sort_keys=True),
+        encoding="utf-8",
+    )
+    return path
+
+
+async def run_chain_once(
+    case: EvalCase, workdir: Path
+) -> list[tuple[EvalCase, VaultAgentState]]:
+    """Run every step of a chained case, threading each step's output into the next.
+
+    Returns one ``(step_case, state)`` pair per step. A failing step raises, which
+    ``_run_score_write`` turns into the usual WP14.1 partial-batch failure — the completed
+    repeats of the chain are already persisted, and the caller reports which step died.
+
+    Mid-chain human-in-the-loop semantics: every step auto-resumes with the standard
+    unattended decision, exactly as a single-case run does. So a chain measures the pipeline
+    WITHOUT human ratification quality — unratified mappings carry forward into the next
+    step's inventory. That is conservative for the WP30 hypothesis rather than flattering to
+    it, and the writeup must say so."""
+    assert case.chain is not None
+    runs: list[tuple[EvalCase, VaultAgentState]] = []
+    previous: Path | None = None
+
+    for index, step_name in enumerate(case.chain.steps, start=1):
+        step_case = load_eval_case(DATASETS_ROOT / step_name / DATASET_FILENAME)
+        if previous is not None:
+            step_case = step_case.model_copy(update={"existing": previous})
+        print(f"    step {index}/{len(case.chain.steps)}: {step_name} ...", flush=True)
+        state = await run_case_once(step_case)
+        runs.append((step_case, state))
+        previous = write_step_vault(state, workdir / f"step{index}_{step_name}")
+
+    return runs
+
+
+def score_chain(
+    case: EvalCase, runs: list[tuple[EvalCase, VaultAgentState]], golden_path: Path | None
+) -> list[ScorerResult]:
+    """Score a chain: the general scorers on the FINAL state, preservation PER STEP.
+
+    Preservation aggregates as the **minimum** across the extending steps, never the mean:
+    it is a promise, and a promise that held four times out of five was broken. The details
+    name every step so a failure is attributable without re-running."""
+    results = _score_run(case, runs[-1][1], golden_path)
+
+    per_step = [
+        (step_case.name, existing_construct_preservation(state, step_case))
+        for step_case, state in runs[1:]  # step 1 is greenfield — nothing to preserve yet
+    ]
+    if per_step:
+        worst_name, worst = min(per_step, key=lambda item: item[1].score)
+        detail = "; ".join(f"{name}: {result.score:.3f}" for name, result in per_step)
+        results = [r for r in results if r.name != worst.name]
+        results.append(
+            ScorerResult(
+                name=worst.name,
+                score=worst.score,
+                details=(
+                    f"min over {len(per_step)} extending step(s), worst {worst_name} — "
+                    f"{detail}"
+                ),
+            )
+        )
+    return results
+
+
 def _score_run(
     case: EvalCase, state: VaultAgentState, golden_path: Path | None
 ) -> list[ScorerResult]:
@@ -415,16 +538,28 @@ async def _run_score_write(
         llm.set_usage_recorder(usage.record)
         llm.set_trace_recorder(fanout(JsonlTraceWriter(trace_path), backstops.record))
         started = time.perf_counter()
+        chain: list[tuple[EvalCase, VaultAgentState]] = []
         try:
-            state = await run_case_once(case)
+            if case.chain is not None:
+                # One temp workdir per repeat: each step writes its metadata/dv_model.yml
+                # there and the next step reads it, so the chain runs the real WP23 path.
+                with tempfile.TemporaryDirectory() as workdir:
+                    chain = await run_chain_once(case, Path(workdir))
+                state = chain[-1][1]
+            else:
+                state = await run_case_once(case)
         except Exception as exc:  # any run failure: flush the completed repeats, don't lose them
             return runs, metrics, written, (index + 1, f"{type(exc).__name__}: {exc}")
         finally:
             llm.set_usage_recorder(None)
             llm.set_trace_recorder(None)
         elapsed = time.perf_counter() - started
-        results = _score_run(case, state, golden_path)
-        run_meta = run_metrics(state, elapsed, usage, trace_path, backstops.fires)
+        if chain:
+            results = score_chain(case, chain, golden_path)
+            run_meta = chain_metrics(chain, elapsed, usage, trace_path, backstops.fires)
+        else:
+            results = _score_run(case, state, golden_path)
+            run_meta = run_metrics(state, elapsed, usage, trace_path, backstops.fires)
         mapping_dump = state.mappings.model_dump(mode="json")
         written.append(
             _write_one_result(

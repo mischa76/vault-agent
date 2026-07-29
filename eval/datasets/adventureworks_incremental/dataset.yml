@@ -1,0 +1,31 @@
+# WP30 ARM B -- the same landscape, domain by domain into a growing vault.
+#
+# Each step extends the vault the previous step produced: step N writes metadata/dv_model.yml
+# and step N+1 reads it through the real WP23 --existing path (section 2.7). One repeat = one
+# full chain.
+#
+# The step order is DERIVED from the extract's 90 foreign keys (a subject area follows every
+# area it references) and was recorded in the spec's section 7.1 before any live run, so it can
+# never have been chosen after seeing a result.
+#
+# existing_construct_preservation is gated at exactly 1.0 and aggregated as the MINIMUM across
+# the extending steps, never the mean: it is the promise brownfield mode makes, and a promise
+# that held four times out of five was broken.
+#
+# Mid-chain HITL: every step auto-resumes unattended, so this arm measures the pipeline WITHOUT
+# human ratification quality -- unratified mappings carry forward. That is conservative for the
+# hypothesis rather than flattering to it, and the writeup must say so.
+name: adventureworks_incremental
+chain:
+  steps:
+    - adventureworks_person
+    - adventureworks_humanresources
+    - adventureworks_production
+    - adventureworks_purchasing
+    - adventureworks_sales
+golden: {}
+mapping_match: column
+expectations:
+  min_scores:
+    existing_construct_preservation: 1.0
+    pipeline_health: 1.0

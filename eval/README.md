@@ -44,10 +44,28 @@ Golden matching is **structural, never textual**: every name/key/set is compared
 Malformed files raise an attributable error naming file and problem (same contract as
 `source_schema.load_source_schemas`).
 
-Shipped cases: `bank` (the Postgres-verified end-to-end PoC model; gated), `health_insurance`
-(from the demo walkthrough), `messy_insurance` (grounded messy German Fachkonzept; loose,
-ungated — exists to catch review-queue/grounding regressions). Golden-model choices and
-their rationale are documented as comments inside each `dataset.yml`.
+A case declares **exactly one input mode**:
+
+- `input_document:` — a committed requirements document (plus optional `source_schema:`,
+  `profiling:`, and `existing:` for a brownfield case).
+- `generate: {tables, seed}` — the WP13 synthetic landscape, materialised on demand.
+- `chain: {steps: [...]}` — WP30: an ordered list of *other* cases, each extending the vault
+  the previous one produced. Step N's `metadata/dv_model.yml` becomes step N+1's `existing:`,
+  written and read through the real WP23 path rather than short-circuited. One repeat = one
+  full chain; a failing step fails that repeat at that step (WP14.1 semantics), and
+  `existing_construct_preservation` is scored **per step** and aggregated as the *minimum*.
+  Every step auto-resumes unattended, so a chain measures the pipeline without human
+  ratification quality — unratified mappings carry forward into the next step.
+
+Shipped cases: `bank` (the Postgres-verified end-to-end PoC model; gated), `bank_extension`
+(WP23 brownfield mode), `health_insurance` (from the demo walkthrough), `messy_insurance`
+(grounded messy German Fachkonzept; loose, ungated — exists to catch review-queue/grounding
+regressions), `scale_30`/`scale_100`/`scale_300` (WP13 synthetic, table-count axis), and the
+seven WP30 `adventureworks_*` cases (five subject areas plus the `_full` / `_incremental`
+arms of the domain-partitioning experiment — an MIT-licensed schema, its boundaries and its
+column documentation authored by someone other than this project; see
+`datasets/adventureworks/NOTICE`). Golden-model choices and their rationale are documented as
+comments inside each `dataset.yml`.
 
 ## Scorers (all 0..1, deterministic)
 
@@ -103,7 +121,10 @@ their rationale are documented as comments inside each `dataset.yml`.
   not a quality signal. It deliberately re-measures what the validator's `E_EXISTING_*`
   gates enforce: an eval scorer checks the OUTCOME, because the mechanism could itself
   be wrong. Vacuous (1.0, prefixed) on greenfield cases, and `load_eval_case` refuses to
-  let one gate it.
+  let one gate it. A `chain:` case IS an extension case even though it declares no
+  `existing:` — every step after the first extends the previous step's output — so it may
+  gate the scorer, and the reported score is the **minimum** over the extending steps, never
+  the mean: a promise that held four times out of five was broken.
 
 ### Mapping scorers (WP9)
 
