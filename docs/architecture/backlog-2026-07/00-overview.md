@@ -132,3 +132,18 @@ review pairs WP17+WP18 as highest impact — the safety net (pipeline) and the q
 gates (eval) both have holes exactly where one would fall; WP19 and WP21 §2.1 remove the
 two remaining ways a run dies avoidably, which also makes future scale_100 attempts
 cheaper.
+
+## Addendum 2026-07-29 — scaling decision + brownfield track
+
+From ADR-0010 (Accepted 2026-07-29: streaming before staged modelling) and the
+incremental-extension charter (Accepted; §5 decisions 2026-07-29):
+
+| WP | Spec | What | Size | Depends on |
+|----|------|------|------|------------|
+| WP22 | `wp22-streaming-spec.md` | Streaming in `ForcedToolCaller`; modeler budget past the 16384 transport stopgap | S/M | ADR-0010 |
+| WP23 | `wp23-incremental-extension-spec.md` | Brownfield mode Phase 1: `--existing`, dv_model.yml round-trip, merge + additive `E_EXISTING_*` gates, grandfathering, diff artifact, delta-ADR | L | — |
+
+WP22 and WP23 are file-disjoint (llm.py/dv2_modeler constant vs. the extension surface)
+and can run in parallel; merge serially as usual. WP22 unblocks the scale_100/300 live
+measurements; WP23 Phase 2 (LLM entity resolution) follows as its own spike per the
+charter, after Phase 1 lands.

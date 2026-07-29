@@ -1,6 +1,6 @@
 # ADR-0010: Modeler output scaling — streaming before staged modelling
 
-**Status:** Proposed
+**Status:** Accepted (2026-07-29)
 **Date:** 2026-07-29
 **Decision makers:** Mischa Eismann
 

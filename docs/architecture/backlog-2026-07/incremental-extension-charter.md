@@ -1,7 +1,8 @@
 # Charter — incremental vault extension (brownfield mode)
 
-Status: Proposed · Type: track charter (Phase 1 = speccable WP work, Phase 2 = timeboxed
-design spike, Phase 3 = deferred) · Decision maker: Mischa Eismann ·
+Status: Accepted (§5 decisions taken 2026-07-29) · Type: track charter (Phase 1 =
+speccable WP work, Phase 2 = timeboxed design spike, Phase 3 = deferred) ·
+Decision maker: Mischa Eismann ·
 Origin: discussion 2026-07-29; relates to ADR-0010 Option C
 
 ## 1. Why this track exists
@@ -116,6 +117,13 @@ the entity-resolution question themselves via the ratification file — Phase 2 
 automates the proposal.
 
 ## 5. Open design questions (decisions needed before the Phase-1 spec)
+
+> **DECIDED 2026-07-29 (Mischa), all five per the recommended positions:** Q1 extension
+> run · Q2 grandfathering (existing names preserved) · Q3 flagged migration (attribute
+> growth on an existing satellite is never silent) · Q4 delta-ADR with an "Extends"
+> reference · Q5 one review queue, new kind. The Phase-1 spec
+> (`wp23-incremental-extension-spec.md`) binds these; the question texts below are kept
+> for the reasoning record.
 
 1. **Merge semantics of a re-run:** is `--existing` + requirements a pure EXTENSION run
    (modeler sees existing constructs as immutable context, models only the delta), or a
