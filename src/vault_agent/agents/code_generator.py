@@ -27,6 +27,7 @@ from vault_agent.rules.dv2_rules import (
     canonical_hub_key_column,
     normalize_identifier,
     role_fk_column,
+    satellite_feed,
     source_table_on_multi_source_hub,
 )
 from vault_agent.state import (
@@ -472,6 +473,28 @@ class CodeGeneratorAgent(BaseAgent):
         for sat in model.satellites:
             parent_hub = hub_by_name.get(sat.parent)
             if parent_hub is not None and parent_hub.sources:
+                bound_feed = satellite_feed(sat, parent_hub)
+                if bound_feed is not None:
+                    # ADR-0011: the satellite NAMES one of the hub's feeds, so it belongs to
+                    # that source system alone — the DV2.0-canonical one-satellite-per-source
+                    # shape. Rendered ONCE (no per-source suffix: there is only one) against
+                    # that feed's staging, via the same naming the hub itself uses for it, so
+                    # a grandfathered legacy feed keeps its unsuffixed name (WP23 §2.6).
+                    # No type restriction here: the restriction below belongs to the SPLIT,
+                    # and a satellite bound to one feed is an ordinary satellite.
+                    from vault_agent.agents.staging_generator import multi_source_staging_name
+
+                    state.flags.extend(
+                        _collision_warnings(sat.attributes + sat.child_dependent_key, sat.name)
+                    )
+                    sql, meta = _render_sat(
+                        sat,
+                        parent_hashkeys[sat.parent],
+                        source_model=multi_source_staging_name(parent_hub, bound_feed, legacy),
+                    )
+                    dbt_models[sat.name] = sql
+                    metadata["satellites"][sat.name] = meta
+                    continue
                 # WP10: split a satellite on a multi-source hub into one per source, each
                 # reading its own staging model (record_source distinguishes the feeds, so
                 # value harmonisation stays downstream — spike Q6). Only standard sats split.
@@ -485,17 +508,17 @@ class CodeGeneratorAgent(BaseAgent):
                     )
                     continue
                 if source_table_on_multi_source_hub(sat, parent_hub):
-                    # WP24 §2.2: the per-source split reads stg_<entity>_<source>, but a
-                    # source_table satellite's hashdiff is computed in its own staging model
-                    # — generating both emits satellites referencing a column no staging they
-                    # read computes. No defined semantics, so generate nothing and say so
-                    # (the staging generator asks the same helper and skips it too).
+                    # ADR-0011 row 3: the named table is not a feed of this hub. The
+                    # validator gates it upstream; this stays as defense in depth (the
+                    # WP24 pattern), and the staging generator asks the same helper.
+                    feeds = ", ".join(s.source_table for s in parent_hub.sources)
                     state.flag(
                         "code_generator",
                         f"satellite {sat.name!r} declares source_table "
-                        f"{sat.source_table!r} while its parent hub {sat.parent!r} is fed by "
-                        f"{len(parent_hub.sources)} sources; the combination has no defined "
-                        f"semantics and is flagged for human review",
+                        f"{sat.source_table!r}, which is not one of the feeds of its "
+                        f"multi-source parent {sat.parent!r} ({feeds}); a finer-grain "
+                        f"relation under one feed cannot say which feed it belongs to "
+                        f"(ADR-0011), so this is flagged for human review",
                         kind=FlagKind.GENERATION_GAP,
                         asset=sat.name,
                     )

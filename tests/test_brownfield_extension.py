@@ -564,3 +564,101 @@ def test_a_restated_hub_naming_the_new_source_entity_is_not_a_conflict() -> None
 
     assert not [f for f in state.flags if f.kind == FlagKind.EXTENSION_CONFLICT]
     assert merged.hubs[0].source_entity == "customer"  # the existing value is kept
+
+
+# ── ADR-0011 / WP28: satellite feed binding ───────────────────────────────────────────────
+def _multi_source_hub(*feeds: tuple[str, str]) -> Hub:
+    return Hub(
+        name="hub_customer", business_key="customer_id", source_entity="customer",
+        description="",
+        sources=[HubSource(source_table=t, business_key_column=c) for t, c in feeds],
+    )
+
+
+def _sat_with(source_table: str | None, sat_type: str = "standard") -> Satellite:
+    return Satellite(
+        name="sat_customer_marketing", parent="hub_customer",
+        attributes=["marketing_segment"], description="", source_table=source_table,
+        sat_type=sat_type,  # type: ignore[arg-type]
+        child_dependent_key=["marketing_segment"] if sat_type == "multi_active" else [],
+    )
+
+
+@pytest.mark.parametrize(
+    ("source_table", "expected"),
+    [
+        pytest.param("crm_contact", False, id="names-a-feed"),
+        pytest.param("CRM_CONTACT", False, id="names-a-feed-normalised"),
+        pytest.param("crm_contact_address", True, id="names-a-non-feed"),
+        pytest.param(None, False, id="no-source-table"),
+    ],
+)
+def test_predicate_errors_only_on_a_table_that_is_not_a_feed(
+    source_table: str | None, expected: bool
+) -> None:
+    from vault_agent.rules.dv2_rules import source_table_on_multi_source_hub
+
+    hub = _multi_source_hub(("customer", "customer_id"), ("crm_contact", "customer_id"))
+
+    assert source_table_on_multi_source_hub(_sat_with(source_table), hub) is expected
+
+
+def test_a_grandfathered_legacy_feed_counts_as_a_feed() -> None:
+    """WP23's merger materialises a single-source hub's implicit feed, so the brownfield case
+    — the one that motivated ADR-0011 — needs no special case. Asserted, not assumed."""
+    from vault_agent.rules.dv2_rules import satellite_feed, source_table_on_multi_source_hub
+
+    existing = DVModel(hubs=[Hub(name="hub_customer", business_key="customer_id",
+                                 source_entity="customer", description="")])
+    delta = DVModel(hubs=[Hub(name="hub_customer", business_key="customer_id",
+                              source_entity="crm_contact", description="",
+                              sources=[HubSource(source_table="crm_contact",
+                                                 business_key_column="customer_id")])])
+    merged = merge_models(existing, delta, _state(existing))
+    hub = merged.hubs[0]
+
+    # The legacy feed (source_entity 'customer') is matchable...
+    assert source_table_on_multi_source_hub(_sat_with("customer"), hub) is False
+    feed = satellite_feed(_sat_with("customer"), hub)
+    assert feed is not None and feed.source_table == "customer"
+    # ...and so is the new one.
+    assert source_table_on_multi_source_hub(_sat_with("crm_contact"), hub) is False
+
+
+def test_effectivity_satellites_stay_excluded() -> None:
+    from vault_agent.rules.dv2_rules import satellite_feed
+
+    hub = _multi_source_hub(("customer", "customer_id"), ("crm_contact", "customer_id"))
+
+    assert satellite_feed(_sat_with("crm_contact", "effectivity"), hub) is None
+
+
+async def test_a_multi_active_satellite_may_bind_to_a_feed() -> None:
+    """The type restriction belongs to the SPLIT; a satellite bound to one feed is ordinary."""
+    model = DVModel(
+        hubs=[_multi_source_hub(("customer", "customer_id"), ("crm_contact", "customer_id"))],
+        satellites=[_sat_with("crm_contact", "multi_active")],
+    )
+    state = VaultAgentState(dv_model=model)
+
+    await CodeGeneratorAgent().run(state)
+
+    assert "sat_customer_marketing" in state.artifacts.dbt_models
+    assert not [f for f in state.flags if f.kind == FlagKind.GENERATION_GAP]
+
+
+async def test_a_feed_bound_satellite_binds_to_the_legacy_staging_name() -> None:
+    """Grandfathering and feed binding compose: an extension satellite naming the LEGACY feed
+    must read the unsuffixed staging model, not a renamed one."""
+    existing = DVModel(hubs=[Hub(name="hub_customer", business_key="customer_id",
+                                 source_entity="customer", description="")])
+    merged = DVModel(
+        hubs=[_multi_source_hub(("customer", "customer_id"), ("crm_contact", "customer_id"))],
+        satellites=[_sat_with("customer")],
+    )
+    state = _state(existing, merged)
+
+    await CodeGeneratorAgent().run(state)
+
+    assert "stg_customer" in state.artifacts.dbt_models["sat_customer_marketing"]
+    assert "stg_customer_customer" not in state.artifacts.staging_models

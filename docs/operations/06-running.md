@@ -205,10 +205,10 @@ tables that hold history.
 **The ADR** documents only the delta, plus an *Extends* section naming the vault it extends
 and pointing at the diff.
 
-**Known limitation (2026-07-29).** A satellite fed by ONE source of a now-multi-source hub —
-the natural shape when a new system brings its own attributes — currently trips
-`E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` and is flagged rather than generated. Leave the
-satellite's `source_table` unset and it splits per feed instead — but note that this only
-helps when the attributes really do arrive from every feed. **ADR-0011** (Proposed) decides
-how to bind such a satellite to one feed; until it is accepted and implemented, the
-combination is flagged rather than generated.
+**Attributes that come from only one source.** When a new system brings its own attributes
+to an entity the vault already models, give that satellite a `source_table` naming the new
+feed: it is then generated once and reads that feed's staging (ADR-0011) — the canonical
+DV2.0 one-satellite-per-source shape. Leave `source_table` unset only when the attributes
+really do arrive from *every* feed; the satellite then splits across them. A `source_table`
+naming a table that is not one of the hub's feeds is an error, and the message lists the
+feeds you can name.

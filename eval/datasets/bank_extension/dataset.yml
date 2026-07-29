@@ -42,23 +42,19 @@ golden:
     - {name: sat_customer_marketing, parent: hub_customer, sat_type: standard}
     - {name: sat_campaign_details, parent: hub_campaign, sat_type: standard}
 expectations:
-  # KNOWN LIMITATION, measured over 6 live runs on 2026-07-29 and deliberately NOT hidden by
-  # flipping this to false: validation currently FAILS on this case, so validation_gate
-  # reports 0.0. It is reported, not gated — the gates below are what brownfield mode
-  # promises. Two stable causes, both worth fixing outside this case:
+  # validation_gate is REPORTED, not gated (the gates below are what brownfield mode
+  # promises), and its history is worth keeping:
   #
-  # 1. E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB fires on the *natural* brownfield shape. The
-  #    modeler correctly reads REQ-107 ("historise CRM attributes separately") and emits a
-  #    satellite fed by crm_contact on the now-multi-source hub_customer. WP24 rejected that
-  #    combination because one relation cannot feed two independent feeds — true when the
-  #    satellite describes ALL of them, but here it describes ONE, which is legitimate.
-  #    A steering rule was added and did NOT prevent it (0/3 runs), so this needed a
-  #    modelling decision rather than more prompt text: ADR-0011 (Proposed). This case's
-  #    validation_gate is that ADR's acceptance signal — it should reach 1.0 when the
-  #    decision is implemented.
-  # 2. E_HUB_HK_COLLISION on hub_campaign/hub_employee: the modeler gives both source_entity
-  #    'crm_campaign' (the employee number does come from that table). A genuine modelling
-  #    smell the gate correctly catches; hub_employee is not golden here.
+  # 1. RESOLVED (WP28, ADR-0011). E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB used to fire on the
+  #    *natural* brownfield shape — the modeler reads REQ-107 correctly and emits a satellite
+  #    fed by crm_contact on the now-multi-source hub_customer. Measured 3/3 after WP28: the
+  #    gate no longer fires and the satellite is generated ONCE, bound to
+  #    stg_customer_crm_contact.
+  # 2. OPEN, and the reason this score is 0.667 rather than 1.0: E_HUB_HK_COLLISION on
+  #    hub_campaign/hub_employee, when the modeler gives both source_entity 'crm_campaign'
+  #    (the employee number does come from that table). It does not do so every run. A
+  #    genuine modelling smell the gate correctly catches; hub_employee is not golden here,
+  #    and chasing it was explicitly out of WP28's scope.
   validation_passed: true
   # Extension runs are noisier by construction: every legitimate addition raises one
   # advisory W_EXISTING_EXTENDED, which is the inventory the review queue wants. Measured:

@@ -19,13 +19,18 @@ expected outcome below, and the cells that are deliberately NOT generated say so
 | 3 |  -  |  x  |  -   | generates — role-qualified FKs                                |
 | 4 |  -  |  -  |  x   | generates — one staging + one satellite per feed              |
 | 5 |  x  |  x  |  -   | generates — sat staging hashes role-qualified parent-link FKs |
-| 6 |  x  |  -  |  x   | **FLAGGED, not generated** — no defined semantics (§2.2)      |
+| 6 |  x  |  -  |  x   | ADR-0011: `source_table` naming a FEED binds the satellite    |
+| 6b|  x  |  -  |  x   | **FLAGGED** — `source_table` naming a NON-feed (ADR-0011 row 3)|
 | 7 |  -  |  x  |  x   | generates — role-qualified FK over the CANONICAL key column   |
 | 8 |  x  |  x  |  x   | generates — the satellite's parent is the link, not the hub   |
 
-Cell 6 is the one unsupported combination: a single finer-grain relation cannot be the
-payload source of two independent feeds whose rows are told apart by ``record_source``.
-It is rejected in three agreeing places (validator gate, generation flag, no staging).
+Cell 6 SPLIT IN TWO when ADR-0011 landed (WP28). WP24 had rejected `source_table` on a
+multi-source hub outright, reasoning that one relation cannot feed two independent sources.
+That is true of a satellite describing ALL feeds and false of one describing ONE — and the
+alternative it steered to was measurably broken (the split asked every feed's staging for
+the named feed's columns). So the cell divides: naming a FEED binds the satellite to it
+(cell 6, generated once), naming anything else stays rejected in three agreeing places
+(cell 6b — validator gate, generation flag, no staging).
 
 The load-bearing assertion is :func:`_hash_inputs`: across ALL staging models of one DV
 model, a target column must be hashed from exactly ONE input set. Finding 2 was precisely
@@ -125,11 +130,14 @@ def _cell(*, wp7: bool, wp8: bool, wp10: bool) -> DVModel:
     )
 
 
-def _cell_6() -> DVModel:
-    """WP7 × WP10: a ``source_table`` satellite hanging off the MULTI-SOURCE HUB itself."""
+def _cell_6(source_table: str = "crm_customer") -> DVModel:
+    """WP7 × WP10 on the MULTI-SOURCE HUB itself.
+
+    Default: ``source_table`` names one of the hub's feeds → ADR-0011 binds it.
+    Pass a non-feed table for cell 6b, which stays an error."""
     return DVModel(
         hubs=[_hub(sources=_AGREEING_FEEDS)],
-        satellites=[_sat(parent="hub_customer", source_table="raw_customer_details")],
+        satellites=[_sat(parent="hub_customer", source_table=source_table)],
     )
 
 
@@ -139,13 +147,14 @@ MATRIX: dict[str, DVModel] = {
     "3-wp8": _cell(wp7=False, wp8=True, wp10=False),
     "4-wp10": _cell(wp7=False, wp8=False, wp10=True),
     "5-wp7-wp8": _cell(wp7=True, wp8=True, wp10=False),
-    "6-wp7-wp10": _cell_6(),
+    "6-wp7-wp10-feed": _cell_6(),
+    "6b-wp7-wp10-nonfeed": _cell_6("raw_customer_details"),
     "7-wp8-wp10": _cell(wp7=False, wp8=True, wp10=True),
     "8-wp7-wp8-wp10": _cell(wp7=True, wp8=True, wp10=True),
 }
 
-# Cell 6 is the one combination that must NOT generate (§2.2).
-FLAGGED_CELLS = {"6-wp7-wp10"}
+# Cell 6b is the one combination that must NOT generate (ADR-0011 row 3).
+FLAGGED_CELLS = {"6b-wp7-wp10-nonfeed"}
 
 
 # ── the invariant ─────────────────────────────────────────────────────────────────────────
@@ -278,8 +287,28 @@ def test_role_qualified_participation_on_multi_source_hub() -> None:  # §3.4
 
 # ── §3.5 the rejected cell: gate + flag + nothing generated, staging included ──────────────
 @pytest.mark.asyncio
-async def test_source_table_sat_on_multi_source_hub_is_flagged_not_generated() -> None:
+async def test_source_table_naming_a_feed_binds_the_satellite_to_it() -> None:
+    """ADR-0011 cell 6: the DV2.0-canonical one-satellite-per-source shape."""
     model = _cell_6()
+
+    assert "E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB" not in await _validate(model)
+
+    state = await _generate(model)
+    assert not [f for f in state.flags if f.kind == FlagKind.GENERATION_GAP]
+    # ONE satellite (no per-source suffix), bound to the named feed's staging.
+    assert "sat_customer_details" in state.artifacts.dbt_models
+    assert not [n for n in state.artifacts.dbt_models if n.startswith("sat_customer_details_")]
+    assert "stg_customer_crm_customer" in state.artifacts.dbt_models["sat_customer_details"]
+    # The OTHER feed's staging is not asked for this satellite's columns — the fix the
+    # ADR's probe named.
+    specs = collect_staging_specs(model)
+    assert "FULL_NAME" not in specs["stg_customer_victor_partner"].source_columns
+    assert "FULL_NAME" in specs["stg_customer_crm_customer"].source_columns
+
+
+@pytest.mark.asyncio
+async def test_source_table_naming_a_non_feed_is_flagged_not_generated() -> None:
+    model = _cell_6("raw_customer_details")
 
     codes = await _validate(model)
     assert "E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB" in codes

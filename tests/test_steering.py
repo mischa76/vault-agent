@@ -50,9 +50,11 @@ def test_rendered_rules_are_byte_identical_to_pre_wp16() -> None:
     # It is now also the standing pin on the modeler prompt: a rule may only be added or
     # changed together with this fixture, in the same commit, named in the commit body. A
     # silent update is exactly what the pin exists to prevent. Deliberate additions so far:
-    # WP20 `construct_naming` (2026-07-28) and WP23 `no_source_table_on_multi_source_hub`
-    # (2026-07-29, from the live bank_extension run) — the pre-WP16 block is still a
-    # byte-identical prefix, asserted while regenerating the fixture.
+    # WP20 `construct_naming` (2026-07-28) added; WP23 added
+    # `no_source_table_on_multi_source_hub` and WP28 DELETED it again the same day, after
+    # ADR-0011 blessed the shape it argued against (and after it measured 0/3 effective).
+    # The pre-WP16 block remains a byte-identical prefix — a deletion of a rule ADDED
+    # after WP16 cannot disturb it, which is exactly why the pin is written that way.
     assert _render_rules() + "\n" == _RULES_FIXTURE.read_text(encoding="utf-8")
 
 
@@ -316,3 +318,13 @@ def test_construct_naming_rule_has_a_ledger_row() -> None:
         Path(__file__).parents[1] / "docs" / "architecture" / "steering-ledger.md"
     ).read_text(encoding="utf-8")
     assert "`construct_naming`" in ledger
+
+
+def test_the_wp23_steering_rule_was_deleted_by_adr_0011() -> None:
+    """WP28: the rule told the modeler to avoid a shape ADR-0011 then blessed.
+
+    Pinned so it cannot quietly come back: it measured 0/3 effective on the live
+    bank_extension runs, and its target turned out to be the DV2.0-canonical form."""
+    ids = {rule.id for rule in DV_MODELING_RULES}
+
+    assert "no_source_table_on_multi_source_hub" not in ids

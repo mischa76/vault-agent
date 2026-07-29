@@ -31,6 +31,7 @@ from vault_agent.rules.dv2_rules import (
     normalize_identifier,
     role_bk_column,
     role_fk_column,
+    satellite_feed,
     source_table_on_multi_source_hub,
 )
 from vault_agent.state import DVModel, FlagKind, Hub, HubSource, PipelineFlag, SourceTable
@@ -239,9 +240,29 @@ def collect_staging_specs(
     for sat in model.satellites:
         if sat.parent not in hub_by_name and sat.parent not in link_names:
             continue  # dangling parent — skipped/flagged by the raw-vault generator
-        if source_table_on_multi_source_hub(sat, hub_by_name.get(sat.parent)):
-            continue  # WP24 §2.2: the raw-vault generator flags and skips this satellite —
-            # emitting its staging here would leave an orphaned stg_<sat base> behind.
+        sat_parent = hub_by_name.get(sat.parent)
+        if source_table_on_multi_source_hub(sat, sat_parent):
+            continue  # ADR-0011 row 3: the raw-vault generator flags and skips this
+            # satellite — emitting its staging here would leave an orphan stg_<sat base>.
+        bound_feed = satellite_feed(sat, sat_parent)
+        if bound_feed is not None:
+            assert sat_parent is not None  # implied by satellite_feed returning a feed
+            # ADR-0011: the satellite belongs to ONE feed, so its payload goes to that
+            # feed's staging spec and nowhere else. This is the fix the ADR's probe named:
+            # under the old split every feed's staging was asked to project the satellite's
+            # columns, so the core system's staging demanded the CRM's — which cannot build.
+            # No dedicated stg_<sat base> either: the feed's staging already reads the right
+            # relation, and a second one would be the WP24 finding-3 orphan all over again.
+            target_specs = [specs[multi_source_staging_name(sat_parent, bound_feed, legacy)]]
+            for col in [_to_column(attr) for attr in sat.attributes]:
+                target_specs[0].add_source_column(col)
+            for key in sat.child_dependent_key:
+                target_specs[0].add_source_column(_to_column(key))
+            target_specs[0].add_hashed(
+                _base_name(sat.name).upper() + HASHDIFF_SUFFIX,
+                _HashDiff([_to_column(attr) for attr in sat.attributes]),
+            )
+            continue
         if sat.source_table and sat.sat_type != "effectivity":
             # WP7 §7.1: the satellite's rows live in their own (usually finer-grain) raw
             # relation — a dedicated staging model, bound VERBATIM to the declared

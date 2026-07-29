@@ -1575,6 +1575,43 @@ STILL OPEN — the last item: acceptance #3, the live Postgres on-top build (`db
 WITHOUT full-refresh over the previously built bank vault, pre-existing row history intact,
 the new link/sat populated). Everything else in WP23 Phase 1 is built, tested and documented.
 
+WP28 satellite feed binding landed (as of 2026-07-29, ADR-0011 Accepted,
+docs/architecture/backlog-2026-07/wp28-satellite-feed-binding-spec.md), implementing the
+decision WP24 §5 deferred and WP23's live run forced. A satellite whose `source_table` NAMES
+one of its multi-source hub's feeds is now generated ONCE, bound to that feed's staging —
+the DV2.0-canonical one-satellite-per-source shape the pipeline used to reject. The gate
+narrowed rather than disappeared: `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` keeps its name and
+now errors only when the named table is not a feed at all, because a finer-grain relation
+UNDER one feed cannot say which feed it belongs to and inventing that binding is not
+something this project does; the message lists the available feeds. New
+`rules.satellite_feed()` answers "which feed?" beside the existing predicate, so all three
+call sites still ask one place. Two things the implementation had to get right and did:
+the type restriction (only standard satellites split) belongs to the SPLIT, not to binding —
+a multi-active satellite bound to one feed is an ordinary satellite, so the check moved
+below the binding branch; and a grandfathered LEGACY feed matches by name like any other, so
+an extension satellite naming it reads the unsuffixed `stg_<entity>` (pinned, not assumed).
+The staging fix is what inverts the ADR's probe: a bound satellite's columns and hashdiff go
+to THAT feed's spec only, so the core banking staging stops being asked for the CRM's
+columns. Measured before/after on the same model — before: both stagings demand
+MARKETING_SEGMENT and two satellites are emitted; after: only `stg_customer_crm_contact`
+does, and one satellite is. WP16 bookkeeping: the `no_source_table_on_multi_source_hub`
+steering rule added the same day is DELETED — it argued against the shape the ADR blessed —
+with the prompt fixture regenerated and the ledger row moved to a deleted state carrying its
+evidence (0/3 effective). It is the ledger's first rule retired on measurement rather than
+taste, which is what LOOPS rule VIII asked for. The WP24 composition matrix's cell 6 split
+into 6 (feed-naming, generated) and 6b (non-feed, still flagged), and the one-hash-input-set
+invariant holds over both. LIVE ACCEPTANCE (3 repeats, 2026-07-29): the primary signal is
+met — all three runs emit the REQ-107 satellite with `source_table='crm_contact'`, the gate
+fires 0/3, and each generates exactly one `sat_customer_marketing` bound to
+`stg_customer_crm_contact`. Reported alongside per the ADR's sharpened signal:
+`validation_gate` rose 0.000 -> 0.667 (it is confounded by `E_HUB_HK_COLLISION` on
+hub_campaign/hub_employee, which the modeler produces on some runs and which was explicitly
+out of scope), `existing_construct_preservation` stayed 1.000, `construct_f1` 0.855. Docs
+updated in the same commit: gate catalogue (narrowed meaning + the dated note that WP24
+originally rejected everything), WP24 spec §5 (resolved, history not rewritten), operations
+§6.7 (the limitation paragraph became guidance) and the troubleshooting row. 639 tests green
+(+9), ruff clean, mypy strict clean (40 files).
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

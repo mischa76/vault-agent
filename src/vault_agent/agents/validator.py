@@ -514,10 +514,10 @@ class ValidatorAgent(BaseAgent):
                     )
                 seen.add(feed)
 
-        # E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB (WP24 §2.2): a satellite declaring its own
-        # finer-grain relation (WP7 §7.1) on a hub fed by several sources (WP10) has no
-        # defined semantics — one relation cannot be the payload source of two feeds whose
-        # rows are told apart by record_source. Generation flags and skips it; gating here
+        # E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB — NARROWED by ADR-0011. A satellite whose
+        # source_table NAMES one of the hub's feeds is now the canonical one-per-source shape
+        # and is generated; only a table that is not a feed at all remains an error, because a
+        # finer-grain relation under one feed cannot say which feed it belongs to. Gating here
         # tells the human before generation and feeds the re-model loop (the E_SAT_DUP_ATTR
         # pattern). The condition lives in rules/ so all three sites agree on what is skipped.
         hub_by_name = {hub.name: hub for hub in model.hubs}
@@ -530,9 +530,11 @@ class ValidatorAgent(BaseAgent):
                     _issue(
                         "error", "E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB", sat.name,
                         f"satellite {sat.name!r} declares source_table "
-                        f"{sat.source_table!r} while its parent hub {sat.parent!r} is fed by "
-                        f"several sources ({feeds}); either drop source_table so the "
-                        f"satellite splits per feed, or model one satellite per source",
+                        f"{sat.source_table!r}, which is not one of the feeds of its "
+                        f"multi-source parent {sat.parent!r}. Available feeds: {feeds}. Name "
+                        f"one of them to bind this satellite to that source system, or drop "
+                        f"source_table so it splits across all feeds. A finer-grain relation "
+                        f"under a single feed is not expressible today (ADR-0011)",
                     )
                 )
 

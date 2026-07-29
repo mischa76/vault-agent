@@ -242,18 +242,6 @@ DV_MODELING_RULES = [
         origin="review 2026-07-28 finding 4 / WP20: gated by E_BAD_NAME — steering keeps a "
         "deterministic formality from burning a modeling retry",
     ),
-    SteeringRule(
-        id="no_source_table_on_multi_source_hub",
-        text="Do not set a satellite's source_table when its parent hub is fed by several "
-        "sources; leave it unset and the generator emits one satellite per feed. Declare "
-        "source_table only for a satellite whose rows live in their own finer-grain relation "
-        "under a SINGLE-source parent",
-        origin="WP23 live bank_extension run (2026-07-29): the modeler emitted a CRM "
-        "satellite with source_table on the now-multi-source hub_customer, which "
-        "E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB (WP24) rejects. Steering only — the gate "
-        "stays the guarantee, and giving that combination real semantics needs an ADR "
-        "(WP24 §5)",
-    ),
 ]
 
 # Ablation seam (WP16 §2.2). Module-level, mirroring llm.set_usage_recorder: the harness
@@ -355,24 +343,54 @@ def canonical_hub_key_column(hub: Any) -> str:
     return normalize_identifier(hub.business_key)  # disagree — harmonise to the business term
 
 
-def source_table_on_multi_source_hub(satellite: Any, parent_hub: Any) -> bool:
-    """The one unsupported WP7 × WP10 combination (WP24 §2.2), decided in ONE place.
+def satellite_feed(satellite: Any, parent_hub: Any) -> Any | None:
+    """The multi-source hub feed a satellite's ``source_table`` names, or None (ADR-0011).
 
-    A satellite declaring its own ``source_table`` (WP7 §7.1: its rows live in a finer-grain
-    relation) hanging off a hub that declares ``sources`` (WP10: several feeds whose rows are
-    told apart by ``record_source``) has no defined semantics — one relation cannot be the
-    payload source of two independent feeds. The validator gates it
-    (``E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB``), the code generator flags and skips it, and
-    the staging generator skips it too so no orphaned ``stg_<sat base>`` is left behind; all
-    three ask here so they can never disagree about what is skipped. Effectivity satellites
-    are excluded because ``source_table`` is ignored for them (they stage with their parent
-    link). ``parent_hub`` is None when the parent is a link — then this is never the case.
-    Takes ``Any`` to keep rules/ free of the state models."""
+    "Names a feed" is a normalised table-name match against the hub's ``sources``. It
+    therefore also matches the MATERIALISED LEGACY FEED of a grandfathered hub: when a
+    single-source hub gains a feed, WP23's merger writes its original feed out explicitly
+    (``source_entity``/``business_key``), so the brownfield case — the one that motivated
+    ADR-0011 — needs no special case here. That is asserted by a test rather than assumed.
+
+    Returns None when there is no multi-source parent, no ``source_table``, the satellite is
+    an effectivity satellite (``source_table`` is ignored for those — they stage with their
+    parent link), or the named table is not a feed at all. Takes/returns ``Any`` to keep
+    rules/ free of the state models."""
+    if parent_hub is None or not satellite.source_table:
+        return None
+    if satellite.sat_type == "effectivity":
+        return None
+    named = normalize_identifier(satellite.source_table)
+    for source in getattr(parent_hub, "sources", None) or []:
+        if normalize_identifier(source.source_table) == named:
+            return source
+    return None
+
+
+def source_table_on_multi_source_hub(satellite: Any, parent_hub: Any) -> bool:
+    """Is this satellite's ``source_table`` unusable on its multi-source parent? (ADR-0011)
+
+    The single point the validator, code generator and staging generator ask, so they can
+    never disagree about what is generated (WP24 §2.2). ADR-0011 NARROWED it — the name is
+    unchanged, the meaning is not:
+
+    * ``source_table`` naming one of the hub's feeds → **False**. The satellite binds to that
+      feed and is generated once. This is the DV2.0-canonical one-satellite-per-source shape,
+      and rejecting it was WP24's over-reach: measured, the alternative it steered to (no
+      ``source_table``, so a split across feeds) demands the named feed's columns from EVERY
+      feed's staging, which does not build either.
+    * ``source_table`` naming anything else → **True**, still an error. A finer-grain relation
+      *under* one feed would have to say which feed it belongs to, and the model cannot
+      express that; inventing the binding is not something this project does.
+
+    Effectivity satellites and single-source parents are excluded, as before."""
     if parent_hub is None or not satellite.source_table:
         return False
     if satellite.sat_type == "effectivity":
         return False
-    return bool(getattr(parent_hub, "sources", None))
+    if not getattr(parent_hub, "sources", None):
+        return False
+    return satellite_feed(satellite, parent_hub) is None
 
 
 # Physical naming conventions the code generator uses when rendering AutomateDV/dbt
