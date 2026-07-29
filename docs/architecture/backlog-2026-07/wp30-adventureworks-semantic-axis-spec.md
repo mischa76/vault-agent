@@ -228,4 +228,43 @@ them first.
 
 ## 7. Results
 
-_To be filled by the executing run. Record arm B's FK-derived order here BEFORE the first run._
+### 7.1 Arm B step order — RECORDED 2026-07-29, before any live run
+
+Derived from the extract's 90 foreign keys, not chosen: a subject area follows every area it
+references. Cross-area FK references (`eval.adventureworks.derive --help` reprints this):
+
+| subject area | references |
+|---|---|
+| `Person` | *(none — the root)* |
+| `HumanResources` | Person |
+| `Production` | HumanResources |
+| `Purchasing` | HumanResources, Person, Production |
+| `Sales` | HumanResources, Person, Production |
+
+Topological order, resolving ties by name so the result is reproducible:
+
+**`Person` → `HumanResources` → `Production` → `Purchasing` → `Sales`**
+
+Note `Person` is the root *and* the area both `Sales` and `HumanResources` reference — the
+cross-domain overlap §4.5 flags as the natural WP29 entity-resolution case (a person who is
+both a customer and an employee). Recorded, not measured here.
+
+### 7.2 The instrument as derived
+
+| subject area | tables | columns | with a verbatim comment | natural keys (golden) | false friends |
+|---|---|---|---|---|---|
+| HumanResources | 6 | 40 | 40 | 4 | 1 |
+| Person | 13 | 70 | 69 | 4 | 7 |
+| Production | 25 | 169 | 147 | 9 | 6 |
+| Purchasing | 5 | 49 | 47 | 2 | 1 |
+| Sales | 19 | 137 | 137 | 5 | 11 |
+| **total** | **68** | **465** | **440** | **24** | **26** |
+
+The golden holds **only Microsoft's own single-column `AK_*` natural keys** — never a column we
+judged to be one. So `mapping_coverage` on these cases answers one sharp question, *did the
+mapper find the real natural-key columns?*, and deliberately nothing else. False friends are the
+`rowguid` columns: perfectly unique, indexed as unique keys, never a business key.
+
+### 7.3 Run results
+
+_To be filled by the executing runs._
