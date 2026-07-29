@@ -267,4 +267,34 @@ mapper find the real natural-key columns?*, and deliberately nothing else. False
 
 ### 7.3 Run results
 
-_To be filled by the executing runs._
+#### Smoke run — `adventureworks_purchasing`, 1 repeat, 2026-07-29
+
+The first live run of this pipeline against a schema it did not author. Purchasing was chosen
+because it is the smallest area (5 tables, 49 columns), i.e. the cheapest way to learn whether
+the instrument runs at all before committing the budget.
+
+**All three gated scorers passed, first attempt:** `mapping_coverage` 1.000 (2/2 golden
+natural-key pairs bound), `false_friend_hits` 1.000 (the `rowguid` column was watched and not
+bound), `pipeline_health` 1.000 (no error flags). Model: 6 hubs, 5 links, 8 satellites.
+
+`validation_gate` — reported, not gated (§2.5) — **also passed**, with 3 warnings inside
+tolerance. §2.5 pre-committed to the possibility that an independent schema would trip gates we
+have never exercised; on this area it did not. One area is not five, and the larger ones
+(Production at 25 tables, Sales at 19) are where that prediction is actually at risk.
+
+Cost and load, as the baseline the arm comparison needs: 11 calls (3 Opus, 8 Sonnet), 46,832 in
+(35% cache-read), 29,371 out, 307 s wall clock, **15 review items / 23 rendered lines**. At list
+prices that is ≈ $1.60. The `mapping_coverage` detail also records `34 proposal(s) outside the
+golden column set, unscored` — expected WP9.2/WP14 semantics, not a defect: the golden is
+deliberately only Microsoft's own natural keys (§7.2), so everything the mapper proposes for
+descriptive attributes is out of universe by construction.
+
+**Budget finding, recorded because it changes the plan rather than the result.** Extrapolating
+from this run by column count (465 total vs Purchasing's 49) and requirements size (263 KB total
+vs 17 KB), the full §4 acceptance list at 3 repeats — five areas plus both arms — lands at
+roughly $80-110, i.e. **above the §6 ceiling of $40-60**. The ceiling holds and the plan gives
+way: the choice is fewer repeats on the subject-area cases (they are diagnostic, and their gates
+are structural rather than sampling-sensitive) or fewer repeats on the arms (which is where
+repeats actually matter, since §2.6 compares distributions). Recommended split: **1 repeat per
+subject area (~$12-15) plus 3 repeats of each arm (~$35-50)**, and stop at the ceiling per the
+WP13 §4 abort discipline.
