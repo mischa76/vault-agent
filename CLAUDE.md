@@ -1224,6 +1224,57 @@ source, one collision flag on the multi-source path, dropped-record asset presen
 --no-write pause stays resumable + warns, resume --no-write finalises without artifacts),
 ruff clean, mypy strict clean (37 files).
 
+WP24 multi-source composition correctness landed (as of 2026-07-29,
+docs/architecture/backlog-2026-07/wp24-multi-source-composition-spec.md, review findings
+2+3) — the only defect class in this project that produced wrong **data** rather than a
+wrong message. WP7 (satellite source_table), WP8 (role-qualified links) and WP10
+(multi-source hubs) were each correct and each tested; two of their pairwise combinations
+were not. Why the suite was blind to it, stated plainly because it is the lesson: EVERY
+existing multi-source test and the WP10 Postgres verification used the *disagreeing*-feed
+case, where canonical_hub_key_column() happens to return normalize(business_key) — so a
+call site that ignored the helper entirely produced identical output and no test could
+tell. The agreeing-feed case (feeds share a physical column name that differs from the
+business-key label) is where the helper earns its existence, and nothing exercised it.
+(§2.1) rules.canonical_hub_key_column() is the declared single source for a hub's staging
+key column but only 2 of its 5 call sites used it; the other three — link participations,
+a source_table satellite on a hub parent, and one on a link parent — read
+_to_column(hub.business_key) and so staged CUSTOMER_ID where the hub staged CUSTOMER_KEY:
+same target column, different hash input, an FK that can never join its hub. All three now
+route through the helper; role qualification composes on top
+(role_bk_column(canonical_hub_key_column(hub), role)), and the single-source path is
+unchanged by construction (the helper returns normalize_identifier(business_key) with no
+sources), which the untouched staging baseline fixture + bank/mapping demo guardrails pin.
+(§2.2) The WP7×WP10 combination — a satellite declaring source_table on a hub declaring
+sources — emitted a dbt project that CANNOT build (per-source satellites reading
+stg_<entity>_<source> while the hashdiff they reference is computed only in an orphaned
+stg_<sat base>), with zero flags. It has no defined semantics: one finer-grain relation
+cannot be the payload source of two feeds whose rows are told apart by record_source.
+Rejected now in three agreeing places, all asking ONE predicate
+(rules.source_table_on_multi_source_hub, deliberately in rules/ so validator and both
+generators cannot drift): validator gate E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB (error, so
+it blocks BEFORE generation and feeds the re-model loop — the E_SAT_DUP_ATTR pattern),
+FlagKind.GENERATION_GAP from the code generator, and the staging generator skipping the
+satellite too, so no orphan model is left behind. Validator codes are 34 (23 E_/11 W_; the
+code stays the source of truth). NB the gate was specced as E_MASAT_MULTI_SOURCE_PARENT and
+renamed during implementation — it does not check multi-active, it checks source_table ×
+multi-source parent and fires for any non-effectivity satellite type (effectivity sats
+ignore source_table by design); spec + kick-off carry the correction. (§2.3) The deliverable
+is the matrix, not the two fixes: tests/test_agents/test_feature_composition.py exercises
+all 8 WP7×WP8×WP10 cells with the expected outcome per cell in its docstring (cell 6 is the
+one deliberately "flagged, not generated"), plus the invariant that catches this whole
+class — across ALL staging models of one DV model, a target column must be hashed from
+exactly ONE input set — run over every model the suite builds elsewhere (both demo
+builders, the mapping demo's grounded model, the WP8 and WP10 fixtures), not just the new
+cells. Verified by mutation: with the src changes stashed, 8 of the new tests fail
+(including the invariant on all four multi-source cells); with them, all pass. A Postgres
+re-verification was NOT required and not performed — no rendered template changed for the
+single-source path, and the corrected multi-source staging is exercised structurally.
+541 tests green (+32: the 8-cell matrix, the invariant over 14 models, canonical link FK,
+canonical role-qualified FK, sat-on-link-parent canonical hash, the rejected cell's
+gate+flag+no-sat+no-orphan-staging, WP7-alone still generates, and 6 parametrized predicate
+cases incl. the effectivity exclusion), ruff clean, mypy strict clean (37 files). Docs:
+operations 08 gate catalogue (count + new row) and the dv2-rules cheatsheet.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)

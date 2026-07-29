@@ -61,9 +61,14 @@ agrees, i.e. `collect_staging_specs` must not emit the orphaned `stg_<sat base>`
 satellite the raw-vault generator skips.
 
 Plus a validator gate so the human is told **before** generation and the re-model loop gets
-the feedback: `E_MASAT_MULTI_SOURCE_PARENT` (error) — satellite declares `source_table`
-while its parent hub declares `sources`. Message names both. (Name it for what it checks,
-not for the WP.)
+the feedback: `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` (error) — satellite declares
+`source_table` while its parent hub declares `sources`. Message names both. (Name it for
+what it checks, not for the WP.)
+
+> Naming corrected during implementation (2026-07-29): the spec first called this
+> `E_MASAT_MULTI_SOURCE_PARENT`, which by its own rule was wrong — the gate does not check
+> multi-active, it checks `source_table` × multi-source parent, and fires for any
+> non-effectivity satellite type.
 
 ### 2.3 The composition matrix is the deliverable, not the two fixes
 
@@ -87,7 +92,7 @@ exactly one input set. That single invariant catches finding 2 and any future re
    the canonical column (the probe above, as a pinned test).
 3. Same, with a `source_table` satellite on a link parent whose hub is multi-source.
 4. Role-qualified participation on a multi-source hub → `COUNTERPARTY_<canonical>`.
-5. `source_table` satellite on a multi-source hub → `E_MASAT_MULTI_SOURCE_PARENT` from the
+5. `source_table` satellite on a multi-source hub → `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` from the
    validator, `GENERATION_GAP` flag from the generator, no `sat_*` model, **and no orphan
    staging model**.
 6. The invariant test of §2.3 over every fixture model in the suite.

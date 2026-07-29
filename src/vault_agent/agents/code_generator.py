@@ -27,6 +27,7 @@ from vault_agent.rules.dv2_rules import (
     canonical_hub_key_column,
     normalize_identifier,
     role_fk_column,
+    source_table_on_multi_source_hub,
 )
 from vault_agent.state import (
     FlagKind,
@@ -462,6 +463,22 @@ class CodeGeneratorAgent(BaseAgent):
                         "code_generator",
                         f"satellite {sat.name!r} of type {sat.sat_type!r} on multi-source hub "
                         f"{sat.parent!r} is not supported; flagged for human review",
+                        kind=FlagKind.GENERATION_GAP,
+                        asset=sat.name,
+                    )
+                    continue
+                if source_table_on_multi_source_hub(sat, parent_hub):
+                    # WP24 §2.2: the per-source split reads stg_<entity>_<source>, but a
+                    # source_table satellite's hashdiff is computed in its own staging model
+                    # — generating both emits satellites referencing a column no staging they
+                    # read computes. No defined semantics, so generate nothing and say so
+                    # (the staging generator asks the same helper and skips it too).
+                    state.flag(
+                        "code_generator",
+                        f"satellite {sat.name!r} declares source_table "
+                        f"{sat.source_table!r} while its parent hub {sat.parent!r} is fed by "
+                        f"{len(parent_hub.sources)} sources; the combination has no defined "
+                        f"semantics and is flagged for human review",
                         kind=FlagKind.GENERATION_GAP,
                         asset=sat.name,
                     )

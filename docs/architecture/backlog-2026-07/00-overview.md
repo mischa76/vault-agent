@@ -169,3 +169,12 @@ WP26 + WP27 in parallel** (graph/cli vs. adr_author vs. ci/llm/`_read_pending`);
 overlap to watch is WP25's ADR caveat vs. WP26's renderer — merge WP26 first and let WP25
 rebase onto it. Cross-batch: **WP26 must land before WP23's delta-ADR** (§2.8), and WP27
 must rebase onto WP22 if streaming lands first (both edit `ForcedToolCaller.call`).
+
+**Wave status (2026-07-29): wave 1 is DONE** — WP24 landed (see the CLAUDE.md milestone
+paragraph), so the multi-source hashing helper WP23's merge path inherits is now
+single-sourced and wave 2 is unblocked. Sequencing for wave 2, carrying the cross-batch
+constraint into the wave itself rather than leaving it as a footnote: **WP26 first**, since
+it is the shared prerequisite of both WP25 (its ADR caveat renders on top of WP26's
+renderer) and WP23's delta-ADR (§2.8) — both would otherwise be written against a partial
+renderer and rebased twice. WP25 and WP27 then run in parallel behind it; WP23 Phase 1 may
+start any time but must not merge its delta-ADR before WP26.

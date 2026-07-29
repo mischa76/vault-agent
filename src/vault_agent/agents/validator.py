@@ -39,6 +39,7 @@ from vault_agent.rules.dv2_rules import (
     is_valid_construct_name,
     normalize_identifier,
     role_bk_column,
+    source_table_on_multi_source_hub,
 )
 from vault_agent.state import (
     Hub,
@@ -501,6 +502,28 @@ class ValidatorAgent(BaseAgent):
                         )
                     )
                 seen.add(feed)
+
+        # E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB (WP24 §2.2): a satellite declaring its own
+        # finer-grain relation (WP7 §7.1) on a hub fed by several sources (WP10) has no
+        # defined semantics — one relation cannot be the payload source of two feeds whose
+        # rows are told apart by record_source. Generation flags and skips it; gating here
+        # tells the human before generation and feeds the re-model loop (the E_SAT_DUP_ATTR
+        # pattern). The condition lives in rules/ so all three sites agree on what is skipped.
+        hub_by_name = {hub.name: hub for hub in model.hubs}
+        for sat in model.satellites:
+            parent_hub = hub_by_name.get(sat.parent)
+            if source_table_on_multi_source_hub(sat, parent_hub):
+                assert parent_hub is not None  # implied by the predicate
+                feeds = ", ".join(source.source_table for source in parent_hub.sources)
+                issues.append(
+                    _issue(
+                        "error", "E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB", sat.name,
+                        f"satellite {sat.name!r} declares source_table "
+                        f"{sat.source_table!r} while its parent hub {sat.parent!r} is fed by "
+                        f"several sources ({feeds}); either drop source_table so the "
+                        f"satellite splits per feed, or model one satellite per source",
+                    )
+                )
 
         return issues
 

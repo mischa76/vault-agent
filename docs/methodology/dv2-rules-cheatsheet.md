@@ -107,6 +107,7 @@ Each rule is one of two tiers:
 | `W_EFFSAT_DATE_ORDER_UNVERIFIED` | warning | effectivity date order can't be verified from the tokens (heuristic non-match) |
 | `W_SAT_MAYBE_EFFECTIVITY` | warning | standard sat on a link carrying a from/to date pair (likely a mis-modelled eff-sat) |
 | `W_MASAT_SHARED_GRAIN` | warning | multi-active satellite with no `source_table` (shares the parent's grain) |
+| `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` | error | satellite declares `source_table` while its parent hub declares several `sources` |
 | `E_LINK_DUP_ROLE` | error | two link participations with identical `(hub, role)` |
 | `E_MISSING_COLUMN` | error | a generated construct is missing a DV-required column |
 | `W_BK_NOT_IN_SOURCE` | warning | business key matches no column in the declared source schema (grounding) |

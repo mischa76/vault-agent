@@ -1,6 +1,6 @@
 # 8. Validation gates reference
 
-Generated from `validator.py` as of WP20 (2026-07-28): **33 codes — 22 errors, 11
+Generated from `validator.py` as of WP24 (2026-07-29): **34 codes — 23 errors, 11
 warnings**. The code is the source of truth; if this page and the validator disagree,
 count the codes.
 
@@ -58,6 +58,7 @@ match on the code, never on message text.
 | `E_MASAT_NO_CDK` | Multi-active satellite without a child dependent key — concurrent rows would be indistinguishable. |
 | `W_SAT_WIDE` | More than 30 attributes: a smell for mixed rates of change / sources / classifications. Consider splitting along the four axes (2.2). |
 | `W_MASAT_SHARED_GRAIN` | Multi-active satellite without its own `source_table` — sharing the parent's staging assumes equal grain, which multi-active data rarely has. Declare the finer-grained relation or confirm the shared source. |
+| `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` | Satellite declares its own `source_table` while its parent hub is fed by several sources — one finer-grain relation cannot be the payload source of two feeds whose rows are told apart by `record_source`. Either drop `source_table` so the satellite splits per feed, or model one satellite per source. Generation flags and skips this combination (it would emit satellites reading a hashdiff no staging they read computes). |
 
 ### Effectivity
 

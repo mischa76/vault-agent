@@ -343,6 +343,26 @@ def canonical_hub_key_column(hub: Any) -> str:
     return normalize_identifier(hub.business_key)  # disagree — harmonise to the business term
 
 
+def source_table_on_multi_source_hub(satellite: Any, parent_hub: Any) -> bool:
+    """The one unsupported WP7 × WP10 combination (WP24 §2.2), decided in ONE place.
+
+    A satellite declaring its own ``source_table`` (WP7 §7.1: its rows live in a finer-grain
+    relation) hanging off a hub that declares ``sources`` (WP10: several feeds whose rows are
+    told apart by ``record_source``) has no defined semantics — one relation cannot be the
+    payload source of two independent feeds. The validator gates it
+    (``E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB``), the code generator flags and skips it, and
+    the staging generator skips it too so no orphaned ``stg_<sat base>`` is left behind; all
+    three ask here so they can never disagree about what is skipped. Effectivity satellites
+    are excluded because ``source_table`` is ignored for them (they stage with their parent
+    link). ``parent_hub`` is None when the parent is a link — then this is never the case.
+    Takes ``Any`` to keep rules/ free of the state models."""
+    if parent_hub is None or not satellite.source_table:
+        return False
+    if satellite.sat_type == "effectivity":
+        return False
+    return bool(getattr(parent_hub, "sources", None))
+
+
 # Physical naming conventions the code generator uses when rendering AutomateDV/dbt
 # models. Kept here so naming stays a single source of truth across modeler/generator.
 LOAD_DATETIME_COLUMN = "LOAD_DATETIME"

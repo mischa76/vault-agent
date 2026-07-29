@@ -31,6 +31,7 @@ from vault_agent.rules.dv2_rules import (
     normalize_identifier,
     role_bk_column,
     role_fk_column,
+    source_table_on_multi_source_hub,
 )
 from vault_agent.state import DVModel, FlagKind, Hub, HubSource, PipelineFlag, SourceTable
 
@@ -170,9 +171,12 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
         for ref in link.hub_refs:
             # Role-qualify both the FK hash key and its source business-key column so a
             # self-referencing link gets two distinct columns (ADR-0009); unqualified refs
-            # keep the bare names, so plain-string links stage byte-identically.
+            # keep the bare names, so plain-string links stage byte-identically. The FK
+            # hashes from the hub's CANONICAL key column (WP24 §2.1) — anything else
+            # cannot join the hub's own hash key when a multi-source hub's feeds agree on
+            # a physical name differing from the business-key label.
             hub = hub_by_name[ref.hub]
-            bk_col = role_bk_column(_to_column(hub.business_key), ref.role)
+            bk_col = role_bk_column(canonical_hub_key_column(hub), ref.role)
             bk_cols.append(bk_col)
             spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), bk_col)
             spec.add_source_column(bk_col)
@@ -188,6 +192,9 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
     for sat in model.satellites:
         if sat.parent not in hub_by_name and sat.parent not in link_names:
             continue  # dangling parent — skipped/flagged by the raw-vault generator
+        if source_table_on_multi_source_hub(sat, hub_by_name.get(sat.parent)):
+            continue  # WP24 §2.2: the raw-vault generator flags and skips this satellite —
+            # emitting its staging here would leave an orphaned stg_<sat base> behind.
         if sat.source_table and sat.sat_type != "effectivity":
             # WP7 §7.1: the satellite's rows live in their own (usually finer-grain) raw
             # relation — a dedicated staging model, bound VERBATIM to the declared
@@ -202,7 +209,7 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
             spec.bound = True
             if sat.parent in hub_by_name:
                 parent_hub = hub_by_name[sat.parent]
-                bk_col = _to_column(parent_hub.business_key)
+                bk_col = canonical_hub_key_column(parent_hub)
                 spec.add_hashed(_hub_hashkey(parent_hub), bk_col)
                 spec.add_source_column(bk_col)
             else:
@@ -210,7 +217,7 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
                 bk_cols = []
                 for ref in parent_link.hub_refs:
                     bk_col = role_bk_column(
-                        _to_column(hub_by_name[ref.hub].business_key), ref.role
+                        canonical_hub_key_column(hub_by_name[ref.hub]), ref.role
                     )
                     bk_cols.append(bk_col)
                     spec.add_source_column(bk_col)

@@ -25,7 +25,7 @@ Both are reproduced in the review; neither is covered by a test or a gate. Keyle
    composes on top (`role_bk_column(canonical, role)`). Single-source output must stay
    byte-identical — pin the fixture BEFORE changing anything.
 2. Reject the WP7+WP10 combination (`Satellite.source_table` on a hub with `sources`):
-   validator gate `E_MASAT_MULTI_SOURCE_PARENT`, `GENERATION_GAP` flag from the generator,
+   validator gate `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB`, `GENERATION_GAP` flag from the generator,
    no per-source satellite models — and no orphaned `stg_<sat base>` model either (the
    staging generator must agree with the raw-vault generator about what is skipped).
 3. `tests/test_agents/test_feature_composition.py`: the WP7 × WP8 × WP10 matrix, one
