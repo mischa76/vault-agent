@@ -147,3 +147,25 @@ WP22 and WP23 are file-disjoint (llm.py/dv2_modeler constant vs. the extension s
 and can run in parallel; merge serially as usual. WP22 unblocks the scale_100/300 live
 measurements; WP23 Phase 2 (LLM entity resolution) follows as its own spike per the
 charter, after Phase 1 lands.
+
+## Addendum 2026-07-29 — review batch (project review 2026-07-29)
+
+Four WPs from `../reviews/project-review-2026-07-29.md` (findings 1–5). Shared conventions
+above apply unchanged. Note the theme: after WP17–WP21 the individual features are sound —
+these findings sit **between** features (WP7 × WP10), and in what the pipeline reports
+about itself when things go wrong.
+
+| WP | Spec | What | Size | Depends on |
+|----|------|------|------|------------|
+| WP24 | `wp24-multi-source-composition-spec.md` | Every hub-key hash through `canonical_hub_key_column`; reject the WP7+WP10 satellite combination; the WP7×WP8×WP10 composition matrix (findings 2+3) | S/M | — |
+| WP25 | `wp25-failed-run-outcome-spec.md` | A failed run is first-class: route the exhausted re-model loop into the checkpoint (ADR-0006), exit code 3, ADR caveat when accepted over errors (finding 1) | M | — |
+| WP26 | `wp26-adr-completeness-spec.md` | ADR renders driving keys, multi-source feeds, satellite types, ratified mappings; determinism claim made true (finding 4) | S | — |
+| WP27 | `wp27-ci-retry-hygiene-spec.md` | CI runs the canonical `uv run mypy`; `Retry-After` + jitter; attributable error on a corrupt `pending.json` (finding 5) | S | — |
+
+Waves (file-overlap driven): **wave 1 = WP24 alone** — it is the only finding producing
+wrong *data*, it must precede any further multi-source work (WP23's merge path inherits the
+same hashing helper), and it touches the generators the others do not. **Wave 2 = WP25 +
+WP26 + WP27 in parallel** (graph/cli vs. adr_author vs. ci/llm/`_read_pending`); the one
+overlap to watch is WP25's ADR caveat vs. WP26's renderer — merge WP26 first and let WP25
+rebase onto it. Cross-batch: **WP26 must land before WP23's delta-ADR** (§2.8), and WP27
+must rebase onto WP22 if streaming lands first (both edit `ForcedToolCaller.call`).
