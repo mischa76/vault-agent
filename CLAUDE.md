@@ -1571,9 +1571,35 @@ everything is safe, grandfathering, the delta-ADR, and the known limitation), pl
 --existing row, the mode line, dv_model.yml and extension-diff.md in the output anatomy, and
 three troubleshooting rows. Also implemented here: the counts key `model` that §2.1 asked for
 and the core commit missed. 627 tests green, ruff clean, mypy strict clean (40 files).
-STILL OPEN — the last item: acceptance #3, the live Postgres on-top build (`dbt build`
-WITHOUT full-refresh over the previously built bank vault, pre-existing row history intact,
-the new link/sat populated). Everything else in WP23 Phase 1 is built, tested and documented.
+WP23 acceptance #3 is MET (2026-07-29, PostgreSQL 16 + AutomateDV 0.11.4): the extension
+output builds green ON TOP of a previously built vault. Method: the fixed bank model was
+generated and built into an isolated schema (`dbt build --full-refresh`, PASS=12) — that is
+the "existing vault"; its metadata/dv_model.yml then fed a deterministic CRM extension (no
+LLM: hub_customer gains a crm_contact feed, plus hub_campaign, link_campaign_customer,
+sat_campaign_details, and sat_customer_marketing BOUND to the crm_contact feed — the
+ADR-0011/WP28 shape); the v2 project was built over the same schema **without
+--full-refresh**: PASS=22 WARN=0 ERROR=0, and a second run changed nothing (idempotent).
+Data-level additivity, which is what the charter asked for rather than SQL-level: 5 of the 6
+pre-existing constructs are byte-identical by row count AND content hash
+(hub_account, link_account_customer, sat_customer_details, sat_account_details,
+sat_account_customer_eff). The single change is hub_customer, and it is purely additive —
+all 3 original BANK.CORE rows still present with their original load timestamps, plus 1 row
+for the CRM-only customer. The integration property holds at the data level: CH-1001 and
+CH-1002 each have ONE hub row carrying BOTH a core satellite row and a CRM satellite row,
+CH-1003 is core-only, CH-9001 CRM-only. New constructs populated (campaign 2, targeting 3,
+campaign details 2, marketing 3). This also proves WP28 on a warehouse rather than
+structurally: sat_customer_marketing is a satellite bound to one feed of a multi-source hub,
+and it builds and loads.
+The build found one more defect first — before the database was touched, which is the point
+of probing: a GRANDFATHERED feed kept its staging model's NAME but not its BINDING. The
+merger materialises a single-source hub's implicit feed as (source_entity, business_key),
+and the multi-source branch bound every feed verbatim to its source_table, so `stg_customer`
+silently stopped reading `raw_customer` and started reading `customer` — a relation that does
+not exist (the build breaks) or does and is the wrong data. A legacy feed now gets NO binding
+in that branch and keeps the one bind_sources derives, exactly as the single-source hub did.
+Preserving the name without the binding is not preserving the model; pinned by a test that
+compares the before/after `source_model` directly. 640 tests green, ruff clean, mypy strict
+clean (40 files). WP23 Phase 1 is COMPLETE — every acceptance item met.
 
 WP28 satellite feed binding landed (as of 2026-07-29, ADR-0011 Accepted,
 docs/architecture/backlog-2026-07/wp28-satellite-feed-binding-spec.md), implementing the

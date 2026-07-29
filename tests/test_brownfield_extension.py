@@ -662,3 +662,32 @@ async def test_a_feed_bound_satellite_binds_to_the_legacy_staging_name() -> None
 
     assert "stg_customer" in state.artifacts.dbt_models["sat_customer_marketing"]
     assert "stg_customer_customer" not in state.artifacts.staging_models
+
+
+async def test_a_grandfathered_feed_keeps_its_binding_not_just_its_name() -> None:
+    """WP23 §2.6 preserved the legacy staging NAME but not what it reads.
+
+    Found while preparing the Postgres on-top build: the merger materialises the implicit
+    legacy feed as (source_entity, business_key), and the multi-source branch bound every
+    feed verbatim to its source_table — so `stg_customer` kept its name and silently
+    stopped reading `raw_customer`, starting to read `customer` instead. On a warehouse
+    that is either a missing relation (the build breaks) or the wrong data. Preserving the
+    name without the binding is not preserving the model."""
+    from vault_agent.agents.staging_generator import build_staging
+
+    existing = DVModel(hubs=[Hub(name="hub_customer", business_key="customer_id",
+                                 source_entity="customer", description="")])
+    delta = DVModel(hubs=[Hub(name="hub_customer", business_key="customer_id",
+                              source_entity="crm_contact", description="",
+                              sources=[HubSource(source_table="crm_contact",
+                                                 business_key_column="customer_id")])])
+    merged = merge_models(existing, delta, _state(existing))
+
+    before = build_staging(existing, []).metadata["stg_customer"]["source_model"]
+    after = build_staging(merged, [], existing=existing).metadata["stg_customer"]["source_model"]
+
+    assert before == "raw_customer"
+    assert after == before, "the grandfathered staging model changed what it reads"
+    # The NEW feed is bound verbatim, as WP10 does.
+    meta = build_staging(merged, [], existing=existing).metadata
+    assert meta["stg_customer_crm_contact"]["source_model"] == "crm_contact"

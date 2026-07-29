@@ -194,8 +194,18 @@ def collect_staging_specs(
             for source in hub.sources:
                 name = multi_source_staging_name(hub, source, legacy)
                 spec = specs.setdefault(name, StagingSpec(name=name, base=_base_name(hub.name)))
-                spec.source_model = source.source_table
-                spec.bound = True
+                if not (legacy and is_legacy_feed(hub, source, legacy)):
+                    spec.source_model = source.source_table
+                    spec.bound = True
+                # A GRANDFATHERED feed deliberately gets NO binding here (WP23 §2.6): it keeps
+                # the one it already had, which bind_sources re-derives exactly as it did for
+                # the single-source hub — a declared table when the schema names one, else the
+                # inferred raw_<base> (flagged, as before). Binding it verbatim to the feed's
+                # source_table would keep the model's NAME while silently repointing it at a
+                # different relation: `stg_customer` would stop reading `raw_customer` and
+                # start reading `customer`, which either does not exist (the build breaks) or
+                # does and is the wrong data. Preserving the name without the binding is not
+                # preserving the model.
                 src_col = _to_column(source.business_key_column)
                 if src_col != canonical:
                     spec.derived[canonical] = src_col  # alias the source column -> canonical
