@@ -119,6 +119,12 @@ reattaches to the same thread, possibly days later, from another shell. Everythi
 before the interrupt is pure/idempotent because the node re-executes on resume. A
 finalized run prunes its checkpoint thread; a paused one keeps it.
 
+A **crash** takes the same route (WP17): when a node raises, the CLI records
+`phase: crashed` in `pending.json` with the error, writes whatever the completed nodes
+produced, and re-raises — the failure is never masked by the rescue. `resume` continues
+that thread and re-executes only the failed node, so no completed agent is paid for
+twice.
+
 The design passes the three-files test from the harness literature the project cites
 (LOOPS.md rule IV): a crashed or paused run is fully described by its plan
 (`ExecutionPlan` in state), its review queue, and `pending.json` — all on disk.

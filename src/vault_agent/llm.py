@@ -13,6 +13,7 @@ hardens every LLM call in the pipeline at once.
 import asyncio
 import hashlib
 import logging
+import random
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any, Literal, cast
@@ -25,6 +26,9 @@ logger = logging.getLogger(__name__)
 _RETRYABLE_STATUS = frozenset({408, 429, 500, 502, 503, 529})
 _MAX_RETRIES = 3
 _BASE_DELAY_SECONDS = 2.0
+# Upper bound on ANY single wait, including a server-supplied Retry-After (WP27 §2.2): a
+# hostile or mistaken header must not be able to hang a run for an hour.
+_MAX_RETRY_DELAY_SECONDS = 60.0
 
 # Token/cost capture (WP13 §3): a callback fired once per completed API response with
 # ``(model, input_tokens, output_tokens, cache_read_tokens)`` from ``response.usage``.
@@ -177,7 +181,7 @@ async def call_with_truncation_split[T, R](
 class ForcedToolCaller:
     """Calls the Anthropic Messages API forcing one tool; returns the tool's input.
 
-    ``client`` and ``sleep`` are injectable for tests; by default a real
+    ``client``, ``sleep`` and ``rng`` are injectable for tests; by default a real
     ``AsyncAnthropic`` client is built from the settings (lazily, at construction)."""
 
     def __init__(
@@ -187,6 +191,7 @@ class ForcedToolCaller:
         sleep: Callable[[float], Awaitable[None]] | None = None,
         usage_recorder: UsageRecorder | None = None,
         trace_recorder: TraceRecorder | None = None,
+        rng: Callable[[], float] | None = None,
     ) -> None:
         if client is None:
             # Imported here so module import never requires an API key.
@@ -199,6 +204,7 @@ class ForcedToolCaller:
         self._sleep = sleep or asyncio.sleep
         self._usage_recorder = usage_recorder
         self._trace_recorder = trace_recorder
+        self._rng = rng or random.random
 
     async def call(
         self,
@@ -245,9 +251,30 @@ class ForcedToolCaller:
         last_exc: Exception | None = None
         for attempt in range(_MAX_RETRIES + 1):
             if attempt:
-                await self._sleep(_BASE_DELAY_SECONDS * 2 ** (attempt - 1))
+                # The delay is decided from the failure that caused THIS retry, so a
+                # server-supplied Retry-After wins over our guess (WP27 §2.2).
+                delay, source = self._retry_delay(attempt, last_exc)
+                logger.info(
+                    "%s: retry %d/%d for %s in %.1fs (%s)",
+                    self._model, attempt, _MAX_RETRIES, tool_name, delay, source,
+                )
+                await self._sleep(delay)
             try:
-                message = await self._client.messages.create(
+                # STREAMING (WP22 / ADR-0010), one path — there is deliberately no
+                # streaming/non-streaming conditional, because a second path is a second
+                # thing that can rot. The request kwargs are byte-identical to the previous
+                # non-streaming call, so prompt caching and every fixture pin are
+                # untouched; only the transport changed. get_final_message() returns the
+                # accumulated Message — same content blocks, stop_reason and usage (incl.
+                # cache_read_input_tokens, verified against the installed SDK's accumulator)
+                # — so truncation detection, _tool_payload, usage capture and the WP15 trace
+                # events all read exactly what they read before.
+                #
+                # Both failure surfaces stay inside this try: the initial request is awaited
+                # by __aenter__ (an APIStatusError there still carries status_code, which the
+                # retry matrix keys on), and a mid-stream failure surfaces from
+                # get_final_message().
+                async with self._client.messages.stream(
                     model=self._model,
                     max_tokens=max_tokens,
                     # Prompt caching (WP3): the system prompt is byte-identical across
@@ -271,7 +298,8 @@ class ForcedToolCaller:
                     ],
                     tool_choice={"type": "tool", "name": tool_name},
                     messages=[{"role": "user", "content": user_content}],
-                )
+                ) as stream:
+                    message = await stream.get_final_message()
             except anthropic.APIConnectionError as exc:  # includes APITimeoutError
                 last_exc = exc
                 continue
@@ -323,6 +351,52 @@ class ForcedToolCaller:
         event("llm_error", _MAX_RETRIES, error=error)
         raise LLMCallError(error) from last_exc
 
+    def _retry_delay(self, attempt: int, exc: Exception | None) -> tuple[float, str]:
+        """How long to wait before ``attempt``, and which policy decided it (WP27 §2.2).
+
+        A server-supplied ``Retry-After`` wins: answering a ``Retry-After: 30`` with our
+        2/4/8 s ladder fails the whole call after ~14 s of waiting that was guaranteed to be
+        too short. Both header spellings the API may send are read — ``retry-after-ms``
+        first, like the SDK's own client does — and anything non-numeric (the RFC also
+        permits an HTTP date) falls through to the exponential path rather than being
+        guessed at. Every wait, header or not, is capped at ``_MAX_RETRY_DELAY_SECONDS``.
+
+        Without a usable header: exponential base delay plus **equal jitter**
+        (``d/2 + random()*d/2``). Equal rather than full jitter (``random()*d``) because the
+        failure this exists for is a rate-limit collision — parallel runs (eval ``--repeat``,
+        ablation arms) must stop retrying in lockstep, but a retry that lands almost
+        immediately is exactly what a 429 is asking us not to do. Equal jitter decorrelates
+        while keeping at least half the backoff."""
+        header = self._retry_after_seconds(exc)
+        if header is not None:
+            return min(header, _MAX_RETRY_DELAY_SECONDS), "server Retry-After"
+        base = _BASE_DELAY_SECONDS * 2 ** (attempt - 1)
+        jittered = base / 2 + self._rng() * base / 2
+        return min(jittered, _MAX_RETRY_DELAY_SECONDS), "exponential backoff + jitter"
+
+    @staticmethod
+    def _retry_after_seconds(exc: Exception | None) -> float | None:
+        """``Retry-After`` from a failed response, in seconds, or None when unusable.
+
+        Read defensively against the SDK surface (verified on anthropic 0.107.0:
+        ``APIStatusError.response`` is an ``httpx.Response``, so headers are a
+        case-insensitive mapping) — a stub client in tests carries no response at all, and a
+        future SDK may reshape this. Anything unreadable simply means "no header"."""
+        response = getattr(exc, "response", None)
+        headers = getattr(response, "headers", None)
+        if headers is None:
+            return None
+        try:
+            milliseconds = headers.get("retry-after-ms")
+            if milliseconds is not None:
+                return max(0.0, float(milliseconds) / 1000)
+            seconds = headers.get("retry-after")
+            if seconds is not None:
+                return max(0.0, float(seconds))
+        except (TypeError, ValueError, AttributeError):
+            return None  # e.g. an HTTP-date Retry-After: fall back to the exponential path
+        return None
+
     @staticmethod
     def _tool_payload(message: Any, tool_name: str) -> dict[str, Any] | None:
         """The forced tool's input from a response, or ``None`` when the block is absent."""
@@ -340,9 +414,14 @@ class ForcedToolCaller:
         if recorder is None:
             return
         usage = getattr(message, "usage", None)
-        recorder(
-            self._model,
-            int(getattr(usage, "input_tokens", 0) or 0),
-            int(getattr(usage, "output_tokens", 0) or 0),
-            int(getattr(usage, "cache_read_input_tokens", 0) or 0),
-        )
+        try:
+            recorder(
+                self._model,
+                int(getattr(usage, "input_tokens", 0) or 0),
+                int(getattr(usage, "output_tokens", 0) or 0),
+                int(getattr(usage, "cache_read_input_tokens", 0) or 0),
+            )
+        except Exception:  # noqa: BLE001 - observational channel, never fatal (as emit_trace)
+            # The response is already generated and BILLED at this point; letting a broken
+            # accounting sink discard it would be the most expensive possible failure mode.
+            logger.warning("usage recorder failed for a %s call", self._model, exc_info=True)

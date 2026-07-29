@@ -31,6 +31,8 @@ from vault_agent.rules.dv2_rules import (
     normalize_identifier,
     role_bk_column,
     role_fk_column,
+    satellite_feed,
+    source_table_on_multi_source_hub,
 )
 from vault_agent.state import DVModel, FlagKind, Hub, HubSource, PipelineFlag, SourceTable
 
@@ -94,15 +96,64 @@ def _base_name(construct_name: str) -> str:
 
 
 def _staging_name(construct_name: str) -> str:
-    return STAGING_PREFIX + _base_name(construct_name)
+    # Normalised through the one identifier helper (WP20 §2.4), the way _sat_staging_model
+    # already did — two naming paths that merely happen to agree on well-formed names are a
+    # latent split. Byte-identical for every valid construct name (E_BAD_NAME enforces
+    # lowercase snake_case, and normalize("account").lower() == "account").
+    return STAGING_PREFIX + normalize_identifier(_base_name(construct_name)).lower()
 
 
-def multi_source_staging_name(hub: Hub, source: HubSource) -> str:
+def legacy_feeds(existing: DVModel | None) -> set[tuple[str, str, str]]:
+    """The (hub, table, column) feeds that carry an UNSUFFIXED staging name (WP23 §2.6).
+
+    Grandfathering needs exactly one fact: which feed is already materialised as
+    ``stg_<entity>``? Only one ever is — the implicit feed of a hub that was SINGLE-source in
+    the existing vault. The merger materialises it as (source_entity, business_key), which is
+    the shape recorded here.
+
+    A hub that was ALREADY multi-source there is deliberately excluded: its feeds were
+    generated with WP10 suffixed names (``stg_<entity>_<source>``) and keeping those is what
+    preserves them. Grandfathering them would be wrong twice over — it would rename existing
+    models, and every one of them would collapse onto the same unsuffixed name.
+
+    Derived from the existing model rather than stored on the state, so nothing new has to
+    survive the checkpointer and a greenfield run has nothing to derive."""
+    if existing is None:
+        return set()
+    return {
+        (hub.name, normalize_identifier(hub.source_entity),
+         normalize_identifier(hub.business_key))
+        for hub in existing.hubs
+        if not hub.sources
+    }
+
+
+def is_legacy_feed(hub: Hub, source: HubSource, legacy: set[tuple[str, str, str]]) -> bool:
+    """True when this feed already existed before the extension (WP23 §2.6)."""
+    return (
+        hub.name,
+        normalize_identifier(source.source_table),
+        normalize_identifier(source.business_key_column),
+    ) in legacy
+
+
+def multi_source_staging_name(
+    hub: Hub, source: HubSource, legacy: set[tuple[str, str, str]] | None = None
+) -> str:
     """Per-source staging model for a multi-source hub (WP10): ``stg_<entity>_<source>``.
 
     Deterministic and traceable — the source suffix is the feeding table's normalised name,
     so a hub fed by ``crm_customer`` + ``victor_partner`` yields ``stg_customer_crm_customer``
-    and ``stg_customer_victor_partner``."""
+    and ``stg_customer_victor_partner``.
+
+    GRANDFATHERING (WP23 §2.6, charter Q2): a feed that already existed before an extension
+    keeps its LEGACY name ``stg_<entity>`` — no source suffix. Renaming it would rename a
+    materialised dbt model, i.e. drop and rebuild a table that holds history, which is exactly
+    the destructive migration this track never performs. Only feeds the extension adds get the
+    suffixed WP10 name. ``legacy`` is empty on greenfield runs, so symmetric WP10 naming is
+    unchanged there (guarded by the WP10 tests and both demos)."""
+    if legacy and is_legacy_feed(hub, source, legacy):
+        return _staging_name(hub.name)
     return (
         STAGING_PREFIX
         + _base_name(hub.name)
@@ -111,7 +162,9 @@ def multi_source_staging_name(hub: Hub, source: HubSource) -> str:
     )
 
 
-def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
+def collect_staging_specs(
+    model: DVModel, legacy: set[tuple[str, str, str]] | None = None
+) -> dict[str, StagingSpec]:
     """Group the raw-vault constructs by the staging model that feeds them.
 
     Mirrors the raw-vault generator's guards (unknown hubs/parents are skipped there and
@@ -139,10 +192,20 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
             # same key value hashes identically across sources (the integration property).
             canonical = canonical_hub_key_column(hub)
             for source in hub.sources:
-                name = multi_source_staging_name(hub, source)
+                name = multi_source_staging_name(hub, source, legacy)
                 spec = specs.setdefault(name, StagingSpec(name=name, base=_base_name(hub.name)))
-                spec.source_model = source.source_table
-                spec.bound = True
+                if not (legacy and is_legacy_feed(hub, source, legacy)):
+                    spec.source_model = source.source_table
+                    spec.bound = True
+                # A GRANDFATHERED feed deliberately gets NO binding here (WP23 §2.6): it keeps
+                # the one it already had, which bind_sources re-derives exactly as it did for
+                # the single-source hub — a declared table when the schema names one, else the
+                # inferred raw_<base> (flagged, as before). Binding it verbatim to the feed's
+                # source_table would keep the model's NAME while silently repointing it at a
+                # different relation: `stg_customer` would stop reading `raw_customer` and
+                # start reading `customer`, which either does not exist (the build breaks) or
+                # does and is the wrong data. Preserving the name without the binding is not
+                # preserving the model.
                 src_col = _to_column(source.business_key_column)
                 if src_col != canonical:
                     spec.derived[canonical] = src_col  # alias the source column -> canonical
@@ -166,9 +229,12 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
         for ref in link.hub_refs:
             # Role-qualify both the FK hash key and its source business-key column so a
             # self-referencing link gets two distinct columns (ADR-0009); unqualified refs
-            # keep the bare names, so plain-string links stage byte-identically.
+            # keep the bare names, so plain-string links stage byte-identically. The FK
+            # hashes from the hub's CANONICAL key column (WP24 §2.1) — anything else
+            # cannot join the hub's own hash key when a multi-source hub's feeds agree on
+            # a physical name differing from the business-key label.
             hub = hub_by_name[ref.hub]
-            bk_col = role_bk_column(_to_column(hub.business_key), ref.role)
+            bk_col = role_bk_column(canonical_hub_key_column(hub), ref.role)
             bk_cols.append(bk_col)
             spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), bk_col)
             spec.add_source_column(bk_col)
@@ -184,6 +250,29 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
     for sat in model.satellites:
         if sat.parent not in hub_by_name and sat.parent not in link_names:
             continue  # dangling parent — skipped/flagged by the raw-vault generator
+        sat_parent = hub_by_name.get(sat.parent)
+        if source_table_on_multi_source_hub(sat, sat_parent):
+            continue  # ADR-0011 row 3: the raw-vault generator flags and skips this
+            # satellite — emitting its staging here would leave an orphan stg_<sat base>.
+        bound_feed = satellite_feed(sat, sat_parent)
+        if bound_feed is not None:
+            assert sat_parent is not None  # implied by satellite_feed returning a feed
+            # ADR-0011: the satellite belongs to ONE feed, so its payload goes to that
+            # feed's staging spec and nowhere else. This is the fix the ADR's probe named:
+            # under the old split every feed's staging was asked to project the satellite's
+            # columns, so the core system's staging demanded the CRM's — which cannot build.
+            # No dedicated stg_<sat base> either: the feed's staging already reads the right
+            # relation, and a second one would be the WP24 finding-3 orphan all over again.
+            target_specs = [specs[multi_source_staging_name(sat_parent, bound_feed, legacy)]]
+            for col in [_to_column(attr) for attr in sat.attributes]:
+                target_specs[0].add_source_column(col)
+            for key in sat.child_dependent_key:
+                target_specs[0].add_source_column(_to_column(key))
+            target_specs[0].add_hashed(
+                _base_name(sat.name).upper() + HASHDIFF_SUFFIX,
+                _HashDiff([_to_column(attr) for attr in sat.attributes]),
+            )
+            continue
         if sat.source_table and sat.sat_type != "effectivity":
             # WP7 §7.1: the satellite's rows live in their own (usually finer-grain) raw
             # relation — a dedicated staging model, bound VERBATIM to the declared
@@ -198,7 +287,7 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
             spec.bound = True
             if sat.parent in hub_by_name:
                 parent_hub = hub_by_name[sat.parent]
-                bk_col = _to_column(parent_hub.business_key)
+                bk_col = canonical_hub_key_column(parent_hub)
                 spec.add_hashed(_hub_hashkey(parent_hub), bk_col)
                 spec.add_source_column(bk_col)
             else:
@@ -206,7 +295,7 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
                 bk_cols = []
                 for ref in parent_link.hub_refs:
                     bk_col = role_bk_column(
-                        _to_column(hub_by_name[ref.hub].business_key), ref.role
+                        canonical_hub_key_column(hub_by_name[ref.hub]), ref.role
                     )
                     bk_cols.append(bk_col)
                     spec.add_source_column(bk_col)
@@ -218,7 +307,7 @@ def collect_staging_specs(model: DVModel) -> dict[str, StagingSpec]:
                 # WP10: a satellite on a multi-source hub feeds each per-source staging (one
                 # satellite per source is emitted downstream, reading its own staging).
                 target_specs = [
-                    specs[multi_source_staging_name(sat_parent_hub, source)]
+                    specs[multi_source_staging_name(sat_parent_hub, source, legacy)]
                     for source in sat_parent_hub.sources
                 ]
             else:
@@ -696,6 +785,7 @@ def build_staging(
     source_schemas: list[SourceTable],
     contracts: list[dict[str, Any]] | None = None,
     source_overrides: dict[str, str] | None = None,
+    existing: DVModel | None = None,
 ) -> StagingResult:
     """The full staging pass: specs -> bindings -> rendered models + scaffolding.
 
@@ -705,8 +795,12 @@ def build_staging(
 
     ``source_overrides`` (WP9 §6) binds specs to the source tables a ratified/proposed
     business↔source mapping resolved them to (the source_mapper's re-bind); ``None`` /
-    empty leaves the WP7 inference untouched, so unmapped runs stay byte-identical."""
-    specs = collect_staging_specs(model)
+    empty leaves the WP7 inference untouched, so unmapped runs stay byte-identical.
+
+    ``existing`` (WP23 §2.6) is the vault being extended: feeds it already carried keep
+    their legacy staging names instead of gaining a WP10 source suffix. ``None`` =
+    greenfield, where nothing is grandfathered and naming is symmetric."""
+    specs = collect_staging_specs(model, legacy_feeds(existing))
     flags = bind_sources(specs, source_schemas, source_overrides)
     # Grounded runs only (ungrounded: no blocks, no source_name — byte-identical output).
     blocks = group_sources(specs, source_schemas)

@@ -265,7 +265,9 @@ untyped audit log by design. 169 tests green, ruff clean, mypy strict clean.
 The ADR author is remediated (as of 2026-07-07, WP2:
 docs/architecture/backlog-2026-07/wp2-adr-author-spec.md). The generated model ADR is now a
 per-output artifact: always ADR-0001 within its output directory, deterministic and idempotent
-(same state in → byte-identical ADR out); repo-level ADR numbering happens only when a human
+(same state AND date in → byte-identical ADR out — the date qualifier is a WP26 correction:
+`today` is injectable but defaults to the clock, so this paragraph originally overclaimed);
+repo-level ADR numbering happens only when a human
 accepts the proposal and moves it into docs/architecture/adrs/. The repo-layout coupling is
 gone (_DEFAULT_ADR_DIR/_next_adr_number/adr_dir removed — the old scheme resolved
 parents[3] into site-packages when installed as a wheel and made numbers depend on the repo's
@@ -1054,6 +1056,667 @@ loosening them: every single-kind golden had been diluted by free 1.0s from the 
 never declared, so a total miss scored 2/3 — and
 test_construct_f1_zero_when_golden_expected_but_nothing_generated now matches its own name.
 465 tests green, ruff clean, mypy strict clean (37 files).
+
+WP18 eval gate integrity landed (as of 2026-07-28, eval/ only, no src/vault_agent change;
+docs/architecture/backlog-2026-07/wp18-eval-gate-integrity-spec.md), closing the last two
+holes of the "a gate passes on absence of evidence" class after WP9.2, WP14 and the
+vacuous-_f1 fix. (§2.1) A gated scorer that produced NO score — a typo in min_scores, or a
+case whose golden_mapping.yml is missing, which makes _score_run skip the entire mapping
+family — used to disable its gate silently and exit 0; eval.run.unsatisfiable_gates (pure,
+reported before any score verdict) now prints `GATE UNSATISFIABLE: <name> is gated but
+produced no score …` to stderr and exits 1. It is deliberately separate from failed_gates:
+a batch defect must never be reported as a failed score. It is skipped when ZERO repeats
+completed, where every gate is trivially unscored and the WP14.1 BATCH INCOMPLETE line
+already states the cause. (§2.2) One vacuity convention for every scorer, single-sourced as
+scorers.VACUOUS_PREFIX ("vacuous — "): nothing to check ⇒ score 1.0 AND details starting
+with the prefix. mapping_accuracy / mapping_coverage / false_friend_hits / gap_detection
+gained it (in column mode the marker composes FIRST, the reported-only note after, so the
+startswith key holds), and confidence_calibration's polarity was inverted — it scored
+"no scored proposals" as 0.0, the pre-fix construct_f1 defect mirrored. construct_f1 /
+driving_key_accuracy keep their exact wording, now via the shared constant. (§2.3) A vacuous
+score can never satisfy a gate: the loader keeps its cheap early rejection for the model
+scorers, and the runner adds the check the loader structurally cannot make — the golden
+mapping is a separate file load_eval_case never opens — so a gated scorer that was vacuous
+in EVERY repeat is also GATE UNSATISFIABLE, exit 1. false_friend_hits now distinguishes a
+real clean bill of health ("N false-friend column(s) watched") from "none were declared".
+eval.ablate carries no min_scores gate and pinned no vacuity text, so only the details
+strings reach it. Deliberately changed pins: none needed updating — the four vacuity
+branches were unpinned and confidence_calibration's 0.0 was untested, which is how it
+survived. Acceptance #1 (deleting scale_30's golden_mapping.yml makes the runner exit 1)
+is NOT verified: the gate check runs after scoring, so the check costs a full live run —
+and, as the kick-off anticipated, the LLM calls come first. 474 tests green (+9: two
+unsatisfiable_gates unit tests, three main-level exit-code tests via a keyless stub seam,
+the cross-scorer convention test incl. vacuous_scorers pickup, gap_detection prefix order,
+false-friend non-vacuous, confidence_calibration polarity regression), ruff clean, mypy
+strict clean (37 files).
+
+WP19 put the LAST list-shaped agent on the shared truncation split (as of 2026-07-28,
+docs/architecture/backlog-2026-07/wp19-contract-truncation-split-spec.md). data_contract
+was the remaining site where a fixed width assumption could kill a run at the third
+pipeline stage: the enricher pre-chunked at _FIELDS_PER_CALL=40 and its own arithmetic
+(~200 output tokens/field ⇒ ~8,000 of the 8,192 budget) claimed that "keeps a full chunk
+well under" the cap — the review falsified it, and a denser-than-assumed chunk raised
+LLMCallError(truncated) with no recovery. Both layers are kept, deliberately: the
+pre-chunking stays as the cheap FIRST-ORDER bound (a known-wide table never pays a doomed
+full-budget probe call), and each unit now goes through llm.call_with_truncation_split
+(unit = the chunk's field list, split = exact halving via the new data_contract.split_fields,
+None at a single field; merge = the existing _merge_enrichment, which already folds fields
+across an asset's chunks). An indivisible single field that still truncates re-raises, and a
+non-truncation LLMCallError propagates unsplit — both the shared helper's contract, pinned
+here too. When any chunk of an asset had to split, ONE advisory FlagKind.INPUT_SEGMENTED
+flag is raised for that asset (asset = the asset name, message naming chunk and segment
+counts); deliberately NOT added to REVIEW_FLAG_GROUPS, so it stays individually visible like
+the parser's per-document flag. The system prompt stays byte-identical across every call
+(WP3 caching), and a run where nothing truncates makes exactly the same calls with the same
+payloads as before — pinned, together with the two pre-existing batching tests, which passed
+untouched. 478 tests green (+4: truncated chunk → halves → full field coverage + flag,
+non-truncation error propagates after exactly one call, indivisible truncation re-raises,
+no flag when nothing truncates), ruff clean, mypy strict clean (37 files).
+
+WP20 closed the trust gap between report.py and the write path (as of 2026-07-28,
+docs/architecture/backlog-2026-07/wp20-name-gates-spec.md, review findings 4+5). report.py
+treats every state string as hostile; cli.write_outputs did not — it built
+`models_dir / f"{name}.sql"` and `contracts_dir / f"{asset}.contract.yml"` straight from
+LLM-derived names, so a name carrying a path separator or `..` would have written OUTSIDE the
+output directory, and a name with spaces or uppercase produces dbt models that cannot be
+ref()'d. Four changes, all deterministic. (§2.1) A new validator gate E_BAD_NAME (error) on
+every hub/link/satellite name, against rules.CONSTRUCT_NAME_PATTERN
+(^(hub|link|sat)_[a-z0-9][a-z0-9_]*$) + is_valid_construct_name() — one source of truth in
+rules/, message naming the offending characters. It blocks BEFORE generation, so the re-model
+loop fixes it (the E_SAT_DUP_ATTR pattern). Validator codes are now 33 (22 E_/11 W_; the code
+stays the source of truth — the docstring said 30 while the ops catalogue said 32, both are
+now 33). (§2.2) A DELIBERATE prompt change: SteeringRule construct_naming (backstop=None —
+a gate refuses, it does not repair) so a deterministic formality never burns a modeling
+retry. That makes the registry 16 rules, so tests/fixtures/steering/modeler_rules_pre_wp16.txt
+was updated in the same commit — the pre-WP16 block is still a byte-identical PREFIX of the
+file (asserted while regenerating), the test comment now records the addition, and the
+steering ledger carries the new row. (§2.3) write_outputs gains cli._safe_component: every
+filename component derived from state (raw-vault models, staging models, contract assets,
+contract tests, ADR filenames) is rejected with an attributable ValueError when it holds a
+path separator, `..`, control characters, or is blank. It REFUSES, never renames — a
+sanitised name would silently disagree with the ref() inside the generated SQL. With §2.1
+upstream this is unreachable for constructs; contract asset names, which pass no such gate,
+are the reason it exists. (§2.4) The two staging-name paths are unified on
+normalize_identifier(base).lower(): staging_generator._staging_name and
+code_generator._staging_model now normalise the way _sat_staging_model already did (which in
+turn just calls _staging_model). Byte-identical for every well-formed name — the ungrounded
+staging baseline fixture and the bank demo guardrails pass untouched. (§2.5)
+E_SAT_ATTR_OVERLAP keys on the NORMALISED attribute like E_SAT_DUP_ATTR, so "Customer ID" in
+one satellite and customer_id in another satellite of the same parent — one generated column
+on that parent — is now the error it always was; both original labels are reported, and the
+single-label message is byte-identical to before. Docs updated in the same commit
+(08-validation-gates catalogue + count, dv2-rules cheatsheet, and one 02-concepts example
+that used an `eff_sat_` name the new gate rejects). 487 tests green (+9: clean model has no
+name issue, four malformed names caught with the offending character named, normalised
+overlap across satellites, disjoint attributes stay clean, three write-guard refusals with
+nothing written outside out_dir, the steering rule's registry/ledger pins), ruff clean, mypy
+strict clean (37 files).
+
+WP17 gave the CLI the crash safety the eval harness got in WP14.1 (as of 2026-07-28,
+docs/architecture/backlog-2026-07/wp17-cli-crash-recovery-spec.md, review finding 1). Until
+now ANY node raising after expensive LLM work threw everything away: _run_pipeline
+propagated, write_outputs never ran, no pending.json was written, and `resume` refused —
+while the completed nodes sat in checkpoints.sqlite under a thread_id printed nowhere. Now:
+(§2.1) pending.json carries phase "paused" | "crashed" (+ an `error` summary when crashed);
+the shape stays dict[str,str] and a pre-WP17 file without the key reads as paused (pinned).
+(§2.2) A crash triggers a RESCUE inside the saver block: record the crashed pointer — that
+pointer is what makes the thread reachable at all — then load the thread's latest checkpoint
+and write the artifacts-so-far, then RE-RAISE. Every rescue step is individually guarded and
+its failures are logged, never raised: the user must see the exception that actually killed
+the run, not one from the recovery (pinned by a test that breaks the checkpoint read). The
+thread is deliberately NOT deleted, and --no-write is honoured (pointer only). (§2.3)
+`resume` continues a crashed run with ainvoke(None) on the same thread — VERIFIED against
+the installed langgraph 1.2.4 rather than assumed (the WP8 t_link lesson): LangGraph resumes
+from the latest checkpoint and re-executes ONLY the failed node, so completed agents are not
+paid for twice (pinned: code_generator runs once across the crash+continue). If the continued
+run reaches the HITL checkpoint it becomes a paused run and is handled exactly as `run` does
+— decision flags apply immediately, a TTY prompts, a pipe prints the instructions; it never
+decides for a human who has not seen that checkpoint yet. New `resume --discard` drops thread
++ pointer for a run not worth continuing. (§2.4) At `run` start, threads pending.json does
+not reference are pruned — the SIGKILL class that never reaches an except-branch, i.e. the
+unbounded growth WP5 §5.5 fixed, reintroduced through the crash path. Listing uses the
+documented aiosqlite `conn` (verified against langgraph-checkpoint-sqlite 3.1.0); any failure
+skips pruning silently, because hygiene must never be why a run cannot start. Internally the
+three invocation paths (run / resume-with-decision / continue-crashed) are now ONE
+_invoke_checkpointed with the crash rescue in it, and _paused_state shares
+_state_from_checkpoint with the rescue. One honest limit: `run` only advertises recovery when
+a crashed pointer actually exists — a failure before the checkpointer opened (a bad input
+file) promises nothing, since there is nothing to continue. Docs updated in the same commit
+(operations 03/06/10/12: crashed phase, --discard, single-slot pending, orphan pruning, the
+new troubleshooting rows). 497 tests green (+10, all keyless against the stub graph but the
+REAL sqlite saver in tmp: crash writes pointer+artifacts and keeps the thread, cross-connection
+continuation finalises and prunes, crash→checkpoint pauses, flags applied after a
+continuation, no-flags non-TTY reports instead of deciding, --discard, rescue never masks,
+orphan pruning spares the pending thread, pause-path phase regression + legacy phase-less
+pending, no false recovery promise), ruff clean, mypy strict clean (37 files).
+
+WP21 robustness + hygiene batch landed (as of 2026-07-28,
+docs/architecture/backlog-2026-07/wp21-robustness-hygiene-spec.md, review findings 6+7a–f),
+one behaviour fix and six cleanups. (§2.1) An unreadable document no longer kills a run:
+_read_document flagged-and-skipped an unsupported EXTENSION but let a Latin-1 .md
+(UnicodeDecodeError), a corrupt PDF (pypdf) or a broken .docx propagate — against the
+module's own contract. All three extraction branches are now wrapped; the catch is
+deliberately broad (`except Exception`, commented) because pypdf's and python-docx's
+exception surfaces are not a stable API, and the failure becomes an error flag
+(MISSING_INPUT, asset = the path, message naming the exception type) plus a skip, so one bad
+file in a multi-document run does not take the run down. (§2.2) The usage recorder is
+guarded like emit_trace — its docstring promised "never disturbs the call path" while having
+no try/except, and the response is already BILLED when it fires, so a broken accounting sink
+discarding it was the most expensive failure mode available. (§2.3) A collapsed review line
+derives its `source` from its members (one distinct source, else "multiple agents") instead
+of the hardcoded "data_contract" — the aggregatable groups come from three different agents,
+and the wrong name sends a reviewer to the wrong artifact. Rendering is unchanged in shape:
+md and the HTML report both print the derived source (the CLI checkpoint never printed a
+source, which stays as it was — no per-renderer logic was added). (§2.4) The validator
+docstring drops its literal gate count; the module already declares the code the source of
+truth, and the literal had been wrong twice. (§2.5) The WP10 multi-source satellite branch
+now emits _collision_warnings once per satellite, parity with _render_satellite, which it
+skipped by `continue`-ing. (§2.6) A dropped invalid construct carries its `name` as the
+flag's asset when the record still has a usable one — every other DROPPED_RECORD names its
+construct — and stays unattributed rather than inventing one when it does not. (§2.7)
+--no-write is decided and documented as ARTIFACTS-ONLY: run state (checkpoint, pending,
+trace) is always written, or a paused --no-write run would be unresumable. `resume` gains the
+matching --write/--no-write, both help texts state the scope, and a pause reached under
+--no-write warns that the printed resume WILL write unless --no-write is repeated. Docs:
+operations 06 (flag scope, resume, unreadable documents) and 12 (new troubleshooting row).
+The report fixture needed no regeneration — it carries no collapsed group, verified rather
+than assumed. 509 tests green (+12: three unreadable-document cases via parametrize, raising
+usage recorder, single- and multi-agent collapsed source, renderer parity for the derived
+source, one collision flag on the multi-source path, dropped-record asset present/absent,
+--no-write pause stays resumable + warns, resume --no-write finalises without artifacts),
+ruff clean, mypy strict clean (37 files).
+
+WP24 multi-source composition correctness landed (as of 2026-07-29,
+docs/architecture/backlog-2026-07/wp24-multi-source-composition-spec.md, review findings
+2+3) — the only defect class in this project that produced wrong **data** rather than a
+wrong message. WP7 (satellite source_table), WP8 (role-qualified links) and WP10
+(multi-source hubs) were each correct and each tested; two of their pairwise combinations
+were not. Why the suite was blind to it, stated plainly because it is the lesson: EVERY
+existing multi-source test and the WP10 Postgres verification used the *disagreeing*-feed
+case, where canonical_hub_key_column() happens to return normalize(business_key) — so a
+call site that ignored the helper entirely produced identical output and no test could
+tell. The agreeing-feed case (feeds share a physical column name that differs from the
+business-key label) is where the helper earns its existence, and nothing exercised it.
+(§2.1) rules.canonical_hub_key_column() is the declared single source for a hub's staging
+key column but only 2 of its 5 call sites used it; the other three — link participations,
+a source_table satellite on a hub parent, and one on a link parent — read
+_to_column(hub.business_key) and so staged CUSTOMER_ID where the hub staged CUSTOMER_KEY:
+same target column, different hash input, an FK that can never join its hub. All three now
+route through the helper; role qualification composes on top
+(role_bk_column(canonical_hub_key_column(hub), role)), and the single-source path is
+unchanged by construction (the helper returns normalize_identifier(business_key) with no
+sources), which the untouched staging baseline fixture + bank/mapping demo guardrails pin.
+(§2.2) The WP7×WP10 combination — a satellite declaring source_table on a hub declaring
+sources — emitted a dbt project that CANNOT build (per-source satellites reading
+stg_<entity>_<source> while the hashdiff they reference is computed only in an orphaned
+stg_<sat base>), with zero flags. It has no defined semantics: one finer-grain relation
+cannot be the payload source of two feeds whose rows are told apart by record_source.
+Rejected now in three agreeing places, all asking ONE predicate
+(rules.source_table_on_multi_source_hub, deliberately in rules/ so validator and both
+generators cannot drift): validator gate E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB (error, so
+it blocks BEFORE generation and feeds the re-model loop — the E_SAT_DUP_ATTR pattern),
+FlagKind.GENERATION_GAP from the code generator, and the staging generator skipping the
+satellite too, so no orphan model is left behind. Validator codes are 34 (23 E_/11 W_; the
+code stays the source of truth). NB the gate was specced as E_MASAT_MULTI_SOURCE_PARENT and
+renamed during implementation — it does not check multi-active, it checks source_table ×
+multi-source parent and fires for any non-effectivity satellite type (effectivity sats
+ignore source_table by design); spec + kick-off carry the correction. (§2.3) The deliverable
+is the matrix, not the two fixes: tests/test_agents/test_feature_composition.py exercises
+all 8 WP7×WP8×WP10 cells with the expected outcome per cell in its docstring (cell 6 is the
+one deliberately "flagged, not generated"), plus the invariant that catches this whole
+class — across ALL staging models of one DV model, a target column must be hashed from
+exactly ONE input set — run over every model the suite builds elsewhere (both demo
+builders, the mapping demo's grounded model, the WP8 and WP10 fixtures), not just the new
+cells. Verified by mutation: with the src changes stashed, 8 of the new tests fail
+(including the invariant on all four multi-source cells); with them, all pass. A Postgres
+re-verification was NOT required and not performed — no rendered template changed for the
+single-source path, and the corrected multi-source staging is exercised structurally.
+541 tests green (+32: the 8-cell matrix, the invariant over 14 models, canonical link FK,
+canonical role-qualified FK, sat-on-link-parent canonical hash, the rejected cell's
+gate+flag+no-sat+no-orphan-staging, WP7-alone still generates, and 6 parametrized predicate
+cases incl. the effectivity exclusion), ruff clean, mypy strict clean (37 files). Docs:
+operations 08 gate catalogue (count + new row) and the dv2-rules cheatsheet.
+
+WP26 ADR completeness landed (as of 2026-07-29,
+docs/architecture/backlog-2026-07/wp26-adr-completeness-spec.md, review finding 4). The
+generated ADR is the pipeline's human-facing architecture record, and it omitted most of
+what WP7-WP10 taught the model to express: driving keys were not rendered AT ALL (while
+this file claimed they were — that claim is now true rather than corrected), a hub
+integrating two source systems read exactly like a single-source hub, a multi-active or
+effectivity satellite was indistinguishable from a standard one, and the ratified
+business↔source mappings lived only in mappings.review.yml. The agent stays LLM-free —
+every addition is a projection of typed state, which is what makes the record
+non-hallucinated. (§2.1) Hub lines carry the feeds plus the canonical staging key column
+read from rules.canonical_hub_key_column (never re-derived — the ADR must name the column
+staging actually builds, WP24's lesson applied to the renderer); link lines carry the
+driving key through Link.resolve_driving_refs(), rendered by the SAME helper as the
+participation list so a reader comparing the two lines needs no translation, with
+unresolvable entries silently absent (E_DRIVING_KEY_NOT_IN_LINK owns that complaint);
+satellite lines carry non-standard sat_type + child_dependent_key and the WP7 source_table.
+Beyond the spec's list: the transactional link's payload/event timestamp, because
+link_type selects automate_dv.t_link and acceptance #1 demands that anything changing what
+is BUILT is either visible or listed as omitted — the deliberate omissions (Hub.source_entity,
+a proposal's confidence/evidence, the data contracts) are now enumerated in the module
+docstring rather than left implicit. (§2.2) A conditional Source mappings section renders
+proposals (concept → TABLE.COLUMN, category, ratification status), gaps and unresolved
+concepts; absent entirely when the mapper was inert, so an ungrounded ADR is byte-identical.
+A gaps-only run still gets the section — a gap is first-class output (ADR-0008 #3), not an
+absence of one. (§2.3) The determinism claim is made TRUE by making it precise instead of
+by removing the date: byte-identical for a given state AND date, `today` injectable,
+defaulting to the clock, which is correct for a dated decision record; docstring, the WP2
+paragraph above and the (renamed, extended) determinism test now agree. Guard: the three
+construct renderers are module-level one-line-per-construct functions so WP23's delta-ADR
+can render a SUBSET without forking the formatting, and a pre-WP26 fixture
+(tests/fixtures/adr/adr_pre_wp26.md) pins the additions as strictly additive — it was
+generated from the OLD renderer with the src changes stashed, so it proves compatibility
+rather than merely self-consistency. 551 tests green (+11: the byte-identity fixture,
+multi-source feeds, canonical name from the helper on agreeing feeds, role-qualified
+driving key matching the participation list, unresolvable driving key absent, sat
+type+CDK+source_table with standard staying silent, transactional link, no section when
+ungrounded, full mappings section, gaps-only section, extended determinism), ruff clean,
+mypy strict clean (37 files).
+
+WP25 made a failed run a first-class outcome (as of 2026-07-29,
+docs/architecture/backlog-2026-07/wp25-failed-run-outcome-spec.md, review finding 1),
+closing the last place where the product's self-assessment and its externally visible
+behaviour contradicted each other. A model that never validated ended the run as a SUCCESS:
+route_after_validation sent an exhausted re-model budget to END, so the CLI printed
+"requires sign-off", wrote review-queue.md saying **requires sign-off**, wrote no ADR, wrote
+no pending.json — and exited 0. Three independently wrong consequences: automation could not
+tell a failed model from a good one; the queue pointed at a checkpoint that did not exist
+(`resume` answered "No unfinished run found"); and — the structural one —
+HumanReviewQueue.requires_signoff has ALWAYS counted a validation error as blocking, but
+`passed` is false precisely when an error issue exists, so that branch could never fire from
+the graph. The product documented a human gate it never opened. (§2.1) The exhausted budget
+now routes to HUMAN_CHECKPOINT_NODE, so that branch is LIVE: the run pauses with the errors
+in the queue and the human decides. It deliberately does NOT go through the source mapper
+first, unlike the passing path — mapping concepts of a model that may be discarded spends
+LLM calls on output that may never be used (pinned by a test asserting source_mapper is
+absent from the failed path's decisions). (§2.2) New exit code 3 = "completed, but the model
+does not validate", keyed on validation_report.passed at every point a CLI invocation ends —
+1 stays pipeline failure, 2 stays Click usage, and a pause for an unassigned contract owner
+stays 0. It fires whether the run is still paused OR a human accepted at the checkpoint:
+accepting does not make the artifacts valid. One plain line says what the artifacts are for
+(diagnosis, not deployment). (§2.3) adr_author renders a prominent caveat directly under the
+header — not buried in Consequences — naming the surviving error codes and constructs
+(matched on severity, never message text) and stating the model was accepted despite them;
+an ADR documenting a known-broken model silently would be worse than no ADR. It keys on the
+error ISSUES rather than on `passed` alone, because ValidationReport.passed defaults to False
+and a state that never reached the validator would otherwise get a caveat announcing "0
+surviving errors". Also fixed, a wrongness this WP made reachable: the pause message told the
+human to "assign the contract owner(s)" even when nothing was waiting for an owner — it now
+names the two decisions that actually apply (--accept / --discard) when no contract_owner item
+is in the queue, and is byte-identical otherwise. Live evidence, both paths: `run` → exit 3
+with the pause and the explanation; `resume --accept` → "run finalized" + exit 3, ADR carrying
+"E_SAT_DUP_ATTR (sat_customer_details)". Docs: exit-code table (operations 06 §6.6, incl. why
+3 is the one to script against), the "three failed attempts" line that was NOT true of the
+exit code, two troubleshooting rows, and a dated refinement note in ADR-0006 (the architecture
+overview needed none — it already described this behaviour, which is the point).
+test_persistent_failure_stops_at_retry_cap was updated DELIBERATELY (it encoded the old
+contract) and still pins the bound: the modeler runs exactly MAX_MODELING_ATTEMPTS times.
+557 tests green (+6: checkpoint reached with requires_signoff and an interrupt, accept →
+finalise with the caveat, CLI exit 3 + resumable pending + no ADR yet, accept → exit 3 with
+the caveat on disk, --discard, mapper absent from the failed path), ruff clean, mypy strict
+clean (37 files).
+
+WP27 hygiene landed (as of 2026-07-29,
+docs/architecture/backlog-2026-07/wp27-ci-retry-hygiene-spec.md, review finding 5), three
+small things. (§2.1) CI type-checked LESS than the DoD: `.github/workflows/ci.yml` ran
+`uv run mypy src`, and an explicit path OVERRIDES pyproject's
+`files = ["src/vault_agent", "eval"]` — so eval/ (2,000+ lines carrying the quality gates
+everything else leans on) was strict-checked locally and not in CI. The workflow now runs
+the bare `uv run mypy`, with a comment stating why the invocation must stay bare.
+METHOD NOTE worth keeping: the first verification of this used
+`uv venv` + `uv pip install -e ".[dev]"` and reported a FAILURE
+(`eval/run.py:190: Unused "type: ignore"`), which would have been a false alarm —
+`uv pip install` ignores uv.lock and resolves fresh versions, while CI uses `uv sync`.
+Re-run CI-faithfully via `UV_PROJECT_ENVIRONMENT=<tmp> uv sync --extra dev`, the whole CI
+job is green (mypy 37 files, 567 tests, ruff) with no extra dependency needed. It does show
+the ignore is version-sensitive: an unlocked resolution flags it, so a langgraph bump may
+require touching that pragma. (§2.2) The retry policy honoured no server advice: 408/429/5xx
+were retried at a fixed 2/4/8 s, so a key answering `Retry-After: 30` failed the whole call
+after ~14 s of waiting guaranteed to be too short, and parallel runs (eval --repeat, ablation
+arms) retried in lockstep and re-collided. ForcedToolCaller now derives each delay from the
+failure that caused THAT retry: `retry-after-ms` then `retry-after` (read defensively —
+verified against the installed anthropic 0.107.0, where APIStatusError.response is an
+httpx.Response; a non-numeric HTTP-date value falls through rather than being guessed at),
+else the exponential base with EQUAL jitter (d/2 + rng()*d/2, chosen over full jitter because
+the failure mode is a rate-limit collision: decorrelate, but never retry almost immediately).
+Every wait is capped at _MAX_RETRY_DELAY_SECONDS=60 so a hostile header cannot hang a run,
+and logged at INFO with its length and which policy applied. rng is injectable next to the
+existing sleep seam; the test helper injects rng()==1.0, which collapses equal jitter to
+exactly the base delay, so the pre-WP27 2/4/8 assertions keep pinning the same ladder
+unchanged. Status set, _MAX_RETRIES, non-retryable propagation and trace events are
+untouched. (§2.3) cli._read_pending did a bare json.loads and `resume` called it outside any
+try, so a truncated or hand-edited pending.json — a file WP17 now points users at — surfaced
+as a raw JSONDecodeError traceback. It raises an attributable ValueError naming file and
+problem (house loader style), also rejecting a document without a thread_id; `resume` catches
+it and exits 1 with the message. The instructions deliberately do NOT offer `--discard`: it
+reads the same pointer and would fail identically — deleting the file by hand is the only way
+through, and the orphaned thread is pruned by the next run. The already-guarded callers
+(_report_crashed, _prune_orphan_threads) keep swallowing it, pinned by a test. 567 tests green
+(+10: Retry-After honoured, retry-after-ms, absurd header capped, unparseable header falls
+back, jitter halves at rng()==0 and never exceeds base, connection error without a response,
+CI workflow drift guard, corrupt pointer message, missing thread_id, guarded callers still
+swallow), ruff clean, mypy strict clean (37 files).
+
+WP22 streaming landed (as of 2026-07-29, ADR-0010 Accepted,
+docs/architecture/backlog-2026-07/wp22-streaming-spec.md), lifting the transport ceiling
+that blocked scale_100/300. ForcedToolCaller.call moved from the non-streaming create to
+the SDK's streaming helper (`async with client.messages.stream(...) as stream:` +
+`await stream.get_final_message()`) as ONE code path — no streaming/non-streaming
+conditional, because a second path is a second thing that can rot. Everything else is
+byte-identical: same forced single tool + tool_choice, same cache-controlled system block
+(WP3 caching and the WP16 fixture pins untouched), same retry matrix, same truncation
+detection, same usage capture and WP15 trace events. Verified against the INSTALLED SDK
+rather than assumed (the WP8 t_link lesson): `get_final_message()` returns the accumulated
+Message with cache_read_input_tokens folded in by the accumulator, and both failure
+surfaces stay inside the existing try — the initial request is awaited by the manager's
+`__aenter__` (so an APIStatusError there still carries status_code for the retry matrix),
+a mid-stream failure surfaces from `get_final_message()`. Two numbers corrected while
+implementing: the non-streaming limit was never "roughly 16k" — the SDK raises when
+3600*max_tokens/128_000 > 600, i.e. above 21,333 — and `claude-opus-4-8` allows 128,000
+output tokens (confirmed against the live Models API, not memory). The modeler budget went
+16384 -> 32768, deliberately NOT to the model maximum: it clears the ~26k 300-table
+extrapolation with ~26% headroom while bounding a runaway generation's cost, and the
+constant is now PINNED by a test (it had been unpinned) that also asserts the rationale
+cites ADR-0010, so the next person raising it finds the exit condition — staged modelling /
+domain partitioning — instead of just bumping the number again. Test seam: the stub client
+offers ONLY `messages.stream` (a plain method returning an async CM), which is what proves
+acceptance #1's single path — `grep messages.create src/vault_agent` finds nothing. Every
+pre-existing test_llm.py behaviour is re-pinned against streaming by construction.
+Acceptance #3 (live smoke) is CLOSED, not deferred: a real emit_dv_model call on
+claude-opus-4-8 streamed at max_tokens=32768 and landed in the trace with
+stop_reason=tool_use, 629 in / 759 out tokens and the full payload (2 hubs, 1 link, 2
+satellites incl. an effectivity sat). 573 tests green (+6: single-path proof, request-kwargs
+identity, payload/usage/trace from the final message, retryable and non-retryable errors
+while opening the stream, budget pin), ruff clean, mypy strict clean (37 files). NB the
+scale_100/300 measurements this unblocks are still OPEN — the transport no longer caps them,
+which is not the same as having run them.
+
+WP23 brownfield mode, Phase 1 CORE landed (as of 2026-07-29, charter
+docs/architecture/backlog-2026-07/incremental-extension-charter.md Accepted, spec
+wp23-incremental-extension-spec.md). PARTIAL — read the open list at the end of this
+paragraph before assuming a piece exists. `run --existing <dir|file>` extends a previously
+generated vault instead of modelling into an empty target: the everyday DV2.0 scenario, and
+per the charter the methodically correct answer to the scale axis (nobody models 300 tables
+in one pass; they model domain by domain into a growing vault). The inertness guard was
+written and committed FIRST (tests/test_greenfield_inertness.py): the whole write_outputs
+tree of a bank run is pinned as a per-file sha256 manifest, so without the flag every
+artifact stays byte-identical and a deliberate addition has to be named in _EXPECTED_NEW;
+the WP10, staging-regression and both demo guardrails passed untouched throughout.
+(§2.1) write_outputs now also emits metadata/dv_model.yml — the LOGICAL model. This
+CORRECTS the charter's §3.1 guess that automatedv.yml could be round-tripped: that file is
+the RENDERED macro view and carries no descriptions, requirement_ids, sat_type, driving
+keys, source_table or Hub.sources, so reconstructing a DVModel from it would have had to
+invent exactly the fields it lost. New loader src/vault_agent/existing_model.py in the
+source_schema house style; a pre-WP23 output directory is an attributable error telling the
+user to regenerate once, never a guess. (§2.2) state.existing_model (checkpointer-safe, so
+resume needs no flag), --existing/-e, ExecutionPlan.extending, run-summary mode line.
+(§2.4) agents/model_merger.py: new constructs append in delta order; an existing hub matched
+BY NAME gains only its new source feeds (normalised dedup per E_HUB_DUP_FEED). A changed
+business key or a re-stated link/satellite is a migration, so it is flagged
+FlagKind.EXTENSION_CONFLICT and DROPPED rather than applied — the merged model therefore
+still satisfies the gates and the human sees one story. The existing model is never mutated.
+One subtlety worth knowing: when a single-source hub gains a feed, its original feed is
+implicit (Hub.sources empty), so the merger materialises it as (source_entity, business_key)
+— otherwise the merge would silently drop the legacy feed the moment sources became
+non-empty. (§2.5) Five additive gates over (existing, merged), inert when greenfield:
+E_EXISTING_REMOVED / _BK_CHANGED / _GRAIN_CHANGED / _SAT_RESHAPED plus the advisory
+W_EXISTING_EXTENDED inventory (the review queue's extension category — validation warnings
+already flow there, so charter Q5 needed no new ReviewKind). Per charter Q3, satellite
+attribute GROWTH counts as a reshape too: a new attribute on a satellite with history is a
+backfill, and new attributes belong in a NEW satellite on the same parent. (§2.6)
+Grandfathering, the trickiest part: a feed the vault already had keeps its legacy
+stg_<entity> name instead of gaining a WP10 source suffix, and an existing satellite is
+NEVER split per source — either would rename a materialised dbt model holding history, i.e.
+perform the destructive migration this track exists to refuse. Derived from the existing
+model (no new state field), so greenfield naming stays symmetric. (§2.3) The modeler gains
+an extension prompt section: a compact IMMUTABLE inventory plus delta-only instructions,
+returning '' when greenfield so the WP16 steering fixture and prompt caching are untouched.
+604 tests green (+31 across loader round-trip, merger, the five gates, grandfathering and
+the prompt section), ruff clean, mypy strict clean (39 files).
+(§2.7) The extension diff is a first-class artifact: extension-diff.md plus an Extension
+section in the HTML report, both rendering the SAME state.artifacts.extension_diff so they
+can never disagree. Three sections — unchanged / extended / new — and the load-bearing part,
+FILE-CHANGE ATTRIBUTION: which generated files a pre-existing construct's SQL actually
+changed in, computed by regenerating the existing model alone through the real generator and
+diffing the rendered artifacts (no heuristics; the same generator means any difference is a
+real one). That is what makes charter §3.2's "unchanged SQL means unchanged tables" a promise
+a reviewer can CHECK rather than take on faith — a grandfathered hub's SQL legitimately
+changes when it starts unioning a second staging model, and the diff names that file.
+Attribution failures are logged, never fatal: the diff is a reporting aid and must not cost
+a user their artifacts. (§2.8) The delta-ADR documents only what this run decided — existing
+constructs are not re-listed — plus an "Extends" section naming the source vault, its
+construct counts and the diff artifact. WP26's module-level construct renderers were built
+for exactly this and needed no forking, as intended.
+Two bugs found and fixed while building the diff, both worth recording because they are the
+same class — an implicit feed counted as if it were explicit. (1) legacy_feeds originally
+grandfathered EVERY feed of a multi-source hub; for a hub that was already multi-source in
+the existing vault that is wrong twice over — it would rename models generated with WP10
+suffixed names, and every one of them would collapse onto the same unsuffixed name. Only the
+implicit feed of a hub that was SINGLE-source can own stg_<entity>, which is now what the
+helper returns (pinned by a three-feed no-collision test). (2) The diff's "new feeds" count
+used positional slicing and so reported the materialised legacy feed as an addition; it now
+asks the same legacy_feeds helper, so a reviewer is never told a feed appeared that has been
+there all along.
+613 tests green (+9 over the core commit: diff classification, file attribution, the
+markdown artifact, the delta-ADR and its greenfield absence, the report section incl. hostile-
+name escaping, and the multi-source grandfathering regression), ruff clean, mypy strict clean
+(40 files). The two write_outputs count assertions were updated deliberately for the new
+extension_diff key (the WP11 "report" precedent).
+Acceptance #2 is MET: the bank_extension eval case is the first case that runs the pipeline
+in extension mode. It ships the previously generated bank vault as existing_vault.yml (the
+demo/bank_postgres model, the one verified on a real warehouse), a CRM source schema and CRM
+extension requirements; the golden is the expected MERGED model — the five existing
+constructs unchanged plus hub_campaign, link_campaign_customer, sat_campaign_details and,
+per REQ-107, sat_customer_marketing as its OWN satellite on the existing hub rather than an
+extension of sat_customer_details (which would be a backfill migration). Deliberately
+conservative in the bank case's tradition: a responsible-manager hub and campaign-response
+timing are defensible and are NOT golden, so a run that models them loses a little precision
+instead of being required to guess the same way. EvalCase gains `existing` (resolved like the
+other input paths) and eval/run.py feeds it as state.existing_model — the same input the
+CLI's --existing provides. New scorer existing_construct_preservation: the share of the
+extended vault's constructs that survived unchanged (not removed, not re-keyed, payload not
+reshaped), gated at exactly 1.0 because this is the promise the mode makes — anything less
+is a defect, not a quality signal. It deliberately re-measures what the E_EXISTING_* gates
+enforce: an eval scorer checks the OUTCOME, since the mechanism could itself be wrong or be
+bypassed by a future re-model mode. It is vacuous (1.0, VACUOUS_PREFIX) on greenfield, and
+load_eval_case now REFUSES to let a greenfield case gate it — the WP18 rule applied to the
+new scorer. Two pins updated deliberately: the shipped-case list and the bank case's exact
+score set (which gains the vacuous 1.0). 620 tests green, ruff clean, mypy strict clean.
+bank_extension was then RUN LIVE (2026-07-29, 3x3 runs) and earned its keep immediately by
+finding two product defects and one design limitation — which is what an eval case is for.
+Measured after the fixes: existing_construct_preservation 1.000 (the promise holds against a
+real LLM), construct_f1 0.855, driving_key_accuracy 1.000, pipeline_health 1.000; the case's
+gates pass and `eval.run` exits 0. (Defect 1) The merger flagged EXTENSION_CONFLICT on every
+run for a delta that was CORRECT: Hub.source_entity is required, so a delta re-stating a hub
+to add a feed must supply one, and the only sensible value it has is the NEW source's
+(`crm_contact` vs the existing `customer`). Unlike the business key, source_entity is a
+modelling input the collision gates read, not part of the hub's stored identity — nothing
+hashed depends on it — so the check is gone and the existing value is simply kept. (Defect 2)
+Source-schema grounding warned about every PRE-EXISTING attribute, because the declared
+schema describes the source this increment integrates while the existing constructs were
+grounded against a different one when they were created. One warning per old attribute is
+pure noise and it is what pushed the case over its warning tolerance; grounding now skips
+constructs present in existing_model (inert on greenfield). Warnings fell 16 -> 9.
+(Limitation, NOT fixed — recorded in the case file and here) Validation still FAILS on this
+case, so validation_gate reports 0.0; it is reported, not gated, and the expectation was
+deliberately NOT flipped to hide it. Two stable causes across all 6 runs: (a)
+E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB fires on the NATURAL brownfield shape — the modeler
+correctly reads REQ-107 and emits a satellite fed by crm_contact on the now-multi-source
+hub_customer. WP24 rejected that combination on the grounds that one relation cannot feed
+two independent feeds, which is true when the satellite describes ALL of them and false
+here, where it describes ONE. A steering rule was added through the WP16 registry and did
+NOT prevent it (0/3 runs) — a clean datapoint that this needed a modelling decision rather
+than more prompt text. That decision is now written: ADR-0011 (Proposed, 2026-07-29), which
+narrows the gate instead of removing it — a satellite whose source_table NAMES one of the
+hub's feeds binds to that feed and is generated once; everything else stays an error. It
+rests on a measured fact worth keeping: with source_table left unset (what the steering
+asks for) the WP10 split demands the CRM's columns from the CORE banking staging too, so
+the alternative the gate steers to does not build either. bank_extension's validation_gate
+is that ADR's acceptance signal. The prompt fixture and the steering ledger were
+updated deliberately in the same commit (WP20 precedent), with the pre-WP16 block asserted
+to still be a byte-identical prefix. (b) E_HUB_HK_COLLISION on hub_campaign/hub_employee:
+the modeler gives both source_entity 'crm_campaign'; a genuine modelling smell the gate
+correctly catches, and hub_employee is not golden. Method note: after the first live run,
+the second and third diagnoses came from REPLAYING the stored trace through merge+validate
+at zero API cost — the 2026-07-28 lesson applied.
+Spec §3.8 and the docs are done: CLI tests cover --existing as a directory and as the file
+itself (both reaching a real extension through the graph with the REAL code generator, so the
+diff artifact is actually asserted rather than stubbed away), the greenfield mode line, the
+attributable pre-WP23 error, and typer's exists=True usage error; operations 06 gains §6.7
+(brownfield mode: the may/may-not table keyed to the E_EXISTING_* codes, why regenerating
+everything is safe, grandfathering, the delta-ADR, and the known limitation), plus the
+--existing row, the mode line, dv_model.yml and extension-diff.md in the output anatomy, and
+three troubleshooting rows. Also implemented here: the counts key `model` that §2.1 asked for
+and the core commit missed. 627 tests green, ruff clean, mypy strict clean (40 files).
+WP23 acceptance #3 is MET (2026-07-29, PostgreSQL 16 + AutomateDV 0.11.4): the extension
+output builds green ON TOP of a previously built vault. Method: the fixed bank model was
+generated and built into an isolated schema (`dbt build --full-refresh`, PASS=12) — that is
+the "existing vault"; its metadata/dv_model.yml then fed a deterministic CRM extension (no
+LLM: hub_customer gains a crm_contact feed, plus hub_campaign, link_campaign_customer,
+sat_campaign_details, and sat_customer_marketing BOUND to the crm_contact feed — the
+ADR-0011/WP28 shape); the v2 project was built over the same schema **without
+--full-refresh**: PASS=22 WARN=0 ERROR=0, and a second run changed nothing (idempotent).
+Data-level additivity, which is what the charter asked for rather than SQL-level: 5 of the 6
+pre-existing constructs are byte-identical by row count AND content hash
+(hub_account, link_account_customer, sat_customer_details, sat_account_details,
+sat_account_customer_eff). The single change is hub_customer, and it is purely additive —
+all 3 original BANK.CORE rows still present with their original load timestamps, plus 1 row
+for the CRM-only customer. The integration property holds at the data level: CH-1001 and
+CH-1002 each have ONE hub row carrying BOTH a core satellite row and a CRM satellite row,
+CH-1003 is core-only, CH-9001 CRM-only. New constructs populated (campaign 2, targeting 3,
+campaign details 2, marketing 3). This also proves WP28 on a warehouse rather than
+structurally: sat_customer_marketing is a satellite bound to one feed of a multi-source hub,
+and it builds and loads.
+The build found one more defect first — before the database was touched, which is the point
+of probing: a GRANDFATHERED feed kept its staging model's NAME but not its BINDING. The
+merger materialises a single-source hub's implicit feed as (source_entity, business_key),
+and the multi-source branch bound every feed verbatim to its source_table, so `stg_customer`
+silently stopped reading `raw_customer` and started reading `customer` — a relation that does
+not exist (the build breaks) or does and is the wrong data. A legacy feed now gets NO binding
+in that branch and keeps the one bind_sources derives, exactly as the single-source hub did.
+Preserving the name without the binding is not preserving the model; pinned by a test that
+compares the before/after `source_model` directly. 640 tests green, ruff clean, mypy strict
+clean (40 files). WP23 Phase 1 is COMPLETE — every acceptance item met.
+
+The brownfield Phase 2 spike ran (2026-07-29,
+docs/architecture/backlog-2026-07/spike-entity-resolution-charter.md ->
+spike-entity-resolution-results.md), following the mapping spike's protocol: charter first,
+throwaway prototypes under spike/ (deleted at the end), only docs and eval assets survive.
+The charter set one thing apart from its template and it shaped everything: entity resolution
+is NOT symmetric. A false merge — declaring a new source's concept to BE an existing hub when
+it is not — pushes foreign business keys into a table holding live history, while a false
+split costs a redundant hub someone deletes. So the primary metric is a zero-false-merge
+requirement, never averaged with accuracy. Measured, 5 repeats per configuration on a golden
+set carrying four trap classes (synonym hub / false friend / similar-name-new-hub /
+same-as candidate, with two concepts sharing the "PARTNER" stem resolving in OPPOSITE
+directions so a name-matcher cannot pass both): BOTH mechanisms produced zero false merges
+across 25 runs; LLM-first scored 1.000 on all four metrics clean vs deterministic-first's
+0.667 accuracy, at +13% input tokens, one call, Sonnet-tier. The decisive evidence is the
+blinded probe — names masked to TBL_01/COL_01_02 and every comment stripped — where it
+answers `unresolved` at confidence 0.35 exactly where it can no longer know while staying
+right where structure alone decides, and its calibration margin RISES (0.054 -> 0.270 ->
+0.383). It degrades honestly instead of guessing confidently, which was the disqualifying
+test. Secondary finding worth acting on: the twice-deferred same-as concept is reliably
+distinguishable (identified 5/5 clean AND when blinded), so it can become a model field.
+Recommendation (for Mischa): build it LLM-first, grounding-gated, as a PRE-MODELING step with
+its own ratification file rather than a modeler prompt section — once the modeler names a
+construct, WP23's merge_models folds it by name and the decision is already made. Four
+conditions are written into the memo, of which two matter most: the confidence CATEGORY must
+be derived deterministically from the evidence (the model's self-reported category was wrong
+on every exact-key case even where its answer was right), and the golden set must GROW before
+a WP is scoped on it. The memo is deliberately explicit about what six concepts on one case
+does not establish — including that the golden set and the prompt were written in the same
+session by the same author, a real confound the blinded probe mitigates but does not remove.
+Surviving assets: eval/datasets/brownfield_resolution/, eval/resolution.py, four scorers in
+eval/scorers.py with 15 keyless tests, and the raw runs under eval/results/spike_resolution/.
+655 tests green, ruff clean, mypy strict clean (41 files). Spike cost: ~$0.30.
+
+The spike's recommendation was accepted and specced as WP29
+(docs/architecture/backlog-2026-07/wp29-entity-resolution-spec.md + kick-off), NOT yet built.
+Two things about it are worth knowing before someone picks it up. (1) The golden set gained a
+FIFTH trap after the spike ran — `undecidable`: a legacy migration register whose key has the
+same format as the national customer ID, with no cross-reference table and nothing in the
+schema that settles whether the populations overlap. The only correct answer is `unresolved`.
+It exists because the memo criticised its own measurement for never offering the hardest
+case, and it is now MEASURED (memo §6a, 2026-07-29): `unresolved` 5/5 clean, with evidence
+naming the missing cross-reference explicitly — "no explicit cross-reference is provided …
+merging risks injecting legacy keys into live history … a data lineage review or explicit key
+mapping is required". WP29 acceptance #2 is met. Two findings from that measurement are worth
+carrying: (a) the FIRST probe used a prompt into which I had written a sentence describing
+trap 5 almost verbatim — teaching to the test, exactly the confound the memo warned about.
+Re-measured without it: identical result. The confound was real and did not carry the result,
+and the check is recorded because performing it is the point. (b) BLINDED, trap 5 flips to
+`NEW` at confidence 0.88 — no false merge, but a confident wrong answer where the other
+blinded concepts correctly fell to 0.35. The honest reading is that the blinded probe cannot
+test this trap at all, because the trap's difficulty lives entirely in the comment that
+blinding removes; the concept should be excluded there rather than read as a failure. What
+survives as a genuine limit: the mechanism is honest where it can SEE that it lacks evidence,
+and confident where the evidence of its own uncertainty is what got removed. WP29 must
+therefore not lean on the confidence number alone — the derived category is what carries the
+reviewer's attention. (2) Two spec
+decisions come from measured failures rather than taste: the confidence CATEGORY is derived in
+rules/ because the model self-reported `semantic` for every case including the exact-key ones
+where it was right, and the resolver is a PRE-MODELING step with its own ratification file
+because once the modeler names a construct, WP23's merge_models folds it by name and the
+decision is already made.
+
+WP29's DETERMINISTIC CORE is built (2026-07-29) — the agent, graph wiring, ratification file
+and CLI are NOT, and that split is deliberate rather than an accident of where the session
+ended: the core is the part that is fully testable without an LLM, so it is worth landing on
+its own. state.py gains ResolutionProposal / EntityResolution (with `is_merge`, the property
+the zero-false-merge requirement is expressed in) plus the reserved answers NEW /
+same_as_candidate / unresolved as RESOLUTION_CLASSES, and state.resolutions. rules/ gains
+resolution_category(), which DERIVES the confidence tier — exact_key > key_overlap >
+comment_grounded > semantic — from the schema and the evidence rather than trusting the
+resolver's own claim. That helper exists because of a measurement, not a preference: the
+spike's resolver reported `semantic` for every case including the exact-key ones where its
+answer was right, so a self-reported category cannot carry a reviewer's attention. A test
+pins exactly that contrast (claimed `semantic` vs derived `exact_key` on the same proposal).
+660 tests green (+5), ruff clean, mypy strict clean (41 files). What remains for WP29:
+agents/entity_resolver.py (one forced-tool pass, grounding-gated, inert without BOTH an
+existing model and a declared schema), graph placement before dv2_modeler,
+resolutions.review.yml + `resume --resolve`, the two review-queue flag kinds, and the live
+acceptance runs of spec §4.
+
+WP28 satellite feed binding landed (as of 2026-07-29, ADR-0011 Accepted,
+docs/architecture/backlog-2026-07/wp28-satellite-feed-binding-spec.md), implementing the
+decision WP24 §5 deferred and WP23's live run forced. A satellite whose `source_table` NAMES
+one of its multi-source hub's feeds is now generated ONCE, bound to that feed's staging —
+the DV2.0-canonical one-satellite-per-source shape the pipeline used to reject. The gate
+narrowed rather than disappeared: `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` keeps its name and
+now errors only when the named table is not a feed at all, because a finer-grain relation
+UNDER one feed cannot say which feed it belongs to and inventing that binding is not
+something this project does; the message lists the available feeds. New
+`rules.satellite_feed()` answers "which feed?" beside the existing predicate, so all three
+call sites still ask one place. Two things the implementation had to get right and did:
+the type restriction (only standard satellites split) belongs to the SPLIT, not to binding —
+a multi-active satellite bound to one feed is an ordinary satellite, so the check moved
+below the binding branch; and a grandfathered LEGACY feed matches by name like any other, so
+an extension satellite naming it reads the unsuffixed `stg_<entity>` (pinned, not assumed).
+The staging fix is what inverts the ADR's probe: a bound satellite's columns and hashdiff go
+to THAT feed's spec only, so the core banking staging stops being asked for the CRM's
+columns. Measured before/after on the same model — before: both stagings demand
+MARKETING_SEGMENT and two satellites are emitted; after: only `stg_customer_crm_contact`
+does, and one satellite is. WP16 bookkeeping: the `no_source_table_on_multi_source_hub`
+steering rule added the same day is DELETED — it argued against the shape the ADR blessed —
+with the prompt fixture regenerated and the ledger row moved to a deleted state carrying its
+evidence (0/3 effective). It is the ledger's first rule retired on measurement rather than
+taste, which is what LOOPS rule VIII asked for. The WP24 composition matrix's cell 6 split
+into 6 (feed-naming, generated) and 6b (non-feed, still flagged), and the one-hash-input-set
+invariant holds over both. LIVE ACCEPTANCE (3 repeats, 2026-07-29): the primary signal is
+met — all three runs emit the REQ-107 satellite with `source_table='crm_contact'`, the gate
+fires 0/3, and each generates exactly one `sat_customer_marketing` bound to
+`stg_customer_crm_contact`. Reported alongside per the ADR's sharpened signal:
+`validation_gate` rose 0.000 -> 0.667 (it is confounded by `E_HUB_HK_COLLISION` on
+hub_campaign/hub_employee, which the modeler produces on some runs and which was explicitly
+out of scope), `existing_construct_preservation` stayed 1.000, `construct_f1` 0.855. Docs
+updated in the same commit: gate catalogue (narrowed meaning + the dated note that WP24
+originally rejected everything), WP24 spec §5 (resolved, history not rewritten), operations
+§6.7 (the limitation paragraph became guidance) and the troubleshooting row. 639 tests green
+(+9), ruff clean, mypy strict clean (40 files).
 
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF

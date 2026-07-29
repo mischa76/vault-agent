@@ -82,6 +82,7 @@ Each rule is one of two tiers:
 |---|---|---|
 | `E_NO_HUBS` | error | model has no hubs |
 | `E_DUP_NAME` | error | a construct name is not unique |
+| `E_BAD_NAME` | error | a construct name is not `hub_`/`link_`/`sat_` + lowercase snake_case |
 | `E_HUB_NO_BK` | error | hub has no business key |
 | `W_HUB_NO_SAT` | warning | hub has no satellite |
 | `E_LINK_TOO_FEW_HUBS` | error | link connects fewer than two hubs |
@@ -91,7 +92,7 @@ Each rule is one of two tiers:
 | `W_LINK_REDUNDANT_GRAIN` | warning | two links, identical hub set + type |
 | `E_SAT_UNKNOWN_PARENT` | error | satellite parent is not a known hub or link |
 | `E_SAT_NO_PAYLOAD` | error | satellite has an empty payload |
-| `E_SAT_ATTR_OVERLAP` | error | an attribute appears in two satellites of one parent |
+| `E_SAT_ATTR_OVERLAP` | error | an attribute (normalised) appears in two satellites of one parent |
 | `W_SAT_WIDE` | warning | satellite attribute count over the heuristic threshold (30) |
 | `E_MASAT_NO_CDK` | error | multi-active satellite without a child dependent key |
 | `E_EFFSAT_PARENT_NOT_LINK` | error | effectivity satellite parent is a hub, not a link |
@@ -106,6 +107,7 @@ Each rule is one of two tiers:
 | `W_EFFSAT_DATE_ORDER_UNVERIFIED` | warning | effectivity date order can't be verified from the tokens (heuristic non-match) |
 | `W_SAT_MAYBE_EFFECTIVITY` | warning | standard sat on a link carrying a from/to date pair (likely a mis-modelled eff-sat) |
 | `W_MASAT_SHARED_GRAIN` | warning | multi-active satellite with no `source_table` (shares the parent's grain) |
+| `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` | error | satellite declares `source_table` while its parent hub declares several `sources` |
 | `E_LINK_DUP_ROLE` | error | two link participations with identical `(hub, role)` |
 | `E_MISSING_COLUMN` | error | a generated construct is missing a DV-required column |
 | `W_BK_NOT_IN_SOURCE` | warning | business key matches no column in the declared source schema (grounding) |

@@ -291,3 +291,52 @@ def test_tool_schema_exposes_satellite_source_table() -> None:
     sat_schema = _tool_schema()["properties"]["satellites"]["items"]
     assert "source_table" in sat_schema["properties"]
     assert any("source_table" in rule.text for rule in DV_MODELING_RULES)
+
+
+# --- WP21 §2.6: a dropped record names the construct it was --------------------------------
+
+
+async def test_dropped_record_carries_its_name_as_asset() -> None:
+    """Every other DROPPED_RECORD flag names its construct; "one hub was invalid" is not
+    something a reviewer can act on."""
+    from vault_agent.state import FlagKind
+
+    payload = _valid_payload()
+    payload["hubs"].append({"name": "hub_broken"})  # missing required fields
+    result = await Dv2ModelerAgent(extractor=StubExtractor(payload)).run(_state())
+
+    [flag] = [f for f in result.flags if f.kind == FlagKind.DROPPED_RECORD]
+    assert flag.asset == "hub_broken"
+
+
+async def test_dropped_record_without_a_usable_name_stays_unattributed() -> None:
+    """A record too broken to carry a name gets no asset — never an invented one."""
+    from vault_agent.state import FlagKind
+
+    payload = _valid_payload()
+    payload["hubs"].append({"business_key": "k", "name": "   "})  # blank name
+    result = await Dv2ModelerAgent(extractor=StubExtractor(payload)).run(_state())
+
+    [flag] = [f for f in result.flags if f.kind == FlagKind.DROPPED_RECORD]
+    assert flag.asset is None
+
+
+# --- WP22 §2.3: the output budget is a deliberate number, not an accident ----------------
+
+
+def test_modeler_output_budget_is_pinned_with_its_rationale() -> None:
+    """The modeler is the one agent that cannot split its output, so this constant IS the
+    scaling strategy — it must not drift silently.
+
+    16384 was a stopgap bounded by the non-streaming transport; WP22 made the shared caller
+    stream (ADR-0010), so the bound is now the model's 128,000-token output limit and the
+    budget covers the ~26k @ 300-tables extrapolation with headroom."""
+    import inspect
+
+    from vault_agent.agents import dv2_modeler
+
+    assert dv2_modeler._MAX_TOKENS == 32768
+    source = inspect.getsource(dv2_modeler)
+    # The rationale must point at the decision record, so the next person raising this
+    # number finds the exit condition (staged modelling) rather than just bumping it again.
+    assert "ADR-0010" in source

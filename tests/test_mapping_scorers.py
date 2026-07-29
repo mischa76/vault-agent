@@ -21,8 +21,10 @@ from eval.mapping import (
     concepts_for_prototype,
     load_golden_mapping,
 )
+from eval.run import vacuous_scorers
 from eval.scorers import (
     MAPPING_SCORERS,
+    VACUOUS_PREFIX,
     confidence_calibration,
     false_friend_hits,
     gap_detection,
@@ -416,3 +418,57 @@ def test_load_golden_mapping_empty_is_empty() -> None:
     golden = GoldenMapping.model_validate({})
     assert not golden.mappings and not golden.gaps
     assert math.isclose(mapping_accuracy(ProposedMapping(), golden).score, 1.0)
+
+
+# ── WP18: one vacuity convention across the mapping family ──────────────────────────────
+def test_every_mapping_scorer_marks_a_vacuous_verdict_the_same_way() -> None:
+    """Nothing to check ⇒ score 1.0 and details starting with the shared prefix.
+
+    The prefix is the only thing ``eval.run.vacuous_scorers`` keys on — it both marks the
+    console summary and refuses a gate on a scorer that never had anything to score. Before
+    WP18 four of these branches were unmarked and ``confidence_calibration`` even scored the
+    case 0.0, the opposite polarity."""
+    empty = GoldenMapping()
+    verdicts = [
+        mapping_accuracy(ProposedMapping(), empty),
+        mapping_coverage(ProposedMapping(), empty),
+        false_friend_hits(ProposedMapping(), empty),
+        gap_detection(ProposedMapping(), empty),
+        confidence_calibration(ProposedMapping(), empty),
+    ]
+    for verdict in verdicts:
+        assert verdict.score == pytest.approx(1.0), verdict.name
+        assert verdict.details.startswith(VACUOUS_PREFIX), verdict.name
+    # and the runner recognises every one of them as vacuous across repeats
+    assert vacuous_scorers([verdicts, verdicts]) == sorted(v.name for v in verdicts)
+
+
+def test_gap_detection_column_mode_keeps_the_vacuous_marker_first() -> None:
+    # Composition order matters: the reported-only note must not shadow the startswith key.
+    verdict = gap_detection(ProposedMapping(), GoldenMapping(), reported_only=True)
+    assert verdict.details.startswith(VACUOUS_PREFIX)
+    assert "reported only in column mode" in verdict.details
+
+
+def test_false_friend_hits_with_declared_friends_is_not_vacuous() -> None:
+    # A real clean bill of health stays distinguishable from "nothing was watched".
+    verdict = false_friend_hits(ProposedMapping(), _golden())
+    assert verdict.score == pytest.approx(1.0)
+    assert not verdict.details.startswith(VACUOUS_PREFIX)
+    assert "watched" in verdict.details
+
+
+def test_confidence_calibration_vacuous_only_without_any_scored_proposal() -> None:
+    # Polarity regression guard: a real margin is untouched by the vacuity fix.
+    golden = _golden()
+    proposed = ProposedMapping(
+        proposals=[
+            Proposal(concept="city", table="VICTOR_PARTNER", column="KD_ORT", confidence=0.9),
+            Proposal(
+                concept="partner number", table="VICTOR_PARTNER", column="KD_NR", confidence=0.3
+            ),
+        ]
+    )
+    verdict = confidence_calibration(proposed, golden)
+    assert verdict.score == pytest.approx(0.6)
+    assert not verdict.details.startswith(VACUOUS_PREFIX)

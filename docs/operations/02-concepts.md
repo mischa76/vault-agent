@@ -149,7 +149,7 @@ attributes are read positionally as (start, end):
 
 ```yaml
 # ✗ rejected: recognisably reversed — generation would swap active-from/active-to
-satellite: eff_sat_account_customer       # effectivity
+satellite: sat_account_customer_eff       # effectivity
 attributes: [valid_to, valid_from]
 
 # ✓ correct order

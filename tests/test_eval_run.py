@@ -20,6 +20,7 @@ from eval.run import (
     failed_gates,
     main,
     render_table,
+    unsatisfiable_gates,
     vacuous_scorers,
 )
 from eval.scorers import ScorerResult
@@ -56,6 +57,95 @@ def test_failed_gates_compares_means_against_min_scores() -> None:
     case = _case({"construct_f1": 0.8, "pipeline_health": 1.0, "not_a_scorer": 0.9})
     assert failed_gates(stats, case) == ["construct_f1"]
     assert failed_gates(stats, _case()) == []
+
+
+# --- WP18: a gate that cannot be evaluated is a batch defect, never a silent pass ---------
+
+
+def test_unsatisfiable_gates_names_a_gate_that_produced_no_score() -> None:
+    # The two real triggers: a typo'd scorer name, and a case whose golden_mapping.yml is
+    # missing (the runner then skips the whole mapping family, so mapping_coverage never
+    # scores) — before WP18 both disabled the gate silently and the batch exited 0.
+    stats = {"pipeline_health": ScoreStats(mean=1.0, min=1.0, max=1.0)}
+    case = _case({"pipeline_health": 1.0, "mapping_covrage": 0.8, "mapping_coverage": 0.8})
+    reasons = unsatisfiable_gates(stats, case)
+    assert len(reasons) == 2
+    assert reasons[0].startswith("mapping_coverage is gated but produced no score")
+    assert reasons[1].startswith("mapping_covrage is gated but produced no score")
+    # a fully scored, ungated batch is clean
+    assert unsatisfiable_gates(stats, _case({"pipeline_health": 1.0})) == []
+
+
+def test_unsatisfiable_gates_names_a_gate_that_was_vacuous_in_every_repeat() -> None:
+    stats = {
+        "mapping_coverage": ScoreStats(mean=1.0, min=1.0, max=1.0),
+        "pipeline_health": ScoreStats(mean=1.0, min=1.0, max=1.0),
+    }
+    case = _case({"mapping_coverage": 0.8, "pipeline_health": 1.0})
+    reasons = unsatisfiable_gates(stats, case, vacuous=["mapping_coverage"])
+    assert reasons == [
+        "mapping_coverage is gated but vacuous on this case "
+        "(the golden declares nothing for it)"
+    ]
+    # the same scorer non-vacuous: no false positive (the value gate takes over)
+    assert unsatisfiable_gates(stats, case, vacuous=[]) == []
+
+
+def _stub_main(
+    monkeypatch: pytest.MonkeyPatch,
+    case: EvalCase,
+    runs: list[list[ScorerResult]],
+) -> None:
+    """Drive ``main`` keylessly: fixed case, fixed scorer results, no LLM, no LangSmith."""
+    import eval.langsmith_upload as langsmith_mod
+
+    monkeypatch.setattr("dotenv.load_dotenv", lambda *args, **kwargs: False)
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
+    monkeypatch.setattr(
+        run_mod,
+        "get_settings",
+        lambda: SimpleNamespace(
+            primary_model="m", heavy_model="h", langsmith_api_key=None, langsmith_project="p"
+        ),
+    )
+    monkeypatch.setattr(langsmith_mod, "make_client", lambda settings: None)
+    monkeypatch.setattr(run_mod, "_load_cases", lambda args: [case])
+    monkeypatch.setattr(run_mod, "materialize_case", lambda c, workdir: (c, None))
+
+    async def fake_run_score_write(*args, **kwargs):
+        return runs, [], [], None
+
+    monkeypatch.setattr(run_mod, "_run_score_write", fake_run_score_write)
+
+
+def test_main_exits_1_when_a_gated_scorer_produced_no_score(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    case = _case({"mapping_coverage": 0.8})
+    _stub_main(monkeypatch, case, [[_result("pipeline_health", 1.0)]])
+    assert main(["--dataset", "synthetic", "--repeat", "1"]) == 1
+    err = capsys.readouterr().err
+    assert "GATE UNSATISFIABLE: mapping_coverage is gated but produced no score" in err
+
+
+def test_main_exits_1_when_a_gated_scorer_is_vacuous_in_every_repeat(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    case = _case({"mapping_coverage": 0.8})
+    vacuous = _result("mapping_coverage", 1.0, "vacuous — no mappable golden entries")
+    _stub_main(monkeypatch, case, [[vacuous], [vacuous]])
+    assert main(["--dataset", "synthetic", "--repeat", "2"]) == 1
+    assert "GATE UNSATISFIABLE: mapping_coverage is gated but vacuous" in capsys.readouterr().err
+
+
+def test_main_exits_0_when_the_gated_scorer_really_scored(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    case = _case({"mapping_coverage": 0.8})
+    real = _result("mapping_coverage", 1.0, "coverage=1.00 (28/28 golden pairs bound)")
+    _stub_main(monkeypatch, case, [[real]])
+    assert main(["--dataset", "synthetic", "--repeat", "1"]) == 0
+    assert "GATE UNSATISFIABLE" not in capsys.readouterr().err
 
 
 def test_build_result_payload_shape() -> None:

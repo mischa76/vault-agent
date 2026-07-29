@@ -39,6 +39,18 @@ present — those block agreement; warnings and flags are advisory. The CLI prin
 blocking-first, and writes it to `review-queue.md`. Being pure and deterministic, it is fully
 unit-tested without an API key.
 
+> **Refinement (2026-07-29, WP25).** The validation-error half of `requires_signoff` was
+> unreachable from the graph until now: `route_after_validation` sent an exhausted re-model
+> budget to `END`, so a state carrying a validation error never reached this node, and
+> `review-queue.md` told the human to sign off on a checkpoint that did not exist. The
+> exhausted budget now routes to `human_checkpoint`, which is what this ADR always
+> described. Two points the routing decision adds: the failing path deliberately SKIPS the
+> source mapper (mapping a model the human may discard spends LLM calls on output that may
+> never be used — the passing path still maps first), and a run whose model does not
+> validate exits with code **3** whether it is still paused or was accepted here, because
+> accepting does not make the artifacts valid. The ADR then carries a caveat naming the
+> surviving error codes.
+
 **2. The orchestrator becomes the graph entry node (now).** `START -> orchestrator -> …`, per
 the multi-agent design topology. It validates inputs and records a typed `ExecutionPlan`
 (planned stages, declared inputs, grounding on/off) so a run is observable from its first step.

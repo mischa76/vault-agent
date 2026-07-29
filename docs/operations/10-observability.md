@@ -106,8 +106,8 @@ roughly three modeler output generations on a cached prompt.
 
 | Entry | Lifecycle |
 |-------|-----------|
-| `checkpoints.sqlite` | LangGraph checkpointer, one thread per run. Thread pruned on finalization; kept while paused. Does not grow unboundedly. |
-| `pending.json` | Written on pause (thread id + input doc); cleared on finalization. Its presence is what `resume` looks for. |
+| `checkpoints.sqlite` | LangGraph checkpointer, one thread per run. Thread pruned on finalization; kept while paused or crashed. Threads `pending.json` no longer references are pruned at the next `run` start (the SIGKILL case), so it does not grow unboundedly. |
+| `pending.json` | Written on pause AND on a crash (thread id + input doc + `phase: paused\|crashed`, plus the error summary when crashed); cleared on finalization. Its presence is what `resume` looks for. |
 | `traces/<thread>.jsonl` | One per run thread; append-only; never auto-deleted. |
 
 Safe to delete the whole directory when: no paused run you still care about, and no

@@ -13,6 +13,7 @@ import httpx
 import pytest
 
 from vault_agent.llm import (
+    _MAX_RETRY_DELAY_SECONDS,
     ForcedToolCaller,
     LLMCallError,
     TraceEvent,
@@ -46,18 +47,37 @@ class _Message:
     usage: _Usage | None = None
 
 
+class _StubStream:
+    """The streaming context manager (WP22): `messages.stream(...)` is a plain method
+    returning an async CM whose `get_final_message()` awaits the accumulated message.
+
+    The outcome is raised from `__aenter__` when it stands for an initial-request failure —
+    which is where the real SDK raises it, since `__aenter__` awaits the request."""
+
+    def __init__(self, outcome: Any) -> None:
+        self._outcome = outcome
+
+    async def __aenter__(self) -> "_StubStream":
+        if isinstance(self._outcome, Exception):
+            raise self._outcome
+        return self
+
+    async def __aexit__(self, *exc_info: Any) -> None:
+        return None
+
+    async def get_final_message(self) -> "_Message":
+        return self._outcome  # type: ignore[no-any-return]
+
+
 class _StubMessages:
     def __init__(self, outcomes: list[Any]) -> None:
         # Each outcome is either an Exception to raise or a _Message to return.
         self._outcomes = outcomes
         self.calls: list[dict[str, Any]] = []
 
-    async def create(self, **kwargs: Any) -> _Message:
+    def stream(self, **kwargs: Any) -> _StubStream:
         self.calls.append(kwargs)
-        outcome = self._outcomes.pop(0)
-        if isinstance(outcome, Exception):
-            raise outcome
-        return outcome  # type: ignore[no-any-return]
+        return _StubStream(self._outcomes.pop(0))
 
 
 class _StubClient:
@@ -65,9 +85,11 @@ class _StubClient:
         self.messages = _StubMessages(outcomes)
 
 
-def _status_error(status_code: int) -> anthropic.APIStatusError:
+def _status_error(
+    status_code: int, headers: dict[str, str] | None = None
+) -> anthropic.APIStatusError:
     request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
-    response = httpx.Response(status_code, request=request)
+    response = httpx.Response(status_code, request=request, headers=headers)
     return anthropic.APIStatusError("boom", response=response, body=None)
 
 
@@ -78,10 +100,20 @@ async def _no_sleep(seconds: float) -> None:
     _SLEEPS.append(seconds)
 
 
-def _caller(outcomes: list[Any]) -> tuple[ForcedToolCaller, _StubClient]:
+def _caller(
+    outcomes: list[Any], rng: Any = None
+) -> tuple[ForcedToolCaller, _StubClient]:
     client = _StubClient(outcomes)
     _SLEEPS.clear()
-    return ForcedToolCaller("test-model", client=client, sleep=_no_sleep), client
+    # rng() == 1.0 makes equal jitter (d/2 + rng()*d/2) collapse to exactly the base delay,
+    # so the pre-WP27 backoff assertions keep pinning the same ladder (2/4/8) — jitter is
+    # an addition to the policy, not a change of it.
+    return (
+        ForcedToolCaller(
+            "test-model", client=client, sleep=_no_sleep, rng=rng or (lambda: 1.0)
+        ),
+        client,
+    )
 
 
 async def _call(caller: ForcedToolCaller) -> dict[str, Any]:
@@ -442,3 +474,169 @@ async def test_split_helper_stops_at_max_depth() -> None:
     # branch rather than walking a full binary tree: a partial result that silently
     # dropped half the input would be worse than a loud failure.
     assert calls == 3
+
+
+async def test_raising_usage_recorder_never_disturbs_the_call() -> None:
+    # WP21 §2.2: the docstring promised this; there was no try/except. The response is
+    # already generated and billed by then, so a broken accounting sink discarding it would
+    # be the most expensive possible failure mode.
+    def boom(model: str, input_tokens: int, output_tokens: int, cache_read: int) -> None:
+        raise RuntimeError("usage sink is broken")
+
+    client = _StubClient([_Message(content=[_tool_block({"ok": 1})])])
+    caller = ForcedToolCaller("test-model", client=client, sleep=_no_sleep, usage_recorder=boom)
+
+    assert await _call(caller) == {"ok": 1}
+
+
+# --- WP27 §2.2: Retry-After and jitter ----------------------------------------------------
+
+
+async def test_retry_after_header_wins_over_exponential_backoff() -> None:
+    """A rate-limited key answering `Retry-After: 30` used to be retried after 2s, three
+    times, and then fail — ~14s of waiting guaranteed to be too short."""
+    caller, client = _caller(
+        [_status_error(429, {"retry-after": "30"}), _Message(content=[_tool_block()])]
+    )
+
+    assert await _call(caller) == {}
+    assert _SLEEPS == [30.0]
+    assert len(client.messages.calls) == 2
+
+
+async def test_retry_after_ms_header_is_read() -> None:
+    # The SDK's own client prefers retry-after-ms; so do we.
+    caller, _ = _caller(
+        [_status_error(429, {"retry-after-ms": "1500"}), _Message(content=[_tool_block()])]
+    )
+
+    assert await _call(caller) == {}
+    assert _SLEEPS == [1.5]
+
+
+async def test_absurd_retry_after_is_capped() -> None:
+    caller, _ = _caller(
+        [_status_error(429, {"retry-after": "3600"}), _Message(content=[_tool_block()])]
+    )
+
+    assert await _call(caller) == {}
+    assert _SLEEPS == [_MAX_RETRY_DELAY_SECONDS]
+
+
+async def test_unparseable_retry_after_falls_back_to_exponential() -> None:
+    # The RFC also permits an HTTP date; we do not guess at it, we back off as usual.
+    caller, _ = _caller(
+        [
+            _status_error(429, {"retry-after": "Wed, 29 Jul 2026 12:00:00 GMT"}),
+            _Message(content=[_tool_block()]),
+        ]
+    )
+
+    assert await _call(caller) == {}
+    assert _SLEEPS == [2.0]  # rng()==1.0 → the base delay
+
+
+async def test_jitter_halves_the_delay_at_the_low_end_and_never_exceeds_base() -> None:
+    caller, _ = _caller(
+        [_status_error(500), _status_error(500), _Message(content=[_tool_block()])],
+        rng=lambda: 0.0,
+    )
+
+    assert await _call(caller) == {}
+    # Equal jitter: exactly half the base delay at rng()==0, so a retry never lands
+    # immediately — which is what a 429 is asking us not to do.
+    assert _SLEEPS == [1.0, 2.0]
+    assert all(slept <= base for slept, base in zip(_SLEEPS, [2.0, 4.0], strict=True))
+
+
+async def test_connection_error_without_a_response_uses_exponential_backoff() -> None:
+    # No response object at all — the header read must not blow up on it.
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    caller, _ = _caller(
+        [anthropic.APIConnectionError(request=request), _Message(content=[_tool_block()])]
+    )
+
+    assert await _call(caller) == {}
+    assert _SLEEPS == [2.0]
+
+
+# --- WP22: the streaming transport (ADR-0010) ---------------------------------------------
+# The behaviours above are all re-pinned against streaming by construction — the stub client
+# only offers `messages.stream`. These add what is specific to the transport itself.
+
+
+async def test_the_call_path_streams_and_sends_no_nonstreaming_request() -> None:
+    """§4.1: one code path. A stub that offers ONLY `stream` proves there is no
+    non-streaming fallback hiding behind a conditional."""
+    client = _StubClient([_Message(content=[_tool_block({"ok": True})])])
+    assert not hasattr(client.messages, "create")
+    caller = ForcedToolCaller("test-model", client=client, sleep=_no_sleep, rng=lambda: 1.0)
+
+    assert await _call(caller) == {"ok": True}
+
+
+async def test_request_kwargs_are_unchanged_by_the_transport_switch() -> None:
+    """§2.4: prompt caching and the WP16 fixture pins rest on the request being identical."""
+    caller, client = _caller([_Message(content=[_tool_block()])])
+
+    await _call(caller)
+
+    (kwargs,) = client.messages.calls
+    assert kwargs["model"] == "test-model"
+    assert kwargs["max_tokens"] == 64
+    assert kwargs["system"] == [
+        {"type": "text", "text": "system", "cache_control": {"type": "ephemeral"}}
+    ]
+    assert kwargs["tools"] == [
+        {"name": _TOOL, "description": "emit", "input_schema": {"type": "object"}}
+    ]
+    assert kwargs["tool_choice"] == {"type": "tool", "name": _TOOL}
+    assert kwargs["messages"] == [{"role": "user", "content": "user"}]
+    assert "stream" not in kwargs  # the helper streams; it is not a request flag
+
+
+async def test_payload_usage_and_trace_come_from_the_final_message() -> None:
+    """The accumulated final message carries content blocks, stop_reason and usage — incl.
+    cache_read_input_tokens — so nothing downstream had to change."""
+    usage = _Usage(input_tokens=900, output_tokens=120, cache_read_input_tokens=800)
+    events: list[TraceEvent] = []
+    recorded: list[tuple[str, int, int, int]] = []
+    client = _StubClient([_Message(content=[_tool_block({"x": 1})], usage=usage)])
+    _SLEEPS.clear()
+    caller = ForcedToolCaller(
+        "test-model", client=client, sleep=_no_sleep,
+        usage_recorder=lambda m, i, o, c: recorded.append((m, i, o, c)),
+        trace_recorder=events.append,
+    )
+
+    assert await _call(caller) == {"x": 1}
+    assert recorded == [("test-model", 900, 120, 800)]
+    (event,) = events
+    assert event.kind == "llm_call"
+    assert event.payload == {"x": 1}
+    assert event.stop_reason == "tool_use"
+    assert (event.input_tokens, event.output_tokens, event.cache_read_tokens) == (900, 120, 800)
+
+
+async def test_error_raised_while_opening_the_stream_is_retried() -> None:
+    """The initial request is awaited by the manager's __aenter__, so a retryable status
+    surfaces there — the retry matrix keys on status_code exactly as before."""
+    caller, client = _caller([_status_error(529), _Message(content=[_tool_block()])])
+
+    assert await _call(caller) == {}
+    assert len(client.messages.calls) == 2
+    assert _SLEEPS == [2.0]
+
+
+async def test_non_retryable_error_while_opening_the_stream_propagates_traced() -> None:
+    events: list[TraceEvent] = []
+    client = _StubClient([_status_error(400)])
+    _SLEEPS.clear()
+    caller = ForcedToolCaller(
+        "test-model", client=client, sleep=_no_sleep, trace_recorder=events.append
+    )
+
+    with pytest.raises(anthropic.APIStatusError):
+        await _call(caller)
+    assert len(client.messages.calls) == 1
+    assert [event.kind for event in events] == ["llm_error"]

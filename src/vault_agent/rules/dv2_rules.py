@@ -18,6 +18,23 @@ def normalize_identifier(label: str) -> str:
     return re.sub(r"[^0-9a-zA-Z]+", "_", label).strip("_").upper()
 
 
+# Well-formed construct names (WP20 §2.1). A construct name is not decoration: it becomes a
+# dbt model name, a file on disk (``<name>.sql``), and the stem of the staging model feeding
+# it. DV2.0 convention prefixes the construct kind (hub_/link_/sat_ — the prefix the
+# generators strip to derive the staging base), and dbt/warehouse portability wants plain
+# lowercase snake_case: a space or a dot breaks the dbt ``ref()``, a path separator or ``..``
+# would write outside the output directory. Single source of truth for the pattern; the
+# validator gates on it (E_BAD_NAME) so the modeler's re-model loop can fix it, and
+# ``cli.write_outputs`` re-checks the filename components as defense in depth.
+CONSTRUCT_NAME_PATTERN = r"^(hub|link|sat)_[a-z0-9][a-z0-9_]*$"
+_CONSTRUCT_NAME_RE = re.compile(CONSTRUCT_NAME_PATTERN)
+
+
+def is_valid_construct_name(name: str) -> bool:
+    """True when ``name`` is a well-formed hub/link/satellite name (see the pattern above)."""
+    return bool(_CONSTRUCT_NAME_RE.match(name))
+
+
 REQUIRED_HUB_COLUMNS = {"hash_key", "business_key", "load_date_time", "record_source"}
 REQUIRED_LINK_COLUMNS = {"hash_key", "load_date_time", "record_source"}
 REQUIRED_SAT_COLUMNS = {"hash_key", "load_date_time", "record_source", "hash_diff"}
@@ -217,6 +234,14 @@ DV_MODELING_RULES = [
         "when it names a role",
         origin="WP8 / ADR-0009 (2026-07-08); E_LINK_DUP_ROLE",
     ),
+    SteeringRule(
+        id="construct_naming",
+        text="Name every construct hub_/link_/sat_ followed by lowercase snake_case (e.g. "
+        "hub_customer, link_account_customer, sat_customer_details) — nothing else; the name "
+        "becomes a dbt model name and a file on disk",
+        origin="review 2026-07-28 finding 4 / WP20: gated by E_BAD_NAME — steering keeps a "
+        "deterministic formality from burning a modeling retry",
+    ),
 ]
 
 # Ablation seam (WP16 §2.2). Module-level, mirroring llm.set_usage_recorder: the harness
@@ -318,6 +343,56 @@ def canonical_hub_key_column(hub: Any) -> str:
     return normalize_identifier(hub.business_key)  # disagree — harmonise to the business term
 
 
+def satellite_feed(satellite: Any, parent_hub: Any) -> Any | None:
+    """The multi-source hub feed a satellite's ``source_table`` names, or None (ADR-0011).
+
+    "Names a feed" is a normalised table-name match against the hub's ``sources``. It
+    therefore also matches the MATERIALISED LEGACY FEED of a grandfathered hub: when a
+    single-source hub gains a feed, WP23's merger writes its original feed out explicitly
+    (``source_entity``/``business_key``), so the brownfield case — the one that motivated
+    ADR-0011 — needs no special case here. That is asserted by a test rather than assumed.
+
+    Returns None when there is no multi-source parent, no ``source_table``, the satellite is
+    an effectivity satellite (``source_table`` is ignored for those — they stage with their
+    parent link), or the named table is not a feed at all. Takes/returns ``Any`` to keep
+    rules/ free of the state models."""
+    if parent_hub is None or not satellite.source_table:
+        return None
+    if satellite.sat_type == "effectivity":
+        return None
+    named = normalize_identifier(satellite.source_table)
+    for source in getattr(parent_hub, "sources", None) or []:
+        if normalize_identifier(source.source_table) == named:
+            return source
+    return None
+
+
+def source_table_on_multi_source_hub(satellite: Any, parent_hub: Any) -> bool:
+    """Is this satellite's ``source_table`` unusable on its multi-source parent? (ADR-0011)
+
+    The single point the validator, code generator and staging generator ask, so they can
+    never disagree about what is generated (WP24 §2.2). ADR-0011 NARROWED it — the name is
+    unchanged, the meaning is not:
+
+    * ``source_table`` naming one of the hub's feeds → **False**. The satellite binds to that
+      feed and is generated once. This is the DV2.0-canonical one-satellite-per-source shape,
+      and rejecting it was WP24's over-reach: measured, the alternative it steered to (no
+      ``source_table``, so a split across feeds) demands the named feed's columns from EVERY
+      feed's staging, which does not build either.
+    * ``source_table`` naming anything else → **True**, still an error. A finer-grain relation
+      *under* one feed would have to say which feed it belongs to, and the model cannot
+      express that; inventing the binding is not something this project does.
+
+    Effectivity satellites and single-source parents are excluded, as before."""
+    if parent_hub is None or not satellite.source_table:
+        return False
+    if satellite.sat_type == "effectivity":
+        return False
+    if not getattr(parent_hub, "sources", None):
+        return False
+    return satellite_feed(satellite, parent_hub) is None
+
+
 # Physical naming conventions the code generator uses when rendering AutomateDV/dbt
 # models. Kept here so naming stays a single source of truth across modeler/generator.
 LOAD_DATETIME_COLUMN = "LOAD_DATETIME"
@@ -343,3 +418,49 @@ AUTOMATE_DV_VERSION = "0.11.4"
 # Vos revisions (NBK over hash, insert-only over persisted end-dating, ELM relationship-hubs,
 # foreign-key links, PSA, PIT/Bridge) are deliberately out of scope here — they are ADR-gated
 # alternatives, never silent defaults, tracked in docs/methodology/dsaf-mapping.md.
+
+
+def resolution_category(
+    concept_key: str, resolution: str, hubs: Any, source_tables: Any, evidence: Any
+) -> str:
+    """The DERIVED confidence tier of an entity resolution (WP29 §2.3, ADR-free rule).
+
+    Deliberately not the resolver's own claim. The Phase 2 spike measured the model reporting
+    ``semantic`` for every case, INCLUDING the exact-key ones where its answer was right — so
+    a self-reported category cannot carry a reviewer's attention, and this computes it from
+    what is actually on the table:
+
+    * ``exact_key`` — the concept's key normalises to the resolved hub's business key. The
+      strongest fact available and the one a reviewer can check in one glance.
+    * ``key_overlap`` — a cross-reference relation carries both keys. This is the same-as
+      shape: asserted equivalence, not identity.
+    * ``comment_grounded`` — a declared column comment names the hub's business key. Weaker
+      than a key match and stronger than a guess, mirroring WP9 §7's middle tier.
+    * ``semantic`` — everything else, i.e. the model reasoned it out. Not a failure grade;
+      it is the tier that says "a human should look".
+
+    Takes ``Any`` for the state models to keep rules/ dependency-free, as the neighbouring
+    helpers do."""
+    key = normalize_identifier(concept_key)
+    target = next((h for h in hubs if h.name == resolution), None)
+    if target is not None and normalize_identifier(target.business_key) == key:
+        return "exact_key"
+
+    hub_keys = {normalize_identifier(h.business_key): h.name for h in hubs}
+    for table in source_tables:
+        columns = {normalize_identifier(c.name) for c in table.column_refs}
+        if key in columns and columns & set(hub_keys):
+            return "key_overlap"
+
+    for table in source_tables:
+        for column in table.column_refs:
+            if normalize_identifier(column.name) != key or not column.comment:
+                continue
+            if any(hub_key in normalize_identifier(column.comment) for hub_key in hub_keys):
+                return "comment_grounded"
+
+    joined = normalize_identifier(" ".join(str(item) for item in (evidence or [])))
+    if any(hub_key and hub_key in joined for hub_key in hub_keys):
+        return "comment_grounded"
+    return "semantic"
+

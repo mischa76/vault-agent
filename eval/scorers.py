@@ -19,6 +19,14 @@ from pydantic import BaseModel
 
 from eval.datasets import EvalCase, GoldenLink
 from eval.mapping import GoldenMapping, ProposedMapping
+from eval.resolution import (
+    NEW,
+    RESOLUTION_CLASSES,
+    SAME_AS,
+    UNRESOLVED,
+    GoldenResolutionSet,
+    ResolutionResult,
+)
 from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import Link, VaultAgentState
 
@@ -32,6 +40,14 @@ class ScorerResult(BaseModel):
 
 
 Scorer = Callable[[VaultAgentState, EvalCase], ScorerResult]
+
+# One vacuity convention for every scorer (WP18 §2.2): a scorer with **nothing to check**
+# returns score 1.0 and details starting with this prefix. An empty golden makes no claim, so
+# scoring it as a failure (the pre-2026-07-28 ``construct_f1`` 0.000) is misleading — but the
+# 1.0 must be recognisable as "nothing was checked", which is what the prefix is for:
+# ``eval.run.vacuous_scorers`` keys on it to mark the console summary AND to refuse a gate on
+# a scorer that was vacuous in every repeat. Never emit a vacuous verdict without it.
+VACUOUS_PREFIX = "vacuous — "
 
 
 def _norm_set(labels: Iterable[str]) -> frozenset[str]:
@@ -163,7 +179,7 @@ def construct_f1(state: VaultAgentState, case: EvalCase) -> ScorerResult:
         return ScorerResult(
             name="construct_f1",
             score=1.0,
-            details=f"vacuous — the golden declares no constructs ({details})",
+            details=f"{VACUOUS_PREFIX}the golden declares no constructs ({details})",
         )
     return ScorerResult(name="construct_f1", score=sum(scores) / len(scores), details=details)
 
@@ -177,7 +193,7 @@ def driving_key_accuracy(state: VaultAgentState, case: EvalCase) -> ScorerResult
         return ScorerResult(
             name="driving_key_accuracy",
             score=1.0,
-            details="vacuous — no golden driving keys declared",
+            details=f"{VACUOUS_PREFIX}no golden driving keys declared",
         )
     misses: list[str] = []
     for golden in golden_links:
@@ -234,11 +250,67 @@ def pipeline_health(state: VaultAgentState, case: EvalCase) -> ScorerResult:
 
 # All scorers, keyed by their result name — the runner applies every one of these and the
 # min_scores gate looks thresholds up by the same key.
+def existing_construct_preservation(state: VaultAgentState, case: EvalCase) -> ScorerResult:
+    """Did the extension run leave the vault it extends exactly as it was? (WP23, charter §6)
+
+    Deterministic and binary in spirit: this is the promise brownfield mode makes, so the
+    gate is 1.0 and anything less is a defect, not a quality signal. It checks the three
+    things a rebuild would notice — a construct that disappeared, a hub whose business key
+    moved, a satellite whose payload changed shape — against the model the run was told to
+    extend.
+
+    It deliberately duplicates what the validator's ``E_EXISTING_*`` gates enforce in the
+    product. That is the point of an eval scorer: the gates could themselves be wrong or be
+    bypassed by a future re-model mode, and this measures the OUTCOME rather than trusting
+    the mechanism. Vacuous (1.0, prefixed) for a greenfield case, which never had a vault to
+    preserve — and ``load_eval_case`` refuses to let such a case gate it."""
+    prior = state.existing_model
+    if prior is None:
+        return ScorerResult(
+            name="existing_construct_preservation",
+            score=1.0,
+            details=f"{VACUOUS_PREFIX}greenfield case: no existing vault to preserve",
+        )
+    merged = state.dv_model
+    hubs = {hub.name: hub for hub in merged.hubs}
+    sats = {sat.name: sat for sat in merged.satellites}
+    present = set(hubs) | {link.name for link in merged.links} | set(sats)
+
+    violations: list[str] = []
+    total = len(prior.hubs) + len(prior.links) + len(prior.satellites)
+    for hub in prior.hubs:
+        if hub.name not in present:
+            violations.append(f"{hub.name} removed")
+        elif _norm_set([hubs[hub.name].business_key]) != _norm_set([hub.business_key]):
+            violations.append(f"{hub.name} business key changed")
+    for link in prior.links:
+        if link.name not in present:
+            violations.append(f"{link.name} removed")
+    for sat in prior.satellites:
+        if sat.name not in present:
+            violations.append(f"{sat.name} removed")
+        elif _norm_set(sats[sat.name].attributes) != _norm_set(sat.attributes):
+            violations.append(f"{sat.name} payload reshaped")
+
+    kept = total - len(violations)
+    score = kept / total if total else 1.0
+    details = (
+        f"{kept}/{total} existing construct(s) preserved"
+        if not violations
+        else f"{kept}/{total} preserved; violations: {', '.join(violations)}"
+    )
+    return ScorerResult(
+        name="existing_construct_preservation", score=score, details=details
+    )
+
+
 SCORERS: dict[str, Scorer] = {
     "construct_f1": construct_f1,
     "driving_key_accuracy": driving_key_accuracy,
     "validation_gate": validation_gate,
     "pipeline_health": pipeline_health,
+    # WP23: inert (vacuous 1.0) on greenfield cases, the gate on extension cases.
+    "existing_construct_preservation": existing_construct_preservation,
 }
 
 
@@ -328,7 +400,7 @@ def mapping_accuracy(proposed: ProposedMapping, golden: GoldenMapping) -> Scorer
             ff_hits.append(f"{p.concept} → {p.table}.{p.column}")
 
     if n_mappable == 0 and not scored:
-        details = "no mappable concepts"
+        details = f"{VACUOUS_PREFIX}no mappable concepts"
         if out_of_universe:
             details += f"; {out_of_universe} proposals outside the golden universe, unscored"
         return ScorerResult(name="mapping_accuracy", score=1.0, details=details)
@@ -360,11 +432,17 @@ def gap_detection(
     name, so in the scale cases' column mode — where the modeler's free-form concept names
     diverge from the golden's vocabulary (WP14) — this scorer is blind. ``reported_only``
     prefixes the details to mark the score non-gateable there; the loader rejects a
-    column-mode case that gates it (``datasets.load_eval_case``)."""
+    column-mode case that gates it (``datasets.load_eval_case``).
+
+    With no golden gaps the verdict is vacuous (WP18 §2.2): the ``vacuous`` marker comes
+    **first** and the reported-only note after it, so ``vacuous_scorers``' ``startswith`` key
+    holds in both modes."""
     prefix = "concept-coupled — reported only in column mode; " if reported_only else ""
     gap_concepts = _gap_concepts(golden)
     if not gap_concepts:
-        return ScorerResult(name="gap_detection", score=1.0, details=prefix + "no golden gaps")
+        return ScorerResult(
+            name="gap_detection", score=1.0, details=f"{VACUOUS_PREFIX}{prefix}no golden gaps"
+        )
 
     proposed_gaps = {normalize_identifier(g) for g in proposed.gaps}
     proposed_concepts = {normalize_identifier(p.concept) for p in proposed.proposals}
@@ -405,7 +483,7 @@ def mapping_coverage(proposed: ProposedMapping, golden: GoldenMapping) -> Scorer
     )
 
     if n_mappable == 0:
-        details = "no mappable golden entries"
+        details = f"{VACUOUS_PREFIX}no mappable golden entries"
         if out_of_golden:
             details += f"; {out_of_golden} proposal(s) outside the golden column set, unscored"
         return ScorerResult(name="mapping_coverage", score=1.0, details=details)
@@ -447,9 +525,19 @@ def false_friend_hits(proposed: ProposedMapping, golden: GoldenMapping) -> Score
             score=0.0,
             details=f"{len(hits)} FALSE-FRIEND HIT(S): {', '.join(hits)}",
         )
-    watched = f"{len(friends)} false-friend column(s) watched" if friends else "none declared"
+    if not friends:
+        # Nothing declared to watch for: vacuous, not a clean bill of health (WP18 §2.2).
+        return ScorerResult(
+            name="false_friend_hits",
+            score=1.0,
+            details=f"{VACUOUS_PREFIX}the golden declares no false friends",
+        )
     return ScorerResult(
-        name="false_friend_hits", score=1.0, details=f"no false-friend columns bound ({watched})"
+        name="false_friend_hits",
+        score=1.0,
+        details=(
+            f"no false-friend columns bound ({len(friends)} false-friend column(s) watched)"
+        ),
     )
 
 
@@ -478,7 +566,15 @@ def confidence_calibration(proposed: ProposedMapping, golden: GoldenMapping) -> 
             wrong_conf.append(p.confidence)
 
     if not correct_conf and not wrong_conf:
-        return ScorerResult(name="confidence_calibration", score=0.0, details="no scored proposals")
+        # Nothing to separate: vacuous 1.0, not 0.0 (WP18 §2.2 polarity fix). Scoring
+        # "nothing to check" as total failure is the pre-2026-07-28 ``construct_f1`` defect
+        # mirrored; the prefix keeps the 1.0 from reading as perfect calibration and stops
+        # the runner from letting it satisfy a gate.
+        return ScorerResult(
+            name="confidence_calibration",
+            score=1.0,
+            details=f"{VACUOUS_PREFIX}no scored proposals",
+        )
     mean_correct = sum(correct_conf) / len(correct_conf) if correct_conf else 0.0
     mean_wrong = sum(wrong_conf) / len(wrong_conf) if wrong_conf else 0.0
     if not wrong_conf:
@@ -525,3 +621,155 @@ def score_mapping(
             gap_detection(proposed, golden, reported_only=True),
         ]
     return [scorer(proposed, golden) for scorer in MAPPING_SCORERS.values()]
+
+# --- Brownfield Phase 2: entity resolution (spike D2) --------------------------------------
+# These are scored against a GoldenResolutionSet + a mechanism's ResolutionResult, not against
+# a pipeline state — the spike measures prototypes, and the production integration (if any) is
+# what the spike decides. They survive the spike as eval assets, like the WP9 mapping scorers.
+
+
+def _is_merge(resolution: str) -> bool:
+    """True when a resolution claims the concept IS an existing construct.
+
+    ``same_as_candidate`` is deliberately NOT a merge: it produces two constructs plus a flag,
+    which is the charter's required output for asserted-equivalent-but-different keys."""
+    return resolution not in RESOLUTION_CLASSES
+
+
+def false_merge_rate(golden: GoldenResolutionSet, result: ResolutionResult) -> ScorerResult:
+    """**The primary metric.** 1.0 iff the mechanism never merged a concept it should not have.
+
+    A false merge declares a new source's concept to BE an existing construct when the golden
+    says otherwise — feeding foreign business keys into a hub that holds live history. That is
+    the destructive migration the brownfield charter refuses, so this is scored as a hard
+    property, not a rate to optimise: any violation drops it to 0.0 and names the offenders.
+
+    Merging onto the WRONG existing construct counts too. Answering ``unresolved`` never does:
+    the honest non-answer is the behaviour we want when the mechanism cannot tell."""
+    expected = golden.by_concept()
+    offenders: list[str] = []
+    merges = 0
+    for proposal in result.proposals:
+        if not _is_merge(proposal.resolution):
+            continue
+        merges += 1
+        want = expected.get(proposal.concept)
+        if want is None or want.expected != proposal.resolution:
+            target = want.expected if want else "unknown concept"
+            offenders.append(f"{proposal.concept} -> {proposal.resolution} (golden: {target})")
+    if not merges:
+        return ScorerResult(
+            name="false_merge_rate", score=1.0,
+            details=f"{VACUOUS_PREFIX}the mechanism proposed no merges at all",
+        )
+    if offenders:
+        return ScorerResult(
+            name="false_merge_rate", score=0.0,
+            details=f"{len(offenders)} FALSE MERGE(S) of {merges}: " + "; ".join(offenders),
+        )
+    return ScorerResult(
+        name="false_merge_rate", score=1.0,
+        details=f"{merges} merge(s), all correct — no foreign key entered an existing hub",
+    )
+
+
+def resolution_accuracy(golden: GoldenResolutionSet, result: ResolutionResult) -> ScorerResult:
+    """Share of golden concepts answered exactly right. SECONDARY to false_merge_rate.
+
+    ``unresolved`` scores as wrong here (it is not the answer) while scoring as safe in
+    false_merge_rate — that split is the point: the memo must be able to see a mechanism that
+    is honest but unhelpful, and tell it apart from one that is helpful but dangerous."""
+    expected = golden.by_concept()
+    proposals = result.by_concept()
+    correct: list[str] = []
+    wrong: list[str] = []
+    for concept, want in expected.items():
+        got = proposals.get(concept)
+        answer = got.resolution if got else UNRESOLVED
+        same_as_ok = want.expected != SAME_AS or (got is not None and got.same_as == want.same_as)
+        if answer == want.expected and same_as_ok:
+            correct.append(concept)
+        else:
+            wrong.append(f"{concept}: {answer} (want {want.expected})")
+    score = len(correct) / len(expected) if expected else 1.0
+    details = f"{len(correct)}/{len(expected)} correct"
+    if wrong:
+        details += "; wrong: " + "; ".join(wrong)
+    return ScorerResult(name="resolution_accuracy", score=score, details=details)
+
+
+def new_hub_detection(golden: GoldenResolutionSet, result: ResolutionResult) -> ScorerResult:
+    """Recall over concepts that must NOT be merged (``NEW`` and ``same_as_candidate``).
+
+    The complement of the merge risk: a mechanism can trivially score 1.0 on false_merge_rate
+    by never merging, and this is what catches that — it measures whether the non-merge
+    answers are actually *right* rather than merely safe."""
+    must_not_merge = [e for e in golden.resolutions if e.expected in (NEW, SAME_AS)]
+    if not must_not_merge:
+        return ScorerResult(
+            name="new_hub_detection", score=1.0,
+            details=f"{VACUOUS_PREFIX}the golden declares no non-merge concepts",
+        )
+    proposals = result.by_concept()
+    hits = [
+        e.concept for e in must_not_merge
+        if (p := proposals.get(e.concept)) is not None and p.resolution == e.expected
+    ]
+    missed = sorted({e.concept for e in must_not_merge} - set(hits))
+    details = f"{len(hits)}/{len(must_not_merge)} identified"
+    if missed:
+        details += f"; missed: {', '.join(missed)}"
+    return ScorerResult(
+        name="new_hub_detection", score=len(hits) / len(must_not_merge), details=details
+    )
+
+
+def resolution_calibration(
+    golden: GoldenResolutionSet, result: ResolutionResult
+) -> ScorerResult:
+    """Does confidence separate right answers from wrong ones? (WP9 §7's question, again.)
+
+    The margin between the mean confidence of correct and of incorrect proposals, clamped to
+    0..1. 1.0 when there are no wrong proposals to separate (perfect separation is vacuous but
+    honest — the same convention mapping's calibration scorer settled on)."""
+    expected = golden.by_concept()
+    right: list[float] = []
+    wrong: list[float] = []
+    for proposal in result.proposals:
+        want = expected.get(proposal.concept)
+        if want is None:
+            continue
+        (right if proposal.resolution == want.expected else wrong).append(proposal.confidence)
+    if not wrong:
+        return ScorerResult(
+            name="resolution_calibration", score=1.0,
+            details=f"{VACUOUS_PREFIX}no wrong proposals to separate",
+        )
+    if not right:
+        return ScorerResult(
+            name="resolution_calibration", score=0.0,
+            details="no correct proposals — nothing to separate wrong answers from",
+        )
+    margin = sum(right) / len(right) - sum(wrong) / len(wrong)
+    return ScorerResult(
+        name="resolution_calibration", score=max(0.0, min(1.0, margin)),
+        details=(
+            f"mean confidence correct={sum(right)/len(right):.2f} "
+            f"wrong={sum(wrong)/len(wrong):.2f} margin={margin:.2f}"
+        ),
+    )
+
+
+RESOLUTION_SCORERS = {
+    "false_merge_rate": false_merge_rate,       # primary — a hard property
+    "resolution_accuracy": resolution_accuracy,
+    "new_hub_detection": new_hub_detection,
+    "resolution_calibration": resolution_calibration,
+}
+
+
+def score_resolution(
+    golden: GoldenResolutionSet, result: ResolutionResult
+) -> list[ScorerResult]:
+    return [scorer(golden, result) for scorer in RESOLUTION_SCORERS.values()]
+

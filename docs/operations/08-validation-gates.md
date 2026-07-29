@@ -1,6 +1,6 @@
 # 8. Validation gates reference
 
-Generated from `validator.py` as of WP16 (2026-07-22): **32 codes — 21 errors, 11
+Generated from `validator.py` as of WP24 (2026-07-29): **34 codes — 23 errors, 11
 warnings**. The code is the source of truth; if this page and the validator disagree,
 count the codes.
 
@@ -22,6 +22,7 @@ match on the code, never on message text.
 |------|----------------------|
 | `E_NO_HUBS` | The model has no hubs — nothing to validate. Usually a requirements document the parser could not extract entities from; check the document and the trace. |
 | `E_DUP_NAME` | Two constructs share one name. Naming collision in the modeler's proposal; re-model usually clears it. |
+| `E_BAD_NAME` | A construct name is not `hub_`/`link_`/`sat_` + lowercase snake_case. The name becomes a dbt model name *and* a file on disk, so a space, an uppercase letter or a path separator is caught here rather than at build time or in the writer (which refuses, never renames). Steered by the `construct_naming` rule. |
 | `E_MISSING_COLUMN` | A generated construct lacks a DV-required column (hash key, load datetime, record source, hashdiff). Guards the generator's own output — seeing it indicates a generator bug, not a modeling error. |
 
 ### Hubs & business keys
@@ -53,10 +54,11 @@ match on the code, never on message text.
 | `E_SAT_UNKNOWN_PARENT` | Satellite parent is neither a known hub nor link. |
 | `E_SAT_NO_PAYLOAD` | Satellite with no attributes. Empty payload means nothing to historise — drop it or find its attributes. |
 | `E_SAT_DUP_ATTR` | Two attribute labels (or an attribute and a CDK label) normalise to the same column — the warehouse would reject the duplicate (example in 2.4). The modeler's CDK backstop repairs the common case before this gate. |
-| `E_SAT_ATTR_OVERLAP` | The same attribute appears in several satellites of one parent — an update would fork history. Assign each attribute to exactly one satellite. |
+| `E_SAT_ATTR_OVERLAP` | The same attribute appears in several satellites of one parent — an update would fork history. Matched on the *normalised* label, like `E_SAT_DUP_ATTR`: "Customer ID" in one satellite and `customer_id` in another are one column on that parent. Assign each attribute to exactly one satellite. |
 | `E_MASAT_NO_CDK` | Multi-active satellite without a child dependent key — concurrent rows would be indistinguishable. |
 | `W_SAT_WIDE` | More than 30 attributes: a smell for mixed rates of change / sources / classifications. Consider splitting along the four axes (2.2). |
 | `W_MASAT_SHARED_GRAIN` | Multi-active satellite without its own `source_table` — sharing the parent's staging assumes equal grain, which multi-active data rarely has. Declare the finer-grained relation or confirm the shared source. |
+| `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` | Satellite declares a `source_table` that is **not one of its multi-source parent's feeds**. Naming a feed is fine and is the canonical shape (ADR-0011): the satellite binds to that source system and is generated once. Naming anything else is an error, because a finer-grain relation *under* one feed cannot say which feed it belongs to. The message lists the available feeds. *Narrowed by ADR-0011 (2026-07-29); WP24 originally rejected every `source_table` on a multi-source hub.* |
 
 ### Effectivity
 

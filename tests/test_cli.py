@@ -54,7 +54,11 @@ def test_write_outputs_creates_files(tmp_path: Path) -> None:
 
     assert counts == {
         "models": 2, "staging": 1, "scaffolding": 2, "adrs": 1, "metadata": 1,
+        # 0: this fixture carries generated artifacts but no logical dv_model to dump.
+        "model": 0,
         "contracts": 0, "mappings": 0, "review_items": 0, "report": 1,
+        # WP23: 0 on a greenfield run — the diff artifact is extension-only.
+        "extension_diff": 0,
     }
     assert (tmp_path / "report.html").exists()
     assert (tmp_path / "models" / "raw_vault" / "hub_customer.sql").read_text() == "-- hub sql"
@@ -76,7 +80,10 @@ def test_write_outputs_skips_empty_sections(tmp_path: Path) -> None:
 
     assert counts == {
         "models": 0, "staging": 0, "scaffolding": 0, "adrs": 0, "metadata": 0,
+        "model": 0,
         "contracts": 0, "mappings": 0, "review_items": 0, "report": 1,
+        # WP23: 0 on a greenfield run — the diff artifact is extension-only.
+        "extension_diff": 0,
     }
     # The report is always written, even for an empty run (header + empty-model note).
     assert (tmp_path / "report.html").exists()
@@ -733,3 +740,768 @@ def test_run_and_resume_expose_the_trace_flag() -> None:
         )
         assert result.exit_code == 0
         assert "--no-trace" in re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+
+
+# --- WP20: the write path refuses hostile filename components -----------------------------
+
+
+def test_write_outputs_refuses_a_hostile_model_name(tmp_path: Path) -> None:
+    """report.py treats every state string as hostile; the write path now does too. A name
+    with a path separator would write outside out_dir — refuse, never rename."""
+    from vault_agent.cli import write_outputs
+
+    out_dir = tmp_path / "out"
+    state = VaultAgentState(
+        artifacts=Artifacts(dbt_models={"../../hub_customer": "select 1"})
+    )
+    with pytest.raises(ValueError, match="refusing to write raw-vault model"):
+        write_outputs(state, out_dir)
+    # nothing escaped the output directory
+    assert list(tmp_path.rglob("*.sql")) == []
+
+
+def test_write_outputs_refuses_a_hostile_contract_asset_name(tmp_path: Path) -> None:
+    from vault_agent.cli import write_outputs
+
+    out_dir = tmp_path / "out"
+    state = VaultAgentState(
+        artifacts=Artifacts(contracts=[{"name": "../escape", "namespace": "source"}])
+    )
+    with pytest.raises(ValueError, match="refusing to write contract"):
+        write_outputs(state, out_dir)
+    assert list(tmp_path.rglob("*.contract.yml")) == []
+
+
+def test_write_outputs_refuses_a_hostile_staging_name(tmp_path: Path) -> None:
+    from vault_agent.cli import write_outputs
+
+    state = VaultAgentState(
+        artifacts=Artifacts(staging_models={"stg_a\nb": "select 1"})
+    )
+    with pytest.raises(ValueError, match="refusing to write staging model"):
+        write_outputs(state, tmp_path / "out")
+
+
+# --- WP17: crash recovery -----------------------------------------------------------------
+# Nothing here needs an API key: the graph is stubbed, but the checkpointer is the REAL
+# AsyncSqliteSaver in tmp_path — crash recovery is exactly about what survives on disk.
+
+
+def _crashing_stub_agents(
+    *, crash_node: str, crashes: dict[str, int], block_signoff: bool = False
+) -> "dict[str, object]":
+    """Stub agents where ``crash_node`` raises on its FIRST execution only.
+
+    ``crashes`` is the shared counter, so the same agent map can be rebuilt per connection
+    (as the CLI does) while the "already crashed once" fact survives — which is what makes a
+    resume observably continue rather than repeat the failure."""
+    from vault_agent.agents.base import BaseAgent
+    from vault_agent.agents.orchestrator import HumanCheckpointAgent
+    from vault_agent.graph import NODES
+    from vault_agent.state import Artifacts, ValidationReport
+
+    class _Stub(BaseAgent):
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        async def run(self, state: VaultAgentState) -> VaultAgentState:
+            if self.name == crash_node:
+                crashes[self.name] = crashes.get(self.name, 0) + 1
+                if crashes[self.name] == 1:
+                    raise RuntimeError("credit balance too low")
+            if self.name == "code_generator":
+                state.artifacts.dbt_models = {"hub_customer": "-- paid for already\n"}
+            if self.name == "validator":
+                state.validation_report = ValidationReport(passed=True, issues=[])
+            if self.name == "data_contract" and block_signoff:
+                state.artifacts = Artifacts(
+                    contracts=[
+                        {"name": "customer", "owner": {"name": "TODO: assign", "email": None}}
+                    ]
+                )
+            state.decisions.append({"agent": self.name})
+            return state
+
+    agents: dict[str, object] = {name: _Stub(name) for name in NODES}
+    agents["human_checkpoint"] = HumanCheckpointAgent()  # the real gate
+    return agents
+
+
+def _use_crashing_graph(
+    monkeypatch: pytest.MonkeyPatch,
+    *,
+    crash_node: str = "validator",
+    block_signoff: bool = False,
+) -> dict[str, int]:
+    from vault_agent.graph import build_graph
+
+    crashes: dict[str, int] = {}
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(  # type: ignore[arg-type]
+            _crashing_stub_agents(
+                crash_node=crash_node, crashes=crashes, block_signoff=block_signoff
+            )
+        ),
+    )
+    return crashes
+
+
+async def _thread_ids(out_dir: Path) -> set[str]:
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+
+    from vault_agent.cli import _checkpoint_db
+
+    async with AsyncSqliteSaver.from_conn_string(_checkpoint_db(out_dir)) as saver:
+        await saver.setup()
+        async with saver.conn.execute("SELECT DISTINCT thread_id FROM checkpoints") as cursor:
+            return {str(row[0]) for row in await cursor.fetchall()}
+
+
+async def test_crash_records_pending_and_writes_artifacts_so_far(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The core of WP17: a mid-run failure must not throw away paid-for LLM work."""
+    from vault_agent.cli import _read_pending, _run_pipeline
+
+    _use_crashing_graph(monkeypatch)
+    with pytest.raises(RuntimeError, match="credit balance too low"):
+        await _run_pipeline(tmp_path / "req.md", tmp_path)
+
+    pending = _read_pending(tmp_path)
+    assert pending is not None
+    assert pending["phase"] == "crashed"
+    assert pending["error"] == "RuntimeError: credit balance too low"
+    assert pending["input"] == str(tmp_path / "req.md")
+    # the code generator's output — completed before the crash — is on disk
+    assert (tmp_path / "models" / "raw_vault" / "hub_customer.sql").is_file()
+    # and the thread is still there, because that is what resume continues
+    assert pending["thread_id"] in await _thread_ids(tmp_path)
+
+
+async def test_resume_continues_a_crashed_run_to_finalisation(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _continue_pipeline, _read_pending, _run_pipeline
+
+    crashes = _use_crashing_graph(monkeypatch)
+    with pytest.raises(RuntimeError):
+        await _run_pipeline(tmp_path / "req.md", tmp_path)
+    pending = _read_pending(tmp_path)
+    assert pending is not None
+    thread_id = pending["thread_id"]
+
+    # A separate saver connection, exactly like `vault-agent resume` in another process.
+    state, paused = await _continue_pipeline(tmp_path, thread_id)
+
+    assert paused is False
+    assert crashes["validator"] == 2  # only the failed node re-ran
+    agents_run = [d["agent"] for d in state.decisions if "agent" in d]
+    assert "adr_author" in agents_run  # the run went all the way through
+    assert agents_run.count("code_generator") == 1  # completed nodes were NOT re-executed
+    assert await _thread_ids(tmp_path) == set()  # finalised -> thread pruned
+
+
+async def test_crashed_run_that_reaches_the_checkpoint_pauses(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _continue_pipeline, _read_pending, _run_pipeline
+
+    _use_crashing_graph(monkeypatch, block_signoff=True)
+    with pytest.raises(RuntimeError):
+        await _run_pipeline(tmp_path / "req.md", tmp_path)
+    pending = _read_pending(tmp_path)
+    assert pending is not None
+
+    _, paused = await _continue_pipeline(tmp_path, pending["thread_id"])
+
+    assert paused is True  # the HITL gate still applies after a crash+continue
+    assert pending["thread_id"] in await _thread_ids(tmp_path)
+
+
+def test_resume_of_a_crashed_run_applies_decision_flags(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Continuation + checkpoint in one command: the crashed run runs on, hits the gate, and
+    the given --owner/--accept are applied immediately (capability parity, WP12)."""
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_crashing_graph(monkeypatch, block_signoff=True)
+    out = tmp_path / "out"
+    crashed = runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+    assert crashed.exit_code == 1
+    assert "Pipeline failed:" in crashed.output
+    assert "vault-agent resume" in crashed.output  # the run says how to get the work back
+    assert _read_pending(out)["phase"] == "crashed"  # type: ignore[index]
+
+    result = runner.invoke(
+        app,
+        [
+            "resume", "--out", str(out), "--no-interactive",
+            "--owner", "customer=Data Team <data@x.io>", "--accept",
+        ],
+    )
+
+    assert result.exit_code == 0
+    assert "Continuing" in result.output and "credit balance too low" in result.output
+    assert "run finalized" in result.output
+    assert _read_pending(out) is None  # pending cleared on finalisation
+
+
+def test_resume_of_a_crashed_run_without_flags_prints_instructions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Non-TTY, no flags: the crashed run is continued and the checkpoint is REPORTED, never
+    decided on the human's behalf — they have not seen it yet."""
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_crashing_graph(monkeypatch, block_signoff=True)
+    out = tmp_path / "out"
+    runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+
+    result = runner.invoke(app, ["resume", "--out", str(out), "--no-interactive"])
+
+    assert result.exit_code == 0
+    assert "Continuing" in result.output
+    assert "Paused at the human-in-the-loop checkpoint" in result.output
+    assert "run finalized" not in result.output
+    pending = _read_pending(out)
+    assert pending is not None and pending["phase"] == "paused"  # crashed -> paused
+
+
+def test_resume_discard_drops_thread_and_pending(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_crashing_graph(monkeypatch)
+    out = tmp_path / "out"
+    runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+    pending = _read_pending(out)
+    assert pending is not None
+
+    result = runner.invoke(app, ["resume", "--out", str(out), "--discard"])
+
+    assert result.exit_code == 0
+    assert "Discarded" in result.output and "crashed" in result.output
+    assert _read_pending(out) is None
+    import asyncio as _asyncio
+
+    assert _asyncio.run(_thread_ids(out)) == set()
+
+
+async def test_recovery_failure_never_masks_the_original_error(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The rescue is best-effort by construction: whatever it hits, the user must still see
+    the exception that actually killed the run."""
+    from vault_agent import cli
+
+    _use_crashing_graph(monkeypatch)
+
+    async def broken_checkpoint_read(*args: object, **kwargs: object) -> object:
+        raise OSError("checkpoint unreadable")
+
+    monkeypatch.setattr(cli, "_state_from_checkpoint", broken_checkpoint_read)
+    with pytest.raises(RuntimeError, match="credit balance too low"):
+        await cli._run_pipeline(tmp_path / "req.md", tmp_path)
+
+    # the pointer (written before the artifact rescue) still made it
+    assert cli._read_pending(tmp_path)["phase"] == "crashed"  # type: ignore[index]
+
+
+async def test_run_start_prunes_orphan_threads_but_spares_the_pending_one(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """SIGKILL-class crashes never reach an except-branch, so their threads linger — the
+    unbounded growth WP5 §5.5 fixed, reintroduced through the crash path."""
+    from vault_agent.cli import _read_pending, _run_pipeline
+
+    # Two crashed runs in a row: pending.json is single-slot, so the FIRST crashed thread
+    # loses its pointer when the second crash overwrites it — exactly how a checkpoint DB
+    # would otherwise accumulate dead threads run after run.
+    _use_crashing_graph(monkeypatch)
+    with pytest.raises(RuntimeError):
+        await _run_pipeline(tmp_path / "req.md", tmp_path)
+    first_thread = _read_pending(tmp_path)["thread_id"]  # type: ignore[index]
+
+    _use_crashing_graph(monkeypatch)  # fresh crash counter: this run fails too
+    with pytest.raises(RuntimeError):
+        await _run_pipeline(tmp_path / "req.md", tmp_path)
+    second_thread = _read_pending(tmp_path)["thread_id"]  # type: ignore[index]
+    assert {first_thread, second_thread} <= await _thread_ids(tmp_path)
+
+    # The next run prunes what pending.json no longer references — and only that.
+    _use_crashing_graph(monkeypatch, crash_node="__none__")
+    _, _, fresh_thread = await _run_pipeline(tmp_path / "req.md", tmp_path)
+
+    threads = await _thread_ids(tmp_path)
+    assert first_thread not in threads  # orphaned by the second crash: pruned
+    assert second_thread in threads  # still referenced by pending.json: kept
+    assert fresh_thread not in threads  # finalised in this run: pruned as usual
+
+
+def test_pause_writes_the_paused_phase_and_legacy_pending_still_resumes(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Regression: the pause path only gains the phase key, and a pre-WP17 pending.json
+    (no phase at all) is still treated as paused."""
+    import json as _json
+
+    from vault_agent.cli import _pending_path, _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: __import__(
+            "vault_agent.graph", fromlist=["build_graph"]
+        ).build_graph(_sqlite_stub_agents(block_signoff=True)),
+    )
+    out = tmp_path / "out"
+    paused_run = runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+    assert paused_run.exit_code == 0
+    pending = _read_pending(out)
+    assert pending is not None and pending["phase"] == "paused"
+
+    # Rewrite it in the pre-WP17 shape and resume: no phase key reads as paused.
+    _pending_path(out).write_text(
+        _json.dumps({"thread_id": pending["thread_id"], "input": pending["input"]}),
+        encoding="utf-8",
+    )
+    result = runner.invoke(
+        app,
+        ["resume", "--out", str(out), "--no-interactive",
+         "--owner", "customer=Data Team <data@x.io>", "--accept"],
+    )
+
+    assert result.exit_code == 0
+    assert "Resuming" in result.output and "run finalized" in result.output
+    assert _read_pending(out) is None
+
+
+def test_failure_before_the_checkpointer_promises_no_recovery(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A failure with nothing checkpointed must not advertise `resume` — there would be
+    nothing to continue, and the user would waste a command finding that out."""
+    doc = _failing_pipeline_doc(tmp_path, monkeypatch)  # _run_pipeline itself is stubbed out
+    result = runner.invoke(app, ["run", str(doc), "--out", str(tmp_path / "out")])
+
+    assert result.exit_code == 1
+    assert "Pipeline failed:" in result.output
+    assert "vault-agent resume" not in result.output
+
+
+# --- WP21 §2.7: --no-write governs ARTIFACTS; run state is always written -------------------
+
+
+def test_no_write_pause_still_leaves_a_resumable_run_and_says_what_resume_does(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: __import__(
+            "vault_agent.graph", fromlist=["build_graph"]
+        ).build_graph(_sqlite_stub_agents(block_signoff=True)),
+    )
+    out = tmp_path / "out"
+
+    result = runner.invoke(
+        app, ["run", str(doc), "--out", str(out), "--no-write", "--no-interactive"]
+    )
+
+    assert result.exit_code == 0
+    assert "nothing written to disk" in result.output
+    assert not (out / "report.html").exists()  # artifacts: none
+    assert _read_pending(out) is not None  # run state: written, or this would be unresumable
+    assert "--no-write" in result.output.split("Paused at the human-in-the-loop")[1]
+
+
+def test_resume_no_write_finalises_without_artifacts_but_clears_the_run_state(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: __import__(
+            "vault_agent.graph", fromlist=["build_graph"]
+        ).build_graph(_sqlite_stub_agents(block_signoff=True)),
+    )
+    out = tmp_path / "out"
+    runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-write", "--no-interactive"])
+
+    result = runner.invoke(
+        app,
+        ["resume", "--out", str(out), "--no-interactive", "--no-write",
+         "--owner", "customer=Data Team <data@x.io>", "--accept"],
+    )
+
+    assert result.exit_code == 0
+    assert "nothing written to disk" in result.output
+    assert "run finalized" in result.output
+    assert not (out / "report.html").exists()  # still no artifacts
+    assert _read_pending(out) is None  # but the run state is finished and cleaned up
+    import asyncio as _asyncio
+
+    assert _asyncio.run(_thread_ids(out)) == set()
+
+
+# --- WP25: a failed run is a first-class outcome ------------------------------------------
+# Keyless: the graph is stubbed with a permanently-failing validator, but the human
+# checkpoint and the ADR author are REAL — the point is what the product reports about
+# itself when the model never validates.
+
+
+def _unvalidatable_stub_agents() -> "dict[str, object]":
+    """Stub agents whose validator never passes, mirroring the real modeler's counter.
+
+    ``modeling_attempts`` is what bounds the re-model loop, so the stub modeler has to
+    increment it or the graph would loop forever."""
+    from vault_agent.agents.adr_author import AdrAuthorAgent
+    from vault_agent.agents.base import BaseAgent
+    from vault_agent.agents.orchestrator import HumanCheckpointAgent
+    from vault_agent.graph import NODES
+    from vault_agent.state import DVModel, Hub, ValidationIssue, ValidationReport
+
+    class _Stub(BaseAgent):
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        async def run(self, state: VaultAgentState) -> VaultAgentState:
+            if self.name == "dv2_modeler":
+                state.modeling_attempts += 1
+                state.dv_model = DVModel(
+                    hubs=[Hub(name="hub_customer", business_key="customer_id",
+                              source_entity="customer", description="The customer.")]
+                )
+            if self.name == "validator":
+                state.validation_report = ValidationReport(
+                    passed=False,
+                    issues=[ValidationIssue(severity="error", code="E_SAT_DUP_ATTR",
+                                            construct="sat_customer_details",
+                                            message="duplicate payload column")],
+                )
+            state.decisions.append({"agent": self.name})
+            return state
+
+    agents: dict[str, object] = {name: _Stub(name) for name in NODES}
+    agents["human_checkpoint"] = HumanCheckpointAgent()  # the real gate
+    agents["adr_author"] = AdrAuthorAgent(today="2026-07-29")  # the real renderer
+    return agents
+
+
+def _use_unvalidatable_graph(monkeypatch: pytest.MonkeyPatch) -> None:
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_unvalidatable_stub_agents()),  # type: ignore[arg-type]
+    )
+
+
+def test_unvalidatable_run_exits_3_and_stays_resumable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """§3.2 / acceptance #1+#2: exit 3, an explanation, and a checkpoint that EXISTS.
+
+    Before WP25 this exact run exited 0 while review-queue.md said "requires sign-off" and
+    `resume` answered "No unfinished run found"."""
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_unvalidatable_graph(monkeypatch)
+    out = tmp_path / "out"
+
+    result = runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+
+    assert result.exit_code == 3
+    assert "The model did not validate" in result.output
+    assert "not for deployment" in result.output
+    pending = _read_pending(out)
+    assert pending is not None and pending["phase"] == "paused"  # resumable, not a dead end
+    assert "requires sign-off" in (out / "review-queue.md").read_text(encoding="utf-8")
+    assert list((out / "adrs").glob("*.md")) == []  # nothing documented yet
+
+
+def test_accepting_an_unvalidatable_model_finalises_but_still_exits_3(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """§3.3: accepted ≠ validated — the artifacts still carry the known errors."""
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_unvalidatable_graph(monkeypatch)
+    out = tmp_path / "out"
+    runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+
+    result = runner.invoke(
+        app, ["resume", "--out", str(out), "--no-interactive", "--accept"]
+    )
+
+    assert result.exit_code == 3
+    assert "run finalized" in result.output
+    assert _read_pending(out) is None
+    adr = next((out / "adrs").glob("ADR-*.md")).read_text(encoding="utf-8")
+    assert "This model did not pass validation." in adr
+    assert "E_SAT_DUP_ATTR (sat_customer_details)" in adr
+
+
+def test_unvalidatable_run_can_be_discarded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """§3.4: the other half of the human's decision — throw the failed model away."""
+    from vault_agent.cli import _read_pending
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_unvalidatable_graph(monkeypatch)
+    out = tmp_path / "out"
+    runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+
+    result = runner.invoke(app, ["resume", "--out", str(out), "--discard"])
+
+    assert result.exit_code == 0  # discarding is a decision, not a failure
+    assert "Discarded" in result.output
+    assert _read_pending(out) is None
+    import asyncio as _asyncio
+
+    assert _asyncio.run(_thread_ids(out)) == set()
+
+
+def test_source_mapper_does_not_run_on_the_failed_path(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """§3.6: no LLM call is spent mapping a model the human may discard."""
+    from vault_agent.cli import _run_pipeline
+
+    _use_unvalidatable_graph(monkeypatch)
+    import asyncio as _asyncio
+
+    state, paused, _ = _asyncio.run(_run_pipeline(tmp_path / "req.md", tmp_path / "out"))
+
+    assert paused is True
+    agents_run = [d.get("agent") for d in state.decisions]
+    assert "source_mapper" not in agents_run
+    assert "human_checkpoint" not in agents_run  # interrupted before it recorded a decision
+
+
+# --- WP27: hygiene (CI parity, corrupt pointer) -------------------------------------------
+
+
+def test_ci_type_check_is_the_canonical_invocation() -> None:
+    """§3.1: cheap drift protection for exactly the defect this was.
+
+    `uv run mypy src` type-checks LESS than the DoD: an explicit path overrides
+    pyproject's `files = ["src/vault_agent", "eval"]`, so eval/ — which carries the quality
+    gates — was strict-checked locally and not in CI."""
+    workflow = (
+        Path(__file__).parents[1] / ".github" / "workflows" / "ci.yml"
+    ).read_text(encoding="utf-8")
+
+    assert "run: uv run mypy\n" in workflow
+    assert "uv run mypy src" not in workflow
+
+
+def test_corrupt_pending_is_an_attributable_message_not_a_traceback(tmp_path: Path) -> None:
+    """§3.5: pending.json is a documented file users may hand-edit (WP17)."""
+    from vault_agent.cli import _checkpoint_dir
+
+    out = tmp_path / "out"
+    _checkpoint_dir(out).mkdir(parents=True)
+    (_checkpoint_dir(out) / "pending.json").write_text('{"thread_id": "abc', encoding="utf-8")
+
+    result = runner.invoke(app, ["resume", "--out", str(out)])
+
+    assert result.exit_code == 1
+    assert "Cannot read the unfinished-run pointer" in result.output
+    assert "not valid JSON" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_pending_without_a_thread_id_is_rejected(tmp_path: Path) -> None:
+    from vault_agent.cli import _checkpoint_dir
+
+    out = tmp_path / "out"
+    _checkpoint_dir(out).mkdir(parents=True)
+    (_checkpoint_dir(out) / "pending.json").write_text('{"input": "req.md"}', encoding="utf-8")
+
+    result = runner.invoke(app, ["resume", "--out", str(out)])
+
+    assert result.exit_code == 1
+    assert "expected a JSON object with a 'thread_id' key" in result.output
+
+
+def test_crash_report_and_orphan_pruning_still_swallow_a_corrupt_pointer(
+    tmp_path: Path,
+) -> None:
+    """The already-guarded callers keep treating a broken pointer as "no pointer" — hygiene
+    must never be the reason a run cannot start (WP17 §2.4)."""
+    import asyncio as _asyncio
+
+    from vault_agent.cli import _checkpoint_dir, _prune_orphan_threads, _report_crashed
+
+    out = tmp_path / "out"
+    _checkpoint_dir(out).mkdir(parents=True)
+    (_checkpoint_dir(out) / "pending.json").write_text("not json at all", encoding="utf-8")
+
+    _report_crashed(Console(), out)  # no raise, prints nothing actionable
+    _asyncio.run(_prune_orphan_threads(None, out, keep="whatever"))  # no raise
+
+
+# --- WP23 §3.8: the --existing flag --------------------------------------------------------
+
+
+def _bank_vault_dir(tmp_path: Path) -> Path:
+    """A previously generated vault: an output directory carrying metadata/dv_model.yml."""
+    import yaml as _yaml
+
+    from vault_agent.existing_model import DV_MODEL_FILENAME
+    from vault_agent.state import DVModel, Hub
+
+    model = DVModel(
+        hubs=[Hub(name="hub_customer", business_key="customer_id",
+                  source_entity="customer", description="The customer.")]
+    )
+    out = tmp_path / "vault"
+    (out / "metadata").mkdir(parents=True)
+    (out / "metadata" / DV_MODEL_FILENAME).write_text(
+        _yaml.safe_dump(model.model_dump(mode="json"), sort_keys=True), encoding="utf-8"
+    )
+    return out
+
+
+def _extension_stub_agents() -> "dict[str, object]":
+    """Stub agents that emit a delta, so the graph exercises the real merger + gates."""
+    from vault_agent.agents.base import BaseAgent
+    from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
+    from vault_agent.agents.model_merger import merge_models
+    from vault_agent.agents.orchestrator import HumanCheckpointAgent
+    from vault_agent.graph import NODES
+    from vault_agent.state import DVModel, Hub, ValidationReport
+
+    class _Stub(BaseAgent):
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        async def run(self, state: VaultAgentState) -> VaultAgentState:
+            if self.name == "dv2_modeler":
+                delta = DVModel(hubs=[Hub(name="hub_campaign", business_key="campaign_code",
+                                          source_entity="campaign", description="New.")])
+                state.dv_model = (
+                    merge_models(state.existing_model, delta, state)
+                    if state.existing_model is not None
+                    else delta
+                )
+            if self.name == "validator":
+                state.validation_report = ValidationReport(passed=True, issues=[])
+            state.decisions.append({"agent": self.name})
+            return state
+
+    from vault_agent.agents.code_generator import CodeGeneratorAgent
+
+    agents: dict[str, object] = {name: _Stub(name) for name in NODES}
+    agents["human_checkpoint"] = HumanCheckpointAgent()
+    # The REAL generator: it is what computes the extension diff, so stubbing it would make
+    # this test assert nothing about the artifact it claims to check.
+    agents["code_generator"] = CodeGeneratorAgent()
+    assert Dv2ModelerAgent  # named for the reader: the real modeler is what _Stub stands in for
+    return agents
+
+
+def _use_extension_graph(monkeypatch: pytest.MonkeyPatch) -> None:
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph",
+        lambda: build_graph(_extension_stub_agents()),  # type: ignore[arg-type]
+    )
+
+
+@pytest.mark.parametrize("as_file", [False, True], ids=["directory", "yaml-file"])
+def test_existing_accepts_a_directory_or_the_file_itself(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, as_file: bool
+) -> None:
+    from vault_agent.existing_model import DV_MODEL_FILENAME
+
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    vault = _bank_vault_dir(tmp_path)
+    target = (vault / "metadata" / DV_MODEL_FILENAME) if as_file else vault
+    _use_extension_graph(monkeypatch)
+    out = tmp_path / "out"
+
+    result = runner.invoke(
+        app, ["run", str(doc), "--out", str(out), "--existing", str(target),
+              "--no-interactive"]
+    )
+
+    assert result.exit_code == 0, result.output
+    assert "mode:          extension (1 existing construct(s))" in result.output
+    # The extension produced the diff artifact and carried the existing hub through.
+    assert (out / "extension-diff.md").is_file()
+    assert (out / "models" / "raw_vault" / "hub_customer.sql").is_file()
+    assert (out / "models" / "raw_vault" / "hub_campaign.sql").is_file()
+
+
+def test_a_greenfield_run_reports_greenfield_mode(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    _use_extension_graph(monkeypatch)
+    out = tmp_path / "out"
+
+    result = runner.invoke(app, ["run", str(doc), "--out", str(out), "--no-interactive"])
+
+    assert "mode:          greenfield" in result.output
+    assert not (out / "extension-diff.md").exists()
+
+
+def test_existing_pointing_at_a_pre_wp23_output_is_attributable(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The message must say what to do, and no LLM token may be spent discovering it."""
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+    old = tmp_path / "old"
+    (old / "metadata").mkdir(parents=True)
+    (old / "metadata" / "automatedv.yml").write_text("hubs: {}\n", encoding="utf-8")
+    _use_extension_graph(monkeypatch)
+
+    result = runner.invoke(
+        app, ["run", str(doc), "--out", str(tmp_path / "out"), "--existing", str(old)]
+    )
+
+    assert result.exit_code == 1
+    assert "Could not load an input file" in result.output
+    assert "regenerate that vault once" in result.output
+    assert "Traceback" not in result.output
+
+
+def test_existing_pointing_at_a_missing_path_is_rejected_by_the_cli(tmp_path: Path) -> None:
+    """typer's exists=True catches it before the loader — a usage error, exit 2."""
+    doc = tmp_path / "req.md"
+    doc.write_text("# requirements", encoding="utf-8")
+
+    result = runner.invoke(
+        app, ["run", str(doc), "--out", str(tmp_path / "out"), "--existing",
+              str(tmp_path / "nope")]
+    )
+
+    assert result.exit_code == 2

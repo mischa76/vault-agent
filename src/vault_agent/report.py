@@ -306,6 +306,52 @@ def _review_section(state: VaultAgentState) -> str:
     return "".join(blocks)
 
 
+def _extension_section(state: VaultAgentState) -> str:
+    """The extension diff as an HTML section (WP23 §2.7); '' on a greenfield run.
+
+    Renders the SAME data as ``extension-diff.md`` — both read
+    ``state.artifacts.extension_diff``, so the artifact and the report can never disagree
+    about what changed. Every string is escaped like the rest of this module: the construct
+    names are LLM-derived and treated as hostile."""
+    diff = state.artifacts.extension_diff
+    if not diff:
+        return ""
+    unchanged = diff.get("unchanged", [])
+    extended = diff.get("extended", {})
+    changed_files = diff.get("changed_files", {})
+    new = diff.get("new", {})
+    blocks = [
+        "<section><h2>Extension</h2>",
+        f"<p>Extends <code>{_esc(state.existing_source or 'an existing vault')}</code>: "
+        f"<strong>{len(unchanged)}</strong> unchanged, <strong>{len(extended)}</strong> "
+        f"extended, <strong>{len(new)}</strong> new construct(s). Unchanged constructs "
+        f"render byte-identically, so a rebuild leaves their tables untouched.</p>",
+    ]
+    if extended:
+        rows = []
+        for name, gained in extended.items():
+            files = changed_files.get(name, [])
+            rows.append([
+                _esc(name),
+                _esc("; ".join(gained)),
+                ", ".join(f"<code>{_esc(f)}</code>" for f in files) or "—",
+            ])
+        blocks.append(_table(["Construct", "Gained", "Changed files"], rows))
+    if new:
+        rows = [[_esc(name), _esc(parent) or "—"] for name, parent in new.items()]
+        blocks.append("<h3>New</h3>")
+        blocks.append(_table(["Construct", "Parent"], rows))
+    if unchanged:
+        blocks.append(
+            "<details><summary>Unchanged ({n})</summary><p>{names}</p></details>".format(
+                n=len(unchanged),
+                names=", ".join(f"<code>{_esc(name)}</code>" for name in unchanged),
+            )
+        )
+    blocks.append("</section>")
+    return "".join(blocks)
+
+
 def _mappings_section(state: VaultAgentState) -> str:
     mapping = state.mappings
     if not (mapping.proposals or mapping.gaps or mapping.unresolved):
@@ -423,6 +469,7 @@ def build_report(state: VaultAgentState) -> str:
         _validation_section(state),
         _review_section(state),
         _mappings_section(state),
+        _extension_section(state),
         _contracts_section(state),
         _files_section(state),
     ]

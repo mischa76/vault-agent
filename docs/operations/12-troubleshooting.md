@@ -9,16 +9,25 @@
 | Run ends failed after *attempt 3/3* | The model couldn't produce a gate-clean model within the retry budget. | Read `report.html` + the review queue: recurring `E_` codes point at the requirements (ambiguous entities, relationship soup). Improve the document or ground with a schema; chapter 8 has per-code guidance. |
 | `INPUT_TRUNCATED` advisory flag | Document longer than 400k chars; pipeline continued on the head. | Usually fine for prose docs; for inventory-style docs, split or slim the input. |
 | `Could not load an input file: …` | Malformed `--source-schema`/`--profiling` (the loaders name file and problem). | Fix the named entry; the error is attributable by design — no LLM tokens were spent. |
-| Rate-limit / 5xx noise in `--debug` logs | Transient API failures. | Nothing — retried 3× with backoff automatically; only exhaustion surfaces as `LLMCallError`. |
+| `could not read <doc>: …` error flag | The document exists but is unreadable (non-UTF-8 text, corrupt PDF/`.docx`). | The file was skipped, not fatal: re-save it as UTF-8 / repair the document. A single-document run then has nothing to parse and fails attributably. |
+| Rate-limit / 5xx noise in `--debug` logs | Transient API failures. | Nothing — retried 3× automatically; only exhaustion surfaces as `LLMCallError`. Each wait is logged at INFO with its length and where it came from: a server `Retry-After` header wins (capped at 60 s), otherwise exponential backoff with equal jitter so parallel runs stop colliding. |
 
 ## 12.2 Checkpoint & resume issues
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `No paused run found under <out>/` | Nothing paused there: wrong `--out`, already finalized, or `.vault-agent/` deleted. | Point `--out` at the run's output dir; check for `pending.json` under `<out>/.vault-agent/`. |
+| `No unfinished run found under <out>/` | Nothing paused or crashed there: wrong `--out`, already finalized, or `.vault-agent/` deleted. | Point `--out` at the run's output dir; check for `pending.json` under `<out>/.vault-agent/`. |
+| `Cannot read the unfinished-run pointer: …` | `pending.json` exists but is truncated, not JSON, or has no `thread_id` (usually a hand-edit or an interrupted write). | Repair the file, or delete it to abandon the run — the next `run` into that directory prunes the orphaned checkpoint thread. `--discard` cannot help here: it reads the same pointer. |
+| `--existing`: `not a vault-agent output directory carrying metadata/dv_model.yml` | That output predates the logical-model dump (6.7). | Regenerate that vault once with the current version — the generator is deterministic, so the project is identical — then point `--existing` at the new output. |
+| `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` | The satellite's `source_table` names a table that is not one of its multi-source parent's feeds (ADR-0011). | Name one of the feeds the message lists, to bind the satellite to that source system; or drop `source_table` if the attributes come from every feed. A finer-grain relation under one feed is not expressible today. |
+| Extension run: many `W_EXISTING_EXTENDED` warnings | By design — one advisory per legitimate addition, so the review queue inventories the increment. | Nothing; read them as the changelog of the increment. |
+| Pipeline failed mid-run — is the LLM work lost? | No (WP17): the crash writes a `crashed` `pending.json` and the artifacts-so-far. | `vault-agent resume --out <dir>` continues at the failed node; `--discard` throws the run away. |
+| `The run failed again: …` on resume | A deterministic failure (corrupt input, a bug) repeats on every continuation. | Read the named error and the trace (chapter 10); fix the cause, or `resume --discard` and start over. |
 | `resume` prints instructions instead of prompting | Non-TTY (pipe, CI) with no decision flags. | Use the flags (7.5) or force `--interactive` in a real terminal. |
 | Paused run's `report.html` looks incomplete | By design — it shows the pending state. | Resume; finalization overwrites it. |
 | Aborted the interactive prompt — is anything lost? | No: abort/skip/Ctrl-C keep `pending.json` and the checkpoint thread. | Resume again anytime. |
+| Exit code 3, `The model did not validate after 3 modeling attempt(s)` | The re-model budget was exhausted with validation errors remaining; the run paused at the checkpoint for your decision (WP25). | Read the errors in `review-queue.md` / `report.html`. Fix the requirements or source schema and re-run; or `resume --accept` to keep the model for diagnosis (the ADR records that it was accepted over its errors); or `resume --discard`. |
+| `resume --accept` succeeded but the command still exits 3 | By design: accepting does not make an invalid model valid, and the artifacts carry the known errors. | Nothing — treat exit 3 as "not deployable". A wrapper script should branch on it, not on the console text. |
 
 ## 12.3 dbt build failures
 

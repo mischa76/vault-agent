@@ -47,6 +47,7 @@ from vault_agent import llm
 from vault_agent.agents.orchestrator import assemble_review_queue, render_review_queue_md
 from vault_agent.cli import _checkpoint_serde
 from vault_agent.config import get_settings
+from vault_agent.existing_model import load_existing_model
 from vault_agent.graph import build_graph
 from vault_agent.llm import TraceEvent
 from vault_agent.profiling import load_profiling
@@ -177,6 +178,9 @@ async def run_case_once(case: EvalCase) -> VaultAgentState:
     case carries them — the WP13 scale cases always do."""
     source_schemas = load_source_schemas(case.source_schema) if case.source_schema else []
     profiling = load_profiling(case.profiling) if case.profiling else {}
+    # WP23: an extension case runs brownfield mode — the same input the CLI's --existing
+    # provides. None for every greenfield case, which is all the pre-WP23 ones.
+    existing = load_existing_model(case.existing) if case.existing else None
     saver = MemorySaver()
     # Same state-model allow-list the CLI registers on its sqlite saver: without it every
     # HITL resume deserialises our pydantic models as "unregistered types" (deprecation
@@ -191,6 +195,8 @@ async def run_case_once(case: EvalCase) -> VaultAgentState:
             input_documents=[str(case.input_document)],
             source_schemas=source_schemas,
             profiling=profiling,
+            existing_model=existing,
+            existing_source=str(case.existing) if case.existing else None,
         ),
         config=config,
     )
@@ -219,6 +225,35 @@ def failed_gates(stats: dict[str, ScoreStats], case: EvalCase) -> list[str]:
         for name, minimum in sorted(case.expectations.min_scores.items())
         if name in stats and stats[name].mean < minimum
     ]
+
+
+def unsatisfiable_gates(
+    stats: dict[str, ScoreStats], case: EvalCase, vacuous: Iterable[str] = ()
+) -> list[str]:
+    """Gates that cannot mean what the case author intends — *batch defects*, not scores (pure).
+
+    Two ways a gate silently passes on absence of evidence, both real (WP18 §2.1/§2.3):
+
+    1. **No score at all.** ``failed_gates`` only compares gates it finds in ``stats``, so a
+       typo'd scorer name — or a case whose ``golden_mapping.yml`` is missing, which makes
+       ``_score_run`` skip the whole mapping family — disables the gate without a word.
+    2. **Vacuous in every repeat.** ``load_eval_case`` rejects this cheaply for the model
+       scorers, but it cannot see the golden *mapping* (a separate file it never opens); the
+       runner can, after scoring.
+
+    Returns one rendered reason per offending gate, sorted. Deliberately separate from
+    :func:`failed_gates`: a defective batch must never be reported as a failed score."""
+    gated = set(case.expectations.min_scores)
+    missing = [
+        f"{name} is gated but produced no score (typo'd scorer name, or the case's "
+        f"golden mapping is missing)"
+        for name in sorted(gated - set(stats))
+    ]
+    empty = [
+        f"{name} is gated but vacuous on this case (the golden declares nothing for it)"
+        for name in sorted(gated & set(vacuous))
+    ]
+    return missing + empty
 
 
 def build_result_payload(
@@ -491,7 +526,8 @@ def main(argv: list[str] | None = None) -> int:
         # in-memory results of whatever completed — the full batch on success, the partial
         # set when a mid-batch failure cut it short.
         stats = aggregate(runs)
-        print(render_table(case.name, stats, len(runs), vacuous_scorers(runs)))
+        vacuous = vacuous_scorers(runs)
+        print(render_table(case.name, stats, len(runs), vacuous))
         print(render_metrics(case.name, metrics))
         if written:
             print(f"  results: {', '.join(str(path) for path in written)}")
@@ -506,6 +542,13 @@ def main(argv: list[str] | None = None) -> int:
         if langsmith_client is not None and runs:
             upload_run_results(langsmith_client, case, runs, models=models, git_sha=git_sha)
             print(f"  uploaded to LangSmith ('{settings.langsmith_project}' workspace)")
+        # A gate that could not be evaluated is a defect in the batch, reported before any
+        # score verdict. Skipped when nothing completed at all: with zero repeats every gate
+        # is trivially unscored, and the BATCH INCOMPLETE line above already says why.
+        if runs:
+            for reason in unsatisfiable_gates(stats, case, vacuous):
+                print(f"  GATE UNSATISFIABLE: {reason}", file=sys.stderr)
+                exit_code = 1
         for name in failed_gates(stats, case):
             print(
                 f"  GATE FAILED: {name} mean {stats[name].mean:.3f} < "

@@ -1,0 +1,20 @@
+{
+  "README.md": "1c7a5562f75107f572e132160de9121fdc2fd5b380af26434107dadcd16e337b",
+  "dbt_project.yml": "aa11c2da8061c94144a10bc871359d971026abe27d6588776ae81d2a7d45f776",
+  "metadata/automatedv.yml": "9d979c57c9c0f5b7bf2067ae8dae76e4bdd9d80bfc0255fde44724a30481c1a8",
+  "models/raw_vault/hub_account.sql": "8306d8975f7e3cb9f7952d95bf7dcb1969d01126d46cc4c45d5a29e3292bec4f",
+  "models/raw_vault/hub_customer.sql": "49f02603e8f3c5393d33351ad022a8f564dfb7d92f0c13c8150bb8b8f1830f28",
+  "models/raw_vault/link_account_customer.sql": "f4ce26896325c88a12c92e34b557160155252c2626827c614514c615d1696f96",
+  "models/raw_vault/link_transfer.sql": "c4eb85201f3ce5ea58ed772de8b6a4b079609f35fa4b67e1ce244b4ab80be4ee",
+  "models/raw_vault/sat_account_customer_eff.sql": "86f093432fac4a12a14ac7538ff070fd30d5bdf293f281085745879a56242809",
+  "models/raw_vault/sat_account_details.sql": "2904d804202a993c33e83e776f41961ce22f8dbbc2bfaba26bbbc796ae0364d6",
+  "models/raw_vault/sat_customer_details.sql": "3f05d67a7948962050ed0fde205cbe077a05ad8f4ade0d075b73319964fca4f0",
+  "models/staging/sources.yml": "d27e4cb6be07da74b0a15121074b03d9c8aa9fc2a22e178df3baa868d99cfdfe",
+  "models/staging/stg_account.sql": "c7bd504ad26c551cbac2093afe63279c5f17cd84b6176952dd64957db9d0242d",
+  "models/staging/stg_account_customer.sql": "a5bc612544f12f8c1757b794fecd972403a5dbd500c3e6928a8f1d6419938e1f",
+  "models/staging/stg_customer.sql": "b39a83e65055d000dda6dbbd22f961a1cb4331152c345d186288ed58820bc345",
+  "models/staging/stg_transfer.sql": "fc0f2f42dca8f715fbaa819c01a99ce933749703f15d2944262630892a71bccb",
+  "packages.yml": "4587270b6d25a7e5cd06e4a0de6cb790acbfaa24c08cb4c25225bdbaecdeb278",
+  "report.html": "bfa780d6d3b9e5c15be152dd31f1503ca51c0a4824fd394c0d9c95886e42c648",
+  "review-queue.md": "666485eec131ddfb16fd37adafbd1b6fd3ab643b78a84bdd083a3789ca7fef9a"
+}

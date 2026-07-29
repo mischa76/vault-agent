@@ -66,13 +66,25 @@ their rationale are documented as comments inside each `dataset.yml`.
   generated counterpart declares the same normalised set; 1.0 when the case declares none.
   The counterpart is resolved on grain, as for `construct_f1`.
 
-> **Vacuity — a scorer with nothing to check reports 1.0, and cannot be gated.** An empty
-> golden makes no claim, so generating constructs against it is not a failure: before
-> 2026-07-28 `construct_f1` returned **0.000** for the synthetic `scale_*` cases (which
-> ship a golden *mapping* and no golden *model*), which reads as total failure and means
-> "nothing was checked". Both scorers now say `vacuous` in their `details`, and
-> `load_eval_case` **rejects** a case whose `min_scores` gates one of them while the golden
-> declares nothing for it — otherwise the gate would pass on absence of evidence.
+> **Vacuity — one convention for every scorer: nothing to check ⇒ score 1.0 and `details`
+> starting with `vacuous — `.** An empty golden makes no claim, so generating constructs
+> against it is not a failure: before 2026-07-28 `construct_f1` returned **0.000** for the
+> synthetic `scale_*` cases (which ship a golden *mapping* and no golden *model*), which
+> reads as total failure and means "nothing was checked". `confidence_calibration` had the
+> same defect mirrored (0.0 for "no scored proposals") until WP18; every nothing-to-check
+> branch now carries the prefix (`scorers.VACUOUS_PREFIX`).
+>
+> **A vacuous score can never satisfy a gate**, enforced twice:
+> - `load_eval_case` rejects a case gating `construct_f1`/`driving_key_accuracy` while its
+>   golden model declares nothing for them (cheap, at load time);
+> - the runner rejects, after scoring, any gated scorer that was vacuous in **every** repeat
+>   — `GATE UNSATISFIABLE`, exit 1. This is the only check that can see the golden *mapping*,
+>   which the loader never opens.
+>
+> A gated scorer that produced **no score at all** — a typo'd name in `min_scores`, or a
+> missing `golden_mapping.yml`, which makes the runner skip the whole mapping family — is the
+> same defect and gets the same `GATE UNSATISFIABLE` + exit 1. A gate must fail loudly on
+> absence of evidence, never pass on it.
 
 > **Caveat — hubs and satellites are still name-keyed.** `normalize_identifier` folds
 > casing and separators but not word order, so a golden hub/satellite whose name the
@@ -84,6 +96,14 @@ their rationale are documented as comments inside each `dataset.yml`.
   `expectations.validation_passed` and the warning count stays within
   `max_validation_warnings` (when set); else 0.0 with details.
 - **pipeline_health** — 1.0 iff no `PipelineFlag` with `severity == "error"` was raised.
+- **existing_construct_preservation** (WP23) — for a brownfield case (`existing:` in
+  `dataset.yml`), the share of the extended vault's constructs that survived the run
+  unchanged: not removed, not re-keyed, payload not reshaped. This is the promise the
+  extension mode makes, so it is gated at exactly **1.0** — anything less is a defect,
+  not a quality signal. It deliberately re-measures what the validator's `E_EXISTING_*`
+  gates enforce: an eval scorer checks the OUTCOME, because the mechanism could itself
+  be wrong. Vacuous (1.0, prefixed) on greenfield cases, and `load_eval_case` refuses to
+  let one gate it.
 
 ### Mapping scorers (WP9)
 
@@ -106,7 +126,8 @@ Score a run's `state.mappings` (a `ProposedMapping`) against a case's optional
   proposals, by design.
 - **confidence_calibration** (informational) — margin = mean confidence of correct scored
   proposals − mean of wrong ones. With **no wrong proposals** to separate from, the margin
-  is **1.0** by definition (perfect separation), not the mean confidence.
+  is **1.0** by definition (perfect separation), not the mean confidence; with **no scored
+  proposals at all** the verdict is vacuous (1.0 + prefix, see the vacuity note above).
 
 #### Matching mode: `concept` vs `column` (WP14)
 

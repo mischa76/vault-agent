@@ -132,3 +132,93 @@ review pairs WP17+WP18 as highest impact — the safety net (pipeline) and the q
 gates (eval) both have holes exactly where one would fall; WP19 and WP21 §2.1 remove the
 two remaining ways a run dies avoidably, which also makes future scale_100 attempts
 cheaper.
+
+## Addendum 2026-07-29 — scaling decision + brownfield track
+
+From ADR-0010 (Accepted 2026-07-29: streaming before staged modelling) and the
+incremental-extension charter (Accepted; §5 decisions 2026-07-29):
+
+| WP | Spec | What | Size | Depends on |
+|----|------|------|------|------------|
+| WP22 | `wp22-streaming-spec.md` | Streaming in `ForcedToolCaller`; modeler budget past the 16384 transport stopgap | S/M | ADR-0010 |
+| WP23 | `wp23-incremental-extension-spec.md` | Brownfield mode Phase 1: `--existing`, dv_model.yml round-trip, merge + additive `E_EXISTING_*` gates, grandfathering, diff artifact, delta-ADR | L | — |
+
+WP22 and WP23 are file-disjoint (llm.py/dv2_modeler constant vs. the extension surface)
+and can run in parallel; merge serially as usual. WP22 unblocks the scale_100/300 live
+measurements; WP23 Phase 2 (LLM entity resolution) follows as its own spike per the
+charter, after Phase 1 lands.
+
+## Addendum 2026-07-29 — review batch (project review 2026-07-29)
+
+Four WPs from `../reviews/project-review-2026-07-29.md` (findings 1–5). Shared conventions
+above apply unchanged. Note the theme: after WP17–WP21 the individual features are sound —
+these findings sit **between** features (WP7 × WP10), and in what the pipeline reports
+about itself when things go wrong.
+
+| WP | Spec | What | Size | Depends on |
+|----|------|------|------|------------|
+| WP24 | `wp24-multi-source-composition-spec.md` | Every hub-key hash through `canonical_hub_key_column`; reject the WP7+WP10 satellite combination; the WP7×WP8×WP10 composition matrix (findings 2+3) | S/M | — |
+| WP25 | `wp25-failed-run-outcome-spec.md` | A failed run is first-class: route the exhausted re-model loop into the checkpoint (ADR-0006), exit code 3, ADR caveat when accepted over errors (finding 1) | M | — |
+| WP26 | `wp26-adr-completeness-spec.md` | ADR renders driving keys, multi-source feeds, satellite types, ratified mappings; determinism claim made true (finding 4) | S | — |
+| WP27 | `wp27-ci-retry-hygiene-spec.md` | CI runs the canonical `uv run mypy`; `Retry-After` + jitter; attributable error on a corrupt `pending.json` (finding 5) | S | — |
+| WP28 | `wp28-satellite-feed-binding-spec.md` | ADR-0011 (Accepted 2026-07-29): a satellite naming one of its multi-source hub's feeds binds to that feed (generated once); gate narrows, steering rule deleted, composition cells move | S/M | WP24, WP23, ADR-0011 |
+
+Waves (file-overlap driven): **wave 1 = WP24 alone** — it is the only finding producing
+wrong *data*, it must precede any further multi-source work (WP23's merge path inherits the
+same hashing helper), and it touches the generators the others do not. **Wave 2 = WP25 +
+WP26 + WP27 in parallel** (graph/cli vs. adr_author vs. ci/llm/`_read_pending`); the one
+overlap to watch is WP25's ADR caveat vs. WP26's renderer — merge WP26 first and let WP25
+rebase onto it. Cross-batch: **WP26 must land before WP23's delta-ADR** (§2.8), and WP27
+must rebase onto WP22 if streaming lands first (both edit `ForcedToolCaller.call`).
+
+**Wave status (2026-07-29): the whole batch is DONE.** Wave 1 = WP24; wave 2 ran WP26
+first (the shared prerequisite of WP25's ADR caveat and WP23's delta-ADR — both would
+otherwise have been written against a partial renderer and rebased twice), then WP25 and
+WP27. All four are in `main`'s history with milestone paragraphs in CLAUDE.md.
+
+Carried forward to WP23: §2.8's delta-ADR now builds on a COMPLETE renderer whose three
+construct renderers (`_hub_line` / `_link_line` / `_sat_line`) are module-level and
+one-line-per-construct precisely so an extension run can render a SUBSET without forking
+the formatting. WP24's `canonical_hub_key_column` routing is likewise a precondition of
+the merge path, and WP25's exit code 3 is the outcome an extension run inherits when a
+merged model does not validate.
+
+## Addendum 2026-07-29 — brownfield Phase 2 (spike, not a WP)
+
+Phase 1 of the incremental-extension charter is complete (WP23 + WP28, all acceptance items
+met incl. the live Postgres on-top build). Phase 2 — entity resolution against the existing
+vault — is **a timeboxed design spike, not a speccable WP**, per the charter's own phasing:
+its mechanism choice, calibration and trap design are open questions that need measurement
+first, exactly as ADR-0008's mapping question did.
+
+| Artifact | Status |
+|---|---|
+| `spike-entity-resolution-charter.md` | Accepted, run 2026-07-29 |
+| `spike-entity-resolution-results.md` | **Complete** — recommends building it, LLM-first, with four conditions |
+
+The charter sets one thing apart from its mapping-spike template, and it is the reason to
+read it before approving: entity resolution is **not symmetric**. A false merge feeds foreign
+business keys into a hub that holds live history — the destructive migration the whole
+brownfield track refuses — while a false split costs a redundant hub a reviewer deletes.
+So the primary metric is a **zero false-merge requirement**, not accuracy, and "do not build
+the assist" is an explicitly cheap outcome because Phase 1 already works with the human
+answering the question.
+
+Spike outcome (2026-07-29): both mechanisms produced **zero false merges across 25 runs**,
+and LLM-first scored 1.000 on every metric clean. The decisive evidence is the blinded probe
+— with names masked and comments stripped it answers `unresolved` at confidence 0.35 exactly
+where it can no longer know, and its calibration margin RISES under degradation. It degrades
+honestly rather than guessing confidently, which is what the charter set as the disqualifying
+test. The memo is deliberately explicit about what six concepts on one case does *not*
+establish, and makes growing the golden set a condition on the WP.
+
+| WP | Spec | What | Size | Depends on |
+|----|------|------|------|------------|
+| WP29 | `wp29-entity-resolution-spec.md` | Entity-resolution assist: propose whether a new source's concept IS an existing construct; same-as as a first-class output | M | WP23 + WP28 (landed), spike memo |
+
+Kick-off: `kickoff/WP29-entity-resolution.md`. Note its acceptance #2, which is deliberately
+sequenced FIRST: the golden set gained an `undecidable` trap AFTER the spike ran (the
+prototype had already been deleted per the charter), so it is **unmeasured**. If the
+mechanism cannot decline when nothing in the schema settles the question, the WP stops and
+the recommendation is revisited rather than worked around.
+

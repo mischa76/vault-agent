@@ -68,11 +68,23 @@ MAX_MODELING_ATTEMPTS = 3
 
 def route_after_validation(state: VaultAgentState) -> str:
     """On success route to the source mapper (then the human checkpoint and the ADR author);
-    loop back to the modeler while the retry budget remains; give up at the cap."""
+    loop back to the modeler while the retry budget remains; at the cap hand the failing
+    model to the human checkpoint.
+
+    The exhausted budget routes to HUMAN_CHECKPOINT_NODE, not END (WP25 §2.1): a model that
+    will not validate is precisely the case ADR-0006's gate exists for, and
+    ``HumanReviewQueue.requires_signoff`` already treats a validation error as blocking — a
+    branch that could never fire while this returned END, which also made ``review-queue.md``
+    point at a checkpoint that did not exist.
+
+    It deliberately does NOT route through the source mapper first, unlike the passing path:
+    mapping concepts of a model the human may well discard spends LLM calls on output that
+    may never be used. The human decides first; a run accepted over its errors simply has no
+    mappings section."""
     if state.validation_report.passed:
         return SOURCE_MAPPER_NODE
     if state.modeling_attempts >= MAX_MODELING_ATTEMPTS:
-        return END
+        return HUMAN_CHECKPOINT_NODE
     return "dv2_modeler"
 
 
@@ -114,15 +126,16 @@ def build_graph(agents: dict[str, BaseAgent] | None = None) -> StateGraph[VaultA
     for src, dst in zip(PIPELINE, PIPELINE[1:], strict=False):
         graph.add_edge(src, dst)
 
-    # Validator passes -> human checkpoint -> ADR author -> end; fails -> re-model (until the
-    # cap) -> end. The checkpoint pauses (interrupt) only when something blocks sign-off.
+    # Validator passes -> mapper -> human checkpoint -> ADR author -> end; fails -> re-model
+    # (until the cap) -> human checkpoint (WP25). The checkpoint pauses (interrupt) only when
+    # something blocks sign-off — which a surviving validation error always does.
     graph.add_conditional_edges(
         "validator",
         route_after_validation,
         {
             SOURCE_MAPPER_NODE: SOURCE_MAPPER_NODE,
             "dv2_modeler": "dv2_modeler",
-            END: END,
+            HUMAN_CHECKPOINT_NODE: HUMAN_CHECKPOINT_NODE,
         },
     )
     graph.add_edge(SOURCE_MAPPER_NODE, HUMAN_CHECKPOINT_NODE)

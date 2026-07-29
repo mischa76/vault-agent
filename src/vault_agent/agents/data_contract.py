@@ -26,6 +26,7 @@ from typing import Any, Protocol, cast
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import render_schema_prompt_section
+from vault_agent.llm import call_with_truncation_split
 from vault_agent.models.contract import (
     ContractField,
     ContractOwner,
@@ -44,12 +45,27 @@ _TOOL_NAME = "emit_contract_enrichment"
 # generation, so headroom is free for small units and covers a dense one without truncating
 # (which WP3 turns into a hard LLMCallError).
 _MAX_TOKENS = 8192
-# Max fields enriched per LLM call. A very wide source table (legacy insurance/banking
-# tables routinely carry 100s of columns) is split into chunks of this size so a single
-# table can never overflow the output budget — the failure per-asset batching alone would
-# still hit. ~200 output tokens/field worst case keeps a full chunk well under _MAX_TOKENS.
+# Max fields pre-chunked into one LLM call — the cheap FIRST-ORDER bound, not the guarantee.
+# A very wide source table (legacy insurance/banking tables routinely carry 100s of columns)
+# is chunked to this size so a known-wide table never pays a doomed full-budget probe call.
+# It is *not* a proof of fit: 40 fields × ~200 output tokens worst case is ~8,000 of the 8,192
+# budget, and output tracks content density, not field count (the 2026-07-28 output-budget
+# milestone's own argument). The guarantee is the adaptive split below
+# (``llm.call_with_truncation_split``), which halves a chunk that actually truncates.
 _FIELDS_PER_CALL = 40
 _NAMESPACE = "source"
+
+
+def split_fields(fields: list[str]) -> tuple[list[str], list[str]] | None:
+    """Halve a chunk's field list; ``None`` when a single field is left.
+
+    The unit of work is a list, not prose, so the split is exact — no boundary search and
+    nothing can be severed (the ``split_requirements`` pattern). Order is preserved within
+    each half, so the merged field detail comes back in the declared order."""
+    if len(fields) < 2:
+        return None
+    midpoint = len(fields) // 2
+    return fields[:midpoint], fields[midpoint:]
 
 
 def _tool_schema() -> dict[str, Any]:
@@ -223,19 +239,50 @@ class DataContractAgent(BaseAgent):
         # approach scales to any table count AND any table width. The system prompt (carrying
         # the full declared schema) is byte-identical across calls, so WP3 prompt caching
         # makes the extra calls cheap on input tokens.
+        #
+        # WP19: the chunk width is only a first-order bound — a denser-than-assumed chunk
+        # still truncates, and that used to kill the whole run at the third pipeline stage.
+        # Each unit therefore goes through the shared adaptive split: the chunk is tried whole
+        # (so a normal run makes exactly the same calls with the same content as before) and
+        # only a truncated response halves it. An indivisible single field that still
+        # truncates re-raises — that is not a size problem.
         enrichment: dict[str, Any] = {}
         units = self._enrichment_units(assets)
+        segments_per_asset: dict[str, int] = {}
         for name, cols_chunk in units:
-            asset_json = json.dumps({name: cols_chunk}, indent=2)
-            logger.debug(
-                "enriching asset %r (%d field(s)): %d chars",
-                name, len(cols_chunk), len(asset_json),
+
+            async def enrich_chunk(fields: list[str], asset: str = name) -> dict[str, Any]:
+                asset_json = json.dumps({asset: fields}, indent=2)
+                logger.debug(
+                    "enriching asset %r (%d field(s)): %d chars",
+                    asset, len(fields), len(asset_json),
+                )
+                return await enricher.enrich(
+                    system_prompt=system_prompt, assets_json=asset_json
+                )
+
+            slices = await call_with_truncation_split(enrich_chunk, cols_chunk, split_fields)
+            # One slice per call: more than one means this chunk had to be halved.
+            segments_per_asset[name] = segments_per_asset.get(name, 0) + len(slices)
+            for slice_ in slices:
+                if isinstance(slice_, dict):
+                    self._merge_enrichment(enrichment, slice_)
+
+        units_per_asset: dict[str, int] = {}
+        for name, _ in units:
+            units_per_asset[name] = units_per_asset.get(name, 0) + 1
+        for name, segments in segments_per_asset.items():
+            if segments <= units_per_asset[name]:
+                continue
+            logger.info("asset %r enriched over %d segment(s)", name, segments)
+            state.flag(
+                "data_contract",
+                f"the enrichment for {name!r} did not fit one model response per chunk; "
+                f"its {units_per_asset[name]} chunk(s) were drafted over {segments} "
+                f"segment(s) of the field list — review the field detail for consistency",
+                kind=FlagKind.INPUT_SEGMENTED,
+                asset=name,
             )
-            slice_ = await enricher.enrich(
-                system_prompt=system_prompt, assets_json=asset_json
-            )
-            if isinstance(slice_, dict):
-                self._merge_enrichment(enrichment, slice_)
 
         # Business-key fields drive primaryKey / not-null. Matched normalised so a business
         # label ("national customer ID") propagates to a NATIONAL_CUSTOMER_ID column.

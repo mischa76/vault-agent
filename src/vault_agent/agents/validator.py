@@ -10,16 +10,19 @@ Results land in ``VaultAgentState.validation_report`` as a list of typed
 :class:`~vault_agent.state.ValidationIssue` records (``severity`` / ``code`` /
 ``construct`` / ``message``); ``passed`` is true when there are no error-severity issues.
 
-The gates cover structural invariants (names, keys, parents, required columns), grain and
-attribute overlap across constructs, satellite-internal duplicate attributes
+The gates cover structural invariants (names — uniqueness and well-formedness
+(``E_BAD_NAME``, WP20) — keys, parents, required columns), grain and
+attribute overlap across constructs (matched on the *normalised* attribute, so two casing
+variants of one column across two satellites of a parent are the same duplicate),
+satellite-internal duplicate attributes
 (``E_SAT_DUP_ATTR``), effectivity-satellite date count and (start, end) order
 (``E_EFFSAT_DATE_ORDER`` / ``W_EFFSAT_DATE_ORDER_UNVERIFIED``), hub hash-key/staging
 collisions on a shared source entity (``E_HUB_HK_COLLISION``), duplicate hubs over the same
 business key and source (``E_DUP_HUB``), role-qualified link participations
 (``E_LINK_DUP_ROLE`` and the grounded ``W_ROLE_BK_NOT_IN_SOURCE``, ADR-0009/WP8), and
-optional source-schema grounding. Count the ``E_``/``W_`` codes in this module for the
-authoritative gate count — 30 as of WP8 (backlog-2026-07); the code, not this prose, is
-the source of truth.
+optional source-schema grounding. For the gate count, count the ``E_``/``W_`` codes in this
+module: the code is the source of truth, and a literal here only ever goes stale (it said
+"30 as of WP8" while the module had 32).
 """
 import logging
 from typing import Any
@@ -27,17 +30,21 @@ from typing import Any
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import is_grounded, known_columns
 from vault_agent.rules.dv2_rules import (
+    CONSTRUCT_NAME_PATTERN,
     REQUIRED_HUB_COLUMNS,
     REQUIRED_LINK_COLUMNS,
     REQUIRED_SAT_COLUMNS,
     SAT_WIDE_ATTRIBUTE_THRESHOLD,
     effectivity_date_pair,
+    is_valid_construct_name,
     normalize_identifier,
     role_bk_column,
+    source_table_on_multi_source_hub,
 )
 from vault_agent.state import (
     Hub,
     IssueSeverity,
+    Link,
     ValidationIssue,
     ValidationReport,
     VaultAgentState,
@@ -59,6 +66,15 @@ _REQUIRED_COLUMNS = {
     ("links", "link"): REQUIRED_LINK_COLUMNS,
     ("satellites", "satellite"): REQUIRED_SAT_COLUMNS,
 }
+
+
+def _link_grain(link: Link) -> tuple[tuple[str, str], ...]:
+    """A link's grain: the sorted multiset of (hub, role) participations (ADR-0009).
+
+    The same shape ``W_LINK_REDUNDANT_GRAIN`` groups on — a role-qualified self-reference is
+    a different grain from a plain link over the same hub. Used by ``E_EXISTING_GRAIN_CHANGED``
+    (WP23) to decide whether an existing link still hashes the same way."""
+    return tuple(sorted((ref.hub, ref.role or "") for ref in link.hub_refs))
 
 
 def _issue(
@@ -97,6 +113,24 @@ class ValidatorAgent(BaseAgent):
         for name in sorted({n for n in all_names if all_names.count(n) > 1}):
             issues.append(
                 _issue("error", "E_DUP_NAME", name, f"construct name {name!r} is not unique")
+            )
+
+        # E_BAD_NAME: a construct name becomes a dbt model name AND a file on disk, so it must
+        # be well-formed before anything is generated (the re-model loop gets the feedback,
+        # mirroring how E_SAT_DUP_ATTR pre-empts the build error). write_outputs re-checks the
+        # filename components as defense in depth; this gate is what keeps that unreachable.
+        for name in all_names:
+            if is_valid_construct_name(name):
+                continue
+            offending = sorted({c for c in name if not (c.islower() or c.isdigit() or c == "_")})
+            rendered = ", ".join(repr(c) for c in offending) if offending else "the name shape"
+            issues.append(
+                _issue(
+                    "error", "E_BAD_NAME", name,
+                    f"construct name {name!r} is not well-formed ({rendered}); expected "
+                    f"hub_/link_/sat_ followed by lowercase snake_case, i.e. "
+                    f"{CONSTRUCT_NAME_PATTERN}",
+                )
             )
 
         for hub in model.hubs:
@@ -315,6 +349,7 @@ class ValidatorAgent(BaseAgent):
                     )
 
         issues.extend(self._check_cross_construct(state))
+        issues.extend(self._check_additive_extension(state))
         issues.extend(self._check_source_grounding(state))
         issues.extend(self._check_artifact_columns(state.artifacts.automatedv_yaml))
 
@@ -364,19 +399,27 @@ class ValidatorAgent(BaseAgent):
                 )
 
         # E_SAT_ATTR_OVERLAP: an attribute must live in at most one satellite per parent.
-        attr_owners: dict[str, dict[str, set[str]]] = {}
+        # Keyed on the NORMALISED attribute (WP20 §2.5), like the within-satellite
+        # E_SAT_DUP_ATTR: what would collide on the parent is the generated column, so
+        # "Customer ID" in one satellite and "customer_id" in another is the same duplicate.
+        # The original labels are reported, since they are what the human has to reconcile.
+        attr_owners: dict[str, dict[str, dict[str, set[str]]]] = {}
         for sat in model.satellites:
             per_parent = attr_owners.setdefault(sat.parent, {})
             for attr in sat.attributes:
-                per_parent.setdefault(attr, set()).add(sat.name)
+                per_parent.setdefault(normalize_identifier(attr), {}).setdefault(
+                    attr, set()
+                ).add(sat.name)
         for parent, attrs in sorted(attr_owners.items()):
-            for attr, owners in sorted(attrs.items()):
+            for _norm, labels in sorted(attrs.items()):
+                owners = {name for names in labels.values() for name in names}
                 if len(owners) > 1:
                     joined = ", ".join(sorted(owners))
+                    rendered = " / ".join(repr(label) for label in sorted(labels))
                     issues.append(
                         _issue(
                             "error", "E_SAT_ATTR_OVERLAP", parent,
-                            f"attribute {attr!r} appears in multiple satellites of "
+                            f"attribute {rendered} appears in multiple satellites of "
                             f"{parent!r}: {joined}",
                         )
                     )
@@ -471,6 +514,164 @@ class ValidatorAgent(BaseAgent):
                     )
                 seen.add(feed)
 
+        # E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB — NARROWED by ADR-0011. A satellite whose
+        # source_table NAMES one of the hub's feeds is now the canonical one-per-source shape
+        # and is generated; only a table that is not a feed at all remains an error, because a
+        # finer-grain relation under one feed cannot say which feed it belongs to. Gating here
+        # tells the human before generation and feeds the re-model loop (the E_SAT_DUP_ATTR
+        # pattern). The condition lives in rules/ so all three sites agree on what is skipped.
+        hub_by_name = {hub.name: hub for hub in model.hubs}
+        for sat in model.satellites:
+            parent_hub = hub_by_name.get(sat.parent)
+            if source_table_on_multi_source_hub(sat, parent_hub):
+                assert parent_hub is not None  # implied by the predicate
+                feeds = ", ".join(source.source_table for source in parent_hub.sources)
+                issues.append(
+                    _issue(
+                        "error", "E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB", sat.name,
+                        f"satellite {sat.name!r} declares source_table "
+                        f"{sat.source_table!r}, which is not one of the feeds of its "
+                        f"multi-source parent {sat.parent!r}. Available feeds: {feeds}. Name "
+                        f"one of them to bind this satellite to that source system, or drop "
+                        f"source_table so it splits across all feeds. A finer-grain relation "
+                        f"under a single feed is not expressible today (ADR-0011)",
+                    )
+                )
+
+        return issues
+
+    @staticmethod
+    def _check_additive_extension(state: VaultAgentState) -> list[ValidationIssue]:
+        """Additivity gates for brownfield mode (WP23 §2.5, charter §3.3).
+
+        Inert unless ``state.existing_model`` is set, so greenfield output is unchanged.
+        These compare the MERGED model back to the vault it extends and enforce the one
+        promise the whole track makes: an extension run never changes what already exists.
+
+        They are invariants over the merger's output, not a check on the LLM — the merger
+        already refuses non-additive deltas. That is the point: these are the guarantee, the
+        steering is only the shortcut. A merger bug, or any future re-model mode, hits them
+        instead of silently reshaping a live vault.
+
+        On growth vs shrink (charter Q3): BOTH count as a reshape of an existing satellite.
+        Adding an attribute to a satellite that already has history means backfilling a
+        column for every past row — a migration, not an extension. New attributes belong in
+        a NEW satellite on the same parent, which is what the modeler is steered to emit."""
+        prior = state.existing_model
+        if prior is None:
+            return []
+        issues: list[ValidationIssue] = []
+        merged = state.dv_model
+
+        hubs = {hub.name: hub for hub in merged.hubs}
+        links = {link.name: link for link in merged.links}
+        sats = {sat.name: sat for sat in merged.satellites}
+
+        for construct_name, kind in [
+            *[(hub.name, "hub") for hub in prior.hubs],
+            *[(link.name, "link") for link in prior.links],
+            *[(sat.name, "satellite") for sat in prior.satellites],
+        ]:
+            if construct_name not in {**hubs, **links, **sats}:
+                issues.append(
+                    _issue(
+                        "error", "E_EXISTING_REMOVED", construct_name,
+                        f"existing {kind} {construct_name!r} is absent from the extended "
+                        f"model; an extension run must never drop what the vault already "
+                        f"contains",
+                    )
+                )
+
+        for hub in prior.hubs:
+            current = hubs.get(hub.name)
+            if current is None:
+                continue  # already reported as removed
+            if normalize_identifier(current.business_key) != normalize_identifier(
+                hub.business_key
+            ) or normalize_identifier(current.source_entity) != normalize_identifier(
+                hub.source_entity
+            ):
+                issues.append(
+                    _issue(
+                        "error", "E_EXISTING_BK_CHANGED", hub.name,
+                        f"existing hub {hub.name!r} changed identity: business key "
+                        f"{hub.business_key!r}/{hub.source_entity!r} became "
+                        f"{current.business_key!r}/{current.source_entity!r}. The key is what "
+                        f"every stored hash was derived from — changing it is a migration",
+                    )
+                )
+            gained = len(current.sources) - len(hub.sources)
+            if gained > 0:
+                issues.append(
+                    _issue(
+                        "warning", "W_EXISTING_EXTENDED", hub.name,
+                        f"existing hub {hub.name!r} gained {gained} source feed(s): "
+                        f"{', '.join(s.source_table for s in current.sources[len(hub.sources):])}",
+                    )
+                )
+
+        for link in prior.links:
+            current_link = links.get(link.name)
+            if current_link is None:
+                continue
+            if _link_grain(current_link) != _link_grain(link) or set(
+                current_link.driving_key
+            ) != set(link.driving_key):
+                issues.append(
+                    _issue(
+                        "error", "E_EXISTING_GRAIN_CHANGED", link.name,
+                        f"existing link {link.name!r} changed grain or driving key; its "
+                        f"participations define the hash key of every stored row",
+                    )
+                )
+
+        for sat in prior.satellites:
+            current_sat = sats.get(sat.name)
+            if current_sat is None:
+                continue
+            reshaped = (
+                current_sat.parent != sat.parent
+                or current_sat.sat_type != sat.sat_type
+                or current_sat.source_table != sat.source_table
+                or {normalize_identifier(a) for a in current_sat.child_dependent_key}
+                != {normalize_identifier(a) for a in sat.child_dependent_key}
+                or {normalize_identifier(a) for a in current_sat.attributes}
+                != {normalize_identifier(a) for a in sat.attributes}
+            )
+            if reshaped:
+                issues.append(
+                    _issue(
+                        "error", "E_EXISTING_SAT_RESHAPED", sat.name,
+                        f"existing satellite {sat.name!r} was reshaped (parent, type, child "
+                        f"dependent key, source table or attribute set). Growth counts too: "
+                        f"a new attribute on a satellite with history is a backfill. Put new "
+                        f"attributes in a NEW satellite on {sat.parent!r}",
+                    )
+                )
+
+        # Advisory inventory of every legitimate extension — the review queue's extension
+        # category (charter Q5: validation warnings already flow into the queue, so no new
+        # ReviewKind is needed). Hubs that gained feeds are reported above.
+        prior_names = (
+            {hub.name for hub in prior.hubs}
+            | {link.name for link in prior.links}
+            | {sat.name for sat in prior.satellites}
+        )
+        for name, kind, parent in [
+            *[(hub.name, "hub", "") for hub in merged.hubs],
+            *[(link.name, "link", "") for link in merged.links],
+            *[(sat.name, "satellite", sat.parent) for sat in merged.satellites],
+        ]:
+            if name in prior_names:
+                continue
+            attached = f" on {parent}" if parent and parent in prior_names else ""
+            issues.append(
+                _issue(
+                    "warning", "W_EXISTING_EXTENDED", name,
+                    f"new {kind} {name!r}{attached} added by this extension run",
+                )
+            )
+
         return issues
 
     @staticmethod
@@ -478,13 +679,30 @@ class ValidatorAgent(BaseAgent):
         """Phase 1 grounding (ADR-0004): flag keys/attributes absent from the source schema.
 
         No-ops when no schema is declared, so output is unchanged from today. When a schema
-        is present, unknowns are *warnings* (the schema may be partial), never errors."""
+        is present, unknowns are *warnings* (the schema may be partial), never errors.
+
+        WP23: on an extension run, constructs that ALREADY EXIST are skipped. The declared
+        schema describes the source system this increment integrates — the CRM — while the
+        existing constructs were grounded against the core system's schema when they were
+        created. Re-checking them against a schema that was never meant to describe them
+        produces one warning per pre-existing attribute, which is pure noise and drowns the
+        warnings that are about this run. Found by the live bank_extension run: it is what
+        pushed the case over its warning tolerance."""
         issues: list[ValidationIssue] = []
         if not state.source_schemas:
             return issues
+        pre_existing = (
+            {hub.name for hub in state.existing_model.hubs}
+            | {link.name for link in state.existing_model.links}
+            | {sat.name for sat in state.existing_model.satellites}
+            if state.existing_model is not None
+            else set()
+        )
         columns = known_columns(state.source_schemas)
         hub_by_name = {hub.name: hub for hub in state.dv_model.hubs}
         for hub in state.dv_model.hubs:
+            if hub.name in pre_existing:
+                continue
             if hub.business_key.strip() and not is_grounded(hub.business_key, columns):
                 issues.append(
                     _issue(
@@ -510,6 +728,8 @@ class ValidatorAgent(BaseAgent):
         # mirroring W_BK_NOT_IN_SOURCE — the schema may be partial. Unqualified refs are
         # already covered by the hub loop above.
         for link in state.dv_model.links:
+            if link.name in pre_existing:
+                continue
             for ref in link.hub_refs:
                 if ref.role is None:
                     continue
@@ -530,6 +750,8 @@ class ValidatorAgent(BaseAgent):
                         )
                     )
         for sat in state.dv_model.satellites:
+            if sat.name in pre_existing:
+                continue
             for attr in sat.attributes:
                 if not is_grounded(attr, columns):
                     issues.append(

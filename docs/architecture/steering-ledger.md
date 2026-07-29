@@ -74,6 +74,8 @@ this table and the registry disagree, the registry wins.
 | `masat_source_table` | — | — | not yet ablated | keep |
 | `bk_collision_code` | — | — | not yet ablated | keep |
 | `role_qualified_participation` | — | — | not yet ablated | keep |
+| `construct_naming` | — (gated by `E_BAD_NAME`) | — | not yet ablated; added WP20 (2026-07-28) so a deterministic naming formality never burns a modeling retry — the gate, not the steering, is the guarantee | keep |
+| ~~`no_source_table_on_multi_source_hub`~~ **DELETED 2026-07-29** | — | measured ineffective: 0/3 live `bank_extension` runs prevented the shape | Lived less than a day. Added WP23 to steer the modeler away from `source_table` on a multi-source hub; the model kept emitting it because the shape is the correct answer to REQ-107, not a misreading. ADR-0011 then blessed the form (feed-naming binds the satellite to that feed), so the rule contradicted the product and was deleted by WP28. **The evidence is the point**: an ineffective rule whose target turned out to be legitimate — exactly the LOOPS rule-VIII case the ledger exists to catch, and the first entry retired on measurement rather than taste. | deleted (WP28) |
 
 ### Inventoried but not mechanically ablatable (v1)
 
