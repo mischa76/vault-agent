@@ -90,11 +90,119 @@ Notes:
 
 ### Step: 100 tables (seed 42) — `scale_100`
 
-_not run yet_
+**COMPLETED END TO END, 2026-07-29** (1 repeat) — the first time this case has ever finished.
+An earlier attempt the same day reached the modeler but was killed by the operator's 50-minute
+timeout; it is written up as Candidate #4 below, because what it measured is a finding in its
+own right.
+
+| scorer | score | reading |
+|---|---|---|
+| `pipeline_health` | 1.000 | no error flags |
+| `validation_gate` | 1.000 | `passed=True`, 100 warnings within tolerance |
+| `false_friend_hits` | 1.000 | 12 false-friend columns watched, none bound |
+| `mapping_coverage` | 0.714 | 20/28 golden pairs — see the reading below, this is not a defect |
+| `gap_detection` | 0.000 | concept-coupled, **reported only** in column mode (WP14) — blind by design at scale, not a quality signal |
+| `construct_f1`, `driving_key_accuracy`, `existing_construct_preservation` | 1.000 | all **vacuous** — the synthetic case ships a golden mapping and no golden model |
+
+Run: 137 calls, 463,951 in (cache-read 405%), 281,366 out, **818 s wall**, 68 hubs / 21 links /
+35 satellites, 1,021 flags → 1,121 review items → 218 rendered lines.
+
+**Peak output against cap — the table worth re-reading before the 300-table attempt:**
+
+| agent | calls | peak out | cap | %cap | truncations |
+|---|---|---|---|---|---|
+| `emit_requirements` | 4 | 8,192 | 8,192 | **100%** | 2 → split, recovered |
+| `emit_mapping` | 3 | 8,192 | 8,192 | **100%** | 1 → split, recovered |
+| `emit_business_keys` | 1 | 7,444 | 8,192 | **91%** | 0 |
+| `emit_contract_enrichment` | 129 | 5,381 | 8,192 | 66% | 0 |
+| `emit_dv_model` | 1 | 13,261 | 32,768 | **40%** | 0 |
+
+Three things this run establishes that were previously assumption:
+
+1. **The modeler's 32,768 budget (WP22/ADR-0010) is right, and the extrapolation that chose it
+   was accurate.** 13,261 actual against 13,889 predicted by isolated replay — the sub-linear
+   growth model holds. ~60% headroom remains at 100 tables, so the ~26k estimate for 300 tables
+   still fits. The transport ceiling is no longer the binding constraint.
+2. **The source-mapper segmentation ran against the real API for the first time and worked.**
+   It was keyless-tested only. The whole concept list truncated at 8,192, split, and both halves
+   returned clean (4,790 + 3,939). Same for `emit_requirements`, which split twice.
+3. **`emit_business_keys` made ONE call here and seven on the earlier attempt, from a
+   byte-identical input.** At 91% of cap it sits on the boundary and sampling variance decides —
+   the same flaky-breakpoint shape already recorded for the requirements parser. It recovers
+   either way; the point is that a single green run is not evidence that it fits.
+
+**Reading `mapping_coverage` 0.714 — the deferral is correct, the scorer conflates two things.**
+All four missed pairs are the cross-system synonym trap class
+(`CRM_PARTNER.EXTERNALPARTNERNO|VEKTRA_PARTNER.PARTN_NR` and the equivalents for contract,
+policy, claim), and all four concepts are sitting in `unresolved` — `PARTN_NR`, `VERTR_NR`,
+`POL_NR`, `SCHAD_NR`. That is precisely the behaviour WP9 specifies and documents: a business key
+with candidates in two *different source systems* is never force-picked; it goes to the human with
+both candidates and a WP10 multi-source pointer. The golden marks such a pair as *ambiguous*
+(either candidate is acceptable); the mapper's correct answer is *neither, ask a human*. Those are
+not the same thing, and `mapping_coverage` scores the second as a miss.
+
+This is the **fourth** instance of the eval measuring something the product deliberately does not
+do (after WP9.2, WP14, and the link-name/grain fix). It is deliberately NOT "fixed" here, because
+the fix is a judgement call rather than a defect repair: crediting a deferral as coverage would
+also hide a real regression in which the mapper stops resolving anything. Whoever picks this up
+should decide explicitly whether an `unresolved` entry carrying *both* golden candidates counts as
+covered, and pin that decision in a test either way.
+
+Scale observation, honest rather than alarming: **27 of 59 concepts (46%) came back unresolved**,
+against 0 at 30 tables. The deferral rate tracks cross-system overlap, not table count — the
+100-table landscape is where the CRM/VEKTRA synonym pairs start dominating. The output is honest,
+but "half the mapping needs ratification" is a real human-workload signal for the brownfield
+track, and a reason the incremental-extension charter's domain-by-domain framing matters.
 
 ### Step: 300 tables (seed 42) — `scale_300`
 
-_not run yet_
+_not run yet._ The transport ceiling no longer blocks it (see the modeler row above), and the
+wall-clock blocker is fixed (Candidate #4). The open question at 300 is `emit_business_keys`,
+which is already at 91% of cap at 100 tables, and the review queue, already at 1,121 items.
+
+**Run the modeler probe before the full case — the order matters.** At 300 tables every agent
+except one is already proven to degrade gracefully: `emit_requirements`, `emit_business_keys`
+and `emit_mapping` all split on truncation (observed live), and `emit_contract_enrichment` sits
+at 66% of cap and now runs concurrently (372 calls at 300 tables). `emit_dv_model` is the only
+agent that *cannot* split — it emits one coherent model, and merging two half-models is a
+modelling problem, not a plumbing one — so its budget is the only lever and the only genuine
+unknown. If it overflows, the full `scale_300` cannot complete anyway, and paying ~$18 to
+discover that mid-run repeats the serial-failure mistake recorded on 2026-07-28.
+
+A targeted probe therefore runs only the modeler's real upstream dependencies —
+`requirements_parser → business_key_identifier → dv2_modeler`, skipping `data_contract`, which
+is sound because the modeler does not read contracts (verified against its state access) and
+which is where most of the cost sits. Estimated ~$2–3 and ~10 minutes, against ~$18 and 30–45
+minutes for the full case.
+
+**Prediction to measure against** (from the two measured points, `tokens ~ tables^0.50`):
+~23,080 output tokens = **70% of the 32,768 budget**, no truncation. That is the tightest
+reserve in the pipeline at the one place without a fallback, and the exponent is a straight line
+through exactly two points — it is an estimate, not a measurement. A green probe means
+ADR-0010's deferred exit condition (staged modelling / domain partitioning) is not yet due at
+300 tables; an overflow means it is a precondition rather than an option.
+
+**Probe run 2026-07-29 — the modeler fits, but the probe did not test what it set out to test.**
+228 s, one call per agent, no truncation anywhere:
+
+| agent | calls | peak out | cap | %cap | truncations |
+|---|---|---|---|---|---|
+| `emit_requirements` | 1 | 7,061 | 8,192 | 86% | 0 |
+| `emit_business_keys` | 1 | 4,606 | 8,192 | 56% | 0 |
+| `emit_dv_model` | 1 | 13,833 | 32,768 | **42%** | 0 |
+
+13,833 against a predicted ~23,080. That gap is the finding, not the good news — see
+Candidate #5. The modeler was never handed a 300-table problem: it produced **38 hubs / 41 links
+/ 55 satellites at 300 tables, against 68 / 21 / 35 at 100**. Its output plateaued because its
+input did. **The modeler's scaling question is therefore still OPEN**, and the ~$18 full run
+would currently measure the upstream collapse rather than the scale.
+
+(An earlier attempt the same day was blocked by the account's API usage limit — `400
+invalid_request_error`, nothing spent, the failure came on the first call. Worth one line
+because it verified two things for free: the 400 was correctly *not* retried, `attempt=0` in the
+trace per WP3's non-retryable matrix, and WP15 emitted the `llm_error` event for a propagating
+non-retryable 4xx. The limit was gone ~10 minutes later; the message's stated reset date was not
+reliable.)
 
 ## Breakpoints found → follow-up WPs
 
@@ -216,6 +324,79 @@ Each entry: symptom, size at which it appears, which agent/limit, proposed follo
   do as a one-commit fix before the 100-step (where a mid-batch failure costs much more).
 - **Protocol reminder:** the spec's budget rule is ONE repeat per step — use
   `--repeat 1` for gate/verification runs; the default is 3.
+
+### Candidate #4 — `data_contract` wall clock: 129 independent calls run sequentially (FIXED)
+
+- **Observed 2026-07-29**, first `scale_100` attempt. The run was killed at 50 minutes without
+  ever reaching the two agents it existed to measure. Reading the trace rather than re-running
+  showed why: `emit_contract_enrichment` had made **129 calls at ~21.7 s each = 46.8 of the
+  run's 53.4 minutes — 88% of total wall clock**, while every other agent together took 6.
+  129 was also exactly the predicted count (`sum(ceil(cols/40))` over 1,907 columns), so the
+  agent had *finished*; the timeout landed on the threshold to `emit_dv_model`.
+- **Not a token problem.** Peak output was 5,381 of 8,192 (66%) — WP19's adaptive split never
+  fired, the pre-chunking bound held, and the cache hit rate was 96%. The units are independent
+  by construction (one asset, one field chunk each). Nothing about the work required an order;
+  only the code did.
+- **Fixed the same day** in `agents/data_contract.py`: the first unit runs alone to write the
+  shared prompt-cache entry (~14.7k tokens at 100 tables, which the other 128 read), then the
+  remainder fan out under `_MAX_CONCURRENT_ENRICHMENTS = 8`. Bounded rather than unlimited on
+  purpose — 129 simultaneous requests would trade a latency problem for a rate-limit one, and
+  `ForcedToolCaller`'s backoff would then re-serialise them at a worse constant. Three
+  properties are pinned by test because concurrency makes each easy to lose: results merge in
+  **unit order**, not completion order (byte-identical artifacts); a failure raises the **first
+  unit in order**, not the fastest to fail (same inputs, same error); and a failing warm-up
+  stops before the fan-out instead of paying for 128 more calls to learn the same thing. The
+  concurrency assertion was verified non-vacuous by forcing the bound to 1 and watching it fail.
+- **Measured effect:** 46.8 min → 6.1 min for the same 129 calls; total run 53.4 min
+  (incomplete) → 13.6 min (complete). Cache-read ratio *rose* to 405%.
+- **Method note, the same lesson as 2026-07-28 and worth repeating:** the diagnosis cost nothing
+  because the trace was already on disk. Read it before paying for another run.
+
+### Candidate #5 — `requirements_parser` under-extracts SILENTLY at 300 tables (OPEN)
+
+- **Observed 2026-07-29** by the 300-table modeler probe. The measurement, against the
+  100-table run of the same day:
+
+  | | doc chars | bullets | calls | requirements extracted | truncations |
+  |---|---|---|---|---|---|
+  | 100 tables | 9,027 | 93 | 4 | **113** | 2 → split, recovered |
+  | 300 tables | 24,239 | 281 | 1 | **79** | 0 |
+
+  A 2.7× larger document with 3× the bullets yielded **fewer** requirements, in one call, with
+  no truncation. The parser summarised where it previously enumerated.
+- **Why nothing caught it.** Every safety net in this pipeline keys on *truncation*:
+  `stop_reason == "max_tokens"` triggers the adaptive split and the `INPUT_SEGMENTED` flag.
+  Summarisation is not truncation. The response was well-formed, ended `tool_use`, and sat at
+  86% of cap — indistinguishable, from the outside, from a document that genuinely contained 79
+  requirements. There is no flag, no warning, and no scorer that fires. **This is the first
+  failure mode found in this project that is silent by construction.**
+- **Downstream consequence, measured:** 38 hubs / 41 links / 55 satellites at 300 tables against
+  68 / 21 / 35 at 100. Fewer hubs from three times the landscape. Everything after the parser —
+  business keys, the model, the mapping, the review queue — works from a compressed view of the
+  source landscape and cannot know it.
+- **It invalidates the probe's headline.** `emit_dv_model` used 42% of its budget not because it
+  scales beautifully but because it was handed a 300-table *document* describing what amounts to
+  a smaller problem. The ADR-0010 question — does one coherent model still fit at 300 tables —
+  is **unanswered**, and the full `scale_300` should not be paid for until this is fixed, or it
+  will measure the collapse instead of the scale.
+- **Proposed follow-up (product, M).** Deliberately NOT specced here, because the obvious lever
+  is one this project already rejected on evidence: a fixed character threshold is the wrong
+  proxy, since output tracks content *density*, not length (the 2026-07-28 output-budget note —
+  `messy_insurance` is larger than the 30-table document and yields far fewer requirements). The
+  new datapoint is the mirror image and does not restore the threshold idea; it argues for a
+  *coverage* signal instead. Candidate directions, in the order I would test them:
+  1. a **structural completeness check** — compare extracted requirement count against countable
+     structure in the document (bullets, headings) and flag a large shortfall for human review.
+     Cheap, deterministic, and honest: it flags rather than guesses. Needs care not to fire on
+     legitimately prose-heavy documents;
+  2. **proactive segmentation above a structural size** (bullet/heading count, not characters),
+     accepting the extra calls as the price of coverage;
+  3. leaving it and documenting the ceiling — defensible only if the brownfield/domain-by-domain
+     path (incremental-extension charter) is accepted as the sole supported route past ~100
+     tables, which is in fact what that charter argues.
+- **Method note:** the probe cost ~$1 and roughly 4 minutes and produced a finding the ~$18 full
+  run would have buried in a plausible-looking result. Probing the one unknown before buying the
+  whole measurement is the pattern to keep.
 
 ## Landscape composition (for interpreting the numbers)
 
