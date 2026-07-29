@@ -1,0 +1,60 @@
+# The new source system joining the existing bank vault (entity-resolution spike, D1).
+#
+# A DACH contract-management system ("VICTOR"-flavoured, as in messy_insurance) plus its CRM
+# module. Deliberately built so that NAME SIMILARITY AND THE CORRECT ANSWER DISAGREE: the two
+# tables sharing the "PARTNER" stem resolve in opposite directions, and the table whose name
+# is furthest from "customer" (VIC_PARTNER) is the one that IS the customer.
+#
+# Anonymised throughout (ATLAS convention). Comments are the kind a real legacy data
+# dictionary carries — terse, occasionally more useful than the column names.
+source_schemas:
+  # TRAP 1 — synonym hub. This IS the existing hub_customer: same national customer ID,
+  # same values. The name shares nothing with "customer".
+  - table: vic_partner
+    columns:
+      - {name: partn_nr, type: varchar, comment: "Nationale Kundennummer / national customer ID, as issued by the core banking system."}
+      - {name: partn_name, type: varchar, comment: "Name des Partners."}
+      - {name: partn_seit, type: date, comment: "Kunde seit."}
+
+  # TRAP 2 — false friend. Smells like a customer (name, address, a person) and is NOT:
+  # a contact PERSON at a corporate customer, with its own key and its own lifecycle.
+  - table: vic_kontakt
+    columns:
+      - {name: kontakt_id, type: varchar, comment: "Technischer Schlüssel des Ansprechpartners."}
+      - {name: kontakt_name, type: varchar, comment: "Name der Kontaktperson."}
+      - {name: kontakt_funktion, type: varchar, comment: "Funktion im Unternehmen, z.B. Geschäftsführer."}
+      - {name: partn_nr, type: varchar, comment: "FK auf vic_partner.partn_nr — der Firmenkunde, bei dem diese Person arbeitet."}
+
+  # TRAP 3 — legitimate new hub despite a shared name stem with TRAP 1. The counterparty of
+  # a contract is a different concept with a different key; "PARTNER" in the name is the
+  # decoy.
+  - table: vic_vertragspartner
+    columns:
+      - {name: vp_nummer, type: varchar, comment: "Schlüssel des Vertragspartners (nicht identisch mit der Kundennummer)."}
+      - {name: vp_bezeichnung, type: varchar, comment: "Bezeichnung des Vertragspartners, z.B. eine Rückversicherung."}
+      - {name: vp_rolle, type: varchar, comment: "Rolle im Vertrag."}
+
+  # TRAP 4 — same-as candidate. Asserted equivalent to the customer, but on a DIFFERENT key.
+  # Correct output: two hubs plus a flagged candidate — never a silent merge.
+  - table: crm_kunde
+    columns:
+      - {name: crm_guid, type: varchar, comment: "CRM-interner GUID; Primärschlüssel im CRM."}
+      - {name: crm_anzeigename, type: varchar, comment: "Anzeigename im CRM."}
+      - {name: segment, type: varchar, comment: "Marketingsegment."}
+  - table: crm_xref_partner
+    columns:
+      - {name: crm_guid, type: varchar, comment: "FK auf crm_kunde.crm_guid."}
+      - {name: partn_nr, type: varchar, comment: "Entspricht der nationalen Kundennummer — Zuordnungstabelle, gepflegt durch die Migration."}
+
+  # CONTROL — an easy synonym (should resolve; if a mechanism misses this, it is broken).
+  - table: vic_konto
+    columns:
+      - {name: konto_nr, type: varchar, comment: "Kontonummer / account number."}
+      - {name: konto_art, type: varchar, comment: "Kontoart."}
+
+  # CONTROL — a plain new entity, no similarity to anything existing.
+  - table: vic_vertrag
+    columns:
+      - {name: vertrag_nr, type: varchar, comment: "Vertragsnummer."}
+      - {name: vertrag_beginn, type: date, comment: "Vertragsbeginn."}
+      - {name: vp_nummer, type: varchar, comment: "FK auf vic_vertragspartner.vp_nummer."}

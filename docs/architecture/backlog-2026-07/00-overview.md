@@ -193,7 +193,8 @@ first, exactly as ADR-0008's mapping question did.
 
 | Artifact | Status |
 |---|---|
-| `spike-entity-resolution-charter.md` | **Proposed** — awaiting a decision to run |
+| `spike-entity-resolution-charter.md` | Accepted, run 2026-07-29 |
+| `spike-entity-resolution-results.md` | **Complete** — recommends building it, LLM-first, with four conditions |
 
 The charter sets one thing apart from its mapping-spike template, and it is the reason to
 read it before approving: entity resolution is **not symmetric**. A false merge feeds foreign
@@ -202,4 +203,12 @@ brownfield track refuses — while a false split costs a redundant hub a reviewe
 So the primary metric is a **zero false-merge requirement**, not accuracy, and "do not build
 the assist" is an explicitly cheap outcome because Phase 1 already works with the human
 answering the question.
+
+Spike outcome (2026-07-29): both mechanisms produced **zero false merges across 25 runs**,
+and LLM-first scored 1.000 on every metric clean. The decisive evidence is the blinded probe
+— with names masked and comments stripped it answers `unresolved` at confidence 0.35 exactly
+where it can no longer know, and its calibration margin RISES under degradation. It degrades
+honestly rather than guessing confidently, which is what the charter set as the disqualifying
+test. The memo is deliberately explicit about what six concepts on one case does *not*
+establish, and makes growing the golden set a condition on the WP.
 

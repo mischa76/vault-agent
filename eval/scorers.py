@@ -19,6 +19,14 @@ from pydantic import BaseModel
 
 from eval.datasets import EvalCase, GoldenLink
 from eval.mapping import GoldenMapping, ProposedMapping
+from eval.resolution import (
+    NEW,
+    RESOLUTION_CLASSES,
+    SAME_AS,
+    UNRESOLVED,
+    GoldenResolutionSet,
+    ResolutionResult,
+)
 from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import Link, VaultAgentState
 
@@ -613,3 +621,155 @@ def score_mapping(
             gap_detection(proposed, golden, reported_only=True),
         ]
     return [scorer(proposed, golden) for scorer in MAPPING_SCORERS.values()]
+
+# --- Brownfield Phase 2: entity resolution (spike D2) --------------------------------------
+# These are scored against a GoldenResolutionSet + a mechanism's ResolutionResult, not against
+# a pipeline state — the spike measures prototypes, and the production integration (if any) is
+# what the spike decides. They survive the spike as eval assets, like the WP9 mapping scorers.
+
+
+def _is_merge(resolution: str) -> bool:
+    """True when a resolution claims the concept IS an existing construct.
+
+    ``same_as_candidate`` is deliberately NOT a merge: it produces two constructs plus a flag,
+    which is the charter's required output for asserted-equivalent-but-different keys."""
+    return resolution not in RESOLUTION_CLASSES
+
+
+def false_merge_rate(golden: GoldenResolutionSet, result: ResolutionResult) -> ScorerResult:
+    """**The primary metric.** 1.0 iff the mechanism never merged a concept it should not have.
+
+    A false merge declares a new source's concept to BE an existing construct when the golden
+    says otherwise — feeding foreign business keys into a hub that holds live history. That is
+    the destructive migration the brownfield charter refuses, so this is scored as a hard
+    property, not a rate to optimise: any violation drops it to 0.0 and names the offenders.
+
+    Merging onto the WRONG existing construct counts too. Answering ``unresolved`` never does:
+    the honest non-answer is the behaviour we want when the mechanism cannot tell."""
+    expected = golden.by_concept()
+    offenders: list[str] = []
+    merges = 0
+    for proposal in result.proposals:
+        if not _is_merge(proposal.resolution):
+            continue
+        merges += 1
+        want = expected.get(proposal.concept)
+        if want is None or want.expected != proposal.resolution:
+            target = want.expected if want else "unknown concept"
+            offenders.append(f"{proposal.concept} -> {proposal.resolution} (golden: {target})")
+    if not merges:
+        return ScorerResult(
+            name="false_merge_rate", score=1.0,
+            details=f"{VACUOUS_PREFIX}the mechanism proposed no merges at all",
+        )
+    if offenders:
+        return ScorerResult(
+            name="false_merge_rate", score=0.0,
+            details=f"{len(offenders)} FALSE MERGE(S) of {merges}: " + "; ".join(offenders),
+        )
+    return ScorerResult(
+        name="false_merge_rate", score=1.0,
+        details=f"{merges} merge(s), all correct — no foreign key entered an existing hub",
+    )
+
+
+def resolution_accuracy(golden: GoldenResolutionSet, result: ResolutionResult) -> ScorerResult:
+    """Share of golden concepts answered exactly right. SECONDARY to false_merge_rate.
+
+    ``unresolved`` scores as wrong here (it is not the answer) while scoring as safe in
+    false_merge_rate — that split is the point: the memo must be able to see a mechanism that
+    is honest but unhelpful, and tell it apart from one that is helpful but dangerous."""
+    expected = golden.by_concept()
+    proposals = result.by_concept()
+    correct: list[str] = []
+    wrong: list[str] = []
+    for concept, want in expected.items():
+        got = proposals.get(concept)
+        answer = got.resolution if got else UNRESOLVED
+        same_as_ok = want.expected != SAME_AS or (got is not None and got.same_as == want.same_as)
+        if answer == want.expected and same_as_ok:
+            correct.append(concept)
+        else:
+            wrong.append(f"{concept}: {answer} (want {want.expected})")
+    score = len(correct) / len(expected) if expected else 1.0
+    details = f"{len(correct)}/{len(expected)} correct"
+    if wrong:
+        details += "; wrong: " + "; ".join(wrong)
+    return ScorerResult(name="resolution_accuracy", score=score, details=details)
+
+
+def new_hub_detection(golden: GoldenResolutionSet, result: ResolutionResult) -> ScorerResult:
+    """Recall over concepts that must NOT be merged (``NEW`` and ``same_as_candidate``).
+
+    The complement of the merge risk: a mechanism can trivially score 1.0 on false_merge_rate
+    by never merging, and this is what catches that — it measures whether the non-merge
+    answers are actually *right* rather than merely safe."""
+    must_not_merge = [e for e in golden.resolutions if e.expected in (NEW, SAME_AS)]
+    if not must_not_merge:
+        return ScorerResult(
+            name="new_hub_detection", score=1.0,
+            details=f"{VACUOUS_PREFIX}the golden declares no non-merge concepts",
+        )
+    proposals = result.by_concept()
+    hits = [
+        e.concept for e in must_not_merge
+        if (p := proposals.get(e.concept)) is not None and p.resolution == e.expected
+    ]
+    missed = sorted({e.concept for e in must_not_merge} - set(hits))
+    details = f"{len(hits)}/{len(must_not_merge)} identified"
+    if missed:
+        details += f"; missed: {', '.join(missed)}"
+    return ScorerResult(
+        name="new_hub_detection", score=len(hits) / len(must_not_merge), details=details
+    )
+
+
+def resolution_calibration(
+    golden: GoldenResolutionSet, result: ResolutionResult
+) -> ScorerResult:
+    """Does confidence separate right answers from wrong ones? (WP9 §7's question, again.)
+
+    The margin between the mean confidence of correct and of incorrect proposals, clamped to
+    0..1. 1.0 when there are no wrong proposals to separate (perfect separation is vacuous but
+    honest — the same convention mapping's calibration scorer settled on)."""
+    expected = golden.by_concept()
+    right: list[float] = []
+    wrong: list[float] = []
+    for proposal in result.proposals:
+        want = expected.get(proposal.concept)
+        if want is None:
+            continue
+        (right if proposal.resolution == want.expected else wrong).append(proposal.confidence)
+    if not wrong:
+        return ScorerResult(
+            name="resolution_calibration", score=1.0,
+            details=f"{VACUOUS_PREFIX}no wrong proposals to separate",
+        )
+    if not right:
+        return ScorerResult(
+            name="resolution_calibration", score=0.0,
+            details="no correct proposals — nothing to separate wrong answers from",
+        )
+    margin = sum(right) / len(right) - sum(wrong) / len(wrong)
+    return ScorerResult(
+        name="resolution_calibration", score=max(0.0, min(1.0, margin)),
+        details=(
+            f"mean confidence correct={sum(right)/len(right):.2f} "
+            f"wrong={sum(wrong)/len(wrong):.2f} margin={margin:.2f}"
+        ),
+    )
+
+
+RESOLUTION_SCORERS = {
+    "false_merge_rate": false_merge_rate,       # primary — a hard property
+    "resolution_accuracy": resolution_accuracy,
+    "new_hub_detection": new_hub_detection,
+    "resolution_calibration": resolution_calibration,
+}
+
+
+def score_resolution(
+    golden: GoldenResolutionSet, result: ResolutionResult
+) -> list[ScorerResult]:
+    return [scorer(golden, result) for scorer in RESOLUTION_SCORERS.values()]
+

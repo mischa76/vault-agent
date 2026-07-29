@@ -1601,6 +1601,39 @@ Preserving the name without the binding is not preserving the model; pinned by a
 compares the before/after `source_model` directly. 640 tests green, ruff clean, mypy strict
 clean (40 files). WP23 Phase 1 is COMPLETE — every acceptance item met.
 
+The brownfield Phase 2 spike ran (2026-07-29,
+docs/architecture/backlog-2026-07/spike-entity-resolution-charter.md ->
+spike-entity-resolution-results.md), following the mapping spike's protocol: charter first,
+throwaway prototypes under spike/ (deleted at the end), only docs and eval assets survive.
+The charter set one thing apart from its template and it shaped everything: entity resolution
+is NOT symmetric. A false merge — declaring a new source's concept to BE an existing hub when
+it is not — pushes foreign business keys into a table holding live history, while a false
+split costs a redundant hub someone deletes. So the primary metric is a zero-false-merge
+requirement, never averaged with accuracy. Measured, 5 repeats per configuration on a golden
+set carrying four trap classes (synonym hub / false friend / similar-name-new-hub /
+same-as candidate, with two concepts sharing the "PARTNER" stem resolving in OPPOSITE
+directions so a name-matcher cannot pass both): BOTH mechanisms produced zero false merges
+across 25 runs; LLM-first scored 1.000 on all four metrics clean vs deterministic-first's
+0.667 accuracy, at +13% input tokens, one call, Sonnet-tier. The decisive evidence is the
+blinded probe — names masked to TBL_01/COL_01_02 and every comment stripped — where it
+answers `unresolved` at confidence 0.35 exactly where it can no longer know while staying
+right where structure alone decides, and its calibration margin RISES (0.054 -> 0.270 ->
+0.383). It degrades honestly instead of guessing confidently, which was the disqualifying
+test. Secondary finding worth acting on: the twice-deferred same-as concept is reliably
+distinguishable (identified 5/5 clean AND when blinded), so it can become a model field.
+Recommendation (for Mischa): build it LLM-first, grounding-gated, as a PRE-MODELING step with
+its own ratification file rather than a modeler prompt section — once the modeler names a
+construct, WP23's merge_models folds it by name and the decision is already made. Four
+conditions are written into the memo, of which two matter most: the confidence CATEGORY must
+be derived deterministically from the evidence (the model's self-reported category was wrong
+on every exact-key case even where its answer was right), and the golden set must GROW before
+a WP is scoped on it. The memo is deliberately explicit about what six concepts on one case
+does not establish — including that the golden set and the prompt were written in the same
+session by the same author, a real confound the blinded probe mitigates but does not remove.
+Surviving assets: eval/datasets/brownfield_resolution/, eval/resolution.py, four scorers in
+eval/scorers.py with 15 keyless tests, and the raw runs under eval/results/spike_resolution/.
+655 tests green, ruff clean, mypy strict clean (41 files). Spike cost: ~$0.30.
+
 WP28 satellite feed binding landed (as of 2026-07-29, ADR-0011 Accepted,
 docs/architecture/backlog-2026-07/wp28-satellite-feed-binding-spec.md), implementing the
 decision WP24 §5 deferred and WP23's live run forced. A satellite whose `source_table` NAMES
