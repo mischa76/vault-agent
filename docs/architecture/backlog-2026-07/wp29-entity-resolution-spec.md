@@ -76,12 +76,13 @@ blocker — the same call WP9 made for mapping gaps.
 
 1. **`false_merge_rate` = 1.000 over ≥ 5 live repeats** on `brownfield_resolution`. This is
    the product's promise, not a quality score; anything below is a defect.
-2. **Trap 5 (`undecidable`) resolves to `unresolved`.** It was added to the golden set AFTER
-   the spike ran and is therefore **UNMEASURED** — the spike's prototype was deleted per its
-   charter before this trap existed. If the mechanism merges or guesses here, this WP stops
-   and the ADR-level recommendation is revisited: a mechanism that cannot decline when
-   nothing in the schema settles the question is not safe against a live vault, whatever it
-   scores elsewhere.
+2. **Trap 5 (`undecidable`) resolves to `unresolved`.** MEASURED 2026-07-29 (memo §6a):
+   `unresolved` 5/5 clean, with evidence naming the missing cross-reference explicitly, and
+   the result held when the prompt sentence that described the trap was removed. The WP must
+   reproduce it. Note the measured caveat: BLINDED, this concept flips to `NEW` at confidence
+   0.88 — no false merge, but a confident wrong answer, because the trap's difficulty lives
+   in the comment that blinding removes. Do not lean on the confidence number alone; the
+   derived category (§2.3) is what carries the reviewer's attention.
 3. `resolution_accuracy` ≥ 0.8 clean; the blinded probe re-run shows accuracy falling while
    `false_merge_rate` holds (honest degradation preserved in production, not just in the
    prototype).

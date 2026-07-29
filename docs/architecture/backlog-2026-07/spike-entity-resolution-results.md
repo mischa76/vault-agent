@@ -102,9 +102,9 @@ Stated plainly, because the numbers are clean enough to be over-read:
   confound: the traps may be ones the prompt implicitly anticipates. The blinded probe
   mitigates it (the prompt cannot lean on names it cannot see) but does not remove it. An
   independently-authored trap — ideally one Mischa writes from a real project — would.
-- **Zero false merges on four traps is not zero false merges.** The mechanism was never
-  offered the hardest case: two genuinely similar concepts with *overlapping key values* and
-  no cross-reference table to disambiguate. That trap should exist before the WP lands.
+- ~~**Zero false merges on four traps is not zero false merges.** The mechanism was never
+  offered the hardest case.~~ **Addressed the same day — see §6a.** The trap now exists and
+  the mechanism declines on it 5/5. The criticism stands for everything else in this list.
 - **Sonnet-tier sufficed**, and no Opus comparison was run. That is per charter §9 and not a
   gap, but it means "Opus would do better" is unmeasured.
 
@@ -136,6 +136,49 @@ Four conditions I would put on the WP rather than leave to the implementer:
 If any of that looks like more than the problem is worth, the honest alternative remains
 available and cheap: Phase 1 works today with the human answering, and this spike's cost was
 one afternoon and thirty cents.
+
+## 6a. Addendum (2026-07-29, same day): the undecidable trap, measured
+
+§4 said the mechanism "was never offered the hardest case". That trap now exists
+(`altbestand`: a legacy migration register whose key is documented as having the *same
+format* as the national customer ID, with no cross-reference table and nothing that
+establishes whether the populations overlap — the only correct answer is `unresolved`), and
+it has been measured. 5 repeats clean, 5 blinded.
+
+| | clean | blinded |
+|---|---|---|
+| false_merge_rate | **1.000** | **1.000** |
+| resolution_accuracy | 1.000 | 0.486 |
+| **trap 5 answer** | **`unresolved` 5/5** (conf 0.30–0.80) | `NEW` 5/5 (conf 0.88) |
+
+**Clean: it declines, and says why.** Its evidence names the exact reason — *"format
+resembles a customer number but is not confirmed to be one … no explicit cross-reference is
+provided … merging risks injecting legacy keys into live history … a data lineage review or
+explicit key mapping is required"*. That is the behaviour the whole charter was written
+around, on the one trap designed to defeat it. WP29's acceptance #2 is met.
+
+**A methodological confound, found and controlled.** The first probe of this trap used a
+prompt carrying a sentence I had added — *"a key that merely LOOKS like an existing key is
+not evidence…"* — which describes trap 5 almost verbatim. That is teaching to the test, and
+exactly the confound §4 warned about. Re-measured with that sentence removed (the prompt the
+spike actually ran): **identical result, `unresolved` 5/5.** The confound was real and did
+not carry the result; recorded because the check is the point, not the outcome.
+
+**Blinded, trap 5 flips to `NEW` at confidence 0.88 — and the honest reading is that the
+blinded probe cannot test this trap.** Trap 5's entire difficulty lives in the comment
+("Format wie die Kundennummer"); strip it and the table becomes an ordinary unrelated
+relation, for which `NEW` is a reasonable inference from what remains visible. So the score
+on that concept should be excluded rather than read as a failure. What DOES survive as a
+genuine weakness: the confidence is **0.88 on an answer the golden calls wrong**, where the
+other blinded concepts correctly dropped to 0.35. Blinded, the mechanism is not uniformly
+honest — it is honest where it can *see* that it lacks evidence, and confident where the
+evidence for its own uncertainty was what got removed. That is a limit of confidence as a
+signal, not of this mechanism, and WP29 should not lean on the number alone.
+
+Direction matters here: the wrong answer was `NEW`, not a merge. `false_merge_rate` held at
+1.000 in all 10 runs. The failure mode costs a redundant hub someone deletes, which is the
+charter's tolerable side of the asymmetry — but a reviewer is less likely to scrutinise it at
+0.88 confidence, and the memo would rather say that than round it off.
 
 ## 7. Surviving assets
 

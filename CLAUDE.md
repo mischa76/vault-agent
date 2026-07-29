@@ -1640,11 +1640,23 @@ Two things about it are worth knowing before someone picks it up. (1) The golden
 FIFTH trap after the spike ran — `undecidable`: a legacy migration register whose key has the
 same format as the national customer ID, with no cross-reference table and nothing in the
 schema that settles whether the populations overlap. The only correct answer is `unresolved`.
-It exists because the memo criticised its own measurement for never offering the hardest case,
-and it is **UNMEASURED**: the spike's prototype had already been deleted per the charter when
-the trap was written. WP29's acceptance #2 therefore runs it FIRST and stops the WP if the
-mechanism merges or guesses — a resolver that cannot decline when the evidence is genuinely
-absent is not safe against a live vault, whatever it scores on the other traps. (2) Two spec
+It exists because the memo criticised its own measurement for never offering the hardest
+case, and it is now MEASURED (memo §6a, 2026-07-29): `unresolved` 5/5 clean, with evidence
+naming the missing cross-reference explicitly — "no explicit cross-reference is provided …
+merging risks injecting legacy keys into live history … a data lineage review or explicit key
+mapping is required". WP29 acceptance #2 is met. Two findings from that measurement are worth
+carrying: (a) the FIRST probe used a prompt into which I had written a sentence describing
+trap 5 almost verbatim — teaching to the test, exactly the confound the memo warned about.
+Re-measured without it: identical result. The confound was real and did not carry the result,
+and the check is recorded because performing it is the point. (b) BLINDED, trap 5 flips to
+`NEW` at confidence 0.88 — no false merge, but a confident wrong answer where the other
+blinded concepts correctly fell to 0.35. The honest reading is that the blinded probe cannot
+test this trap at all, because the trap's difficulty lives entirely in the comment that
+blinding removes; the concept should be excluded there rather than read as a failure. What
+survives as a genuine limit: the mechanism is honest where it can SEE that it lacks evidence,
+and confident where the evidence of its own uncertainty is what got removed. WP29 must
+therefore not lean on the confidence number alone — the derived category is what carries the
+reviewer's attention. (2) Two spec
 decisions come from measured failures rather than taste: the confidence CATEGORY is derived in
 rules/ because the model self-reported `semantic` for every case including the exact-key ones
 where it was right, and the resolver is a PRE-MODELING step with its own ratification file
