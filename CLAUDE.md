@@ -1434,6 +1434,56 @@ while opening the stream, budget pin), ruff clean, mypy strict clean (37 files).
 scale_100/300 measurements this unblocks are still OPEN — the transport no longer caps them,
 which is not the same as having run them.
 
+WP23 brownfield mode, Phase 1 CORE landed (as of 2026-07-29, charter
+docs/architecture/backlog-2026-07/incremental-extension-charter.md Accepted, spec
+wp23-incremental-extension-spec.md). PARTIAL — read the open list at the end of this
+paragraph before assuming a piece exists. `run --existing <dir|file>` extends a previously
+generated vault instead of modelling into an empty target: the everyday DV2.0 scenario, and
+per the charter the methodically correct answer to the scale axis (nobody models 300 tables
+in one pass; they model domain by domain into a growing vault). The inertness guard was
+written and committed FIRST (tests/test_greenfield_inertness.py): the whole write_outputs
+tree of a bank run is pinned as a per-file sha256 manifest, so without the flag every
+artifact stays byte-identical and a deliberate addition has to be named in _EXPECTED_NEW;
+the WP10, staging-regression and both demo guardrails passed untouched throughout.
+(§2.1) write_outputs now also emits metadata/dv_model.yml — the LOGICAL model. This
+CORRECTS the charter's §3.1 guess that automatedv.yml could be round-tripped: that file is
+the RENDERED macro view and carries no descriptions, requirement_ids, sat_type, driving
+keys, source_table or Hub.sources, so reconstructing a DVModel from it would have had to
+invent exactly the fields it lost. New loader src/vault_agent/existing_model.py in the
+source_schema house style; a pre-WP23 output directory is an attributable error telling the
+user to regenerate once, never a guess. (§2.2) state.existing_model (checkpointer-safe, so
+resume needs no flag), --existing/-e, ExecutionPlan.extending, run-summary mode line.
+(§2.4) agents/model_merger.py: new constructs append in delta order; an existing hub matched
+BY NAME gains only its new source feeds (normalised dedup per E_HUB_DUP_FEED). A changed
+business key or a re-stated link/satellite is a migration, so it is flagged
+FlagKind.EXTENSION_CONFLICT and DROPPED rather than applied — the merged model therefore
+still satisfies the gates and the human sees one story. The existing model is never mutated.
+One subtlety worth knowing: when a single-source hub gains a feed, its original feed is
+implicit (Hub.sources empty), so the merger materialises it as (source_entity, business_key)
+— otherwise the merge would silently drop the legacy feed the moment sources became
+non-empty. (§2.5) Five additive gates over (existing, merged), inert when greenfield:
+E_EXISTING_REMOVED / _BK_CHANGED / _GRAIN_CHANGED / _SAT_RESHAPED plus the advisory
+W_EXISTING_EXTENDED inventory (the review queue's extension category — validation warnings
+already flow there, so charter Q5 needed no new ReviewKind). Per charter Q3, satellite
+attribute GROWTH counts as a reshape too: a new attribute on a satellite with history is a
+backfill, and new attributes belong in a NEW satellite on the same parent. (§2.6)
+Grandfathering, the trickiest part: a feed the vault already had keeps its legacy
+stg_<entity> name instead of gaining a WP10 source suffix, and an existing satellite is
+NEVER split per source — either would rename a materialised dbt model holding history, i.e.
+perform the destructive migration this track exists to refuse. Derived from the existing
+model (no new state field), so greenfield naming stays symmetric. (§2.3) The modeler gains
+an extension prompt section: a compact IMMUTABLE inventory plus delta-only instructions,
+returning '' when greenfield so the WP16 steering fixture and prompt caching are untouched.
+604 tests green (+31 across loader round-trip, merger, the five gates, grandfathering and
+the prompt section), ruff clean, mypy strict clean (39 files).
+OPEN and NOT built — do not assume otherwise: §2.7 (extension-diff.md artifact + the HTML
+report's Extension section), §2.8 (the delta-ADR with its "Extends" section — WP26 left the
+renderer ready for it, but it is not wired), acceptance #2 (the bank_extension eval case),
+acceptance #3 (the live Postgres on-top build: `dbt build` WITHOUT full-refresh over the
+previously built bank vault, pre-existing row history intact), the CLI-level --existing
+tests of spec §3.8, and the operations docs. The mode works end to end in the pipeline; what
+is missing is its reporting surface, its eval coverage and its live proof.
+
 ## References
 - In-repo methodology notes: docs/methodology/ (DV2.0 rules cheatsheet, IREB mapping, DSAF
   mapping, data-contracts approach)
