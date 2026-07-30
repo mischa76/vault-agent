@@ -113,6 +113,35 @@ WP20/WP28 precedent).
 5. The gate catalogue (`docs/operations/08-validation-gates.md`) carries the narrowed meaning,
    the new warning row and the corrected count, and the dv2-rules cheatsheet agrees.
 
+## 4a. Acceptance results — 2026-07-30
+
+All five criteria **MET**. 700 tests green (+20), ruff clean, mypy strict clean (44 files); the
+staging baseline, both demo guardrails and the WP24 composition matrix passed untouched, so no
+Postgres re-verification was required (§4.4) and none was performed.
+
+**Primary signal (§4.2) — met.** A live `adventureworks_production` run raises **zero**
+`E_SAT_ATTR_OVERLAP`; the three `hub_product` overlaps are `W_SAT_ATTR_OVERLAP_CROSS_SOURCE`,
+each naming its satellites' relations, and validation **passes**. It converged in **one** modeler
+attempt rather than exhausting all three, so the fix also returns the re-model budget it was
+wasting: 75.8k → 65.6k output tokens, 668 → 589 s, $3.69 → $3.02.
+
+**Secondary signal (§4.3) — reported, and better than expected, with the caveat stated.** The
+`sales` run also passes validation in one attempt, and the `ModifiedDate` duplication **did not
+recur**. The plausible cause is §2.3's `attribute_one_satellite` steering rule, but **n=1 cannot
+separate a steering effect from sampling variance** — the honest reading is one favourable
+datapoint, not a demonstrated effect, and the ledger row records it that way. Note what is *not*
+in doubt: had the duplication recurred, it would still have been an error, because the narrowing
+does not touch that class (pinned by
+`test_the_adventureworks_sales_shape_still_fails`).
+
+Side effects worth recording, both consequences of a model that now validates:
+
+- Review load collapsed — `production` 101 → 45 items, `sales` 128 → 50. Validation errors had
+  been dominating both queues.
+- `mapping_coverage` rose from 0.000 to 0.222 / 0.600, because on the failed path WP25
+  deliberately skips the source mapper: the earlier zeros were **zero proposals**, not bad
+  mapping. That correction is written into WP30 §7.3, where the misleading numbers live.
+
 ## 5. Budget
 
 Two live runs at 1 repeat (`production` ≈ $3.70, `sales` ≈ $3.60) ≈ **$7.50**. WP30 has spent

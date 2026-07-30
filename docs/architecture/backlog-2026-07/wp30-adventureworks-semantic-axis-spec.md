@@ -391,6 +391,47 @@ about: review load grows steeply and super-linearly in area size — 12/15 items
 areas, 101 and **128** for Production and Sales. Rendered lines grow far more slowly (23 → 52), so
 WP5's aggregation is doing real work at this size.
 
+#### Re-measured after WP31 / ADR-0012 — `production` and `sales`, 1 repeat each, 2026-07-30
+
+Finding 2 was fixed (WP31, ADR-0012 Accepted) and the two failing areas re-run. Both now pass
+validation, in **one modeler attempt** instead of exhausting all three:
+
+| case | `validation_gate` | `mapping_coverage` | review items / lines | modeler attempts | calls | out tok | wall | cost |
+|---|---|---|---|---|---|---|---|---|
+| `production` | 0.000 → **1.000** | 0.000 → 0.222 | 101 → **45** / 52 → 48 | 3 → **1** | 32 → 31 | 75.8k → 65.6k | 668 → 589 s | $3.69 → $3.02 |
+| `sales` | 0.000 → **1.000** | 0.000 → 0.600 | 128 → **50** / 50 → 44 | 3 → **1** | 26 → 25 | 71.3k → 62.4k | 640 → 580 s | $3.59 → $3.05 |
+
+The three `hub_product` overlaps are now `W_SAT_ATTR_OVERLAP_CROSS_SOURCE`, each naming its
+satellites' relations, and `Sales` produced the same shape on `SalesQuota`
+(`sat_sales_quota_history` vs its current-value satellite) — the *legitimate* case, correctly
+reported rather than blocking. Both runs raise zero `E_SAT_ATTR_OVERLAP`.
+
+**A correction to Finding 3 as written above, and it matters.** `production` and `sales` scored
+`mapping_coverage` 0.000 on 2026-07-29 because **the mapper produced zero proposals** — WP25
+deliberately routes a model that fails validation to the checkpoint *without* running the source
+mapper, since mapping the concepts of a model that may be discarded spends LLM calls on output
+that may never be used. So those two zeros were a downstream consequence of Finding 2, not a
+measurement of mapping quality at all, and reading them as one would have been wrong. Finding 3's
+analysis stands as written **for `person`**, which did validate and did produce 27 proposals; the
+table there is Person's. With the models now valid, the two areas score 0.222 and 0.600.
+
+**Finding 1 is now quantified, which turns it into a prediction.** Every remaining coverage miss
+on both areas is a `<TABLE>.NAME` pair — `CULTURE.NAME`, `LOCATION.NAME`, `PRODUCT.NAME`,
+`PRODUCTMODEL.NAME`, `PRODUCTSUBCATEGORY.NAME` … (7 of production's 9, 2 of sales' 5) — and each
+run made **exactly one** proposal for a concept labelled `Name`:
+
+```
+production: 74 distinct concepts, 1 concept "Name" -> ProductCategory.Name
+sales:      61 distinct concepts, 1 concept "Name" -> Store.Name
+```
+
+That is Finding 1's concept collision, at scale: reference tables keyed on `Name` are the norm in
+this schema, the modeler correctly hubs each one, and the mapper asks about the label once. So the
+prediction to test when Finding 1 is fixed — written down now so it cannot be adjusted afterwards
+— is that `production` rises from 0.222 toward ~0.78 (7 of 9 recoverable) and `sales` from 0.600
+to ~1.000, without any change to the mapper's reasoning quality. If it does not, the residual is
+modeler key choice and belongs to Finding 3.
+
 **Budget finding, recorded because it changes the plan rather than the result.** Extrapolating
 from this run by column count (465 total vs Purchasing's 49) and requirements size (263 KB total
 vs 17 KB), the full §4 acceptance list at 3 repeats — five areas plus both arms — lands at

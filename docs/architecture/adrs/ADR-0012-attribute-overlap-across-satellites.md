@@ -1,6 +1,8 @@
 # ADR-0012: Attribute overlap across satellites of one parent
 
-**Status:** Proposed
+**Status:** Accepted (2026-07-30 — the primary signal in the implementation sketch was met: a
+live `adventureworks_production` run raises zero `E_SAT_ATTR_OVERLAP`, validation passes, and it
+converged in one modeler attempt instead of exhausting all three. See WP31 §4a.)
 **Date:** 2026-07-30
 **Decision makers:** Mischa Eismann
 
