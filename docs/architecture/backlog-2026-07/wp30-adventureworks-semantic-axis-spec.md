@@ -432,6 +432,24 @@ prediction to test when Finding 1 is fixed — written down now so it cannot be 
 to ~1.000, without any change to the mapper's reasoning quality. If it does not, the residual is
 modeler key choice and belongs to Finding 3.
 
+#### Finding 1 fixed — the prediction held (WP32, 2026-07-30)
+
+`mapping_coverage`: `production` 0.222 → **1.000** (9/9), `sales` 0.600 → **1.000** (5/5), against
+the ~0.78 / ~1.000 predicted above. 7 of production's 9 recovered pairs are the `<TABLE>.NAME`
+concept collision this predicted; the remaining 2 were the Finding-3 key-choice misses and the
+modeler simply chose differently this run — variance, not WP32, and recorded that way rather than
+folded into the fix's credit.
+
+One acceptance item did **not** hold, and it is the one written to catch this: `sales`
+`false_friend_hits` 1.000 → **0.000**, one proposal binding `rowguid → SalesPerson.rowguid`. The
+cause is upstream of the mapper — the modeler put a technical replication GUID into
+`sat_quota_history`'s payload in this run and not in the two before it — and the mapper's answer
+about that attribute was correct. Full attribution and the two competing readings of what the
+scorer *should* measure are in WP32 §4a; the gate is deliberately left as it is.
+
+Standing consequence for the arm comparison: `false_friend_hits` can fail for a **modeling**
+reason, so on the arm runs it must be read with the trace rather than as a mapping verdict.
+
 **Budget finding, recorded because it changes the plan rather than the result.** Extrapolating
 from this run by column count (465 total vs Purchasing's 49) and requirements size (263 KB total
 vs 17 KB), the full §4 acceptance list at 3 repeats — five areas plus both arms — lands at

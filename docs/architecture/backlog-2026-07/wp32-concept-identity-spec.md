@@ -139,6 +139,63 @@ unambiguous case keeps today's robustness, which is every case the shipped cases
    (Finding 3) and is recorded as such — the prediction is not adjusted afterwards.
 4. `false_friend_hits` stays 1.0 on both: more concepts asked must not mean a `rowguid` bound.
 
+## 4a. Acceptance results — 2026-07-30
+
+**§4.1, §4.2 met.** 716 tests green (+16), ruff + mypy strict clean. The reproduction binds three
+hubs to three relations, and the fix is **mutation-verified**: 6 of the 16 new tests fail against
+the pre-WP32 behaviour, including both reproduction tests.
+
+**§4.3 met and exceeded.** Against the prediction WP30 §7.3 recorded *before* the fix:
+
+| case | predicted | measured | golden pairs |
+|---|---|---|---|
+| `adventureworks_production` | 0.222 → ~0.78 | 0.222 → **1.000** | 9/9 |
+| `adventureworks_sales` | 0.600 → ~1.000 | 0.600 → **1.000** | 5/5 |
+
+Production beat its prediction: the 7 `<TABLE>.NAME` pairs attributable to the collision bound as
+predicted, and the 2 that Finding 3 attributed to modeler key choice bound as well. Those two are
+**not** WP32's doing — the modeler chose differently this run — so the honest reading is "7
+explained by the fix, 2 by run-to-run variation", not "the fix recovered 9". `validation_gate` and
+`pipeline_health` stayed 1.000 on both.
+
+**§4.4 NOT met on `sales`: `false_friend_hits` 1.000 → 0.000.** One proposal bound a declared
+false friend — `rowguid → SalesPerson.rowguid`. This is the criterion written *because* asking
+more concepts could surface exactly this, so it is reported first and not explained away. The
+attribution, from the traces:
+
+```
+modeler payload, sales runs:  2026-07-29 22:59  17 sats, rowguid attributes: []
+                              2026-07-30 02:13  19 sats, rowguid attributes: []
+                              2026-07-30 04:01  20 sats, rowguid attributes: [('sat_quota_history', 'rowguid')]
+mapper proposal:              concept 'rowguid' (kind=attribute, parent hub_sales_representative)
+                              -> SalesPerson.rowguid, category exact_name, confidence 0.97
+```
+
+Two facts follow. First, **the cause is upstream of WP32**: the *modeler* put a technical
+replication GUID into a satellite's payload, in this run and not in the two before it. WP32
+changed concept *identity*, not what the modeler emits, so this is run-to-run variation in the
+model — the concept `rowguid` did not exist in the earlier runs' work-lists at all. Second, **the
+mapper did not fall for the trap the gate was built for**: no *business-key* concept was bound to
+a GUID. Asked where an attribute named `rowguid` comes from, it answered `SalesPerson.rowguid`,
+which is correct.
+
+That leaves a genuine open question about what the scorer should measure, with a real argument on
+each side, so it is recorded and **not** resolved by editing the gate:
+
+- *Scorer artefact.* The declared trap (WP30 §7.2) is "perfectly unique, indexed as a unique key,
+  never a **business key**". Scoring a correct answer about an attribute whose own label is
+  `rowguid` as a trap hit measures something else. This would be the FOURTH instance of the class
+  (WP9.2, WP14, the link-grain fix): an eval scorer measuring free-form model output rather than
+  the structure it was designed for.
+- *Real signal.* The vault is about to historise a replication GUID as business payload. That is
+  noise a reviewer should see — but it is a **modeler** concern, and `false_friend_hits` is a
+  *mapping* scorer, so this gate is the wrong instrument for it.
+
+Both readings agree on one thing: the pipeline has no gate for "do not model technical audit
+columns as payload", and the modeler does it sometimes. WP30 §7.3 Finding 2 already showed the
+same columns (`ModifiedDate`) causing trouble one layer down. Deciding this is its own item; per
+WP30 §2.5, a gate is not weakened because a run came out badly.
+
 ## 5. Budget
 
 Two live runs at 1 repeat ≈ **$6**. WP30 has spent $19.66 of its $40–60 ceiling.
