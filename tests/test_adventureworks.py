@@ -206,6 +206,44 @@ def test_chain_step_must_name_an_existing_case(tmp_path: Path) -> None:
         load_eval_case(case_dir / "dataset.yml")
 
 
+def test_a_dying_chain_leaves_its_completed_steps_on_disk(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """WP14.1 one level down: a five-step chain costs ~$15, so a step-5 failure must not
+    discard the four steps already paid for. Before this, persistence was per REPEAT only."""
+    import asyncio
+
+    from eval import run as run_mod
+
+    calls = {"n": 0}
+
+    async def fake_run_case_once(case: EvalCase) -> VaultAgentState:
+        calls["n"] += 1
+        if calls["n"] == 3:
+            raise RuntimeError("credit balance too low")
+        return VaultAgentState()
+
+    monkeypatch.setattr(run_mod, "run_case_once", fake_run_case_once)
+    monkeypatch.setattr(run_mod, "_score_run", lambda case, state, golden: [])
+    monkeypatch.setattr(run_mod, "run_metrics", lambda *a, **k: {"wall_clock_seconds": 1.0})
+
+    case = load_eval_case(DATASETS_ROOT / "adventureworks_incremental" / "dataset.yml")
+    runs, metrics, written, failure = asyncio.run(
+        run_mod._run_score_write(
+            case, None, 1, out_root=tmp_path,
+            models={"primary_model": "m", "heavy_model": "h"}, git_sha="abc",
+        )
+    )
+
+    assert failure is not None and "credit balance" in failure[1]
+    assert runs == [] and metrics == []  # the repeat itself produced no aggregate result
+    # …but the two completed steps are on disk, named so they are attributable.
+    steps = sorted(p.name for p in (tmp_path / case.name).glob("*step*.json"))
+    assert len(steps) == 2
+    assert "step1-adventureworks_person" in steps[0]
+    assert "step2-adventureworks_humanresources" in steps[1]
+
+
 def test_step_vault_round_trips_through_the_real_wp23_path(tmp_path: Path) -> None:
     """§2.7: a step writes the CLI's artifact and the next step reads it with the CLI's loader."""
     model = DVModel(

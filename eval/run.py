@@ -37,6 +37,7 @@ from pydantic import BaseModel
 from eval.datasets import (
     DATASET_FILENAME,
     DATASETS_ROOT,
+    GOLDEN_MAPPING_FILENAME,
     EvalCase,
     load_all_cases,
     load_eval_case,
@@ -425,13 +426,20 @@ def write_step_vault(state: VaultAgentState, step_dir: Path) -> Path:
 
 
 async def run_chain_once(
-    case: EvalCase, workdir: Path
+    case: EvalCase,
+    workdir: Path,
+    on_step: "Callable[[int, EvalCase, VaultAgentState], None] | None" = None,
 ) -> list[tuple[EvalCase, VaultAgentState]]:
     """Run every step of a chained case, threading each step's output into the next.
 
     Returns one ``(step_case, state)`` pair per step. A failing step raises, which
-    ``_run_score_write`` turns into the usual WP14.1 partial-batch failure — the completed
-    repeats of the chain are already persisted, and the caller reports which step died.
+    ``_run_score_write`` turns into the usual WP14.1 partial-batch failure.
+
+    ``on_step`` is called after each step completes, so the caller can persist that step
+    BEFORE the next one is paid for. Without it, WP14.1's guarantee only holds per *repeat*:
+    a five-step chain dying in step 5 would discard four completed, paid-for steps — the very
+    loss WP14.1 exists to prevent, one level down. A failing ``on_step`` must never take the
+    chain down (it is bookkeeping, not the measurement), so it is called defensively.
 
     Mid-chain human-in-the-loop semantics: every step auto-resumes with the standard
     unattended decision, exactly as a single-case run does. So a chain measures the pipeline
@@ -449,6 +457,11 @@ async def run_chain_once(
         print(f"    step {index}/{len(case.chain.steps)}: {step_name} ...", flush=True)
         state = await run_case_once(step_case)
         runs.append((step_case, state))
+        if on_step is not None:
+            try:
+                on_step(index, step_case, state)
+            except Exception as exc:  # bookkeeping must never fail the measurement
+                print(f"    (step {index} not persisted: {exc})", file=sys.stderr, flush=True)
         previous = write_step_vault(state, workdir / f"step{index}_{step_name}")
 
     return runs
@@ -543,8 +556,35 @@ async def _run_score_write(
             if case.chain is not None:
                 # One temp workdir per repeat: each step writes its metadata/dv_model.yml
                 # there and the next step reads it, so the chain runs the real WP23 path.
+                def persist_step(
+                    step_index: int,
+                    step_case: EvalCase,
+                    step_state: VaultAgentState,
+                    *,
+                    repeat_index: int = index + 1,
+                    repeat_usage: UsageTotals = usage,
+                    repeat_trace: Path = trace_path,
+                    repeat_stamp: str = timestamp,
+                ) -> None:
+                    """WP14.1 semantics one level down: a step is on disk before the next one
+                    is paid for, so a chain dying at step 5 leaves four measurements, not
+                    nothing. Scored against the STEP's own golden — each subject area ships
+                    one — so the partial data is usable, not just a state dump."""
+                    step_golden = DATASETS_ROOT / step_case.name / GOLDEN_MAPPING_FILENAME
+                    _write_one_result(
+                        case, repeat_index,
+                        _score_run(
+                            step_case, step_state,
+                            step_golden if step_golden.is_file() else None,
+                        ),
+                        out_root, models, git_sha,
+                        metrics=run_metrics(step_state, 0.0, repeat_usage, repeat_trace, {}),
+                        mappings=step_state.mappings.model_dump(mode="json"),
+                        timestamp=f"{repeat_stamp}-step{step_index}-{step_case.name}",
+                    )
+
                 with tempfile.TemporaryDirectory() as workdir:
-                    chain = await run_chain_once(case, Path(workdir))
+                    chain = await run_chain_once(case, Path(workdir), on_step=persist_step)
                 state = chain[-1][1]
             else:
                 state = await run_case_once(case)

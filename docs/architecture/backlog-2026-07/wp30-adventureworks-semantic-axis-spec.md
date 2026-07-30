@@ -265,6 +265,46 @@ judged to be one. So `mapping_coverage` on these cases answers one sharp questio
 mapper find the real natural-key columns?*, and deliberately nothing else. False friends are the
 `rowguid` columns: perfectly unique, indexed as unique keys, never a business key.
 
+### 7.2a Pre-registered predictions for the arm comparison (written 2026-07-30, before either arm ran)
+
+§2.6 already fixes the hypothesis and its falsifying outcome. Two further predictions are
+recorded here **before** the runs, so that if they occur they are findings and not
+after-the-fact explanations.
+
+**(1) The five subject areas are ONE source system, not five.** Worth stating because it bounds
+what arm B can possibly show. The extract's cross-area foreign keys prove a shared key space:
+
+```
+Sales -> Person   7 FKs      Purchasing -> Person/Production/HumanResources   1/2/1
+HumanResources -> Person   1 FK        Production -> HumanResources   1 FK
+
+  HumanResources.Employee.BusinessEntityID -> Person.Person.BusinessEntityID
+  Sales.Customer.PersonID                  -> Person.Person.BusinessEntityID
+  Sales.Store.BusinessEntityID             -> Person.BusinessEntity.BusinessEntityID
+```
+
+The same `BusinessEntityID` is an employee, a customer and a store contact. Separate source
+systems would have separate key spaces needing integration. So arm B measures **incremental
+modelling of one landscape** — the everyday "onboard a large ERP domain by domain" case — and
+**not** WP10 multi-source integration. Every step carries the same `record_source`. The writeup
+must not generalise the result to source-system integration.
+
+**(2) Prediction: hub reuse across steps will be imperfect, and it will be a NAMING effect.**
+Steps 4 and 5 reference entities that step 1 already hubbed (7 FKs from Sales into Person alone).
+Correct behaviour is to reuse those hubs. But WP23's `merge_models` folds an existing construct
+**by name** — so reuse happens only if the modeler picks the same name it picked four steps
+earlier, from different requirements text. Where it does not, the merge appends a second hub for
+the same concept instead of extending the first.
+
+This is exactly the entity-resolution problem WP29 exists for, and which §4.5 deliberately
+excluded from measurement. The prediction is therefore: **arm B produces at least one duplicate
+hub for a Person-domain concept**, and `existing_construct_preservation` stays 1.0 anyway —
+because duplicating a concept does not *remove or re-key* the original, which is all that scorer
+checks. If both hold, the honest reading is that the preservation promise is intact while
+name-based folding is the weak link, and that belongs in the WP29 record, not in the
+partitioning verdict. Do not read a duplicate-hub count as evidence against domain
+partitioning: a resolver would fix it, and one is already specced.
+
 ### 7.3 Run results
 
 #### Smoke run — `adventureworks_purchasing`, 1 repeat, 2026-07-29
