@@ -100,7 +100,9 @@ async def test_maps_gaps_and_unresolved() -> None:
     proposed = {p.concept: (p.table, p.column) for p in out.mappings.proposals}
     assert proposed["national customer ID"] == ("raw_customer", "NATIONAL_CUSTOMER_ID")
     assert proposed["customer name"] == ("raw_customer", "CUST_NAME")
-    assert out.mappings.gaps == ["date of birth"]
+    # WP32: gaps/unresolved carry the concept KEY ("<entity>::<label>") — a label alone is
+    # not an identity. For a satellite attribute the entity is its parent construct.
+    assert out.mappings.gaps == ["hub_customer::date of birth"]
     kinds = {f.kind for f in out.flags}
     assert FlagKind.MAPPING_GAP in kinds
 
@@ -117,7 +119,7 @@ async def test_never_invents_a_column_demotes_to_unresolved() -> None:
     )
     state = _state()
     out = await SourceMapperAgent(proposer).run(state)
-    assert "national customer ID" in out.mappings.unresolved
+    assert "customer::national customer ID" in out.mappings.unresolved  # WP32: the key
     assert all(p.concept != "national customer ID" for p in out.mappings.proposals)
     assert any(f.kind == FlagKind.MAPPING_UNRESOLVED for f in out.flags)
 
@@ -132,7 +134,7 @@ async def test_multi_source_key_unresolved_keeps_candidates() -> None:
     )
     state = _state()
     out = await SourceMapperAgent(proposer).run(state)
-    assert "national customer ID" in out.mappings.unresolved
+    assert "customer::national customer ID" in out.mappings.unresolved  # WP32: the key
     flag = next(f for f in out.flags if f.kind == FlagKind.MAPPING_UNRESOLVED)
     assert "candidates" in flag.message and "WP10" in flag.message
 
@@ -232,7 +234,7 @@ async def test_fk_demotion_resolves_to_anchor() -> None:
     prop = out.mappings.proposals[0]
     assert (prop.table, prop.column) == ("VICTOR_PARTNER", "PARTN_NR")
     assert any("fk-demotion" in e for e in prop.evidence)
-    assert "partner number" not in out.mappings.unresolved
+    assert "partner::partner number" not in out.mappings.unresolved
     assert not any(f.kind == FlagKind.MAPPING_UNRESOLVED for f in out.flags)
 
 
@@ -244,7 +246,7 @@ async def test_fk_demotion_no_comment_stays_unresolved() -> None:
     })
     state = _partner_state({}, "some unrelated policyholder column")
     out = await SourceMapperAgent(proposer).run(state)
-    assert "partner number" in out.mappings.unresolved
+    assert "partner::partner number" in out.mappings.unresolved  # WP32: the key
     assert not out.mappings.proposals
 
 
@@ -266,7 +268,7 @@ async def test_fk_demotion_cross_system_stays_unresolved() -> None:
     })
     state = VaultAgentState(dv_model=model, source_schemas=schema)
     out = await SourceMapperAgent(proposer).run(state)
-    assert "partner number" in out.mappings.unresolved
+    assert "partner::partner number" in out.mappings.unresolved  # WP32: the key
 
 
 def test_rebind_applies_full_result_not_just_models() -> None:

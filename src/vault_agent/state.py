@@ -1,5 +1,6 @@
 """Shared state passed through the LangGraph nodes."""
 import warnings
+from collections.abc import Sequence
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -157,6 +158,102 @@ MappingCategory = Literal[
 RatificationStatus = Literal["proposed", "accepted", "overridden"]
 
 
+CONCEPT_KEY_SEPARATOR = "::"
+
+
+def concept_key(concept: str, entity: str | None) -> str:
+    """The identity of a business concept in the mapping layer: (label, entity) (WP32).
+
+    The label ALONE is not an identity — three reference hubs can each be keyed ``Name`` — and
+    treating it as one made the mapper ask about the label once and then apply that one answer
+    to every hub carrying it, binding staging models to the wrong relation (WP30 §7.3
+    Finding 1, a wrong-DATA defect). Every site that identifies a concept — the mapper's
+    work-list and lookup, the staging re-bind, the ratification file and ``--map`` — imports
+    this; none re-derives it.
+
+    ``::`` deliberately, not ``.``: a key must never be confusable with the ``TABLE.COLUMN``
+    syntax the ratification file and ``--map`` already use. An entity-less concept keeps the
+    bare label, so a single-source vault's keys are byte-identical to pre-WP32."""
+    return f"{entity}{CONCEPT_KEY_SEPARATOR}{concept}" if entity else concept
+
+
+def concept_ref_matches(
+    ref: str, concept: str, entity: str | None, *, label_unique: bool
+) -> bool:
+    """Does ``ref`` refer to the concept ``(concept, entity)``? (WP32)
+
+    ONE matching rule, used everywhere a stored or human-typed reference has to be resolved:
+    **the key matches exactly, or the label matches and is unique in its universe.** The
+    label fallback is what keeps a human's ``--map "customer name=T.C"``, an edited review
+    file, and a checkpoint written before WP32 (whose lists hold bare labels) all working; the
+    uniqueness condition is what stops it from reinstating the defect, where one reference
+    resolved to several concepts at once.
+
+    ``label_unique`` is the caller's, because uniqueness is a property of the universe being
+    searched (a run's proposals, or a model's hubs), not of the pair."""
+    from vault_agent.rules.dv2_rules import normalize_identifier
+
+    if normalize_identifier(ref) == normalize_identifier(concept_key(concept, entity)):
+        return True
+    ref_label, ref_entity = split_concept_key(ref)
+    if not label_unique or normalize_identifier(ref_label) != normalize_identifier(concept):
+        return False
+    # Both sides naming an entity, and naming DIFFERENT ones, is a contradiction the label
+    # must not paper over: `AddressType::Name` never refers to ContactType's `Name`. The
+    # fallback exists for the mixed case — one side simply does not carry an entity.
+    return ref_entity is None or entity is None
+
+
+def match_concept_refs(
+    ref: str, candidates: Sequence[tuple[str, str | None]]
+) -> list[int]:
+    """Every candidate index ``ref`` could name (WP32) — exact key match, else label matches.
+
+    Returning the full list rather than one index is what lets callers tell **ambiguous**
+    (several matches: refuse to choose) from **unknown** (none: a concept the human is adding).
+    Collapsing those two into one "not found" answer would either drop a legitimate addition or
+    pick arbitrarily among siblings, and picking arbitrarily is the WP32 defect."""
+    from vault_agent.rules.dv2_rules import normalize_identifier
+
+    exact = [
+        i
+        for i, (concept, entity) in enumerate(candidates)
+        if normalize_identifier(ref) == normalize_identifier(concept_key(concept, entity))
+    ]
+    if exact:
+        return exact
+    ref_label, ref_entity = split_concept_key(ref)
+    label = normalize_identifier(ref_label)
+    return [
+        i
+        for i, (concept, entity) in enumerate(candidates)
+        if normalize_identifier(concept) == label
+        and (ref_entity is None or entity is None)
+    ]
+
+
+def resolve_concept_ref(
+    ref: str, candidates: Sequence[tuple[str, str | None]]
+) -> int | None:
+    """Index of the single concept ``ref`` names, else None (ambiguous or absent) — WP32.
+
+    Symmetric by design: it resolves a human's bare label against qualified candidates AND a
+    qualified key against candidates that carry no entity (a promoted human override), because
+    both directions occur and both must land on the same concept."""
+    matches = match_concept_refs(ref, candidates)
+    return matches[0] if len(matches) == 1 else None
+
+
+def split_concept_key(key: str) -> tuple[str, str | None]:
+    """Inverse of :func:`concept_key`: ``(label, entity)``; entity None for a bare label.
+
+    Used where a human hands back a key — ``resume --map``, an edited ``mappings.review.yml`` —
+    so a promoted proposal records the entity it belongs to instead of losing it. Splits on the
+    FIRST separator, since an entity name cannot contain it while a label conceivably could."""
+    entity, sep, label = key.partition(CONCEPT_KEY_SEPARATOR)
+    return (label, entity) if sep else (key, None)
+
+
 class Proposal(BaseModel):
     """One proposed ``concept → (table, column)`` mapping with its evidence trail (WP9).
 
@@ -172,6 +269,11 @@ class Proposal(BaseModel):
     entity: str | None = None
     category: MappingCategory = "llm_semantic"
     ratification_status: RatificationStatus = "proposed"
+
+    @property
+    def key(self) -> str:
+        """This proposal's concept identity (WP32) — never the bare label."""
+        return concept_key(self.concept, self.entity)
 
 
 class ProposedMapping(BaseModel):

@@ -272,11 +272,11 @@ def test_fk_demotion_fires_a_backstop_event() -> None:
         ]
     )
     agent = SourceMapperAgent()
-    concepts = [
-        type(
-            "C", (), {"concept": "partner number", "entity": "hub_partner", "kind": "business_key"}
-        )()
-    ]
+    # The real _Concept, not an ad-hoc stub: concept identity is (label, entity) since WP32,
+    # and a stub that only carries the label cannot exercise the lookup the agent performs.
+    from vault_agent.agents.source_mapper import _Concept
+
+    concepts = [_Concept("partner number", "hub_partner", "business_key")]
     raw = {
         "partner number": {
             "decision": "unresolved",
@@ -286,7 +286,7 @@ def test_fk_demotion_fires_a_backstop_event() -> None:
     events = _events()
     llm.set_trace_recorder(events.append)
     try:
-        mapping = agent._post_validate(state, concepts, raw)  # type: ignore[arg-type]
+        mapping = agent._post_validate(state, concepts, raw)
     finally:
         llm.set_trace_recorder(None)
 
