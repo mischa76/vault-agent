@@ -52,9 +52,12 @@ def test_rendered_rules_are_byte_identical_to_pre_wp16() -> None:
     # silent update is exactly what the pin exists to prevent. Deliberate additions so far:
     # WP20 `construct_naming` (2026-07-28) added; WP23 added
     # `no_source_table_on_multi_source_hub` and WP28 DELETED it again the same day, after
-    # ADR-0011 blessed the shape it argued against (and after it measured 0/3 effective).
+    # ADR-0011 blessed the shape it argued against (and after it measured 0/3 effective);
+    # WP31 `attribute_one_satellite` (2026-07-30) added, for the E_SAT_ATTR_OVERLAP class
+    # ADR-0012 keeps as an error.
     # The pre-WP16 block remains a byte-identical prefix — a deletion of a rule ADDED
-    # after WP16 cannot disturb it, which is exactly why the pin is written that way.
+    # after WP16 cannot disturb it, which is exactly why the pin is written that way, and
+    # each addition above was verified to preserve the prefix while regenerating.
     assert _render_rules() + "\n" == _RULES_FIXTURE.read_text(encoding="utf-8")
 
 

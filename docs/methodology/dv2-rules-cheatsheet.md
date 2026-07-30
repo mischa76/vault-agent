@@ -49,8 +49,10 @@ Each rule is one of two tiers:
 - Carry descriptive data that changes over time. Columns: HashKey(parent), LoadDateTime,
   RecordSource, HashDiff, business attributes. Each satellite hangs off exactly one parent.
 - Parent must be a known hub or link → `E_SAT_UNKNOWN_PARENT`; payload must be non-empty →
-  `E_SAT_NO_PAYLOAD`. An attribute lives in at most one satellite per parent →
-  `E_SAT_ATTR_OVERLAP`. **[ENFORCE]**
+  `E_SAT_NO_PAYLOAD`. An attribute lives in at most one satellite per parent *fed by the same
+  source relation* → `E_SAT_ATTR_OVERLAP`; the same label in two satellites fed by **different**
+  relations (each with its own `source_table`) is two different columns and only warns →
+  `W_SAT_ATTR_OVERLAP_CROSS_SOURCE` (ADR-0012). **[ENFORCE]**
 - **Splitting axes** — group attributes that belong together on *all* of: rate of change,
   source system, data classification (e.g. PII), data type; split where they diverge.
   **[GUIDE]** — record the rationale in `split_rationale` for the ADR.
@@ -92,7 +94,8 @@ Each rule is one of two tiers:
 | `W_LINK_REDUNDANT_GRAIN` | warning | two links, identical hub set + type |
 | `E_SAT_UNKNOWN_PARENT` | error | satellite parent is not a known hub or link |
 | `E_SAT_NO_PAYLOAD` | error | satellite has an empty payload |
-| `E_SAT_ATTR_OVERLAP` | error | an attribute (normalised) appears in two satellites of one parent |
+| `E_SAT_ATTR_OVERLAP` | error | an attribute (normalised) appears in two satellites of one parent fed by the SAME relation |
+| `W_SAT_ATTR_OVERLAP_CROSS_SOURCE` | warning | same label, but the satellites are fed by different relations (ADR-0012) |
 | `W_SAT_WIDE` | warning | satellite attribute count over the heuristic threshold (30) |
 | `E_MASAT_NO_CDK` | error | multi-active satellite without a child dependent key |
 | `E_EFFSAT_PARENT_NOT_LINK` | error | effectivity satellite parent is a hub, not a link |
