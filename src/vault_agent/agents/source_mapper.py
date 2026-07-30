@@ -169,7 +169,24 @@ class SourceMapperAgent(BaseAgent):
         Deterministic order (hubs then satellites); duplicates collapse to the first so the
         same unit of work is asked once. WP32: identity is (label, ENTITY) — de-duplicating on
         the label alone made three reference hubs each keyed ``Name`` into ONE question, and
-        the single answer was then applied to all three (WP30 §7.3 Finding 1)."""
+        the single answer was then applied to all three (WP30 §7.3 Finding 1).
+
+        **Brownfield (WP33):** constructs that already exist in ``state.existing_model`` are
+        skipped. A declared schema describes the source this increment integrates, while the
+        pre-existing constructs were mapped against *their* source when they were created;
+        re-mapping them against a schema that was never meant to describe them makes every one
+        of them a fresh coverage "gap", every step, for the rest of the vault's life. This is
+        the same reasoning — and the same fix — WP23 applied to the validator's grounding
+        warnings, which the mapper never received. Measured on the WP30 arm-B chain: gaps grew
+        4 → 51 → 80 → 185 → 208 across five steps, and step 5's gaps were Person-domain
+        concepts from step 1 (``Person::BusinessEntityID``, ``Address::AddressID``, …).
+        Greenfield runs have no existing model, so this is inert there."""
+        pre_existing = (
+            {hub.name for hub in state.existing_model.hubs}
+            | {sat.name for sat in state.existing_model.satellites}
+            if state.existing_model is not None
+            else set()
+        )
         seen: set[str] = set()
         concepts: list[_Concept] = []
 
@@ -180,8 +197,12 @@ class SourceMapperAgent(BaseAgent):
                 concepts.append(_Concept(concept, entity, kind))
 
         for hub in state.dv_model.hubs:
+            if hub.name in pre_existing:
+                continue
             add(hub.business_key, hub.source_entity, "business_key")
         for sat in state.dv_model.satellites:
+            if sat.name in pre_existing:
+                continue
             for attr in sat.attributes:
                 add(attr, sat.parent, "attribute")
         return concepts

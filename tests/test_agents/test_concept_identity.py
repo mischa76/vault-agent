@@ -298,3 +298,48 @@ def test_satellite_attributes_are_scoped_to_their_parent() -> None:
     keys = [c.key for c in SourceMapperAgent._concepts(state)]
 
     assert "hub_order::ModifiedDate" in keys and "hub_store::ModifiedDate" in keys
+
+
+# --- Brownfield: an already-mapped concept is not re-asked (WP33) ----------------------------
+
+
+def test_existing_constructs_are_not_re_mapped_in_an_extension() -> None:
+    """WP30 arm B measured gaps growing 4 → 51 → 80 → 185 → 208 across five steps: every step
+    re-mapped the whole accumulated vault against only THAT step's schema, so step 1's
+    concepts became fresh "gaps" forever. Same fix WP23 gave the validator's grounding."""
+    existing = DVModel(
+        hubs=[Hub(name="hub_person", business_key="BusinessEntityID",
+                  source_entity="Person", description="A person.")],
+        satellites=[Satellite(name="sat_person_details", parent="hub_person",
+                              attributes=["FirstName", "LastName"], description="Names.")],
+    )
+    merged = DVModel(
+        hubs=list(existing.hubs) + [
+            Hub(name="hub_customer", business_key="AccountNumber",
+                source_entity="Customer", description="A customer.")
+        ],
+        satellites=list(existing.satellites) + [
+            Satellite(name="sat_customer_details", parent="hub_customer",
+                      attributes=["StoreID"], description="Customer payload.")
+        ],
+    )
+    state = VaultAgentState(dv_model=merged, existing_model=existing)
+
+    keys = [c.key for c in SourceMapperAgent._concepts(state)]
+
+    assert keys == ["Customer::AccountNumber", "hub_customer::StoreID"]
+    # …and nothing from the pre-existing increment is asked about again.
+    assert not any("BusinessEntityID" in k or "FirstName" in k for k in keys)
+
+
+def test_greenfield_concept_list_is_untouched_by_the_skip() -> None:
+    """Inertness guard: with no existing model the work-list is exactly as before."""
+    model = DVModel(
+        hubs=[Hub(name="hub_person", business_key="BusinessEntityID",
+                  source_entity="Person", description="A person.")],
+        satellites=[Satellite(name="sat_person_details", parent="hub_person",
+                              attributes=["FirstName"], description="Names.")],
+    )
+    keys = [c.key for c in SourceMapperAgent._concepts(VaultAgentState(dv_model=model))]
+
+    assert keys == ["Person::BusinessEntityID", "hub_person::FirstName"]
