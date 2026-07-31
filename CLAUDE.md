@@ -131,8 +131,6 @@ several times, most recently for brownfield additivity. Details and dates: `docs
 
 ## Open items — do not assume these work
 
-- **WP33 is unverified.** `uv run pytest` and `uv run mypy` have not completed since commit
-  `699ec62`. Run both before relying on it.
 - **`scale_100` has never completed end to end.** The scale axis is verified at 30 tables. The
   source-mapper segmentation is keyless-tested only — it has never run against the real API.
 - **WP30's arm comparison is open.** Both arms have one repeat each, taken before WP33; the

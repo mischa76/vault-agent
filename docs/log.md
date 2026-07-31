@@ -2047,3 +2047,22 @@ back on". Its header tells contributors to answer "no" rather than delete a sect
 Deliberately NOT added: a CI job requiring a `docs/log.md` change whenever `src/` changes. Such a
 check can verify presence but not quality, and a gate that can only see presence produces empty
 entries written to satisfy it.
+
+## [2026-07-31] WP33's definition of done, completed
+
+WP33 (`699ec62`) shipped with its own commit message saying the full suite had never completed
+since the change — the machine was loaded by live runs and the run was killed by a timeout, so
+only targeted tests (82) and ruff had been seen. It was the one place where this project's own
+rule (tests, ruff and mypy green per commit) was knowingly broken, and it stood as the first
+entry under "Open items" in `CLAUDE.md`.
+
+Run now, on an idle machine: `uv run pytest` — **721 passed, 1 skipped in 22.6 s**; `uv run mypy`
+— **no issues in 44 source files**; `uv run ruff check .` — clean. The single skip is deliberate
+(`tests/test_greenfield_inertness.py`'s regeneration helper, run on purpose). Nothing needed
+fixing; the earlier timeout was machine load, not the suite, which is worth knowing because it
+was reasonable at the time to suspect the change.
+
+What this does **not** establish, so that the WP30 entry keeps its meaning: WP33's effect on arm
+B is unmeasured. Both AdventureWorks arms were run once, before this change, and the review-load
+numbers that made the domain-partitioning hypothesis untestable (983 versus 150 items) have not
+been re-taken. The open item is the arm comparison, not the code.
