@@ -22,6 +22,7 @@ from typing import Any, Protocol
 from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.agents.entity_resolver import render_resolution_prompt_section
 from vault_agent.existing_model import render_extension_prompt_section
 from vault_agent.grounding import render_schema_prompt_section
 from vault_agent.llm import TraceEvent, emit_trace
@@ -139,9 +140,12 @@ class Dv2ModelerAgent(BaseAgent):
         rules = "\n".join(f"- {rule.text}" for rule in active_modeling_rules())
         schema_section = render_schema_prompt_section(state.source_schemas)
         extension_section = render_extension_prompt_section(state.existing_model)
+        # WP29: only RATIFIED entity resolutions steer, and the renderer returns '' when there
+        # are none — so greenfield, ungrounded and first runs keep a byte-identical prompt.
+        resolution_section = render_resolution_prompt_section(state.resolutions)
         return (
             f"{template}\n\n## Data Vault modelling rules to apply\n\n{rules}\n"
-            f"{schema_section}{extension_section}"
+            f"{schema_section}{extension_section}{resolution_section}"
         )
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:

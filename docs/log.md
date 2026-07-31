@@ -2162,3 +2162,59 @@ totals — and never against the **record**. A claim in "Open items" is exactly 
 later findings entry overtakes silently: nothing about it looks stale, no number is wrong, it
 simply stopped being true. The skill's contradiction check now says to compare maintained pages
 against the record and names "Open items" as the likeliest place.
+
+## [2026-07-31] WP29 — entity resolution against an existing vault (keyless half)
+
+Brownfield mode could extend a vault only because a *human* answered the one question it
+cannot: "the new source calls this PARTNER — is that the existing `hub_customer`, or a new
+hub?" The Phase 2 spike measured that the model can propose that answer safely (zero false
+merges across 25 runs; blinded, it falls to `unresolved` at low confidence rather than
+guessing). This builds the assist under the four conditions the spike set. The **live
+acceptance runs of §4 are NOT done** — what landed is the mechanism and its keyless tests.
+
+`agents/entity_resolver.py` runs BEFORE `dv2_modeler` (§2.1, binding: once the modeler names a
+construct, WP23's `merge_models` folds it by name and the decision is already made) and is
+inert unless BOTH an existing model and a declared schema are present — greenfield and
+ungrounded runs make no call and change no state, which is the first thing the tests pin.
+Concepts come from the identified business keys, de-duplicated on (label, entity) for the same
+reason WP32 gave: two entities can carry the same key label, and one answer must not serve
+both.
+
+Three properties carry the safety claim. **The category is derived, never self-reported**
+(§2.3) — `rules.resolution_category` computes exact_key > key_overlap > comment_grounded >
+semantic from the evidence, because the spike's resolver reported `semantic` for every case
+including the exact-key ones where it was right; a test feeds a deliberately wrong claim and
+pins that it is ignored. **Post-validation demotes anything unverifiable** (§2.4): a
+resolution naming a construct the vault does not have becomes `unresolved` with the violation
+appended to its evidence, and the same for a `same_as` target — never a silent drop, never an
+invented hub. **Same-as is first-class** (§2.2): asserted-equivalent-but-differently-keyed
+produces two constructs plus a flag, and `is_merge` is false for it.
+
+One design decision the spec left implicit, resolved conservatively and worth stating because
+it shapes the workflow: **only a RATIFIED resolution steers the modeler.**
+`render_resolution_prompt_section` returns `''` for anything still `proposed`. An unratified
+merge reaching the prompt would make the modeler name the existing construct, which is exactly
+what makes `merge_models` fold it — i.e. the merge would happen without anyone agreeing to it,
+in a WP whose whole premise is that a false merge writes foreign keys into live history. So a
+first run proposes, the human ratifies (`resume --resolve` / `--resolutions <file>` /
+`--accept`), and a subsequent run is steered. That mirrors WP10's ratified multi-source hub,
+whose regeneration is likewise a fresh run rather than an in-place resume rewrite. The cost is
+one extra run on the first increment; the alternative is an unreviewed merge.
+
+The human path gets the same guard as the model path: a `--resolve` naming a construct that
+does not exist is refused with a warning rather than applied, so a typo cannot invent a hub
+either. Both flag kinds (`RESOLUTION_UNRESOLVED`, `RESOLUTION_SAME_AS`) join the review queue
+as aggregatable advisory items and leave `requires_signoff` unchanged — an unresolved concept
+is honest output, the call WP9 made for mapping gaps.
+
+Also collapsed here, per §2.2: `eval/resolution.py`'s `ProposedResolution` / `ResolutionResult`
+are now aliases of the state models rather than parallel definitions. The answer the pipeline
+emits and the answer a scorer reads must be one type, or the eval measures something the
+product does not produce.
+
+748 tests green (+20 in `tests/test_agents/test_entity_resolver.py`), ruff clean, mypy strict
+clean (45 files). Two `tests/test_cli.py` pins were updated deliberately for the new
+`resolutions` key in the counts dict and the decision payload (the WP11 "report" precedent).
+**Open:** the §4 live acceptance runs — `false_merge_rate` 1.000 over ≥5 repeats, trap 5
+reproducing `unresolved`, and the blinded probe showing accuracy falling while the merge rate
+holds.

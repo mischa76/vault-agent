@@ -56,7 +56,7 @@ def test_write_outputs_creates_files(tmp_path: Path) -> None:
         "models": 2, "staging": 1, "scaffolding": 2, "adrs": 1, "metadata": 1,
         # 0: this fixture carries generated artifacts but no logical dv_model to dump.
         "model": 0,
-        "contracts": 0, "mappings": 0, "review_items": 0, "report": 1,
+        "contracts": 0, "mappings": 0, "resolutions": 0, "review_items": 0, "report": 1,
         # WP23: 0 on a greenfield run — the diff artifact is extension-only.
         "extension_diff": 0,
     }
@@ -81,7 +81,7 @@ def test_write_outputs_skips_empty_sections(tmp_path: Path) -> None:
     assert counts == {
         "models": 0, "staging": 0, "scaffolding": 0, "adrs": 0, "metadata": 0,
         "model": 0,
-        "contracts": 0, "mappings": 0, "review_items": 0, "report": 1,
+        "contracts": 0, "mappings": 0, "resolutions": 0, "review_items": 0, "report": 1,
         # WP23: 0 on a greenfield run — the diff artifact is extension-only.
         "extension_diff": 0,
     }
@@ -159,6 +159,7 @@ def test_build_decision_collects_owners() -> None:
         "accept": True,
         "mappings": {},
         "mapping_sources": {},
+        "resolutions": {},
     }
 
 

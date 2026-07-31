@@ -30,6 +30,10 @@ class FlagKind:
     # (an existing hub's key changed, an existing link/satellite re-stated). Never
     # applied — flagged, and the additive gates fail the run.
     EXTENSION_CONFLICT = "extension_conflict"
+    # WP29 brownfield Phase 2: the entity resolver's two human-facing outcomes. Neither
+    # blocks sign-off — an unresolved concept is honest output, as a mapping gap is.
+    RESOLUTION_UNRESOLVED = "resolution_unresolved"  # is this an existing construct? undecided
+    RESOLUTION_SAME_AS = "resolution_same_as"  # asserted equivalent, differently keyed
     GENERIC = "generic"
 
 

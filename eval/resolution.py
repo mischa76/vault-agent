@@ -12,22 +12,43 @@ hub someone deletes at the checkpoint. The scorers keep the two apart and never 
 them.
 """
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import yaml
 from pydantic import BaseModel, Field, ValidationError
 
-# What a resolution can say about one new concept.
-#   <construct name> — it IS that existing construct (a merge; the dangerous answer)
-#   NEW              — a genuinely new construct
-#   same_as_candidate— asserted-equivalent on a DIFFERENT key: two constructs + a flag
-#   unresolved       — the honest non-answer (never penalised as a merge)
-NEW = "NEW"
-SAME_AS = "same_as_candidate"
-UNRESOLVED = "unresolved"
-RESOLUTION_CLASSES = (NEW, SAME_AS, UNRESOLVED)
+# WP29 promoted the proposal shape into the product (state.py) — the answer the pipeline
+# produces and the answer a scorer reads must be ONE type, or the eval measures something the
+# product does not emit. Re-exported here so the eval assets keep their own import surface,
+# exactly as eval/mapping.py does for WP9's Proposal.
+from vault_agent.state import (
+    RESOLUTION_CLASSES,
+    RESOLUTION_NEW,
+    RESOLUTION_SAME_AS,
+    RESOLUTION_UNRESOLVED,
+    EntityResolution,
+    ResolutionProposal,
+)
 
-ResolutionCategory = Literal["exact_key", "key_overlap", "comment_grounded", "semantic"]
+# Explicit re-export surface: strict mypy does not treat an import as an export, and these
+# names ARE this module's public vocabulary for the scorers and the golden loader.
+__all__ = [
+    "NEW",
+    "RESOLUTION_CLASSES",
+    "SAME_AS",
+    "UNRESOLVED",
+    "GoldenConstruct",
+    "GoldenResolution",
+    "GoldenResolutionSet",
+    "ProposedResolution",
+    "ResolutionResult",
+    "load_golden_resolution",
+]
+
+# The vocabulary lives in the product; these aliases keep the eval-side names readable.
+NEW = RESOLUTION_NEW
+SAME_AS = RESOLUTION_SAME_AS
+UNRESOLVED = RESOLUTION_UNRESOLVED
 
 
 class GoldenResolution(BaseModel):
@@ -55,24 +76,10 @@ class GoldenResolutionSet(BaseModel):
         return {entry.concept: entry for entry in self.resolutions}
 
 
-class ProposedResolution(BaseModel):
-    """One mechanism's answer for one concept, with the evidence a human would ratify on."""
-
-    concept: str
-    resolution: str  # construct name | NEW | same_as_candidate | unresolved
-    same_as: str | None = None
-    confidence: float = 0.0
-    category: ResolutionCategory = "semantic"
-    evidence: list[str] = Field(default_factory=list)
-
-
-class ResolutionResult(BaseModel):
-    """A mechanism's full answer for one run."""
-
-    proposals: list[ProposedResolution] = Field(default_factory=list)
-
-    def by_concept(self) -> dict[str, ProposedResolution]:
-        return {p.concept: p for p in self.proposals}
+# One definition, two names: the scorers were written against these, the pipeline emits the
+# state models. Aliases rather than subclasses so an object crosses the boundary unchanged.
+ProposedResolution = ResolutionProposal
+ResolutionResult = EntityResolution
 
 
 def load_golden_resolution(path: Path) -> GoldenResolutionSet:

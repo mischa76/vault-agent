@@ -49,6 +49,7 @@ from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import (
     ColumnProfile,
     DVModel,
+    EntityResolution,
     FlagKind,
     ProposedMapping,
     SourceTable,
@@ -199,6 +200,11 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
             _render_mappings_review(mapping), encoding="utf-8"
         )
 
+    if state.resolutions.proposals:
+        (out_dir / "resolutions.review.yml").write_text(
+            _render_resolutions_review(state.resolutions), encoding="utf-8"
+        )
+
     review_queue = assemble_review_queue(state)
     if review_queue.items:
         (out_dir / "review-queue.md").write_text(
@@ -231,10 +237,47 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         "model": 1 if _has_constructs(state.dv_model) else 0,
         "contracts": len(state.artifacts.contracts),
         "mappings": len(mapping.proposals),
+        "resolutions": len(state.resolutions.proposals),
         "review_items": len(review_queue.items),
         "report": 1,
         "extension_diff": 1 if state.artifacts.extension_diff else 0,
     }
+
+
+def _render_resolutions_review(resolutions: EntityResolution) -> str:
+    """Render the human-editable entity-resolution review file (WP29 §2.5).
+
+    Set a concept's ``resolution`` to an existing construct's name (or ``NEW`` /
+    ``same_as_candidate`` / ``unresolved``) and resume with
+    ``vault-agent resume --resolutions <file>``, or decide one with
+    ``vault-agent resume --resolve "concept=hub_name"``.
+
+    The file leads with ``category`` and ``evidence`` rather than ``confidence``, deliberately:
+    the category is derived from the evidence (WP29 §2.3) while the confidence is the model's
+    own claim, and the spike measured the latter to be the less trustworthy of the two."""
+    doc: dict[str, Any] = {
+        "resolutions": [
+            {
+                "concept": p.concept,
+                "resolution": p.resolution,
+                **({"same_as": p.same_as} if p.same_as else {}),
+                "category": p.category,
+                "evidence": list(p.evidence),
+                "confidence": round(p.confidence, 3),
+                "ratification_status": p.ratification_status,
+            }
+            for p in resolutions.proposals
+        ]
+    }
+    header = (
+        "# Entity resolution against the existing vault — review & ratify (WP29).\n"
+        "# resolution: <existing construct name> | NEW | same_as_candidate | unresolved\n"
+        "# Then:  vault-agent resume --resolutions <this file>\n"
+        "# Or:    vault-agent resume --resolve \"concept=hub_name\"\n"
+        "# A merge is applied ONLY after you ratify it — an unratified proposal never\n"
+        "# steers the modeler, because a wrong merge writes foreign keys into live history.\n"
+    )
+    return header + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True)
 
 
 def _render_mappings_review(mapping: ProposedMapping) -> str:
@@ -635,6 +678,34 @@ def _parse_map(spec: str) -> tuple[str, str]:
     return concept, target
 
 
+def _parse_resolve(spec: str) -> tuple[str, str]:
+    """Parse ``concept=<construct name | NEW | same_as_candidate | unresolved>`` (WP29)."""
+    concept, sep, answer = spec.partition("=")
+    concept, answer = concept.strip(), answer.strip()
+    if not sep or not concept or not answer:
+        raise ValueError(
+            f"invalid --resolve {spec!r}; expected 'concept=hub_name' (or =NEW / "
+            f"=same_as_candidate / =unresolved)"
+        )
+    return concept, answer
+
+
+def _resolutions_from_file(path: Path) -> dict[str, str]:
+    """Read an edited ``resolutions.review.yml`` into ``{concept: answer}`` (WP29 §2.5).
+
+    Every entry carrying a ``resolution`` becomes a ratification. The appliers refuse an
+    answer that names a construct the existing vault does not have, so a typo here cannot
+    invent a hub any more than the resolver itself can."""
+    document = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(document, dict):
+        raise ValueError(f"{path}: expected a mapping with a 'resolutions' list")
+    answers: dict[str, str] = {}
+    for entry in document.get("resolutions", []) or []:
+        if isinstance(entry, dict) and entry.get("concept") and entry.get("resolution"):
+            answers[str(entry["concept"])] = str(entry["resolution"])
+    return answers
+
+
 def _mappings_from_file(path: Path) -> dict[str, str]:
     """Read an edited ``mappings.review.yml`` into ``{concept: 'TABLE.COLUMN'}`` overrides.
 
@@ -689,6 +760,7 @@ def _build_decision(
     accept: bool,
     mappings: dict[str, str] | None = None,
     mapping_sources: dict[str, list[dict[str, str]]] | None = None,
+    resolutions: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     parsed: dict[str, dict[str, str | None]] = {}
     for spec in owners:
@@ -699,6 +771,7 @@ def _build_decision(
         "accept": accept,
         "mappings": mappings or {},
         "mapping_sources": mapping_sources or {},
+        "resolutions": resolutions or {},
     }
 
 
@@ -735,10 +808,22 @@ def _is_interactive(default: bool | None) -> bool:
 
 
 def _has_decision_flags(
-    owner: list[str] | None, accept: bool, mappings: Path | None, map_: list[str] | None
+    owner: list[str] | None,
+    accept: bool,
+    mappings: Path | None,
+    map_: list[str] | None,
+    resolutions: Path | None = None,
+    resolve: list[str] | None = None,
 ) -> bool:
     """True when ``resume`` was given any explicit decision — flags win, no prompt is shown."""
-    return bool(owner) or accept or mappings is not None or bool(map_)
+    return (
+        bool(owner)
+        or accept
+        or mappings is not None
+        or bool(map_)
+        or resolutions is not None
+        or bool(resolve)
+    )
 
 
 def _multi_source_unresolved(state: VaultAgentState) -> set[str]:
@@ -1148,6 +1233,8 @@ def _resume_paused(
     trace: bool,
     interactive: bool | None,
     write: bool = True,
+    resolutions: Path | None = None,
+    resolve: list[str] | None = None,
 ) -> None:
     """Answer the HITL checkpoint of a paused run — the flag path and the WP12 prompt.
 
@@ -1162,7 +1249,7 @@ def _resume_paused(
     # paused state from its checkpoint, then prompt + resume in-process. Flags win (no prompt),
     # and a non-TTY keeps today's flag-based path byte-identical.
     if (
-        not _has_decision_flags(owner, accept, mappings, map_)
+        not _has_decision_flags(owner, accept, mappings, map_, resolutions, resolve)
         and write
         and _is_interactive(interactive)
     ):
@@ -1185,7 +1272,11 @@ def _resume_paused(
             concept, target = _parse_map(spec)
             overrides[concept] = target
         multi = _mapping_sources_from_file(mappings) if mappings else {}
-        decision = _build_decision(owner or [], accept, overrides, multi)
+        ratified = _resolutions_from_file(resolutions) if resolutions else {}
+        for spec in resolve or []:
+            concept, answer = _parse_resolve(spec)
+            ratified[concept] = answer
+        decision = _build_decision(owner or [], accept, overrides, multi, ratified)
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]{exc}[/bold red]")
         raise typer.Exit(code=1) from exc
@@ -1244,6 +1335,17 @@ def resume(
     map_: Annotated[
         list[str] | None,
         typer.Option("--map", help="Override one mapping: 'concept=TABLE.COLUMN' (WP9)."),
+    ] = None,
+    resolutions: Annotated[
+        Path | None,
+        typer.Option("--resolutions", help="Edited resolutions.review.yml to ratify (WP29)."),
+    ] = None,
+    resolve: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--resolve",
+            help="Ratify one entity resolution: 'concept=hub_name' (or =NEW) (WP29).",
+        ),
     ] = None,
     trace: Annotated[
         bool,
@@ -1348,7 +1450,9 @@ def resume(
         input_path = Path(pending.get("input", "unknown"))
         _write_pending(out, thread_id, input_path)
         pending = {"thread_id": thread_id, "input": str(input_path)}
-        if not _has_decision_flags(owner, accept, mappings, map_):
+        if not _has_decision_flags(
+            owner, accept, mappings, map_, resolutions, resolve
+        ):
             if write and _is_interactive(interactive):
                 _interactive_checkpoint(console, out, thread_id, state, trace)
             else:
@@ -1359,6 +1463,7 @@ def resume(
     _resume_paused(
         console, out, pending,
         owner=owner, accept=accept, mappings=mappings, map_=map_,
+        resolutions=resolutions, resolve=resolve,
         trace=trace, interactive=interactive, write=write,
     )
 

@@ -28,6 +28,9 @@ from vault_agent.agents.base import BaseAgent
 from vault_agent.models.contract import ContractOwner
 from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import (
+    RESOLUTION_CLASSES,
+    RESOLUTION_SAME_AS,
+    RESOLUTION_UNRESOLVED,
     ExecutionPlan,
     FlagKind,
     Hub,
@@ -56,6 +59,8 @@ REVIEW_FLAG_GROUPS: dict[str, str] = {
     FlagKind.SOURCE_BINDING: "source-binding",
     FlagKind.MAPPING_GAP: "mapping-gap",
     FlagKind.MAPPING_UNRESOLVED: "mapping-unresolved",
+    FlagKind.RESOLUTION_UNRESOLVED: "resolution-unresolved",
+    FlagKind.RESOLUTION_SAME_AS: "resolution-same-as",
 }
 _DEFAULT_GROUP = "other"
 # Above this many items in one group, the renderers collapse it to a single summarised line.
@@ -68,6 +73,8 @@ _GROUP_LABELS: dict[str, str] = {
     "source-binding": "inferred staging source binding(s)",
     "mapping-gap": "concept(s) with no in-scope source (coverage gap)",
     "mapping-unresolved": "concept(s) with an unresolved source mapping",
+    "resolution-unresolved": "concept(s) not resolved against the existing vault",
+    "resolution-same-as": "same-as candidate(s) — equivalent but differently keyed",
 }
 
 
@@ -337,7 +344,77 @@ def apply_human_decision(state: VaultAgentState, decision: Any) -> list[str]:
     # WP10: resolve a multi-candidate key into a multi-source hub (Hub.sources).
     sources = decision.get("mapping_sources", {}) if isinstance(decision, dict) else {}
     _apply_mapping_sources(state, sources if isinstance(sources, dict) else {})
+    # WP29: ratify entity resolutions (only a ratified one ever steers the modeler).
+    resolutions = decision.get("resolutions", {}) if isinstance(decision, dict) else {}
+    _apply_resolution_decision(
+        state, resolutions if isinstance(resolutions, dict) else {}, accept
+    )
     return assigned
+
+
+def _apply_resolution_decision(
+    state: VaultAgentState, overrides: dict[str, Any], accept: bool
+) -> None:
+    """Apply a human's entity-resolution ratification (WP29 §2.5).
+
+    ``overrides`` is ``{concept: "<construct name>" | NEW | same_as_candidate | unresolved}``;
+    ``accept`` ratifies everything still ``proposed``. A ratified merge is what later steers
+    the modeler by name, so this is the only place a merge ever becomes real — and it happens
+    because a human said so, never because the model was confident.
+
+    An override naming a construct that does not exist is refused rather than applied: the
+    same safety property the resolver's own post-validation enforces, applied to the human
+    path so a typo cannot invent a hub either. The concept's flag is pruned only when the
+    decision actually resolved it."""
+    known = (
+        {h.name for h in state.existing_model.hubs}
+        | {link.name for link in state.existing_model.links}
+        | {s.name for s in state.existing_model.satellites}
+        if state.existing_model is not None
+        else set()
+    )
+    by_concept = {p.concept: p for p in state.resolutions.proposals}
+    for concept, answer in overrides.items():
+        if not isinstance(answer, str) or not answer.strip():
+            continue
+        answer = answer.strip()
+        if answer not in RESOLUTION_CLASSES and answer not in known:
+            logger.warning(
+                "resolution override %r names %r, which is not a construct of the existing "
+                "vault; ignored", concept, answer,
+            )
+            continue
+        proposal = by_concept.get(concept)
+        if proposal is None:
+            # Address by the key, else by a label unique among the proposals (the WP32 rule).
+            index = resolve_concept_ref(
+                concept,
+                [split_concept_key(p.concept) for p in state.resolutions.proposals],
+            )
+            proposal = state.resolutions.proposals[index] if index is not None else None
+        if proposal is None:
+            continue
+        proposal.resolution = answer
+        proposal.ratification_status = "overridden"
+        if answer != RESOLUTION_SAME_AS:
+            proposal.same_as = None
+        proposal.evidence = [*proposal.evidence, "human ratification"]
+        _prune_resolution_flags(state, proposal.concept)
+
+    if accept:
+        for proposal in state.resolutions.proposals:
+            if proposal.ratification_status == "proposed":
+                proposal.ratification_status = "accepted"
+                if proposal.resolution != RESOLUTION_UNRESOLVED:
+                    _prune_resolution_flags(state, proposal.concept)
+
+
+def _prune_resolution_flags(state: VaultAgentState, concept: str) -> None:
+    """Drop the resolution flags of a concept a human has now decided (exact asset match)."""
+    kinds = (FlagKind.RESOLUTION_UNRESOLVED, FlagKind.RESOLUTION_SAME_AS)
+    state.flags = [
+        f for f in state.flags if not (f.kind in kinds and f.asset == concept)
+    ]
 
 
 def _resolve_hub_for_concept(state: VaultAgentState, given: str) -> Hub | None:
