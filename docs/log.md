@@ -2135,3 +2135,30 @@ observed is Claude Code loading the hook at session start — a live probe in th
 (attempting an edit on ADR-0001 with a string that cannot match, so nothing could be written
 either way) was answered by the Edit tool rather than the hook, because settings are read at
 startup. First edit attempt on a record in the next session is the remaining evidence.
+
+## [2026-07-31] Lint follow-up — the first pass compared the wrong pair of things
+
+Opening the WP branch's pull request surfaced a contradiction the lint pass earlier today should
+have caught: `CLAUDE.md`'s "Open items" claimed *"`scale_100` has never completed end to end"*
+and *"the source-mapper segmentation is keyless-tested only — it has never run against the real
+API"*. Both halves are false, and `scale-test-findings.md` already said so. `scale_100` completes
+and validates since the enrichment-concurrency fix (candidate #4: 53.4 min incomplete → 13.6 min
+complete), and the 100-table run records `emit_mapping` hitting 100% of cap with *"1 → split,
+recovered"*, observed live — the segmentation the claim called untested is the segmentation that
+run exercised.
+
+The line was inherited verbatim from the pre-retrofit `CLAUDE.md`, where it was written on
+2026-07-28 and was true then. Moving a stale claim into a shorter file does not refresh it.
+
+Replaced with what the findings document itself concludes, which is a narrower and more useful
+statement: **scale is verified at ~30 tables of real semantic variety and unverified above it** —
+not because the pipeline breaks, but because the synthetic landscape does not scale *information*
+with table count (candidate #5), so the upper cases measure width and repetition tolerance.
+`scale_300` remains unrun, and `emit_dv_model` is the one agent that cannot split.
+
+**Why the pass missed it, recorded because the checklist is now sharper for it.** The lint ran
+maintained pages against *each other* and against the code — gate counts, version pins, test
+totals — and never against the **record**. A claim in "Open items" is exactly the kind that a
+later findings entry overtakes silently: nothing about it looks stale, no number is wrong, it
+simply stopped being true. The skill's contradiction check now says to compare maintained pages
+against the record and names "Open items" as the likeliest place.
