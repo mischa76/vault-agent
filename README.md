@@ -146,7 +146,7 @@ No key yet? Most of the project runs keyless — only `vault-agent run` (and the
 mapper on grounded runs) calls the API. Everything below works immediately:
 
 ```bash
-uv run pytest -q                            # full test suite (~430 tests), green without a key
+uv run pytest -q                            # full test suite, green without a key
 uv run ruff check . && uv run mypy          # lint + strict type-check
 
 # End-to-end: build a running Data Vault on local Postgres (no key, no Docker)

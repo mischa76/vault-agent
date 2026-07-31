@@ -24,7 +24,9 @@ to **new** documents only; existing records were left untouched.
 | Document | What it is |
 |---|---|
 | [operations/README.md](operations/README.md) | The operations manual, 13 chapters — installation, running, HITL, gates, warehouse, troubleshooting |
+| [architecture/0-vision.md](architecture/0-vision.md) | What this is for, in one page |
 | [architecture/1-architecture-overview.md](architecture/1-architecture-overview.md) | The system in one page |
+| [architecture/3-diagrams.md](architecture/3-diagrams.md) | The pipeline and model diagrams |
 | [architecture/2-multi-agent-design.md](architecture/2-multi-agent-design.md) | Agent topology and responsibilities |
 | [how-requirements-become-a-model.md](how-requirements-become-a-model.md) | End-to-end walk of the actual behaviour, with its assumptions named |
 | [log.md](log.md) | **The record** — every closed WP, measurement and correction, chronological, append-only |

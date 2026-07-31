@@ -2066,3 +2066,41 @@ What this does **not** establish, so that the WP30 entry keeps its meaning: WP33
 B is unmeasured. Both AdventureWorks arms were run once, before this change, and the review-load
 numbers that made the domain-partitioning hypothesis untestable (983 versus 150 items) have not
 been re-taken. The open item is the arm comparison, not the code.
+
+## [2026-07-31] First lint pass over the corpus — five gates were undocumented
+
+The first run of the lint pass defined in `.claude/skills/project-docs/SKILL.md`, over the
+maintained pages only (`docs/operations/`, `docs/methodology/`, the index, `README.md`,
+`CLAUDE.md`, `CONTRIBUTING.md`, `.claude/rules/`). Dated records were read, never edited.
+
+**The finding that mattered — the gate catalogue was incomplete, not just stale.**
+`docs/operations/08-validation-gates.md` documented 35 codes; `validator.py` has 40. The five
+missing ones are WP23's brownfield extension gates — `E_EXISTING_REMOVED`,
+`E_EXISTING_BK_CHANGED`, `E_EXISTING_GRAIN_CHANGED`, `E_EXISTING_SAT_RESHAPED` and
+`W_EXISTING_EXTENDED` — which were never added to the catalogue when brownfield mode landed. The
+page's own arithmetic was self-consistent (23 + 12 = 35), which is exactly why nobody noticed: a
+wrong total agreeing with an incomplete table looks correct. A new "Extension mode" section now
+documents all five, written from the gate conditions rather than from memory — worth stating,
+because `E_EXISTING_BK_CHANGED` does compare `source_entity` as well as the business key, and the
+WP23 live-run fix that dropped a `source_entity` comparison touched the *merger*, not this gate.
+Describing it from recall would have documented behaviour the code does not have.
+
+Two more of the same class, both fixed by removing the number rather than correcting it:
+`operations/03`'s pipeline diagram said "32 E_/W_ gates", and `README.md` advertised
+"~430 tests" against an actual 721. The catalogue header no longer states a total at all and
+carries the `rg` one-liner that produces the current set instead. Also mechanical:
+`architecture/0-vision.md` and `3-diagrams.md` were missing from the index; every index link
+resolves, and the only remaining unlisted files are the 33 kick-offs, which the index covers by
+the naming convention on purpose.
+
+Checked and clean: the steering ledger mentions all 17 registered rule ids; no contradictions
+between maintained pages; `AUTOMATE_DV_VERSION` in `operations/05` states its value beside a
+pointer to the constant, which is the acceptable form for a configuration reference.
+`CLAUDE.md` is at 148 of its 200 lines. One self-audit finding, reported and not acted on: the
+"Definition of done" invariant is a checklist rather than trigger/action/evidence, so by the
+skill's own rule it is an eviction candidate — it is kept because it is the one entry a
+contributor needs before every commit.
+
+Not attempted here: the dated records under `docs/architecture/` contain historical gate counts
+(30, 32, 33, 34, 35) that were correct when written and are wrong now. Append-only means they
+stay. Anyone reading them should take the count from the code, which is what the invariant says.

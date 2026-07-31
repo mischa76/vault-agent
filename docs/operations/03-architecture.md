@@ -77,7 +77,7 @@ flowchart TB
     BKI --> DC["data_contract"]:::llm
     DC --> MOD["dv2_modeler"]:::llm
     MOD --> CG["code_generator"]:::det
-    CG --> VAL{"validator<br/>32 E_/W_ gates"}:::gate
+    CG --> VAL{"validator<br/>E_/W_ gates"}:::gate
     VAL --"pass"--> SM["source_mapper"]:::llm
     VAL --"fail, attempts < MAX_MODELING_ATTEMPTS"--> MOD
     VAL --"fail at cap"--> ENDF(("end: failed"))
