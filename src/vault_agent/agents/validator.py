@@ -39,6 +39,7 @@ from vault_agent.rules.dv2_rules import (
     is_valid_construct_name,
     normalize_identifier,
     role_bk_column,
+    satellite_payload_relations,
     source_table_on_multi_source_hub,
 )
 from vault_agent.state import (
@@ -75,6 +76,29 @@ def _link_grain(link: Link) -> tuple[tuple[str, str], ...]:
     a different grain from a plain link over the same hub. Used by ``E_EXISTING_GRAIN_CHANGED``
     (WP23) to decide whether an existing link still hashes the same way."""
     return tuple(sorted((ref.hub, ref.role or "") for ref in link.hub_refs))
+
+
+def _shares_payload_namespace(
+    owners: set[str], relations: dict[str, frozenset[str]]
+) -> bool:
+    """Do any two of these satellites draw payload from the same relation? (ADR-0012)
+
+    The severity switch for ``E_SAT_ATTR_OVERLAP``: intersecting relation sets mean one
+    relation's column would be historised twice, which is the error the gate exists for;
+    disjoint sets mean same-named columns of different relations, which only warns.
+
+    An EMPTY set means "unknown" (an unresolvable parent) and is treated as sharing with
+    everything — an unknown relation must never *lower* a severity. Without that, an empty set
+    would intersect nothing and quietly downgrade the gate."""
+    seen: set[str] = set()
+    for name in sorted(owners):
+        own = relations.get(name) or frozenset()
+        if not own:
+            return True
+        if own & seen:
+            return True
+        seen |= own
+    return False
 
 
 def _issue(
@@ -398,11 +422,24 @@ class ValidatorAgent(BaseAgent):
                     )
                 )
 
-        # E_SAT_ATTR_OVERLAP: an attribute must live in at most one satellite per parent.
-        # Keyed on the NORMALISED attribute (WP20 §2.5), like the within-satellite
-        # E_SAT_DUP_ATTR: what would collide on the parent is the generated column, so
-        # "Customer ID" in one satellite and "customer_id" in another is the same duplicate.
-        # The original labels are reported, since they are what the human has to reconcile.
+        # E_SAT_ATTR_OVERLAP: an attribute must live in at most one satellite per parent —
+        # but only within ONE payload namespace (ADR-0012). Keyed on the NORMALISED attribute
+        # (WP20 §2.5), like the within-satellite E_SAT_DUP_ATTR: what would collide is the
+        # generated column, so "Customer ID" in one satellite and "customer_id" in another is
+        # the same duplicate. The original labels are reported — they are what a human has to
+        # reconcile. Two satellites fed by DIFFERENT relations (WP7 source_table: Microsoft's
+        # ProductCostHistory and ProductListPriceHistory both hang off Product) each project
+        # their own same-named column from their own staging model; nothing collides, so that
+        # is W_SAT_ATTR_OVERLAP_CROSS_SOURCE — reported, because two records of one measure at
+        # different grain is still a smell a reviewer should see.
+        parent_by_name: dict[str, Hub | Link] = {
+            **{hub.name: hub for hub in model.hubs},
+            **{link.name: link for link in model.links},
+        }
+        relations = {
+            sat.name: satellite_payload_relations(sat, parent_by_name.get(sat.parent))
+            for sat in model.satellites
+        }
         attr_owners: dict[str, dict[str, dict[str, set[str]]]] = {}
         for sat in model.satellites:
             per_parent = attr_owners.setdefault(sat.parent, {})
@@ -416,13 +453,29 @@ class ValidatorAgent(BaseAgent):
                 if len(owners) > 1:
                     joined = ", ".join(sorted(owners))
                     rendered = " / ".join(repr(label) for label in sorted(labels))
-                    issues.append(
-                        _issue(
-                            "error", "E_SAT_ATTR_OVERLAP", parent,
-                            f"attribute {rendered} appears in multiple satellites of "
-                            f"{parent!r}: {joined}",
+                    if _shares_payload_namespace(owners, relations):
+                        issues.append(
+                            _issue(
+                                "error", "E_SAT_ATTR_OVERLAP", parent,
+                                f"attribute {rendered} appears in multiple satellites of "
+                                f"{parent!r}: {joined}",
+                            )
                         )
-                    )
+                    else:
+                        named = ", ".join(
+                            f"{name} <- {'/'.join(sorted(relations[name]))}"
+                            for name in sorted(owners)
+                        )
+                        issues.append(
+                            _issue(
+                                "warning", "W_SAT_ATTR_OVERLAP_CROSS_SOURCE", parent,
+                                f"attribute {rendered} appears in several satellites of "
+                                f"{parent!r} fed by different source relations ({named}); "
+                                f"same-named columns of different relations are different "
+                                f"attributes, but check they are not one measure historised "
+                                f"twice",
+                            )
+                        )
 
         # W_BK_COLLISION_RISK: the same business-key field used by hubs over different source
         # entities may denote different real-world objects (may need a collision code).

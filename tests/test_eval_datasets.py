@@ -152,6 +152,16 @@ def test_shipped_cases_load_with_unique_names() -> None:
     cases = load_all_cases()
     # Sorted by directory name; the WP13 scale cases join the original three.
     assert [case.name for case in cases] == [
+        # WP30: the independent instrument — a schema, boundaries and documentation this
+        # project did not author. `_full` and `_incremental` are the two arms of the
+        # domain-partitioning experiment; the five others are its subject areas.
+        "adventureworks_full",
+        "adventureworks_humanresources",
+        "adventureworks_incremental",
+        "adventureworks_person",
+        "adventureworks_production",
+        "adventureworks_purchasing",
+        "adventureworks_sales",
         "bank",
         # WP23: the one case that runs the pipeline in extension mode.
         "bank_extension",
@@ -163,8 +173,9 @@ def test_shipped_cases_load_with_unique_names() -> None:
     ]
     for case in cases:
         # Committed cases resolve their document to a file; a WP13 generate case has no
-        # committed input_document (it is synthesised on demand by materialize_case).
-        if case.generate is None:
+        # committed input_document (it is synthesised on demand by materialize_case), and a
+        # WP30 chain case has none of its own (every step supplies its own inputs).
+        if case.generate is None and case.chain is None:
             assert case.input_document is not None and case.input_document.is_file()
         else:
             assert case.input_document is None

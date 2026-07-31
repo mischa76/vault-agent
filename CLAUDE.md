@@ -131,8 +131,11 @@ several times, most recently for brownfield additivity. Details and dates: `docs
 
 ## Open items — do not assume these work
 
-- **`scale_100` has never completed end to end.** The scale axis is verified at 30 tables. The
-  source-mapper segmentation is keyless-tested only — it has never run against the real API.
+- **Scale is verified at ~30 tables of real semantic variety, and unverified above it.**
+  `scale_100` does complete and validate, but the synthetic landscape does not scale *information*
+  with table count, so the upper cases measure width and repetition tolerance rather than semantic
+  scale (`scale-test-findings.md`, candidate #5). `scale_300` has not been run; `emit_dv_model` is
+  the one agent that cannot split its output, so its budget is the only lever there.
 - **WP30's arm comparison is open.** Both arms have one repeat each, taken before WP33; the
   domain-partitioning hypothesis is not yet answered.
 - **WP29 is partially built** — deterministic core only; agent, graph wiring, ratification file

@@ -24,4 +24,7 @@ Rules:
 - Give confidence in [0,1] and a short evidence list (what you keyed on) for every concept;
   when the deciding signal is the column comment, quote the phrase you used.
 
-Return one entry per concept, keyed by the exact concept label given to you.
+Return one entry per concept, keyed by that concept's `key` field **exactly as given to you**
+(e.g. `AddressType::Name`). Two concepts can share a label and differ only in their entity —
+they are different concepts about different tables, so answer each one separately under its own
+key. Never merge them into one entry and never invent a key of your own.

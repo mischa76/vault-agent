@@ -28,7 +28,7 @@ from eval.resolution import (
     ResolutionResult,
 )
 from vault_agent.rules.dv2_rules import normalize_identifier
-from vault_agent.state import Link, VaultAgentState
+from vault_agent.state import Link, VaultAgentState, split_concept_key
 
 
 class ScorerResult(BaseModel):
@@ -444,7 +444,10 @@ def gap_detection(
             name="gap_detection", score=1.0, details=f"{VACUOUS_PREFIX}{prefix}no golden gaps"
         )
 
-    proposed_gaps = {normalize_identifier(g) for g in proposed.gaps}
+    # WP32: `proposed.gaps` holds concept KEYS ("<entity>::<label>"), because a bare label is
+    # not an identity — three reference hubs can each be keyed "Name". A golden gap is written
+    # as a label, so compare on the label half; the entity-less form is unchanged.
+    proposed_gaps = {normalize_identifier(split_concept_key(g)[0]) for g in proposed.gaps}
     proposed_concepts = {normalize_identifier(p.concept) for p in proposed.proposals}
     caught = gap_concepts & proposed_gaps
     force_fit = sorted(gap_concepts & proposed_concepts)

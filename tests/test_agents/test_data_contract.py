@@ -404,3 +404,143 @@ async def test_no_segmentation_flag_when_nothing_truncates() -> None:
 
     assert enricher.calls == [{"customer": ["a", "b"]}]
     assert not [f for f in result.flags if f.kind == FlagKind.INPUT_SEGMENTED]
+
+
+# --- Bounded-concurrency enrichment ------------------------------------------------------
+# The units are independent by construction, so they run concurrently. These pin the three
+# properties concurrency makes easy to lose: the cache warm-up, merge order, and failure
+# semantics. Motivation is measured, not theoretical — the first live 100-table run spent
+# 47 of its 53 minutes in this agent, issuing 129 strictly sequential calls.
+
+
+class _ConcurrencyProbeEnricher:
+    """Answers per asset while recording how many calls were in flight simultaneously."""
+
+    def __init__(self, delay: float = 0.01) -> None:
+        self.delay = delay
+        self.in_flight = 0
+        self.max_in_flight = 0
+        self.started: list[str] = []
+        self.finished_before_second_start: bool | None = None
+
+    async def enrich(self, *, system_prompt: str, assets_json: str) -> dict[str, Any]:
+        import asyncio
+
+        payload = json.loads(assets_json)
+        name = next(iter(payload))
+        if len(self.started) == 1:
+            # The warm-up must have completed before anything else begins.
+            self.finished_before_second_start = self.in_flight == 0
+        self.started.append(name)
+        self.in_flight += 1
+        self.max_in_flight = max(self.max_in_flight, self.in_flight)
+        await asyncio.sleep(self.delay)
+        self.in_flight -= 1
+        return {name: {"doc": f"doc for {name}", "fields": {}}}
+
+
+def _many_asset_state(count: int) -> VaultAgentState:
+    return VaultAgentState(
+        source_schemas=[
+            SourceTable(table=f"t{i:02d}", columns=[f"c{i}_a", f"c{i}_b"])
+            for i in range(count)
+        ]
+    )
+
+
+async def test_units_run_concurrently_after_a_lone_warm_up_call() -> None:
+    """The first unit runs ALONE (it writes the shared prompt-cache entry the rest read),
+    then the remainder fan out — bounded, so a wide landscape cannot stampede the API."""
+    from vault_agent.agents.data_contract import _MAX_CONCURRENT_ENRICHMENTS
+
+    enricher = _ConcurrencyProbeEnricher()
+    result = await DataContractAgent(enricher=enricher).run(_many_asset_state(20))
+
+    assert enricher.finished_before_second_start is True  # warm-up was not overlapped
+    assert enricher.max_in_flight > 1  # the rest genuinely overlap
+    assert enricher.max_in_flight <= _MAX_CONCURRENT_ENRICHMENTS  # and stay bounded
+    assert len(result.artifacts.contracts) == 20  # every asset still contracted
+
+
+class _InvertedOrderEnricher:
+    """Completes in REVERSE unit order: the last asset answers first, the first one last.
+
+    Any code that merged in completion order would produce a different result here."""
+
+    def __init__(self, count: int) -> None:
+        self.count = count
+
+    async def enrich(self, *, system_prompt: str, assets_json: str) -> dict[str, Any]:
+        import asyncio
+
+        payload = json.loads(assets_json)
+        name = next(iter(payload))
+        index = int(name[1:])  # tNN
+        await asyncio.sleep(0.002 * (self.count - index))
+        return {name: {"doc": f"doc for {name}", "fields": {}}}
+
+
+async def test_merge_order_is_unit_order_not_completion_order() -> None:
+    """Byte-identical artifacts regardless of which call returns first."""
+    count = 12
+    inverted = await DataContractAgent(
+        enricher=_InvertedOrderEnricher(count)
+    ).run(_many_asset_state(count))
+    reference = await DataContractAgent(
+        enricher=_RecordingEnricher()
+    ).run(_many_asset_state(count))
+
+    assert inverted.artifacts.contracts == reference.artifacts.contracts
+    assert [c["name"] for c in inverted.artifacts.contracts] == [
+        f"t{i:02d}" for i in range(count)
+    ]
+
+
+class _SelectivelyFailingEnricher:
+    """Fails the named assets — the later one fast, the earlier one slow.
+
+    So completion order and unit order disagree about which failure happens 'first'."""
+
+    def __init__(self, early: str, late: str) -> None:
+        self.early = early
+        self.late = late
+        self.calls = 0
+
+    async def enrich(self, *, system_prompt: str, assets_json: str) -> dict[str, Any]:
+        import asyncio
+
+        from vault_agent.llm import LLMCallError
+
+        self.calls += 1
+        payload = json.loads(assets_json)
+        name = next(iter(payload))
+        if name == self.late:
+            raise LLMCallError(f"emit_contract_enrichment: {self.late} failed")
+        if name == self.early:
+            await asyncio.sleep(0.05)
+            raise LLMCallError(f"emit_contract_enrichment: {self.early} failed")
+        return {name: {"doc": f"doc for {name}", "fields": {}}}
+
+
+async def test_first_failure_in_unit_order_is_raised() -> None:
+    """Loud, and deterministic: the same inputs report the same error even though a LATER
+    unit raised first in wall-clock terms."""
+    import pytest
+
+    from vault_agent.llm import LLMCallError
+
+    enricher = _SelectivelyFailingEnricher(early="t03", late="t09")
+    with pytest.raises(LLMCallError, match="t03 failed"):
+        await DataContractAgent(enricher=enricher).run(_many_asset_state(12))
+
+
+async def test_warm_up_failure_makes_no_further_calls() -> None:
+    """A configuration that cannot work must not pay for the whole fan-out to prove it."""
+    import pytest
+
+    from vault_agent.llm import LLMCallError
+
+    enricher = _FailingEnricher()
+    with pytest.raises(LLMCallError, match="no tool block"):
+        await DataContractAgent(enricher=enricher).run(_many_asset_state(50))
+    assert enricher.calls == 1  # stopped at the warm-up, exactly as the sequential loop did

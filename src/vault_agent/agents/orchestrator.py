@@ -27,7 +27,18 @@ from pydantic import BaseModel, Field
 from vault_agent.agents.base import BaseAgent
 from vault_agent.models.contract import ContractOwner
 from vault_agent.rules.dv2_rules import normalize_identifier
-from vault_agent.state import ExecutionPlan, FlagKind, HubSource, Proposal, VaultAgentState
+from vault_agent.state import (
+    ExecutionPlan,
+    FlagKind,
+    Hub,
+    HubSource,
+    Proposal,
+    VaultAgentState,
+    concept_ref_matches,
+    match_concept_refs,
+    resolve_concept_ref,
+    split_concept_key,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -329,23 +340,54 @@ def apply_human_decision(state: VaultAgentState, decision: Any) -> list[str]:
     return assigned
 
 
+def _resolve_hub_for_concept(state: VaultAgentState, given: str) -> Hub | None:
+    """The hub a human's concept reference names, via the one WP32 matching rule.
+
+    A bare business-key label is honoured only when exactly one hub carries it; when several
+    do, the reference is genuinely ambiguous and is ignored rather than applied to an arbitrary
+    one of them (the defect WP32 fixed was doing exactly that, silently)."""
+    index = resolve_concept_ref(
+        given, [(h.business_key, h.source_entity) for h in state.dv_model.hubs]
+    )
+    return state.dv_model.hubs[index] if index is not None else None
+
+
+def _prune_concept(
+    state: VaultAgentState, concept: str, entity: str | None, *, label_unique: bool,
+    kinds: tuple[str, ...],
+) -> None:
+    """Drop a ratified concept from ``unresolved``/``gaps`` and prune its flags (WP32).
+
+    Entries and flag assets are concept KEYS since WP32, but a checkpoint written before it —
+    or a hand-edited file — holds bare labels, so both are matched through
+    :func:`concept_ref_matches`: the key always, the label only where it is unique. Without
+    the uniqueness condition, ratifying one of three concepts labelled ``Name`` would clear
+    its two siblings' entries as well."""
+    def stale(ref: str) -> bool:
+        return concept_ref_matches(ref, concept, entity, label_unique=label_unique)
+
+    state.mappings.unresolved = [u for u in state.mappings.unresolved if not stale(u)]
+    state.mappings.gaps = [g for g in state.mappings.gaps if not stale(g)]
+    state.flags = [
+        f
+        for f in state.flags
+        if not (f.kind in kinds and f.asset and stale(f.asset))
+    ]
+
+
 def _apply_mapping_sources(
     state: VaultAgentState, sources_by_concept: dict[str, Any]
 ) -> None:
     """Resolve ratified multi-source key feeds into ``Hub.sources`` (WP10 §2.4).
 
     For each concept the human resolved with a ``sources:`` list, set the matching hub's
-    ``sources`` (matched on normalised business key), drop the concept from ``unresolved`` and
-    prune its flag. A subsequent generation renders the hub as multi-source; regeneration of an
-    already-emitted run is a fresh run, not an in-place resume rewrite."""
+    ``sources``, drop the concept from ``unresolved`` and prune its flag. A subsequent
+    generation renders the hub as multi-source; regeneration of an already-emitted run is a
+    fresh run, not an in-place resume rewrite."""
     for concept, feeds in sources_by_concept.items():
         if not isinstance(feeds, list) or not feeds:
             continue
-        norm = normalize_identifier(concept)
-        hub = next(
-            (h for h in state.dv_model.hubs if normalize_identifier(h.business_key) == norm),
-            None,
-        )
+        hub = _resolve_hub_for_concept(state, concept)
         if hub is None:
             continue
         hub.sources = [
@@ -353,18 +395,19 @@ def _apply_mapping_sources(
             for f in feeds
             if isinstance(f, dict) and f.get("table") and f.get("column")
         ]
-        state.mappings.unresolved = [
-            u for u in state.mappings.unresolved if normalize_identifier(u) != norm
-        ]
-        state.flags = [
-            f
-            for f in state.flags
-            if not (
-                f.kind == FlagKind.MAPPING_UNRESOLVED
-                and f.asset
-                and normalize_identifier(f.asset) == norm
+        label_unique = (
+            sum(
+                1
+                for h in state.dv_model.hubs
+                if normalize_identifier(h.business_key)
+                == normalize_identifier(hub.business_key)
             )
-        ]
+            == 1
+        )
+        _prune_concept(
+            state, hub.business_key, hub.source_entity, label_unique=label_unique,
+            kinds=(FlagKind.MAPPING_UNRESOLVED,),
+        )
 
 
 def _apply_mapping_decision(
@@ -375,26 +418,43 @@ def _apply_mapping_decision(
     mark it ``overridden``, and prune its mapping flag; ``accept`` marks every still-proposed
     proposal ``accepted``. Any change re-binds staging so it reads the ratified source."""
     changed = False
-    by_concept = {normalize_identifier(p.concept): p for p in state.mappings.proposals}
     for concept, target in overrides.items():
         if not isinstance(target, str) or "." not in target:
             continue
         table, column = target.rsplit(".", 1)
-        norm = normalize_identifier(concept)
-        existing = by_concept.get(norm)
-        if existing is not None:
+        # WP32: resolve against the run's WHOLE concept universe — proposals plus the
+        # unresolved and gap entries — not just the proposals. Ambiguity is a property of the
+        # run: a bare "Name" that happens to be unique among the proposals may still name any
+        # of three unresolved concepts, and choosing one of them is the defect being fixed.
+        universe: list[tuple[str, str | None]] = [
+            (p.concept, p.entity) for p in state.mappings.proposals
+        ] + [
+            split_concept_key(entry)
+            for entry in list(state.mappings.unresolved) + list(state.mappings.gaps)
+        ]
+        matches = match_concept_refs(concept, universe)
+        if len(matches) > 1:
+            # Genuinely ambiguous: refuse rather than guess. The concept keeps its flag, so
+            # the human sees it again with the key to address it by.
+            logger.warning(
+                "mapping override %r matches %d concepts; ignored — address one by its key",
+                concept, len(matches),
+            )
+            continue
+        index = matches[0] if matches and matches[0] < len(state.mappings.proposals) else None
+        if index is not None:
+            existing = state.mappings.proposals[index]
             existing.table, existing.column = table.strip(), column.strip()
             existing.ratification_status = "overridden"
-        else:
-            state.mappings.unresolved = [
-                u for u in state.mappings.unresolved if normalize_identifier(u) != norm
-            ]
-            state.mappings.gaps = [
-                g for g in state.mappings.gaps if normalize_identifier(g) != norm
-            ]
+            label, entity = existing.concept, existing.entity
+        elif matches:
+            # Resolved to an unresolved/gap entry: promote it, keeping ITS identity rather
+            # than whatever form the human typed.
+            label, entity = universe[matches[0]]
             state.mappings.proposals.append(
                 Proposal(
-                    concept=concept,
+                    concept=label,
+                    entity=entity,
                     table=table.strip(),
                     column=column.strip(),
                     confidence=1.0,
@@ -402,15 +462,34 @@ def _apply_mapping_decision(
                     ratification_status="overridden",
                 )
             )
-        state.flags = [
-            f
-            for f in state.flags
-            if not (
-                f.kind in (FlagKind.MAPPING_UNRESOLVED, FlagKind.MAPPING_GAP)
-                and f.asset
-                and normalize_identifier(f.asset) == norm
+        else:
+            # Promoting an unresolved concept / gap: split the reference so the new proposal
+            # records the entity it belongs to (WP32) instead of losing it. A bare label
+            # yields entity=None, i.e. exactly the pre-WP32 shape.
+            label, entity = split_concept_key(concept)
+            state.mappings.proposals.append(
+                Proposal(
+                    concept=label,
+                    entity=entity,
+                    table=table.strip(),
+                    column=column.strip(),
+                    confidence=1.0,
+                    evidence=["human override"],
+                    ratification_status="overridden",
+                )
             )
-        ]
+        label_unique = (
+            sum(
+                1
+                for p in state.mappings.proposals
+                if normalize_identifier(p.concept) == normalize_identifier(label)
+            )
+            == 1
+        )
+        _prune_concept(
+            state, label, entity, label_unique=label_unique,
+            kinds=(FlagKind.MAPPING_UNRESOLVED, FlagKind.MAPPING_GAP),
+        )
         changed = True
 
     if accept:

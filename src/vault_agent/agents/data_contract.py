@@ -20,6 +20,7 @@ consistent with the other agents. Gaps are **flagged for human review** (via typ
 ``state.flags``), never guessed: a placeholder owner, a missing source schema, or a field
 whose type could not be determined each surface a flag.
 """
+import asyncio
 import json
 import logging
 from typing import Any, Protocol, cast
@@ -53,6 +54,17 @@ _MAX_TOKENS = 8192
 # milestone's own argument). The guarantee is the adaptive split below
 # (``llm.call_with_truncation_split``), which halves a chunk that actually truncates.
 _FIELDS_PER_CALL = 40
+# How many enrichment units may be in flight at once. The units are independent by
+# construction (one asset, one field chunk each) and were nonetheless run strictly
+# sequentially until the first live 100-table measurement showed what that costs: 129 calls
+# at ~22 s each = 47 minutes, 88% of the whole pipeline's wall clock, while every other agent
+# together took 6. Nothing about the work required an order — only the code did.
+#
+# The bound is deliberate rather than unlimited: 129 simultaneous requests would trade a
+# latency problem for a rate-limit one, and ForcedToolCaller's backoff would then serialise
+# them again at a worse constant. 8 turns the 47 minutes into roughly 6 while staying far
+# inside any sane account limit.
+_MAX_CONCURRENT_ENRICHMENTS = 8
 _NAMESPACE = "source"
 
 
@@ -246,10 +258,26 @@ class DataContractAgent(BaseAgent):
         # (so a normal run makes exactly the same calls with the same content as before) and
         # only a truncated response halves it. An indivisible single field that still
         # truncates re-raises — that is not a size problem.
-        enrichment: dict[str, Any] = {}
+        # The units are independent, so they run CONCURRENTLY (bounded by
+        # _MAX_CONCURRENT_ENRICHMENTS) rather than one after the other. Three properties are
+        # preserved deliberately, because concurrency is where each of them is easy to lose:
+        #
+        #   order      results are merged below in UNIT order, never completion order, so the
+        #              enrichment dict — and every artifact derived from it — is byte-identical
+        #              to the sequential version for the same responses;
+        #   cache      the FIRST unit runs alone. The system prompt carries the whole declared
+        #              schema (~14.7k tokens at 100 tables) and is byte-identical across calls;
+        #              the first call is what writes that cache entry, and fanning out before it
+        #              lands would make the whole first wave miss. Measured hit rate with the
+        #              warm-up in place: 96%.
+        #   failure    a raising unit still fails the run loudly (a partial contract set that
+        #              silently dropped assets is worse than a stopped run), and it raises the
+        #              FIRST failure in unit order rather than whichever lost the race — so the
+        #              same inputs report the same error.
         units = self._enrichment_units(assets)
-        segments_per_asset: dict[str, int] = {}
-        for name, cols_chunk in units:
+
+        async def enrich_unit(unit: tuple[str, list[str]]) -> list[Any]:
+            name, cols_chunk = unit
 
             async def enrich_chunk(fields: list[str], asset: str = name) -> dict[str, Any]:
                 asset_json = json.dumps({asset: fields}, indent=2)
@@ -261,7 +289,39 @@ class DataContractAgent(BaseAgent):
                     system_prompt=system_prompt, assets_json=asset_json
                 )
 
-            slices = await call_with_truncation_split(enrich_chunk, cols_chunk, split_fields)
+            return await call_with_truncation_split(enrich_chunk, cols_chunk, split_fields)
+
+        results: list[list[Any]] = []
+        if units:
+            # Warm the prompt cache on the first unit. A failure here stops the run before the
+            # fan-out, exactly as the sequential loop stopped at its first raising unit —
+            # otherwise a broken configuration would pay for every remaining call to learn the
+            # same thing 128 more times.
+            results.append(await enrich_unit(units[0]))
+
+            if len(units) > 1:
+                logger.info(
+                    "enriching %d remaining unit(s), up to %d concurrently",
+                    len(units) - 1, _MAX_CONCURRENT_ENRICHMENTS,
+                )
+                semaphore = asyncio.Semaphore(_MAX_CONCURRENT_ENRICHMENTS)
+
+                async def guarded(unit: tuple[str, list[str]]) -> list[Any]:
+                    async with semaphore:
+                        return await enrich_unit(unit)
+
+                rest = await asyncio.gather(
+                    *(guarded(unit) for unit in units[1:]), return_exceptions=True
+                )
+                for outcome in rest:
+                    # First failure in UNIT order, not completion order: same inputs, same error.
+                    if isinstance(outcome, BaseException):
+                        raise outcome
+                    results.append(outcome)
+
+        enrichment: dict[str, Any] = {}
+        segments_per_asset: dict[str, int] = {}
+        for (name, _cols), slices in zip(units, results, strict=True):
             # One slice per call: more than one means this chunk had to be halved.
             segments_per_asset[name] = segments_per_asset.get(name, 0) + len(slices)
             for slice_ in slices:

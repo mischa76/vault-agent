@@ -242,6 +242,16 @@ DV_MODELING_RULES = [
         origin="review 2026-07-28 finding 4 / WP20: gated by E_BAD_NAME — steering keeps a "
         "deterministic formality from burning a modeling retry",
     ),
+    SteeringRule(
+        id="attribute_one_satellite",
+        text="Within one source relation, an attribute belongs to exactly one satellite of a "
+        "parent — split payload between satellites, never repeat a column in two of them; "
+        "technical audit columns such as a last-modified timestamp are the usual trap, so put "
+        "such a column in at most one satellite rather than in each",
+        origin="WP31 / ADR-0012 (2026-07-30): AdventureWorks Sales duplicated ModifiedDate "
+        "across two satellites of one relation — E_SAT_ATTR_OVERLAP is right there and stays "
+        "an error, so steering keeps a real defect from burning the re-model budget",
+    ),
 ]
 
 # Ablation seam (WP16 §2.2). Module-level, mirroring llm.set_usage_recorder: the harness
@@ -341,6 +351,41 @@ def canonical_hub_key_column(hub: Any) -> str:
     if len(columns) == 1:
         return next(iter(columns))  # sources agree — keep the source name
     return normalize_identifier(hub.business_key)  # disagree — harmonise to the business term
+
+
+def satellite_payload_relations(satellite: Any, parent: Any) -> frozenset[str]:
+    """The source relation(s) a satellite's payload columns come from (ADR-0012).
+
+    The single point that decides whether two satellites of one parent share a payload
+    NAMESPACE, which is what separates a real duplicated column from two same-named columns of
+    two different relations. Normalised names throughout; ``Any``-typed like its neighbours so
+    ``rules/`` stays free of the state models.
+
+    * declares ``source_table`` -> that table. An effectivity satellite is excluded (it stages
+      with its parent link and ignores ``source_table`` — WP7 §7.1), the same one-line guard
+      ``satellite_feed`` makes.
+    * no ``source_table``, hub parent without ``sources`` -> the hub's ``source_entity``.
+    * no ``source_table``, hub parent WITH ``sources`` (WP10) -> every feed, because the
+      satellite splits across them. So a split satellite and a WP28 feed-bound satellite on the
+      same hub intersect on that feed and stay one namespace, with no branch of their own.
+    * no ``source_table``, link parent -> a ``link:<name>`` MARKER, not a relation: a link's
+      staging is derived from its participations and has no single source table. It only ever
+      needs to compare equal to itself.
+    * unresolvable parent -> the EMPTY set, which callers must read as "unknown", never as
+      "shares nothing" (an unknown relation must not lower a severity). A missing parent is
+      ``E_SAT_UNKNOWN_PARENT``'s complaint, not this helper's."""
+    if satellite.source_table and satellite.sat_type != "effectivity":
+        return frozenset({normalize_identifier(satellite.source_table)})
+    if parent is None:
+        return frozenset()
+    sources = getattr(parent, "sources", None) or []
+    if sources:
+        return frozenset(normalize_identifier(s.source_table) for s in sources)
+    source_entity = getattr(parent, "source_entity", None)
+    if source_entity:
+        return frozenset({normalize_identifier(source_entity)})
+    # A link parent has no source_entity: its staging comes from its participations.
+    return frozenset({f"link:{normalize_identifier(parent.name)}"})
 
 
 def satellite_feed(satellite: Any, parent_hub: Any) -> Any | None:

@@ -39,6 +39,8 @@ from vault_agent.state import (
     ProposedMapping,
     SourceColumn,
     VaultAgentState,
+    concept_key,
+    resolve_concept_ref,
 )
 
 logger = logging.getLogger(__name__)
@@ -141,6 +143,11 @@ class _Concept:
         self.entity = entity
         self.kind = kind
 
+    @property
+    def key(self) -> str:
+        """This concept's identity (WP32): the label alone is not one — see state.concept_key."""
+        return concept_key(self.concept, self.entity)
+
 
 class SourceMapperAgent(BaseAgent):
     """Drafts a business↔source mapping per model concept; re-binds staging (WP9)."""
@@ -159,20 +166,43 @@ class SourceMapperAgent(BaseAgent):
     def _concepts(state: VaultAgentState) -> list[_Concept]:
         """Concept work-list from the validated model: hub keys + satellite attributes.
 
-        Deterministic order (hubs then satellites); duplicate concept labels collapse to the
-        first so the same label is asked once."""
+        Deterministic order (hubs then satellites); duplicates collapse to the first so the
+        same unit of work is asked once. WP32: identity is (label, ENTITY) — de-duplicating on
+        the label alone made three reference hubs each keyed ``Name`` into ONE question, and
+        the single answer was then applied to all three (WP30 §7.3 Finding 1).
+
+        **Brownfield (WP33):** constructs that already exist in ``state.existing_model`` are
+        skipped. A declared schema describes the source this increment integrates, while the
+        pre-existing constructs were mapped against *their* source when they were created;
+        re-mapping them against a schema that was never meant to describe them makes every one
+        of them a fresh coverage "gap", every step, for the rest of the vault's life. This is
+        the same reasoning — and the same fix — WP23 applied to the validator's grounding
+        warnings, which the mapper never received. Measured on the WP30 arm-B chain: gaps grew
+        4 → 51 → 80 → 185 → 208 across five steps, and step 5's gaps were Person-domain
+        concepts from step 1 (``Person::BusinessEntityID``, ``Address::AddressID``, …).
+        Greenfield runs have no existing model, so this is inert there."""
+        pre_existing = (
+            {hub.name for hub in state.existing_model.hubs}
+            | {sat.name for sat in state.existing_model.satellites}
+            if state.existing_model is not None
+            else set()
+        )
         seen: set[str] = set()
         concepts: list[_Concept] = []
 
         def add(concept: str, entity: str | None, kind: str) -> None:
-            key = normalize_identifier(concept)
+            key = normalize_identifier(concept_key(concept, entity))
             if concept.strip() and key not in seen:
                 seen.add(key)
                 concepts.append(_Concept(concept, entity, kind))
 
         for hub in state.dv_model.hubs:
+            if hub.name in pre_existing:
+                continue
             add(hub.business_key, hub.source_entity, "business_key")
         for sat in state.dv_model.satellites:
+            if sat.name in pre_existing:
+                continue
             for attr in sat.attributes:
                 add(attr, sat.parent, "attribute")
         return concepts
@@ -191,8 +221,12 @@ class SourceMapperAgent(BaseAgent):
                     entry["profiling"] = blurb
                 schema.append(entry)
         payload = {
+            # WP32: `key` is the identity the answer must be keyed by. It is SENT rather than
+            # composed by the model, so a label carrying punctuation can never produce an
+            # unparseable key — there is nothing to parse.
             "concepts": [
-                {"concept": c.concept, "entity": c.entity, "kind": c.kind} for c in concepts
+                {"key": c.key, "concept": c.concept, "entity": c.entity, "kind": c.kind}
+                for c in concepts
             ],
             "schema": schema,
         }
@@ -266,21 +300,35 @@ class SourceMapperAgent(BaseAgent):
         by_norm = {
             normalize_identifier(k): v for k, v in raw.items() if isinstance(v, dict)
         }
+        # WP32: an answer is looked up by the concept's KEY. A model that answered with a bare
+        # label anyway is honoured ONLY where that label is unambiguous in this work-list;
+        # where it is not, there is deliberately no fallback and the concept goes to
+        # `unresolved` for a human. A fallback that resolved an ambiguous label would reinstate
+        # the very defect this fixes — binding several concepts from one answer.
+        label_counts: dict[str, int] = {}
+        for concept in concepts:
+            norm = normalize_identifier(concept.concept)
+            label_counts[norm] = label_counts.get(norm, 0) + 1
         proposals: list[Proposal] = []
         gaps: list[str] = []
         unresolved: list[str] = []
         for c in concepts:
-            entry = by_norm.get(normalize_identifier(c.concept))
+            entry = by_norm.get(normalize_identifier(c.key))
+            if entry is None and label_counts[normalize_identifier(c.concept)] == 1:
+                entry = by_norm.get(normalize_identifier(c.concept))
             decision = str(entry.get("decision", "unresolved")) if entry else "unresolved"
             evidence = [str(e) for e in entry.get("evidence", [])] if entry else []
             if decision == "gap":
-                gaps.append(c.concept)
+                # WP32: the KEY, not the label — three reference concepts all labelled "Name"
+                # would otherwise be three identical, unusable entries, and pruning one on
+                # ratification would prune all three.
+                gaps.append(c.key)
                 state.flag(
                     "source_mapper",
                     f"concept {c.concept!r} has no in-scope source (derived/enriched); it "
                     f"belongs to the Business Vault / marts, not the Raw Vault",
                     kind=FlagKind.MAPPING_GAP,
-                    asset=c.concept,
+                    asset=c.key,
                 )
                 continue
             key = (
@@ -320,7 +368,7 @@ class SourceMapperAgent(BaseAgent):
                         )
                     )
                     continue
-                unresolved.append(c.concept)
+                unresolved.append(c.key)  # WP32: the key, see the gap branch above
                 detail = "; candidates: " + ", ".join(evidence) if (evidence and c.kind ==
                          "business_key") else ""
                 state.flag(
@@ -328,7 +376,7 @@ class SourceMapperAgent(BaseAgent):
                     f"concept {c.concept!r} could not be resolved to a single source column"
                     f"{detail} — a human ratifies it (a multi-source key is deferred to WP10)",
                     kind=FlagKind.MAPPING_UNRESOLVED,
-                    asset=c.concept,
+                    asset=c.key,
                 )
                 continue
             table, column = index[key]
@@ -441,11 +489,22 @@ class SourceMapperAgent(BaseAgent):
 
 
 def source_overrides(state: VaultAgentState) -> dict[str, str]:
-    """Map each hub's staging base (normalised) to the source table its key resolved to (§6)."""
-    by_concept = {normalize_identifier(p.concept): p.table for p in state.mappings.proposals}
+    """Map each hub's staging base (normalised) to the source table its key resolved to (§6).
+
+    WP32: the hub → proposal match is on the concept KEY, i.e. (business key, source entity).
+    Matching on the business-key label alone bound every hub sharing a label to ONE hub's
+    source table — ``stg_address_type`` reading ``PhoneNumberType`` — which is a wrong-data
+    defect, not a wrong message (WP30 §7.3 Finding 1)."""
+    candidates = [(p.concept, p.entity) for p in state.mappings.proposals]
     overrides: dict[str, str] = {}
     for hub in state.dv_model.hubs:
-        table = by_concept.get(normalize_identifier(hub.business_key))
+        # One matching rule (state.resolve_concept_ref): the hub's key, else its label when
+        # unique. The label fallback is what keeps a human's bare-label `--map` override —
+        # which promotes a proposal with no entity — actually binding its hub.
+        index = resolve_concept_ref(
+            concept_key(hub.business_key, hub.source_entity), candidates
+        )
+        table = state.mappings.proposals[index].table if index is not None else None
         if table:
             base = hub.name
             for prefix in ("hub_", "link_", "sat_"):

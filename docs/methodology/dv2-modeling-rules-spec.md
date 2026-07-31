@@ -88,7 +88,10 @@ it makes driving-key correctness checkable instead of implicit.
 belong together on all four axes; you split when they diverge.
 
 - **[ENFORCE — new]** An attribute appears in at most one satellite per parent (no attribute lives
-  in two satellites of the same parent) → `E_SAT_ATTR_OVERLAP`.
+  in two satellites of the same parent) → `E_SAT_ATTR_OVERLAP`. *(Narrowed by ADR-0012
+  (2026-07-30) to satellites drawing payload from the same source relation: two satellites each
+  declaring their own `source_table` carry two different columns that merely share a name, which
+  warns as `W_SAT_ATTR_OVERLAP_CROSS_SOURCE` instead.)*
 - **[ENFORCE]** A satellite has a non-empty payload. *(already implemented: `E_SAT_NO_PAYLOAD`;
   effectivity sats are date-driven and exempt — already handled.)*
 - **[GUIDE]** Split satellites by rate of change, source, and PII/classification. Record the split
@@ -152,7 +155,8 @@ keys) remain deferred as a separate modeling-feature decision.
 | `E_EFFSAT_DATES` | error | effectivity sat lacks exactly two ordered date attributes |
 | `E_EFFSAT_NO_DRIVING_KEY` | error | parent link of an effectivity sat declares no driving key |
 | `E_DRIVING_KEY_NOT_IN_LINK` | error | driving key not a subset of the link's connected hubs |
-| `E_SAT_ATTR_OVERLAP` | error | an attribute appears in two satellites of one parent |
+| `E_SAT_ATTR_OVERLAP` | error | an attribute appears in two satellites of one parent fed by the same relation |
+| `W_SAT_ATTR_OVERLAP_CROSS_SOURCE` | warning | same label across satellites fed by different relations (ADR-0012) |
 | `W_SAT_WIDE` | warning | satellite attribute count over heuristic threshold |
 | `W_BK_COLLISION_RISK` | warning | same business-key field across different source entities |
 | `E_MASAT_NO_CDK` | error | multi-active sat without a child dependent key |

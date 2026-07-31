@@ -57,7 +57,10 @@ inventories, or anything derivable from the code. `/doctor` will propose trimmin
 Run periodically, and after any batch of doc changes. It is a reading task, not a script.
 
 - **Contradictions** — two documents stating incompatible things. Newer wins; record the
-  correction as a new dated entry, do not edit the older.
+  correction as a new dated entry, do not edit the older. Check the maintained pages against the
+  **record**, not only against each other: `CLAUDE.md`'s "Open items" is the likeliest place for
+  a claim that a later log entry or findings document has already overtaken. The first lint pass
+  missed exactly this by comparing maintained pages among themselves.
 - **Derivable facts stored as values** — gate counts, version pins, caps, thresholds in prose.
   Replace with a pointer. This is the failure mode this project has hit most often.
 - **Stale status** — a document claiming live verification whose subject has changed since.

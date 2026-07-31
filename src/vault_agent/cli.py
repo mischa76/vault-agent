@@ -246,7 +246,13 @@ def _render_mappings_review(mapping: ProposedMapping) -> str:
     doc: dict[str, Any] = {
         "proposals": [
             {
+                # WP32: `key` is the concept's identity — two hubs can share a business-key
+                # label and differ only in entity, so the label alone cannot address one of
+                # them. `--map` and an edited file accept the key; a bare label still works
+                # wherever it is unambiguous.
+                "key": p.key,
                 "concept": p.concept,
+                "entity": p.entity,
                 "table": p.table,
                 "column": p.column,
                 "category": p.category,
@@ -642,9 +648,13 @@ def _mappings_from_file(path: Path) -> dict[str, str]:
     for entry in document.get("proposals", []) or []:
         if not isinstance(entry, dict):
             continue
-        concept, table, column = entry.get("concept"), entry.get("table"), entry.get("column")
-        if concept and table and column:
-            overrides[str(concept)] = f"{table}.{column}"
+        # WP32: prefer the entry's `key` (the concept's identity); fall back to the bare
+        # label for a hand-written or pre-WP32 file, where the appliers resolve it if it is
+        # unambiguous.
+        ref = entry.get("key") or entry.get("concept")
+        table, column = entry.get("table"), entry.get("column")
+        if ref and table and column:
+            overrides[str(ref)] = f"{table}.{column}"
     return overrides
 
 
@@ -659,7 +669,7 @@ def _mapping_sources_from_file(path: Path) -> dict[str, list[dict[str, str]]]:
         return {}
     out: dict[str, list[dict[str, str]]] = {}
     for entry in document.get("proposals", []) or []:
-        if not isinstance(entry, dict) or not entry.get("concept"):
+        if not isinstance(entry, dict) or not (entry.get("key") or entry.get("concept")):
             continue
         raw = entry.get("sources")
         if not isinstance(raw, list):
@@ -670,7 +680,7 @@ def _mapping_sources_from_file(path: Path) -> dict[str, list[dict[str, str]]]:
             if isinstance(s, dict) and s.get("table") and s.get("column")
         ]
         if feeds:
-            out[str(entry["concept"])] = feeds
+            out[str(entry.get("key") or entry["concept"])] = feeds
     return out
 
 

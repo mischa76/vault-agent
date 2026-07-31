@@ -90,11 +90,124 @@ Notes:
 
 ### Step: 100 tables (seed 42) — `scale_100`
 
-_not run yet_
+**COMPLETED END TO END, 2026-07-29** (1 repeat) — the first time this case has ever finished.
+An earlier attempt the same day reached the modeler but was killed by the operator's 50-minute
+timeout; it is written up as Candidate #4 below, because what it measured is a finding in its
+own right.
+
+| scorer | score | reading |
+|---|---|---|
+| `pipeline_health` | 1.000 | no error flags |
+| `validation_gate` | 1.000 | `passed=True`, 100 warnings within tolerance |
+| `false_friend_hits` | 1.000 | 12 false-friend columns watched, none bound |
+| `mapping_coverage` | 0.714 | 20/28 golden pairs — see the reading below, this is not a defect |
+| `gap_detection` | 0.000 | concept-coupled, **reported only** in column mode (WP14) — blind by design at scale, not a quality signal |
+| `construct_f1`, `driving_key_accuracy`, `existing_construct_preservation` | 1.000 | all **vacuous** — the synthetic case ships a golden mapping and no golden model |
+
+Run: 137 calls, 463,951 in (cache-read 405%), 281,366 out, **818 s wall**, 68 hubs / 21 links /
+35 satellites, 1,021 flags → 1,121 review items → 218 rendered lines.
+
+**Peak output against cap — the table worth re-reading before the 300-table attempt:**
+
+| agent | calls | peak out | cap | %cap | truncations |
+|---|---|---|---|---|---|
+| `emit_requirements` | 4 | 8,192 | 8,192 | **100%** | 2 → split, recovered |
+| `emit_mapping` | 3 | 8,192 | 8,192 | **100%** | 1 → split, recovered |
+| `emit_business_keys` | 1 | 7,444 | 8,192 | **91%** | 0 |
+| `emit_contract_enrichment` | 129 | 5,381 | 8,192 | 66% | 0 |
+| `emit_dv_model` | 1 | 13,261 | 32,768 | **40%** | 0 |
+
+Three things this run establishes that were previously assumption:
+
+1. **The modeler's 32,768 budget (WP22/ADR-0010) is right, and the extrapolation that chose it
+   was accurate.** 13,261 actual against 13,889 predicted by isolated replay — the sub-linear
+   growth model holds. ~60% headroom remains at 100 tables, so the ~26k estimate for 300 tables
+   still fits. The transport ceiling is no longer the binding constraint.
+2. **The source-mapper segmentation ran against the real API for the first time and worked.**
+   It was keyless-tested only. The whole concept list truncated at 8,192, split, and both halves
+   returned clean (4,790 + 3,939). Same for `emit_requirements`, which split twice.
+3. **`emit_business_keys` made ONE call here and seven on the earlier attempt, from a
+   byte-identical input.** At 91% of cap it sits on the boundary and sampling variance decides —
+   the same flaky-breakpoint shape already recorded for the requirements parser. It recovers
+   either way; the point is that a single green run is not evidence that it fits.
+
+**Reading `mapping_coverage` 0.714 — the deferral is correct, the scorer conflates two things.**
+All four missed pairs are the cross-system synonym trap class
+(`CRM_PARTNER.EXTERNALPARTNERNO|VEKTRA_PARTNER.PARTN_NR` and the equivalents for contract,
+policy, claim), and all four concepts are sitting in `unresolved` — `PARTN_NR`, `VERTR_NR`,
+`POL_NR`, `SCHAD_NR`. That is precisely the behaviour WP9 specifies and documents: a business key
+with candidates in two *different source systems* is never force-picked; it goes to the human with
+both candidates and a WP10 multi-source pointer. The golden marks such a pair as *ambiguous*
+(either candidate is acceptable); the mapper's correct answer is *neither, ask a human*. Those are
+not the same thing, and `mapping_coverage` scores the second as a miss.
+
+This is the **fourth** instance of the eval measuring something the product deliberately does not
+do (after WP9.2, WP14, and the link-name/grain fix). It is deliberately NOT "fixed" here, because
+the fix is a judgement call rather than a defect repair: crediting a deferral as coverage would
+also hide a real regression in which the mapper stops resolving anything. Whoever picks this up
+should decide explicitly whether an `unresolved` entry carrying *both* golden candidates counts as
+covered, and pin that decision in a test either way.
+
+Scale observation, honest rather than alarming: **27 of 59 concepts (46%) came back unresolved**,
+against 0 at 30 tables. The deferral rate tracks cross-system overlap, not table count — the
+100-table landscape is where the CRM/VEKTRA synonym pairs start dominating. The output is honest,
+but "half the mapping needs ratification" is a real human-workload signal for the brownfield
+track, and a reason the incremental-extension charter's domain-by-domain framing matters.
 
 ### Step: 300 tables (seed 42) — `scale_300`
 
-_not run yet_
+_not run yet._ The transport ceiling no longer blocks it (see the modeler row above), and the
+wall-clock blocker is fixed (Candidate #4). The open question at 300 is `emit_business_keys`,
+which is already at 91% of cap at 100 tables, and the review queue, already at 1,121 items.
+
+**Run the modeler probe before the full case — the order matters.** At 300 tables every agent
+except one is already proven to degrade gracefully: `emit_requirements`, `emit_business_keys`
+and `emit_mapping` all split on truncation (observed live), and `emit_contract_enrichment` sits
+at 66% of cap and now runs concurrently (372 calls at 300 tables). `emit_dv_model` is the only
+agent that *cannot* split — it emits one coherent model, and merging two half-models is a
+modelling problem, not a plumbing one — so its budget is the only lever and the only genuine
+unknown. If it overflows, the full `scale_300` cannot complete anyway, and paying ~$18 to
+discover that mid-run repeats the serial-failure mistake recorded on 2026-07-28.
+
+A targeted probe therefore runs only the modeler's real upstream dependencies —
+`requirements_parser → business_key_identifier → dv2_modeler`, skipping `data_contract`, which
+is sound because the modeler does not read contracts (verified against its state access) and
+which is where most of the cost sits. Estimated ~$2–3 and ~10 minutes, against ~$18 and 30–45
+minutes for the full case.
+
+**Prediction to measure against** (from the two measured points, `tokens ~ tables^0.50`):
+~23,080 output tokens = **70% of the 32,768 budget**, no truncation. That is the tightest
+reserve in the pipeline at the one place without a fallback, and the exponent is a straight line
+through exactly two points — it is an estimate, not a measurement. A green probe means
+ADR-0010's deferred exit condition (staged modelling / domain partitioning) is not yet due at
+300 tables; an overflow means it is a precondition rather than an option.
+
+**Probe run 2026-07-29 — the modeler fits, but the probe did not test what it set out to test.**
+228 s, one call per agent, no truncation anywhere:
+
+| agent | calls | peak out | cap | %cap | truncations |
+|---|---|---|---|---|---|
+| `emit_requirements` | 1 | 7,061 | 8,192 | 86% | 0 |
+| `emit_business_keys` | 1 | 4,606 | 8,192 | 56% | 0 |
+| `emit_dv_model` | 1 | 13,833 | 32,768 | **42%** | 0 |
+
+13,833 against a predicted ~23,080, and 38 hubs / 41 links / 55 satellites against 68 / 21 / 35
+at 100 tables. The first reading of this was that the pipeline had silently collapsed upstream;
+**that reading was wrong** — the 300-table landscape simply does not contain 3× the information
+(Candidate #5). The modeler's output did not grow because the problem did not grow.
+
+So the ADR-0010 question — does one coherent model still fit at 300 tables *of real semantic
+variety* — is **not answered by this probe**, and cannot be answered by the current generator.
+The full `scale_300` would measure the same repetition tolerance for ~$18. What the probe does
+establish, cheaply and usefully: nothing in the chain truncates or errors at this document size,
+and the 32,768 budget is nowhere near binding.
+
+(An earlier attempt the same day was blocked by the account's API usage limit — `400
+invalid_request_error`, nothing spent, the failure came on the first call. Worth one line
+because it verified two things for free: the 400 was correctly *not* retried, `attempt=0` in the
+trace per WP3's non-retryable matrix, and WP15 emitted the `llm_error` event for a propagating
+non-retryable 4xx. The limit was gone ~10 minutes later; the message's stated reset date was not
+reliable.)
 
 ## Breakpoints found → follow-up WPs
 
@@ -216,6 +329,95 @@ Each entry: symptom, size at which it appears, which agent/limit, proposed follo
   do as a one-commit fix before the 100-step (where a mid-batch failure costs much more).
 - **Protocol reminder:** the spec's budget rule is ONE repeat per step — use
   `--repeat 1` for gate/verification runs; the default is 3.
+
+### Candidate #4 — `data_contract` wall clock: 129 independent calls run sequentially (FIXED)
+
+- **Observed 2026-07-29**, first `scale_100` attempt. The run was killed at 50 minutes without
+  ever reaching the two agents it existed to measure. Reading the trace rather than re-running
+  showed why: `emit_contract_enrichment` had made **129 calls at ~21.7 s each = 46.8 of the
+  run's 53.4 minutes — 88% of total wall clock**, while every other agent together took 6.
+  129 was also exactly the predicted count (`sum(ceil(cols/40))` over 1,907 columns), so the
+  agent had *finished*; the timeout landed on the threshold to `emit_dv_model`.
+- **Not a token problem.** Peak output was 5,381 of 8,192 (66%) — WP19's adaptive split never
+  fired, the pre-chunking bound held, and the cache hit rate was 96%. The units are independent
+  by construction (one asset, one field chunk each). Nothing about the work required an order;
+  only the code did.
+- **Fixed the same day** in `agents/data_contract.py`: the first unit runs alone to write the
+  shared prompt-cache entry (~14.7k tokens at 100 tables, which the other 128 read), then the
+  remainder fan out under `_MAX_CONCURRENT_ENRICHMENTS = 8`. Bounded rather than unlimited on
+  purpose — 129 simultaneous requests would trade a latency problem for a rate-limit one, and
+  `ForcedToolCaller`'s backoff would then re-serialise them at a worse constant. Three
+  properties are pinned by test because concurrency makes each easy to lose: results merge in
+  **unit order**, not completion order (byte-identical artifacts); a failure raises the **first
+  unit in order**, not the fastest to fail (same inputs, same error); and a failing warm-up
+  stops before the fan-out instead of paying for 128 more calls to learn the same thing. The
+  concurrency assertion was verified non-vacuous by forcing the bound to 1 and watching it fail.
+- **Measured effect:** 46.8 min → 6.1 min for the same 129 calls; total run 53.4 min
+  (incomplete) → 13.6 min (complete). Cache-read ratio *rose* to 405%.
+- **Method note, the same lesson as 2026-07-28 and worth repeating:** the diagnosis cost nothing
+  because the trace was already on disk. Read it before paying for another run.
+
+### Candidate #5 — the synthetic landscape does not scale INFORMATION with table count (OPEN)
+
+**This entry replaces an earlier, wrong one.** It was first written as
+"`requirements_parser` under-extracts silently at 300 tables", from this comparison:
+
+| | doc chars | bullets | calls | requirements extracted | truncations |
+|---|---|---|---|---|---|
+| 100 tables | 9,027 | 93 | 4 | 113 | 2 → split, recovered |
+| 300 tables | 24,239 | 281 | 1 | 79 | 0 |
+
+A 2.7× larger document yielding fewer requirements looked like a silent coverage collapse.
+**The inference was wrong, because it never checked whether the extra bullets carry
+information.** They do not:
+
+- Both documents contain **exactly 87 distinct sentence templates** (bullets with
+  identifiers and digits masked). 93 bullets / 87 templates at 100 tables; 281 / 87 at 300.
+  The 300-table document is the same 87 patterns repeated ~3× with different generated
+  abbreviations — one template alone appears 45 times.
+- The landscape has 296 distinct entities at 300 tables, of which **200 are index variants**
+  of an existing archetype: `extra_aufgabe_3` … `extra_aufgabe_8`, `extra_beitrag_3` … `_8`.
+  Structurally identical, no distinct business meaning.
+
+So a model that reads six near-identical filler entities and emits one generalised
+requirement instead of six is plausibly doing the *right* thing. The parser is **not shown
+to be defective**; the measurement could not tell the difference.
+
+**The real finding is about the instrument.** `generate_landscape` scales table *count*
+linearly (entity/relationship/wide hold at 21/7/2 → 72/22/6 → 216/66/18) but scales distinct
+business *semantics* not at all beyond a fixed vocabulary. Above roughly the 30-table step,
+`scale_100` and `scale_300` therefore measure **tolerance for repetitive boilerplate**, not
+modelling complexity at scale. The case names imply the second; they deliver the first.
+
+This is the fifth instance of the recurring pattern in this project — the eval measuring
+something other than what it claims (after WP9.2, WP14, the link-grain fix, and the
+mapping-coverage/deferral conflation above). The pattern is now frequent enough to be worth
+stating as a standing rule: **before reading a scale number as a product signal, verify that
+the input actually varies along the axis the case claims to test.**
+
+**What this invalidates, explicitly:**
+
+- The "silent under-extraction" defect claim. Withdrawn.
+- The reading of the 300-table probe's 38 hubs vs the 100-table run's 68 as a collapse. It
+  may equally be *better* consolidation of filler; this data cannot distinguish them, and the
+  smaller number is certainly not evidence of failure.
+- The sizing claim "~30 tables is the ratifiable subject-area size", which was derived from
+  the 161 → 1,121 review-item growth. The workload numbers are real *as workload*, but much
+  of that load is generated by filler entities, so they bound nuisance rather than measure
+  genuine domain complexity. A defensible subject-area size needs a landscape whose semantics
+  actually grow.
+
+**What is untouched:** Candidate #4 and its fix (wall clock, measured directly); the fact
+that `scale_100` completed and validated; the modeler's 13,261 / 13,833 output measurements
+(real numbers, just not from a 3× harder problem); and the mapping-coverage/deferral reading,
+which is structural and does not depend on the data's information content.
+
+**Proposed follow-up (eval, M).** Give the generator a semantic axis independent of its table
+count — genuinely distinct entities, relationships and vocabulary — or relabel the upper scale
+cases for what they measure (width and repetition tolerance) and stop treating them as scale
+evidence. Until then the honest position is that **the pipeline is verified at ~30 tables of
+real semantic variety and unverified above it**, which is also precisely the regime the
+incremental-extension charter argues for.
 
 ## Landscape composition (for interpreting the numbers)
 

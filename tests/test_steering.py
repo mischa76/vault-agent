@@ -52,9 +52,12 @@ def test_rendered_rules_are_byte_identical_to_pre_wp16() -> None:
     # silent update is exactly what the pin exists to prevent. Deliberate additions so far:
     # WP20 `construct_naming` (2026-07-28) added; WP23 added
     # `no_source_table_on_multi_source_hub` and WP28 DELETED it again the same day, after
-    # ADR-0011 blessed the shape it argued against (and after it measured 0/3 effective).
+    # ADR-0011 blessed the shape it argued against (and after it measured 0/3 effective);
+    # WP31 `attribute_one_satellite` (2026-07-30) added, for the E_SAT_ATTR_OVERLAP class
+    # ADR-0012 keeps as an error.
     # The pre-WP16 block remains a byte-identical prefix — a deletion of a rule ADDED
-    # after WP16 cannot disturb it, which is exactly why the pin is written that way.
+    # after WP16 cannot disturb it, which is exactly why the pin is written that way, and
+    # each addition above was verified to preserve the prefix while regenerating.
     assert _render_rules() + "\n" == _RULES_FIXTURE.read_text(encoding="utf-8")
 
 
@@ -269,11 +272,11 @@ def test_fk_demotion_fires_a_backstop_event() -> None:
         ]
     )
     agent = SourceMapperAgent()
-    concepts = [
-        type(
-            "C", (), {"concept": "partner number", "entity": "hub_partner", "kind": "business_key"}
-        )()
-    ]
+    # The real _Concept, not an ad-hoc stub: concept identity is (label, entity) since WP32,
+    # and a stub that only carries the label cannot exercise the lookup the agent performs.
+    from vault_agent.agents.source_mapper import _Concept
+
+    concepts = [_Concept("partner number", "hub_partner", "business_key")]
     raw = {
         "partner number": {
             "decision": "unresolved",
@@ -283,7 +286,7 @@ def test_fk_demotion_fires_a_backstop_event() -> None:
     events = _events()
     llm.set_trace_recorder(events.append)
     try:
-        mapping = agent._post_validate(state, concepts, raw)  # type: ignore[arg-type]
+        mapping = agent._post_validate(state, concepts, raw)
     finally:
         llm.set_trace_recorder(None)
 

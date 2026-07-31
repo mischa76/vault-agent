@@ -93,6 +93,21 @@ class GenerateSpec(BaseModel):
     seed: int
 
 
+class ChainSpec(BaseModel):
+    """A CHAINED case (WP30 §2.7): each step extends the vault the previous step produced.
+
+    Distinct from ``existing``, which names a *static*, checked-in vault (``bank_extension``
+    ships one). Here step N+1's existing model is step N's **output** — the same
+    ``metadata/dv_model.yml`` the CLI writes and ``--existing`` reads, threaded through a
+    working directory rather than short-circuited, so a chain exercises the real WP23 path.
+
+    ``steps`` names other cases in dependency order. One repeat = one full chain; a repeat
+    re-runs the whole chain from step 1, because a chain's later steps are not meaningful
+    without the earlier ones that built the vault they extend."""
+
+    steps: list[str] = Field(min_length=2)
+
+
 class EvalCase(BaseModel):
     """One golden eval case. ``input_document``/``source_schema``/``profiling`` are resolved
     to absolute paths (relative paths in ``dataset.yml`` are taken relative to the file
@@ -108,6 +123,8 @@ class EvalCase(BaseModel):
     # Unset = greenfield, which is every pre-WP23 case.
     existing: Path | None = None
     generate: GenerateSpec | None = None
+    # WP30 §2.7: an ordered chain of other cases, each extending the previous one's output.
+    chain: ChainSpec | None = None
     golden: GoldenModel
     expectations: Expectations = Field(default_factory=Expectations)
     # How the WP9 mapping scorers judge this case (WP14). "concept" (default) is the
@@ -118,10 +135,19 @@ class EvalCase(BaseModel):
 
     @model_validator(mode="after")
     def _exactly_one_input_source(self) -> "EvalCase":
-        if (self.input_document is None) == (self.generate is None):
+        declared = [
+            name
+            for name, value in (
+                ("input_document", self.input_document),
+                ("generate", self.generate),
+                ("chain", self.chain),
+            )
+            if value is not None
+        ]
+        if len(declared) != 1:
             raise ValueError(
-                "provide exactly one of 'input_document' (committed case) or 'generate' "
-                "(synthesised case)"
+                "provide exactly one of 'input_document' (committed case), 'generate' "
+                f"(synthesised case) or 'chain' (WP30 chained case); got {declared or 'none'}"
             )
         if self.generate is not None and (
             self.source_schema is not None or self.profiling is not None
@@ -129,6 +155,16 @@ class EvalCase(BaseModel):
             raise ValueError(
                 "a 'generate' case must not also declare 'source_schema'/'profiling' "
                 "(they are synthesised)"
+            )
+        if self.chain is not None and (
+            self.source_schema is not None
+            or self.profiling is not None
+            or self.existing is not None
+        ):
+            raise ValueError(
+                "a 'chain' case must not declare 'source_schema'/'profiling'/'existing' — "
+                "each step supplies its own inputs, and the existing model of every step "
+                "after the first is the PREVIOUS step's output"
             )
         return self
 
@@ -186,8 +222,12 @@ def load_eval_case(path: Path) -> EvalCase:
         vacuous.append("construct_f1")
     if not any(link.driving_key for link in golden.links):
         vacuous.append("driving_key_accuracy")
-    # WP23: the preservation scorer has nothing to preserve on a greenfield case.
-    if case.existing is None:
+    # WP23: the preservation scorer has nothing to preserve on a greenfield case. A WP30
+    # chained case IS an extension case even though it declares no `existing` — every step
+    # after the first extends the previous step's output, and `score_chain` scores
+    # preservation per step. Without this the guard would reject exactly the case the
+    # scorer's gate exists for.
+    if case.existing is None and case.chain is None:
         vacuous.append("existing_construct_preservation")
     gated_vacuous = sorted(set(case.expectations.min_scores) & set(vacuous))
     if gated_vacuous:
@@ -198,9 +238,22 @@ def load_eval_case(path: Path) -> EvalCase:
             f"keys or drop the gate"
         )
 
+    # A chained case (WP30 §2.7) has no inputs of its own — every step supplies its own, and
+    # the steps must exist as cases. Checked here so a typo in `steps` is an attributable
+    # load-time error rather than a mid-chain surprise after the first step has been paid for.
+    if case.chain is not None:
+        for step in case.chain.steps:
+            step_file = path.parent.parent / step / DATASET_FILENAME
+            if not step_file.is_file():
+                raise ValueError(
+                    f"{path}: chain step '{step}' has no case (expected {step_file})"
+                )
+        if len(set(case.chain.steps)) != len(case.chain.steps):
+            raise ValueError(f"{path}: chain steps must be distinct; got {case.chain.steps}")
+
     # A generated case leaves the input paths unset; they are synthesised by
     # materialize_case(). A committed case resolves them to existing files now.
-    if case.generate is None:
+    if case.generate is None and case.chain is None:
         assert case.input_document is not None  # guaranteed by the model validator
         case.input_document = _resolve_existing(
             path.parent, case.input_document, "input_document", path
