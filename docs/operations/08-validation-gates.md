@@ -1,8 +1,14 @@
 # 8. Validation gates reference
 
-Generated from `validator.py` as of WP24 (2026-07-29): **34 codes — 23 errors, 11
-warnings**. The code is the source of truth; if this page and the validator disagree,
-count the codes.
+Derived from `validator.py`, which is the source of truth for both the set and its size.
+This page deliberately states no total: a count in prose has been wrong here more than
+once. To list the current codes:
+
+```bash
+rg -o 'E_[A-Z0-9_]+|W_[A-Z0-9_]+' src/vault_agent/agents/validator.py | sort -u
+```
+
+If that list and this page disagree, the list wins — and the page is the thing to fix.
 
 ## 8.1 How to read a gate
 
@@ -86,6 +92,25 @@ name is a prompt to verify, not proof of error.
 In every case: either the model names something the source truly doesn't have (fix the
 model or map it in ratification), or the schema declaration is incomplete (complete
 it).
+
+### Extension mode (only with `run --existing`)
+
+Inert on a greenfield run. These compare the merged model against the vault that
+already exists, and they all defend one promise: an extension adds, it never migrates.
+What the existing vault has, it keeps — because the alternative is a rename or a
+backfill against tables that hold history.
+
+| Code | Meaning · typical fix |
+|------|----------------------|
+| `E_EXISTING_REMOVED` | An existing hub, link or satellite is absent from the extended model. An extension run must never drop what the vault already contains. |
+| `E_EXISTING_BK_CHANGED` | An existing hub's business key **or source entity** changed (compared normalised). The key is what every stored hash was derived from, so changing it is a migration, not an extension. |
+| `E_EXISTING_GRAIN_CHANGED` | An existing link's grain — the multiset of its participations, roles included — or its driving key changed. Those define the hash key of every stored row. |
+| `E_EXISTING_SAT_RESHAPED` | An existing satellite changed parent, type, child dependent key, source table or attribute set. **Growth counts too:** a new attribute on a satellite with history is a backfill, so new attributes belong in a NEW satellite on the same parent. |
+| `W_EXISTING_EXTENDED` | Advisory inventory, not a problem: an existing hub gained source feeds (named in the message), or this run added a new construct. It is the extension's summary in the review queue. |
+
+The delta is also reported outside the gates: `extension-diff.md` and the report's
+Extension section attribute which generated files a pre-existing construct's SQL
+actually changed in — see 6.7.
 
 ## 8.3 Gates vs. backstops vs. steering
 
