@@ -28,6 +28,7 @@ to **new** documents only; existing records were left untouched.
 | [architecture/2-multi-agent-design.md](architecture/2-multi-agent-design.md) | Agent topology and responsibilities |
 | [how-requirements-become-a-model.md](how-requirements-become-a-model.md) | End-to-end walk of the actual behaviour, with its assumptions named |
 | [log.md](log.md) | **The record** — every closed WP, measurement and correction, chronological, append-only |
+| [../CONTRIBUTING.md](../CONTRIBUTING.md) | Conventions, definition of done, and how verification levels are reported |
 ## The record
 
 | Document | What it is |

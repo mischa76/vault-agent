@@ -307,6 +307,7 @@ The work-package specs, agent kick-offs, and the measured mapping-spike evidence
 - [Installing on Windows 11 (WSL2)](scripts/install/README.md)
 - [DV2.0 rules cheatsheet](docs/methodology/dv2-rules-cheatsheet.md)
 - [Demo datasets & walkthroughs](docs/demos/README.md)
+- [Contributing — conventions, definition of done, how verification is reported](CONTRIBUTING.md)
 ## About
 
 Built by **Mischa Eismann** ([eismann.consulting](https://eismann.consulting)) — 20+ years in

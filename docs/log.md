@@ -2026,3 +2026,24 @@ Rationale, the three deviations from the source pattern, and the verified Claude
 semantics that shaped it: `docs/methodology/llm-wiki-mapping.md`. No `src/` or `eval/` code was
 touched by this change. `CLAUDE.md` went from 1,838 lines / 155,077 characters to 150 lines /
 9,896 — 6.4% of its former size, with the content moved rather than deleted.
+
+## [2026-07-31] Contribution guidelines — the conventions become checkable
+
+A clone now carries the conventions (the previous entry), but nothing asked a contributor to
+follow them: there was no `CONTRIBUTING.md`, no PR template, and CI checks only pytest, ruff and
+mypy. `CONTRIBUTING.md` states the definition of done — including why `mypy` must be invoked
+bare, since an explicit path overrides the configured file list and silently skips `eval/` — the
+keyless-suite rule, the knowledge-routing table, the append-only rule for dated records, and the
+conventions that exist because something went wrong once (rules in `rules/` not in prompts, gate
+versus backstop, branch on typed fields, verify against the installed library, guard before
+change).
+
+The section that carries the most weight is the vocabulary for verification:
+**verified-live / keyless-only / not-measured**, with live evidence named (dbt PASS counts, the
+trace file, eval scores). `.github/PULL_REQUEST_TEMPLATE.md` asks for exactly that as a checkbox
+with an evidence field, alongside the write-down checklist and "anything a reviewer should push
+back on". Its header tells contributors to answer "no" rather than delete a section.
+
+Deliberately NOT added: a CI job requiring a `docs/log.md` change whenever `src/` changes. Such a
+check can verify presence but not quality, and a gate that can only see presence produces empty
+entries written to satisfy it.
