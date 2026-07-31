@@ -104,6 +104,14 @@ log entries are dated records; their value depends on showing what was believed 
 revise one — not to fix a claim, not to tidy prose. A new dated entry does that. A test
 (`tests/test_log_completeness.py`) enforces that log entries are not lost.
 
+Two mechanisms back this up rather than trusting anyone's memory. The test above, and — for
+agents working in this repo — a `PreToolUse` hook (`.claude/hooks/append_only_records.py`,
+registered in `.claude/settings.json`) that denies edits to an existing file under
+`docs/architecture/`. It never blocks creating a new record, leaves `docs/log.md` appendable,
+and fails open if anything about it breaks. A legitimate status move (Proposed → Accepted) needs
+`VAULT_AGENT_ALLOW_RECORD_EDIT=1`. Editing in your own editor is of course unaffected — the hook
+constrains agents, not people.
+
 ## Pull requests
 
 - Branch off `main`; PRs run the CI job above.

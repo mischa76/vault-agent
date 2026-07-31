@@ -2104,3 +2104,34 @@ contributor needs before every commit.
 Not attempted here: the dated records under `docs/architecture/` contain historical gate counts
 (30, 32, 33, 34, 35) that were correct when written and are wrong now. Append-only means they
 stay. Anyone reading them should take the count from the code, which is what the invariant says.
+
+## [2026-07-31] The append-only rule becomes enforced instead of requested
+
+`CLAUDE.md` and `.claude/rules/records.md` both say never to edit a dated record, and both are
+*context, not enforced configuration* — the documentation is explicit that there is no guarantee
+of compliance. Of every convention in this knowledge base, append-only is the one that can be
+enforced mechanically for an agent, so it now is: a `PreToolUse` hook
+(`.claude/hooks/append_only_records.py`, registered in `.claude/settings.json`) denies
+`Edit`/`Write`/`NotebookEdit` on a file that **already exists** under `docs/architecture/`, with
+a denial message that names the alternative rather than only refusing.
+
+Four deliberate non-blocks, each one load-bearing: **creating** a file there is untouched, since
+a new ADR or spec is precisely how a decision gets recorded; `docs/log.md` stays appendable,
+because appending happens through `Edit` and its guard is a test; a human with an editor is
+unaffected, since this constrains agents, not people; and `Bash` is not policed — a determined
+`sed -i` still gets through, which would cost shell parsing to close and buys little against an
+actor who is not trying to cheat. The escape hatch for a legitimate status move (Proposed →
+Accepted) is `VAULT_AGENT_ALLOW_RECORD_EDIT=1`, deliberately awkward.
+
+**It fails open.** Malformed input, a missing field or any internal error exits 0 and lets the
+normal permission flow decide — the same rule the trace and usage recorders follow: bookkeeping
+must never be why work cannot proceed. Pinned by tests, together with the four decisions.
+
+Verification, stated at the level it actually holds: the script's decisions are covered by seven
+subprocess tests against the real stdin contract; the wiring was exercised by running the exact
+command string from `settings.json` with `${CLAUDE_PROJECT_DIR}` set, which returned the deny
+payload; and the matcher was checked to hit `Edit`/`Write` and miss `Read`. What is **not** yet
+observed is Claude Code loading the hook at session start — a live probe in this session
+(attempting an edit on ADR-0001 with a string that cannot match, so nothing could be written
+either way) was answered by the Edit tool rather than the hook, because settings are read at
+startup. First edit attempt on a record in the next session is the remaining evidence.

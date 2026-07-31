@@ -64,6 +64,8 @@ docs/handover/
 .claude/*
 !.claude/rules/
 !.claude/skills/
+!.claude/hooks/
+!.claude/settings.json
 output*/
 
 # Eval harness: per-run JSON results, LLM transcripts, ablation comparisons (WP6/15/16)

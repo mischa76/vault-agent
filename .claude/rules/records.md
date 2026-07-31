@@ -20,5 +20,12 @@ instead of invisible.
 - Editing one of these is a deliberate act that needs the human's word. If you believe a record
   is wrong, say so and propose the entry that corrects it.
 
+This rule is **enforced, not requested**: a `PreToolUse` hook
+(`.claude/hooks/append_only_records.py`) denies `Edit`/`Write` on an existing file under
+`docs/architecture/`. Creating a new record is never blocked, `docs/log.md` stays appendable
+(its guard is `tests/test_log_completeness.py`), and a genuine status move along an ADR's path
+goes through with `VAULT_AGENT_ALLOW_RECORD_EDIT=1` — deliberately awkward, because a deliberate
+act should feel deliberate.
+
 Maintained and freely rewritable instead: `docs/index.md`, `CLAUDE.md`, `.claude/rules/`,
 `.claude/skills/`. Procedure: `.claude/skills/project-docs/SKILL.md`.
