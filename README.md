@@ -291,7 +291,9 @@ The work-package specs, agent kick-offs, and the measured mapping-spike evidence
 
 ## Documentation
 
+- [**Documentation index** — the catalogue of everything below](docs/index.md)
 - [**Operations manual** (install, run, HITL, gates, warehouse, evals)](docs/operations/README.md)
+- [Project log — every closed work package, measurement and correction](docs/log.md)
 - [Vision](docs/architecture/0-vision.md)
 - [Architecture overview](docs/architecture/1-architecture-overview.md)
 - [Multi-agent design](docs/architecture/2-multi-agent-design.md)
@@ -305,7 +307,6 @@ The work-package specs, agent kick-offs, and the measured mapping-spike evidence
 - [Installing on Windows 11 (WSL2)](scripts/install/README.md)
 - [DV2.0 rules cheatsheet](docs/methodology/dv2-rules-cheatsheet.md)
 - [Demo datasets & walkthroughs](docs/demos/README.md)
-
 ## About
 
 Built by **Mischa Eismann** ([eismann.consulting](https://eismann.consulting)) — 20+ years in

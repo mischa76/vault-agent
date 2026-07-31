@@ -1,0 +1,69 @@
+# sha256 of every paragraph of the pre-retrofit CLAUDE.md '## Current milestone' section,
+# as it stood at commit 699ec62 (2026-07-31, 1838 lines / 155077 chars).
+# Hashed after rstrip() — trailing whitespace is not content; every other character is.
+# Each paragraph must appear in docs/log.md; see tests/test_log_completeness.py.
+# Format: <sha256>  <first 70 chars, whitespace-collapsed>
+
+4bc53ab63607ca79509d79108a9d7841efd8222a9b4fd90c2fde4fb0089a5a1a  Core pipeline runs end-to-end (as of 2026-06-11). Built: 6 agents (req
+f7e2e7ec2560e641701167d80e927e15c467d6a0d9110fd64b6821a094c988b6  DV2.0 modeling rules are now encoded (as of 2026-06-13) per the Linste
+9069c2701bdef3f4f7c588097a647cfa3a34b91b1d71829ebbf9b890e87fdf82  Architecture-review remediation worked end-to-end (as of 2026-06-13, s
+ee1065f00cced09d7f5d5f7e11aed4be88f70ba9bff5ad83ffbcb7d94b666ad5  The data_contract agent is now implemented (as of 2026-06-14, ADR-0005
+07b05b94f069e7ec4abe3977ac2baec7d8d05b992e7b8f80427465a584d34bd1  The orchestrator is now implemented (as of 2026-06-14, ADR-0006) and i
+b0ffbc28299d018ab5afb0f758ccd5fa4dac7ad698c656476c0dd63a4468abda  Live human-in-the-loop interrupt/resume now works (as of 2026-06-15, A
+3a2b6bc4ea0425174b5092670f0b6b990b93c5868fae6ddcdd9cbadfa9c5aa07  No agents remain as stubs; the HITL loop is closed. Planned: transacti
+ab0510002000a4856573a6335ebc3d80b660250797f2c4c4f7a4c910df9a222a  The generated models now run end-to-end on a real warehouse (as of 202
+0d6e261e87bcba53390042fe2aa31c2a294d210359ad411f1554bed9a4a8a508  Incremental eff_sat fixed (as of 2026-06-23, docs/architecture/eff-sat
+024fa94a172a932efc24ee58c76cd29a890533605695f250d7a2ed97d46f4210  Source-schema input producer landed (as of 2026-06-24, docs/architectu
+b1fa18e8f21c1b70f6e26344a3d1962fdf153a5c957efb3ebff3eb17cbed472f  Reality-test remediation batch 1 landed (as of 2026-06-25, docs/archit
+b1b3271288b67826b65b3c11082455894456c87b5cdca9b7c95521a0a6496c06  Hardening batch P1+P2 landed (as of 2026-07-06, see docs/architecture/
+9e2ec427a2e1bfce1f6cd4b62875ffcafc1ccd8e12c7660e9cd197ad38341a84  The staging generator landed (as of 2026-07-06, P3 from docs/architect
+9b74283290b7e1207cc04bea8c5a5de72b2d6a36cf9b2f621120382181d3c8e4  Typed ValidationIssue landed (as of 2026-07-07, WP4 of backlog-2026-07
+428bd498e43bbd7b15e0ff34f0edfb7d80144954fa11d1a2c8123a44c990c9d4  The ADR author is remediated (as of 2026-07-07, WP2: docs/architecture
+d77301d137ebf51a31480d94ffe51355d9f8ac3f41adad745ae922c0a71ddfba  Four new validator gates landed (as of 2026-07-08, WP1 of backlog-2026
+a9dba4ae6cc55a466b19de000bbce0e1fe546047975bf991ff1b86a01c38e2e0  WP3 LLM cost & robustness landed (as of 2026-07-08, docs/architecture/
+847871679a1ad2ce28fba432d6639749b41e973e6369792622b13f5f5eb75c15  The eval harness landed (as of 2026-07-08, WP6: docs/architecture/back
+0c683a3862fa01070abc4ee92731a284110044e451b8c317129cbf9901765226  WP7 staging refinements landed (as of 2026-07-08, docs/architecture/ba
+914b6652e2c10cd538c90d32223ce790ae259dee07ba02de2510452a9bf50aba  WP5 hygiene batch landed (as of 2026-07-08, docs/architecture/backlog-
+7e655a27124f31eb7ac4011cf74dfbbb4c2070978308a0934070410f0e43413e  WP8 role-qualified link hub references landed (as of 2026-07-08, ADR-0
+8eeb65bbfa079c017291df3e8c92f2ea8a4e61599adbad72e9f7964c9e1894ab  The business↔source mapping design spike ran and resolved Phase 2 (as 
+b45258b38b86b497930b5b89d898d262c6d54d33208d6d86a64a9d4563c5e10d  WP9 business↔source mapping landed (as of 2026-07-13, ADR-0008 Accepte
+c28f0025b98ea01a0f733572a8a0368369afc6337c18821b1d8f0e5f3188d726  WP9.1 mapping remediation landed (as of 2026-07-13, docs/architecture/
+4ced2ccaeac07d026b5ec8941b3a32d100b7cc414170ce6e2f68a1e768610233  WP9.2 mapping-scorer universe fix landed (as of 2026-07-13, docs/archi
+40aed969982f82a14903135db58c9f237713ff4adf12b6adf421eb5b8308ed32  WP9 §10.7 opacity probe closed (as of 2026-07-14), shutting the ADR-00
+b977dcf602efeebd75af11da1c2512ffe0bb26d9af84087ea476f64efff0385d  WP10 multi-source hub landed (as of 2026-07-14, docs/architecture/back
+84fe400c3d307ff791e6c22e72d9c2023afa7e1fa3d9cead92bd736da01287b1  WP9 §10.8 closed (as of 2026-07-14) — the last open WP9 verification i
+1d878a29cd0ede82b4b30efcf794e3fa7d95627068d1f39f3bef51c007ee31a6  The data_contract truncation bug is fixed (as of 2026-07-15) — the pre
+171f185416953e2a005e2dbd404e808cc61de190e661d7db2fb738decbe2e011  With that blocker gone, the FULL messy_insurance pipeline now complete
+5e207518ecb33da126ba77ca348784cbbad744d8bcb5eca33794b55cc78b3d47  Modeler CDK-dedup fix (as of 2026-07-16): re-running the health_insura
+6b04b1399545508c24cb76187f1921c9447016eaf797247da2e80680ff20f895  WP11 static HTML run report landed (as of 2026-07-18, UI-track stage 1
+9db15a186edb4a3aeb6e6977188b02e9ae4616333c4b0d4e58221757ac017f61  WP12 interactive checkpoint prompt landed (as of 2026-07-18, UI-track 
+63bb2191de8dbf57a547a315c74ff3ea4690db08c2ecae878f6b913f4a0b404a  WP13 scale-hardness *tooling* landed (as of 2026-07-18, Charter A / ro
+72ae7011497d90986215888e66e933345a4c7a355a164f444fc6bffbae29432a  WP14 column-based mapping coverage landed (as of 2026-07-19, eval-only
+321decae139d85047f8043f56003ccab2a5c67923492999d9ef138d7eeddd802  WP14.1 crash-safe eval-run persistence landed (as of 2026-07-20, eval-
+45a3bf14bb17438bf3c846ae49ed2fdb77e546bd8a87b63afc805862ac0ec94c  WP15 LLM trace capture landed (as of 2026-07-22, docs/architecture/bac
+7dfff7ae8975a481d9e89520cd80038511d6ef223440aa944a3dbd68b8e458cb  WP16 steering registry, backstop telemetry and the model-release re-te
+9474e655e2d4cedc94020d886a3926355a183ed977ab4d2acc97c5aa36b6a985  Live verification batch (2026-07-27/28), executed once API credit exis
+c72d78d153dae94b010513e4a17ec44c6a10d7f5ada4abd417c9527cf6b85810  Two findings from that batch. (F1) WP13 candidate #1 is CONFIRMED and 
+825ff7457563608bafc420be2df58136d86be79b3f9b103bb8eabd859c8083a0  Also recorded, NOT fixed: `_f1` treats an empty golden inconsistently 
+c5e9c0f5c8665355efe4365e770d3193ba2a636b048ecb912ea1242e6a94a6c5  The requirements-parser breakpoint (F1 above) is fixed and live-verifi
+5ab7370a6640be3ca81c18c3a49912ef58b0c3a465e1eebd2bfb4900e940c3d1  Output-budget hardening across the pipeline (2026-07-28), driven by th
+27da6059a352d53b5a2b8770dc3a502b8882e413c319d13761cfe7dc7a8e6565  Two shapes, and the difference decides the fix. A LIST-shaped output (
+6319c5de1c974d5814042685c6c98df3eb3ea8fe0aff3442a94383603c86277e  Numbers to reason with, all measured rather than guessed. Modeler outp
+db0008bd8db6b3fec1f6931d70a977976cf69d997afe44a3a1c0797a56fde50b  Also in this batch (eval only): a scorer with nothing to check is now 
+f06ca8edd76441435cd3c9119d9d58a6ad133f87ca0f87ba971108e4f989e4f0  WP18 eval gate integrity landed (as of 2026-07-28, eval/ only, no src/
+0555ec190fbf9ad9766ac4a1c787aec0c2cebe71eb76ccc1ae2ac0c072e4c41e  WP19 put the LAST list-shaped agent on the shared truncation split (as
+c77a72f6c4f30c2710245997efd6ce0d994b3f24afdcd32dcd3501db7c895670  WP20 closed the trust gap between report.py and the write path (as of 
+cd94418ba3592fdad6fe59765ea46934496ddf568fb3d385d8a86d10f5009fd8  WP17 gave the CLI the crash safety the eval harness got in WP14.1 (as 
+07459a63d394050b6a177f16fb893491ee76f3a5109a132cde3b22b3a86f9275  WP21 robustness + hygiene batch landed (as of 2026-07-28, docs/archite
+0eedbb15a26cc558e6360ba423c1fedbc2577febc5f945b064531063136a93b3  WP24 multi-source composition correctness landed (as of 2026-07-29, do
+913692046f5de7f42173d7c3c68f44f0b1ded3f18aa8d02b5472da9f0477ce17  WP26 ADR completeness landed (as of 2026-07-29, docs/architecture/back
+94e2d0e22d30518b616223e5ad07d6124e5f5aa0e72808e033680321143cab6e  WP25 made a failed run a first-class outcome (as of 2026-07-29, docs/a
+0a896db7802e90ee6a6447acff113ab958593378a06206d0fb3e46a428f8215b  WP27 hygiene landed (as of 2026-07-29, docs/architecture/backlog-2026-
+7d775c2900579070a286f8ae4c519db684a33a77730e4eb5978af79ef84dcb85  WP22 streaming landed (as of 2026-07-29, ADR-0010 Accepted, docs/archi
+f9bf82c777d58017e68717322ea5af192d43bddb1907809fe06fe17d8797d010  WP23 brownfield mode, Phase 1 CORE landed (as of 2026-07-29, charter d
+5de80525a17ec2364c5d004f4c79cd79e455bda7c5c2ed19b832b3b1156acf69  The brownfield Phase 2 spike ran (2026-07-29, docs/architecture/backlo
+e756eebd290e5894460b32b33ce749b6cc73443095be9b96358b87c295b31076  The spike's recommendation was accepted and specced as WP29 (docs/arch
+50801dab0822e7d1475a146511bcadd42ff4df6b6a05f78ebb26e376202da44c  WP29's DETERMINISTIC CORE is built (2026-07-29) — the agent, graph wir
+eb3598996f6ae169e5a9778cfb42e6c39646281216d521e5ec3c7d066bb15bb2  WP28 satellite feed binding landed (as of 2026-07-29, ADR-0011 Accepte
+e92197ec51986c4a037f331f446824caddffbdf0851ea5ae1fbb5f3ad2952d7c  WP30's INSTRUMENT is built and its keyless half is complete (2026-07-2
+02ea423279643dec55ee1c8680a4d949fb378eda0e944982cc157652f66a6845  WP31 narrowed E_SAT_ATTR_OVERLAP to one payload namespace (as of 2026-

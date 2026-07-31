@@ -58,7 +58,12 @@ _fortbildung
 # Scratch / local helper files (converted PDFs/DOCX, study-set text dumps)
 _tmp/
 docs/handover/
-.claude/
+# Local Claude Code state stays out; the project's own knowledge-base machinery ships with the
+# repo — path-scoped rules and the docs-maintenance skill are project instructions, not personal
+# settings (see docs/methodology/llm-wiki-mapping.md).
+.claude/*
+!.claude/rules/
+!.claude/skills/
 output*/
 
 # Eval harness: per-run JSON results, LLM transcripts, ablation comparisons (WP6/15/16)
