@@ -566,3 +566,58 @@ now so that whatever it does is read as a result rather than found afterwards.
 Secondary, diagnostic rather than predictive: whether `entity_resolver` fired at all in the
 chain, how many merges it proposed, and how many `accept: True` ratified. That is the
 resolver's first live data and is read from the traces, not scored.
+
+#### Arm comparison, phase 1 — 1 repeat each, 2026-08-01 (arm A `439c0e0`, arm B `43a1ba1`)
+
+Re-run after WP32/WP33/WP29, per the §7.2b pre-registration. Both arms exit 0, every gate 1.000.
+Total spend $19.31 of the §6 ceiling.
+
+| | arm A (one pass) | arm B (5 steps) |
+|---|---|---|
+| constructs h/l/s | 42 / **51** / 58 | 44 / **37** / 79 |
+| review items | **160** | **475** (32, 49, 126, 94, 174) |
+| rendered lines | 124 | 358 |
+| mapping gaps | 4 | **2** (was 208) |
+| calls / out tok | 93 / 283k | 105 / 261k |
+| wall / cost | 2762 s / $10.25 | 2658 s / $9.06 |
+
+**P3a HELD, but narrowly enough that it must not be quoted as a clean hit.** Review items fell
+983 → 475 against a predicted threshold of 491 — a margin of 16 items, 3%. At one repeat with no
+variance estimate, "just under the line" is not a robust pass. **P3b held decisively**: mapping
+gaps 208 → **2**, against arm A's 4. That is the strongest single number here and it confirms
+the §7.2b reading — most of the old arm B's review load was WP33's re-mapping defect, not the
+cost of working domain by domain.
+
+**P4 FAILED, and it was a bad prediction to begin with** (see the correction above): the hub gap
+widened 1 → 2. Recorded as a miss rather than quietly dropped, though it carries no weight —
+the correction had already stated it could not fail informatively, and it turned out it could
+only fail uninformatively.
+
+**The charter's hypothesis is NOT supported by this repeat.** §2.6 predicted arm B would produce
+"a materially lower per-step review load and a comparable or better model than arm A, at
+comparable or lower total cost." Read honestly, one clause of three holds:
+
+- *Review load* — arm B totals **3× arm A** (475 vs 160). Per step it is lower for four of five
+  steps (32, 49, 126, 94), but its worst step (**174**) already exceeds arm A's entire run. The
+  distinction matters and cuts both ways: a human reviewing incrementally never faces more than
+  174 at once, but faces 475 in aggregate. Neither reading supports "materially lower".
+- *Model* — arm B builds **37 links against arm A's 51**, i.e. 73%. The link deficit named in
+  the P4 correction as the real question did not close: 17 → 14. Arm B also fragments into more
+  satellites (79 vs 58). Cross-domain relationships are what a domain-by-domain walk is
+  structurally placed to miss, and the number is consistent with exactly that.
+- *Cost* — holds, and against §2.6's own expectation. Arm B was **cheaper** ($9.06 vs $10.25,
+  −12%) and faster, despite paying over a growing inventory five times. §2.6 predicted the
+  opposite asymmetry; the cache-read rate (40%) is the likely reason and is not investigated
+  here.
+
+§2.6 pre-committed to the falsifying outcome — "if arm A yields comparable review load and
+validation at lower total cost, the charter's claim is weakened, record it, do not re-run until
+it comes out the preferred way." Arm A yields **lower** review load and equal validation at
+**higher** cost, so the falsifying condition is not met exactly as written, but the direction is
+plainly against the hypothesis on the axis §2.6 called the one that binds. **At n=1 this is not
+a verdict**: it is one repeat, and the review-load gap (3×) is large enough that variance is
+unlikely to reverse it, while the link deficit and the per-step reading both need repeats.
+
+**Not measured, and not to be inferred from any of the above:** whether arm B's model is
+*correct*. See the resolver findings below — a merge was auto-ratified at confidence 0.55, and
+no gate here would have caught it had it been wrong.
