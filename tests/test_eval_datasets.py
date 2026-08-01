@@ -165,6 +165,11 @@ def test_shipped_cases_load_with_unique_names() -> None:
         "bank",
         # WP23: the one case that runs the pipeline in extension mode.
         "bank_extension",
+        # WP29.1: shipped since 2026-08-01. Its fixtures existed from the Phase 2 spike, but
+        # without a dataset.yml the harness could not load it, so `--dataset
+        # brownfield_resolution` did not start and its gates could not run. Wiring it IS the
+        # work package; this line appearing is the intended effect, not drift.
+        "brownfield_resolution",
         "health_insurance",
         "messy_insurance",
         "scale_100",

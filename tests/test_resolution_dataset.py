@@ -90,3 +90,63 @@ def test_the_case_loads_through_the_production_loaders(
 ) -> None:
     """Wiring failures must be attributable to the wiring, not to the fixtures (item 3)."""
     assert check(loader(path))  # type: ignore[operator]
+
+
+# --- The dispatch (kick-off item 5) --------------------------------------------------------
+
+def _state_with(*pairs: tuple[str, str, str]) -> object:
+    from vault_agent.state import (
+        EntityResolution,
+        ResolutionProposal,
+        VaultAgentState,
+        concept_key,
+    )
+
+    state = VaultAgentState(input_documents=["r.md"])
+    state.resolutions = EntityResolution(proposals=[
+        ResolutionProposal(concept=concept_key(key, table), resolution=answer, confidence=0.9)
+        for table, key, answer in pairs
+    ])
+    return state
+
+
+def _case() -> object:
+    from eval.datasets import load_eval_case
+
+    return load_eval_case(CASE / "dataset.yml")
+
+
+def test_the_resolution_family_is_dispatched_for_this_case() -> None:
+    """The counterpart of the golden_mapping.yml dispatch, by the same convention."""
+    from eval.run import _score_resolution
+
+    scored = _score_resolution(_case(), _state_with(("vic_partner", "partn_nr", "hub_customer")))
+
+    names = {s.name for s in scored}
+    assert names == {
+        "false_merge_rate", "resolution_accuracy", "new_hub_detection",
+        "resolution_calibration",
+    }
+    assert next(s for s in scored if s.name == "false_merge_rate").score == 1.0
+
+
+def test_the_family_stays_inert_on_a_case_without_the_golden() -> None:
+    """A mapping-only case must not gain four scorers it has no golden for."""
+    from eval.datasets import load_eval_case
+    from eval.run import _score_resolution
+
+    other = load_eval_case(Path("eval/datasets/bank_extension/dataset.yml"))
+
+    assert _score_resolution(other, _state_with(("vic_partner", "partn_nr", "hub_customer"))) == []
+
+
+def test_a_gated_case_whose_golden_vanished_is_reported_unsatisfiable_not_passed() -> None:
+    """The WP18 §2.1 hole, not reproduced: a gate never computed is a gate that never fails.
+
+    `_score_resolution` skipping a missing golden is safe ONLY because `unsatisfiable_gates`
+    then reports the gate as a batch defect. Pinned here so the two halves cannot drift."""
+    from eval.run import unsatisfiable_gates
+
+    reasons = unsatisfiable_gates({}, _case())  # nothing scored at all
+
+    assert any("false_merge_rate" in r for r in reasons), reasons

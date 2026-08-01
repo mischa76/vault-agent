@@ -2427,3 +2427,58 @@ outcomes depending on which flag the human used.
 Each has a keyless guard that fails without its fix. 767 tests green (+4), ruff and mypy clean.
 CI on PR #16 was green before these — the branch's first independent check, since the workflow
 triggers only on pushes to `main` and on pull requests, which is why the PR was opened at all.
+
+## [2026-08-01] WP29.1 — `brownfield_resolution` is runnable and scoreable; §4 is now only money
+
+The three findings from this morning are closed, all keyless, no spend. What changed:
+
+**The scorers now match on structure.** `false_merge_rate`, `resolution_accuracy`,
+`new_hub_detection` and `resolution_calibration` all keyed on the golden's free-form `concept`
+label while the pipeline emits `entity::field`. New `source_ref()` derives
+`(source_table, source_key)` from the pipeline's key and `GoldenResolutionSet.by_source()`
+keys the golden the same way — both normalised. This is `.claude/rules/eval.md`'s first rule
+applied for the fourth time (WP9.2, WP14, the link-name fix).
+
+**And the fail direction is fixed, which was the dangerous half.** An unmatched proposal used
+to land in `offenders`: with nothing matching, *every correct merge scored as a false merge*
+and the gate would have read 0.000 in all five paid repeats. Unmatched is now **out of
+universe** — the WP14 semantics — counted and reported in `details` the way `mapping_coverage`
+reports its unscored proposals, and excluded from the score. `false_merge_rate` remains a hard
+property over the matched universe. Mutation-checked: reverting that one lookup to the label
+fails five tests and nothing else.
+
+**The spike-era scorer tests were re-keyed, deliberately.** Six of them built proposals keyed
+by the golden's label — a shape the product has never emitted. Their kwargs still read
+`partner=`, `kontakt=`, so each test still says what it is about; `_result` now translates
+those to pipeline keys through the golden's own coordinates. WP29 §2.2 had already collapsed
+the eval types into the product's; these tests were the last place still measuring the spike's
+shape.
+
+**The case is wired**: `dataset.yml` gates `false_merge_rate` at exactly 1.0 and
+`pipeline_health` at 1.0, and deliberately leaves `resolution_accuracy` reported-not-gated —
+the spike charter's split, so that honest-but-unhelpful stays distinguishable from
+helpful-but-dangerous. `_score_resolution` dispatches the family by the `golden_resolution.yml`
+convention, the counterpart of the mapping dispatch. The WP18 §2.1 hole is explicitly not
+reproduced: a gated case whose golden vanished produces no score, and `unsatisfiable_gates`
+then reports it as a **batch defect** rather than a pass — pinned by its own test, so the two
+halves cannot drift apart.
+
+**The fixture no longer states its answers, and the guard enforces that now.** The trap
+annotations moved to `trap-annotations.md`; a snapshot captured from the annotated file proves
+the pipeline reads exactly the same 8 tables and 23 columns as before. The requirements were
+re-authored blind against the cleaned file — and the author reported that the header *I* wrote
+while cleaning still named what the file was for and where the answers live. Not answers, but
+enough to tell a reader the game. Removed, and `TELLS` gained "entity-resolution", "existing
+bank vault", "spike" and the two filenames, so the next version of that mistake fails a test
+instead of depending on a careful reader noticing. The superseded draft stays beside it with
+its unusable header; records are append-only.
+
+Verified independently rather than trusted: the new document names no trap, no entity
+resolution, no existing vault and no hub. Where the schema pulls hardest — `crm_xref_partner`'s
+"entspricht der nationalen Kundennummer" — it reports the comment as a statement about *values*
+and pushes the entity question into an open point, which is exactly the discipline the
+measurement needs.
+
+781 tests green (+14), ruff clean, mypy strict clean. **What remains is paid and pending:** the
+§4 runs themselves — 5 clean plus 5 blinded repeats, estimated $16-26 against the ~$20-40 left
+under the WP30 §6 ceiling — and they run only on an explicit go.

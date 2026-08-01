@@ -16,8 +16,6 @@ from eval.resolution import (
     ResolutionResult,
     load_golden_resolution,
 )
-from vault_agent.state import concept_key
-
 from eval.scorers import (
     VACUOUS_PREFIX,
     false_merge_rate,
@@ -25,6 +23,7 @@ from eval.scorers import (
     resolution_accuracy,
     resolution_calibration,
 )
+from vault_agent.state import concept_key
 
 _GOLDEN_FILE = (
     Path(__file__).parents[1] / "eval" / "datasets" / "brownfield_resolution"

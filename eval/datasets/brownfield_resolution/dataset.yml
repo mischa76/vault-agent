@@ -1,0 +1,36 @@
+# WP29 §4 — the entity-resolution acceptance case (wired for the harness by WP29.1).
+#
+# The one case whose question is "is this new source's concept something the vault ALREADY
+# holds?" — the question brownfield mode could previously only put to a human. It runs the real
+# pipeline in extension mode: `existing` is the vault being extended, `source_schema` is the new
+# system, and the resolver fires because both are present.
+#
+# Seven concepts, seven deliberate traps, and the correct answer for each recorded in
+# golden_resolution.yml BEFORE any mechanism existed (spike, 2026-07-29). The reasoning behind
+# each is in trap-annotations.md — moved out of the schema on 2026-08-01 so that a blinded
+# requirements author can be handed the schema without being handed the answers.
+#
+# What is GATED, and why exactly these:
+#
+#   false_merge_rate 1.0 — the product's promise, not a quality score. A merge declares a new
+#     concept to BE an existing construct, which feeds foreign business keys into a hub holding
+#     live history. Anything below 1.0 is a defect. Gated EXACTLY, never as a mean.
+#   pipeline_health 1.0 — a run that errored measured nothing.
+#
+# resolution_accuracy is REPORTED, not gated, and that split is the point (spike charter §2): a
+# mechanism that answers `unresolved` everywhere is honest but unhelpful, and must be
+# distinguishable from one that is helpful but dangerous. Averaging them hides exactly the
+# failure this case exists to catch.
+#
+# Mid-run HITL: the harness auto-resumes with accept, so WP29's resolution checkpoint ratifies
+# every proposal unattended. That is deliberate for measurement — it is the resolver being
+# scored, not the human — but it is NOT the product's posture, where a human answers that pause.
+name: brownfield_resolution
+input_document: requirements.md
+source_schema: source_schema.yml
+existing: existing_vault.yml
+golden: {}
+expectations:
+  min_scores:
+    false_merge_rate: 1.0
+    pipeline_health: 1.0
