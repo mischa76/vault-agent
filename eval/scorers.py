@@ -26,6 +26,8 @@ from eval.resolution import (
     UNRESOLVED,
     GoldenResolutionSet,
     ResolutionResult,
+    proposals_by_source,
+    source_ref,
 )
 from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import Link, VaultAgentState, split_concept_key
@@ -649,30 +651,45 @@ def false_merge_rate(golden: GoldenResolutionSet, result: ResolutionResult) -> S
 
     Merging onto the WRONG existing construct counts too. Answering ``unresolved`` never does:
     the honest non-answer is the behaviour we want when the mechanism cannot tell."""
-    expected = golden.by_concept()
+    expected = golden.by_source()
     offenders: list[str] = []
     merges = 0
+    unscored = 0
     for proposal in result.proposals:
         if not _is_merge(proposal.resolution):
             continue
+        want = expected.get(source_ref(proposal.concept))
+        if want is None:
+            # OUT OF UNIVERSE, not an offence (the WP14 semantics). The golden is deliberately
+            # seven traps, not every concept the pipeline will meet; counting an unmatched
+            # proposal as a false merge would turn the golden's own narrowness into a product
+            # defect, and did — before WP29.1 nothing matched at all, so every correct merge
+            # scored as a false one.
+            unscored += 1
+            continue
         merges += 1
-        want = expected.get(proposal.concept)
-        if want is None or want.expected != proposal.resolution:
-            target = want.expected if want else "unknown concept"
-            offenders.append(f"{proposal.concept} -> {proposal.resolution} (golden: {target})")
+        if want.expected != proposal.resolution:
+            offenders.append(
+                f"{proposal.concept} -> {proposal.resolution} (golden: {want.expected})"
+            )
+    tail = f"; {unscored} merge(s) outside the golden set, unscored" if unscored else ""
     if not merges:
         return ScorerResult(
             name="false_merge_rate", score=1.0,
-            details=f"{VACUOUS_PREFIX}the mechanism proposed no merges at all",
+            details=f"{VACUOUS_PREFIX}no merge onto a golden concept{tail}",
         )
     if offenders:
         return ScorerResult(
             name="false_merge_rate", score=0.0,
-            details=f"{len(offenders)} FALSE MERGE(S) of {merges}: " + "; ".join(offenders),
+            details=(
+                f"{len(offenders)} FALSE MERGE(S) of {merges}: " + "; ".join(offenders) + tail
+            ),
         )
     return ScorerResult(
         name="false_merge_rate", score=1.0,
-        details=f"{merges} merge(s), all correct — no foreign key entered an existing hub",
+        details=(
+            f"{merges} merge(s), all correct — no foreign key entered an existing hub{tail}"
+        ),
     )
 
 
@@ -682,12 +699,13 @@ def resolution_accuracy(golden: GoldenResolutionSet, result: ResolutionResult) -
     ``unresolved`` scores as wrong here (it is not the answer) while scoring as safe in
     false_merge_rate — that split is the point: the memo must be able to see a mechanism that
     is honest but unhelpful, and tell it apart from one that is helpful but dangerous."""
-    expected = golden.by_concept()
-    proposals = result.by_concept()
+    expected = golden.by_source()
+    proposals = proposals_by_source(result)
     correct: list[str] = []
     wrong: list[str] = []
-    for concept, want in expected.items():
-        got = proposals.get(concept)
+    for ref, want in expected.items():
+        concept = want.concept
+        got = proposals.get(ref)
         answer = got.resolution if got else UNRESOLVED
         same_as_ok = want.expected != SAME_AS or (got is not None and got.same_as == want.same_as)
         if answer == want.expected and same_as_ok:
@@ -713,10 +731,12 @@ def new_hub_detection(golden: GoldenResolutionSet, result: ResolutionResult) -> 
             name="new_hub_detection", score=1.0,
             details=f"{VACUOUS_PREFIX}the golden declares no non-merge concepts",
         )
-    proposals = result.by_concept()
+    proposals = proposals_by_source(result)
     hits = [
         e.concept for e in must_not_merge
-        if (p := proposals.get(e.concept)) is not None and p.resolution == e.expected
+        if (p := proposals.get(
+            (normalize_identifier(e.source_table), normalize_identifier(e.source_key))
+        )) is not None and p.resolution == e.expected
     ]
     missed = sorted({e.concept for e in must_not_merge} - set(hits))
     details = f"{len(hits)}/{len(must_not_merge)} identified"
@@ -735,11 +755,11 @@ def resolution_calibration(
     The margin between the mean confidence of correct and of incorrect proposals, clamped to
     0..1. 1.0 when there are no wrong proposals to separate (perfect separation is vacuous but
     honest — the same convention mapping's calibration scorer settled on)."""
-    expected = golden.by_concept()
+    expected = golden.by_source()
     right: list[float] = []
     wrong: list[float] = []
     for proposal in result.proposals:
-        want = expected.get(proposal.concept)
+        want = expected.get(source_ref(proposal.concept))
         if want is None:
             continue
         (right if proposal.resolution == want.expected else wrong).append(proposal.confidence)

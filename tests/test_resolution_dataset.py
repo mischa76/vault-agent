@@ -25,7 +25,15 @@ SNAPSHOT = Path("tests/fixtures/resolution/source_schema_parsed.json")
 
 # Tokens that would tell a reader the answer. `hub_customer`/`hub_account` are the existing
 # vault's construct names: a schema that names them has stopped being a source description.
-TELLS = ("TRAP", "CONTROL", "hub_customer", "hub_account", "same-as candidate", "false friend")
+TELLS = (
+    "TRAP", "CONTROL", "hub_customer", "hub_account", "same-as candidate", "false friend",
+    # Not answers, but they tell the author what game is being played — that there IS an
+    # existing vault to resolve against, and that correct answers exist somewhere. The first
+    # blinded author read exactly this and reported it (docs/log.md, 2026-08-01); the second
+    # read a milder version I had introduced while cleaning the file, and reported that too.
+    "entity-resolution", "entity resolution", "existing bank vault", "spike",
+    "trap-annotations", "golden_resolution",
+)
 
 
 def _parsed() -> list[dict[str, object]]:

@@ -1,12 +1,12 @@
-# The new source system joining the existing bank vault (entity-resolution spike, D1).
+# A DACH contract-management system plus its CRM module, as extracted for onboarding.
 #
-# A DACH contract-management system ("VICTOR"-flavoured, as in messy_insurance) plus its CRM
-# module. Anonymised throughout (ATLAS convention). Comments are the kind a real legacy data
+# Anonymised throughout (ATLAS convention). Comments are the kind a real legacy data
 # dictionary carries — terse, occasionally more useful than the column names.
 #
-# This file describes the SOURCE and nothing else. What each table is there to test, and which
-# answer is correct, lives in trap-annotations.md and golden_resolution.yml — deliberately not
-# here, because a blinded requirements author reads this file (WP30 §2.4a).
+# This file describes the SOURCE and nothing else: no purpose, no expected answers, and no
+# reference to what any of it might correspond to elsewhere. A requirements author is given
+# this file and only this file (WP30 §2.4a), and everything a reader of it learns is
+# something the measurement can no longer test.
 source_schemas:
   - table: vic_partner
     columns:
