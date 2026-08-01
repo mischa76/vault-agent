@@ -2325,3 +2325,65 @@ asymmetry working as designed.
 
 The arm comparison itself (phase 1, 1 repeat each, $19.31, the charter's claim not supported at
 n=1) is written up in the WP30 spec §7.3 rather than duplicated here.
+
+## [2026-08-01] WP29 §4 cannot be run yet — three findings from looking before paying
+
+"Let's do §4" turned out to be a work package, not a command. `brownfield_resolution` has been
+sitting in `eval/datasets/` since the Phase 2 spike with an existing vault, a source schema and
+a seven-trap golden — all good, all verified loadable by the production path
+(`load_existing_model` returns `hub_customer`/`hub_account`; the schema loads as 8 tables). It
+has never been runnable through the pipeline, and nothing said so.
+
+**Finding 1 — the case is not wired.** No `dataset.yml`, so `--dataset brownfield_resolution`
+cannot start; no `requirements.md`, so the business-key identifier has nothing to work from and
+the resolver would receive an empty concept list; and `eval/run.py` never calls the resolution
+scorers at all — `_score_run` dispatches the mapping scorers by the `golden_mapping.yml`
+convention and has no counterpart for `golden_resolution.yml`. The spike drove the resolver
+directly and never needed any of this.
+
+**Finding 2 — the scorer cannot match the golden, and fails toward the wrong answer.** This is
+the fourth appearance of the class `.claude/rules/eval.md` puts first, "score structure, not
+free-form names" (WP9.2, WP14, the link-name fix):
+
+```
+pipeline emits   proposal.concept = "vic_partner::partn_nr"      (entity::field)
+golden carries   concept: partner
+                 source_table: vic_partner
+                 source_key:   partn_nr
+```
+
+`false_merge_rate` does `expected.get(proposal.concept)` and finds nothing — and its next line
+reads `if want is None or want.expected != proposal.resolution`, so an unmatched proposal is
+appended to `offenders`. **Every correct merge would have been scored as a false merge**, the
+gate would read 0.000 in every repeat, and we would have paid five times to learn something
+untrue about the resolver. The fix is the one WP14 already established: match on
+`(source_table, source_key)`, both of which the golden already carries and both of which
+`split_concept_key` returns from the pipeline's key. Not made tonight — it deserves the same
+care the checkpoint got, and it is the piece most likely to go wrong.
+
+**Finding 3 — the fixture states its own answers, which is harmless to the measurement and
+fatal to blinded authoring.** `source_schema.yml` labels its tables in YAML comments: "TRAP 1 —
+synonym hub. This IS the existing hub_customer", "CONTROL", and for `vic_migration_altbestand`
+a sentence saying the only correct answer is `unresolved`. Measured, not assumed: the parser
+discards them —
+
+```
+raw file:                    7x TRAP/CONTROL
+what load_source_schemas gives the pipeline:   TRAP False · hub_customer False · CONTROL False
+```
+
+— so the resolver has never seen them and no past or future score is affected. But the blinded
+requirements author reads the raw file. It reported this unprompted rather than quietly writing
+around it, which is the behaviour that makes the report worth having. The draft it produced is
+kept, marked unusable in its own header, as the record of why. One other fixture carries the
+same pattern in milder form (`messy_insurance/source_schema_enriched.yml` names which columns
+seat which §4 traps); `adventureworks_*` does NOT — that grep hit is Microsoft's own column
+comment "Employee who **controls** the document".
+
+**What §4 now needs**, all keyless, before any spend: strip the annotations into a sibling file
+(they duplicate `golden_resolution.yml`'s `rationale` fields), re-author blind, write
+`dataset.yml`, fix the scorer matching, dispatch the resolution scorers, and test 4 and 5. Then
+5 clean plus 5 blinded repeats, estimated $16-26 against the $20-40 left under the §6 ceiling.
+
+Three times tonight something looked like a button and turned out to be a package. Each time
+the looking was free and the run would not have been.
