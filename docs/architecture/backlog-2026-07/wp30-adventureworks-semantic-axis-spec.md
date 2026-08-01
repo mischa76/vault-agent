@@ -499,3 +499,53 @@ are structural rather than sampling-sensitive) or fewer repeats on the arms (whi
 repeats actually matter, since §2.6 compares distributions). Recommended split: **1 repeat per
 subject area (~$12-15) plus 3 repeats of each arm (~$35-50)**, and stop at the ceiling per the
 WP13 §4 abort discipline.
+
+### 7.2b Amended pre-registration [2026-08-01] — the arms are not the arms that ran
+
+The 2026-07-30 repeats (arm A `baab04b`, arm B `de237ef`) predate three changes, two of which
+alter arm B specifically. Recording what changed, and what is now expected, BEFORE the re-run —
+the §2.6 discipline applies to a changed configuration exactly as it did to the first one.
+
+**What changed since those runs**
+
+1. **WP32** (concept identity on `(label, entity)`) — affects both arms; already credited in
+   §7.3 for the subject areas.
+2. **WP33** (an already-mapped concept is not re-mapped in the next increment) — **arm B only**.
+   Arm A has one step and cannot exhibit it.
+3. **WP29's resolution checkpoint** (2026-08-01) — **arm B only**, and it is new behaviour, not
+   a fix. Every chain step from 2 on carries both an existing model and a `source_schema.yml`,
+   so the entity resolver fires, and `AUTO_RESUME_DECISION`'s `accept: True` ratifies its
+   proposed merges unattended. Arm A is greenfield: the resolver is inert and arm A is
+   unchanged by it.
+
+**Prediction 3: arm B's review load collapses, and most of the old number was WP33's defect.**
+The measured arm B carried 983 review items against arm A's 150, with per-step totals growing
+31 → 98 → 214 → 265 → 375 and **208 mapping gaps against arm A's 4**. That growth curve is the
+signature of re-mapping concepts already mapped in an earlier step. Predicted: arm B's total
+review items fall by more than half, and its gap count falls to the same order as arm A's. If
+the review load does NOT fall materially, WP33 did not address the dominant term and the
+partitioning hypothesis is in worse shape than the first run suggested, not better.
+
+**Prediction 4: §7.2a's duplicate-hub prediction is now the resolver's to answer.** §7.2a
+predicted at least one duplicate hub for a Person-domain concept, from name-based folding. That
+prediction was written for a resolver-less arm B and is hereby **superseded, not scored**: the
+resolver exists precisely to answer "is this new concept the existing hub?" and now runs. The
+replacement prediction is that arm B's final hub count moves *toward* arm A's 42 rather than
+away from it (measured: 43 with 36 links against A's 53 — the link deficit is the more
+interesting gap and is NOT predicted to close).
+
+**The blind spot, stated before the run rather than after.** `accept: True` ratifies proposed
+merges with no human. A FALSE merge — concept folded into a hub it does not belong to — would
+not be caught by any gate here: `existing_construct_preservation` checks that existing
+constructs are not removed or re-keyed, and a false merge does neither. This is the same blind
+spot §7.2a named for duplicate hubs, in the opposite direction. So arm B's numbers are a
+measure of the *workflow*, not evidence about resolver correctness, and this run is **not** a
+substitute for WP29 §4 (`false_merge_rate` over ≥5 repeats on `brownfield_resolution`, with
+traps). It does yield the resolver's first live data, which is worth reading — as a trace, not
+as a verdict.
+
+**Budget, recomputed from the paid runs.** At list prices the 2026-07-30 repeats cost ≈ $10.26
+(arm A) and ≈ $9.89 (arm B) each — so three repeats of each arm is ≈ $60, at the top of the §6
+ceiling rather than the $35-50 estimated in §7.3. Plan accordingly: one repeat of each arm
+first (≈ $20), read it against the predictions above, and only then decide whether the
+remaining repeats buy anything. The WP13 §4 abort discipline governs.
