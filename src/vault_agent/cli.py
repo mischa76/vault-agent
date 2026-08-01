@@ -30,6 +30,7 @@ from rich.prompt import Confirm, Prompt
 
 from vault_agent import llm as _llm
 from vault_agent import state as _state_module
+from vault_agent.agents.entity_resolver import pending_resolution_decisions
 from vault_agent.agents.orchestrator import (
     KIND_HEADINGS,
     KIND_ORDER,
@@ -47,12 +48,15 @@ from vault_agent.report import build_report
 from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import (
+    RESOLUTION_SAME_AS,
     ColumnProfile,
     DVModel,
+    EntityResolution,
     FlagKind,
     ProposedMapping,
     SourceTable,
     VaultAgentState,
+    split_concept_key,
 )
 from vault_agent.trace import JsonlTraceWriter
 
@@ -199,6 +203,11 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
             _render_mappings_review(mapping), encoding="utf-8"
         )
 
+    if state.resolutions.proposals:
+        (out_dir / "resolutions.review.yml").write_text(
+            _render_resolutions_review(state.resolutions), encoding="utf-8"
+        )
+
     review_queue = assemble_review_queue(state)
     if review_queue.items:
         (out_dir / "review-queue.md").write_text(
@@ -231,10 +240,47 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         "model": 1 if _has_constructs(state.dv_model) else 0,
         "contracts": len(state.artifacts.contracts),
         "mappings": len(mapping.proposals),
+        "resolutions": len(state.resolutions.proposals),
         "review_items": len(review_queue.items),
         "report": 1,
         "extension_diff": 1 if state.artifacts.extension_diff else 0,
     }
+
+
+def _render_resolutions_review(resolutions: EntityResolution) -> str:
+    """Render the human-editable entity-resolution review file (WP29 §2.5).
+
+    Set a concept's ``resolution`` to an existing construct's name (or ``NEW`` /
+    ``same_as_candidate`` / ``unresolved``) and resume with
+    ``vault-agent resume --resolutions <file>``, or decide one with
+    ``vault-agent resume --resolve "concept=hub_name"``.
+
+    The file leads with ``category`` and ``evidence`` rather than ``confidence``, deliberately:
+    the category is derived from the evidence (WP29 §2.3) while the confidence is the model's
+    own claim, and the spike measured the latter to be the less trustworthy of the two."""
+    doc: dict[str, Any] = {
+        "resolutions": [
+            {
+                "concept": p.concept,
+                "resolution": p.resolution,
+                **({"same_as": p.same_as} if p.same_as else {}),
+                "category": p.category,
+                "evidence": list(p.evidence),
+                "confidence": round(p.confidence, 3),
+                "ratification_status": p.ratification_status,
+            }
+            for p in resolutions.proposals
+        ]
+    }
+    header = (
+        "# Entity resolution against the existing vault — review & ratify (WP29).\n"
+        "# resolution: <existing construct name> | NEW | same_as_candidate | unresolved\n"
+        "# Then:  vault-agent resume --resolutions <this file>\n"
+        "# Or:    vault-agent resume --resolve \"concept=hub_name\"\n"
+        "# A merge is applied ONLY after you ratify it — an unratified proposal never\n"
+        "# steers the modeler, because a wrong merge writes foreign keys into live history.\n"
+    )
+    return header + yaml.safe_dump(doc, sort_keys=False, allow_unicode=True)
 
 
 def _render_mappings_review(mapping: ProposedMapping) -> str:
@@ -635,6 +681,34 @@ def _parse_map(spec: str) -> tuple[str, str]:
     return concept, target
 
 
+def _parse_resolve(spec: str) -> tuple[str, str]:
+    """Parse ``concept=<construct name | NEW | same_as_candidate | unresolved>`` (WP29)."""
+    concept, sep, answer = spec.partition("=")
+    concept, answer = concept.strip(), answer.strip()
+    if not sep or not concept or not answer:
+        raise ValueError(
+            f"invalid --resolve {spec!r}; expected 'concept=hub_name' (or =NEW / "
+            f"=same_as_candidate / =unresolved)"
+        )
+    return concept, answer
+
+
+def _resolutions_from_file(path: Path) -> dict[str, str]:
+    """Read an edited ``resolutions.review.yml`` into ``{concept: answer}`` (WP29 §2.5).
+
+    Every entry carrying a ``resolution`` becomes a ratification. The appliers refuse an
+    answer that names a construct the existing vault does not have, so a typo here cannot
+    invent a hub any more than the resolver itself can."""
+    document = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    if not isinstance(document, dict):
+        raise ValueError(f"{path}: expected a mapping with a 'resolutions' list")
+    answers: dict[str, str] = {}
+    for entry in document.get("resolutions", []) or []:
+        if isinstance(entry, dict) and entry.get("concept") and entry.get("resolution"):
+            answers[str(entry["concept"])] = str(entry["resolution"])
+    return answers
+
+
 def _mappings_from_file(path: Path) -> dict[str, str]:
     """Read an edited ``mappings.review.yml`` into ``{concept: 'TABLE.COLUMN'}`` overrides.
 
@@ -689,6 +763,7 @@ def _build_decision(
     accept: bool,
     mappings: dict[str, str] | None = None,
     mapping_sources: dict[str, list[dict[str, str]]] | None = None,
+    resolutions: dict[str, str] | None = None,
 ) -> dict[str, Any]:
     parsed: dict[str, dict[str, str | None]] = {}
     for spec in owners:
@@ -699,6 +774,7 @@ def _build_decision(
         "accept": accept,
         "mappings": mappings or {},
         "mapping_sources": mapping_sources or {},
+        "resolutions": resolutions or {},
     }
 
 
@@ -735,10 +811,22 @@ def _is_interactive(default: bool | None) -> bool:
 
 
 def _has_decision_flags(
-    owner: list[str] | None, accept: bool, mappings: Path | None, map_: list[str] | None
+    owner: list[str] | None,
+    accept: bool,
+    mappings: Path | None,
+    map_: list[str] | None,
+    resolutions: Path | None = None,
+    resolve: list[str] | None = None,
 ) -> bool:
     """True when ``resume`` was given any explicit decision — flags win, no prompt is shown."""
-    return bool(owner) or accept or mappings is not None or bool(map_)
+    return (
+        bool(owner)
+        or accept
+        or mappings is not None
+        or bool(map_)
+        or resolutions is not None
+        or bool(resolve)
+    )
 
 
 def _multi_source_unresolved(state: VaultAgentState) -> set[str]:
@@ -825,30 +913,56 @@ def _collect_decision(
 
 def _interactive_checkpoint(
     console: Console, out: Path, thread_id: str, state: VaultAgentState, trace: bool = True
-) -> None:
-    """Answer the HITL checkpoint in the terminal, then resume the same thread in-process.
+) -> VaultAgentState:
+    """Answer a checkpoint in the terminal, then resume the same thread in-process.
 
-    Collects owners/mappings, shows any (interactively-unfixable) validation errors, and gates
-    on an accept confirm that mirrors ``--accept`` exactly. On accept it assembles the decision
-    via the existing ``_build_decision`` and resumes via ``_resume_pipeline`` (re-entering the
-    loop on the defensive chance of a re-pause). On decline / skip-all / Ctrl-C it leaves the
-    checkpoint intact — ``pending.json`` and the checkpointer thread survive and the flag-based
-    ``resume`` still works — and prints today's resume instructions."""
+    **Returns the state as of the last resume**, which the caller must use: the resumes here
+    revise ``modeling_attempts`` and ``validation_report``, and ``_state_from_result`` builds a
+    NEW state object rather than mutating the caller's. Returning ``None`` was harmless while
+    sign-off was the only pause — a paused state there already carried the validator's final
+    verdict — but WP29 pauses BEFORE the modeler, so the caller's copy says
+    ``modeling_attempts == 0`` and ``passed == False`` no matter how the run ended, and
+    :func:`_exit_unvalidated` would exempt it and report success for a model that never
+    validated (review of PR #16).
+
+    Two checkpoints reach this. At the WP29 resolution checkpoint (before modelling) it
+    collects resolutions; at the sign-off checkpoint it collects owners/mappings and shows any
+    (interactively-unfixable) validation errors. Either way it gates on a confirm that mirrors
+    ``--accept`` exactly, assembles the decision via the existing ``_build_decision`` and
+    resumes via ``_resume_pipeline``. On decline / skip-all / Ctrl-C it leaves the checkpoint
+    intact — ``pending.json`` and the checkpointer thread survive and the flag-based ``resume``
+    still works — and prints the resume instructions.
+
+    The loop is load-bearing since WP29's second checkpoint: answering the resolution pause
+    carries the run on to the sign-off pause, and both are answered in the one session."""
     while True:
+        at_resolution = _paused_at_resolution(state)
+        owners: list[str]
+        overrides: dict[str, str]
+        resolutions: dict[str, str]
         try:
-            owners, overrides = _collect_decision(console, state)
-            for issue in state.validation_report.issues:
-                if issue.severity == "error":
-                    console.print(f"[red]validation error[/red] {issue.code}: {issue.message}")
-            if not _prompter.confirm(console, "Accept and finalize?", default=False):
+            if at_resolution:
+                owners, overrides = [], {}
+                resolutions = _collect_resolution_decision(console, state)
+                confirm = "Ratify the remaining proposal(s) as shown and build the model?"
+            else:
+                owners, overrides = _collect_decision(console, state)
+                resolutions = {}
+                confirm = "Accept and finalize?"
+                for issue in state.validation_report.issues:
+                    if issue.severity == "error":
+                        console.print(
+                            f"[red]validation error[/red] {issue.code}: {issue.message}"
+                        )
+            if not _prompter.confirm(console, confirm, default=False):
                 _report_paused(console, out, state=state)
-                return
+                return state
         except KeyboardInterrupt:
             console.print("\n[yellow]Aborted — checkpoint kept.[/yellow]")
             _report_paused(console, out, state=state)
-            return
+            return state
 
-        decision = _build_decision(owners, True, overrides, {})
+        decision = _build_decision(owners, True, overrides, {}, resolutions)
         state, paused = asyncio.run(_resume_pipeline(out, thread_id, decision, trace))
         _print_summary(console, state)
         counts = write_outputs(state, out)
@@ -856,8 +970,44 @@ def _interactive_checkpoint(
         if not paused:
             _clear_pending(out)
             console.print("\n[bold green]Checkpoint cleared — run finalized.[/bold green]")
-            return
-        # Re-paused (no node re-interrupts today; defensive): loop with the new state.
+            return state
+        # Paused again — the resolution checkpoint handing over to sign-off, in the normal
+        # case. Loop with the new state and answer that one too.
+
+
+def _collect_resolution_decision(
+    console: Console, state: VaultAgentState
+) -> dict[str, str]:
+    """Walk the pending entity resolutions, collecting per-concept answers (WP29).
+
+    Capability-parity with the flags, like :func:`_collect_decision`: it collects the same
+    strings ``resume --resolve "<concept>=<answer>"`` takes and hands them to the same
+    ``_build_decision`` → ``apply_resolution_decision`` path — no decision semantics here. An
+    empty answer leaves the proposal as proposed, which the following confirm then ratifies;
+    the way to REJECT a proposed merge is to answer ``NEW``, and the prompt says so."""
+    answers: dict[str, str] = {}
+    for proposal in pending_resolution_decisions(state.resolutions):
+        label, entity = split_concept_key(proposal.concept)
+        origin = f" (from {entity})" if entity else ""
+        claim = (
+            f"equivalent to {proposal.same_as!r} but keyed differently"
+            if proposal.resolution == RESOLUTION_SAME_AS
+            else f"IS the existing {proposal.resolution!r}"
+        )
+        console.print(
+            f"  [yellow]{label}[/yellow]{origin}: proposed {claim} "
+            f"[dim]({proposal.category}, confidence {proposal.confidence:.2f})[/dim]"
+        )
+        for line in proposal.evidence:
+            console.print(f"    [dim]{line}[/dim]")
+        answer = _prompter.text(
+            console,
+            f"Decision for {label!r} (a construct name, or NEW to reject the merge, "
+            "Enter to keep as proposed)",
+        ).strip()
+        if answer:
+            answers[proposal.concept] = answer
+    return answers
 
 
 async def _paused_state(out: Path, thread_id: str) -> VaultAgentState:
@@ -949,7 +1099,15 @@ def _report_paused(
     assign: telling the human to pass ``--owner`` would send them looking for an asset that
     does not exist. When no contract is waiting for an owner, the instructions name the two
     decisions that DO apply. Without a state (or with owners pending) the message is
-    byte-identical to the pre-WP25 one."""
+    byte-identical to the pre-WP25 one.
+
+    Since WP29 a run can also pause BEFORE modelling, where none of the above applies: that
+    pause is reported by :func:`_report_paused_at_resolution` instead."""
+    if state is not None and _paused_at_resolution(state):
+        _report_paused_at_resolution(console, out, state)
+        if not write:
+            console.print(_NO_WRITE_RESUME_NOTE)
+        return
     no_owner_to_assign = state is not None and not any(
         item.kind == "contract_owner" for item in assemble_review_queue(state).items
     )
@@ -973,10 +1131,63 @@ def _report_paused(
     if not write:
         # The pause was reached under --no-write, but resume defaults to writing: say so,
         # rather than letting the next command surprise the user with artifacts (WP21 §2.7).
-        console.print(
-            "  [dim]note: this run used --no-write; the resume above WILL write artifacts "
-            "unless you pass --no-write again[/dim]"
+        console.print(_NO_WRITE_RESUME_NOTE)
+
+
+# WP21 §2.7, shared by both pause reports so the two cannot drift apart.
+_NO_WRITE_RESUME_NOTE = (
+    "  [dim]note: this run used --no-write; the resume above WILL write artifacts "
+    "unless you pass --no-write again[/dim]"
+)
+
+
+def _paused_at_resolution(state: VaultAgentState) -> bool:
+    """True when this pause is the WP29 resolution checkpoint, not the sign-off one.
+
+    Both clauses are typed state, and together they are exact. ``modeling_attempts == 0`` says
+    the modeler has not run, which is true only between the resolver and the modeler; the
+    pending-decision clause says something is actually waiting there. At the sign-off
+    checkpoint the first clause is false, and a resolution pause cannot reach sign-off
+    undecided because the node re-executes and would simply pause again."""
+    return state.modeling_attempts == 0 and bool(
+        pending_resolution_decisions(state.resolutions)
+    )
+
+
+def _report_paused_at_resolution(
+    console: Console, out: Path, state: VaultAgentState
+) -> None:
+    """Print the pending merges/same-as candidates and the three ways to answer them.
+
+    Naming the concepts here matters more than at sign-off: this decision changes what gets
+    BUILT, and the alternative to reading them is opening a YAML file to find out what the run
+    is waiting for."""
+    pending = pending_resolution_decisions(state.resolutions)
+    console.print(
+        f"\n[bold yellow]Paused before modelling — {len(pending)} entity resolution(s) "
+        f"need a decision.[/bold yellow] Each one says a concept the new source introduces "
+        f"IS something the existing vault already holds:"
+    )
+    for proposal in pending:
+        label, entity = split_concept_key(proposal.concept)
+        origin = f" (from {entity})" if entity else ""
+        target = (
+            f"equivalent to [cyan]{proposal.same_as}[/cyan] but keyed differently"
+            if proposal.resolution == RESOLUTION_SAME_AS
+            else f"IS the existing [cyan]{proposal.resolution}[/cyan]"
         )
+        console.print(
+            f"  [yellow]{label}[/yellow]{origin}: {target} "
+            f"[dim]({proposal.category}, confidence {proposal.confidence:.2f})[/dim]"
+        )
+    console.print(
+        "\n  [cyan]vault-agent resume --out "
+        f"{out} --resolve \"<concept>=<construct>\"[/cyan]  (decide one; repeat per concept)\n"
+        f"  [cyan]vault-agent resume --out {out} --resolutions "
+        f"{out}/resolutions.review.yml[/cyan]  (edit the file, then ratify it)\n"
+        f"  [cyan]vault-agent resume --out {out} --accept[/cyan]   "
+        "(ratify all of the above as proposed)"
+    )
 
 
 def _exit_unvalidated(console: Console, state: VaultAgentState, out: Path) -> None:
@@ -987,8 +1198,13 @@ def _exit_unvalidated(console: Console, state: VaultAgentState, out: Path) -> No
     unassigned contract owner is a normal outcome and keeps exit 0, while a run whose model
     never validated must not report success even after a human accepted it, because the
     artifacts on disk still carry the known errors. Exit 1 stays "the pipeline failed", 2
-    stays Click's usage error, so 3 is unambiguous for a wrapper script."""
-    if state.validation_report.passed:
+    stays Click's usage error, so 3 is unambiguous for a wrapper script.
+
+    A run paused at the WP29 resolution checkpoint is exempt: it stopped BEFORE the modeler
+    ever ran, so ``validation_report.passed`` is still its ``False`` default and there is no
+    model that could have failed. Discriminated on ``modeling_attempts``, which is 0 on
+    exactly that path and non-zero everywhere else this function is reached."""
+    if state.validation_report.passed or state.modeling_attempts == 0:
         return
     errors = sum(1 for issue in state.validation_report.issues if issue.severity == "error")
     console.print(
@@ -1124,15 +1340,17 @@ def run(
         # WP12: answer the checkpoint in-terminal when interactive (needs write, since the
         # in-process resume finalises to disk); otherwise print today's resume instructions.
         if write and _is_interactive(interactive):
-            _interactive_checkpoint(console, out, thread_id, state, trace)
+            state = _interactive_checkpoint(console, out, thread_id, state, trace)
         else:
             _report_paused(console, out, write, state)
     else:
         _clear_pending(out)
 
-    # Last statement on every path: the validator is the only writer of the report, and no
-    # node after it revises the verdict, so this reads the same value whether the run
-    # finalized, paused, or was finalized in-terminal by the interactive checkpoint.
+    # Last statement on every path. The validator is the only writer of the report and no node
+    # after it revises the verdict — but the STATE OBJECT is replaced by every resume, so this
+    # must read the one the interactive checkpoint returned, not the one it was given. Before
+    # WP29 the distinction did not bite: the only pause was sign-off, past the validator, so a
+    # stale copy already carried the final verdict. A resolution pause is before the modeler.
     _exit_unvalidated(console, state, out)
 
 
@@ -1148,6 +1366,8 @@ def _resume_paused(
     trace: bool,
     interactive: bool | None,
     write: bool = True,
+    resolutions: Path | None = None,
+    resolve: list[str] | None = None,
 ) -> None:
     """Answer the HITL checkpoint of a paused run — the flag path and the WP12 prompt.
 
@@ -1162,7 +1382,7 @@ def _resume_paused(
     # paused state from its checkpoint, then prompt + resume in-process. Flags win (no prompt),
     # and a non-TTY keeps today's flag-based path byte-identical.
     if (
-        not _has_decision_flags(owner, accept, mappings, map_)
+        not _has_decision_flags(owner, accept, mappings, map_, resolutions, resolve)
         and write
         and _is_interactive(interactive)
     ):
@@ -1175,7 +1395,7 @@ def _resume_paused(
             raise typer.Exit(code=1) from exc
         console.print(f"[bold]Resuming[/bold] paused run in [cyan]{out}/[/cyan] (interactive) …\n")
         _print_checkpoint(console, assemble_review_queue(state))
-        _interactive_checkpoint(console, out, thread_id, state, trace)
+        state = _interactive_checkpoint(console, out, thread_id, state, trace)
         _exit_unvalidated(console, state, out)
         return
 
@@ -1185,7 +1405,11 @@ def _resume_paused(
             concept, target = _parse_map(spec)
             overrides[concept] = target
         multi = _mapping_sources_from_file(mappings) if mappings else {}
-        decision = _build_decision(owner or [], accept, overrides, multi)
+        ratified = _resolutions_from_file(resolutions) if resolutions else {}
+        for spec in resolve or []:
+            concept, answer = _parse_resolve(spec)
+            ratified[concept] = answer
+        decision = _build_decision(owner or [], accept, overrides, multi, ratified)
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]{exc}[/bold red]")
         raise typer.Exit(code=1) from exc
@@ -1244,6 +1468,17 @@ def resume(
     map_: Annotated[
         list[str] | None,
         typer.Option("--map", help="Override one mapping: 'concept=TABLE.COLUMN' (WP9)."),
+    ] = None,
+    resolutions: Annotated[
+        Path | None,
+        typer.Option("--resolutions", help="Edited resolutions.review.yml to ratify (WP29)."),
+    ] = None,
+    resolve: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--resolve",
+            help="Ratify one entity resolution: 'concept=hub_name' (or =NEW) (WP29).",
+        ),
     ] = None,
     trace: Annotated[
         bool,
@@ -1348,9 +1583,11 @@ def resume(
         input_path = Path(pending.get("input", "unknown"))
         _write_pending(out, thread_id, input_path)
         pending = {"thread_id": thread_id, "input": str(input_path)}
-        if not _has_decision_flags(owner, accept, mappings, map_):
+        if not _has_decision_flags(
+            owner, accept, mappings, map_, resolutions, resolve
+        ):
             if write and _is_interactive(interactive):
-                _interactive_checkpoint(console, out, thread_id, state, trace)
+                state = _interactive_checkpoint(console, out, thread_id, state, trace)
             else:
                 _report_paused(console, out, write, state)
             _exit_unvalidated(console, state, out)
@@ -1359,6 +1596,7 @@ def resume(
     _resume_paused(
         console, out, pending,
         owner=owner, accept=accept, mappings=mappings, map_=map_,
+        resolutions=resolutions, resolve=resolve,
         trace=trace, interactive=interactive, write=write,
     )
 

@@ -136,10 +136,14 @@ several times, most recently for brownfield additivity. Details and dates: `docs
   with table count, so the upper cases measure width and repetition tolerance rather than semantic
   scale (`scale-test-findings.md`, candidate #5). `scale_300` has not been run; `emit_dv_model` is
   the one agent that cannot split its output, so its budget is the only lever there.
-- **WP30's arm comparison is open.** Both arms have one repeat each, taken before WP33; the
-  domain-partitioning hypothesis is not yet answered.
-- **WP29 is partially built** — deterministic core only; agent, graph wiring, ratification file
-  and CLI are not.
+- **WP30's arm comparison: one repeat each on current code (2026-08-01), and it goes AGAINST the
+  charter.** Arm B totals 3x arm A's review items and builds 73% of its links, at 12% lower cost.
+  At n=1 that is a direction, not a verdict — the link deficit is the open question. Spec §7.3.
+- **WP29's mechanism is live-verified; its correctness is not, and §4 cannot run yet.** The
+  checkpoint steers the modeler in a real chain (2026-08-01). But `brownfield_resolution` has no
+  `dataset.yml`, no requirements, no scorer dispatch — and `false_merge_rate` matches the golden
+  by concept name while the pipeline emits `entity::field` keys, so it would score every correct
+  merge as a false one. Fix that before spending anything on §4.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 
 ## How this file is maintained

@@ -2162,3 +2162,268 @@ totals — and never against the **record**. A claim in "Open items" is exactly 
 later findings entry overtakes silently: nothing about it looks stale, no number is wrong, it
 simply stopped being true. The skill's contradiction check now says to compare maintained pages
 against the record and names "Open items" as the likeliest place.
+
+## [2026-07-31] WP29 — entity resolution against an existing vault (keyless half)
+
+Brownfield mode could extend a vault only because a *human* answered the one question it
+cannot: "the new source calls this PARTNER — is that the existing `hub_customer`, or a new
+hub?" The Phase 2 spike measured that the model can propose that answer safely (zero false
+merges across 25 runs; blinded, it falls to `unresolved` at low confidence rather than
+guessing). This builds the assist under the four conditions the spike set. The **live
+acceptance runs of §4 are NOT done** — what landed is the mechanism and its keyless tests.
+
+`agents/entity_resolver.py` runs BEFORE `dv2_modeler` (§2.1, binding: once the modeler names a
+construct, WP23's `merge_models` folds it by name and the decision is already made) and is
+inert unless BOTH an existing model and a declared schema are present — greenfield and
+ungrounded runs make no call and change no state, which is the first thing the tests pin.
+Concepts come from the identified business keys, de-duplicated on (label, entity) for the same
+reason WP32 gave: two entities can carry the same key label, and one answer must not serve
+both.
+
+Three properties carry the safety claim. **The category is derived, never self-reported**
+(§2.3) — `rules.resolution_category` computes exact_key > key_overlap > comment_grounded >
+semantic from the evidence, because the spike's resolver reported `semantic` for every case
+including the exact-key ones where it was right; a test feeds a deliberately wrong claim and
+pins that it is ignored. **Post-validation demotes anything unverifiable** (§2.4): a
+resolution naming a construct the vault does not have becomes `unresolved` with the violation
+appended to its evidence, and the same for a `same_as` target — never a silent drop, never an
+invented hub. **Same-as is first-class** (§2.2): asserted-equivalent-but-differently-keyed
+produces two constructs plus a flag, and `is_merge` is false for it.
+
+One design decision the spec left implicit, resolved conservatively and worth stating because
+it shapes the workflow: **only a RATIFIED resolution steers the modeler.**
+`render_resolution_prompt_section` returns `''` for anything still `proposed`. An unratified
+merge reaching the prompt would make the modeler name the existing construct, which is exactly
+what makes `merge_models` fold it — i.e. the merge would happen without anyone agreeing to it,
+in a WP whose whole premise is that a false merge writes foreign keys into live history. So a
+first run proposes, the human ratifies (`resume --resolve` / `--resolutions <file>` /
+`--accept`), and a subsequent run is steered. That mirrors WP10's ratified multi-source hub,
+whose regeneration is likewise a fresh run rather than an in-place resume rewrite. The cost is
+one extra run on the first increment; the alternative is an unreviewed merge.
+
+The human path gets the same guard as the model path: a `--resolve` naming a construct that
+does not exist is refused with a warning rather than applied, so a typo cannot invent a hub
+either. Both flag kinds (`RESOLUTION_UNRESOLVED`, `RESOLUTION_SAME_AS`) join the review queue
+as aggregatable advisory items and leave `requires_signoff` unchanged — an unresolved concept
+is honest output, the call WP9 made for mapping gaps.
+
+Also collapsed here, per §2.2: `eval/resolution.py`'s `ProposedResolution` / `ResolutionResult`
+are now aliases of the state models rather than parallel definitions. The answer the pipeline
+emits and the answer a scorer reads must be one type, or the eval measures something the
+product does not produce.
+
+748 tests green (+20 in `tests/test_agents/test_entity_resolver.py`), ruff clean, mypy strict
+clean (45 files). Two `tests/test_cli.py` pins were updated deliberately for the new
+`resolutions` key in the counts dict and the decision payload (the WP11 "report" precedent).
+**Open:** the §4 live acceptance runs — `false_merge_rate` 1.000 over ≥5 repeats, trap 5
+reproducing `unresolved`, and the blinded probe showing accuracy falling while the merge rate
+holds.
+
+## [2026-08-01] WP29's steering path was unreachable — the checkpoint sat past the decision
+
+Yesterday's entry closes with "a first run proposes, the human ratifies, and a subsequent run
+is steered." Nothing implemented the second half. `render_resolution_prompt_section` returns
+`''` for anything still `proposed`, and the only place a ratification could happen was the
+sign-off checkpoint — which `graph.py` runs after `source_mapper`, i.e. after modelling, code
+generation and validation. A decision made there cannot affect the model it is about, and no
+later run read it back: `--existing` loads `metadata/dv_model.yml` and nothing else, and
+`eval/run.py: run_chain_once` passes only that file between chain steps. So the function
+returned `''` on **every reachable path**. The mechanism was built, tested and dead.
+
+The defect is not in the code that was written; it is in a sentence the spec never wrote.
+WP29 §2.5 says a ratified resolution steers the modeler by name and does not say *when* the
+ratification happens. Both halves were then built correctly against their own half of that
+sentence, and the gap between them was invisible to 748 passing tests, because every test
+supplied the ratified state directly instead of arriving at it through the graph.
+
+**The fix is a second `interrupt()`**, between `entity_resolver` and `dv2_modeler`
+(`ResolutionCheckpointAgent`). Ratifying there is what makes the decision able to change the
+model, within one run and one resume rather than two paid runs. It is inert unless an
+undecided merge or same-as candidate is actually waiting — `NEW` needs no answer and
+`unresolved` carries none to ratify, so greenfield, ungrounded and NEW-only runs gain no
+pause, no decision record and no artifact change (`test_greenfield_inertness.py` unmoved).
+Everything above the `interrupt()` is a pure filter over state, which matters more here than
+at sign-off: the resolver's paid model call sits in the *previous* node, and a resume
+re-executes only this one.
+
+Three consequences worth recording because none of them is obvious from the change:
+
+- **`eval/run.py` answered exactly one interrupt.** With two checkpoints it would have left
+  every brownfield run parked at sign-off and scored a half-finished state as the outcome. It
+  now resumes in a bounded loop. This is the change that unblocks the WP30 arm comparison —
+  arm B's chain can now propose, ratify and model within one step.
+- **`accept: True` grew teeth.** At the resolution pause it ratifies every proposed merge, so
+  an unattended eval run models the resolver's proposals as though a human agreed. That is the
+  configuration the arm comparison is about, and it is *not* the product's posture — recorded
+  at `AUTO_RESUME_DECISION` so a later reader does not mistake one for the other.
+- **A pause before modelling is not a failed model.** `_exit_unvalidated` reads
+  `validation_report.passed`, still `False` by default at that point, and would have exited 3
+  claiming the model failed after three attempts. Guarded on `modeling_attempts == 0`, which
+  is true on exactly that path.
+
+The interactive path gets its own prompt: the sign-off confirm reads "Accept and finalize?",
+and answering yes to that at a resolution pause would have ratified a merge into live history
+behind a question about finishing a run. The CLI tells the two pauses apart on typed state
+(`modeling_attempts` plus pending decisions), never on where it thinks it is.
+
+**Verified keyless:** 763 tests green (+15), ruff clean, mypy strict clean (45 files). The new guards were
+mutation-checked — moving the checkpoint back behind the modeler fails exactly the two tests
+that assert the ordering and the steering, and nothing else. **Not verified:** anything live.
+WP29 §4's acceptance runs are still open, and the arm comparison is now unblocked but not run.
+
+## [2026-08-01] The WP29 checkpoint, verified live — and a merge ratified at confidence 0.55
+
+This morning's entry closed with "verified keyless; not verified: anything live." The WP30 arm-B
+chain ran this evening and the mechanism is now **live-verified**, by the sharpest evidence
+available rather than by inference. The chain step results carry no decision ledger, so "did the
+checkpoint actually pause?" could not be answered from them — but the trace stores every prompt,
+and `render_resolution_prompt_section` returns `''` by construction unless something was
+ratified. So the steering section's presence *is* the proof of the pause:
+
+```
+emit_dv_model #1 (step 1, greenfield): steering section = False   <- resolver inert, correct
+emit_dv_model #2 (step 2):             steering section = True
+
+  Concepts a human has already resolved
+  - `BusinessEntityID` (from employee) IS the existing **hub_business_entity**. Attach to it
+    by that exact name; do not introduce a second construct for it.
+  - `BusinessEntityID` (from job_candidate) is asserted equivalent to **hub_business_entity**
+    but is keyed differently: model it as its OWN hub. ... do not merge the two
+```
+
+Propose → pause → ratify → steer, end to end, in one run. Both rendered forms appear, and the
+greenfield step correctly shows nothing. What is verified is the **mechanism**; the resolver's
+*correctness* is WP29 §4 and remains open.
+
+**The resolver's first live data** — four calls across the extending steps, 43 concepts:
+
+| step | concepts | merge | same_as | unresolved |
+|---|---|---|---|---|
+| HumanResources | 11 | 1 | 1 | 0 |
+| Production | 23 | 0 | 0 | 0 |
+| Purchasing | 9 | 2 | 1 | 1 |
+
+Two behaviours the design predicted, observed for the first time. Production produced **23
+concepts and zero merges** — the resolver does not reach for a merge where there is nothing to
+merge. And `shipping method::Name` came back **`unresolved`** rather than guessed: the honest
+degradation the Phase 2 spike measured, now in production code against a schema nobody here
+authored.
+
+**And the finding that matters more than either.** One merge was auto-ratified at **confidence
+0.55** — `product::ProductID -> hub_product`. `AUTO_RESUME_DECISION`'s `accept: True` ratifies
+every proposal regardless of confidence, and a merge is the direction that writes foreign
+business keys into a hub holding live history. This one happens to be right —
+`Purchasing.ProductVendor.ProductID` really does reference `Production.Product.ProductID` — but
+that is known because a human read the schema, not because anything checked it.
+`existing_construct_preservation` cannot catch a false merge: folding a concept into the wrong
+hub removes nothing and re-keys nothing, so the gate passes. This was pre-registered as a blind
+spot in the spec's §7.2b *before* the run; it now has a concrete instance, and it makes WP29 §4
+(`false_merge_rate` over ≥5 repeats, with traps) more urgent rather than less. A second live
+observation, worth stating because it is the counter-case: `job_candidate::BusinessEntityID` —
+a nullable FK — became a `same_as_candidate` at 0.72 rather than a merge, which is the class
+asymmetry working as designed.
+
+The arm comparison itself (phase 1, 1 repeat each, $19.31, the charter's claim not supported at
+n=1) is written up in the WP30 spec §7.3 rather than duplicated here.
+
+## [2026-08-01] WP29 §4 cannot be run yet — three findings from looking before paying
+
+"Let's do §4" turned out to be a work package, not a command. `brownfield_resolution` has been
+sitting in `eval/datasets/` since the Phase 2 spike with an existing vault, a source schema and
+a seven-trap golden — all good, all verified loadable by the production path
+(`load_existing_model` returns `hub_customer`/`hub_account`; the schema loads as 8 tables). It
+has never been runnable through the pipeline, and nothing said so.
+
+**Finding 1 — the case is not wired.** No `dataset.yml`, so `--dataset brownfield_resolution`
+cannot start; no `requirements.md`, so the business-key identifier has nothing to work from and
+the resolver would receive an empty concept list; and `eval/run.py` never calls the resolution
+scorers at all — `_score_run` dispatches the mapping scorers by the `golden_mapping.yml`
+convention and has no counterpart for `golden_resolution.yml`. The spike drove the resolver
+directly and never needed any of this.
+
+**Finding 2 — the scorer cannot match the golden, and fails toward the wrong answer.** This is
+the fourth appearance of the class `.claude/rules/eval.md` puts first, "score structure, not
+free-form names" (WP9.2, WP14, the link-name fix):
+
+```
+pipeline emits   proposal.concept = "vic_partner::partn_nr"      (entity::field)
+golden carries   concept: partner
+                 source_table: vic_partner
+                 source_key:   partn_nr
+```
+
+`false_merge_rate` does `expected.get(proposal.concept)` and finds nothing — and its next line
+reads `if want is None or want.expected != proposal.resolution`, so an unmatched proposal is
+appended to `offenders`. **Every correct merge would have been scored as a false merge**, the
+gate would read 0.000 in every repeat, and we would have paid five times to learn something
+untrue about the resolver. The fix is the one WP14 already established: match on
+`(source_table, source_key)`, both of which the golden already carries and both of which
+`split_concept_key` returns from the pipeline's key. Not made tonight — it deserves the same
+care the checkpoint got, and it is the piece most likely to go wrong.
+
+**Finding 3 — the fixture states its own answers, which is harmless to the measurement and
+fatal to blinded authoring.** `source_schema.yml` labels its tables in YAML comments: "TRAP 1 —
+synonym hub. This IS the existing hub_customer", "CONTROL", and for `vic_migration_altbestand`
+a sentence saying the only correct answer is `unresolved`. Measured, not assumed: the parser
+discards them —
+
+```
+raw file:                    7x TRAP/CONTROL
+what load_source_schemas gives the pipeline:   TRAP False · hub_customer False · CONTROL False
+```
+
+— so the resolver has never seen them and no past or future score is affected. But the blinded
+requirements author reads the raw file. It reported this unprompted rather than quietly writing
+around it, which is the behaviour that makes the report worth having. The draft it produced is
+kept, marked unusable in its own header, as the record of why. One other fixture carries the
+same pattern in milder form (`messy_insurance/source_schema_enriched.yml` names which columns
+seat which §4 traps); `adventureworks_*` does NOT — that grep hit is Microsoft's own column
+comment "Employee who **controls** the document".
+
+**What §4 now needs**, all keyless, before any spend: strip the annotations into a sibling file
+(they duplicate `golden_resolution.yml`'s `rationale` fields), re-author blind, write
+`dataset.yml`, fix the scorer matching, dispatch the resolution scorers, and test 4 and 5. Then
+5 clean plus 5 blinded repeats, estimated $16-26 against the $20-40 left under the §6 ceiling.
+
+Three times tonight something looked like a button and turned out to be a package. Each time
+the looking was free and the run would not have been.
+
+## [2026-08-01] The review of PR #16 found three guards looser than their own docstrings
+
+All three are in code written the same day, and the first is a regression this WP introduced
+rather than an old weakness it exposed. Recorded because the shape repeats: each guard checked
+the *adjacent* property rather than the one its docstring claims.
+
+**1. The exit-3 contract, broken by the new pause (normal).** `_interactive_checkpoint` rebinds
+`state` from each in-process resume but was typed `-> None`, so its three callers passed the
+state they had *before* the checkpoint to `_exit_unvalidated`. That was harmless while sign-off
+was the only pause — a state paused there already carried the validator's final verdict, which
+is exactly what the comment above the call asserted. WP29 pauses BEFORE the modeler, so the
+caller's copy reads `modeling_attempts == 0` however the run ended, and **the exemption added
+that same morning** (`modeling_attempts == 0`, to stop a resolution pause reporting a failed
+model) then fired and returned exit 0 for a model that never validated. A wrapper script reading
+the exit code — WP25 §2.2's stated purpose — would have seen success. The function now returns
+its final state and the callers reassign; the stale comment is corrected rather than left to
+mislead the next reader. Mutation-checked: reverting the reassignment in `run()` alone drops the
+new test to exit 0.
+
+**2. A merge target had only to EXIST, not to be a hub (nit).** Both guards — the human path's
+`known` and the resolver's post-validation `names` — unioned hubs, links and satellites, so
+`--resolve "x=sat_customer_details"` passed the check whose docstring says "a typo cannot invent
+a hub either" and produced `is_merge=True`. Business keys anchor hubs; the modeler would have
+been told to attach one to a payload table. Both now validate against hub names only. The model
+is still *shown* links and satellites in its payload — that is context worth having — but a name
+from that part of the inventory is no longer a valid answer.
+
+**3. Two divergences from patterns the same file already establishes (nit).** An ambiguous
+bare-label `--resolve` was dropped silently, because `resolve_concept_ref` returns `None` for
+"several matches" and "none" alike; `_apply_mapping_decision`, forty lines below, warns in
+exactly this case (WP32's precedent) and now so does this. And overriding a concept TO
+`unresolved` pruned its review flag unconditionally, contradicting the function's own sentence
+"the flag is pruned only when the decision actually resolved it" — the accept branch implements
+that condition, the override branch had forgotten it, so the same intent produced different
+outcomes depending on which flag the human used.
+
+Each has a keyless guard that fails without its fix. 767 tests green (+4), ruff and mypy clean.
+CI on PR #16 was green before these — the branch's first independent check, since the workflow
+triggers only on pushes to `main` and on pull requests, which is why the PR was opened at all.

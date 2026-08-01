@@ -499,3 +499,125 @@ are structural rather than sampling-sensitive) or fewer repeats on the arms (whi
 repeats actually matter, since §2.6 compares distributions). Recommended split: **1 repeat per
 subject area (~$12-15) plus 3 repeats of each arm (~$35-50)**, and stop at the ceiling per the
 WP13 §4 abort discipline.
+
+### 7.2b Amended pre-registration [2026-08-01] — the arms are not the arms that ran
+
+The 2026-07-30 repeats (arm A `baab04b`, arm B `de237ef`) predate three changes, two of which
+alter arm B specifically. Recording what changed, and what is now expected, BEFORE the re-run —
+the §2.6 discipline applies to a changed configuration exactly as it did to the first one.
+
+**What changed since those runs**
+
+1. **WP32** (concept identity on `(label, entity)`) — affects both arms; already credited in
+   §7.3 for the subject areas.
+2. **WP33** (an already-mapped concept is not re-mapped in the next increment) — **arm B only**.
+   Arm A has one step and cannot exhibit it.
+3. **WP29's resolution checkpoint** (2026-08-01) — **arm B only**, and it is new behaviour, not
+   a fix. Every chain step from 2 on carries both an existing model and a `source_schema.yml`,
+   so the entity resolver fires, and `AUTO_RESUME_DECISION`'s `accept: True` ratifies its
+   proposed merges unattended. Arm A is greenfield: the resolver is inert and arm A is
+   unchanged by it.
+
+**Prediction 3: arm B's review load collapses, and most of the old number was WP33's defect.**
+The measured arm B carried 983 review items against arm A's 150, with per-step totals growing
+31 → 98 → 214 → 265 → 375 and **208 mapping gaps against arm A's 4**. That growth curve is the
+signature of re-mapping concepts already mapped in an earlier step. Predicted: arm B's total
+review items fall by more than half, and its gap count falls to the same order as arm A's. If
+the review load does NOT fall materially, WP33 did not address the dominant term and the
+partitioning hypothesis is in worse shape than the first run suggested, not better.
+
+**Prediction 4: §7.2a's duplicate-hub prediction is now the resolver's to answer.** §7.2a
+predicted at least one duplicate hub for a Person-domain concept, from name-based folding. That
+prediction was written for a resolver-less arm B and is hereby **superseded, not scored**: the
+resolver exists precisely to answer "is this new concept the existing hub?" and now runs. The
+replacement prediction is that arm B's final hub count moves *toward* arm A's 42 rather than
+away from it (measured: 43 with 36 links against A's 53 — the link deficit is the more
+interesting gap and is NOT predicted to close).
+
+**The blind spot, stated before the run rather than after.** `accept: True` ratifies proposed
+merges with no human. A FALSE merge — concept folded into a hub it does not belong to — would
+not be caught by any gate here: `existing_construct_preservation` checks that existing
+constructs are not removed or re-keyed, and a false merge does neither. This is the same blind
+spot §7.2a named for duplicate hubs, in the opposite direction. So arm B's numbers are a
+measure of the *workflow*, not evidence about resolver correctness, and this run is **not** a
+substitute for WP29 §4 (`false_merge_rate` over ≥5 repeats on `brownfield_resolution`, with
+traps). It does yield the resolver's first live data, which is worth reading — as a trace, not
+as a verdict.
+
+**Budget, recomputed from the paid runs.** At list prices the 2026-07-30 repeats cost ≈ $10.26
+(arm A) and ≈ $9.89 (arm B) each — so three repeats of each arm is ≈ $60, at the top of the §6
+ceiling rather than the $35-50 estimated in §7.3. Plan accordingly: one repeat of each arm
+first (≈ $20), read it against the predictions above, and only then decide whether the
+remaining repeats buy anything. The WP13 §4 abort discipline governs.
+
+**Correction to Prediction 4, written while arm A was still running and before any new number
+existed.** As formalised above, P4 is near-vacuous: the hub gap between the arms was already 1
+(43 vs 42), so "moves toward arm A" is satisfied by almost any outcome and would have been
+reported as a hit having measured nothing. Recorded rather than quietly rewritten.
+
+The sharper quantity, and the one to read instead: **the link deficit, 36 against 53.** Arm B
+built two thirds of arm A's links from the same landscape. Links are where cross-domain
+relationships live, and they are precisely what a domain-by-domain walk is most likely to miss —
+a relationship spanning Sales and Person can only be modelled once both exist. If domain
+partitioning has a structural cost, this is where it shows, not in the hub count. No direction
+is predicted for it here, because the resolver's effect on it is genuinely unknown; it is named
+now so that whatever it does is read as a result rather than found afterwards.
+
+Secondary, diagnostic rather than predictive: whether `entity_resolver` fired at all in the
+chain, how many merges it proposed, and how many `accept: True` ratified. That is the
+resolver's first live data and is read from the traces, not scored.
+
+#### Arm comparison, phase 1 — 1 repeat each, 2026-08-01 (arm A `439c0e0`, arm B `43a1ba1`)
+
+Re-run after WP32/WP33/WP29, per the §7.2b pre-registration. Both arms exit 0, every gate 1.000.
+Total spend $19.31 of the §6 ceiling.
+
+| | arm A (one pass) | arm B (5 steps) |
+|---|---|---|
+| constructs h/l/s | 42 / **51** / 58 | 44 / **37** / 79 |
+| review items | **160** | **475** (32, 49, 126, 94, 174) |
+| rendered lines | 124 | 358 |
+| mapping gaps | 4 | **2** (was 208) |
+| calls / out tok | 93 / 283k | 105 / 261k |
+| wall / cost | 2762 s / $10.25 | 2658 s / $9.06 |
+
+**P3a HELD, but narrowly enough that it must not be quoted as a clean hit.** Review items fell
+983 → 475 against a predicted threshold of 491 — a margin of 16 items, 3%. At one repeat with no
+variance estimate, "just under the line" is not a robust pass. **P3b held decisively**: mapping
+gaps 208 → **2**, against arm A's 4. That is the strongest single number here and it confirms
+the §7.2b reading — most of the old arm B's review load was WP33's re-mapping defect, not the
+cost of working domain by domain.
+
+**P4 FAILED, and it was a bad prediction to begin with** (see the correction above): the hub gap
+widened 1 → 2. Recorded as a miss rather than quietly dropped, though it carries no weight —
+the correction had already stated it could not fail informatively, and it turned out it could
+only fail uninformatively.
+
+**The charter's hypothesis is NOT supported by this repeat.** §2.6 predicted arm B would produce
+"a materially lower per-step review load and a comparable or better model than arm A, at
+comparable or lower total cost." Read honestly, one clause of three holds:
+
+- *Review load* — arm B totals **3× arm A** (475 vs 160). Per step it is lower for four of five
+  steps (32, 49, 126, 94), but its worst step (**174**) already exceeds arm A's entire run. The
+  distinction matters and cuts both ways: a human reviewing incrementally never faces more than
+  174 at once, but faces 475 in aggregate. Neither reading supports "materially lower".
+- *Model* — arm B builds **37 links against arm A's 51**, i.e. 73%. The link deficit named in
+  the P4 correction as the real question did not close: 17 → 14. Arm B also fragments into more
+  satellites (79 vs 58). Cross-domain relationships are what a domain-by-domain walk is
+  structurally placed to miss, and the number is consistent with exactly that.
+- *Cost* — holds, and against §2.6's own expectation. Arm B was **cheaper** ($9.06 vs $10.25,
+  −12%) and faster, despite paying over a growing inventory five times. §2.6 predicted the
+  opposite asymmetry; the cache-read rate (40%) is the likely reason and is not investigated
+  here.
+
+§2.6 pre-committed to the falsifying outcome — "if arm A yields comparable review load and
+validation at lower total cost, the charter's claim is weakened, record it, do not re-run until
+it comes out the preferred way." Arm A yields **lower** review load and equal validation at
+**higher** cost, so the falsifying condition is not met exactly as written, but the direction is
+plainly against the hypothesis on the axis §2.6 called the one that binds. **At n=1 this is not
+a verdict**: it is one repeat, and the review-load gap (3×) is large enough that variance is
+unlikely to reverse it, while the link deficit and the per-step reading both need repeats.
+
+**Not measured, and not to be inferred from any of the above:** whether arm B's model is
+*correct*. See the resolver findings below — a merge was auto-ratified at confidence 0.55, and
+no gate here would have caught it had it been wrong.
