@@ -384,11 +384,15 @@ def _apply_resolution_decision(
     An override naming a construct that does not exist is refused rather than applied: the
     same safety property the resolver's own post-validation enforces, applied to the human
     path so a typo cannot invent a hub either. The concept's flag is pruned only when the
-    decision actually resolved it."""
-    known = (
+    decision actually resolved it.
+
+    The merge target must be a **hub**, not merely an existing construct (review of PR #16).
+    Business keys anchor hubs; resolving a concept onto a satellite or a link would tell the
+    modeler to attach a business key to a payload table, and the earlier check — existence,
+    not hub-ness — let a typo landing on a satellite name through the very guard whose stated
+    purpose is that a typo cannot invent a hub."""
+    known_hubs = (
         {h.name for h in state.existing_model.hubs}
-        | {link.name for link in state.existing_model.links}
-        | {s.name for s in state.existing_model.satellites}
         if state.existing_model is not None
         else set()
     )
@@ -397,19 +401,27 @@ def _apply_resolution_decision(
         if not isinstance(answer, str) or not answer.strip():
             continue
         answer = answer.strip()
-        if answer not in RESOLUTION_CLASSES and answer not in known:
+        if answer not in RESOLUTION_CLASSES and answer not in known_hubs:
             logger.warning(
-                "resolution override %r names %r, which is not a construct of the existing "
+                "resolution override %r names %r, which is not a HUB of the existing "
                 "vault; ignored", concept, answer,
             )
             continue
         proposal = by_concept.get(concept)
         if proposal is None:
             # Address by the key, else by a label unique among the proposals (the WP32 rule).
-            index = resolve_concept_ref(
-                concept,
-                [split_concept_key(p.concept) for p in state.resolutions.proposals],
-            )
+            # Ambiguity is REPORTED, not dropped — the mapping side's precedent, a few lines
+            # below: resolve_concept_ref returns None for "several matches" and for "none"
+            # alike, so without this the human's override vanishes with no sign it was read.
+            candidates = [split_concept_key(p.concept) for p in state.resolutions.proposals]
+            matches = match_concept_refs(concept, candidates)
+            if len(matches) > 1:
+                logger.warning(
+                    "resolution override %r matches %d concepts; ignored — address one by "
+                    "its key", concept, len(matches),
+                )
+                continue
+            index = resolve_concept_ref(concept, candidates)
             proposal = state.resolutions.proposals[index] if index is not None else None
         if proposal is None:
             continue
@@ -418,7 +430,11 @@ def _apply_resolution_decision(
         if answer != RESOLUTION_SAME_AS:
             proposal.same_as = None
         proposal.evidence = [*proposal.evidence, "human ratification"]
-        _prune_resolution_flags(state, proposal.concept)
+        # Same condition as the accept branch below, and for the same reason the docstring
+        # gives: overriding TO `unresolved` does not resolve anything, so the concept must
+        # keep its flag and stay visible in the review queue.
+        if answer != RESOLUTION_UNRESOLVED:
+            _prune_resolution_flags(state, proposal.concept)
 
     if accept:
         for proposal in state.resolutions.proposals:

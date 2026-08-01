@@ -371,10 +371,12 @@ class EntityResolverAgent(BaseAgent):
         is what makes a hallucinated hub name harmless rather than a merge into nothing."""
         assert state.existing_model is not None
         existing = state.existing_model
-        names = {
-            c["name"]: c
-            for c in _inventory(existing)
-        }
+        # HUBS only, deliberately narrower than the inventory the model is SHOWN. The payload
+        # carries links and satellites because they are context worth having; but a business
+        # key anchors a hub, so a merge onto a satellite or a link is not a resolution — it is
+        # the model reaching for a name that happens to exist. Validating against the full
+        # inventory made that indistinguishable from a correct answer (review of PR #16).
+        names = {hub.name: hub for hub in existing.hubs}
         by_norm = {normalize_identifier(k): v for k, v in raw.items() if isinstance(v, dict)}
         label_counts: dict[str, int] = {}
         for c in concepts:

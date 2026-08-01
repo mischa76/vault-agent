@@ -480,3 +480,79 @@ def test_a_rejected_merge_is_not_re_asked_after_the_resume() -> None:
     result = asyncio.run(compiled.ainvoke(Command(resume={"accept": True}), config=config))
 
     assert "__interrupt__" not in result
+
+
+# --- 9. Review findings, 2026-08-01 (PR #16) ----------------------------------------------
+#
+# Three guards that were looser than their own docstrings. Each test fails without its fix.
+
+def test_a_merge_target_must_be_a_hub_not_any_construct() -> None:
+    """Business keys anchor hubs; resolving a concept onto a satellite or link is not a merge.
+
+    Both guards unioned hubs+links+satellites, so `--resolve "x=sat_customer_details"` passed
+    the existence check and produced is_merge=True — steering the modeler to attach a business
+    key to a payload table. The guard checked existence, never hub-ness."""
+    from vault_agent.state import Satellite
+
+    state = _state(existing_model=DVModel(
+        hubs=[Hub(name="hub_customer", business_key="customer_id",
+                  source_entity="customer", description="x")],
+        satellites=[Satellite(name="sat_customer_details", parent="hub_customer",
+                              sat_type="standard", description="x")],
+    ))
+    key = concept_key("partn_nr", "vic_partner")
+    state.resolutions = EntityResolution(
+        proposals=[ResolutionProposal(concept=key, resolution=RESOLUTION_UNRESOLVED)]
+    )
+
+    apply_human_decision(state, {"resolutions": {key: "sat_customer_details"}, "accept": False})
+
+    proposal = state.resolutions.proposals[0]
+    assert proposal.resolution == RESOLUTION_UNRESOLVED  # refused, not applied
+    assert proposal.is_merge is False
+
+
+def test_overriding_to_unresolved_keeps_the_flag() -> None:
+    """The docstring says the flag is pruned only when the decision RESOLVED the concept.
+
+    The accept branch honours that; the override branch pruned unconditionally, so
+    `--resolve "x=unresolved"` made a still-unresolved concept vanish from the review queue."""
+    state = _state(existing_model=_existing())
+    key = concept_key("partn_nr", "vic_partner")
+    state.resolutions = EntityResolution(
+        proposals=[ResolutionProposal(concept=key, resolution=RESOLUTION_UNRESOLVED)]
+    )
+    state.flag("entity_resolver", "unresolved", kind=FlagKind.RESOLUTION_UNRESOLVED, asset=key)
+
+    apply_human_decision(state, {"resolutions": {key: RESOLUTION_UNRESOLVED}, "accept": False})
+
+    kinds = [f.kind for f in state.flags]
+    assert FlagKind.RESOLUTION_UNRESOLVED in kinds  # still unresolved -> still in the queue
+
+
+def test_an_ambiguous_bare_label_override_is_reported_not_dropped(
+    caplog: Any,
+) -> None:
+    """Two concepts share a label; a bare-label override cannot address one of them.
+
+    resolve_concept_ref returns None for BOTH zero and >1 matches, and the caller dropped
+    through silently — the mapping side (WP32) warns in exactly this case."""
+    import logging
+
+    state = _state(existing_model=_existing())
+    state.resolutions = EntityResolution(proposals=[
+        ResolutionProposal(concept=concept_key("partner_id", "vic_partner"),
+                           resolution=RESOLUTION_UNRESOLVED),
+        ResolutionProposal(concept=concept_key("partner_id", "erp_partner"),
+                           resolution=RESOLUTION_UNRESOLVED),
+    ])
+
+    with caplog.at_level(logging.WARNING):
+        apply_human_decision(
+            state, {"resolutions": {"partner_id": "hub_customer"}, "accept": False}
+        )
+
+    assert "matches 2 concepts" in caplog.text, "the ambiguous override was dropped silently"
+    assert "partner_id" in caplog.text
+    # and nothing was applied
+    assert all(p.resolution == RESOLUTION_UNRESOLVED for p in state.resolutions.proposals)

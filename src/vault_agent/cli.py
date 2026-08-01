@@ -913,8 +913,17 @@ def _collect_decision(
 
 def _interactive_checkpoint(
     console: Console, out: Path, thread_id: str, state: VaultAgentState, trace: bool = True
-) -> None:
+) -> VaultAgentState:
     """Answer a checkpoint in the terminal, then resume the same thread in-process.
+
+    **Returns the state as of the last resume**, which the caller must use: the resumes here
+    revise ``modeling_attempts`` and ``validation_report``, and ``_state_from_result`` builds a
+    NEW state object rather than mutating the caller's. Returning ``None`` was harmless while
+    sign-off was the only pause — a paused state there already carried the validator's final
+    verdict — but WP29 pauses BEFORE the modeler, so the caller's copy says
+    ``modeling_attempts == 0`` and ``passed == False`` no matter how the run ended, and
+    :func:`_exit_unvalidated` would exempt it and report success for a model that never
+    validated (review of PR #16).
 
     Two checkpoints reach this. At the WP29 resolution checkpoint (before modelling) it
     collects resolutions; at the sign-off checkpoint it collects owners/mappings and shows any
@@ -947,11 +956,11 @@ def _interactive_checkpoint(
                         )
             if not _prompter.confirm(console, confirm, default=False):
                 _report_paused(console, out, state=state)
-                return
+                return state
         except KeyboardInterrupt:
             console.print("\n[yellow]Aborted — checkpoint kept.[/yellow]")
             _report_paused(console, out, state=state)
-            return
+            return state
 
         decision = _build_decision(owners, True, overrides, {}, resolutions)
         state, paused = asyncio.run(_resume_pipeline(out, thread_id, decision, trace))
@@ -961,7 +970,7 @@ def _interactive_checkpoint(
         if not paused:
             _clear_pending(out)
             console.print("\n[bold green]Checkpoint cleared — run finalized.[/bold green]")
-            return
+            return state
         # Paused again — the resolution checkpoint handing over to sign-off, in the normal
         # case. Loop with the new state and answer that one too.
 
@@ -1331,15 +1340,17 @@ def run(
         # WP12: answer the checkpoint in-terminal when interactive (needs write, since the
         # in-process resume finalises to disk); otherwise print today's resume instructions.
         if write and _is_interactive(interactive):
-            _interactive_checkpoint(console, out, thread_id, state, trace)
+            state = _interactive_checkpoint(console, out, thread_id, state, trace)
         else:
             _report_paused(console, out, write, state)
     else:
         _clear_pending(out)
 
-    # Last statement on every path: the validator is the only writer of the report, and no
-    # node after it revises the verdict, so this reads the same value whether the run
-    # finalized, paused, or was finalized in-terminal by the interactive checkpoint.
+    # Last statement on every path. The validator is the only writer of the report and no node
+    # after it revises the verdict — but the STATE OBJECT is replaced by every resume, so this
+    # must read the one the interactive checkpoint returned, not the one it was given. Before
+    # WP29 the distinction did not bite: the only pause was sign-off, past the validator, so a
+    # stale copy already carried the final verdict. A resolution pause is before the modeler.
     _exit_unvalidated(console, state, out)
 
 
@@ -1384,7 +1395,7 @@ def _resume_paused(
             raise typer.Exit(code=1) from exc
         console.print(f"[bold]Resuming[/bold] paused run in [cyan]{out}/[/cyan] (interactive) …\n")
         _print_checkpoint(console, assemble_review_queue(state))
-        _interactive_checkpoint(console, out, thread_id, state, trace)
+        state = _interactive_checkpoint(console, out, thread_id, state, trace)
         _exit_unvalidated(console, state, out)
         return
 
@@ -1576,7 +1587,7 @@ def resume(
             owner, accept, mappings, map_, resolutions, resolve
         ):
             if write and _is_interactive(interactive):
-                _interactive_checkpoint(console, out, thread_id, state, trace)
+                state = _interactive_checkpoint(console, out, thread_id, state, trace)
             else:
                 _report_paused(console, out, write, state)
             _exit_unvalidated(console, state, out)

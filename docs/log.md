@@ -2387,3 +2387,43 @@ comment "Employee who **controls** the document".
 
 Three times tonight something looked like a button and turned out to be a package. Each time
 the looking was free and the run would not have been.
+
+## [2026-08-01] The review of PR #16 found three guards looser than their own docstrings
+
+All three are in code written the same day, and the first is a regression this WP introduced
+rather than an old weakness it exposed. Recorded because the shape repeats: each guard checked
+the *adjacent* property rather than the one its docstring claims.
+
+**1. The exit-3 contract, broken by the new pause (normal).** `_interactive_checkpoint` rebinds
+`state` from each in-process resume but was typed `-> None`, so its three callers passed the
+state they had *before* the checkpoint to `_exit_unvalidated`. That was harmless while sign-off
+was the only pause — a state paused there already carried the validator's final verdict, which
+is exactly what the comment above the call asserted. WP29 pauses BEFORE the modeler, so the
+caller's copy reads `modeling_attempts == 0` however the run ended, and **the exemption added
+that same morning** (`modeling_attempts == 0`, to stop a resolution pause reporting a failed
+model) then fired and returned exit 0 for a model that never validated. A wrapper script reading
+the exit code — WP25 §2.2's stated purpose — would have seen success. The function now returns
+its final state and the callers reassign; the stale comment is corrected rather than left to
+mislead the next reader. Mutation-checked: reverting the reassignment in `run()` alone drops the
+new test to exit 0.
+
+**2. A merge target had only to EXIST, not to be a hub (nit).** Both guards — the human path's
+`known` and the resolver's post-validation `names` — unioned hubs, links and satellites, so
+`--resolve "x=sat_customer_details"` passed the check whose docstring says "a typo cannot invent
+a hub either" and produced `is_merge=True`. Business keys anchor hubs; the modeler would have
+been told to attach one to a payload table. Both now validate against hub names only. The model
+is still *shown* links and satellites in its payload — that is context worth having — but a name
+from that part of the inventory is no longer a valid answer.
+
+**3. Two divergences from patterns the same file already establishes (nit).** An ambiguous
+bare-label `--resolve` was dropped silently, because `resolve_concept_ref` returns `None` for
+"several matches" and "none" alike; `_apply_mapping_decision`, forty lines below, warns in
+exactly this case (WP32's precedent) and now so does this. And overriding a concept TO
+`unresolved` pruned its review flag unconditionally, contradicting the function's own sentence
+"the flag is pruned only when the decision actually resolved it" — the accept branch implements
+that condition, the override branch had forgotten it, so the same intent produced different
+outcomes depending on which flag the human used.
+
+Each has a keyless guard that fails without its fix. 767 tests green (+4), ruff and mypy clean.
+CI on PR #16 was green before these — the branch's first independent check, since the workflow
+triggers only on pushes to `main` and on pull requests, which is why the PR was opened at all.
