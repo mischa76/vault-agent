@@ -2270,3 +2270,58 @@ behind a question about finishing a run. The CLI tells the two pauses apart on t
 mutation-checked — moving the checkpoint back behind the modeler fails exactly the two tests
 that assert the ordering and the steering, and nothing else. **Not verified:** anything live.
 WP29 §4's acceptance runs are still open, and the arm comparison is now unblocked but not run.
+
+## [2026-08-01] The WP29 checkpoint, verified live — and a merge ratified at confidence 0.55
+
+This morning's entry closed with "verified keyless; not verified: anything live." The WP30 arm-B
+chain ran this evening and the mechanism is now **live-verified**, by the sharpest evidence
+available rather than by inference. The chain step results carry no decision ledger, so "did the
+checkpoint actually pause?" could not be answered from them — but the trace stores every prompt,
+and `render_resolution_prompt_section` returns `''` by construction unless something was
+ratified. So the steering section's presence *is* the proof of the pause:
+
+```
+emit_dv_model #1 (step 1, greenfield): steering section = False   <- resolver inert, correct
+emit_dv_model #2 (step 2):             steering section = True
+
+  Concepts a human has already resolved
+  - `BusinessEntityID` (from employee) IS the existing **hub_business_entity**. Attach to it
+    by that exact name; do not introduce a second construct for it.
+  - `BusinessEntityID` (from job_candidate) is asserted equivalent to **hub_business_entity**
+    but is keyed differently: model it as its OWN hub. ... do not merge the two
+```
+
+Propose → pause → ratify → steer, end to end, in one run. Both rendered forms appear, and the
+greenfield step correctly shows nothing. What is verified is the **mechanism**; the resolver's
+*correctness* is WP29 §4 and remains open.
+
+**The resolver's first live data** — four calls across the extending steps, 43 concepts:
+
+| step | concepts | merge | same_as | unresolved |
+|---|---|---|---|---|
+| HumanResources | 11 | 1 | 1 | 0 |
+| Production | 23 | 0 | 0 | 0 |
+| Purchasing | 9 | 2 | 1 | 1 |
+
+Two behaviours the design predicted, observed for the first time. Production produced **23
+concepts and zero merges** — the resolver does not reach for a merge where there is nothing to
+merge. And `shipping method::Name` came back **`unresolved`** rather than guessed: the honest
+degradation the Phase 2 spike measured, now in production code against a schema nobody here
+authored.
+
+**And the finding that matters more than either.** One merge was auto-ratified at **confidence
+0.55** — `product::ProductID -> hub_product`. `AUTO_RESUME_DECISION`'s `accept: True` ratifies
+every proposal regardless of confidence, and a merge is the direction that writes foreign
+business keys into a hub holding live history. This one happens to be right —
+`Purchasing.ProductVendor.ProductID` really does reference `Production.Product.ProductID` — but
+that is known because a human read the schema, not because anything checked it.
+`existing_construct_preservation` cannot catch a false merge: folding a concept into the wrong
+hub removes nothing and re-keys nothing, so the gate passes. This was pre-registered as a blind
+spot in the spec's §7.2b *before* the run; it now has a concrete instance, and it makes WP29 §4
+(`false_merge_rate` over ≥5 repeats, with traps) more urgent rather than less. A second live
+observation, worth stating because it is the counter-case: `job_candidate::BusinessEntityID` —
+a nullable FK — became a `same_as_candidate` at 0.72 rather than a merge, which is the class
+asymmetry working as designed.
+
+The arm comparison itself (phase 1, 1 repeat each, $19.31, the charter's claim not supported at
+n=1) is written up in the WP30 spec §7.3 rather than duplicated here.
