@@ -1,220 +1,222 @@
-<!--
-STATUS: DRAFT, NOT USABLE AS A MEASUREMENT INPUT — 2026-08-01.
+# Business Requirements: Contract Management and Customer Records
 
-Authored by a blinded agent that was given only this case's source_schema.yml. The blinding
-did not hold, through no fault of the author: that schema file states the expected answers in
-its YAML comments ("TRAP 1 - synonym hub. This IS the existing hub_customer", "CONTROL", and
-for vic_migration_altbestand a full sentence saying the only correct answer is `unresolved`).
-The author reported this unprompted and says it treated those comments as off-limits, writing
-only from table names, column names, types and the German COLUMN comments. That may well be
-true, and it is exactly the kind of claim blinding exists so that nobody has to trust.
-
-Before this file is used: strip the trap annotations out of source_schema.yml (they duplicate
-golden_resolution.yml's own `rationale` fields), then re-author against the clean file. Keep
-this draft only as the record of why. See docs/log.md, 2026-08-01.
--->
-
-# Business Requirements: Contract Management and CRM
-
-**Area:** Contract administration, contract counterparties and CRM customer records
+**Area:** Contract management system (tables prefixed `vic_`) and its CRM module (tables prefixed `crm_`)
 **Prepared by:** Business Analysis
 **Status:** Draft for review
-**Scope:** The operational contract-management system (tables prefixed `vic_`) together with its CRM module (tables prefixed `crm_`), as it is to be delivered to the warehouse.
+**Scope:** The operational system area that records partners, contact persons, contract partners, CRM customer records, accounts, contracts, and the holdings taken over from a predecessor system.
 
 ---
 
 ## 1. Purpose and business context
 
-We are a Swiss retail bank. This document covers a source system that administers **contracts** and the **parties involved in them**, plus a **CRM module** in which client-facing staff maintain their own view of the customer.
+We are a retail bank. A contract-management system, together with its CRM module, is being brought into the warehouse. The system holds registers of parties, a register of accounts, a register of contracts, an assignment table maintained by a migration, and a record of the holdings carried over from a predecessor system.
 
-The system is a long-lived application with a legacy data dictionary. Its column names are terse and its German comments are in places more informative than the names themselves; both have been used as the basis for this document. Where the source says nothing, this document says so rather than filling the gap by assumption.
+The business needs this content reported: who is recorded in each register, what each record says, how long parties have been customers, how contracts and holdings develop over time, and where the data is incomplete.
 
-The business need is straightforward to state and hard to satisfy today: we want to be able to report **who our partners are, which contracts exist, who the counterparties to those contracts are, which accounts we carry, and how the CRM view of a customer relates to the record held under the national customer ID**. Today each of these questions is answered in a different screen of the application, and none of them can be answered together.
+This document describes **what the business needs to know**, and it deliberately describes each register **as the source presents it**. Where the source does not settle a question — in particular questions about what an identifier means outside its own table — the question is written down here as an open point rather than answered. The source data dictionary is terse, and several of its columns are described only by a short comment; those comments are reproduced faithfully below and nothing is inferred beyond them.
 
-This document describes **what the business needs to know**. It does not propose how the warehouse should be structured.
+This document does not propose how the warehouse should be structured.
 
 ---
 
 ## 2. Business entities in scope
 
-| Concept | Source table | What it is in business terms |
-|---|---|---|
-| Partner | `vic_partner` | A party carried under the national customer ID issued by the core banking system |
-| Contact person | `vic_kontakt` | A named individual acting for a corporate customer |
-| Contract partner | `vic_vertragspartner` | A counterparty to a contract, held under its own key |
-| Contract | `vic_vertrag` | An individual contract with a start date and a counterparty |
-| Account | `vic_konto` | An account, identified by its account number, with an account kind |
-| CRM customer | `crm_kunde` | The customer record as maintained inside the CRM module |
-| CRM assignment | `crm_xref_partner` | The mapping maintained by the migration between a CRM record and a national customer ID |
-| Legacy holding | `vic_migration_altbestand` | A record taken over from a predecessor system on a given date |
+The extract covers the following, in the order the source lists them:
+
+| Source table | What the source says it is |
+|---|---|
+| `vic_partner` | A partner, identified by a national customer ID issued by the core banking system |
+| `vic_kontakt` | A contact person, identified by a technical key, with a function and a partner reference |
+| `vic_vertragspartner` | A contract partner, identified by a contract-partner key that the source states is *not* identical to the customer number |
+| `crm_kunde` | A CRM record, identified by a CRM-internal GUID that is the CRM's own primary key |
+| `crm_xref_partner` | An assignment row linking a CRM GUID to a value described as the national customer number, maintained by the migration |
+| `vic_konto` | An account, identified by an account number, with an account kind |
+| `vic_vertrag` | A contract, identified by a contract number, with a start date and a contract-partner reference |
+| `vic_migration_altbestand` | A record from the predecessor system, with a legacy number, a designation and a takeover date |
+
+Each of these is described in its own section below. No section assumes anything about another.
 
 ---
 
-## 3. Partner
+## 3. Partner (`vic_partner`)
 
-- **REQ-001** The business must maintain a register of **partners** as held in this system.
-- **REQ-002** Each partner is identified by the **national customer ID** (`partn_nr`), which the source states is **issued by the core banking system**. This system therefore does not mint the identifier; it carries an identifier that originates elsewhere in the bank.
-- **REQ-003** Because the identifier originates in the core banking system, the business expects the same identifier to denote the same party wherever it appears in the bank. Reporting must be able to use it as the point of reference for a partner. **Confirmation required** from the core banking system owners that the ID is stable over the life of a party and never re-issued to a different party.
-- **REQ-004** The business must record the partner's **name** (`partn_name`). The source calls this the "name of the partner" without distinguishing an individual from an organisation, and it is a single field — there is no separate first name, family name or legal-form component.
-- **REQ-005** The business must record **customer since** (`partn_seit`), the date from which the party has been a customer. This is the only tenure information in the area and the business needs it for cohort analysis: how many partners joined in a given year, and how long a partner has been with us at the time of any contract.
-- **REQ-006** The business must be able to answer: how many partners do we carry, when did they join, and how has the partner population grown per year.
-- **REQ-007** **Clarification needed:** the record carries no party-type indicator, no status, no closure date and no address. The business cannot tell from this system whether a partner is an individual or a company, nor whether the relationship is still open. If those facts are required for reporting they must be sourced elsewhere; they are not available here.
+- **REQ-001** The business must maintain a register of **partners** as held in the contract-management system.
+- **REQ-002** Each partner is identified by a **national customer number** (`partn_nr`). The source states that this number is **issued by the core banking system**, not by the contract-management system. The contract-management system therefore carries an identifier it does not own.
+- **REQ-003** Because the identifier is issued elsewhere, the business must confirm with the owners of the core banking system: whether the number is unique across the whole bank, whether it is stable for the life of the party, and whether a number can ever be re-used for a different party. None of this is stated in this source.
+- **REQ-004** The business must record the **partner name** (`partn_name`). The source holds it as a single free-text field. There is no separation into first and last name, no legal-form field, and no salutation.
+- **REQ-005** The business must record **customer since** (`partn_seit`), a date. The business needs this for tenure reporting — for example, how many partners have been customers for more than ten years.
+- **REQ-006** The partner record carries **nothing else**: no party type, no status, no address, no contact channel, no segment, no advisor, no organisational unit.
 
----
+**Clarification needed:** the source does not state which population the partner register covers — all parties known to the bank, or only those that the contract-management system needs. The business must state the expected record count and the criterion for a party appearing here at all.
 
-## 4. Contact persons at corporate customers
-
-- **REQ-010** The business must record the **contact persons** it deals with at corporate customers.
-- **REQ-011** A contact person is identified by a **technical key** (`kontakt_id`). The source describes it explicitly as technical. It carries no meaning for the business, but it is the only identifier the contact person has — the same individual cannot be recognised across two records by anything else the source provides.
-- **REQ-012** The business must record the contact person's **name** (`kontakt_name`).
-- **REQ-013** The business must record the contact person's **function in the company** (`kontakt_funktion`), which the source illustrates with "Geschäftsführer" (managing director). This is a free-text role description, not a code from a maintained list.
-- **REQ-014** Every contact person is attached to a **corporate customer** by the national customer ID (`partn_nr`), described in the source as a foreign key to `vic_partner.partn_nr` — "the corporate customer at which this person works".
-- **REQ-015** The business must be able to answer: **who is our contact at this corporate customer, and in what function?** and, in the other direction, at which corporate customer does a given contact person work.
-- **REQ-016** A corporate customer may have **several** contact persons. Reporting must not assume there is exactly one.
-- **REQ-017** The contact person carries **no contact details of their own** — no email address, no telephone number, no address. If the business wants to reach a contact person from warehouse output, that information must come from another system.
-- **REQ-018** People change jobs and change function. The source holds only the current assignment, with no validity dates and no status. **If the business needs to know who the contact at a corporate customer was at a given point in the past, that history must be built and kept by the warehouse** — the operational system does not supply it.
-- **REQ-019** **Clarification needed:** the source does not state whether a contact person may be recorded for a partner that is not a company, nor whether the same individual working for two corporate customers appears as one record or two. The technical key suggests the latter, but this must be confirmed.
+**Clarification needed:** the register does not distinguish natural persons from legal entities. The business must state whether that distinction is required for reporting and, if so, where it is to be obtained.
 
 ---
 
-## 5. Contract partners
+## 4. Contact person (`vic_kontakt`)
 
-- **REQ-020** The business must maintain a register of **contract partners** — the counterparties that appear in our contracts.
-- **REQ-021** A contract partner is identified by its **contract-partner key** (`vp_nummer`). The source states expressly that this key is **not identical to the customer number**. Reporting must therefore treat it as an identifier in its own right and must not join it to the national customer ID.
-- **REQ-022** The business must record the contract partner's **designation** (`vp_bezeichnung`). The source illustrates this with "eine Rückversicherung" (a reinsurer), which indicates that contract partners include institutional counterparties rather than only our own retail clients.
-- **REQ-023** The business must record the contract partner's **role in the contract** (`vp_rolle`). Note that the role is recorded **on the contract partner, not on the contract**: as the source presents it, a contract partner carries one role, and a counterparty acting in two roles would need two records. **Clarification needed** — this is a material modelling question and the business must confirm the intended behaviour.
-- **REQ-024** The business must be able to answer: which counterparties do we hold contracts with, in which roles, and how many contracts does each of them carry.
-- **REQ-025** The contract-partner record carries **no date fields at all** — no registration date, no validity period, no status. The business cannot tell from this system when a counterparty relationship began or whether it is still active.
+- **REQ-010** The business must maintain a register of **contact persons** — named individuals recorded in the contract-management system.
+- **REQ-011** Each contact person is identified by `kontakt_id`, which the source explicitly describes as a **technical key**. The business must state whether this key is stable across reloads of the source system, and what — if anything — serves as a business identifier for a contact person. A technical key that is regenerated on reload cannot carry history.
+- **REQ-012** The business must record the **contact person's name** (`kontakt_name`), again a single free-text field.
+- **REQ-013** The business must record the person's **function in the company** (`kontakt_funktion`). The source gives "Geschäftsführer" (managing director) as an example. No list of admissible functions is supplied; the field appears to be free text.
+- **REQ-014** Function is a reporting dimension — the business wants to select contacts by the role they hold. This requires a stated set of admissible values (REQ-103).
+- **REQ-015** Each contact person record carries a `partn_nr`. The source describes this column as a **foreign key to `vic_partner.partn_nr`**, identifying "der Firmenkunde, bei dem diese Person arbeitet" — the **corporate customer at which this person works**. This is the only relationship the source states for this table.
+- **REQ-016** The record structure carries **exactly one** partner reference per contact person. The business must state whether one person can be a contact at more than one partner and, if so, how that is to be represented — the source as delivered cannot express it.
+- **REQ-017** The relationship carries **no validity dates**: nothing records when a person started or stopped being the contact for that partner. Contact roles change as people change jobs; the source shows only the current assignment.
 
----
-
-## 6. Contracts
-
-- **REQ-030** The business must record every **contract** administered in this system, identified by its **contract number** (`vertrag_nr`).
-- **REQ-031** The business must record the **contract start date** (`vertrag_beginn`). This is the only date on the contract: there is **no end date, no termination date, no renewal date and no status**.
-- **REQ-032** Because no end date exists, the business cannot determine an active contract portfolio from this system alone. Reporting can state how many contracts started in a period; it cannot state how many are in force at a point in time. **This is a significant gap and must be raised with the system owners.**
-- **REQ-033** Every contract is linked to a **contract partner** (`vp_nummer`), described in the source as a foreign key to `vic_vertragspartner.vp_nummer`.
-- **REQ-034** The business must be able to answer: how many contracts start per month and per year; which contracts belong to a given counterparty; what the age distribution of the contract book is.
-- **REQ-035** The contract carries **no link to a partner and no link to an account**. As delivered, a contract is connected to its counterparty and to nothing else. The business needs the connection between a contract and the customer it serves; **this connection cannot be made from the data in this source system** and its absence must be resolved before contract-level customer reporting is possible.
-- **REQ-036** The contract carries no product, no amount, no premium and no currency. Any financial reporting on contracts must be sourced elsewhere.
+**Clarification needed:** the referenced party is described in the comment as a *corporate customer*, but the partner register itself (section 3) records no indication of whether a partner is a company or an individual. The business must state how a corporate customer is recognised, and whether every partner referenced from this table is expected to be one.
 
 ---
 
-## 7. Accounts
+## 5. Contract partner (`vic_vertragspartner`)
 
-- **REQ-040** The business must record **accounts**, identified by the **account number** (`konto_nr`).
-- **REQ-041** The business must record the **account kind** (`konto_art`) — the classification of the account. The source provides the field but no list of permitted values. **Clarification needed:** the full set of account kinds and their business meaning, so that reporting can present them in business language rather than as raw codes.
-- **REQ-042** The business must be able to count and segment accounts by account kind.
-- **REQ-043** The account record carries **no owner, no partner reference, no opening date, no closing date, no balance and no currency**. As delivered by this system, an account is an account number and a kind, and nothing more.
-- **REQ-044** The business fully expects to report accounts **per customer** — "which accounts does this partner hold?" is a basic question. That question **cannot be answered from this source system**, because it holds no relationship between an account and any party. The owning relationship must be obtained from another system, and until it is, account reporting is limited to counts by kind.
-
----
-
-## 8. The CRM customer record
-
-The CRM module holds its own record of the customer, maintained by client-facing staff, with its own key and its own content.
-
-### The CRM record
-
-- **REQ-050** The business must record the **CRM customer record** as maintained in the CRM module.
-- **REQ-051** The CRM record is identified by a **CRM-internal GUID** (`crm_guid`), described in the source as the **primary key within the CRM**. It is a system-generated identifier belonging to the CRM module.
-- **REQ-052** The business must record the **display name used in the CRM** (`crm_anzeigename`). This is the name as client-facing staff see and maintain it; the source does not state that it is subject to any naming rule.
-- **REQ-053** The business must record the **marketing segment** (`segment`). Segment is a primary reporting dimension: the business must be able to count, filter and compare across segments.
-- **REQ-054** **Clarification needed:** the permitted values of the marketing segment, who maintains them, and how often they change. A segment that is re-defined silently changes the meaning of every comparison over time.
-- **REQ-055** The CRM record carries **no dates** — no creation date, no last-changed timestamp, no segment-assigned date. Segment membership does move, and the business needs to be able to report on the segment a customer was in at the time of a past activity. **That history does not exist in the source and would have to be built by the warehouse.**
-
-### The assignment maintained by the migration
-
-- **REQ-060** The business must record the **assignment between a CRM record and a national customer ID**, held in `crm_xref_partner`.
-- **REQ-061** The assignment consists of the **CRM GUID** (`crm_guid`, a foreign key to `crm_kunde.crm_guid`) and a **number that the source describes as corresponding to the national customer ID** (`partn_nr`). The source describes the table itself as an **assignment table maintained by the migration**.
-- **REQ-062** The business must be able to report the CRM content — display name and marketing segment — **alongside** the record held under the national customer ID, using this assignment.
-- **REQ-063** Because the assignment is described as *maintained by the migration* rather than by the operational process, its completeness and its currency are open questions. The business needs to know:
-  - how many CRM records have **no** assignment,
-  - how many national customer IDs appear in the assignment with **no** corresponding partner record,
-  - whether one CRM record can be assigned to more than one national customer ID, or one national customer ID to more than one CRM record,
-  - who maintains the assignment now that the migration is complete, and under what process a new CRM record acquires one.
-- **REQ-064** These figures must be **reported as a standing data-quality measure**, not established once. An assignment table that is not kept current degrades quietly, and every report that depends on it degrades with it.
-- **REQ-065** Where a CRM record cannot be assigned, reporting must **show it as unassigned** rather than dropping it. A customer count that silently omits unassigned CRM records is wrong in a way nobody notices.
-- **REQ-066** The assignment table carries no dates and no status, so it is not possible to tell when an assignment was made or whether it has since been superseded.
+- **REQ-020** The business must maintain a register of **contract partners** as held in the contract-management system.
+- **REQ-021** Each contract partner is identified by `vp_nummer`, described by the source as the "Schlüssel des Vertragspartners". The source adds explicitly that this key is **not identical to the customer number**. The business should read that as a statement about the *key*; the source makes no statement about the parties themselves (see REQ-082).
+- **REQ-022** The business must record the **designation of the contract partner** (`vp_bezeichnung`), a free-text field. The example given by the source is "eine Rückversicherung" — a reinsurer.
+- **REQ-023** The business must record the **role in the contract** (`vp_rolle`). No list of admissible roles is supplied.
+- **REQ-024** The role is held **on the contract partner record**, not on a relationship between a contract and a partner. As delivered, a contract partner therefore carries one role, the same one in every contract it appears in. The business must state whether a party can hold different roles in different contracts and, if so, where that would be recorded — the source as delivered cannot express it.
+- **REQ-025** The example in the source suggests counterparties to a contract rather than the bank's own customers, but the source supplies no type field and no enumeration of the population. **Clarification needed:** what kinds of party appear in this register, and how many records it holds.
+- **REQ-026** The record carries no dates, no status and no address.
 
 ---
 
-## 9. Legacy holdings taken over from the predecessor system
+## 6. CRM record (`crm_kunde`)
 
-- **REQ-070** The business must record the **holdings taken over from the predecessor system**, held in `vic_migration_altbestand`.
-- **REQ-071** Each record is identified by a **number from the legacy system** (`alt_nr`). The source describes this number as being **in the same format as the customer number**.
-- **REQ-072** The business must record the **designation in the legacy system** (`alt_bezeichnung`) and the **date of takeover** (`uebernahme_datum`).
-- **REQ-073** The business must be able to report how many records were taken over and when — the takeover volume by date is the basic measure of the migration itself.
-- **REQ-074** **Clarification needed, and this is the most important open point in this document.** The source tells us only that `alt_nr` has the *same format* as the customer number. It does not say what these numbers refer to, whether they are drawn from the same numbering series, or whether a given `alt_nr` and a given `partn_nr` with equal values denote the same party. There is **no assignment table for this data as there is for the CRM records** (REQ-060).
-- **REQ-075** Until the system owners state the answer to REQ-074 in writing, this data must be **reported strictly on its own terms**, as legacy holdings identified by their legacy number. It must **not** be joined to, counted with, or presented as the partner population. Matching on format similarity alone would put wrong parties in front of the business, and a wrong join here would be invisible in the output.
-- **REQ-076** The business needs a stated answer, not an inference: **do these numbers identify the same parties as the national customer IDs, a different population, or an overlapping one?** The system owners and the migration team are the source of that answer.
+- **REQ-030** The business must maintain the register of **records held in the CRM module**.
+- **REQ-031** Each record is identified by `crm_guid`, described by the source as a **CRM-internal GUID** and as the **primary key in the CRM**. It is the only identifier the CRM record carries.
+- **REQ-032** Because the source describes the GUID as CRM-internal, the business must state whether it is acceptable as a warehouse-visible identifier for the record, or whether a different, business-meaningful identifier is expected to be supplied for CRM records.
+- **REQ-033** The business must record the **display name** (`crm_anzeigename`). The source describes it as the name shown *in the CRM*; it is not stated to be a legal or registered name, and it may be maintained for presentation rather than for identification.
+- **REQ-034** The business must record the **marketing segment** (`segment`). This is a primary reporting dimension for marketing: counts and campaign selection by segment. No list of admissible segments is supplied.
+- **REQ-035** The CRM record carries nothing else — no date of creation, no status, no owner, no contact channel.
+
+**Clarification needed:** the source records the current segment only. Segment changes are analytically meaningful (a record moving between segments is a business event), and no history exists. The business must state whether segment history is required (REQ-091).
 
 ---
 
-## 10. Cross-cutting requirements
+## 7. Migration assignment table (`crm_xref_partner`)
 
-### Bringing the parts together
+- **REQ-040** The source supplies an **assignment table** with two columns and nothing else. The source describes `crm_guid` as a **foreign key to `crm_kunde.crm_guid`**, and describes `partn_nr` as a value that **corresponds to the national customer number**, in an assignment table **maintained by the migration**.
+- **REQ-041** The business must state whether this assignment is **authoritative** — that is, whether the warehouse may rely on it — or whether it is a working artefact of the migration project with a defined end of life.
+- **REQ-042** The business must state the **cardinality** of the assignment. Neither column is stated to be unique. It is not settled by the source whether one CRM record may be assigned to several customer numbers, or one customer number to several CRM records.
+- **REQ-043** The table carries **no supporting metadata**: no load date, no validity period, no status, no confidence, no indication of who or what created a row, and no record of the basis on which the assignment was made (manual, deterministic rule, probabilistic match). **Clarification needed** on all of these before the assignment is used for anything.
+- **REQ-044** The business needs **coverage reporting on both sides**: CRM records that appear in no assignment row, and national customer numbers that appear in no assignment row. Both unmatched populations are business-relevant and must be visible, not silently dropped.
+- **REQ-045** The business must state what is expected to happen to this table after the migration ends: whether new assignments continue to be created, by whom, and under what rule.
 
-- **REQ-080** The business needs a **single view of a party** in this source system: the partner record, its contact persons, and — where an assignment exists — the CRM display name and marketing segment.
-- **REQ-081** Reporting must correctly reflect that the relationships involved are **one-to-many**: a corporate customer has several contact persons, a contract partner carries several contracts. Any report that assumes one of each will be wrong.
-- **REQ-082** The business must be able to state, for each identifier in this area, **what it identifies and what it may be joined to**. Four different identifiers appear across the eight tables — the national customer ID, the technical contact key, the contract-partner key, the CRM GUID — plus the account number, the contract number and the legacy number. They are not interchangeable, and the source says as much in one case explicitly (REQ-021).
-- **REQ-083** Where two records cannot be related from the data in this system, warehouse output must **leave the relationship absent and visible as absent**, rather than closing it by name similarity or by matching values that merely look alike. Anything asserted beyond what the source states must be traceable to a documented business decision.
+---
+
+## 8. Account (`vic_konto`)
+
+- **REQ-050** The business must maintain a register of **accounts** as held in the contract-management system.
+- **REQ-051** Each account is identified by its **account number** (`konto_nr`).
+- **REQ-052** The business must record the **account kind** (`konto_art`). No list of admissible kinds is supplied; the business must supply one (REQ-103), since counting accounts by kind is the primary reporting need this table can serve.
+- **REQ-053** The account record carries **no reference to any other record in this extract** — no party, no contract, no product. As delivered, the source does not state who holds an account or what it belongs to.
+- **REQ-054** Reporting on **account ownership** is a stated business need and **cannot be served from this extract as delivered**. The business must state where the account-to-party relationship is held and arrange for it to be supplied, either as an extended extract from this system or from another source.
+- **REQ-055** The account record carries no opening date, no closing date, no status, no currency and no balance. Account reporting from this source is therefore limited to enumeration and classification by kind. Balance and turnover reporting is out of scope for this area.
+
+---
+
+## 9. Contract (`vic_vertrag`)
+
+- **REQ-060** The business must maintain a register of **contracts** as held in the contract-management system.
+- **REQ-061** Each contract is identified by its **contract number** (`vertrag_nr`).
+- **REQ-062** The business must record the **contract start date** (`vertrag_beginn`). The business needs new-business reporting from it: contracts started per month, per quarter, per year.
+- **REQ-063** Each contract carries a `vp_nummer`, described by the source as a **foreign key to `vic_vertragspartner.vp_nummer`**. This is the only relationship the source states for this table.
+- **REQ-064** The structure carries **exactly one** contract-partner reference per contract. Contracts commonly involve several parties in different roles. The business must state whether that is the case here and, if so, where the further parties are recorded — the source as delivered cannot express more than one.
+- **REQ-065** The contract record carries **no end date, no term, no status and no termination reason**. The business cannot determine from this source whether a contract is still in force. This must be resolved before any active-portfolio reporting is promised.
+- **REQ-066** The contract record carries no product, no amount, no premium and no currency. Contract reporting from this source is limited to counts and start dates.
+- **REQ-067** The contract record carries **no reference to an account and no reference to a partner**. The business must state whether contracts relate to accounts or to partners and, if so, where that relationship is held.
+
+---
+
+## 10. Legacy holdings taken over by the migration (`vic_migration_altbestand`)
+
+- **REQ-070** The business must retain the record of the **holdings taken over from the predecessor system**.
+- **REQ-071** Each row carries `alt_nr`, described by the source as a **number from the legacy system** whose **format is like the customer number**. The source states a resemblance of *format*. It does not state that the values are drawn from the same set of values, and it does not state what the number identifies.
+- **REQ-072** The business must record the **designation in the legacy system** (`alt_bezeichnung`), a free-text field.
+- **REQ-073** The business must record the **takeover date** (`uebernahme_datum`). The business needs migration progress reporting from it: how many records were taken over, and when.
+- **REQ-074** **Clarification needed — this is the most important open question about this table:** the source does not state **what a row represents**. A designation and a legacy number are compatible with a party, with a contract, with a holding, or with a portfolio position. The business must state what was taken over before the content can be reported meaningfully.
+- **REQ-075** The row carries **no reference to what the legacy record became** after the takeover — no target identifier, no status, no indication of whether the takeover succeeded. The business must state whether the outcome of a takeover has to be traceable and, if so, where that information is held.
+
+---
+
+## 11. Cross-cutting requirements
+
+### Questions the business wants answered
+
+- **REQ-080** From the relationships the source states, the business expects the warehouse to answer at least: how many partners exist and how long they have been customers; which contact persons are recorded for a given partner and in what function; how many contracts started in a period, and which contract partner and role each carries; how many accounts of each kind exist; how many CRM records exist per marketing segment; and how the takeover of legacy holdings progressed over time.
+- **REQ-081** Questions that **span two registers** — for example a single view of one party across the registers described in sections 3 to 7, or attributing a contract to a customer — depend on the identifier decisions in REQ-082 to REQ-086. They cannot be committed to until those are answered.
+
+### Identifiers and their meaning
+
+- **REQ-082** The extract carries seven identifiers: `partn_nr`, `kontakt_id`, `vp_nummer`, `crm_guid`, `konto_nr`, `vertrag_nr` and `alt_nr`. For **each** of them the business must state: which system issues it, over which population it is unique, whether it is stable over the life of the thing it identifies, and whether values are ever re-used.
+- **REQ-083** The source states relationships between tables in exactly three places, and in no others:
+  1. `vic_kontakt.partn_nr` is described as a foreign key to `vic_partner.partn_nr` (REQ-015);
+  2. `vic_vertrag.vp_nummer` is described as a foreign key to `vic_vertragspartner.vp_nummer` (REQ-063);
+  3. `crm_xref_partner.crm_guid` is described as a foreign key to `crm_kunde.crm_guid`, and `crm_xref_partner.partn_nr` is described as corresponding to the national customer number (REQ-040).
+- **REQ-084** **Where the source does not state a relationship, the warehouse must not assume one.** For every pair of registers not covered by REQ-083, whether the two describe the same real-world things — wholly, partly, or not at all — is an **open question for the business**, not a matter to be decided from column names, field formats or resemblance of content. Until it is answered, each register must be reported separately.
+- **REQ-085** The extract contains **several registers of named parties** — partners (section 3), contact persons (section 4), contract partners (section 5), CRM records (section 6), and, subject to REQ-074, possibly the legacy holdings (section 10). The business must state, register by register, which populations overlap and which do not.
+- **REQ-086** Where two registers do hold a record for the same party, the business must further state which register is **authoritative** for each attribute, and what happens when they disagree — for instance when a name is spelled differently in two places. A survivorship rule is a business decision and must be stated, not inferred.
+- **REQ-087** **Name-based matching is not a substitute for these decisions.** Every register holds names as a single free-text field, with no structure, no normalisation and no separate legal-form field. Matching parties by name alone will produce both false matches and missed matches, and its results must not be presented as fact.
+- **REQ-088** All identifier columns in the extract are typed `varchar`. Before any value from an identifier column is compared, matched or used as a join criterion — within this source or against values held anywhere else — the actual formats must be profiled on real data: leading zeros, prefixes, padding, casing and separators. A format resemblance stated in a data dictionary is not evidence that two columns hold comparable values.
 
 ### Change over time
 
-- **REQ-090** The source provides **no change-tracking mechanism anywhere in this area**: no last-changed timestamp, no version, no validity dates, no status and no deletion marker on any of the eight tables. The three dates that exist (`partn_seit`, `vertrag_beginn`, `uebernahme_datum`) are business event dates, not change signals.
-- **REQ-091** The operational system therefore holds the **current state only**, and every change overwrites what was there before, invisibly.
-- **REQ-092** The business requires the warehouse to **preserve the history of change** for at least the following, all of which do change and all of which matter analytically:
-  - a partner's name,
-  - a contact person's name, function and the corporate customer they work for,
-  - a contract partner's designation and role,
-  - a CRM display name and marketing segment,
-  - an account's kind,
-  - the assignment between a CRM record and a national customer ID.
-- **REQ-093** Because there is no change signal in the source, change detection must be performed by **comparing successive deliveries** in the warehouse. The business needs to understand the consequence: change is detected to the granularity of the delivery cycle, and two changes between deliveries are seen as one. **Clarification needed:** the delivery frequency of each table.
-- **REQ-094** **Clarification needed:** if a record is removed operationally it simply disappears from the delivery. The business must state whether removals need to be detected and retained, and for which tables.
+- **REQ-090** **No table in this extract carries a last-changed timestamp, a load timestamp, a validity period or a status flag.** The only dates present are three business dates, each with a meaning of its own: `partn_seit` (customer since), `vertrag_beginn` (contract start) and `uebernahme_datum` (takeover date). None of them is a change-detection signal.
+- **REQ-091** The business must therefore state, and the warehouse must implement, how change is to be detected and what history is required. The following do change and are analytically relevant: partner name and customer-since date; contact person name, function and partner assignment; contract-partner designation and role; CRM display name and marketing segment; the migration assignment rows; account kind; contract start date.
+- **REQ-092** **The source carries no deletion marker anywhere.** If a record is removed operationally it simply disappears from the extract. The business must state whether removals have to be detected and retained, for which registers, and what a removal is taken to mean.
+- **REQ-093** The delivery mechanism is not described in the source. The business must confirm the delivery frequency, whether each delivery is a full snapshot or a delta, and whether late-arriving corrections occur.
 
 ### Data quality
 
-- **REQ-100** The business needs standing visibility of **broken references**: contact persons whose national customer ID has no partner record; contracts whose contract-partner key has no contract-partner record; CRM assignments whose GUID has no CRM record.
-- **REQ-101** The business needs visibility of **duplicates** — in particular the same organisation or individual carried more than once. Nothing in the source prevents this, and it directly affects every count the business will publish.
-- **REQ-102** The business needs visibility of **records with no relationship at all**: partners with no contact person, contract partners with no contract, CRM records with no assignment (REQ-063), and accounts, which today have no relationship available to them at all (REQ-043).
-- **REQ-103** Free-text fields — the contact function, the contract-partner designation, the CRM display name, the legacy designation — will contain spelling variants, abbreviations and inconsistent casing. Reporting that groups on them needs that stated up front; the source enforces no vocabulary on any of them.
-- **REQ-104** The account kind and the marketing segment must resolve to **named, documented values**. A code that cannot be resolved is a data-quality defect and must be reported rather than passed through.
+- **REQ-100** The business needs **referential completeness reporting** on the relationships the source states (REQ-083): contact persons whose `partn_nr` resolves to no partner; contracts whose `vp_nummer` resolves to no contract partner; assignment rows whose `crm_guid` resolves to no CRM record. Each of these is a defect the business wants counted, not silently discarded.
+- **REQ-101** The business needs the **unmatched populations** of the migration assignment reported in both directions (REQ-044).
+- **REQ-102** The business needs visibility of **duplicates within each register** — the same real-world party or thing recorded twice under different identifiers. Nothing in the source prevents this in any of the registers, and it directly affects every count reported to the business.
+- **REQ-103** Four fields carry classifying values with **no reference list supplied**: `kontakt_funktion`, `vp_rolle`, `konto_art` and `segment`. For each, the business must supply the admissible values and their business meaning. The warehouse must report values that fall outside the supplied list rather than mapping them to a default.
+- **REQ-104** The source states data types only. **Nothing in it states which fields are mandatory.** The business must state, per field, whether an empty value is a defect or a legitimate state — in particular for `partn_seit`, `kontakt_funktion`, `vp_rolle`, `konto_art`, `segment` and `vertrag_beginn`.
+- **REQ-105** The business needs a **record count and a plausibility expectation per table** before first load, so that a materially wrong extract is recognised as such rather than accepted.
 
-### Confidentiality and access
+### Privacy and access
 
-- **REQ-110** This area holds **client-identifying banking data**: named parties, their tenure as customers, account numbers, contract numbers and marketing segments. It is subject to the bank's client-confidentiality and data-protection obligations.
-- **REQ-111** Access to party-level detail must be restricted to roles with a legitimate business need. Aggregated reporting — counts by segment, by account kind, by contract start year — should be available more widely.
-- **REQ-112** The **marketing segment** governs how a customer may be approached commercially. It must be carried correctly through to any downstream use, and any extract that leaves the warehouse must respect it.
-- **REQ-113** The business must be able to state, for a given party, what this area holds about them.
+- **REQ-110** This area holds **personal data about identifiable individuals**. Contact persons are named individuals by definition. Partner and contract-partner names are held in fields that do not distinguish natural persons from legal entities, so those name fields must be treated as potentially personal data until the business states otherwise (REQ-004, section 3).
+- **REQ-111** The **marketing segment** (REQ-034) is a profiling attribute assigned to a record. Its use must be restricted to roles with a legitimate business need, and it must not be exposed in broadly available reporting at record level.
+- **REQ-112** Access to record-level party detail must be restricted; aggregated reporting — counts per segment, per function, per account kind, contracts per period — can be made available more widely.
+- **REQ-113** **The extract carries no consent attribute of any kind.** Before the marketing segment is used for campaign selection, the business must state where marketing consent is held, and how a downstream use of this data is prevented from breaching it.
 
 ---
 
-## 11. Assumptions, exclusions and open points
+## 12. Assumptions, exclusions and open points
 
-**Assumptions**
+**Assumptions** — each to be confirmed, none of them established by the source:
 
-- The national customer ID is stable over the life of a party and is never re-issued (to be confirmed, REQ-003).
-- The `vic_` and `crm_` table groups are delivered from one system as one package, and their deliveries are consistent with each other at the point of extraction. If the CRM module is extracted on a different cycle from the contract system, the assignment table can be out of step with both and this must be known.
-- The foreign keys described in the column comments are enforced by the application. The source comments assert them; the schema does not state that any constraint exists.
+- The extract is a complete delivery of each table, not a filtered subset.
+- Each table's stated identifier is unique within that table. The source states this explicitly only for `crm_guid` ("Primärschlüssel im CRM").
+- The three dates in the extract are recorded in a single, consistent time zone and calendar convention.
 
-**Out of scope for this area** — needed for full reporting but sourced elsewhere:
+**Out of scope for this area** — needed for complete reporting but not delivered by this source:
 
-- The core banking system's own party master data — party type, status, addresses, closure
-- Account ownership, balances, currency, opening and closing dates
-- Contract financials: product, premium, sum insured, amounts, currency
-- Contract termination and renewal events
-- Contact details of contact persons (email, telephone, address)
-- The predecessor system itself and its documentation
+- Balances, turnover, transactions and any monetary amount
+- Product master data, contract terms, premiums and pricing
+- Addresses, telephone numbers, e-mail addresses and any other contact channel
+- Marketing consent (REQ-113)
+- Classification of a party as a natural person or a legal entity
+- Whatever else the core banking system holds about a party: this extract carries the national customer number and nothing further from that system
+- Account ownership (REQ-054)
+- Advisor, organisational unit and any sales-organisation structure
 
 **Open points requiring business clarification**
 
-1. Does the contract partner's role belong on the contract partner or on the contract (REQ-023)?
-2. How can a contract be related to the customer it serves, given that no such link exists here (REQ-035)?
-3. Where does account ownership come from (REQ-044)?
-4. What are the permitted values of the account kind (REQ-041) and of the marketing segment (REQ-054)?
-5. Who maintains the CRM assignment table now, and how complete is it (REQ-063)?
-6. What do the legacy numbers in `vic_migration_altbestand` identify, and how do they relate — if at all — to the national customer ID (REQ-074)? A written answer from the migration team is required before this data is joined to anything.
-7. How is a contract's end or termination to be determined (REQ-032)?
-8. What is the delivery frequency of each table, and must deletions be detected (REQ-093, REQ-094)?
+1. What population does the partner register cover, and how is a corporate customer recognised (section 3, REQ-006)?
+2. Is `kontakt_id` stable across reloads, and what is a contact person's business identifier (REQ-011)?
+3. Can a contact person work for more than one partner, and where would that be recorded (REQ-016)?
+4. Can a contract partner hold different roles in different contracts (REQ-024)?
+5. What kinds of party appear in the contract-partner register (REQ-025)?
+6. Is the migration assignment table authoritative, what is its cardinality, on what basis were its rows created, and what happens to it after the migration (REQ-041 to REQ-045)?
+7. Where is account ownership held (REQ-054)?
+8. Can a contract involve more than one party, and how is a contract known to be still in force (REQ-064, REQ-065)?
+9. What does a row of the legacy holdings represent, and is the outcome of a takeover traceable (REQ-074, REQ-075)?
+10. For each pair of registers not covered by a stated foreign key, do they describe the same real-world things (REQ-084, REQ-085)? Which register is authoritative where they overlap, and what is the survivorship rule (REQ-086)?
+11. How is change to be detected, given that no table carries a change timestamp, and what history is required (REQ-090, REQ-091)?
+12. Must removals be detected and retained (REQ-092)?
+13. What are the admissible values of `kontakt_funktion`, `vp_rolle`, `konto_art` and `segment` (REQ-103)?
+14. Which fields are mandatory (REQ-104)?
+15. Where is marketing consent held (REQ-113)?

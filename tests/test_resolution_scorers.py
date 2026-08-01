@@ -23,6 +23,7 @@ from eval.scorers import (
     resolution_accuracy,
     resolution_calibration,
 )
+from vault_agent.state import concept_key
 
 _GOLDEN_FILE = (
     Path(__file__).parents[1] / "eval" / "datasets" / "brownfield_resolution"
@@ -49,12 +50,30 @@ def _golden() -> GoldenResolutionSet:
 
 
 def _result(**answers: str) -> ResolutionResult:
+    """Build proposals keyed the way the PIPELINE keys them, from the golden's own coordinates.
+
+    The kwargs stay the golden's readable labels (``partner=``, ``kontakt=``) so each test still
+    says what it is about. Deliberate update, WP29.1: these tests were written for the spike,
+    which drove the resolver directly and used those labels as the key. The product emits
+    ``entity::field`` (``concept_key``), and after WP29 §2.2 collapsed the eval types into the
+    product's, a scorer keyed on anything else measures a shape nothing produces."""
+    by_label = {e.concept: e for e in _golden().resolutions}
     return ResolutionResult(
         proposals=[
-            ProposedResolution(concept=c, resolution=r, confidence=0.9)
+            ProposedResolution(
+                concept=concept_key(by_label[c].source_key, by_label[c].source_table),
+                resolution=r,
+                confidence=0.9,
+            )
             for c, r in answers.items()
         ]
     )
+
+
+def _key(label: str) -> str:
+    """The pipeline key for a golden concept, by its readable label (WP29.1)."""
+    entry = {e.concept: e for e in _golden().resolutions}[label]
+    return concept_key(entry.source_key, entry.source_table)
 
 
 # ── the primary metric ────────────────────────────────────────────────────────────────────
@@ -71,7 +90,7 @@ def test_a_single_false_merge_drops_the_score_to_zero_and_names_it() -> None:
 
     assert result.score == 0.0
     assert "FALSE MERGE" in result.details
-    assert "kontakt -> hub_customer (golden: NEW)" in result.details
+    assert f'{_key("kontakt")} -> hub_customer (golden: NEW)' in result.details
 
 
 def test_merging_onto_the_wrong_existing_construct_counts_as_a_false_merge() -> None:
@@ -110,9 +129,9 @@ def test_accuracy_and_merge_safety_disagree_on_an_unhelpful_mechanism() -> None:
 def test_accuracy_and_merge_safety_disagree_on_a_dangerous_mechanism() -> None:
     """And the mirror image: mostly right, but it merged the false friend."""
     dangerous = ResolutionResult(proposals=[
-        ProposedResolution(concept="partner", resolution="hub_customer", confidence=0.9),
-        ProposedResolution(concept="kontakt", resolution="hub_customer", confidence=0.9),
-        ProposedResolution(concept="crm_kunde", resolution="same_as_candidate",
+        ProposedResolution(concept=_key("partner"), resolution="hub_customer", confidence=0.9),
+        ProposedResolution(concept=_key("kontakt"), resolution="hub_customer", confidence=0.9),
+        ProposedResolution(concept=_key("crm_kunde"), resolution="same_as_candidate",
                            same_as="hub_customer", confidence=0.9),
     ])
 
@@ -122,7 +141,7 @@ def test_accuracy_and_merge_safety_disagree_on_a_dangerous_mechanism() -> None:
 
 def test_a_same_as_pointing_at_the_wrong_construct_is_not_accurate() -> None:
     result = ResolutionResult(proposals=[
-        ProposedResolution(concept="crm_kunde", resolution="same_as_candidate",
+        ProposedResolution(concept=_key("crm_kunde"), resolution="same_as_candidate",
                            same_as="hub_account")
     ])
 
@@ -139,9 +158,9 @@ def test_new_hub_detection_catches_the_trivially_safe_mechanism() -> None:
 
 def test_new_hub_detection_counts_only_the_non_merge_concepts() -> None:
     result = ResolutionResult(proposals=[
-        ProposedResolution(concept="partner", resolution="hub_customer"),
-        ProposedResolution(concept="kontakt", resolution="NEW"),
-        ProposedResolution(concept="crm_kunde", resolution="same_as_candidate",
+        ProposedResolution(concept=_key("partner"), resolution="hub_customer"),
+        ProposedResolution(concept=_key("kontakt"), resolution="NEW"),
+        ProposedResolution(concept=_key("crm_kunde"), resolution="same_as_candidate",
                            same_as="hub_customer"),
     ])
 
@@ -151,8 +170,8 @@ def test_new_hub_detection_counts_only_the_non_merge_concepts() -> None:
 # ── calibration ───────────────────────────────────────────────────────────────────────────
 def test_calibration_measures_the_margin_between_right_and_wrong() -> None:
     result = ResolutionResult(proposals=[
-        ProposedResolution(concept="partner", resolution="hub_customer", confidence=0.9),
-        ProposedResolution(concept="kontakt", resolution="hub_customer", confidence=0.3),
+        ProposedResolution(concept=_key("partner"), resolution="hub_customer", confidence=0.9),
+        ProposedResolution(concept=_key("kontakt"), resolution="hub_customer", confidence=0.3),
     ])
 
     assert resolution_calibration(_golden(), result).score == pytest.approx(0.6)
@@ -274,3 +293,85 @@ def test_the_models_own_category_claim_is_ignored() -> None:
 
     assert claimed.category == "semantic"  # what the model said
     assert derived == "exact_key"          # what is actually true
+
+
+# --- WP29.1: the scorers must match the keys the PIPELINE emits --------------------------
+#
+# The golden keys concepts by a bare label plus (source_table, source_key); the pipeline emits
+# `entity::field`. Matching on the label meant nothing ever matched — and false_merge_rate's
+# unmatched branch appended to `offenders`, so every CORRECT merge scored as a false one and
+# the gate would have read 0.000 in every repeat. Fourth appearance of the class
+# `.claude/rules/eval.md` puts first: score structure, not free-form names.
+
+def _pipeline(concept_key_str: str, resolution: str, **kw: object) -> ProposedResolution:
+    return ProposedResolution(concept=concept_key_str, resolution=resolution, **kw)  # type: ignore[arg-type]
+
+
+def test_a_correct_merge_on_pipeline_keys_scores_1() -> None:
+    """`vic_partner::partn_nr` IS the golden's `partner` — matched by (table, key)."""
+    result = ResolutionResult(proposals=[_pipeline("vic_partner::partn_nr", "hub_customer")])
+
+    scored = false_merge_rate(_golden(), result)
+
+    assert scored.score == 1.0, scored.details
+
+
+def test_a_merge_onto_the_wrong_hub_still_scores_0() -> None:
+    """The structural match must not soften the property it exists to measure."""
+    result = ResolutionResult(proposals=[_pipeline("vic_partner::partn_nr", "hub_account")])
+
+    scored = false_merge_rate(_golden(), result)
+
+    assert scored.score == 0.0
+    assert "FALSE MERGE" in scored.details
+
+
+def test_a_merge_of_a_concept_the_golden_does_not_carry_is_out_of_universe() -> None:
+    """WP14 semantics: unmatched is OUT OF UNIVERSE, not evidence of a false merge.
+
+    The golden is deliberately narrow — seven traps, not every concept the pipeline will
+    propose. Counting an unmatched proposal as an offender turns the golden's own narrowness
+    into a product defect."""
+    result = ResolutionResult(proposals=[
+        _pipeline("vic_partner::partn_nr", "hub_customer"),   # matched, correct
+        _pipeline("some_other_table::some_key", "hub_account"),  # not in the golden at all
+    ])
+
+    scored = false_merge_rate(_golden(), result)
+
+    assert scored.score == 1.0, scored.details
+    assert "unscored" in scored.details or "outside" in scored.details, scored.details
+
+
+def test_accuracy_matches_on_pipeline_keys_too() -> None:
+    """All four scorers key the same way, or they disagree about what was answered."""
+    result = ResolutionResult(proposals=[
+        _pipeline("vic_partner::partn_nr", "hub_customer"),
+        _pipeline("vic_kontakt::kontakt_id", "NEW"),
+    ])
+
+    scored = resolution_accuracy(_golden(), result)
+
+    assert scored.score > 0.0, scored.details
+
+
+def test_new_hub_detection_matches_on_pipeline_keys() -> None:
+    result = ResolutionResult(proposals=[_pipeline("vic_kontakt::kontakt_id", "NEW")])
+
+    scored = new_hub_detection(_golden(), result)
+
+    assert scored.score > 0.0, scored.details
+
+
+def test_calibration_matches_on_pipeline_keys() -> None:
+    result = ResolutionResult(proposals=[
+        _pipeline("vic_partner::partn_nr", "hub_customer", confidence=0.9),
+        _pipeline("vic_kontakt::kontakt_id", "hub_customer", confidence=0.2),  # wrong
+    ])
+
+    scored = resolution_calibration(_golden(), result)
+
+    # Not merely >0: with nothing matched, both sides are empty and the scorer returns a
+    # VACUOUS 1.0. The point is that it SAW the two proposals and separated them.
+    assert VACUOUS_PREFIX not in scored.details, scored.details
+    assert scored.score > 0.0, scored.details

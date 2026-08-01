@@ -38,15 +38,21 @@ from eval.datasets import (
     DATASET_FILENAME,
     DATASETS_ROOT,
     GOLDEN_MAPPING_FILENAME,
+    GOLDEN_RESOLUTION_FILENAME,
     EvalCase,
     load_all_cases,
     load_eval_case,
     materialize_case,
 )
 from eval.mapping import load_golden_mapping
+from eval.resolution import load_golden_resolution
 from eval.scorers import (
     ScorerResult,
     existing_construct_preservation,
+    false_merge_rate,
+    new_hub_detection,
+    resolution_accuracy,
+    resolution_calibration,
     score_mapping,
     score_state,
 )
@@ -534,7 +540,35 @@ def _score_run(
                 state.mappings, load_golden_mapping(golden_path), mode=case.mapping_match
             )
         )
+    results.extend(_score_resolution(case, state))
     return results
+
+
+def _score_resolution(case: EvalCase, state: VaultAgentState) -> list[ScorerResult]:
+    """The resolution scorer family, dispatched by the ``golden_resolution.yml`` convention.
+
+    Deliberately NOT silent when the golden is absent-but-gated. ``_score_run`` skipping the
+    mapping family for a missing ``golden_mapping.yml`` is the exact hole WP18 §2.1 had to
+    paper over afterwards (``unsatisfiable_gates``, "no score at all"), and this would have
+    reproduced it: a case gating ``false_merge_rate`` whose golden went missing would produce
+    no such score, and a gate that is never computed is a gate that never fails. Here the
+    family is simply not dispatched, and WP18's machinery then reports the gate as
+    unsatisfiable — a batch defect, which is what it is, rather than a pass.
+
+    A case that HAS the golden and produced no resolutions scores through the scorers' own
+    vacuity convention, loudly, rather than being skipped here."""
+    if case.input_document is None:
+        return []
+    golden_file = case.input_document.parent / GOLDEN_RESOLUTION_FILENAME
+    if not golden_file.is_file():
+        return []
+    golden = load_golden_resolution(golden_file)
+    return [
+        false_merge_rate(golden, state.resolutions),
+        resolution_accuracy(golden, state.resolutions),
+        new_hub_detection(golden, state.resolutions),
+        resolution_calibration(golden, state.resolutions),
+    ]
 
 
 async def _run_score_write(

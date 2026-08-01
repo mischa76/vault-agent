@@ -24,6 +24,9 @@ DATASET_FILENAME = "dataset.yml"
 # The golden-mapping filename a case ships (or a generated case materialises); mirrored from
 # eval.mapping.GOLDEN_MAPPING_FILENAME, kept local to avoid an import cycle at module load.
 GOLDEN_MAPPING_FILENAME = "golden_mapping.yml"
+# WP29.1: the resolution counterpart, discovered by the same convention. A case that ships one
+# gets the resolution scorer family; one that does not is a mapping/model case and skips it.
+GOLDEN_RESOLUTION_FILENAME = "golden_resolution.yml"
 
 # Mapping scorers keyed on the proposal's *concept* name (WP9/WP9.2). In "column"
 # mapping_match mode the modeler's free-form names diverge from the golden vocabulary, so

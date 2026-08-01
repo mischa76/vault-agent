@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field, ValidationError
 # produces and the answer a scorer reads must be ONE type, or the eval measures something the
 # product does not emit. Re-exported here so the eval assets keep their own import surface,
 # exactly as eval/mapping.py does for WP9's Proposal.
+from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import (
     RESOLUTION_CLASSES,
     RESOLUTION_NEW,
@@ -28,6 +29,7 @@ from vault_agent.state import (
     RESOLUTION_UNRESOLVED,
     EntityResolution,
     ResolutionProposal,
+    split_concept_key,
 )
 
 # Explicit re-export surface: strict mypy does not treat an import as an export, and these
@@ -43,6 +45,8 @@ __all__ = [
     "ProposedResolution",
     "ResolutionResult",
     "load_golden_resolution",
+    "proposals_by_source",
+    "source_ref",
 ]
 
 # The vocabulary lives in the product; these aliases keep the eval-side names readable.
@@ -74,6 +78,13 @@ class GoldenResolutionSet(BaseModel):
 
     def by_concept(self) -> dict[str, GoldenResolution]:
         return {entry.concept: entry for entry in self.resolutions}
+
+    def by_source(self) -> dict[tuple[str, str], GoldenResolution]:
+        """Keyed STRUCTURALLY on ``(source_table, source_key)`` — see :func:`source_ref`."""
+        return {
+            (normalize_identifier(e.source_table), normalize_identifier(e.source_key)): e
+            for e in self.resolutions
+        }
 
 
 # One definition, two names: the scorers were written against these, the pipeline emits the
@@ -112,3 +123,29 @@ def load_golden_resolution(path: Path) -> GoldenResolutionSet:
                 f"`same_as` target {entry.same_as!r} is not a declared existing construct"
             )
     return golden
+
+
+def source_ref(concept_key: str) -> tuple[str, str]:
+    """``(source_table, source_key)`` from a pipeline concept key, normalised.
+
+    The join the scorers need, and the one that was missing. The pipeline emits
+    ``entity::field`` (``concept_key`` in ``state.py``); the golden carries a free-form
+    ``concept`` label plus the ``source_table`` / ``source_key`` that actually identify the
+    thing. Matching the two on the LABEL matched nothing — and `false_merge_rate` treated an
+    unmatched proposal as an offender, so every correct merge scored as a false one.
+
+    This is `.claude/rules/eval.md`'s first rule applied for the fourth time (WP9.2, WP14, the
+    link-name fix): score structure, not free-form names. A model that is right must not score
+    wrong because it, or a golden author, named the concept differently.
+    """
+    field, entity = split_concept_key(concept_key)
+    return normalize_identifier(entity or ""), normalize_identifier(field)
+
+
+def proposals_by_source(result: ResolutionResult) -> dict[tuple[str, str], ResolutionProposal]:
+    """The mechanism's proposals under the same structural key as :meth:`by_source`.
+
+    A free function rather than a method because ``ResolutionResult`` is an alias of the
+    PRODUCT's ``EntityResolution`` (WP29 §2.2) — the eval side does not get to add methods to
+    the type the pipeline emits, and that is the point of the alias."""
+    return {source_ref(p.concept): p for p in result.proposals}

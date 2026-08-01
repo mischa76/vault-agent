@@ -2427,3 +2427,106 @@ outcomes depending on which flag the human used.
 Each has a keyless guard that fails without its fix. 767 tests green (+4), ruff and mypy clean.
 CI on PR #16 was green before these — the branch's first independent check, since the workflow
 triggers only on pushes to `main` and on pull requests, which is why the PR was opened at all.
+
+## [2026-08-01] WP29.1 — `brownfield_resolution` is runnable and scoreable; §4 is now only money
+
+The three findings from this morning are closed, all keyless, no spend. What changed:
+
+**The scorers now match on structure.** `false_merge_rate`, `resolution_accuracy`,
+`new_hub_detection` and `resolution_calibration` all keyed on the golden's free-form `concept`
+label while the pipeline emits `entity::field`. New `source_ref()` derives
+`(source_table, source_key)` from the pipeline's key and `GoldenResolutionSet.by_source()`
+keys the golden the same way — both normalised. This is `.claude/rules/eval.md`'s first rule
+applied for the fourth time (WP9.2, WP14, the link-name fix).
+
+**And the fail direction is fixed, which was the dangerous half.** An unmatched proposal used
+to land in `offenders`: with nothing matching, *every correct merge scored as a false merge*
+and the gate would have read 0.000 in all five paid repeats. Unmatched is now **out of
+universe** — the WP14 semantics — counted and reported in `details` the way `mapping_coverage`
+reports its unscored proposals, and excluded from the score. `false_merge_rate` remains a hard
+property over the matched universe. Mutation-checked: reverting that one lookup to the label
+fails five tests and nothing else.
+
+**The spike-era scorer tests were re-keyed, deliberately.** Six of them built proposals keyed
+by the golden's label — a shape the product has never emitted. Their kwargs still read
+`partner=`, `kontakt=`, so each test still says what it is about; `_result` now translates
+those to pipeline keys through the golden's own coordinates. WP29 §2.2 had already collapsed
+the eval types into the product's; these tests were the last place still measuring the spike's
+shape.
+
+**The case is wired**: `dataset.yml` gates `false_merge_rate` at exactly 1.0 and
+`pipeline_health` at 1.0, and deliberately leaves `resolution_accuracy` reported-not-gated —
+the spike charter's split, so that honest-but-unhelpful stays distinguishable from
+helpful-but-dangerous. `_score_resolution` dispatches the family by the `golden_resolution.yml`
+convention, the counterpart of the mapping dispatch. The WP18 §2.1 hole is explicitly not
+reproduced: a gated case whose golden vanished produces no score, and `unsatisfiable_gates`
+then reports it as a **batch defect** rather than a pass — pinned by its own test, so the two
+halves cannot drift apart.
+
+**The fixture no longer states its answers, and the guard enforces that now.** The trap
+annotations moved to `trap-annotations.md`; a snapshot captured from the annotated file proves
+the pipeline reads exactly the same 8 tables and 23 columns as before. The requirements were
+re-authored blind against the cleaned file — and the author reported that the header *I* wrote
+while cleaning still named what the file was for and where the answers live. Not answers, but
+enough to tell a reader the game. Removed, and `TELLS` gained "entity-resolution", "existing
+bank vault", "spike" and the two filenames, so the next version of that mistake fails a test
+instead of depending on a careful reader noticing. The superseded draft stays beside it with
+its unusable header; records are append-only.
+
+Verified independently rather than trusted: the new document names no trap, no entity
+resolution, no existing vault and no hub. Where the schema pulls hardest — `crm_xref_partner`'s
+"entspricht der nationalen Kundennummer" — it reports the comment as a statement about *values*
+and pushes the entity question into an open point, which is exactly the discipline the
+measurement needs.
+
+781 tests green (+14), ruff clean, mypy strict clean. **What remains is paid and pending:** the
+§4 runs themselves — 5 clean plus 5 blinded repeats, estimated $16-26 against the ~$20-40 left
+under the WP30 §6 ceiling — and they run only on an explicit go.
+
+## [2026-08-01] Correction: §4 was NOT "only money" — the first live probe says so
+
+The entry above closes with "what remains is paid and pending". One repeat
+(13 calls, ~$0.60) disproves it, and the probe was run alone precisely so that a wiring defect
+would not be paid for five times. It found one, and it found something better.
+
+**The resolver answered all seven traps correctly, on its first live run against a golden that
+predates it.** Including trap 5 — the `undecidable` case the spike memo criticised the first
+run for never being offered:
+
+```
+partner::partn_nr          -> hub_customer        (TRAP 1 synonym hub)        correct
+contact_person::kontakt_id -> NEW                 (TRAP 2 false friend)       correct
+contract_partner::vp_nummer-> NEW                 (TRAP 3 similar name)       correct
+crm_customer::crm_guid     -> same_as_candidate   (TRAP 4 same-as)            correct
+account::konto_nr          -> hub_account         (CONTROL easy synonym)      correct
+contract::vertrag_nr       -> NEW                 (CONTROL plain new)         correct
+legacy_holding::alt_nr     -> unresolved          (TRAP 5 undecidable)        correct
+```
+
+**And the scorer sees none of it, because the fix committed an hour earlier is right in the
+column half and wrong in the table half.** The pipeline's concept key carries the *business*
+entity the requirements name — `partner`, `legacy_holding` — not the physical table
+(`vic_partner`, `vic_migration_altbestand`). The column half matches exactly, every time; the
+table half never does, because the entity-to-table binding is produced by the source mapper,
+which runs LATER in the graph than the resolver. There is no physical table in the concept at
+the moment the resolver speaks. `false_merge_rate` therefore came back vacuous, and the WP18
+machinery did its job: `GATE UNSATISFIABLE`, exit 1, no vacuous 1.0 recorded as a pass.
+
+Two things that must not be lost when this is fixed:
+
+- **The one "correct" answer in `resolution_accuracy` 0.143 is a false positive.** With no
+  match, the scorer treats the answer as `unresolved` — and trap 5's expected answer *is*
+  `unresolved`, so it scored as right having measured nothing. A matching scheme that cannot
+  distinguish "answered unresolved" from "not found" will keep manufacturing that.
+- **A possible false merge sits outside the golden.** The pipeline also answered for the xref
+  table: `migration_assignment::crm_guid -> hub_customer`. Writing CRM GUIDs into the customer
+  hub is the dangerous direction, and the golden has no entry for `crm_xref_partner`, so under
+  the out-of-universe rule committed today it would pass unexamined. Whether the golden should
+  cover the xref is a change to the MEASURE, not to the mechanism, and is left for the human.
+
+Column-only matching is the obvious next move and is not obviously safe: `crm_guid` and
+`partn_nr` each appear twice in this run's proposals. Not decided here.
+
+So §4's status is: **the mechanism looks good and is not yet measurable.** Seven-for-seven is
+one repeat, unscored, and read off a trace by hand — it is a reason to finish the instrument,
+not a result.
