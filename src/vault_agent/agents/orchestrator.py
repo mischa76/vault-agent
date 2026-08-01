@@ -352,6 +352,25 @@ def apply_human_decision(state: VaultAgentState, decision: Any) -> list[str]:
     return assigned
 
 
+def apply_resolution_decision(state: VaultAgentState, decision: Any) -> list[str]:
+    """Apply a human's ratification at the RESOLUTION checkpoint, returning decided concepts.
+
+    The sign-off checkpoint ratifies resolutions as one part of a larger decision
+    (:func:`apply_human_decision`); the resolution checkpoint has only this to apply, and it
+    applies it before the modeler runs — which is the whole point of that checkpoint existing
+    (WP29 §2.5 addendum, 2026-08-01). Both read the SAME keys of the SAME payload
+    (``resolutions``, ``accept``), so ``resume --resolve`` / ``--resolutions`` / ``--accept``
+    mean exactly one thing wherever the run happens to be paused."""
+    resolutions = decision.get("resolutions", {}) if isinstance(decision, dict) else {}
+    accept = bool(decision.get("accept")) if isinstance(decision, dict) else False
+    _apply_resolution_decision(
+        state, resolutions if isinstance(resolutions, dict) else {}, accept
+    )
+    return [
+        p.concept for p in state.resolutions.proposals if p.ratification_status != "proposed"
+    ]
+
+
 def _apply_resolution_decision(
     state: VaultAgentState, overrides: dict[str, Any], accept: bool
 ) -> None:

@@ -69,7 +69,18 @@ DEFAULT_OUT = Path("eval") / "results"
 # does — generated contracts carry placeholder owners), resume exactly like
 # ``vault-agent resume --accept`` with no owners assigned, so the run completes through
 # the ADR author. Unassigned owners still show up as flags/review items and are scored.
+#
+# Since WP29's resolution checkpoint this ``accept`` has teeth beyond owners: at that pause it
+# ratifies every proposed merge, so an unattended run models the resolver's proposals as if a
+# human had agreed to them. That is deliberate — it is the configuration the arm comparison is
+# about — but it is NOT the product's default posture, where a human answers that pause. A
+# scorer reading ``false_merge_rate`` still reads the PROPOSALS, which this does not touch.
 AUTO_RESUME_DECISION: dict[str, Any] = {"owners": {}, "accept": True}
+
+# How many times one run may be resumed automatically. Two checkpoints can pause today (WP29's
+# resolution checkpoint, then sign-off); the headroom is for a third without a code change,
+# and the cap exists so a checkpoint the harness cannot answer fails loudly instead of looping.
+_MAX_AUTO_RESUMES = 4
 
 
 class ScoreStats(BaseModel):
@@ -247,8 +258,19 @@ async def run_case_once(case: EvalCase) -> VaultAgentState:
         ),
         config=config,
     )
-    if "__interrupt__" in result:
+    # A run can now pause more than once: WP29's resolution checkpoint stops before modelling
+    # and hands the run on to the sign-off checkpoint. Answering only the first would leave
+    # the run parked at the second and the harness would score a half-finished state as if it
+    # were the outcome. Bounded, because an unanswerable interrupt must not spin forever.
+    resumes = 0
+    while "__interrupt__" in result:
+        if resumes >= _MAX_AUTO_RESUMES:
+            raise RuntimeError(
+                f"the run was still paused after {_MAX_AUTO_RESUMES} automatic resumes; the "
+                f"harness cannot answer this checkpoint"
+            )
         result = await compiled.ainvoke(Command(resume=AUTO_RESUME_DECISION), config=config)
+        resumes += 1
     data = {key: value for key, value in result.items() if key != "__interrupt__"}
     return VaultAgentState.model_validate(data)
 

@@ -1506,3 +1506,145 @@ def test_existing_pointing_at_a_missing_path_is_rejected_by_the_cli(tmp_path: Pa
     )
 
     assert result.exit_code == 2
+
+
+# --- WP29 §2.5 addendum: the resolution checkpoint in the CLI -----------------------------
+#
+# A run can now pause twice, and the two pauses are answered with different flags. These pin
+# that the CLI tells them apart on typed state, that a pause before modelling is not reported
+# as a failed model, and that the interactive path cannot ratify a merge behind a confirm
+# that says "finalize".
+
+def _resolution_stub_agents() -> "dict[str, object]":
+    """Stubs whose resolver proposes one merge, so the run stops at the new checkpoint."""
+    from vault_agent.agents.base import BaseAgent
+    from vault_agent.agents.entity_resolver import ResolutionCheckpointAgent
+    from vault_agent.agents.orchestrator import HumanCheckpointAgent
+    from vault_agent.graph import NODES
+    from vault_agent.state import (
+        EntityResolution,
+        ResolutionProposal,
+        ValidationReport,
+        concept_key,
+    )
+
+    class _Stub(BaseAgent):
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        async def run(self, state: VaultAgentState) -> VaultAgentState:
+            if self.name == "entity_resolver":
+                state.resolutions = EntityResolution(
+                    proposals=[
+                        ResolutionProposal(
+                            concept=concept_key("partner_id", "erp_partner"),
+                            resolution="hub_customer",
+                            confidence=0.9,
+                            category="exact_key",
+                            evidence=["both key on customer_id"],
+                        )
+                    ]
+                )
+            if self.name == "dv2_modeler":
+                state.modeling_attempts += 1
+            if self.name == "validator":
+                state.validation_report = ValidationReport(passed=True, issues=[])
+            state.decisions.append({"agent": self.name})
+            return state
+
+    agents: dict[str, object] = {name: _Stub(name) for name in NODES}
+    agents["resolution_checkpoint"] = ResolutionCheckpointAgent()  # the real gate
+    agents["human_checkpoint"] = HumanCheckpointAgent()
+    return agents
+
+
+def _resolution_run(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> "object":
+    from vault_agent.graph import build_graph
+
+    monkeypatch.setattr(
+        "vault_agent.cli.build_graph", lambda: build_graph(_resolution_stub_agents())
+    )
+    doc = tmp_path / "req.md"
+    doc.write_text("x", encoding="utf-8")
+    return runner.invoke(app, ["run", str(doc), "--out", str(tmp_path)])
+
+
+def test_a_proposed_merge_pauses_the_run_and_names_the_concept(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    guard = _ScriptedPrompter([], [])  # any prompt would IndexError → proves the non-TTY path
+    monkeypatch.setattr("vault_agent.cli._prompter", guard)
+
+    result = _resolution_run(tmp_path, monkeypatch)
+
+    assert result.exit_code == 0  # NOT exit 3: no model has failed, none was built
+    assert "need a decision" in result.stdout
+    assert "partner_id" in result.stdout and "hub_customer" in result.stdout
+    assert "--resolve" in result.stdout
+    # It is the resolution pause, not the sign-off one.
+    assert "Paused at the human-in-the-loop checkpoint." not in result.stdout
+    assert (tmp_path / ".vault-agent" / "pending.json").exists()
+    # The instructions point at --resolutions <file>; that file has to be on disk by now.
+    assert (tmp_path / "resolutions.review.yml").exists()
+
+
+def test_resume_resolve_carries_the_run_past_both_checkpoints(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The flags answer the new pause unchanged — one decision payload, two checkpoints."""
+    _resolution_run(tmp_path, monkeypatch)
+
+    result = runner.invoke(
+        app, ["resume", "--out", str(tmp_path), "--resolve", "partner_id=hub_customer",
+              "--accept"]
+    )
+
+    assert result.exit_code == 0
+    assert not (tmp_path / ".vault-agent" / "pending.json").exists()  # ran to the end
+
+
+def test_the_interactive_confirm_at_the_resolution_pause_is_not_finalize(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A merge writes foreign keys into live history; the confirm must say what it ratifies."""
+    from vault_agent.cli import _collect_resolution_decision, _paused_at_resolution
+    from vault_agent.state import (
+        EntityResolution,
+        ResolutionProposal,
+        concept_key,
+    )
+
+    state = VaultAgentState()
+    state.resolutions = EntityResolution(
+        proposals=[
+            ResolutionProposal(
+                concept=concept_key("partner_id", "erp_partner"), resolution="hub_customer"
+            )
+        ]
+    )
+    assert _paused_at_resolution(state) is True  # modeler has not run
+
+    scripted = _ScriptedPrompter(texts=["NEW"], confirms=[])
+    monkeypatch.setattr("vault_agent.cli._prompter", scripted)
+    answers = _collect_resolution_decision(Console(), state)
+
+    assert answers == {concept_key("partner_id", "erp_partner"): "NEW"}
+    assert "reject the merge" in scripted.text_calls[0]
+
+
+def test_sign_off_pause_is_not_mistaken_for_a_resolution_pause() -> None:
+    """The discriminator must not fire once the modeler has run, whatever resolutions hold."""
+    from vault_agent.cli import _paused_at_resolution
+    from vault_agent.state import EntityResolution, ResolutionProposal, concept_key
+
+    state = _paused_owner_state()
+    state.modeling_attempts = 1
+    state.resolutions = EntityResolution(
+        proposals=[
+            ResolutionProposal(
+                concept=concept_key("partner_id", "erp_partner"), resolution="hub_customer"
+            )
+        ]
+    )
+
+    assert _paused_at_resolution(state) is False

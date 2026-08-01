@@ -94,3 +94,23 @@ blocker — the same call WP9 made for mapping gaps.
 Phase 3 foreign-vault introspection; same-as LINK generation (the candidate is flagged and
 ratified here — what the vault does with a ratified same-as is its own decision); any change
 to WP23's merge/gate machinery.
+
+## 6. Addendum [2026-08-01] — §2.5 never said WHEN the ratification happens
+
+§2.5 says a ratified resolution steers the modeler by name. It does not say at which point in
+the run a human gets to ratify, and the build filled that silence with the only checkpoint
+that existed: the ADR-0006 sign-off gate. That gate runs after `source_mapper` — after
+modelling, code generation and validation — so a decision made there cannot reach the modeler
+it is about, and nothing carried it into a later run. The steering path was therefore
+unreachable end-to-end. Recorded in `docs/log.md`, 2026-08-01.
+
+**§2.5 is amended:** ratification happens at its own checkpoint, between `entity_resolver` and
+`dv2_modeler`. The pause is conditional — an undecided merge or same-as candidate must be
+waiting — so greenfield, ungrounded and NEW/unresolved-only runs are unaffected, and §4's
+acceptance criterion 4 (byte-identity) still holds. The decision payload is unchanged:
+`resume --resolve` / `--resolutions` / `--accept` mean the same thing at either checkpoint.
+
+What this does NOT settle: whether a ratified decision should also persist beside the model
+(`metadata/resolutions.yml`) so a *later* increment is steered without re-asking. That is the
+WP33 problem one level up, it is a separate architectural decision, and it is deliberately
+left open here rather than assumed.

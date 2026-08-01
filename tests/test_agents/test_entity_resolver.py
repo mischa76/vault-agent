@@ -16,7 +16,9 @@ import pytest
 
 from vault_agent.agents.entity_resolver import (
     EntityResolverAgent,
+    ResolutionCheckpointAgent,
     merge_decisions,
+    pending_resolution_decisions,
     render_resolution_prompt_section,
 )
 from vault_agent.agents.orchestrator import (
@@ -343,3 +345,138 @@ def test_the_payload_carries_the_inventory_the_schema_and_the_keys() -> None:
     assert "hub_customer" in payload  # the inventory to resolve against
     assert "crm_contact" in payload  # the new source
     assert key in payload  # the identity the answer must be keyed by
+
+
+# --- 8. The resolution checkpoint (§2.5 addendum, 2026-08-01) -----------------------------
+#
+# Ratification has to happen between the proposal and the modelling or it cannot steer
+# anything: the sign-off checkpoint runs after source_mapper, long past the modeler whose
+# output the decision is about. These pin the pause condition, the inertness around it, and
+# the end-to-end chain the WP was missing — propose, pause, ratify, steered modeler.
+
+def _proposed(resolution: str, **kwargs: Any) -> ResolutionProposal:
+    return ResolutionProposal(concept=concept_key("customer_id", "crm_contact"),
+                              resolution=resolution, **kwargs)
+
+
+@pytest.mark.parametrize(
+    ("proposal", "pending"),
+    [
+        (_proposed("hub_customer"), True),  # a merge: the unsafe direction
+        (_proposed(RESOLUTION_SAME_AS, same_as="hub_customer"), True),
+        (_proposed(RESOLUTION_NEW), False),  # what an unsteered modeler does anyway
+        (_proposed(RESOLUTION_UNRESOLVED), False),  # no answer to ratify
+        (_proposed("hub_customer", ratification_status="accepted"), False),  # already decided
+        (_proposed("hub_customer", ratification_status="overridden"), False),
+    ],
+)
+def test_only_undecided_merges_and_same_as_stop_the_run(
+    proposal: ResolutionProposal, pending: bool
+) -> None:
+    assert bool(pending_resolution_decisions(EntityResolution(proposals=[proposal]))) is pending
+
+
+def test_the_checkpoint_is_inert_when_there_is_nothing_to_decide() -> None:
+    """Greenfield and NEW-only runs must not gain a pause, a decision or any state change."""
+    state = _state(resolutions=EntityResolution(proposals=[_proposed(RESOLUTION_NEW)]))
+
+    result = asyncio.run(ResolutionCheckpointAgent().run(state))
+
+    assert result.decisions == []
+    assert result.resolutions.proposals[0].ratification_status == "proposed"
+
+
+def _checkpoint_graph() -> Any:
+    """The real resolver checkpoint in a graph, with everything else stubbed out."""
+    from vault_agent.agents.base import BaseAgent
+    from vault_agent.graph import NODES, build_graph
+
+    class _Stub(BaseAgent):
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+        async def run(self, state: VaultAgentState) -> VaultAgentState:
+            if self.name == "dv2_modeler":
+                state.modeling_attempts += 1
+                # What the real modeler reads: record it so the test can assert steering.
+                state.decisions.append(
+                    {"agent": self.name,
+                     "prompt": render_resolution_prompt_section(state.resolutions)}
+                )
+                return state
+            state.decisions.append({"agent": self.name})
+            return state
+
+    agents: dict[str, BaseAgent] = {name: _Stub(name) for name in NODES}
+    agents["resolution_checkpoint"] = ResolutionCheckpointAgent()
+    return build_graph(agents)
+
+
+def _modeler_prompt(result: dict[str, Any]) -> str:
+    state = VaultAgentState.model_validate(
+        {k: v for k, v in result.items() if k != "__interrupt__"}
+    )
+    return next(
+        (d["prompt"] for d in state.decisions if d["agent"] == "dv2_modeler"), ""
+    )
+
+
+def test_a_proposed_merge_pauses_the_run_before_the_modeler() -> None:
+    """The pause is the whole point: stopping AFTER modelling cannot change the model."""
+    from langgraph.checkpoint.memory import MemorySaver
+
+    compiled = _checkpoint_graph().compile(checkpointer=MemorySaver())
+    config = {"configurable": {"thread_id": "t1"}}
+    state = _state(existing_model=_existing(),
+                   resolutions=EntityResolution(proposals=[_proposed("hub_customer")]))
+
+    result = asyncio.run(compiled.ainvoke(state, config=config))
+
+    assert "__interrupt__" in result
+    agents_run = [d["agent"] for d in VaultAgentState.model_validate(
+        {k: v for k, v in result.items() if k != "__interrupt__"}).decisions]
+    assert "dv2_modeler" not in agents_run  # stopped BEFORE the decision would be irreversible
+
+
+@pytest.mark.parametrize(
+    ("decision", "expect_in_prompt"),
+    [
+        # --accept ratifies the proposal as it stands, and the modeler is told to reuse it.
+        ({"accept": True, "resolutions": {}}, True),
+        # --resolve "<concept>=NEW" rejects the merge; nothing steers the modeler.
+        ({"accept": False,
+          "resolutions": {concept_key("customer_id", "crm_contact"): RESOLUTION_NEW}}, False),
+    ],
+)
+def test_the_ratification_reaches_the_modeler_in_the_same_run(
+    decision: dict[str, Any], expect_in_prompt: bool
+) -> None:
+    """The chain WP29 was missing end-to-end: propose -> pause -> ratify -> steered modeler."""
+    from langgraph.checkpoint.memory import MemorySaver
+    from langgraph.types import Command
+
+    compiled = _checkpoint_graph().compile(checkpointer=MemorySaver())
+    config = {"configurable": {"thread_id": "t2"}}
+    state = _state(existing_model=_existing(),
+                   resolutions=EntityResolution(proposals=[_proposed("hub_customer")]))
+
+    asyncio.run(compiled.ainvoke(state, config=config))
+    result = asyncio.run(compiled.ainvoke(Command(resume=decision), config=config))
+
+    assert ("hub_customer" in _modeler_prompt(result)) is expect_in_prompt
+
+
+def test_a_rejected_merge_is_not_re_asked_after_the_resume() -> None:
+    """The node re-executes on resume; a decided proposal must not pause the run again."""
+    from langgraph.checkpoint.memory import MemorySaver
+    from langgraph.types import Command
+
+    compiled = _checkpoint_graph().compile(checkpointer=MemorySaver())
+    config = {"configurable": {"thread_id": "t3"}}
+    state = _state(existing_model=_existing(),
+                   resolutions=EntityResolution(proposals=[_proposed("hub_customer")]))
+
+    asyncio.run(compiled.ainvoke(state, config=config))
+    result = asyncio.run(compiled.ainvoke(Command(resume={"accept": True}), config=config))
+
+    assert "__interrupt__" not in result

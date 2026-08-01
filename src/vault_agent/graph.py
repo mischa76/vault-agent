@@ -20,7 +20,7 @@ from vault_agent.agents.business_key_identifier import BusinessKeyIdentifierAgen
 from vault_agent.agents.code_generator import CodeGeneratorAgent
 from vault_agent.agents.data_contract import DataContractAgent
 from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
-from vault_agent.agents.entity_resolver import EntityResolverAgent
+from vault_agent.agents.entity_resolver import EntityResolverAgent, ResolutionCheckpointAgent
 from vault_agent.agents.orchestrator import HumanCheckpointAgent, OrchestratorAgent
 from vault_agent.agents.requirements_parser import RequirementsParserAgent
 from vault_agent.agents.source_mapper import SourceMapperAgent
@@ -44,6 +44,12 @@ PIPELINE: list[str] = [
     # name and the decision is already made — so "is this new PARTNER the existing
     # hub_customer?" has to be proposed, and ratifiable, before modelling.
     "entity_resolver",
+    # WP29 §2.5 addendum (2026-08-01): ratification has to happen HERE, between the proposal
+    # and the modelling, or it cannot steer anything. The sign-off checkpoint runs after
+    # source_mapper — far past the modeler whose output the decision is about — so with it as
+    # the only gate the steering path was unreachable end-to-end. Inert (no pause, no state
+    # change) unless a merge or same-as candidate is actually waiting for an answer.
+    "resolution_checkpoint",
     "dv2_modeler",
     "code_generator",
     "validator",
@@ -102,6 +108,7 @@ def default_agents() -> dict[str, BaseAgent]:
         "business_key_identifier": BusinessKeyIdentifierAgent(),
         "data_contract": DataContractAgent(),
         "entity_resolver": EntityResolverAgent(),
+        "resolution_checkpoint": ResolutionCheckpointAgent(),
         "dv2_modeler": Dv2ModelerAgent(),
         "code_generator": CodeGeneratorAgent(),
         "validator": ValidatorAgent(),

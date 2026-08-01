@@ -2218,3 +2218,55 @@ clean (45 files). Two `tests/test_cli.py` pins were updated deliberately for the
 **Open:** the §4 live acceptance runs — `false_merge_rate` 1.000 over ≥5 repeats, trap 5
 reproducing `unresolved`, and the blinded probe showing accuracy falling while the merge rate
 holds.
+
+## [2026-08-01] WP29's steering path was unreachable — the checkpoint sat past the decision
+
+Yesterday's entry closes with "a first run proposes, the human ratifies, and a subsequent run
+is steered." Nothing implemented the second half. `render_resolution_prompt_section` returns
+`''` for anything still `proposed`, and the only place a ratification could happen was the
+sign-off checkpoint — which `graph.py` runs after `source_mapper`, i.e. after modelling, code
+generation and validation. A decision made there cannot affect the model it is about, and no
+later run read it back: `--existing` loads `metadata/dv_model.yml` and nothing else, and
+`eval/run.py: run_chain_once` passes only that file between chain steps. So the function
+returned `''` on **every reachable path**. The mechanism was built, tested and dead.
+
+The defect is not in the code that was written; it is in a sentence the spec never wrote.
+WP29 §2.5 says a ratified resolution steers the modeler by name and does not say *when* the
+ratification happens. Both halves were then built correctly against their own half of that
+sentence, and the gap between them was invisible to 748 passing tests, because every test
+supplied the ratified state directly instead of arriving at it through the graph.
+
+**The fix is a second `interrupt()`**, between `entity_resolver` and `dv2_modeler`
+(`ResolutionCheckpointAgent`). Ratifying there is what makes the decision able to change the
+model, within one run and one resume rather than two paid runs. It is inert unless an
+undecided merge or same-as candidate is actually waiting — `NEW` needs no answer and
+`unresolved` carries none to ratify, so greenfield, ungrounded and NEW-only runs gain no
+pause, no decision record and no artifact change (`test_greenfield_inertness.py` unmoved).
+Everything above the `interrupt()` is a pure filter over state, which matters more here than
+at sign-off: the resolver's paid model call sits in the *previous* node, and a resume
+re-executes only this one.
+
+Three consequences worth recording because none of them is obvious from the change:
+
+- **`eval/run.py` answered exactly one interrupt.** With two checkpoints it would have left
+  every brownfield run parked at sign-off and scored a half-finished state as the outcome. It
+  now resumes in a bounded loop. This is the change that unblocks the WP30 arm comparison —
+  arm B's chain can now propose, ratify and model within one step.
+- **`accept: True` grew teeth.** At the resolution pause it ratifies every proposed merge, so
+  an unattended eval run models the resolver's proposals as though a human agreed. That is the
+  configuration the arm comparison is about, and it is *not* the product's posture — recorded
+  at `AUTO_RESUME_DECISION` so a later reader does not mistake one for the other.
+- **A pause before modelling is not a failed model.** `_exit_unvalidated` reads
+  `validation_report.passed`, still `False` by default at that point, and would have exited 3
+  claiming the model failed after three attempts. Guarded on `modeling_attempts == 0`, which
+  is true on exactly that path.
+
+The interactive path gets its own prompt: the sign-off confirm reads "Accept and finalize?",
+and answering yes to that at a resolution pause would have ratified a merge into live history
+behind a question about finishing a run. The CLI tells the two pauses apart on typed state
+(`modeling_attempts` plus pending decisions), never on where it thinks it is.
+
+**Verified keyless:** 763 tests green (+15), ruff clean, mypy strict clean (45 files). The new guards were
+mutation-checked — moving the checkpoint back behind the modeler fails exactly the two tests
+that assert the ordering and the steering, and nothing else. **Not verified:** anything live.
+WP29 §4's acceptance runs are still open, and the arm comparison is now unblocked but not run.

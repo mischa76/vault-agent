@@ -138,8 +138,9 @@ several times, most recently for brownfield additivity. Details and dates: `docs
   the one agent that cannot split its output, so its budget is the only lever there.
 - **WP30's arm comparison is open.** Both arms have one repeat each, taken before WP33; the
   domain-partitioning hypothesis is not yet answered.
-- **WP29 is partially built** — deterministic core only; agent, graph wiring, ratification file
-  and CLI are not.
+- **WP29 is built but unmeasured.** Agent, both checkpoints, ratification file and CLI landed;
+  §4's live acceptance (`false_merge_rate` 1.000 over ≥5 repeats, trap 5, the blinded probe) has
+  not been run, so nothing about the resolver's *behaviour* is verified on this codebase.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 
 ## How this file is maintained

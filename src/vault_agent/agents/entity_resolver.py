@@ -30,7 +30,10 @@ import json
 import logging
 from typing import Any, Protocol, cast
 
+from langgraph.types import interrupt
+
 from vault_agent.agents.base import BaseAgent
+from vault_agent.agents.orchestrator import apply_resolution_decision
 from vault_agent.llm import call_with_truncation_split
 from vault_agent.rules.dv2_rules import normalize_identifier, resolution_category
 from vault_agent.state import (
@@ -177,16 +180,42 @@ def _inventory(existing: DVModel) -> list[dict[str, Any]]:
     return items
 
 
+def pending_resolution_decisions(resolutions: EntityResolution) -> list[ResolutionProposal]:
+    """The proposals a human must decide BEFORE modelling — undecided merges and same-as.
+
+    A merge is the unsafe direction (it writes foreign business keys into a hub holding live
+    history) and a same-as candidate is the deferred-equivalence case; both change what the
+    modeler should emit, so both are worth stopping for. ``NEW`` needs no answer — it is what
+    an unsteered modeler does anyway — and ``unresolved`` carries no answer to ratify, so
+    neither triggers a stop. Both still reach the sign-off review queue as advisory items,
+    exactly as before, and the review file written at the pause lists every proposal, so a
+    human who wants to decide an ``unresolved`` one in the same edit can.
+
+    Pure, and evaluated identically on the resume re-execution — which is what makes it safe
+    to call above :func:`ResolutionCheckpointAgent.run`'s ``interrupt()``."""
+    return [
+        p
+        for p in resolutions.proposals
+        if p.ratification_status == "proposed"
+        and (p.is_merge or p.resolution == RESOLUTION_SAME_AS)
+    ]
+
+
 def render_resolution_prompt_section(resolutions: EntityResolution) -> str:
     """Render RATIFIED resolutions as a modeler prompt section; ``''`` when there are none.
 
     Returning ``''`` unless a human has ratified something is the safety property, not a
     formality: an unratified proposal must never steer the modeler, because the modeler naming
     an existing construct is exactly what makes WP23's ``merge_models`` fold it — i.e. the
-    merge would happen without anyone agreeing to it. A first run therefore proposes; the
-    human ratifies (``resume --resolve`` / the review file / ``--accept``); a subsequent run
-    is steered. That mirrors WP10's ratified multi-source hub, whose regeneration is likewise
-    a fresh run rather than an in-place resume rewrite.
+    merge would happen without anyone agreeing to it.
+
+    The ratification reaches this function via :class:`ResolutionCheckpointAgent`, which
+    pauses the graph between the resolver and the modeler. The original WP29 build had no such
+    pause and assumed "a first run proposes, a subsequent run is steered" — which nothing
+    implemented: the sign-off checkpoint sits after ``source_mapper``, so it ratifies only
+    after this run's modeler is long done, and no later run read the ratification back. This
+    function therefore returned ``''`` on every reachable path (defect and fix recorded in
+    ``docs/log.md``, 2026-08-01).
 
     It also keeps the prompt byte-identical for greenfield, ungrounded and first runs, so the
     WP16 steering fixture and prompt caching are untouched."""
@@ -451,3 +480,57 @@ class EntityResolverAgent(BaseAgent):
                 kind=FlagKind.RESOLUTION_SAME_AS,
                 asset=concept.key,
             )
+
+
+class ResolutionCheckpointAgent(BaseAgent):
+    """Pauses between the resolver and the modeler so a ratification can still steer it.
+
+    It sits in this file rather than its own because it has no prompt and no model call: it is
+    the second half of WP29's mechanism, and the pause condition
+    (:func:`pending_resolution_decisions`) belongs beside the proposals it reads — the same
+    reason ``HumanCheckpointAgent`` rides with the orchestrator.
+
+    **Why a second checkpoint exists at all.** Only a ratified resolution steers the modeler,
+    and the sign-off checkpoint runs after ``source_mapper`` — i.e. after modelling, code
+    generation and validation. A ratification made there can no longer affect the model it was
+    about, and nothing carried it into a later run, so the steering path was unreachable
+    end-to-end. Ratifying HERE is what closes it, within one run and one resume.
+
+    **Inert unless there is something to decide.** No pending merge or same-as candidate means
+    no pause and no state change — greenfield, ungrounded and NEW/unresolved-only runs are
+    untouched, which is what keeps ``test_greenfield_inertness.py`` byte-identical.
+
+    Everything above ``interrupt()`` must stay pure/idempotent: on resume the node re-executes
+    from the top, so the pause condition is computed a second time. It is a pure filter over
+    state, so that is safe — and deliberately so, since the resolver's paid model call sits in
+    the PREVIOUS node and must never be re-run by a resume."""
+
+    async def run(self, state: VaultAgentState) -> VaultAgentState:
+        pending = pending_resolution_decisions(state.resolutions)
+        if not pending:
+            return state
+
+        logger.info("resolution checkpoint: %d proposal(s) await a decision", len(pending))
+        # No state mutation above this line — see the class docstring.
+        decision = interrupt(
+            {
+                "checkpoint": "resolution",
+                "pending": [p.model_dump() for p in pending],
+                "instructions": (
+                    "Decide these before the model is built: resume with "
+                    "vault-agent resume --resolve \"<concept>=<construct>\", an edited "
+                    "resolutions.review.yml via --resolutions, or --accept to ratify them "
+                    "as proposed."
+                ),
+            }
+        )
+        decided = apply_resolution_decision(state, decision)
+        state.decisions.append(
+            {
+                "agent": "resolution_checkpoint",
+                "pending": len(pending),
+                "decided": len(decided),
+                "steering": len(pending_resolution_decisions(state.resolutions)) < len(pending),
+            }
+        )
+        return state
