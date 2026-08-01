@@ -549,3 +549,20 @@ as a verdict.
 ceiling rather than the $35-50 estimated in §7.3. Plan accordingly: one repeat of each arm
 first (≈ $20), read it against the predictions above, and only then decide whether the
 remaining repeats buy anything. The WP13 §4 abort discipline governs.
+
+**Correction to Prediction 4, written while arm A was still running and before any new number
+existed.** As formalised above, P4 is near-vacuous: the hub gap between the arms was already 1
+(43 vs 42), so "moves toward arm A" is satisfied by almost any outcome and would have been
+reported as a hit having measured nothing. Recorded rather than quietly rewritten.
+
+The sharper quantity, and the one to read instead: **the link deficit, 36 against 53.** Arm B
+built two thirds of arm A's links from the same landscape. Links are where cross-domain
+relationships live, and they are precisely what a domain-by-domain walk is most likely to miss —
+a relationship spanning Sales and Person can only be modelled once both exist. If domain
+partitioning has a structural cost, this is where it shows, not in the hub count. No direction
+is predicted for it here, because the resolver's effect on it is genuinely unknown; it is named
+now so that whatever it does is read as a result rather than found afterwards.
+
+Secondary, diagnostic rather than predictive: whether `entity_resolver` fired at all in the
+chain, how many merges it proposed, and how many `accept: True` ratified. That is the
+resolver's first live data and is read from the traces, not scored.
