@@ -2482,3 +2482,51 @@ measurement needs.
 781 tests green (+14), ruff clean, mypy strict clean. **What remains is paid and pending:** the
 §4 runs themselves — 5 clean plus 5 blinded repeats, estimated $16-26 against the ~$20-40 left
 under the WP30 §6 ceiling — and they run only on an explicit go.
+
+## [2026-08-01] Correction: §4 was NOT "only money" — the first live probe says so
+
+The entry above closes with "what remains is paid and pending". One repeat
+(13 calls, ~$0.60) disproves it, and the probe was run alone precisely so that a wiring defect
+would not be paid for five times. It found one, and it found something better.
+
+**The resolver answered all seven traps correctly, on its first live run against a golden that
+predates it.** Including trap 5 — the `undecidable` case the spike memo criticised the first
+run for never being offered:
+
+```
+partner::partn_nr          -> hub_customer        (TRAP 1 synonym hub)        correct
+contact_person::kontakt_id -> NEW                 (TRAP 2 false friend)       correct
+contract_partner::vp_nummer-> NEW                 (TRAP 3 similar name)       correct
+crm_customer::crm_guid     -> same_as_candidate   (TRAP 4 same-as)            correct
+account::konto_nr          -> hub_account         (CONTROL easy synonym)      correct
+contract::vertrag_nr       -> NEW                 (CONTROL plain new)         correct
+legacy_holding::alt_nr     -> unresolved          (TRAP 5 undecidable)        correct
+```
+
+**And the scorer sees none of it, because the fix committed an hour earlier is right in the
+column half and wrong in the table half.** The pipeline's concept key carries the *business*
+entity the requirements name — `partner`, `legacy_holding` — not the physical table
+(`vic_partner`, `vic_migration_altbestand`). The column half matches exactly, every time; the
+table half never does, because the entity-to-table binding is produced by the source mapper,
+which runs LATER in the graph than the resolver. There is no physical table in the concept at
+the moment the resolver speaks. `false_merge_rate` therefore came back vacuous, and the WP18
+machinery did its job: `GATE UNSATISFIABLE`, exit 1, no vacuous 1.0 recorded as a pass.
+
+Two things that must not be lost when this is fixed:
+
+- **The one "correct" answer in `resolution_accuracy` 0.143 is a false positive.** With no
+  match, the scorer treats the answer as `unresolved` — and trap 5's expected answer *is*
+  `unresolved`, so it scored as right having measured nothing. A matching scheme that cannot
+  distinguish "answered unresolved" from "not found" will keep manufacturing that.
+- **A possible false merge sits outside the golden.** The pipeline also answered for the xref
+  table: `migration_assignment::crm_guid -> hub_customer`. Writing CRM GUIDs into the customer
+  hub is the dangerous direction, and the golden has no entry for `crm_xref_partner`, so under
+  the out-of-universe rule committed today it would pass unexamined. Whether the golden should
+  cover the xref is a change to the MEASURE, not to the mechanism, and is left for the human.
+
+Column-only matching is the obvious next move and is not obviously safe: `crm_guid` and
+`partn_nr` each appear twice in this run's proposals. Not decided here.
+
+So §4's status is: **the mechanism looks good and is not yet measurable.** Seven-for-seven is
+one repeat, unscored, and read off a trace by hand — it is a reason to finish the instrument,
+not a result.
