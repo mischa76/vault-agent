@@ -1,0 +1,275 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1684 1064" role="img" aria-labelledby="t d">
+<title id="t">vault-agent Referenzarchitektur, Brownfield-Szenario</title>
+<desc id="d">Pipeline von Quelle bis Raw-Vault-Zielmodell: 12 nummerierte Stationen mit Agent, Tech-Stack und Brownfield-Beispielen.</desc>
+<defs><marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#0E7490"/></marker><marker id="arrO" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M0,0 L8,4.5 L0,9 z" fill="#EA580C"/></marker></defs>
+<rect x="0" y="0" width="1684" height="1064" rx="0" fill="#FFFFFF" stroke="none" stroke-width="1"/>
+<text x="24" y="46" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="30" fill="#155E75" font-weight="bold" font-style="normal" text-anchor="start" letter-spacing="1">VAULT-AGENT</text>
+<text x="310" y="46" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="22" fill="#1E293B" font-weight="600" font-style="normal" text-anchor="start">Referenzarchitektur · Brownfield-Szenario</text>
+<text x="24" y="72" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#64748B" font-weight="normal" font-style="normal" text-anchor="start">Datenstrom von der Quelle bis zum Raw-Vault-Zielmodell — Agenten, Tech-Stack und konkrete Ausprägungen aus den Live-Läufen (AdventureWorks-Kette, WP30 Arm B)</text>
+<line x1="24" y1="86" x2="1660" y2="86" stroke="#CBD5E1" stroke-width="1"/>
+<rect x="20" y="112" width="202" height="476" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1.5"/>
+<text x="34" y="138" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="14" fill="#155E75" font-weight="bold" font-style="normal" text-anchor="start" letter-spacing="1">QUELLEN</text>
+<rect x="32" y="156" width="178" height="70" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<text x="44" y="176" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="11" fill="#0E7490" font-weight="bold" font-style="normal" text-anchor="start">A</text>
+<text x="60" y="176" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="11.5" fill="#1E293B" font-weight="600" font-style="normal" text-anchor="start">Requirements (BRD)</text>
+<text x="44" y="194" font-family="Consolas, Menlo, monospace" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">requirements.md</text>
+<text x="44" y="209" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">vom Fachbereich</text>
+<rect x="32" y="238" width="178" height="85" rx="6" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<text x="44" y="258" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="11" fill="#0E7490" font-weight="bold" font-style="normal" text-anchor="start">B</text>
+<text x="60" y="258" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="11.5" fill="#1E293B" font-weight="600" font-style="normal" text-anchor="start">Quellschema, deklariert</text>
+<text x="44" y="276" font-family="Consolas, Menlo, monospace" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">source_schema.yml</text>
+<text x="44" y="291" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">z.B. Purchasing:</text>
+<text x="44" y="306" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">5 Tabellen, 49 Spalten</text>
+<rect x="32" y="335" width="178" height="85" rx="6" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.2"/>
+<text x="44" y="355" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="11" fill="#EA580C" font-weight="bold" font-style="normal" text-anchor="start">C</text>
+<text x="60" y="355" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="11.5" fill="#1E293B" font-weight="600" font-style="normal" text-anchor="start">Bestehender Raw Vault</text>
+<text x="44" y="373" font-family="Consolas, Menlo, monospace" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">metadata/dv_model.yml</text>
+<text x="44" y="388" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">hub_customer, hub_account ...</text>
+<text x="44" y="403" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">geladen via run --existing</text>
+<text x="34" y="448" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#EA580C" font-weight="normal" font-style="italic" text-anchor="start">nur Brownfield</text>
+<rect x="250" y="112" width="220" height="200" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<rect x="250" y="112" width="220" height="5" rx="2.5" fill="#0E7490"/>
+<circle cx="271" cy="137" r="12" fill="#0E7490"/>
+<text x="271" y="141.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">1</text>
+<text x="290" y="141" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Orchestrator</text>
+<text x="262" y="164" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">plant Stages, führt den</text>
+<text x="262" y="178" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">LangGraph-State (1 pydantic-</text>
+<text x="262" y="192" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Modell, Agenten = Felder)</text>
+<rect x="262" y="208" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="360.0" y="220" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">LangGraph · Checkpointing</text>
+<rect x="262" y="232" width="196" height="74" rx="6" fill="#F1F5F9" stroke="none" stroke-width="1"/>
+<text x="270" y="248" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#94A3B8" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<text x="270" y="261" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">run --existing lädt den</text>
+<text x="270" y="273.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">bestehenden Vault in den</text>
+<text x="270" y="286.0" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">State (brownfield aktiv)</text>
+<rect x="487" y="112" width="220" height="200" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<rect x="487" y="112" width="220" height="5" rx="2.5" fill="#0E7490"/>
+<circle cx="508" cy="137" r="12" fill="#0E7490"/>
+<text x="508" y="141.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">2</text>
+<text x="527" y="141" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Requirements Parser</text>
+<text x="499" y="164" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">BRD zu strukturierten</text>
+<text x="499" y="178" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Anforderungen &amp; Entitäten</text>
+<rect x="499" y="208" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="597.0" y="220" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">Claude Sonnet · Forced Tool</text>
+<rect x="499" y="232" width="196" height="74" rx="6" fill="#F1F5F9" stroke="none" stroke-width="1"/>
+<text x="507" y="248" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#94A3B8" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<text x="507" y="261" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">Purchasing-BRD wird zu</text>
+<text x="507" y="273.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">Vendor, PurchaseOrder,</text>
+<text x="507" y="286.0" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">Product, ShipMethod</text>
+<rect x="724" y="112" width="220" height="200" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<rect x="724" y="112" width="220" height="5" rx="2.5" fill="#0E7490"/>
+<circle cx="745" cy="137" r="12" fill="#0E7490"/>
+<text x="745" y="141.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">3</text>
+<text x="764" y="141" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Business Keys</text>
+<text x="736" y="164" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">fachliche Schlüssel je</text>
+<text x="736" y="178" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Entität identifizieren</text>
+<rect x="736" y="208" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="834.0" y="220" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">Claude Sonnet</text>
+<rect x="736" y="232" width="196" height="74" rx="6" fill="#F1F5F9" stroke="none" stroke-width="1"/>
+<text x="744" y="248" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#94A3B8" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<text x="744" y="261" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">ProductID, VendorID —</text>
+<text x="744" y="273.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">rowguid NICHT gebunden</text>
+<text x="744" y="286.0" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">(False-Friend, 5/5 Areas)</text>
+<rect x="961" y="112" width="220" height="200" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<rect x="961" y="112" width="220" height="5" rx="2.5" fill="#0E7490"/>
+<circle cx="982" cy="137" r="12" fill="#0E7490"/>
+<text x="982" y="141.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">4</text>
+<text x="1001" y="141" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Data Contracts</text>
+<text x="973" y="164" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Kontrakt je Quelltabelle;</text>
+<text x="973" y="178" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Staging liest die Kontrakte</text>
+<text x="973" y="192" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">(vor dem Modeler, loop-frei)</text>
+<rect x="973" y="208" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="1071.0" y="220" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">Sonnet · Enrichment parallel</text>
+<rect x="973" y="232" width="196" height="74" rx="6" fill="#F1F5F9" stroke="none" stroke-width="1"/>
+<text x="981" y="248" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#94A3B8" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<text x="981" y="261" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">Contract ProductVendor:</text>
+<text x="981" y="273.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">Spalten, Typen, Constraints</text>
+<rect x="1198" y="112" width="220" height="200" rx="10" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.6"/>
+<rect x="1198" y="112" width="220" height="5" rx="2.5" fill="#EA580C"/>
+<circle cx="1219" cy="137" r="12" fill="#EA580C"/>
+<text x="1219" y="141.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">5</text>
+<text x="1238" y="141" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Entity Resolver</text>
+<text x="1210" y="164" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">neues Konzept = bestehender</text>
+<text x="1210" y="178" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Hub? Kategorie abgeleitet,</text>
+<text x="1210" y="192" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">nie selbst-gemeldet</text>
+<rect x="1210" y="208" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="1308.0" y="220" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">Sonnet · 1 Forced-Tool-Pass</text>
+<rect x="1210" y="232" width="196" height="74" rx="6" fill="#FFFFFF" stroke="none" stroke-width="1"/>
+<text x="1218" y="248" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#EA580C" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<text x="1218" y="261" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">ProductID -&gt; hub_product</text>
+<text x="1218" y="273.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">(merge, conf 0.55);</text>
+<text x="1218" y="286.0" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">ShipMethod.Name -&gt;</text>
+<text x="1218" y="298.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">unresolved statt geraten</text>
+<rect x="1435" y="112" width="220" height="200" rx="10" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.6"/>
+<rect x="1435" y="112" width="220" height="5" rx="2.5" fill="#EA580C"/>
+<circle cx="1456" cy="137" r="12" fill="#EA580C"/>
+<text x="1456" y="141.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">6</text>
+<text x="1475" y="141" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Resolution-Checkpoint</text>
+<text x="1447" y="164" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">interrupt() VOR dem Modeler;</text>
+<text x="1447" y="178" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">nur Ratifiziertes steuert</text>
+<rect x="1447" y="208" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="1545.0" y="220" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">resume --resolve / --accept</text>
+<rect x="1447" y="232" width="196" height="74" rx="6" fill="#FFFFFF" stroke="none" stroke-width="1"/>
+<text x="1455" y="248" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#EA580C" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<rect x="1597" y="235" width="44" height="16" rx="8" fill="#FFFFFF" stroke="#EA580C" stroke-width="1.2"/>
+<text x="1619" y="246.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9" fill="#EA580C" font-weight="bold" font-style="normal" text-anchor="middle">HITL</text>
+<text x="1455" y="261" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">Merge bestätigt;</text>
+<text x="1455" y="273.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">job_candidate: eigener Hub</text>
+<text x="1455" y="286.0" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">+ same_as-Flag (0.72)</text>
+<rect x="250" y="380" width="220" height="200" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<rect x="250" y="380" width="220" height="5" rx="2.5" fill="#0E7490"/>
+<circle cx="271" cy="405" r="12" fill="#0E7490"/>
+<text x="271" y="409.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">7</text>
+<text x="290" y="409" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">DV2.0 Modeler</text>
+<text x="262" y="432" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Hubs, Links, Satellites;</text>
+<text x="262" y="446" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">ratifizierte Namen werden</text>
+<text x="262" y="460" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">wiederverwendet</text>
+<rect x="262" y="476" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="360.0" y="488" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">Claude Opus · Budget-Hebel</text>
+<rect x="262" y="500" width="196" height="74" rx="6" fill="#F1F5F9" stroke="none" stroke-width="1"/>
+<text x="270" y="516" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#94A3B8" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<text x="270" y="529" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">hub_business_entity</text>
+<text x="270" y="541.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">erweitert statt dupliziert</text>
+<rect x="487" y="380" width="220" height="200" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<rect x="487" y="380" width="220" height="5" rx="2.5" fill="#0E7490"/>
+<circle cx="508" cy="405" r="12" fill="#0E7490"/>
+<text x="508" y="409.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">8</text>
+<text x="527" y="409" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Code Generator</text>
+<text x="499" y="432" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">dbt-Projekt aus dem Modell;</text>
+<text x="499" y="446" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">kein Bypass von AutomateDV</text>
+<rect x="499" y="476" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="597.0" y="488" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">AutomateDV-Makros (t_link!)</text>
+<rect x="499" y="500" width="196" height="74" rx="6" fill="#F1F5F9" stroke="none" stroke-width="1"/>
+<text x="507" y="516" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#94A3B8" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<text x="507" y="529" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">stg_product_vendor,</text>
+<text x="507" y="541.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">hub_/link_/sat_-Modelle</text>
+<rect x="724" y="380" width="220" height="200" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<rect x="724" y="380" width="220" height="5" rx="2.5" fill="#0E7490"/>
+<circle cx="745" cy="405" r="12" fill="#0E7490"/>
+<text x="745" y="409.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">9</text>
+<text x="764" y="409" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Validator</text>
+<text x="736" y="432" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">deterministische E_-Gates;</text>
+<text x="736" y="446" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Fehler -&gt; Re-Model-Loop;</text>
+<text x="736" y="460" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Gates sind Produkt</text>
+<rect x="736" y="476" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="834.0" y="488" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">rules/ · Gates != Backstops</text>
+<rect x="736" y="500" width="196" height="74" rx="6" fill="#F1F5F9" stroke="none" stroke-width="1"/>
+<text x="744" y="516" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#94A3B8" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<text x="744" y="529" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">W_SAT_ATTR_OVERLAP_</text>
+<text x="744" y="541.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">CROSS_SOURCE warnt statt</text>
+<text x="744" y="554.0" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">blockt (ADR-0012)</text>
+<rect x="961" y="380" width="220" height="200" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<rect x="961" y="380" width="220" height="5" rx="2.5" fill="#0E7490"/>
+<circle cx="982" cy="405" r="12" fill="#0E7490"/>
+<text x="982" y="409.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">10</text>
+<text x="1001" y="409" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Source Mapper</text>
+<text x="973" y="432" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">bindet Staging an echte</text>
+<text x="973" y="446" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Quellrelationen; Konzept =</text>
+<text x="973" y="460" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">(Label, Entität)</text>
+<rect x="973" y="476" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="1071.0" y="488" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">Sonnet · Truncation-Split</text>
+<rect x="973" y="500" width="196" height="74" rx="6" fill="#F1F5F9" stroke="none" stroke-width="1"/>
+<text x="981" y="516" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#94A3B8" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<text x="981" y="529" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">hub_address_type &lt;-</text>
+<text x="981" y="541.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">AddressType, nicht</text>
+<text x="981" y="554.0" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">PhoneNumberType (WP32)</text>
+<rect x="1198" y="380" width="220" height="200" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<rect x="1198" y="380" width="220" height="5" rx="2.5" fill="#0E7490"/>
+<circle cx="1219" cy="405" r="12" fill="#0E7490"/>
+<text x="1219" y="409.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">11</text>
+<text x="1238" y="409" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Sign-off-Checkpoint</text>
+<text x="1210" y="432" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Review-Queue, Owner,</text>
+<text x="1210" y="446" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">Mappings; requires_signoff</text>
+<rect x="1210" y="476" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="1308.0" y="488" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">ADR-0006 · interrupt()</text>
+<rect x="1210" y="500" width="196" height="74" rx="6" fill="#F1F5F9" stroke="none" stroke-width="1"/>
+<text x="1218" y="516" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#94A3B8" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<rect x="1360" y="503" width="44" height="16" rx="8" fill="#FFFFFF" stroke="#EA580C" stroke-width="1.2"/>
+<text x="1382" y="514.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9" fill="#EA580C" font-weight="bold" font-style="normal" text-anchor="middle">HITL</text>
+<text x="1218" y="529" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">RESOLUTION_SAME_AS /</text>
+<text x="1218" y="541.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">_UNRESOLVED als</text>
+<text x="1218" y="554.0" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">Advisory-Items</text>
+<rect x="1435" y="380" width="220" height="200" rx="10" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<rect x="1435" y="380" width="220" height="5" rx="2.5" fill="#0E7490"/>
+<circle cx="1456" cy="405" r="12" fill="#0E7490"/>
+<text x="1456" y="409.5" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#FFFFFF" font-weight="bold" font-style="normal" text-anchor="middle">12</text>
+<text x="1475" y="409" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">ADR Author</text>
+<text x="1447" y="432" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">dokumentiert Modell-</text>
+<text x="1447" y="446" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="start">entscheide als ADR-Entwurf</text>
+<rect x="1447" y="476" width="196" height="17" rx="8" fill="#FFFFFF" stroke="#CBD5E1" stroke-width="1"/>
+<text x="1545.0" y="488" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#155E75" font-weight="600" font-style="normal" text-anchor="middle">Sonnet · Mensch ratifiziert</text>
+<rect x="1447" y="500" width="196" height="74" rx="6" fill="#F1F5F9" stroke="none" stroke-width="1"/>
+<text x="1455" y="516" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#94A3B8" font-weight="bold" font-style="italic" text-anchor="start">Bsp.</text>
+<text x="1455" y="529" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">proposed ADR: Merge</text>
+<text x="1455" y="541.5" font-family="Consolas, Menlo, monospace" font-size="9.8" fill="#475569" font-weight="normal" font-style="italic" text-anchor="start">ProductID -&gt; hub_product</text>
+<line x1="471" y1="212.0" x2="485" y2="212.0" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="708" y1="212.0" x2="722" y2="212.0" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="945" y1="212.0" x2="959" y2="212.0" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="1182" y1="212.0" x2="1196" y2="212.0" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="1419" y1="212.0" x2="1433" y2="212.0" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="222" y1="212.0" x2="246" y2="212.0" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<path d="M 1545.0 312 L 1545.0 346 L 360.0 346 L 360.0 374" fill="none" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="471" y1="480.0" x2="485" y2="480.0" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="708" y1="480.0" x2="722" y2="480.0" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="945" y1="480.0" x2="959" y2="480.0" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="1182" y1="480.0" x2="1196" y2="480.0" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<line x1="1419" y1="480.0" x2="1433" y2="480.0" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<path d="M 834.0 580 L 834.0 606 L 400.0 606 L 400.0 586" fill="none" stroke="#EA580C" stroke-width="2" stroke-dasharray="6 4" marker-end="url(#arrO)"/>
+<text x="627.0" y="622" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#EA580C" font-weight="600" font-style="normal" text-anchor="middle">Re-Model-Loop (max. 3 Versuche)</text>
+<line x1="1545.0" y1="580" x2="1545.0" y2="648" stroke="#0E7490" stroke-width="2" marker-end="url(#arr)"/>
+<rect x="20" y="652" width="1644" height="178" rx="8" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.8"/>
+<text x="36" y="679" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="14" fill="#155E75" font-weight="bold" font-style="normal" text-anchor="start" letter-spacing="1">ZIEL</text>
+<text x="90" y="679" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="11.5" fill="#64748B" font-weight="normal" font-style="normal" text-anchor="start">— lauffähiges dbt-Projekt + Entscheidungsartefakte, additiv: bestehende Konstrukte werden erweitert, nie re-keyed</text>
+<rect x="42" y="694" width="305" height="84" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<text x="56" y="716" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Staging</text>
+<text x="56" y="736" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">stg_* je Quelltabelle,</text>
+<text x="56" y="751" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">Hash-Keys aus Kontrakten</text>
+<rect x="369" y="694" width="305" height="84" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<text x="383" y="716" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Raw Vault</text>
+<text x="383" y="736" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">Hubs / Links / Satellites,</text>
+<text x="383" y="751" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">hub_business_entity erweitert</text>
+<rect x="696" y="694" width="305" height="84" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<text x="710" y="716" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Data Contracts</text>
+<text x="710" y="736" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">je Quelltabelle,</text>
+<text x="710" y="751" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">Staging-Grundlage</text>
+<rect x="1023" y="694" width="305" height="84" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<text x="1037" y="716" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Review-Queue + Report</text>
+<text x="1037" y="736" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">aggregierte Advisory-Items,</text>
+<text x="1037" y="751" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">HTML-Run-Report</text>
+<rect x="1350" y="694" width="305" height="84" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<text x="1364" y="716" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12" fill="#1E293B" font-weight="bold" font-style="normal" text-anchor="start">Proposed ADR + Traces</text>
+<text x="1364" y="736" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">ADR-Entwurf zum Ratifizieren,</text>
+<text x="1364" y="751" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#475569" font-weight="normal" font-style="normal" text-anchor="start">.vault-agent/traces/*.jsonl</text>
+<text x="42" y="804" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="11" fill="#155E75" font-weight="600" font-style="normal" text-anchor="start">Zielplattformen: PostgreSQL (Demo) · Snowflake &amp; MS Fabric (strategisch, DACH) · alles, was AutomateDV unterstützt</text>
+<rect x="20" y="852" width="1644" height="104" rx="8" fill="#F8FAFC" stroke="#CBD5E1" stroke-width="1.2"/>
+<text x="36" y="878" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="12.5" fill="#155E75" font-weight="bold" font-style="normal" text-anchor="start" letter-spacing="0.5">TECH-STACK (Querschnitt)</text>
+<rect x="36" y="888" width="126" height="26" rx="13" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.1"/>
+<text x="99.0" y="905" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="middle">Python 3.12 + uv</text>
+<rect x="174" y="888" width="183" height="26" rx="13" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.1"/>
+<text x="265.5" y="905" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="middle">LangGraph (State-Machine)</text>
+<rect x="369" y="888" width="246" height="26" rx="13" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.1"/>
+<text x="492.0" y="905" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="middle">Claude API: Sonnet / Opus (Modeler)</text>
+<rect x="627" y="888" width="208" height="26" rx="13" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.1"/>
+<text x="731.0" y="905" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="middle">MCP-Tools (typed, idempotent)</text>
+<rect x="847" y="888" width="158" height="26" rx="13" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.1"/>
+<text x="926.0" y="905" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="middle">AutomateDV + dbt Core</text>
+<rect x="36" y="920" width="196" height="26" rx="13" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.1"/>
+<text x="134.0" y="937" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="middle">LangSmith + Traces (.jsonl)</text>
+<rect x="244" y="920" width="164" height="26" rx="13" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.1"/>
+<text x="326.0" y="937" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="middle">Eval-Harness (keyless)</text>
+<rect x="420" y="920" width="196" height="26" rx="13" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.1"/>
+<text x="518.0" y="937" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="middle">pytest · ruff · mypy strict</text>
+<rect x="628" y="920" width="290" height="26" rx="13" fill="#FFFFFF" stroke="#0E7490" stroke-width="1.1"/>
+<text x="773.0" y="937" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#1E293B" font-weight="normal" font-style="normal" text-anchor="middle">Regeln &amp; Gates in rules/, nicht in Prompts</text>
+<line x1="40" y1="973" x2="76" y2="973" stroke="#0E7490" stroke-width="2.5" marker-end="url(#arr)"/>
+<text x="84" y="978" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#64748B" font-weight="normal" font-style="normal" text-anchor="start">Datenfluss</text>
+<line x1="170" y1="973" x2="206" y2="973" stroke="#EA580C" stroke-width="2.5" stroke-dasharray="6 4"/>
+<text x="214" y="978" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#64748B" font-weight="normal" font-style="normal" text-anchor="start">Re-Model-Loop</text>
+<rect x="322" y="962" width="42" height="18" rx="9" fill="#FFFFFF" stroke="#EA580C" stroke-width="1.2"/>
+<text x="343" y="975" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="9.5" fill="#EA580C" font-weight="bold" font-style="normal" text-anchor="middle">HITL</text>
+<text x="372" y="978" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#64748B" font-weight="normal" font-style="normal" text-anchor="start">Human-in-the-Loop-Checkpoint</text>
+<rect x="580" y="962" width="18" height="18" rx="4" fill="#FFF7ED" stroke="#EA580C" stroke-width="1.2"/>
+<text x="606" y="978" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#64748B" font-weight="normal" font-style="normal" text-anchor="start">nur im Brownfield aktiv (sonst inert, byte-identisch)</text>
+<text x="950" y="978" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10.5" fill="#64748B" font-weight="normal" font-style="normal" text-anchor="start">Validator: PASS -&gt; 10 · FAIL -&gt; zurück zu 7 · Cap erreicht -&gt; 11 (unvalidiert, exit 3)</text>
+<text x="40" y="1012" font-family="Segoe UI, Inter, Arial, sans-serif" font-size="10" fill="#94A3B8" font-weight="normal" font-style="normal" text-anchor="start">Stand 2026-08-01 · abgeleitet aus src/vault_agent/graph.py, CLAUDE.md, docs/log.md · Beispiele: AdventureWorks-Brownfield-Kette (WP30 Arm B), brownfield_resolution · eismann.consulting</text>
+</svg>

@@ -45,8 +45,8 @@ __all__ = [
     "ProposedResolution",
     "ResolutionResult",
     "load_golden_resolution",
-    "proposals_by_source",
-    "source_ref",
+    "key_ref",
+    "proposals_by_key",
 ]
 
 # The vocabulary lives in the product; these aliases keep the eval-side names readable.
@@ -79,12 +79,27 @@ class GoldenResolutionSet(BaseModel):
     def by_concept(self) -> dict[str, GoldenResolution]:
         return {entry.concept: entry for entry in self.resolutions}
 
-    def by_source(self) -> dict[tuple[str, str], GoldenResolution]:
-        """Keyed STRUCTURALLY on ``(source_table, source_key)`` — see :func:`source_ref`."""
-        return {
-            (normalize_identifier(e.source_table), normalize_identifier(e.source_key)): e
-            for e in self.resolutions
-        }
+    def by_key(self) -> dict[str, GoldenResolution]:
+        """Keyed on the normalised **business-key column** — the WP29.2 anchor.
+
+        The golden's judgement is about a key's VALUE SPACE, not about a table: "partn_nr is the
+        national customer ID and belongs to hub_customer" holds wherever that column appears.
+        Grounded rather than assumed — every multi-table occurrence in this case is a foreign
+        key to its primary occurrence, and the column comments say so
+        (``vic_kontakt.partn_nr`` "FK auf vic_partner.partn_nr", ``vic_vertrag.vp_nummer``,
+        ``crm_xref_partner.crm_guid``). A foreign key shares its target's value space by
+        definition.
+
+        **When this stops being true**, and the next author must check it: a golden whose
+        ``source_key`` is a GENERIC label — ``name``, ``id``, ``code``. WP24 found exactly that
+        in AdventureWorks, where three unrelated reference tables were keyed on ``Name``, and
+        matching those across tables would fold three concepts into one. This case has no such
+        key; :func:`load_golden_resolution` asserts the keys are distinct, which is the cheap
+        half of the protection. The expensive half — declaring per entry whether the judgement
+        is value-space or table-scoped — is deliberately deferred until a dataset needs it,
+        because a field with one possible value is ceremony, not a safeguard."""
+        return {normalize_identifier(e.source_key): e for e in self.resolutions}
+
 
 
 # One definition, two names: the scorers were written against these, the pipeline emits the
@@ -109,6 +124,21 @@ def load_golden_resolution(path: Path) -> GoldenResolutionSet:
         raise ValueError(f"{path}: not a valid golden resolution set ({exc})") from exc
     if not golden.resolutions:
         raise ValueError(f"{path}: declares no resolutions — nothing to score")
+
+    # WP29.2: the business-key column is the ANCHOR the scorers match on, so it has to identify
+    # an entry uniquely. Enforced at load rather than trusted: a golden that later gains a
+    # colliding key must fail loudly here instead of silently scoring two concepts as one.
+    seen: dict[str, str] = {}
+    for entry in golden.resolutions:
+        key = normalize_identifier(entry.source_key)
+        if key in seen:
+            raise ValueError(
+                f"{path}: source_key {entry.source_key!r} identifies both {seen[key]!r} and "
+                f"{entry.concept!r}. The scorers match on the key column, so it must be unique "
+                f"across the golden — give the two concepts distinct keys, or the case needs "
+                f"table-scoped matching (see GoldenResolutionSet.by_key)"
+            )
+        seen[key] = entry.concept
     known = {c.name for c in golden.existing_constructs}
     for entry in golden.resolutions:
         target = entry.expected
@@ -125,27 +155,31 @@ def load_golden_resolution(path: Path) -> GoldenResolutionSet:
     return golden
 
 
-def source_ref(concept_key: str) -> tuple[str, str]:
-    """``(source_table, source_key)`` from a pipeline concept key, normalised.
+def key_ref(concept_key: str) -> str:
+    """The normalised business-key column from a pipeline concept key (WP29.2 anchor).
 
-    The join the scorers need, and the one that was missing. The pipeline emits
-    ``entity::field`` (``concept_key`` in ``state.py``); the golden carries a free-form
-    ``concept`` label plus the ``source_table`` / ``source_key`` that actually identify the
-    thing. Matching the two on the LABEL matched nothing — and `false_merge_rate` treated an
-    unmatched proposal as an offender, so every correct merge scored as a false one.
+    The pipeline emits ``business_entity::column`` — and the business entity is the name the
+    MODEL gave the concept from the requirements text (``partner``), not the physical table
+    (``vic_partner``). The binding between the two is the source mapper's output, and that node
+    runs AFTER the resolver, so at resolution time no physical table exists to match on.
 
-    This is `.claude/rules/eval.md`'s first rule applied for the fourth time (WP9.2, WP14, the
-    link-name fix): score structure, not free-form names. A model that is right must not score
-    wrong because it, or a golden author, named the concept differently.
-    """
-    field, entity = split_concept_key(concept_key)
-    return normalize_identifier(entity or ""), normalize_identifier(field)
+    Measured on the 2026-08-01 probe: the column half matched 7/7, the table half 0/7. Hence the
+    key column is the join. See :meth:`GoldenResolutionSet.by_key` for the semantic claim this
+    rests on and for when it stops holding."""
+    field, _entity = split_concept_key(concept_key)
+    return normalize_identifier(field)
 
 
-def proposals_by_source(result: ResolutionResult) -> dict[tuple[str, str], ResolutionProposal]:
-    """The mechanism's proposals under the same structural key as :meth:`by_source`.
+def proposals_by_key(
+    result: ResolutionResult,
+) -> dict[str, list[ResolutionProposal]]:
+    """Proposals grouped by key column — a LIST per key, never one winner.
 
-    A free function rather than a method because ``ResolutionResult`` is an alias of the
-    PRODUCT's ``EntityResolution`` (WP29 §2.2) — the eval side does not get to add methods to
-    the type the pipeline emits, and that is the point of the alias."""
-    return {source_ref(p.concept): p for p in result.proposals}
+    Several proposals can concern the same key: the probe answered for both ``crm_kunde`` and
+    the xref table's occurrence of ``crm_guid``, and they disagreed. Collapsing them into a dict
+    would silently drop one of the two — and in that run it would have dropped the false merge,
+    which is the one thing this instrument exists to catch."""
+    grouped: dict[str, list[ResolutionProposal]] = {}
+    for proposal in result.proposals:
+        grouped.setdefault(key_ref(proposal.concept), []).append(proposal)
+    return grouped

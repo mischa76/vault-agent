@@ -1,0 +1,87 @@
+{
+  "account::konto_nr": {
+    "confidence": 0.97,
+    "evidence": [
+      "vic_konto.konto_nr is commented 'Kontonummer / account number.'",
+      "hub_account's documented business key is 'account number'.",
+      "Both the German and English label and the key concept match exactly."
+    ],
+    "resolution": "hub_account"
+  },
+  "contact_person::kontakt_id": {
+    "confidence": 0.95,
+    "evidence": [
+      "kontakt_id is described as a 'Technischer Schlüssel des Ansprechpartners' (technical key of the contact person).",
+      "No existing vault construct models a contact-person or Ansprechpartner entity.",
+      "vic_kontakt carries its own primary key (kontakt_id) plus a FK to vic_partner (partn_nr), confirming it is a distinct entity."
+    ],
+    "resolution": "NEW"
+  },
+  "contract::vertrag_nr": {
+    "confidence": 0.95,
+    "evidence": [
+      "vertrag_nr is described as 'Vertragsnummer' (contract number) — a contract entity.",
+      "No existing vault construct models a contract or Vertrag.",
+      "vic_vertrag has its own primary key and FKs, confirming it is an independent business entity."
+    ],
+    "resolution": "NEW"
+  },
+  "contract_partner::vp_nummer": {
+    "confidence": 0.95,
+    "evidence": [
+      "vp_nummer is explicitly commented: 'Schlüssel des Vertragspartners (nicht identisch mit der Kundennummer)' — not identical to the customer number.",
+      "No existing hub covers a Vertragspartner / contract-partner entity.",
+      "The explicit disclaimer that it differs from the customer number rules out hub_customer."
+    ],
+    "resolution": "NEW"
+  },
+  "crm_customer::crm_guid": {
+    "confidence": 0.88,
+    "evidence": [
+      "crm_xref_partner maps crm_guid ↔ partn_nr and is described as an assignment table maintained by the migration, confirming that crm_kunde and vic_partner describe overlapping real-world customers.",
+      "However, crm_guid is a CRM-internal GUID while hub_customer's business key is the national customer ID (partn_nr) — two different key formats for what is assertedly the same population.",
+      "No mapping of hash keys is given; a merge would push a GUID into a hub keyed on national customer IDs, corrupting existing historised data.",
+      "Resolution: same_as_candidate against hub_customer — requires a cross-reference satellite or bridge table before a merge decision can be made."
+    ],
+    "resolution": "same_as_candidate",
+    "same_as": "hub_customer"
+  },
+  "legacy_holding::alt_nr": {
+    "confidence": 0.35,
+    "evidence": [
+      "alt_nr is described as 'Nummer aus dem Altsystem; Format wie die Kundennummer' — same format as the customer number, but the comment stops short of asserting they are the same population.",
+      "vic_migration_altbestand appears to be a migration staging table for legacy records, not a live business entity.",
+      "Whether alt_nr values belong to hub_customer's population or to a separate legacy population is not stated; no cross-reference is provided.",
+      "Same-format key alone is not sufficient evidence (per governing rules); the honest answer is unresolved pending clarification of whether alt_nr values overlap with national customer IDs in hub_customer."
+    ],
+    "resolution": "unresolved"
+  },
+  "migration_assignment::crm_guid": {
+    "confidence": 0.82,
+    "evidence": [
+      "crm_xref_partner.crm_guid is a FK on crm_kunde.crm_guid — it is not itself a business key of a new entity; it is one side of a cross-reference relation.",
+      "The table crm_xref_partner is an assignment/cross-reference table, not an independent business entity hub.",
+      "This concept represents the CRM-key side of the link between crm_kunde and hub_customer; it should be loaded as part of a cross-reference satellite or non-historised link on hub_customer, not as a new hub.",
+      "Confidence is moderated (not 0.97) because the architectural placement (satellite vs. bridge) still requires a human decision, but the business entity it belongs to is hub_customer."
+    ],
+    "resolution": "hub_customer"
+  },
+  "migration_assignment::partn_nr": {
+    "confidence": 0.97,
+    "evidence": [
+      "crm_xref_partner.partn_nr is explicitly commented: 'Entspricht der nationalen Kundennummer — Zuordnungstabelle' (corresponds to the national customer ID — assignment table).",
+      "This is the same business key as hub_customer; it is the FK side of the cross-reference pointing back to hub_customer.",
+      "No new hub is needed; this key loads as a reference into the existing hub_customer."
+    ],
+    "resolution": "hub_customer"
+  },
+  "partner::partn_nr": {
+    "confidence": 0.97,
+    "evidence": [
+      "Column vic_partner.partn_nr is explicitly commented: 'Nationale Kundennummer / national customer ID, as issued by the core banking system.'",
+      "hub_customer's documented business key is 'national customer ID'.",
+      "The key name, type (varchar), and textual description are an exact match — same identifier, same issuing system."
+    ],
+    "resolution": "hub_customer"
+  }
+}

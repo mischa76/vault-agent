@@ -2530,3 +2530,77 @@ Column-only matching is the obvious next move and is not obviously safe: `crm_gu
 So §4's status is: **the mechanism looks good and is not yet measurable.** Seven-for-seven is
 one repeat, unscored, and read off a trace by hand — it is a reason to finish the instrument,
 not a result.
+
+## [2026-08-06] WP29.2 — the join closes on the key, and the probe turns out to hold a false merge
+
+WP29.1 left `brownfield_resolution` runnable but unscoreable. This closes it, and the closing
+produced a finding that **corrects what I wrote on 2026-08-01**.
+
+**Route B was chosen and then measured, and it cannot work.** The plan was to join the
+resolver's concept to the golden's table through the source mapper's binding
+(`mappings.proposals[].entity`). Checked against all seven traps before writing any of it:
+
+```
+vic_partner::partn_nr        -> hub_customer   mapper binding *** MISSING ***   <- MERGE
+vic_kontakt::kontakt_id      -> NEW            vic_kontakt              ok
+vic_vertragspartner::vp_nummer -> NEW          vic_vertragspartner      ok
+crm_kunde::crm_guid          -> same_as_cand.  crm_kunde                ok
+vic_konto::konto_nr          -> hub_account    mapper binding *** MISSING ***   <- MERGE
+vic_vertrag::vertrag_nr      -> NEW            vic_vertrag              ok
+vic_migration_altbestand::alt_nr -> unresolved vic_migration_altbestand ok
+```
+
+Five of seven bind; **the two that do not are exactly the two merges**, and `false_merge_rate`
+is about nothing else. The reason is structural, not incidental: a concept merged into an
+EXISTING hub produces no new hub, so there is no new concept for the mapper to bind. A merge
+never has a mapper binding, by construction. Route B is blind to precisely the cases the
+instrument exists for.
+
+**Built instead: route C-minimal — the business-key column is the anchor.** The claim it rests
+on is that the golden judges a key's VALUE SPACE, not a table: "partn_nr is the national
+customer ID and belongs to hub_customer" holds wherever that column appears. Grounded rather
+than assumed — every multi-table occurrence in this case is a foreign key to its primary
+occurrence and the column comments say so (`vic_kontakt.partn_nr` "FK auf vic_partner.partn_nr",
+likewise `vic_vertrag.vp_nummer` and `crm_xref_partner.crm_guid`), and a foreign key shares its
+target's value space by definition. `load_golden_resolution` now ASSERTS the keys are distinct,
+so a later colliding entry fails loudly instead of scoring two concepts as one. Where this stops
+holding — a golden keyed on a generic `name`/`id`/`code`, the WP24 shape — is written at
+`by_key()`, along with why the per-entry table-scoped variant is deferred rather than built: a
+field with one possible value is ceremony, not a safeguard.
+
+**And now the correction.** On 2026-08-01 I wrote that the resolver "answered all seven traps
+correctly". That is true and incomplete, and the incompleteness mattered. It answered **nine**
+concepts, and one of the extra two is a false merge:
+
+```
+migration_assignment::crm_guid -> hub_customer     golden: crm_guid -> same_as_candidate
+```
+
+The xref table's `crm_guid` is the CRM's internal GUID. Trap 4 exists to say that a concept on
+that key is a same-as candidate and never a merge, because the key spaces differ — merging
+pushes CRM GUIDs into a hub keyed on the national customer ID. The resolver got that right for
+`crm_kunde` and contradicted itself on the same key in the xref. Under WP29.1's table-based
+matching the proposal was out of universe and passed unexamined; under the key anchor it is
+caught. So the honest reading of the probe is **`false_merge_rate` 0.0, `resolution_accuracy`
+6/7** — where the missing seventh is not a wrong answer but a *contradiction*, which
+`resolution_accuracy` now reports as such rather than picking a winner (grouping proposals per
+key as a LIST is deliberate; a dict would have silently dropped one of the two, and in this run
+it would have dropped the false merge).
+
+That also settles the §3 question the kick-off reserved for the human without touching the
+golden: the xref needs no entry of its own, because the judgement hangs on the key.
+
+**Kick-off §2 is fixed too.** An unmatched golden entry used to read as `unresolved` — and trap
+5 expects exactly that, so it scored as correct having measured nothing. A miss is now a miss.
+
+Verified: 785 tests green (+4), ruff clean, mypy strict clean. **Zero-cost acceptance met** —
+the probe's nine answers are frozen in `tests/fixtures/resolution/probe_20260801_answers.json`
+and re-scored offline, so this was measured against real model output without one new API call.
+Mutation-checked: reverting the anchor to the table fails 13 tests, all of them in the two
+resolution test files and nothing else. WP29.1's table-based `by_source`/`source_ref` helpers
+were removed rather than left as a trap — one day old, and superseded.
+
+**Still open:** §4 acceptance #3's blinded variant does not exist (the spike blinded by removing
+column comments), and the paid runs have not been made. What §4 measures has changed shape,
+though: the primary gate now reads 0.0 on stored evidence, so the first question is no longer
+"does the instrument work" but "is that false merge reproducible".

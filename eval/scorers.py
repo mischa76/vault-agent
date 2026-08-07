@@ -23,11 +23,10 @@ from eval.resolution import (
     NEW,
     RESOLUTION_CLASSES,
     SAME_AS,
-    UNRESOLVED,
     GoldenResolutionSet,
     ResolutionResult,
-    proposals_by_source,
-    source_ref,
+    key_ref,
+    proposals_by_key,
 )
 from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import Link, VaultAgentState, split_concept_key
@@ -651,14 +650,14 @@ def false_merge_rate(golden: GoldenResolutionSet, result: ResolutionResult) -> S
 
     Merging onto the WRONG existing construct counts too. Answering ``unresolved`` never does:
     the honest non-answer is the behaviour we want when the mechanism cannot tell."""
-    expected = golden.by_source()
+    expected = golden.by_key()
     offenders: list[str] = []
     merges = 0
     unscored = 0
     for proposal in result.proposals:
         if not _is_merge(proposal.resolution):
             continue
-        want = expected.get(source_ref(proposal.concept))
+        want = expected.get(key_ref(proposal.concept))
         if want is None:
             # OUT OF UNIVERSE, not an offence (the WP14 semantics). The golden is deliberately
             # seven traps, not every concept the pipeline will meet; counting an unmatched
@@ -699,15 +698,28 @@ def resolution_accuracy(golden: GoldenResolutionSet, result: ResolutionResult) -
     ``unresolved`` scores as wrong here (it is not the answer) while scoring as safe in
     false_merge_rate — that split is the point: the memo must be able to see a mechanism that
     is honest but unhelpful, and tell it apart from one that is helpful but dangerous."""
-    expected = golden.by_source()
-    proposals = proposals_by_source(result)
+    expected = golden.by_key()
+    proposals = proposals_by_key(result)
     correct: list[str] = []
     wrong: list[str] = []
     for ref, want in expected.items():
         concept = want.concept
-        got = proposals.get(ref)
-        answer = got.resolution if got else UNRESOLVED
-        same_as_ok = want.expected != SAME_AS or (got is not None and got.same_as == want.same_as)
+        got = proposals.get(ref, [])
+        if not got:
+            # A MISS, never a correct answer. Before WP29.2 an unmatched entry was read as
+            # `unresolved` — and trap 5 expects exactly that, so it scored as right having
+            # measured nothing. "Not found" and "answered unresolved" are different facts.
+            wrong.append(f"{concept}: no answer (want {want.expected})")
+            continue
+        answers = {p.resolution for p in got}
+        if len(answers) > 1:
+            # Several proposals concern this key and disagree. Neither is "the" answer, and
+            # picking one would hide the contradiction — which in the 2026-08-01 probe was a
+            # false merge sitting beside a correct same-as.
+            wrong.append(f"{concept}: proposals disagree ({', '.join(sorted(answers))})")
+            continue
+        answer = got[0].resolution
+        same_as_ok = want.expected != SAME_AS or all(p.same_as == want.same_as for p in got)
         if answer == want.expected and same_as_ok:
             correct.append(concept)
         else:
@@ -731,12 +743,11 @@ def new_hub_detection(golden: GoldenResolutionSet, result: ResolutionResult) -> 
             name="new_hub_detection", score=1.0,
             details=f"{VACUOUS_PREFIX}the golden declares no non-merge concepts",
         )
-    proposals = proposals_by_source(result)
+    proposals = proposals_by_key(result)
     hits = [
         e.concept for e in must_not_merge
-        if (p := proposals.get(
-            (normalize_identifier(e.source_table), normalize_identifier(e.source_key))
-        )) is not None and p.resolution == e.expected
+        if (found := proposals.get(normalize_identifier(e.source_key)))
+        and all(p.resolution == e.expected for p in found)
     ]
     missed = sorted({e.concept for e in must_not_merge} - set(hits))
     details = f"{len(hits)}/{len(must_not_merge)} identified"
@@ -755,11 +766,11 @@ def resolution_calibration(
     The margin between the mean confidence of correct and of incorrect proposals, clamped to
     0..1. 1.0 when there are no wrong proposals to separate (perfect separation is vacuous but
     honest — the same convention mapping's calibration scorer settled on)."""
-    expected = golden.by_source()
+    expected = golden.by_key()
     right: list[float] = []
     wrong: list[float] = []
     for proposal in result.proposals:
-        want = expected.get(source_ref(proposal.concept))
+        want = expected.get(key_ref(proposal.concept))
         if want is None:
             continue
         (right if proposal.resolution == want.expected else wrong).append(proposal.confidence)
