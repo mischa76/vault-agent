@@ -2604,3 +2604,54 @@ were removed rather than left as a trap — one day old, and superseded.
 column comments), and the paid runs have not been made. What §4 measures has changed shape,
 though: the primary gate now reads 0.0 on stored evidence, so the first question is no longer
 "does the instrument work" but "is that false merge reproducible".
+
+## [2026-08-08] The blinded twin exists — and the leak came from the blinder again
+
+WP29 §4 acceptance #3 needs a blinded re-run showing accuracy falling while `false_merge_rate`
+holds. No such case existed. `brownfield_resolution_blind` is it: the same eight tables, the
+same existing vault, the same golden — with **every column comment removed and nothing else**.
+
+**Mechanically derived, not hand-edited**, and that is the point. `test_resolution_blind_dataset`
+re-runs the derivation and compares, so a hand-correction to the blinded file fails there; it
+also pins that tables, columns, types and their order are identical to the clean case, that the
+blinded file carries no comments while the clean one does, and that the two goldens are
+byte-identical. A blinded case that quietly moved a column would produce an accuracy drop that
+means nothing.
+
+**The golden is unchanged on purpose.** Blinding removes the mechanism's EVIDENCE, never the
+correct answer — the drop between the two cases *is* the measurement, and a blinded golden with
+softened expectations would measure nothing.
+
+**A deliberate weakening of the spike's blinding, recorded because it bounds the comparison.**
+The spike also replaced physical names with `TBL_01`/`COL_01_02` (memo §3). That is not
+reproducible on the production path: concepts here come from the requirements via the
+business-key identifier, and against a fully anonymised schema that step cannot tell a key from
+an attribute — the probe would measure the identifier's confusion rather than the resolver's
+degradation. Comments are the channel these traps actually turn on, so comments are what is
+removed. A result here is **not** directly comparable to the memo's numbers.
+
+**And a limit inherited rather than discovered: trap 5 cannot be tested blinded.** Its entire
+difficulty lives in the comment "Format wie die Kundennummer"; strip it and the table is an
+ordinary unrelated relation for which `NEW` is a reasonable inference. The spike saw exactly
+that — `NEW` at confidence **0.88**, where the other blinded concepts correctly fell to ~0.35.
+That concept's score is to be read as excluded, and the confidence is the finding: the mechanism
+is honest where it can SEE that it lacks evidence, and confident where the evidence for its own
+uncertainty is what was removed. Written into `dataset.yml` so the next reader meets it before
+the number.
+
+Gates: `false_merge_rate` 1.0 exactly — the property that must SURVIVE blinding, and the one the
+spike held at 1.000 across all 10 runs. `resolution_accuracy` is deliberately **not** gated: it
+is expected to fall, and gating it would fail the probe for succeeding at its purpose.
+
+**The leak, for the third time, came from the person doing the blinding.** The requirements were
+authored blind by an agent given only the comment-free schema — and it reported that the header
+*I* had written on that file named the expected `unresolved` fallback outright. Same class as
+2026-08-01, when the clean case's header named which table WAS the customer. Both were caught by
+the authoring agent, never by a check. There is a check now: the blinded schema is asserted free
+of the tells, and the header moved to `dataset.yml`, which no author is given. Verified
+independently of the agent's own report: the new document names no trap, no resolution class as
+an answer, no existing hub — and none of the stripped comment content came back.
+
+790 tests green (+5), ruff clean, mypy strict clean. **Nothing here was measured**: no live run
+was made, and the blinded case has never been executed. What it is for — 5 clean + 5 blinded
+repeats, est. $16-26 — remains explicitly pending.

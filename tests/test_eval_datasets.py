@@ -170,6 +170,10 @@ def test_shipped_cases_load_with_unique_names() -> None:
         # brownfield_resolution` did not start and its gates could not run. Wiring it IS the
         # work package; this line appearing is the intended effect, not drift.
         "brownfield_resolution",
+        # Its blinded twin (WP29 §4 acceptance #3): the same landscape with every column
+        # comment removed, so the drop in resolution_accuracy between the two IS the
+        # measurement. Structural identity is pinned in tests/test_resolution_blind_dataset.py.
+        "brownfield_resolution_blind",
         "health_insurance",
         "messy_insurance",
         "scale_100",

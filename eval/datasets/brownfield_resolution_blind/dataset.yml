@@ -1,0 +1,44 @@
+# WP29 §4 acceptance #3 — the blinded twin of `brownfield_resolution`.
+#
+# Same landscape, same existing vault, same golden. One thing removed: every column comment.
+# The measurement is the DIFFERENCE between this case and the clean one — accuracy should fall
+# while `false_merge_rate` holds. That is the honest-degradation property, and it is the only
+# reason to run a probe whose answers are expected to be worse.
+#
+# WHAT IS GATED, and why it is not the same list as the clean case:
+#
+#   false_merge_rate 1.0 — gated, exactly. This is the property that must SURVIVE blinding: a
+#     mechanism starved of evidence must answer `unresolved`, never guess a merge. The spike
+#     measured 1.000 across all 10 runs, clean and blinded alike. If it drops here, the safety
+#     claim was an artefact of good evidence rather than of the design.
+#   pipeline_health 1.0 — a run that errored measured nothing.
+#
+#   resolution_accuracy is deliberately NOT gated. It is EXPECTED to fall; gating it would
+#     make the probe fail for succeeding at its purpose.
+#
+# A LIMIT the spike found and this case inherits (memo §6a): **trap 5 cannot be tested blinded.**
+# `vic_migration_altbestand`'s entire difficulty lives in the comment "Format wie die
+# Kundennummer". Strip it and the table is an ordinary unrelated relation, for which `NEW` is a
+# reasonable inference from what remains — so a wrong answer there is not a failure of the
+# mechanism. Blinded, the spike saw exactly that: `NEW` at confidence 0.88, where the other
+# blinded concepts correctly dropped to ~0.35. Read that concept's score as excluded, and read
+# the confidence as the finding: the mechanism is honest where it can SEE that it lacks
+# evidence, and confident where the evidence for its own uncertainty is what was removed.
+#
+# DEVIATION from the spike's blinding, stated because it is a deliberate weakening. The spike
+# also replaced physical names with `TBL_01`/`COL_01_02`. That is not reproducible on the
+# production path: concepts here come from the requirements via the business-key identifier, and
+# against a fully anonymised schema that step cannot tell a key from an attribute — the probe
+# would measure the identifier's confusion rather than the resolver's degradation. Comments are
+# the evidence channel the traps actually turn on, so they are what is removed. This is a
+# WEAKER blinding than the spike's, and a result here is not directly comparable to the memo's
+# numbers.
+name: brownfield_resolution_blind
+input_document: requirements.md
+source_schema: source_schema.yml
+existing: existing_vault.yml
+golden: {}
+expectations:
+  min_scores:
+    false_merge_rate: 1.0
+    pipeline_health: 1.0
