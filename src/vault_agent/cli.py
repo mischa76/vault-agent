@@ -475,8 +475,11 @@ async def _prune_orphan_threads(saver: Any, out_dir: Path, keep: str) -> None:
         referenced.add(pending["thread_id"])
     try:
         await saver.setup()
-        # Verified against langgraph-checkpoint-sqlite 3.1.0: `conn` is the documented
-        # aiosqlite connection and checkpoints are keyed by thread_id in `checkpoints`.
+        # Verified against langgraph-checkpoint-sqlite 3.1.1 (re-checked 2026-08-08 on the
+        # bump from 3.1.0, which ships no release notes): `conn` is the documented aiosqlite
+        # connection and checkpoints are keyed by thread_id in `checkpoints`. This is raw SQL
+        # against an internal table — the one touchpoint here that a schema change would break
+        # silently, so it is exercised directly on every bump rather than assumed from semver.
         async with saver.conn.execute("SELECT DISTINCT thread_id FROM checkpoints") as cursor:
             rows = await cursor.fetchall()
         orphans = sorted({str(row[0]) for row in rows} - referenced)
