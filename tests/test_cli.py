@@ -28,6 +28,24 @@ from vault_agent.state import Artifacts, SourceTable, VaultAgentState
 runner = CliRunner()
 
 
+def rendered_contains(output: str, expected: str) -> bool:
+    """Is ``expected`` in the console output, ignoring where rich chose to wrap?
+
+    rich wraps at the console width, and the wrap POSITION depends on the length of the tmp
+    path embedded in the message — which differs per machine. Asserting a substring against
+    raw output therefore passes or fails depending on where pytest put its tmpdir: these
+    assertions were green in CI and red locally for exactly that reason, and CI's green was
+    path-length luck rather than a check (docs/log.md, 2026-08-08).
+
+    Both sides are flattened — ANSI stripped, runs of whitespace collapsed — so an expected
+    string carrying deliberate column padding (``mode:          extension``) still matches the
+    line it was written for."""
+    def flat(text: str) -> str:
+        return " ".join(re.sub(r"\x1b\[[0-9;]*m", "", text).split())
+
+    return flat(expected) in flat(output)
+
+
 def _state_with_artifacts() -> VaultAgentState:
     return VaultAgentState(
         artifacts=Artifacts(
@@ -1346,7 +1364,9 @@ def test_pending_without_a_thread_id_is_rejected(tmp_path: Path) -> None:
     result = runner.invoke(app, ["resume", "--out", str(out)])
 
     assert result.exit_code == 1
-    assert "expected a JSON object with a 'thread_id' key" in result.output
+    assert rendered_contains(
+        result.output, "expected a JSON object with a 'thread_id' key"
+    ), result.output
 
 
 def test_crash_report_and_orphan_pruning_still_swallow_a_corrupt_pointer(
@@ -1454,7 +1474,9 @@ def test_existing_accepts_a_directory_or_the_file_itself(
     )
 
     assert result.exit_code == 0, result.output
-    assert "mode:          extension (1 existing construct(s))" in result.output
+    assert rendered_contains(
+        result.output, "mode:          extension (1 existing construct(s))"
+    ), result.output
     # The extension produced the diff artifact and carried the existing hub through.
     assert (out / "extension-diff.md").is_file()
     assert (out / "models" / "raw_vault" / "hub_customer.sql").is_file()
