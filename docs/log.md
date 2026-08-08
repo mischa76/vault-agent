@@ -2655,3 +2655,92 @@ an answer, no existing hub — and none of the stripped comment content came bac
 790 tests green (+5), ruff clean, mypy strict clean. **Nothing here was measured**: no live run
 was made, and the blinded case has never been executed. What it is for — 5 clean + 5 blinded
 repeats, est. $16-26 — remains explicitly pending.
+
+## [2026-08-08] WP29 §4 — predictions, written before the runs
+
+Five clean + five blinded repeats of `brownfield_resolution` / `_blind`. Recorded first, so
+that whatever comes out is a finding and not an explanation. The stored probe (2026-08-01,
+re-scored under WP29.2's key anchor) is the only prior evidence, and it is n=1.
+
+**P1 — `false_merge_rate` clean: I expect the gate to FAIL, at 0.0 in at least one repeat.**
+The probe merged `migration_assignment::crm_guid` into `hub_customer`, contradicting trap 4 on
+the same key. If that recurs even once across five, the gate is 0.0 and acceptance #1 is not
+met. Falsified if all five come back 1.000 — in which case the probe's merge was a one-off and
+the honest reading is that n=1 caught a rare event, not a defect.
+
+**P2 — `false_merge_rate` blinded: I expect it to HOLD at 1.000.** This is the property the
+whole class-asymmetry design rests on: starved of evidence, the mechanism must decline rather
+than guess a merge. The spike measured 1.000 across all 10 runs. If it drops here, the safety
+claim was an artefact of good evidence rather than of the design — the single most important
+thing these runs can tell us, and the reason the blinded case is gated on it and on nothing else.
+
+**P3 — `resolution_accuracy` falls from clean to blinded.** That is acceptance #3's whole point.
+No threshold is predicted for the blinded side; the direction is the claim. **Trap 5 is
+excluded** — its difficulty lives entirely in the comment, so a wrong answer there measures the
+blinding, not the mechanism (spike memo §6a, and `dataset.yml` says so).
+
+**P4 — blinded confidence on trap 5 will be HIGH on a wrong answer.** The spike saw `NEW` at
+0.88 where other blinded concepts fell to ~0.35. If that reproduces, it confirms the limit of
+confidence as a signal: the mechanism is honest where it can see it lacks evidence, and
+confident where the evidence for its own uncertainty was what got removed.
+
+**Cost, recomputed from the probe rather than the old estimate:** 13 calls / ~$0.60 per repeat,
+so ten repeats ≈ **$6**, not the $16-26 carried forward from WP29.1. Recorded because the old
+figure would have made this look like a bigger commitment than it is.
+
+**Procedure:** one blinded repeat FIRST, alone. The blinded case has never executed end to end,
+and a wiring defect must not be paid for five times — the discipline that has now paid off three
+times in this WP. Only then the remaining nine.
+
+## [2026-08-08] WP29 §4 measured — P1 falsified, P2 confirmed, and a fifth name-matching defect
+
+Ten repeats (5 clean, 5 blinded), ~$6. Against the predictions registered before the runs.
+
+**P1 FALSIFIED, and it was the uncomfortable one to write down.** I predicted the clean gate
+would FAIL — that the probe's `migration_assignment::crm_guid -> hub_customer` would recur.
+`false_merge_rate` came back **1.000 in all five**. The 2026-08-01 merge stands as observed once
+and is now a rare event, not a reproducible defect. Recorded as plainly as the prediction was.
+
+**P2 CONFIRMED, and this is the result worth having.** Blinded, the mechanism proposed **zero
+merges in all five repeats** — every scorer detail reads "no merge onto a golden concept". Not
+one guess in the direction that writes foreign keys into live history. `partner::partn_nr`, the
+concept the clean case merges into `hub_customer` with high confidence, declines to `unresolved`
+at 0.35 when the data dictionary is removed. The class asymmetry the whole WP rests on is now
+demonstrated on the product, not only in the spike's prototype.
+
+**P3 CONFIRMED.** Accuracy 1.000 clean (on the three valid repeats — see below) against 0.429 /
+0.429 / 0.429 / 0.571 / 0.429 blinded. Falls, as acceptance #3 requires, while the safety
+property holds.
+
+**P4 CONFIRMED, with a number.** Trap 5 blinded: `NEW` in 5/5 at confidence 0.78-0.85, mean
+**0.83**, against 0.70 across the other 67 blinded proposals — and against the 0.30-0.35 the
+honest declines carry. The spike saw 0.88. Confidence is highest on the one answer the golden
+calls wrong, because the evidence for its own uncertainty is exactly what blinding removed.
+Do not lean on the confidence number alone; the derived category is what carries a reviewer's
+attention (WP29 §2.3).
+
+**And the fifth appearance of the class `.claude/rules/eval.md` puts first.** Two of the five
+clean repeats scored `resolution_accuracy` **0.000** and `new_hub_detection` 0.000 — while
+answering **all seven traps correctly**. The business-key identifier sometimes appends a gloss
+to the field name:
+
+```
+run1/3/5:  partner::partn_nr                                -> hub_customer
+run2/4:    partner::partn_nr (national customer number)     -> hub_customer
+```
+
+`key_ref` normalises that to `PARTN_NR (NATIONAL CUSTOMER NUMBER)`, which matches no golden key,
+so all seven read as "no answer". All-or-nothing per run: 8 of 8 concepts glossed, or 0 of 8 —
+never mixed. The blinded runs are unaffected (0 of 14-15 glossed), so their numbers stand.
+
+This is my own WP29.2 defect one layer down. I anchored the join on the key column believing
+the field *was* a column name. It is LLM free text that usually looks like one. Not patched
+here: stripping a trailing parenthesis fixes the form I have seen, and fixing only the observed
+form is how this class survived four previous encounters. **The remedy is free** — nine runs of
+real model output sit in `eval/results/`, so any candidate join can be tested offline against
+them before another cent is spent.
+
+**Status of §4's acceptance:** #1 (`false_merge_rate` 1.000 over ≥5 clean repeats) **MET** — 5/5,
+non-vacuous in 3 and vacuous-with-unscored-merges in 2. #2 (trap 5 -> `unresolved` clean) met in
+the three valid repeats. #3 met in direction. What is NOT yet trustworthy is the clean accuracy
+distribution, and that is an instrument fault, not a mechanism one.

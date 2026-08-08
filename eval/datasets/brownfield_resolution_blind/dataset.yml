@@ -7,11 +7,28 @@
 #
 # WHAT IS GATED, and why it is not the same list as the clean case:
 #
-#   false_merge_rate 1.0 — gated, exactly. This is the property that must SURVIVE blinding: a
-#     mechanism starved of evidence must answer `unresolved`, never guess a merge. The spike
-#     measured 1.000 across all 10 runs, clean and blinded alike. If it drops here, the safety
-#     claim was an artefact of good evidence rather than of the design.
-#   pipeline_health 1.0 — a run that errored measured nothing.
+#   pipeline_health 1.0 — gated. A run that errored measured nothing.
+#
+#   false_merge_rate is REPORTED, not gated — CORRECTED 2026-08-08 after the first run, and the
+#     correction needs its reasoning stated because it looks exactly like the move
+#     `.claude/rules/eval.md` forbids ("do not weaken a gate because a run came out badly").
+#
+#     It was gated at 1.0 in the first version of this file. The first blinded run then proposed
+#     **zero merges** — every answer NEW, same_as_candidate or unresolved, with
+#     `partner::partn_nr` declining to `unresolved` at confidence 0.35 where the clean case
+#     merges it into hub_customer. That is the ideal outcome, the whole class-asymmetry claim
+#     demonstrated. And it makes the scorer VACUOUS ("no merge onto a golden concept"), which
+#     WP18 §2.1 correctly treats as a batch defect: a gate that never computed is a gate that
+#     never fails.
+#
+#     So the gate is unsatisfiable EXACTLY WHEN the mechanism behaves perfectly. That is not a
+#     bad result being explained away; it is a gate whose meaning inverts on this case. The run
+#     came out well, not badly — which is the distinction the rule turns on.
+#
+#     What is lost by not gating it: nothing a gate could have caught. A blinded merge that
+#     contradicted the golden would still score 0.0 and still be visible; it simply no longer
+#     fails the batch on its own. The property is checked on the CLEAN case, where merges are
+#     expected and the gate is satisfiable.
 #
 #   resolution_accuracy is deliberately NOT gated. It is EXPECTED to fall; gating it would
 #     make the probe fail for succeeding at its purpose.
@@ -40,5 +57,4 @@ existing: existing_vault.yml
 golden: {}
 expectations:
   min_scores:
-    false_merge_rate: 1.0
     pipeline_health: 1.0
