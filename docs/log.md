@@ -2655,3 +2655,39 @@ an answer, no existing hub — and none of the stripped comment content came bac
 790 tests green (+5), ruff clean, mypy strict clean. **Nothing here was measured**: no live run
 was made, and the blinded case has never been executed. What it is for — 5 clean + 5 blinded
 repeats, est. $16-26 — remains explicitly pending.
+
+## [2026-08-08] WP29 §4 — predictions, written before the runs
+
+Five clean + five blinded repeats of `brownfield_resolution` / `_blind`. Recorded first, so
+that whatever comes out is a finding and not an explanation. The stored probe (2026-08-01,
+re-scored under WP29.2's key anchor) is the only prior evidence, and it is n=1.
+
+**P1 — `false_merge_rate` clean: I expect the gate to FAIL, at 0.0 in at least one repeat.**
+The probe merged `migration_assignment::crm_guid` into `hub_customer`, contradicting trap 4 on
+the same key. If that recurs even once across five, the gate is 0.0 and acceptance #1 is not
+met. Falsified if all five come back 1.000 — in which case the probe's merge was a one-off and
+the honest reading is that n=1 caught a rare event, not a defect.
+
+**P2 — `false_merge_rate` blinded: I expect it to HOLD at 1.000.** This is the property the
+whole class-asymmetry design rests on: starved of evidence, the mechanism must decline rather
+than guess a merge. The spike measured 1.000 across all 10 runs. If it drops here, the safety
+claim was an artefact of good evidence rather than of the design — the single most important
+thing these runs can tell us, and the reason the blinded case is gated on it and on nothing else.
+
+**P3 — `resolution_accuracy` falls from clean to blinded.** That is acceptance #3's whole point.
+No threshold is predicted for the blinded side; the direction is the claim. **Trap 5 is
+excluded** — its difficulty lives entirely in the comment, so a wrong answer there measures the
+blinding, not the mechanism (spike memo §6a, and `dataset.yml` says so).
+
+**P4 — blinded confidence on trap 5 will be HIGH on a wrong answer.** The spike saw `NEW` at
+0.88 where other blinded concepts fell to ~0.35. If that reproduces, it confirms the limit of
+confidence as a signal: the mechanism is honest where it can see it lacks evidence, and
+confident where the evidence for its own uncertainty was what got removed.
+
+**Cost, recomputed from the probe rather than the old estimate:** 13 calls / ~$0.60 per repeat,
+so ten repeats ≈ **$6**, not the $16-26 carried forward from WP29.1. Recorded because the old
+figure would have made this look like a bigger commitment than it is.
+
+**Procedure:** one blinded repeat FIRST, alone. The blinded case has never executed end to end,
+and a wiring defect must not be paid for five times — the discipline that has now paid off three
+times in this WP. Only then the remaining nine.
