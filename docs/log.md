@@ -2744,3 +2744,55 @@ them before another cent is spent.
 non-vacuous in 3 and vacuous-with-unscored-merges in 2. #2 (trap 5 -> `unresolved` clean) met in
 the three valid repeats. #3 met in direction. What is NOT yet trustworthy is the clean accuracy
 distribution, and that is an instrument fault, not a mechanism one.
+
+## [2026-08-08] WP29.5 — the join stops reading the text, and it cost nothing to fix
+
+The fifth name-matching defect, closed. **Zero API calls**: eleven runs of real model output
+were already on disk, so every candidate join could be tested against them offline.
+
+**Surveyed before fixing.** Across all traces in `eval/results/` — 79 distinct field expressions
+from the eleven §4 runs plus the WP30 arm chains — the field half of a concept key takes exactly
+three shapes:
+
+```
+plain       partn_nr                                        55
+composite   crm_guid + partn_nr                             15
+gloss       partn_nr (national customer number)              8
+both        crm_guid + partn_nr (composite cross-ref key)    1
+```
+
+Fixing only the form that bit is how this class survived four previous encounters, so the survey
+came first and `key_ref` is now measured against all four in `test_resolution_join_forms.py`.
+
+**The fix, and the deliberate non-fix.** A trailing parenthetical gloss is stripped — it is a
+comment on the expression, not part of it, and the regex is anchored to the END for exactly that
+reason. A **composite key is left whole**: the golden judges a concept keyed on `crm_guid`, and a
+concept keyed on `crm_guid + partn_nr` is keyed on something else. Reducing it to either part
+would fold two concepts into one — the WP24/WP32 defect entered from the other side. It
+normalises to a key no golden entry carries and falls out of universe, which is the honest
+outcome rather than a special case.
+
+**Result, on evidence already paid for:** all five clean §4 repeats now score
+`resolution_accuracy` **1.000**. Three did before; the two that read 0.000 were answering all
+seven traps correctly while the instrument could not see it. The blinded repeats are unchanged
+(0.429 ×4, 0.571) — pinned, because a join loose enough to rescue the glossed runs could also
+start matching what it should not, and the blinded numbers are what §4 acceptance #3 rests on.
+
+**Consequence for the §4 record:** the clean accuracy distribution is now trustworthy —
+5/5 at 1.000 — where yesterday's entry had to call it an instrument fault. `false_merge_rate`
+stays 1.000 across all five and is no longer vacuous in two of them.
+
+The eleven runs are frozen in `tests/fixtures/resolution/section4_runs.json`. Until now no eval
+evidence travelled with the repository at all (`eval/results/` is gitignored by design,
+WP6/15/16); these answers now do, for this case.
+
+### A pre-existing local test failure, recorded rather than fixed here
+
+Three `tests/test_cli.py` tests fail on this machine and pass in CI:
+`test_pending_without_a_thread_id_is_rejected` and both parameterisations of
+`test_existing_accepts_a_directory_or_the_file_itself`. **Not caused by this work** — verified by
+stashing every change and re-running. All three assert on rich-rendered console output, which is
+the common thread and fits CI passing (no TTY there, so no ANSI and different wrapping). Two
+diagnoses were tried and are wrong: it is not terminal width (fails at `COLUMNS=80` and `200`
+alike) and the earlier "sometimes green" reading was my own error — `grep "^FAILED"` cannot match
+a line that starts with an ANSI escape. Out of scope for WP29.5; it wants its own look.

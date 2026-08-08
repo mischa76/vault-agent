@@ -11,6 +11,7 @@ into a hub that holds live history, while a miss in the other direction costs a 
 hub someone deletes at the checkpoint. The scorers keep the two apart and never average
 them.
 """
+import re
 from pathlib import Path
 from typing import Any
 
@@ -155,6 +156,12 @@ def load_golden_resolution(path: Path) -> GoldenResolutionSet:
     return golden
 
 
+# A trailing parenthetical gloss the business-key identifier sometimes appends. Anchored to the
+# END on purpose: a parenthesis in the middle of a field would be part of the expression, not a
+# comment on it.
+_GLOSS = re.compile(r"\s*\([^()]*\)\s*$")
+
+
 def key_ref(concept_key: str) -> str:
     """The normalised business-key column from a pipeline concept key (WP29.2 anchor).
 
@@ -165,8 +172,26 @@ def key_ref(concept_key: str) -> str:
 
     Measured on the 2026-08-01 probe: the column half matched 7/7, the table half 0/7. Hence the
     key column is the join. See :meth:`GoldenResolutionSet.by_key` for the semantic claim this
-    rests on and for when it stops holding."""
+    rests on and for when it stops holding.
+
+    **The field is free text, not a column name** (WP29.5). It usually looks like one, which is
+    what made the WP29.2 version of this function wrong: two of five clean §4 repeats scored
+    0.000 while answering all seven traps correctly, because that run's business-key identifier
+    glossed every field and ``normalize_identifier`` folded the gloss in —
+    ``PARTN_NR_NATIONAL_CUSTOMER_NUMBER``. Surveyed across all 79 distinct field expressions on
+    disk, it takes exactly three shapes:
+
+    * ``partn_nr`` — plain (55)
+    * ``partn_nr (national customer number)`` — a TRAILING PARENTHETICAL gloss (8), stripped here
+    * ``crm_guid + partn_nr`` — a COMPOSITE key (15), deliberately left whole
+
+    A composite is not reduced to one of its parts. The golden judges a concept keyed on
+    ``crm_guid``; a concept keyed on ``crm_guid + partn_nr`` is keyed on something else, and
+    matching it to either part would fold two concepts into one — the WP24/WP32 defect entered
+    from the other side. It normalises to a key no golden entry carries and is therefore out of
+    universe, which is the honest outcome rather than a special case."""
     field, _entity = split_concept_key(concept_key)
+    field = _GLOSS.sub("", field).strip()
     return normalize_identifier(field)
 
 
