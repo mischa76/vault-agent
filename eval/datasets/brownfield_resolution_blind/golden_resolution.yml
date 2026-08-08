@@ -1,0 +1,105 @@
+# Golden entity resolution — brownfield Phase 2 spike, deliverable D1.
+#
+# For each concept the new source introduces: is it a construct the vault ALREADY has, a
+# genuinely new one, or a same-as candidate that must be flagged rather than merged?
+#
+# Read the charter's §2 before reading a score: the classes are NOT symmetric. Getting a
+# `new` wrong costs a redundant hub someone deletes. Getting an `existing` wrong — merging
+# two distinct concepts — feeds foreign business keys into a hub that holds live history.
+# `false_merge_rate` is therefore the primary metric and `resolution_accuracy` is secondary.
+#
+# The set is built so that NAME SIMILARITY AND THE CORRECT ANSWER DISAGREE. A mechanism that
+# matches on names scores well on the controls and fails every trap.
+
+existing_constructs:  # what the vault already has (mirrors existing_vault.yml)
+  - {name: hub_customer, business_key: national customer ID}
+  - {name: hub_account, business_key: account number}
+
+resolutions:
+  # ── TRAP 1: synonym hub — must RESOLVE ────────────────────────────────────────────────
+  - concept: partner
+    source_table: vic_partner
+    source_key: partn_nr
+    expected: hub_customer
+    trap: synonym_hub
+    rationale: >
+      The same national customer ID the core banking system issues, under a name that
+      shares no token with "customer". The evidence is the key, not the name: a mechanism
+      that only compares names must miss this, and one that reads the comment or the key
+      values must catch it.
+
+  # ── TRAP 2: false friend — must NOT merge ─────────────────────────────────────────────
+  - concept: kontakt
+    source_table: vic_kontakt
+    source_key: kontakt_id
+    expected: NEW
+    trap: false_friend
+    rationale: >
+      A contact PERSON at a corporate customer: person-shaped, carries a name, sits next to
+      the customer, and even holds partn_nr as a foreign key. Every surface signal points at
+      hub_customer. It is a different concept with its own key and its own lifecycle, so
+      merging it would push contact IDs into the customer hub. This is the trap the
+      zero-false-merge requirement exists for.
+
+  # ── TRAP 3: legitimate new hub despite a shared name stem — must NOT merge ────────────
+  - concept: vertragspartner
+    source_table: vic_vertragspartner
+    source_key: vp_nummer
+    expected: NEW
+    trap: similar_name_new_hub
+    rationale: >
+      Shares the "PARTNER" stem with TRAP 1, where the correct answer was the existing hub —
+      and here the correct answer is the opposite. A contract counterparty is a different
+      concept on a different key. The two traps together are the discriminating pair: a
+      mechanism cannot pass both by leaning on the name.
+
+  # ── TRAP 4: same-as candidate — must be FLAGGED, never merged ─────────────────────────
+  - concept: crm_kunde
+    source_table: crm_kunde
+    source_key: crm_guid
+    expected: same_as_candidate
+    same_as: hub_customer
+    trap: same_as
+    rationale: >
+      The CRM keys its customers on an internal GUID, and crm_xref_partner asserts the
+      correspondence to the national customer ID. Asserted equivalence on a DIFFERENT key is
+      exactly the same-as case the roadmap has deferred twice: correct output is TWO hubs
+      plus a flagged candidate for human ratification. Merging scores a false merge;
+      answering plain NEW is a miss but not a merge, and the scorers must distinguish those.
+
+  # ── CONTROLS ──────────────────────────────────────────────────────────────────────────
+  - concept: konto
+    source_table: vic_konto
+    source_key: konto_nr
+    expected: hub_account
+    trap: control_easy_synonym
+    rationale: >
+      A straightforward synonym on the same key. A mechanism that misses this is broken, not
+      merely weak — it is here to catch a harness fault rather than to discriminate.
+
+  - concept: vertrag
+    source_table: vic_vertrag
+    source_key: vertrag_nr
+    expected: NEW
+    trap: control_plain_new
+    rationale: >
+      No similarity to anything the vault holds. Establishes the floor: a mechanism that
+      cannot say NEW here has no usable "new" branch at all.
+
+  # ── TRAP 5: undecidable — the only correct answer is `unresolved` ──────────────────────
+  - concept: altbestand
+    source_table: vic_migration_altbestand
+    source_key: alt_nr
+    expected: unresolved
+    trap: undecidable
+    rationale: >
+      Added after the first spike run, which the memo criticised for never offering the
+      hardest case. The key has the SAME FORMAT as the national customer ID and the comment
+      says so, but there is no cross-reference table, no shared column, and nothing that
+      establishes whether the populations are the same. A legacy migration register may hold
+      the same customers, adjacent ones, or none. Nothing in the schema settles it.
+
+      This is the trap that separates "knows" from "sounds confident": the correct answer is
+      `unresolved`, so answering hub_customer is a FALSE MERGE, and answering NEW is merely
+      wrong. A mechanism that reaches for either rather than declining is not calibrated,
+      whatever its score on the other five.
