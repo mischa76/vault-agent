@@ -2796,3 +2796,25 @@ the common thread and fits CI passing (no TTY there, so no ANSI and different wr
 diagnoses were tried and are wrong: it is not terminal width (fails at `COLUMNS=80` and `200`
 alike) and the earlier "sometimes green" reading was my own error — `grep "^FAILED"` cannot match
 a line that starts with an ANSI escape. Out of scope for WP29.5; it wants its own look.
+
+## [2026-08-08] langgraph-checkpoint-sqlite 3.1.1 — a patch bump this repo cannot take on trust
+
+Dependabot #20, merged after checking rather than after reading the version number. This package
+carries the checkpoint persistence that WP12/WP17's resume and WP29's resolution pause both stand
+on, and the code reaches into its internals in five places — `from_conn_string`, an assignable
+`serde`, `setup()`, `adelete_thread()`, and **raw SQL against the internal `checkpoints` table**
+in `_prune_orphan_threads`. The last is the one a schema change would break silently.
+
+Exercised against the installed 3.1.1: all five hold, the tables are still `checkpoints` and
+`writes`, and `SELECT DISTINCT thread_id FROM checkpoints` runs. Then the suite twice — on the
+dependabot branch (782 passed; lower only because that branch predates the WP29.4/29.5 merges)
+and, decisively, on **current `main` with the bump applied locally: 795 passed, identical to
+`main` with 3.1.0.**
+
+**PyPI publishes no changelog or release notes for 3.1.1** (2026-07-30; 3.1.0 was 2026-05-12).
+There is no upstream statement to lean on, which is the reason the internals were run rather
+than assumed — and the reason a patch bump here is a review, not a rubber stamp.
+
+The comment at `cli.py:478` now names 3.1.1 and says why that line gets re-checked on every
+bump. It previously named 3.1.0, which would have let the next reader believe the verification
+was older than the dependency.
