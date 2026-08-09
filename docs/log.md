@@ -3153,3 +3153,52 @@ two domains**, with arm A at 16.
 Also worth watching, separately from the gate: whether `hub_sales_representative` finally
 disappears. Links appearing while the duplicate hub stays would mean the section bought
 relationships without stopping the invention.
+
+## [2026-08-09] The rewritten register: WEAK, by the bar set before the run
+
+Third measurement of the same question, one variable changed each time.
+
+| | links | **spanning two domains** | hubs | `hub_sales_representative` | review items |
+|---|---|---|---|---|---|
+| nothing | 37 | **0** | 44 | present | 456 |
+| + steering rule | 40 | **0** | 45 | present | 489 |
+| **+ rewritten register** | 36 | **2** | 43 | **gone** | **619** |
+
+**Two is "weak" by the pre-registration** — the bands were >5 held, 1–5 weak, 0 falsified — and
+weak is what it is recorded as. The register matters and is not sufficient. The question is not
+closed.
+
+**What genuinely improved, and it is not the link count.** `hub_sales_representative` is gone.
+The invention this whole line of work started from — a local hub for a concept the inventory
+already listed — stopped. Hubs fell 45 → 43. That is the section's *"a link to one of these hubs
+does not change that hub"* landing, and it is worth more than the two links: a duplicate hub is
+a wrong model, a missing link is an incomplete one.
+
+**Where the two links appear is the finding.** Both are at the FIRST boundary:
+
+```
+person            7 new links,  0 cross
+humanresources    2 new links,  2 cross   <- both of them, here
+production       14 new links,  0 cross
+purchasing        2 new links,  0 cross
+sales            11 new links,  0 cross
+```
+
+Step 2 reaches back to step 1. Steps 3, 4 and 5 reach back to nothing — Sales still builds no
+link to Person, three steps later, with `hub_person` in its inventory by name. So the rewrite
+works at the nearest boundary and not at distant ones. A plausible reading — untested — is that
+what decays is not the instruction but the salience of an inventory that has grown to 40-odd
+constructs by step 5, of which only a handful are relevant to the domain in hand. That would
+make the next candidate a *relevance-filtered* inventory rather than more words about it.
+
+**And a cost that moved the wrong way.** Review items rose 456 → 489 → **619**, a third above
+where this started, on the axis that already favoured arm A three-to-one. Whatever the register
+bought in model quality, it did not buy on the human-workload axis. That belongs in the arm
+comparison's ledger, not hidden behind the good news about the hub.
+
+Spend on this question: **~$37** across four arm-B repeats and two arm-A runs.
+
+**Standing verdicts to correct:** `preserved_reference_is_a_link` stays *measured once, no
+effect on its target* — this run does not rescue it, since the register changed at the same
+time and the rule alone had already scored 0. Both ledger rows want the deliberate record-edit
+path.
