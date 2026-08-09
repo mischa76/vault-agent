@@ -65,7 +65,7 @@ from vault_agent.graph import build_graph
 from vault_agent.llm import TraceEvent
 from vault_agent.profiling import load_profiling
 from vault_agent.source_schema import load_source_schemas
-from vault_agent.state import VaultAgentState
+from vault_agent.state import DVModel, VaultAgentState
 from vault_agent.trace import JsonlTraceWriter
 
 DEFAULT_REPEAT = 3
@@ -160,6 +160,38 @@ def fanout(*recorders: Callable[[TraceEvent], None]) -> Callable[[TraceEvent], N
     return record
 
 
+def model_shape(model: DVModel) -> dict[str, Any]:
+    """WHICH constructs a run built, not only how many (WP30.1).
+
+    The result JSON carried `len(...)` and nothing else, `write_step_vault` wrote the model to a
+    temp workdir the run then deletes, and the traces hold the re-model loop's DISCARDED
+    attempts — reconstructing arm A from them gave 84 links where the run reported 51. So the
+    arm comparison's open question (why does arm B build 73% of arm A's links?) could not be
+    asked of anything on disk. This is what makes it askable, and it costs one dict per run.
+
+    Links carry their GRAIN — the sorted hubs they connect — because that is the structural
+    identity WP14 established: two runs may name the same relationship differently, and a
+    name-keyed comparison would report that as a difference. Sorted for the same reason.
+
+    Deliberately not the whole model: no descriptions, no requirement traces, no payloads. This
+    exists to answer "which relationships exist and what do they span", and a fuller dump would
+    grow every result file for questions nobody has asked."""
+    return {
+        "hubs": sorted(h.name for h in model.hubs),
+        "links": sorted(
+            (
+                {"name": lk.name, "hubs": sorted(ref.hub for ref in lk.hub_refs)}
+                for lk in model.links
+            ),
+            key=lambda entry: str(entry["name"]),
+        ),
+        "satellites": sorted(
+            ({"name": s.name, "parent": s.parent} for s in model.satellites),
+            key=lambda entry: str(entry["name"]),
+        ),
+    }
+
+
 def run_metrics(
     state: VaultAgentState,
     wall_clock_seconds: float,
@@ -185,6 +217,8 @@ def run_metrics(
             "links": len(state.dv_model.links),
             "satellites": len(state.dv_model.satellites),
         },
+        # WP30.1: the counts above say how big the answer is; this says what it is.
+        "model": model_shape(state.dv_model),
         "flags": len(state.flags),
         # WP16: {} means every backstop stayed idle this run — a rule with a persistently
         # empty count is the ablation runner's first candidate-delete.
@@ -223,6 +257,10 @@ def chain_metrics(
                 "links": len(state.dv_model.links),
                 "satellites": len(state.dv_model.satellites),
             },
+            # Per step as well as at the end: WHEN a link first appears is the arm comparison's
+            # actual question — a relationship spanning two domains can only be built once the
+            # second one has arrived, and only per-step shapes can show that.
+            "model": model_shape(state.dv_model),
         }
         for step_case, state in chain
     ]

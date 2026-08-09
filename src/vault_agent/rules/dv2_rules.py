@@ -252,6 +252,19 @@ DV_MODELING_RULES = [
         "across two satellites of one relation — E_SAT_ATTR_OVERLAP is right there and stays "
         "an error, so steering keeps a real defect from burning the re-model budget",
     ),
+    SteeringRule(
+        id="preserved_reference_is_a_link",
+        text="A reference the requirements say is maintained elsewhere and must be PRESERVED "
+        "so the areas can be joined later is a relationship, not a new concept: model it as a "
+        "link to the existing hub named in the vault inventory, and never create a local hub "
+        "for a concept the vault already holds",
+        origin="WP30.1 (2026-08-09): measured, arm B built 0 of 37 links spanning two domains "
+        "and invented hub_sales_representative where hub_employee stood in the inventory — with "
+        "the foreign key in the schema, the requirement explicit (\"these references must be "
+        "preserved so the sales information can later be joined to those areas\") and a "
+        "ratified resolver merge all present. Resolution answers \"is this concept the existing "
+        "one\"; nothing asked whether the RELATIONSHIP should span domains",
+    ),
 ]
 
 # Ablation seam (WP16 §2.2). Module-level, mirroring llm.set_usage_recorder: the harness
