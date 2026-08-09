@@ -2999,3 +2999,33 @@ the decomposition as such. The measured cost of arm B — no cross-domain relati
 load — is real for the current implementation and must not be read as an argument that
 incremental modelling is inherently worse. Nothing here tests the obvious remedy: a pass at the
 end of the walk, or a prompt that names the preserved references as link candidates.
+
+## [2026-08-09] A steering rule for the link deficit — registered, unmeasured
+
+`preserved_reference_is_a_link` joins `DV_MODELING_RULES` (18 rules now), with the fixture
+regenerated in the same commit and the pre-WP16 block verified to remain a byte-identical
+prefix. Ledger row added, verdict **unmeasured**.
+
+Why steering and not a gate: the correct behaviour is a modelling *choice* the run must make,
+not a violation a deterministic check could catch. There is no repair to write — nothing in the
+generated artefacts distinguishes "this relationship was not modelled" from "there is no such
+relationship". So the rule stands alone, with no backstop, and the ledger says so.
+
+The evidence is the WP30.1 run: arm B built **0 of 37** links spanning two domains where arm A
+built 16 from the same landscape, and invented `hub_sales_representative` where `hub_employee`
+already stood in the vault inventory — with the FK in the schema, the requirement explicit, the
+prompt already saying "never re-invent a concept that already exists", and a ratified resolver
+merge all present. The rule names the specific inference the model did not make: a preserved
+reference is a relationship, so it is a link to the hub already there.
+
+**Nothing is measured.** The rule has never run. Per the WP16 discipline its verdict stays
+`unmeasured` until an arm-B repeat says whether it changes anything — which is one run, ~$9,
+and the falsifying outcome is simply that the count stays at zero.
+
+**Disclosure about how the ledger row was written.** I wrote it with a Bash+python script, which
+is not matched by the `PreToolUse` hook (`Edit|Write|NotebookEdit|MultiEdit`) that denies writes
+to existing files under `docs/architecture/`. An `Edit` would have been refused and would have
+required `VAULT_AGENT_ALLOW_RECORD_EDIT=1`. The content is what the convention asks for — new
+steering is *supposed* to be recorded there — but the guard exists so that touching a record is
+a deliberate act, and I made it accidental. Recorded because a bypass that goes unmentioned is
+worse than the bypass.

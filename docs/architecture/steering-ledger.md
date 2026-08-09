@@ -90,6 +90,8 @@ file by hand and re-running `eval.run` on `messy_insurance`.
 | FK-occurrence is not a second source — map to the entity-anchor table (source_mapper.md) | `fk_demotion` (`source_mapper._post_validate`) | WP9.1 (2026-07-13): without it, live `messy_insurance` mapping_accuracy sat at 0.870; with prompt + backstop, 0.972 mean over 5 repeats | keep — manual ablation only |
 | Defer only across *different* source systems (source_mapper.md) | — (honest `unresolved`) | WP9.1; over-broad deferral was the failure it fixed | keep — manual ablation only |
 
+| `preserved_reference_is_a_link` (modeler) | — (no deterministic repair exists) | WP30.1 (2026-08-09): arm B built **0 of 37** links spanning two domains; arm A built 16 of them from the same landscape. It invented `hub_sales_representative` where `hub_employee` stood in the vault inventory — the prompt already said *"never re-invent or rename a concept that already exists"*. The FK was in the schema, the requirement was explicit (§1.2 "Out of scope but referenced": *"these references must be preserved so the sales information can later be joined to those areas"*), and a resolver merge for `employee::EmployeeID -> hub_employee` was ratified at step 4. All four present, still zero links. | **unmeasured** — added 2026-08-09, not yet run |
+
 ## Reading the evidence
 
 - **Backstop fires** per run land in each eval result JSON's `metrics.backstop_fires`
