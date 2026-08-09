@@ -2867,3 +2867,35 @@ file for questions nobody has asked.
 since n=1 is a direction and not a verdict — now answers the link question for free.
 
 801 tests green (+3), ruff clean, mypy strict clean.
+
+## [2026-08-09] WP30.1 — predictions for the link-deficit run, written before spending
+
+One repeat of each arm with `model_shape` in place (~$19). One is enough for the QUESTION being
+asked: "which links does arm A have that arm B lacks" is a set comparison, not a mean. Variance
+would matter for the magnitude; it does not change the nature of the missing links.
+
+**Domain attribution comes from the instrument, not from me:** arm B's per-step shapes give the
+step at which each hub first appears, and that step IS its subject area. A link is CROSS-DOMAIN
+when its two hubs first appeared in different steps.
+
+**P1 — the links arm A has and arm B lacks are predominantly cross-domain.** This is the
+charter's structural cost made concrete: a relationship spanning Sales and Person can only be
+modelled once both exist, and arm B never revisits an earlier domain to add one. Predicted:
+**more than half** of the missing links span hubs from different steps. Falsified if half or
+more are intra-domain — in which case arm B simply builds fewer links per domain, the walk is
+not the cause, and the charter's claim is weakened for a different reason than the one I have
+been assuming.
+
+**P2 — arm B adds few links at the moment a domain arrives that references an older one.**
+HumanResources and Purchasing are the outward-pointing domains (HR→Person 1 FK; Purchasing→
+Person/Production/HR 1/2/1) and added only +3 and +2 links in the 2026-08-01 run. Predicted:
+their per-step deltas stay the lowest, and the links they DO add are mostly intra-domain.
+
+**P3 — the hub sets are near-identical.** 42 vs 44 previously. If the hubs match but the links
+do not, the deficit is about relationships and not about concept discovery. Falsified if the
+symmetric difference of the hub sets exceeds five.
+
+**What would make P1 unmeasurable rather than false:** if arm A's and arm B's hub NAMES diverge
+enough that grains cannot be compared. Grains are hub-name tuples, so a renamed hub breaks the
+join — the same class that has bitten five times. If that happens, say so rather than reporting
+a number.
