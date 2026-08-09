@@ -2818,3 +2818,52 @@ than assumed — and the reason a patch bump here is a review, not a rubber stam
 The comment at `cli.py:478` now names 3.1.1 and says why that line gets re-checked on every
 bump. It previously named 3.1.0, which would have let the next reader believe the verification
 was older than the dependency.
+
+## [2026-08-09] WP30.1 — the arm comparison's open question could not be asked of the data
+
+Attempting to answer "why does arm B build 73% of arm A's links?" (WP30 §7.3) found that the
+instrument cannot be asked it. **The link names were never persisted.** `run_metrics` stored
+`len(dv_model.links)` and nothing else; `write_step_vault` wrote the model into a temp workdir
+the run then deletes; and the traces are not a substitute, because they carry the re-model
+loop's DISCARDED attempts — reconstructing arm A from its trace gave **84 links where the run
+reported 51**, and arm B 58 against 37. The harness records how big the answer is and never what
+it is.
+
+**What the stored data does support**, and it is worth having on its own:
+
+| domain | tables | new links | links/table |
+|---|---|---|---|
+| person | 13 | 7 | 0.54 |
+| humanresources | 6 | 3 | 0.50 |
+| production | 25 | 14 | 0.56 |
+| purchasing | 5 | 2 | 0.40 |
+| sales | 19 | 11 | 0.58 |
+| **arm B** | 68 | **37** | **0.54** |
+| **arm A** | 68 | **51** | **0.75** |
+
+Arm B's rate is strikingly uniform, 0.40–0.58. **The deficit is not concentrated in any one
+step** — it is spread evenly across the walk.
+
+**And a retraction, because I nearly read that as an answer.** My first reading was: step 1
+(person) is greenfield with no earlier domains to link to, so its 0.54 against arm A's 0.75
+would show that partitioning cannot explain the shortfall. **That reasoning is wrong.** Arm A's
+51 links include cross-domain relationships step 1 could not have built — Sales did not exist
+yet — so it compares a subset against a total. The uniform rate is consistent with *both*
+candidate explanations ("fewer links per domain" and "evenly spread missing cross-domain links")
+and discriminates neither.
+
+**The fix is `model_shape`**, recorded per step and at the end: hub names, satellite parents, and
+for each link its **grain** — the sorted hubs it connects. Structural rather than name-keyed, the
+WP14 rule, because two runs may name the same relationship differently and a name comparison
+would report that as a difference. Per step as well as at the end, because *when* a link first
+appears is the actual question: a relationship spanning two domains can only be built once the
+second has arrived.
+
+Deliberately not the whole model — no descriptions, no requirement traces, no payloads. This
+answers "which relationships exist and what do they span"; a fuller dump would grow every result
+file for questions nobody has asked.
+
+**Nothing was measured.** No live run was made. The next arm comparison — which is needed anyway,
+since n=1 is a direction and not a verdict — now answers the link question for free.
+
+801 tests green (+3), ruff clean, mypy strict clean.
