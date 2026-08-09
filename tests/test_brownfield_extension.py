@@ -366,12 +366,36 @@ def test_extension_prompt_section_is_empty_on_a_greenfield_run() -> None:
 def test_extension_prompt_section_inventories_the_existing_vault() -> None:
     section = render_extension_prompt_section(_vault())
 
-    assert "IMMUTABLE" in section
     assert "hub **hub_customer** — business key `customer_id`" in section
     assert "link **link_account_customer** — connects hub_account, hub_customer" in section
     assert "satellite **sat_customer_details** — standard, on hub_customer" in section
-    assert "Emit ONLY the delta" in section
+
+
+def test_the_section_states_the_two_things_that_are_actually_fixed() -> None:
+    """WP30.2 rewrote this section's REGISTER, not its rules. These are the rules.
+
+    Both are real safety properties and neither may be lost to the rewrite: an existing
+    construct is never renamed or re-keyed (that is a migration this agent does not perform),
+    and an existing satellite's payload never grows (every stored row would need backfilling)."""
+    section = render_extension_prompt_section(_vault())
+
+    assert "never renamed" in section and "re-keyed" in section
     assert "NEW satellite on the same parent" in section
+    assert "backfill" in section
+
+
+def test_the_section_offers_the_existing_hubs_as_link_endpoints() -> None:
+    """The point of WP30.2. Measured cause (docs/log.md 2026-08-09): with the instruction
+    present at five levels, arm B built 0 of 37 links spanning two domains and invented a local
+    hub for a concept the inventory already listed. The section's whole register was
+    prohibition — IMMUTABLE, emit ONLY, do NOT — so the inventory read as things to avoid
+    duplicating rather than as endpoints to build against.
+
+    A link TO an existing hub changes nothing about that hub. The section now says so."""
+    section = render_extension_prompt_section(_vault())
+
+    assert "does not change that hub" in section, section
+    assert "connection point" in section.lower()
 
 
 def test_an_already_multi_source_hub_keeps_its_suffixed_names() -> None:

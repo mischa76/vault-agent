@@ -98,14 +98,30 @@ def render_extension_prompt_section(existing: DVModel | None) -> str:
     The inventory is deliberately COMPACT — names, keys, grain, types — not a full dump.
     The modeler needs to recognise what exists and attach to it; it does not need the
     existing descriptions or requirement traces, and sending them would cost tokens on
-    every extension run to no benefit."""
+    every extension run to no benefit.
+
+    **The register was rewritten in WP30.2, and the reason is measured** (docs/log.md,
+    2026-08-09). This section used to open with "IMMUTABLE … a migration this agent never
+    performs" and close with "Emit ONLY the delta … Do NOT re-emit" — every sentence a
+    prohibition. Arm B then built **0 of 37** links spanning two domains where arm A built 16
+    from the same landscape, and invented a local hub for a concept this very inventory listed
+    by name. The instruction to do otherwise was present at five levels — the schema's foreign
+    key, the requirements text, this section's own "attach by their exact names", a ratified
+    resolver merge, and finally an explicit steering rule that changed nothing.
+
+    The rules did not change; only which of them the text leads with. Two things are genuinely
+    fixed — an existing construct is never renamed or re-keyed, and an existing satellite's
+    payload never grows — and they are still stated, at the end, as the two exceptions they
+    are. What comes first now is what the section is actually for: these hubs are endpoints,
+    and a link to one changes nothing about it."""
     if existing is None:
         return ""
     lines = [
-        "## The existing vault you are EXTENDING",
+        "## The vault you are extending — these hubs are yours to build against",
         "",
-        "These constructs already exist and are IMMUTABLE. They hold live history: renaming,"
-        " re-keying or re-shaping any of them is a migration this agent never performs.",
+        "Each construct below already exists and is a CONNECTION POINT for what you are adding"
+        " now. Building a link to one of these hubs does not change that hub — it is a new"
+        " construct, and it is the main thing this section exists for.",
         "",
     ]
     for hub in existing.hubs:
@@ -125,18 +141,25 @@ def render_extension_prompt_section(existing: DVModel | None) -> str:
         lines.append(f"- satellite **{sat.name}** — {sat.sat_type}, on {sat.parent}")
     lines += [
         "",
-        "Emit ONLY the delta:",
+        "Wherever this increment's requirements reference something one of those hubs already "
+        "holds — a foreign key, a concept the requirements call maintained elsewhere, any "
+        "reference they say must be preserved so the areas can be joined later — model that "
+        "reference as a LINK to that hub, by its exact name. Nobody adds those links in a "
+        "later increment; if you do not build them now, the vault simply never has them.",
         "",
-        "1. NEW hubs, links and satellites the requirements introduce. Attach them to the "
-        "existing constructs above by their exact names — never re-invent or rename a "
-        "concept that already exists.",
+        "Emit what does not exist yet:",
+        "",
+        "1. NEW hubs, links and satellites — INCLUDING links whose participants are hubs "
+        "listed above, and links between an existing hub and one you are adding now. Use the "
+        "exact names above; never re-invent or rename a concept that already exists.",
         "2. An existing hub RE-STATED BY NAME carrying only its ADDITIONAL `sources` "
         "entries, when a new source system feeds a concept the vault already models.",
         "",
-        "Do NOT re-emit existing links or satellites, and do not restate an existing hub for "
-        "any other reason. If new attributes belong to a concern an existing satellite "
-        "already covers, put them in a NEW satellite on the same parent — an existing "
-        "satellite's payload is fixed, because every stored row would otherwise need "
-        "backfilling.",
+        "Two things are fixed, and only two. An existing construct is never renamed, re-keyed "
+        "or re-shaped — that is a migration this agent does not perform. And an existing "
+        "satellite's payload never grows: if new attributes belong to a concern an existing "
+        "satellite already covers, put them in a NEW satellite on the same parent, because "
+        "every stored row would otherwise need backfilling. Beyond those two, do not re-emit "
+        "an existing link or satellite unchanged — there is nothing to gain from restating it.",
     ]
     return "\n" + "\n".join(lines) + "\n"

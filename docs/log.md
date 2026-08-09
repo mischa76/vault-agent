@@ -3099,3 +3099,57 @@ That row is in `docs/architecture/steering-ledger.md`, and updating it needs the
 record-edit path rather than the script route I used (and disclosed) last time.
 
 Spend on this question so far: ~$28 (two arm pairs plus this repeat).
+
+## [2026-08-09] WP30.2 — the extension section stops speaking in prohibitions
+
+The rules did not change. Which of them the text leads with did.
+
+**Before**, every sentence was a refusal: *"These constructs already exist and are IMMUTABLE …
+a migration this agent never performs"*, then *"Emit ONLY the delta"*, then *"Do NOT re-emit …
+do not restate"*. The inventory arrived framed as a list of things to avoid touching.
+
+**Now** it opens with what the section is for — *"these hubs are yours to build against … Each
+construct below is a CONNECTION POINT … Building a link to one of these hubs does not change
+that hub"* — states the specific inference the model kept not making (a reference the
+requirements call *maintained elsewhere* or *to be preserved for later joining* is a LINK to
+that hub), adds the consequence nobody had told it (*"Nobody adds those links in a later
+increment; if you do not build them now, the vault simply never has them"*), and ends with the
+two genuine constraints named as the two exceptions they are.
+
+**Both safety properties survive and are now pinned by their own test** rather than by the
+prose that happened to carry them: an existing construct is never renamed or re-keyed, and an
+existing satellite's payload never grows (backfill). A third test pins the new register itself,
+so a future edit that quietly restores the prohibition tone fails.
+
+**Why this and not another steering rule.** The rule route was tried and measured:
+`preserved_reference_is_a_link` reached every modeler call, and cross-domain links stayed at 0.
+With the instruction present at five levels and ignored, the remaining candidate was the shape
+of the text carrying them — which is what this changes. That candidate is a hypothesis with one
+falsified rule behind it, not a certainty.
+
+Greenfield is untouched by construction: the function still returns `''` without an existing
+model, so `test_greenfield_inertness` and the WP16 steering fixture are unaffected — verified,
+not assumed.
+
+**Nothing is measured.** 803 tests green (+2), ruff and mypy clean, and the prediction for the
+run is below.
+
+## [2026-08-09] Prediction for the WP30.2 re-run, before spending
+
+One arm-B repeat (~$9), everything else identical. Baseline unchanged: **0 of 37 links spanning
+two domains**, with arm A at 16.
+
+- **Held if cross-domain links > 5.** Roughly a third of arm A's, the same bar the steering rule
+  missed.
+- **Weak if 1–5.** The register matters but is not sufficient; record it as partial and do not
+  claim the question is closed.
+- **Falsified at 0.** Then two independent interventions — an explicit rule, and a rewritten
+  section — have both failed against an instruction present at every level. At that point the
+  honest reading is no longer "the prompt is shaped wrong" but that the modeler does not relate
+  a new increment's concepts to a prior vault at all, whatever it is told, and the remedy is
+  not a prompt at all: it would be a deterministic post-pass that proposes links from the
+  source's foreign keys.
+
+Also worth watching, separately from the gate: whether `hub_sales_representative` finally
+disappears. Links appearing while the duplicate hub stays would mean the section bought
+relationships without stopping the invention.
