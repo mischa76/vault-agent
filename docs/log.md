@@ -3252,3 +3252,56 @@ cross-domain links, both at the person↔humanresources boundary, none from step
 Watch alongside: review items, which went 456 → 489 → 619 across the previous three. A fourth
 rise would matter — the arm comparison's binding axis is moving the wrong way while the model
 gets better.
+
+## [2026-08-09] WP30.3 met its bar and made things worse — stopping the prompt route
+
+The prediction was held by the letter and the run is not an improvement. Both are true and the
+second matters more.
+
+**Held:** the two cross-domain links now come from **Sales reaching back to Person** — four
+steps — where every previous run produced them only at the first boundary or not at all.
+`link_customer_person` and `link_person_credit_card` are two of the sixteen arm A builds and
+arm B was missing. The specific failure WP30.3 targeted is gone.
+
+**And it undid WP30.2's actual gain.** `hub_sales_representative` is back, alongside three more
+zero-satellite hubs named `<x>_business_entity`:
+
+```
+hubs 43 -> 47, new: hub_sales_representative, hub_employee_business_entity,
+                    hub_job_candidate_business_entity, hub_vendor_business_entity
+6 hubs now carry no satellite at all
+```
+
+Promoting `hub_business_entity` as a likely target made the model *reference* it — as a hub, not
+as a link endpoint. It reached the distant domain and got the shape wrong. That is the exact
+"relationship wearing a hub's clothes" pattern WP30.1 named, and a duplicate hub is a WRONG
+model where a missing link is merely an incomplete one.
+
+**Four measurements, one variable each:**
+
+| | cross-domain | where | zero-sat hubs | review items |
+|---|---|---|---|---|
+| nothing | 0 | — | ? | 456 |
+| + steering rule | 0 | — | ? | 489 |
+| + rewritten register | 2 | first boundary | fewer (invention stopped) | 619 |
+| + promoted targets | 2 | **last boundary** | **6** | **777** |
+
+Prompt shaping moves *which* two links appear. It has not moved *how many* — 2 against arm A's
+16 — and review load has risen 70% across the four.
+
+**So I am stopping this lever, and the reason is not that a bar failed.** My bar was too narrow:
+I optimised for "a late-step link appears", got it, and the model regressed elsewhere while
+satisfying it. A criterion a change can meet while making the result worse is a bad criterion,
+and writing it down in advance did not save me from that — it only made the failure legible
+afterwards, which is the lesser half of what pre-registration is for.
+
+**What the evidence now points at** — recorded as the next move, not done here: the links are
+derivable without asking a model at all. The source's own foreign keys say
+`Sales.Customer.PersonID -> Person.BusinessEntityID`, and an existing hub keys on
+`BusinessEntityID`. A deterministic pass can PROPOSE those links, and WP29's checkpoint shape
+already exists for exactly this — propose, pause, ratify — applied to relationships instead of
+concepts. That also puts the review load where it belongs: a proposed link a human accepts or
+rejects is one review item with a clear answer, not a modelling decision spread across five
+increments.
+
+Spend on this question: **~$46** across four arm-B repeats and two arm-A runs.
