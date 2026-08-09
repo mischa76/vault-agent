@@ -384,6 +384,55 @@ def test_the_section_states_the_two_things_that_are_actually_fixed() -> None:
     assert "backfill" in section
 
 
+def test_likely_targets_lead_when_the_new_source_shares_a_business_key() -> None:
+    """WP30.3. Measured cause (docs/log.md 2026-08-09): after the register rewrite, arm B built
+    cross-domain links only at the FIRST boundary — step 2 reached back to step 1, steps 3-5 to
+    nothing, with the target hubs present by name in a 40-construct flat list. What decays with
+    distance is plausibly salience, not the instruction.
+
+    So the hubs this increment's source can actually reach are named FIRST, with the evidence:
+    which of its tables carry that hub's business key."""
+    from vault_agent.state import SourceColumn, SourceTable
+
+    schema = [SourceTable(table="sales_order", columns=[
+        SourceColumn(name="customer_id", type="varchar"),
+        SourceColumn(name="order_no", type="varchar"),
+    ])]
+
+    section = render_extension_prompt_section(_vault(), schema)
+
+    assert "Likely link targets" in section, section
+    assert "hub_customer" in section.split("Likely link targets")[1].split("##")[0]
+    assert "sales_order" in section, "the evidence must name where the key was seen"
+
+
+def test_no_shared_key_means_no_targets_section_and_an_unchanged_inventory() -> None:
+    """Nothing to say is said by saying nothing — the section must not grow a stub."""
+    from vault_agent.state import SourceColumn, SourceTable
+
+    schema = [SourceTable(table="unrelated", columns=[SourceColumn(name="zzz", type="varchar")])]
+
+    with_schema = render_extension_prompt_section(_vault(), schema)
+    without = render_extension_prompt_section(_vault())
+
+    assert "Likely link targets" not in with_schema
+    assert with_schema == without
+
+
+def test_the_full_inventory_is_never_hidden_by_the_filter() -> None:
+    """The one property this must not break. A hub the heuristic misses is exactly the hub the
+    model then cannot link to — the failure being fixed. Highlighting is additive; nothing is
+    removed, however weak the evidence."""
+    from vault_agent.state import SourceColumn, SourceTable
+
+    schema = [SourceTable(table="t", columns=[SourceColumn(name="customer_id", type="varchar")])]
+
+    section = render_extension_prompt_section(_vault(), schema)
+
+    for name in ("hub_customer", "hub_account", "link_account_customer", "sat_customer_details"):
+        assert name in section, f"{name} vanished from the inventory"
+
+
 def test_the_section_offers_the_existing_hubs_as_link_endpoints() -> None:
     """The point of WP30.2. Measured cause (docs/log.md 2026-08-09): with the instruction
     present at five levels, arm B built 0 of 37 links spanning two domains and invented a local

@@ -3202,3 +3202,53 @@ Spend on this question: **~$37** across four arm-B repeats and two arm-A runs.
 effect on its target* — this run does not rescue it, since the register changed at the same
 time and the rule alone had already scored 0. Both ledger rows want the deliberate record-edit
 path.
+
+## [2026-08-09] WP30.3 — likely link targets, promoted but never filtered
+
+WP30.2 left the pattern that names this WP: after the register rewrite, arm B built cross-domain
+links at the FIRST boundary only — step 2 reached back to step 1, steps 3, 4 and 5 to nothing,
+with the target hubs present by name in a flat 40-construct list. What plausibly decays with
+distance is salience, not the instruction.
+
+So the hubs this increment's source can actually reach are now named FIRST, with their evidence:
+which of its tables carry that hub's business key.
+
+**Measured before building, and it changed the design.** Against the 30-hub vault of step 4,
+AdventureWorks Sales matches 13 hubs by business-key column — and **7 of those match only
+because they are keyed on `Name`** and Sales has a `Name` column. That is the WP24 generic-key
+shape, and it is exactly the trap this project has walked into five times.
+
+**Filtering them out was rejected**, and the reason matters more than the rule: several of the
+`Name` hits — `hub_ship_method`, `hub_product_category` — *are* relevant to Sales, found for the
+wrong reason. A filter precise enough to drop the noise would drop them too, and **hiding a hub
+is the exact failure this exists to fix**. So the heuristic only ever PROMOTES. The full
+inventory follows unchanged, and a test pins that nothing vanishes from it.
+
+The evidence is shown rather than the conclusion asserted: *"keyed on a column this increment's
+source also carries. That is weak evidence — a shared column name, nothing more"*, plus the
+table names where it was seen. The model judges; the prompt supplies the observation.
+
+No shared key produces no section at all, byte-identical to before — a stub saying "nothing
+found" would be noise on every run that has nothing to say.
+
+806 tests green (+3), ruff clean, mypy strict clean. **Nothing measured.**
+
+## [2026-08-09] Prediction for the WP30.3 run, before spending
+
+One arm-B repeat (~$9). Everything else identical to the WP30.2 run, which scored **2**
+cross-domain links, both at the person↔humanresources boundary, none from steps 3-5.
+
+- **Held if a cross-domain link appears from a LATE step** — production, purchasing or sales
+  reaching back to person or humanresources. That is the specific failure this addresses, and
+  the count matters less than which step it came from.
+- **Weak if the total rises but the new ones are again all at the first boundary.** Then
+  salience was not the binding constraint and I should stop pulling this lever.
+- **Falsified at ≤2 with no late-step link.** Three interventions would then have failed —
+  explicit rule, rewritten register, promoted targets — and the honest next move is not a fourth
+  prompt change but the deterministic post-pass: propose links from the source's foreign keys
+  and let a human ratify them, which is the WP29 checkpoint shape applied to relationships
+  instead of concepts.
+
+Watch alongside: review items, which went 456 → 489 → 619 across the previous three. A fourth
+rise would matter — the arm comparison's binding axis is moving the wrong way while the model
+gets better.
