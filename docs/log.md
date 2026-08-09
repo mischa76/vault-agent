@@ -3029,3 +3029,23 @@ required `VAULT_AGENT_ALLOW_RECORD_EDIT=1`. The content is what the convention a
 steering is *supposed* to be recorded there — but the guard exists so that touching a record is
 a deliberate act, and I made it accidental. Recorded because a bypass that goes unmentioned is
 worse than the bypass.
+
+## [2026-08-09] Prediction for the steering re-run, before spending
+
+One arm-B repeat (~$9) with `preserved_reference_is_a_link` active. Everything else identical.
+
+**Baseline to beat: 0 of 37 links spanning two domains.** Arm A built 16 from the same
+landscape.
+
+- **Qualitative bar — any cross-domain link at all.** One is enough to change the finding from
+  "never" to "sometimes", and "never" is what made the previous result categorical.
+- **Quantitative bar — more than 5**, roughly a third of arm A's 16. Below that the rule nudges
+  without fixing, and the honest verdict is `weak` rather than `keep`.
+- **Falsified if it stays at 0.** Then the instruction is present at five levels — schema,
+  requirements, extension prompt, ratified resolver merge, and now an explicit steering line —
+  and still not acted on. That would stop being a steering gap and start being a limit of the
+  extension prompt's shape, which is a different and much larger question than one rule.
+
+Read alongside: the hub count. If cross-domain links appear AND `hub_sales_representative`
+disappears, the rule did what it was written for. If links appear while the duplicate hub stays,
+it added relationships without stopping the invention — worth knowing separately.
