@@ -3099,3 +3099,106 @@ That row is in `docs/architecture/steering-ledger.md`, and updating it needs the
 record-edit path rather than the script route I used (and disclosed) last time.
 
 Spend on this question so far: ~$28 (two arm pairs plus this repeat).
+
+## [2026-08-09] WP30.2 — the extension section stops speaking in prohibitions
+
+The rules did not change. Which of them the text leads with did.
+
+**Before**, every sentence was a refusal: *"These constructs already exist and are IMMUTABLE …
+a migration this agent never performs"*, then *"Emit ONLY the delta"*, then *"Do NOT re-emit …
+do not restate"*. The inventory arrived framed as a list of things to avoid touching.
+
+**Now** it opens with what the section is for — *"these hubs are yours to build against … Each
+construct below is a CONNECTION POINT … Building a link to one of these hubs does not change
+that hub"* — states the specific inference the model kept not making (a reference the
+requirements call *maintained elsewhere* or *to be preserved for later joining* is a LINK to
+that hub), adds the consequence nobody had told it (*"Nobody adds those links in a later
+increment; if you do not build them now, the vault simply never has them"*), and ends with the
+two genuine constraints named as the two exceptions they are.
+
+**Both safety properties survive and are now pinned by their own test** rather than by the
+prose that happened to carry them: an existing construct is never renamed or re-keyed, and an
+existing satellite's payload never grows (backfill). A third test pins the new register itself,
+so a future edit that quietly restores the prohibition tone fails.
+
+**Why this and not another steering rule.** The rule route was tried and measured:
+`preserved_reference_is_a_link` reached every modeler call, and cross-domain links stayed at 0.
+With the instruction present at five levels and ignored, the remaining candidate was the shape
+of the text carrying them — which is what this changes. That candidate is a hypothesis with one
+falsified rule behind it, not a certainty.
+
+Greenfield is untouched by construction: the function still returns `''` without an existing
+model, so `test_greenfield_inertness` and the WP16 steering fixture are unaffected — verified,
+not assumed.
+
+**Nothing is measured.** 803 tests green (+2), ruff and mypy clean, and the prediction for the
+run is below.
+
+## [2026-08-09] Prediction for the WP30.2 re-run, before spending
+
+One arm-B repeat (~$9), everything else identical. Baseline unchanged: **0 of 37 links spanning
+two domains**, with arm A at 16.
+
+- **Held if cross-domain links > 5.** Roughly a third of arm A's, the same bar the steering rule
+  missed.
+- **Weak if 1–5.** The register matters but is not sufficient; record it as partial and do not
+  claim the question is closed.
+- **Falsified at 0.** Then two independent interventions — an explicit rule, and a rewritten
+  section — have both failed against an instruction present at every level. At that point the
+  honest reading is no longer "the prompt is shaped wrong" but that the modeler does not relate
+  a new increment's concepts to a prior vault at all, whatever it is told, and the remedy is
+  not a prompt at all: it would be a deterministic post-pass that proposes links from the
+  source's foreign keys.
+
+Also worth watching, separately from the gate: whether `hub_sales_representative` finally
+disappears. Links appearing while the duplicate hub stays would mean the section bought
+relationships without stopping the invention.
+
+## [2026-08-09] The rewritten register: WEAK, by the bar set before the run
+
+Third measurement of the same question, one variable changed each time.
+
+| | links | **spanning two domains** | hubs | `hub_sales_representative` | review items |
+|---|---|---|---|---|---|
+| nothing | 37 | **0** | 44 | present | 456 |
+| + steering rule | 40 | **0** | 45 | present | 489 |
+| **+ rewritten register** | 36 | **2** | 43 | **gone** | **619** |
+
+**Two is "weak" by the pre-registration** — the bands were >5 held, 1–5 weak, 0 falsified — and
+weak is what it is recorded as. The register matters and is not sufficient. The question is not
+closed.
+
+**What genuinely improved, and it is not the link count.** `hub_sales_representative` is gone.
+The invention this whole line of work started from — a local hub for a concept the inventory
+already listed — stopped. Hubs fell 45 → 43. That is the section's *"a link to one of these hubs
+does not change that hub"* landing, and it is worth more than the two links: a duplicate hub is
+a wrong model, a missing link is an incomplete one.
+
+**Where the two links appear is the finding.** Both are at the FIRST boundary:
+
+```
+person            7 new links,  0 cross
+humanresources    2 new links,  2 cross   <- both of them, here
+production       14 new links,  0 cross
+purchasing        2 new links,  0 cross
+sales            11 new links,  0 cross
+```
+
+Step 2 reaches back to step 1. Steps 3, 4 and 5 reach back to nothing — Sales still builds no
+link to Person, three steps later, with `hub_person` in its inventory by name. So the rewrite
+works at the nearest boundary and not at distant ones. A plausible reading — untested — is that
+what decays is not the instruction but the salience of an inventory that has grown to 40-odd
+constructs by step 5, of which only a handful are relevant to the domain in hand. That would
+make the next candidate a *relevance-filtered* inventory rather than more words about it.
+
+**And a cost that moved the wrong way.** Review items rose 456 → 489 → **619**, a third above
+where this started, on the axis that already favoured arm A three-to-one. Whatever the register
+bought in model quality, it did not buy on the human-workload axis. That belongs in the arm
+comparison's ledger, not hidden behind the good news about the hub.
+
+Spend on this question: **~$37** across four arm-B repeats and two arm-A runs.
+
+**Standing verdicts to correct:** `preserved_reference_is_a_link` stays *measured once, no
+effect on its target* — this run does not rescue it, since the register changed at the same
+time and the rule alone had already scored 0. Both ledger rows want the deliberate record-edit
+path.
