@@ -2899,3 +2899,63 @@ symmetric difference of the hub sets exceeds five.
 enough that grains cannot be compared. Grains are hub-name tuples, so a renamed hub breaks the
 join — the same class that has bitten five times. If that happens, say so rather than reporting
 a number.
+
+## [2026-08-09] The link deficit, answered: arm B builds no cross-domain links at all
+
+One repeat per arm with `model_shape` in place (~$19). Both exit 0, every gate 1.000. The
+question WP30 §7.3 left open is settled, and the answer is categorical rather than statistical —
+which is why one repeat suffices for it.
+
+**P1 HELD, 89%.** Of the 20 links arm A has and arm B lacks, 18 are attributable and **16 span
+two domains**, 2 do not. The missing ones are exactly the relationships the charter's walk
+cannot reach:
+
+```
+link_customer_person            person + sales
+link_person_credit_card         person + sales
+link_business_entity_employee   humanresources + person
+link_sales_order_line           production + sales
+link_purchase_order_line        production + purchasing
+link_document_owner             humanresources + production
+```
+
+**P2 was far exceeded, and this is the finding.** I predicted arm B would add *few* links
+reaching back into an earlier domain. It added **none — in any step**:
+
+```
+1. person           +7 links,  0 reach back
+2. humanresources   +2 links,  0 reach back
+3. production      +15 links,  0 reach back
+4. purchasing       +2 links,  0 reach back
+5. sales           +11 links,  0 reach back
+```
+
+**Zero of arm B's 37 links span two domains.** Not few, not fewer than arm A's — none. Every
+relationship it models lives entirely inside the domain being onboarded, and it never revisits
+an earlier one. Its 14 own links (ones arm A lacks) are likewise all intra-domain: it decomposes
+*more* finely within a domain and not at all across.
+
+**What it does instead of reaching back, which is the mechanism.** `hub_vendor_business_entity`
+exists only in arm B, participates in one link, and has **zero satellites** — a relationship
+wearing a hub's clothes. Arm A models the same thing as `link_vendor_business_entity` spanning
+person and purchasing. Likewise arm B invents `hub_sales_representative` in a later step where
+arm A links the existing employee hub to sales territory. Unable to reach an earlier domain's
+hub, arm B creates a local one for the same real-world concept. That is the entity-resolution
+problem, arriving from a direction WP29's resolver does not cover: the resolver is asked about
+business keys, not about whether a relationship should span domains.
+
+**P3 held at exactly its threshold, and the reason is instructive.** Hub symmetric difference is
+5 — the limit I set for "grains can still be joined". One of the five is
+`hub_shipping_method` (arm A) against `hub_ship_method` (arm B): the same concept under two
+names, which is precisely why 2 of the 20 missing links are unattributable. The name-matching
+class again, this time inside the analysis rather than inside a scorer.
+
+**Read this as a mechanism, not as a verdict on the charter.** It is one repeat, and what it
+establishes is *what* arm B does, not how often. But 0/37 is categorical: no plausible variance
+turns "never" into "sometimes". Combined with phase 1's 3x review load, the honest statement is
+that domain-by-domain growth costs the cross-domain relationships entirely, and buys a 12%
+lower token bill. Whether that trade is acceptable is a product decision, and it now has numbers
+under it instead of an assertion.
+
+**Not measured:** whether a resolver-style pass at the END of the walk would recover the missing
+links. That is the obvious remedy and nothing here tests it.
