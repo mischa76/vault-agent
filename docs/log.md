@@ -2959,3 +2959,43 @@ under it instead of an assertion.
 
 **Not measured:** whether a resolver-style pass at the END of the walk would recover the missing
 links. That is the obvious remedy and nothing here tests it.
+
+## [2026-08-09] Correction: the link deficit is a modeler defect, not a cost of partitioning
+
+The entry above ends "domain-by-domain growth costs the cross-domain relationships entirely".
+That wording implies the loss is inherent to the decomposition. It is not, and the evidence to
+say so was already on disk.
+
+Put the arms as functions and the claim sharpens. Arm B is not a union but a **left fold** —
+`V₀ = ∅`, `Vᵢ = f_B(Sᵢ, Vᵢ₋₁)` — so `Vᵢ₋₁` is an INPUT, and a cross-domain link is permitted by
+construction rather than excluded by it. `⋃ f_B(Sᵢ)` would exclude it; the fold does not.
+
+Whether `f_A(S) = fold(f_B, partition(S))` *should* hold exactly: as an ideal yes — call it
+independence from ingestion order, a reasonable property for a rule-driven transformation. As a
+hard requirement no: a DV2.0 model is not uniquely determined by a schema (satellite splits,
+link-versus-hub, business-key choice all admit defensible alternatives). Divergence per se is
+therefore not a defect.
+
+**But this divergence is not of that kind, and the information was present at every level:**
+
+- the schema carries the Sales→Person foreign keys;
+- the requirements say so explicitly — §1.2 "Out of scope but referenced": *"These references
+  must be preserved so the sales information can later be joined to those areas"*;
+- the extension prompt says *"Attach them to the existing constructs above by their exact names
+  — never re-invent or rename a concept that already exists"*;
+- and in step 4 the resolver proposed and had ratified `employee::EmployeeID -> hub_employee`.
+
+With all four in place the modeler built **zero** cross-domain links, and invented
+`hub_sales_representative` — precisely what that prompt sentence forbids. The ratified merge did
+prevent a duplicate *hub*; it did not produce the *link*. Resolution answers "is this concept
+the existing one"; nothing asks "should this relationship span domains".
+
+So the failure is that `f_B` does not use an input it was given. Rules identical, inputs
+present, composition additive and sufficient. **That is a fixable defect** — a steering or
+capability gap — and not evidence against domain partitioning.
+
+Consequence for the charter debate: WP30's arm comparison measures the pipeline as it is, not
+the decomposition as such. The measured cost of arm B — no cross-domain relationships, 3x review
+load — is real for the current implementation and must not be read as an argument that
+incremental modelling is inherently worse. Nothing here tests the obvious remedy: a pass at the
+end of the walk, or a prompt that names the preserved references as link candidates.
