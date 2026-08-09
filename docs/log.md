@@ -3049,3 +3049,53 @@ landscape.
 Read alongside: the hub count. If cross-domain links appear AND `hub_sales_representative`
 disappears, the rule did what it was written for. If links appear while the duplicate hub stays,
 it added relationships without stopping the invention — worth knowing separately.
+
+## [2026-08-09] The steering rule was delivered and changed nothing — prediction falsified
+
+One arm-B repeat (~$9) with `preserved_reference_is_a_link` active. **Cross-domain links: 0,
+again.** The pre-registered bars were "any at all" (qualitative) and ">5" (quantitative). Both
+missed. Falsified as written.
+
+| | without the rule | with it |
+|---|---|---|
+| links | 37 | 40 |
+| **spanning two domains** | **0** | **0** |
+| hubs | 44 | 45 |
+| satellites | 69 | 73 |
+| `hub_sales_representative` | present | still present |
+
+The rule did change behaviour — three more links, a hub, four satellites — just not the
+behaviour it was written for. Every one of the three new links is intra-domain.
+
+**It was delivered.** Checked before concluding: the steering line is in the modeler's system
+prompt on every `emit_dv_model` call of the run. A first reading suggested it was missing from
+four of nine — that was wrong, and the reason is worth recording: the trace stores a system
+prompt once and thereafter only its SHA, so the "missing" entries have `system_prompt` of length
+0 with the SAME sha as the call before. My alarm was an artefact of reading the trace, not a
+delivery defect.
+
+**And the target was visible.** The last modeler call of the Sales step carries `hub_employee`,
+`hub_person`, `hub_business_entity` and `hub_product` in its inventory, each by name with its
+business key.
+
+So the instruction now sits at five levels — schema FK, requirements text, extension prompt,
+ratified resolver merge, explicit steering line — and the model builds none of these links. Per
+the pre-registration, that stops being a steering gap.
+
+**The hypothesis it points at, stated as a hypothesis.** The extension section frames the
+existing vault as a prohibition: *"These constructs already exist and are IMMUTABLE … renaming,
+re-keying or re-shaping any of them is a migration this agent never performs"*, then *"Emit ONLY
+the delta"* and *"Do NOT re-emit existing links or satellites"*. Creating a link TO an existing
+hub modifies nothing, but the section's whole register is *do not touch these*. A plausible
+reading is that the inventory is presented as context to avoid duplicating rather than as
+endpoints available to build against. **Not tested here**, and it would be a change to the
+shape of `render_extension_prompt_section`, not another line in the rule list.
+
+**Ledger consequence:** `preserved_reference_is_a_link` must move from `unmeasured` to
+"measured once, no effect on its target". WP16's discipline is that steering earns its place by
+evidence; this one has evidence against it. Whether to delete it is a judgement — it is one
+repeat, and it did not harm anything — but it must not sit in the registry looking effective.
+That row is in `docs/architecture/steering-ledger.md`, and updating it needs the deliberate
+record-edit path rather than the script route I used (and disclosed) last time.
+
+Spend on this question so far: ~$28 (two arm pairs plus this repeat).
