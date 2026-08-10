@@ -3202,3 +3202,139 @@ Spend on this question: **~$37** across four arm-B repeats and two arm-A runs.
 effect on its target* — this run does not rescue it, since the register changed at the same
 time and the rule alone had already scored 0. Both ledger rows want the deliberate record-edit
 path.
+
+## [2026-08-09] WP30.3 — likely link targets, promoted but never filtered
+
+WP30.2 left the pattern that names this WP: after the register rewrite, arm B built cross-domain
+links at the FIRST boundary only — step 2 reached back to step 1, steps 3, 4 and 5 to nothing,
+with the target hubs present by name in a flat 40-construct list. What plausibly decays with
+distance is salience, not the instruction.
+
+So the hubs this increment's source can actually reach are now named FIRST, with their evidence:
+which of its tables carry that hub's business key.
+
+**Measured before building, and it changed the design.** Against the 30-hub vault of step 4,
+AdventureWorks Sales matches 13 hubs by business-key column — and **7 of those match only
+because they are keyed on `Name`** and Sales has a `Name` column. That is the WP24 generic-key
+shape, and it is exactly the trap this project has walked into five times.
+
+**Filtering them out was rejected**, and the reason matters more than the rule: several of the
+`Name` hits — `hub_ship_method`, `hub_product_category` — *are* relevant to Sales, found for the
+wrong reason. A filter precise enough to drop the noise would drop them too, and **hiding a hub
+is the exact failure this exists to fix**. So the heuristic only ever PROMOTES. The full
+inventory follows unchanged, and a test pins that nothing vanishes from it.
+
+The evidence is shown rather than the conclusion asserted: *"keyed on a column this increment's
+source also carries. That is weak evidence — a shared column name, nothing more"*, plus the
+table names where it was seen. The model judges; the prompt supplies the observation.
+
+No shared key produces no section at all, byte-identical to before — a stub saying "nothing
+found" would be noise on every run that has nothing to say.
+
+806 tests green (+3), ruff clean, mypy strict clean. **Nothing measured.**
+
+## [2026-08-09] Prediction for the WP30.3 run, before spending
+
+One arm-B repeat (~$9). Everything else identical to the WP30.2 run, which scored **2**
+cross-domain links, both at the person↔humanresources boundary, none from steps 3-5.
+
+- **Held if a cross-domain link appears from a LATE step** — production, purchasing or sales
+  reaching back to person or humanresources. That is the specific failure this addresses, and
+  the count matters less than which step it came from.
+- **Weak if the total rises but the new ones are again all at the first boundary.** Then
+  salience was not the binding constraint and I should stop pulling this lever.
+- **Falsified at ≤2 with no late-step link.** Three interventions would then have failed —
+  explicit rule, rewritten register, promoted targets — and the honest next move is not a fourth
+  prompt change but the deterministic post-pass: propose links from the source's foreign keys
+  and let a human ratify them, which is the WP29 checkpoint shape applied to relationships
+  instead of concepts.
+
+Watch alongside: review items, which went 456 → 489 → 619 across the previous three. A fourth
+rise would matter — the arm comparison's binding axis is moving the wrong way while the model
+gets better.
+
+## [2026-08-09] WP30.3 met its bar and made things worse — stopping the prompt route
+
+The prediction was held by the letter and the run is not an improvement. Both are true and the
+second matters more.
+
+**Held:** the two cross-domain links now come from **Sales reaching back to Person** — four
+steps — where every previous run produced them only at the first boundary or not at all.
+`link_customer_person` and `link_person_credit_card` are two of the sixteen arm A builds and
+arm B was missing. The specific failure WP30.3 targeted is gone.
+
+**And it undid WP30.2's actual gain.** `hub_sales_representative` is back, alongside three more
+zero-satellite hubs named `<x>_business_entity`:
+
+```
+hubs 43 -> 47, new: hub_sales_representative, hub_employee_business_entity,
+                    hub_job_candidate_business_entity, hub_vendor_business_entity
+6 hubs now carry no satellite at all
+```
+
+Promoting `hub_business_entity` as a likely target made the model *reference* it — as a hub, not
+as a link endpoint. It reached the distant domain and got the shape wrong. That is the exact
+"relationship wearing a hub's clothes" pattern WP30.1 named, and a duplicate hub is a WRONG
+model where a missing link is merely an incomplete one.
+
+**Four measurements, one variable each:**
+
+| | cross-domain | where | zero-sat hubs | review items |
+|---|---|---|---|---|
+| nothing | 0 | — | ? | 456 |
+| + steering rule | 0 | — | ? | 489 |
+| + rewritten register | 2 | first boundary | fewer (invention stopped) | 619 |
+| + promoted targets | 2 | **last boundary** | **6** | **777** |
+
+Prompt shaping moves *which* two links appear. It has not moved *how many* — 2 against arm A's
+16 — and review load has risen 70% across the four.
+
+**So I am stopping this lever, and the reason is not that a bar failed.** My bar was too narrow:
+I optimised for "a late-step link appears", got it, and the model regressed elsewhere while
+satisfying it. A criterion a change can meet while making the result worse is a bad criterion,
+and writing it down in advance did not save me from that — it only made the failure legible
+afterwards, which is the lesser half of what pre-registration is for.
+
+**What the evidence now points at** — recorded as the next move, not done here: the links are
+derivable without asking a model at all. The source's own foreign keys say
+`Sales.Customer.PersonID -> Person.BusinessEntityID`, and an existing hub keys on
+`BusinessEntityID`. A deterministic pass can PROPOSE those links, and WP29's checkpoint shape
+already exists for exactly this — propose, pause, ratify — applied to relationships instead of
+concepts. That also puts the review load where it belongs: a proposed link a human accepts or
+rejects is one review item with a clear answer, not a modelling decision spread across five
+increments.
+
+Spend on this question: **~$46** across four arm-B repeats and two arm-A runs.
+
+## [2026-08-10] WP30.3's prompt change reverted; the record it produced kept
+
+The decision the previous entry left open. **The code goes back to the WP30.2 state; every word
+of the measurement stays.** `src/` and `tests/` are now byte-identical to `main` before this
+branch — `render_extension_prompt_section` takes one argument again, `_likely_targets` is gone,
+and the three tests that pinned the promoted section go with it (806 → 803 green).
+
+**Why revert rather than keep and note the regress.** The change is not unmeasured; it is
+measured and the measurement is against it. It bought two cross-domain links at the last
+boundary and paid with `hub_sales_representative` returning, three further zero-satellite
+`<x>_business_entity` hubs, and review items 619 → 777. A duplicate hub is a wrong model where
+a missing link is an incomplete one, so on the axis that matters the WP30.2 register is the
+better standing state — and standing state is what the next arm-B run measures against. Keeping
+a change that lost on its own evidence would put a known regress into every later comparison.
+
+**What is deliberately kept, and it is not sentiment.** The design finding survives the code:
+against step 4's 30-hub vault, AdventureWorks Sales matches 13 hubs by business-key column and
+**7 of those match only because they are keyed on `Name`**. Whatever proposes links next — the
+deterministic FK pass is the candidate — meets that same generic-key shape, and the reason a
+filter was rejected (`hub_ship_method` and `hub_product_category` are relevant to Sales, found
+for the wrong reason) is a constraint on that design too. It now lives in this log instead of in
+a docstring on a function nobody calls.
+
+**What this is NOT.** Reverting is not evidence that the WP30.2 state is good. Cross-domain
+links stand at **2 against arm A's 16**; the deficit is exactly where it was before three prompt
+interventions. The question is not closed, it has moved off the prompt lever — the FK-derived
+proposal pass with a WP29-shaped ratification checkpoint is the recorded next move, and it is
+not started.
+
+803 tests green, ruff clean, mypy strict clean. **Nothing re-measured** — the standing arm-B
+numbers are the WP30.2 run's (36 links, 2 cross-domain, 43 hubs, 619 review items), not the
+WP30.3 run's, and the arm comparison's ledger should read them that way.
