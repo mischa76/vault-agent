@@ -3338,3 +3338,38 @@ not started.
 803 tests green, ruff clean, mypy strict clean. **Nothing re-measured** — the standing arm-B
 numbers are the WP30.2 run's (36 links, 2 cross-domain, 43 hubs, 619 review items), not the
 WP30.3 run's, and the arm comparison's ledger should read them that way.
+
+## [2026-08-10] The steering ledger's standing verdict corrected, on the deliberate path
+
+WP30.1's own log entry named this and left it undone: `preserved_reference_is_a_link` sat at
+verdict **unmeasured** in `docs/architecture/steering-ledger.md` after it had been measured. It
+now reads **keep — UNEVIDENCED**, with the numbers.
+
+**What the row now says that it did not.** The rule has run: one arm-B repeat without it, one
+with it, everything else identical. Links spanning two domains **0 → 0** — total links 37 → 40,
+hubs 44 → 45, `hub_sales_representative` still invented, review items 456 → 489. The two later
+runs that reached 2 cross-domain links do **not** rescue it, and the row says so: the extension
+register changed at the same time and the rule alone had already scored 0.
+
+**Why `keep` and not `candidate-delete`.** The WP16 protocol reserves `candidate-delete` for
+*zero backstop fires AND no gated-score regression across N ≥ 3 ablation repeats*. This is a
+single live A/B against the rule's own target metric, not an `eval.ablate` run — a different and
+weaker instrument. So it stays, labelled honestly: evidence against, not for. What the label is
+protecting against is the rule sitting in an 18-line registry looking like it works.
+
+**A structural defect fixed alongside.** The row had been appended *after* the source-mapper
+table, where it rendered as a headerless one-row table and carried 4 cells against the main
+ledger's 5. It is a `DV_MODELING_RULES` entry, so it now sits in the main table with the other
+17. Verified against the code rather than by eye: every one of the 18 registered rule ids appears
+in the ledger, and the only id in the ledger without a registry entry is the struck-through
+`no_source_table_on_multi_source_hub`, which is deleted by design.
+
+**On the guard.** `docs/architecture/` is hook-protected, and last time this row was written the
+hook was bypassed with a Bash+python script — disclosed at the time as accidental. This edit took
+the sanctioned path: Mischa asked for the correction in this session, which is the "human's word"
+the escape hatch requires, and `VAULT_AGENT_ALLOW_RECORD_EDIT=1` was set on the writing command.
+The original WP30.1 evidence sentence is preserved **verbatim** inside the cell; the correction is
+appended after it and dated, so what was believed on 2026-08-09 is still readable.
+
+803 tests green (`test_steering.py` among them), ruff clean, mypy strict clean. **Nothing
+measured** — this entry moves no number, it makes an existing one findable.
