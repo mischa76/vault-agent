@@ -3373,3 +3373,56 @@ appended after it and dated, so what was believed on 2026-08-09 is still readabl
 
 803 tests green (`test_steering.py` among them), ruff clean, mypy strict clean. **Nothing
 measured** — this entry moves no number, it makes an existing one findable.
+
+## [2026-08-11] WP34 specced — the link deficit leaves the prompt lever
+
+`wp34-fk-derived-link-proposals-spec.md` and its kick-off, both **Proposed, not approved**.
+Nothing is built.
+
+**The spec exists because reading the code changed the problem.** The plan was "propose links from
+the source's foreign keys". Then: `state.SourceTable` (`state.py:90-137`) carries table, columns,
+schema and database — and **no foreign-key field**. `eval/adventureworks/extract.py:174-183` does
+parse all 90 of them into the checked-in extract, and
+`eval/adventureworks/derive.py:73-88` drops them when it builds `source_schema.yml`.
+
+So every measurement in the four-run table was taken **with the decisive evidence withheld from
+the pipeline by its own input format**. That does not rescue the three prompt interventions —
+they still failed at what they attempted — but it sharpens what they are evidence *for*: the
+modeler would not infer a relationship it was never shown. Whether it would honour a declared
+foreign key is untested, because it has never had one. The first deliverable is therefore the
+input field, not the heuristic.
+
+**The design risk is the alias, and it is the WP24 class.** A link's staging projects each hub's
+CANONICAL key column and hashes the FK from it (`staging_generator.py:236-240`). For
+`Sales.Customer.PersonID -> Person.BusinessEntityID` that would demand `BUSINESS_ENTITY_ID` from a
+relation carrying only `PersonID` — the model does not build, or builds against a same-named
+column meaning something else. Hubs already solve this (`HubSource.business_key_column` aliases to
+canonical before hashing); links have no equivalent, so the spec adds
+`LinkHubRef.source_key_column` plus a gate, `E_LINK_KEY_NOT_IN_SOURCE`.
+
+**A restriction was considered and rejected, and the reason is recorded**: limiting v1 to foreign
+keys whose column names already agree needs no alias and no new field — and drops
+`Sales.Customer.PersonID -> hub_person`, one of the two links arm A builds and arm B misses, the
+example this whole line of work has quoted since WP30.1. A version that cannot express its
+motivating case is not worth measuring.
+
+**One thing the pass gives back rather than costs.** A link's staging binding is inferred today
+and flagged (`staging_generator.py:342-384` falls back to `raw_link_<name>`); an FK-derived
+proposal knows the referencing table and supplies it through the existing `source_overrides` path,
+which raises no flag.
+
+**The pre-registration is a conjunction, deliberately.** WP30.3's lesson was that a criterion a
+change can meet while making the result worse is a bad criterion. So §6 requires all four: ≥8
+cross-domain links, no rise in zero-satellite hubs, review load **down** from 619, and zero
+staging columns projected that the bound relation does not declare. Falsified specifically if the
+links appear and review load rises again — a fifth consecutive rise would say the charter's
+review-load claim is wrong, and the response is to revise the claim, not to intervene a sixth
+time.
+
+**Persistence does not recur here** and the spec says why, so nobody re-solves it: a ratified
+proposal is applied within the run, so it lands in `metadata/dv_model.yml`, which the chain
+already passes. Rejected proposals are re-asked each increment — recorded as a known limitation
+rather than designed around, because the fix is WP29's undecided `metadata/resolutions.yml`
+question and this WP must not pre-empt it with a second decision file.
+
+Index and the CLAUDE.md open item updated. **Nothing measured, nothing built, no approval.**

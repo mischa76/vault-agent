@@ -138,7 +138,9 @@ several times, most recently for brownfield additivity. Details and dates: `docs
   the one agent that cannot split its output, so its budget is the only lever there.
 - **WP30's arm comparison: one repeat each on current code (2026-08-01), and it goes AGAINST the
   charter.** Arm B totals 3x arm A's review items and builds 73% of its links, at 12% lower cost.
-  At n=1 that is a direction, not a verdict — the link deficit is the open question. Spec §7.3.
+  At n=1 that is a direction, not a verdict. The link deficit is the open question, and the
+  PROMPT route to it is measured out — three interventions, none moved it (WP30.1-30.3, the last
+  reverted). Next candidate is WP34, deterministic and unbuilt. Spec §7.3.
 - **WP29's mechanism is live-verified; its correctness is not, and §4 cannot run yet.** The
   checkpoint steers the modeler in a real chain (2026-08-01). But `brownfield_resolution` has no
   `dataset.yml`, no requirements, no scorer dispatch — and `false_merge_rate` matches the golden
