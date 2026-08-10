@@ -3305,3 +3305,36 @@ rejects is one review item with a clear answer, not a modelling decision spread 
 increments.
 
 Spend on this question: **~$46** across four arm-B repeats and two arm-A runs.
+
+## [2026-08-10] WP30.3's prompt change reverted; the record it produced kept
+
+The decision the previous entry left open. **The code goes back to the WP30.2 state; every word
+of the measurement stays.** `src/` and `tests/` are now byte-identical to `main` before this
+branch — `render_extension_prompt_section` takes one argument again, `_likely_targets` is gone,
+and the three tests that pinned the promoted section go with it (806 → 803 green).
+
+**Why revert rather than keep and note the regress.** The change is not unmeasured; it is
+measured and the measurement is against it. It bought two cross-domain links at the last
+boundary and paid with `hub_sales_representative` returning, three further zero-satellite
+`<x>_business_entity` hubs, and review items 619 → 777. A duplicate hub is a wrong model where
+a missing link is an incomplete one, so on the axis that matters the WP30.2 register is the
+better standing state — and standing state is what the next arm-B run measures against. Keeping
+a change that lost on its own evidence would put a known regress into every later comparison.
+
+**What is deliberately kept, and it is not sentiment.** The design finding survives the code:
+against step 4's 30-hub vault, AdventureWorks Sales matches 13 hubs by business-key column and
+**7 of those match only because they are keyed on `Name`**. Whatever proposes links next — the
+deterministic FK pass is the candidate — meets that same generic-key shape, and the reason a
+filter was rejected (`hub_ship_method` and `hub_product_category` are relevant to Sales, found
+for the wrong reason) is a constraint on that design too. It now lives in this log instead of in
+a docstring on a function nobody calls.
+
+**What this is NOT.** Reverting is not evidence that the WP30.2 state is good. Cross-domain
+links stand at **2 against arm A's 16**; the deficit is exactly where it was before three prompt
+interventions. The question is not closed, it has moved off the prompt lever — the FK-derived
+proposal pass with a WP29-shaped ratification checkpoint is the recorded next move, and it is
+not started.
+
+803 tests green, ruff clean, mypy strict clean. **Nothing re-measured** — the standing arm-B
+numbers are the WP30.2 run's (36 links, 2 cross-domain, 43 hubs, 619 review items), not the
+WP30.3 run's, and the arm comparison's ledger should read them that way.

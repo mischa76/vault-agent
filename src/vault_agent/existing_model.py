@@ -18,15 +18,13 @@ Errors follow the house loader style (:mod:`vault_agent.source_schema`): every f
 the file and the problem, so a wrong ``--existing`` costs a message rather than a traceback
 or, worse, a plausible-looking wrong model.
 """
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
 import yaml
 from pydantic import ValidationError
 
-from vault_agent.rules.dv2_rules import normalize_identifier
-from vault_agent.state import DVModel, SourceTable
+from vault_agent.state import DVModel
 
 # The logical model a run writes under its output ``metadata/`` directory, and the file a
 # later extension run reads back. One definition, imported by the writer and the loader.
@@ -90,38 +88,7 @@ def _resolve(path: Path) -> Path:
     return path
 
 
-def _likely_targets(
-    existing: DVModel, schemas: "Sequence[SourceTable]"
-) -> list[tuple[str, str, list[str]]]:
-    """Existing hubs whose business key column also appears in the NEW source (WP30.3).
-
-    The evidence is deliberately the crudest available and the only one that needs no parsing:
-    a hub keyed on ``BusinessEntityID`` and a new source carrying a ``BusinessEntityID`` column
-    are probably related. Returns ``(hub name, key, tables carrying it)`` so the prompt can show
-    WHERE it saw the key rather than assert a relationship.
-
-    **It over-matches, and that is the deliberate choice.** Measured on AdventureWorks Sales
-    against the 30-hub vault of step 4: 13 hubs match, and 7 of those match only because they
-    are keyed on ``Name`` and Sales has a ``Name`` column — the WP24 generic-key shape. Filtering
-    those out was rejected: several of them (``hub_ship_method``, ``hub_product_category``) ARE
-    relevant to Sales, found for the wrong reason, and a filter precise enough to drop the noise
-    would also drop them. Hiding a hub is exactly the failure this exists to fix, so the
-    heuristic only ever PROMOTES — never removes — and the full inventory follows unchanged."""
-    by_column: dict[str, list[str]] = {}
-    for table in schemas:
-        for column in table.column_refs:
-            by_column.setdefault(normalize_identifier(column.name), []).append(table.table)
-    targets = []
-    for hub in existing.hubs:
-        tables = by_column.get(normalize_identifier(hub.business_key))
-        if tables:
-            targets.append((hub.name, hub.business_key, sorted(set(tables))))
-    return targets
-
-
-def render_extension_prompt_section(
-    existing: DVModel | None, schemas: "Sequence[SourceTable] | None" = None
-) -> str:
+def render_extension_prompt_section(existing: DVModel | None) -> str:
     """Render the existing vault as a modeler prompt section; ``''`` when greenfield.
 
     Mirrors :func:`vault_agent.grounding.render_schema_prompt_section`: returning ``''``
@@ -149,24 +116,7 @@ def render_extension_prompt_section(
     and a link to one changes nothing about it."""
     if existing is None:
         return ""
-    lines: list[str] = []
-    targets = _likely_targets(existing, schemas) if schemas else []
-    if targets:
-        lines += [
-            "## Likely link targets for this increment",
-            "",
-            "These existing hubs are keyed on a column this increment's source also carries."
-            " That is weak evidence — a shared column name, nothing more — but it is where the"
-            " relationships between what you are adding and what is already there most likely"
-            " are. Check each one against the requirements and build the link where it holds.",
-            "",
-        ]
-        for name, key, tables in targets:
-            lines.append(
-                f"- **{name}** — business key `{key}`, seen in {', '.join(tables)}"
-            )
-        lines.append("")
-    lines += [
+    lines = [
         "## The vault you are extending — these hubs are yours to build against",
         "",
         "Each construct below already exists and is a CONNECTION POINT for what you are adding"

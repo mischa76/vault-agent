@@ -139,9 +139,7 @@ class Dv2ModelerAgent(BaseAgent):
         # honours the ablation seam (empty in production, so the prompt is byte-identical).
         rules = "\n".join(f"- {rule.text}" for rule in active_modeling_rules())
         schema_section = render_schema_prompt_section(state.source_schemas)
-        extension_section = render_extension_prompt_section(
-            state.existing_model, state.source_schemas
-        )
+        extension_section = render_extension_prompt_section(state.existing_model)
         # WP29: only RATIFIED entity resolutions steer, and the renderer returns '' when there
         # are none — so greenfield, ungrounded and first runs keep a byte-identical prompt.
         resolution_section = render_resolution_prompt_section(state.resolutions)
