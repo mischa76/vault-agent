@@ -34,6 +34,10 @@ class FlagKind:
     # blocks sign-off — an unresolved concept is honest output, as a mapping gap is.
     RESOLUTION_UNRESOLVED = "resolution_unresolved"  # is this an existing construct? undecided
     RESOLUTION_SAME_AS = "resolution_same_as"  # asserted equivalent, differently keyed
+    # WP34: a declared foreign key the link proposer would not answer for — a composite key,
+    # or a referenced column several hubs share. Advisory: an unproposed link is an
+    # incomplete model, which is what this pass exists to reduce, not a broken one.
+    LINK_PROPOSAL_SKIPPED = "link_proposal_skipped"
     GENERIC = "generic"
 
 
@@ -383,6 +387,49 @@ class EntityResolution(BaseModel):
         return {p.concept: p for p in self.proposals}
 
 
+# WP34: the deterministic tier of a link proposal, DERIVED from the declared foreign key and
+# never claimed by anything. Only two tiers can occur, because the proposer reads DECLARED
+# foreign keys and nothing else — see `link_proposal.propose_links` for why the spec's third
+# illustrative tier (`key_name_only`) is deliberately not implemented.
+LinkProposalCategory = Literal["declared_fk_same_name", "declared_fk_renamed"]
+
+
+class LinkProposal(BaseModel):
+    """One link the source's own catalogue says exists (WP34 §3.2).
+
+    Proposed BEFORE the modeler runs and applied only once ratified, mirroring
+    :class:`ResolutionProposal`: a link writes join keys into a table holding history, so the
+    unsafe direction is the same one and gets the same treatment — propose, pause, ratify.
+
+    ``source_column`` is the referencing table's own name for the key; ``target_business_key``
+    is the hub's canonical one. When they differ the staging layer must ALIAS the first to the
+    second before hashing, which is what :attr:`LinkHubRef.source_key_column` carries and what
+    ``E_LINK_KEY_NOT_IN_SOURCE`` refuses to let go wrong."""
+
+    source_table: str
+    source_column: str
+    target_hub: str
+    target_business_key: str
+    category: LinkProposalCategory
+    evidence: list[str] = Field(default_factory=list)
+    ratification_status: RatificationStatus = "proposed"
+
+    @property
+    def needs_alias(self) -> bool:
+        """True when the referencing column is named differently from the hub's key."""
+        return self.category == "declared_fk_renamed"
+
+
+class LinkProposals(BaseModel):
+    """The proposer's full answer for one run; empty on greenfield and ungrounded runs."""
+
+    proposals: list[LinkProposal] = Field(default_factory=list)
+
+    def ratified(self) -> list[LinkProposal]:
+        """Only these may become links — the WP29 rule applied to relationships."""
+        return [p for p in self.proposals if p.ratification_status != "proposed"]
+
+
 class HubSource(BaseModel):
     """One source feeding a multi-source hub (WP10): the physical key column in that source.
 
@@ -613,6 +660,10 @@ class VaultAgentState(BaseModel):
     # construct / NEW / same-as candidate / unresolved). Empty unless BOTH an existing
     # model and a declared schema are present — the grounding gate.
     resolutions: EntityResolution = Field(default_factory=EntityResolution)
+    # WP34: link proposals derived from the new source's DECLARED foreign keys. Same
+    # grounding gate as `resolutions` — an existing model AND a declared schema — so
+    # greenfield and ungrounded runs keep it empty and stay byte-identical.
+    link_proposals: LinkProposals = Field(default_factory=LinkProposals)
     # Working state
     # Business↔source mapping proposals (WP9): written by the source_mapper on grounded runs,
     # ratified at the HITL checkpoint, and consumed by staging binding. Empty when ungrounded.

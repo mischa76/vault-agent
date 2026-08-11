@@ -3556,3 +3556,45 @@ AdventureWorks and needs a unit test of its own rather than a case.
 
 `test_every_declared_foreign_key_traces_to_the_extract` pins acceptance §5.5 per subject area
 rather than in total, so a loss in one area cannot be masked by a gain in another.
+
+## [2026-08-11] WP34 step 2 — the proposer, and what it reaches on the real instrument
+
+`link_proposal.py` plus `LinkProposal`/`LinkProposals` in the state model and 14 tests. 824 green
+(+14), ruff and mypy clean. Nothing is wired into the graph yet, so the pipeline is unchanged.
+
+**Measured against AdventureWorks before writing the node**, with each subject area proposing
+against a vault holding the referenced tables as hubs:
+
+```
+HumanResources  proposals= 1   Production  proposals= 1   Purchasing  proposals= 4
+Sales           proposals=10                              TOTAL       proposals=16
+```
+
+**Sixteen** — the same 16 as the cross-schema foreign key count and as arm A's cross-domain link
+count. Three numbers that were derived independently agreeing is the strongest evidence this WP
+has produced so far, and it was invisible while the FK figure was wrongly recorded as 90.
+**Four of the sixteen are `declared_fk_renamed`** and need the staging alias, so the §3.4 decision
+was not a nicety: without it the pass would lose a quarter of its yield including the motivating
+`Sales.Customer.PersonID -> hub_person`.
+
+**A helper was promoted rather than a rule re-derived.** The proposer must answer "which hub
+represents this source table?" and staging binding already answers it. `construct_base_name` and
+`construct_binds_to_source_table` now live in `rules/`, and `staging_generator` calls them instead
+of its private copy — behaviour-neutral, proven by the suite and the WP34 guards. Deriving it a
+second time is the shape that once staged a hash from the wrong relation.
+
+**§3.2's third category is NOT implemented, and that is a deviation from the approved spec.** The
+spec illustrates a `key_name_only` tier for hubs matched by column-name coincidence; the
+conditions in the same section admit only declared foreign keys. Building the looser tier would
+rebuild precisely the noise WP30.3 was reverted for — 13 matches on Sales, 7 of them only because
+the hub is keyed on `Name`. Two tiers, both backed by a declaration. Recorded here as a rejected
+option rather than left as a silent gap; the module docstring says the same.
+
+**Where it refuses to answer**, each with a typed `LINK_PROPOSAL_SKIPPED` flag and a reason:
+composite keys (never guessed at — and AdventureWorks contains none, so this path has a unit test
+rather than a case), a referenced column no hub is keyed on, and a referenced column several hubs
+share where the referenced table does not break the tie.
+
+Three test expectations were wrong and the code was right: `canonical_hub_key_column` returns the
+normalised staging column (`BUSINESSENTITYID`), not the label. Fixed in the tests — which is the
+helper earning its invariant in miniature.

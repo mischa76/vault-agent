@@ -28,6 +28,8 @@ from vault_agent.rules.dv2_rules import (
     RECORD_SOURCE_COLUMN,
     STAGING_PREFIX,
     canonical_hub_key_column,
+    construct_base_name,
+    construct_binds_to_source_table,
     normalize_identifier,
     role_bk_column,
     role_fk_column,
@@ -89,10 +91,9 @@ def _to_column(label: str) -> str:
 # Mirrors of the raw-vault generator's naming (kept trivially simple; both sides derive
 # from normalize_identifier + the rules/ constants, so they cannot drift apart).
 def _base_name(construct_name: str) -> str:
-    for prefix in ("hub_", "link_", "sat_"):
-        if construct_name.startswith(prefix):
-            return construct_name[len(prefix):]
-    return construct_name
+    # The rule itself lives in rules/ (WP34): the link proposer needs the same answer, and a
+    # second copy of it here is how construct↔relation correspondence would silently split.
+    return construct_base_name(construct_name)
 
 
 def _staging_name(construct_name: str) -> str:
@@ -361,9 +362,8 @@ def bind_sources(
             spec.bound = True
             continue
         inferred = RAW_SOURCE_PREFIX + spec.base
-        candidates = {normalize_identifier(spec.base), normalize_identifier(inferred)}
         for table in source_schemas:
-            if normalize_identifier(table.table) in candidates:
+            if construct_binds_to_source_table(spec.base, table.table):
                 spec.source_model = table.table
                 spec.bound = True
                 break

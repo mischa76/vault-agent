@@ -478,6 +478,33 @@ AUTOMATE_DV_VERSION = "0.11.4"
 # alternatives, never silent defaults, tracked in docs/methodology/dsaf-mapping.md.
 
 
+def construct_base_name(construct_name: str) -> str:
+    """``hub_customer`` -> ``customer``: a construct's name without its DV type prefix.
+
+    Promoted here from ``staging_generator._base_name`` (WP34) because a second consumer
+    appeared — the link proposer has to answer "which hub represents this source table?" and
+    must get the SAME answer staging binding gets. Two naming paths that merely happen to
+    agree on well-formed names are a latent split, which is the reasoning ``_staging_name``
+    already records for itself."""
+    for prefix in ("hub_", "link_", "sat_"):
+        if construct_name.startswith(prefix):
+            return construct_name[len(prefix):]
+    return construct_name
+
+
+def construct_binds_to_source_table(construct_name: str, table_name: str) -> bool:
+    """True when a construct's base names this declared source table.
+
+    The ONE rule for construct↔relation correspondence, lifted verbatim from
+    ``staging_generator.bind_sources``: the base matches the table directly, or its
+    ``raw_<base>`` form does. The proposer needs the near side of an FK-derived link — the
+    hub built for the referencing table — and deriving that independently is exactly the
+    class of duplication that once staged a hash from the wrong relation (WP24)."""
+    base = construct_base_name(construct_name)
+    candidates = {normalize_identifier(base), normalize_identifier(RAW_SOURCE_PREFIX + base)}
+    return normalize_identifier(table_name) in candidates
+
+
 def resolution_category(
     concept_key: str, resolution: str, hubs: Any, source_tables: Any, evidence: Any
 ) -> str:
