@@ -3491,3 +3491,35 @@ example this entire line of work has quoted since WP30.1.
 **Still nothing built.** The kick-off's first instruction stands: the byte-identity and greenfield
 inertness guards are written and run BEFORE any behaviour change, per the invariant that a guard
 written afterwards proves only that you wrote it afterwards.
+
+## [2026-08-11] WP34's guards, committed before the work package
+
+`tests/test_wp34_fk_inertness.py`, six tests, 809 green (+6). **No behaviour change** — this is
+the pinning commit the invariant requires, so that what follows can be shown not to have moved
+anything.
+
+**What is pinned.** As a differential rather than a frozen manifest: the same model and the same
+declared schema, once *with* foreign keys and once without, must produce identical staging models,
+scaffolding, metadata and flags; identical generated dbt artifacts; and identical prompt sections.
+A differential needs no captured baseline and stays valid as the code around it changes.
+
+**§3.8 is now a test rather than a paragraph.** Foreign keys must not appear in what the modeler
+is given — not the rendered schema section, not the extension register, and not by name anywhere
+in either. A future edit that quietly starts rendering them fails here rather than silently
+confounding the next arm comparison.
+
+**These guards are VACUOUS today and the module says so.** `SourceTable` does not declare
+`foreign_keys`, and pydantic drops unknown keys — verified, not assumed — so the two schemas being
+compared are equal after parsing. A guard nobody has seen fail is a guard nobody should trust, so
+two `*_can_fail` tests perturb the schema and assert the comparison notices.
+
+**The first perturbation failed, and it was the test doing its job.** An extra declared column
+changed nothing in staging — correctly, because staging projects what the MODEL uses, not
+everything the schema declares. That is the same property WP34's proposer must not violate, so it
+is recorded in the test rather than quietly swapped out. Relocating the table to another physical
+schema is visible by construction (WP7 §7.2 binds through a real dbt `source()`), and the column
+that was invisible to staging is exactly what gives the PROMPT guard its teeth. The two
+perturbations are not interchangeable, and each fingerprint is now proven against the change its
+own surface is supposed to react to.
+
+Next: `ForeignKeyRef` on `SourceTable`, then `derive.py` emitting what `extract.py` already parses.
