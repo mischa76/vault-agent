@@ -24,7 +24,8 @@ def load_source_schemas(path: Path) -> list[SourceTable]:
     top-level list of the same ``{table, columns}`` objects. Column names are stored as
     written (grounding normalises both sides). Each entry may also declare optional
     ``schema:`` / ``database:`` keys — the table's physical location, used on grounded
-    runs to bind staging models through real dbt ``source()`` references (WP7 §7.2).
+    runs to bind staging models through real dbt ``source()`` references (WP7 §7.2), and an
+    optional ``foreign_keys:`` list (WP34 §3.1) read only by the deterministic link proposer.
 
     Raises ``FileNotFoundError`` if the file is missing, and a clear, attributable
     ``ValueError`` (naming the file and the problem) on a malformed document or entry so

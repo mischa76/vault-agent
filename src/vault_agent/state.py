@@ -3,7 +3,7 @@ import warnings
 from collections.abc import Sequence
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 FlagSeverity = Literal["error", "advisory"]
 
@@ -87,6 +87,47 @@ class SourceColumn(BaseModel):
     comment: str | None = None
 
 
+class ForeignKeyRef(BaseModel):
+    """One declared foreign key of a source table (WP34 §3.1).
+
+    Optional input, like ``ColumnProfile``: transcribed from the source catalogue, never
+    inferred by this pipeline and never derived from data. It exists because the evidence a
+    cross-domain link needs was measurably absent — WP30.1-30.3 spent ~$46 asking the modeler
+    to relate a new increment to a prior vault while the foreign keys stating those relations
+    were being dropped by the schema derivation (``eval/adventureworks/derive.py``) before any
+    agent could see them.
+
+    Read by the deterministic link proposer and by nothing else. It is deliberately NOT
+    rendered into the modeler's prompt (§3.8): showing it would change a one-pass run's input
+    as well, and the arm comparison would then measure a changed input and a new mechanism at
+    once — pinned by ``tests/test_wp34_fk_inertness.py``.
+
+    ``columns`` and ``references_columns`` are parallel: same order, same arity."""
+
+    columns: list[str]
+    references_table: str
+    references_columns: list[str]
+    references_schema: str | None = None
+
+    @model_validator(mode="after")
+    def _check_arity(self) -> "ForeignKeyRef":
+        """A mismatched pair is malformed input, not something to guess a pairing for."""
+        if len(self.columns) != len(self.references_columns):
+            raise ValueError(
+                f"foreign key on {self.references_table!r} pairs {len(self.columns)} "
+                f"column(s) with {len(self.references_columns)} referenced column(s); "
+                "they must be parallel"
+            )
+        if not self.columns:
+            raise ValueError("a foreign key must name at least one column")
+        return self
+
+    @property
+    def is_single_column(self) -> bool:
+        """WP34 §3.2 condition 2: composite keys are flagged, never guessed at."""
+        return len(self.columns) == 1
+
+
 class SourceTable(BaseModel):
     """A declared source table the model can be grounded against (ADR-0004).
 
@@ -113,6 +154,10 @@ class SourceTable(BaseModel):
     columns: list[str | SourceColumn] = Field(default_factory=list)
     schema_name: str | None = Field(default=None, alias="schema")
     database: str | None = None
+    # WP34 §3.1: declared foreign keys, transcribed from the source catalogue. Empty = the
+    # pre-WP34 shape, and every artifact stays byte-identical (test_wp34_fk_inertness.py).
+    # Read ONLY by the deterministic link proposer — never rendered to the modeler (§3.8).
+    foreign_keys: list[ForeignKeyRef] = Field(default_factory=list)
 
     @field_validator("columns", mode="before")
     @classmethod

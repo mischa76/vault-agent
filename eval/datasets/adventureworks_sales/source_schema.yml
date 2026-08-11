@@ -14,6 +14,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - CountryRegionCode
+    references_table: CountryRegion
+    references_columns:
+    - CountryRegionCode
+    references_schema: Person
 - table: CreditCard
   schema: Sales
   columns:
@@ -71,6 +78,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - FromCurrencyCode
+    references_table: Currency
+    references_columns:
+    - CurrencyCode
+    references_schema: Sales
 - table: Customer
   schema: Sales
   columns:
@@ -97,6 +111,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - PersonID
+    references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
 - table: PersonCreditCard
   schema: Sales
   columns:
@@ -109,6 +130,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
 - table: SalesOrderDetail
   schema: Sales
   columns:
@@ -147,6 +175,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - SalesOrderID
+    references_table: SalesOrderHeader
+    references_columns:
+    - SalesOrderID
+    references_schema: Sales
 - table: SalesOrderHeader
   schema: Sales
   columns:
@@ -231,6 +266,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BillToAddressID
+    references_table: Address
+    references_columns:
+    - AddressID
+    references_schema: Person
 - table: SalesOrderHeaderSalesReason
   schema: Sales
   columns:
@@ -243,6 +285,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - SalesReasonID
+    references_table: SalesReason
+    references_columns:
+    - SalesReasonID
+    references_schema: Sales
 - table: SalesPerson
   schema: Sales
   columns:
@@ -274,6 +323,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: Employee
+    references_columns:
+    - BusinessEntityID
+    references_schema: HumanResources
 - table: SalesPersonQuotaHistory
   schema: Sales
   columns:
@@ -293,6 +349,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: SalesPerson
+    references_columns:
+    - BusinessEntityID
+    references_schema: Sales
 - table: SalesReason
   schema: Sales
   columns:
@@ -334,6 +397,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - StateProvinceID
+    references_table: StateProvince
+    references_columns:
+    - StateProvinceID
+    references_schema: Person
 - table: SalesTerritory
   schema: Sales
   columns:
@@ -368,6 +438,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - CountryRegionCode
+    references_table: CountryRegion
+    references_columns:
+    - CountryRegionCode
+    references_schema: Person
 - table: SalesTerritoryHistory
   schema: Sales
   columns:
@@ -390,6 +467,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: SalesPerson
+    references_columns:
+    - BusinessEntityID
+    references_schema: Sales
 - table: ShoppingCartItem
   schema: Sales
   columns:
@@ -411,6 +495,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: SpecialOffer
   schema: Sales
   columns:
@@ -464,6 +555,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: Store
   schema: Sales
   columns:
@@ -487,3 +585,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: BusinessEntity
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person

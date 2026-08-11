@@ -80,11 +80,26 @@ def build_source_schema(extract: dict[str, Any], schema: str) -> dict[str, Any]:
             if col["description"]:
                 entry["comment"] = col["description"]
             columns.append(entry)
-        tables.append({
+        declared: dict[str, Any] = {
             "table": table["name"],
             "schema": table["schema"],
             "columns": columns,
-        })
+        }
+        # WP34 §3.1: the foreign keys extract.py already parses, which this function used to
+        # drop. They were never visible to any agent, which is what WP30.1-30.3 spent ~$46
+        # discovering the hard way. Emitted only when the table declares some, so a table
+        # without them stays byte-identical to the pre-WP34 derivation.
+        if table["foreign_keys"]:
+            declared["foreign_keys"] = [
+                {
+                    "columns": list(fk["columns"]),
+                    "references_table": fk["references_table"],
+                    "references_columns": list(fk["references_columns"]),
+                    "references_schema": fk["references_schema"],
+                }
+                for fk in table["foreign_keys"]
+            ]
+        tables.append(declared)
     return {"source_schemas": tables}
 
 

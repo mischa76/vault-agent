@@ -3523,3 +3523,36 @@ perturbations are not interchangeable, and each fingerprint is now proven agains
 own surface is supposed to react to.
 
 Next: `ForeignKeyRef` on `SourceTable`, then `derive.py` emitting what `extract.py` already parses.
+
+## [2026-08-11] WP34 step 1 — the foreign keys reach the pipeline, and a count I repeated is wrong
+
+`ForeignKeyRef` on `SourceTable`, `derive.py` emitting what `extract.py` already parsed, the five
+AdventureWorks cases re-derived. 810 green (+1), ruff and mypy clean. The six inertness guards now
+hold **substantively** rather than vacuously: the field is real and carries data, and every
+artifact and both prompt sections are unchanged.
+
+The re-derivation is additive only — `git diff --stat` over `eval/datasets/` shows 644 insertions
+and **zero deletions**, so nothing that existed moved. A deliberate fixture update, in the same
+commit, with the reason here.
+
+**CORRECTION — the extract holds 46 foreign keys, not 90.** WP30 §7.1 says *"derived from the
+extract's 90 foreign keys"* and I repeated that figure in WP34 §2 without reading it from the
+source. Counted from `schema_extract.json`: **46 FK constraints across 68 tables, all
+single-column, of which 16 cross a subject-area boundary.** Both records keep their text —
+they are dated and append-only — and this entry is the correction. It is the invariant *the code
+owns every count* failing in the least excusable way: I quoted a record while writing a spec
+whose whole subject is that number.
+
+**And the corrected number is more useful than the wrong one.** There are **16 cross-schema
+foreign keys, and arm A builds 16 cross-domain links.** That correspondence was not visible while
+the figure was 90. It gives the proposer a hard ceiling — it cannot propose more than 16 —
+and it turns §6's `>= 8` bar from "half of an arm's output" into "half of the relations that
+demonstrably exist in the source". Whether all 16 are proposable depends on how many reference a
+column an existing hub is keyed on, which the pass will report.
+
+A second consequence for the plan: **no composite foreign key exists in this instrument** (46
+constraints, 46 column pairs). §3.2's composite-key flag path therefore cannot be exercised by
+AdventureWorks and needs a unit test of its own rather than a case.
+
+`test_every_declared_foreign_key_traces_to_the_extract` pins acceptance §5.5 per subject area
+rather than in total, so a loss in one area cannot be masked by a gain in another.

@@ -39,6 +39,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: PurchaseOrderDetail
   schema: Purchasing
   columns:
@@ -75,6 +82,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: PurchaseOrderHeader
   schema: Purchasing
   columns:
@@ -118,6 +132,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - EmployeeID
+    references_table: Employee
+    references_columns:
+    - BusinessEntityID
+    references_schema: HumanResources
 - table: ShipMethod
   schema: Purchasing
   columns:
@@ -167,3 +188,10 @@ source_schemas:
     type: nvarchar(1024)
   - name: ModifiedDate
     type: datetime
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: BusinessEntity
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person

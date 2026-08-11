@@ -32,6 +32,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductAssemblyID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: Culture
   schema: Production
   columns:
@@ -89,6 +96,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - Owner
+    references_table: Employee
+    references_columns:
+    - BusinessEntityID
+    references_schema: HumanResources
 - table: Illustration
   schema: Production
   columns:
@@ -198,6 +212,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - SizeUnitMeasureCode
+    references_table: UnitMeasure
+    references_columns:
+    - UnitMeasureCode
+    references_schema: Production
 - table: ProductCategory
   schema: Production
   columns:
@@ -232,6 +253,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: ProductDescription
   schema: Production
   columns:
@@ -260,6 +288,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: ProductInventory
   schema: Production
   columns:
@@ -285,6 +320,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - LocationID
+    references_table: Location
+    references_columns:
+    - LocationID
+    references_schema: Production
 - table: ProductListPriceHistory
   schema: Production
   columns:
@@ -303,6 +345,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: ProductModel
   schema: Production
   columns:
@@ -337,6 +386,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductModelID
+    references_table: ProductModel
+    references_columns:
+    - ProductModelID
+    references_schema: Production
 - table: ProductModelProductDescriptionCulture
   schema: Production
   columns:
@@ -352,6 +408,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductDescriptionID
+    references_table: ProductDescription
+    references_columns:
+    - ProductDescriptionID
+    references_schema: Production
 - table: ProductPhoto
   schema: Production
   columns:
@@ -388,6 +451,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: ProductReview
   schema: Production
   columns:
@@ -416,6 +486,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: ProductSubcategory
   schema: Production
   columns:
@@ -435,6 +512,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductCategoryID
+    references_table: ProductCategory
+    references_columns:
+    - ProductCategoryID
+    references_schema: Production
 - table: ScrapReason
   schema: Production
   columns:
@@ -478,6 +562,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: TransactionHistoryArchive
   schema: Production
   columns:
@@ -544,6 +635,13 @@ source_schemas:
     type: smallint
   - name: ModifiedDate
     type: datetime
+  foreign_keys:
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
 - table: WorkOrderRouting
   schema: Production
   columns:
@@ -571,3 +669,10 @@ source_schemas:
     type: money
   - name: ModifiedDate
     type: datetime
+  foreign_keys:
+  - columns:
+    - LocationID
+    references_table: Location
+    references_columns:
+    - LocationID
+    references_schema: Production

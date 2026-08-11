@@ -20,6 +20,7 @@ from eval.adventureworks.derive import (
     derive_all,
     foreign_key_edges,
     subject_areas,
+    tables_of,
 )
 from eval.datasets import DATASETS_ROOT, ChainSpec, EvalCase, load_all_cases, load_eval_case
 from eval.mapping import load_golden_mapping
@@ -71,6 +72,29 @@ def test_every_declared_column_traces_to_the_extract(extract: dict) -> None:
             key = (schema, table.table)
             assert key in truth, f"{table.table} is not an AdventureWorks table"
             assert set(table.column_names) <= truth[key]
+
+
+def test_every_declared_foreign_key_traces_to_the_extract(extract: dict) -> None:
+    """WP34 §5.5: the derivation carries every foreign key across, and invents none.
+
+    A silent loss here would be invisible in the run and fatal to the measurement — the
+    proposer can only ever propose from what the derivation emitted. Counted per subject
+    area rather than in total so a loss cannot be masked by a gain elsewhere.
+    """
+    for schema in subject_areas(extract):
+        truth = {
+            (t["name"], fk["columns"][0], fk["references_table"], fk["references_columns"][0])
+            for t in tables_of(extract, schema)
+            for fk in t["foreign_keys"]
+        }
+        derived = {
+            (table.table, fk.columns[0], fk.references_table, fk.references_columns[0])
+            for table in load_source_schemas(
+                DATASETS_ROOT / case_dir_name(schema) / "source_schema.yml"
+            )
+            for fk in table.foreign_keys
+        }
+        assert derived == truth, f"{schema}: foreign keys drifted from the extract"
 
 
 def test_comments_are_verbatim_and_never_authored(extract: dict) -> None:

@@ -70,6 +70,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
 - table: EmployeeDepartmentHistory
   schema: HumanResources
   columns:
@@ -92,6 +99,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - DepartmentID
+    references_table: Department
+    references_columns:
+    - DepartmentID
+    references_schema: HumanResources
 - table: EmployeePayHistory
   schema: HumanResources
   columns:
@@ -110,6 +124,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: Employee
+    references_columns:
+    - BusinessEntityID
+    references_schema: HumanResources
 - table: JobCandidate
   schema: HumanResources
   columns:
@@ -126,6 +147,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: Employee
+    references_columns:
+    - BusinessEntityID
+    references_schema: HumanResources
 - table: Shift
   schema: HumanResources
   columns:

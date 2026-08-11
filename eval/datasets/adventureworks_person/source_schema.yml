@@ -34,6 +34,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - StateProvinceID
+    references_table: StateProvince
+    references_columns:
+    - StateProvinceID
+    references_schema: Person
 - table: AddressType
   schema: Person
   columns:
@@ -82,6 +89,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - AddressID
+    references_table: Address
+    references_columns:
+    - AddressID
+    references_schema: Person
 - table: BusinessEntityContact
   schema: Person
   columns:
@@ -101,6 +115,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - PersonID
+    references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
 - table: ContactType
   schema: Person
   columns:
@@ -145,6 +166,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
 - table: Password
   schema: Person
   columns:
@@ -164,6 +192,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
 - table: Person
   schema: Person
   columns:
@@ -213,6 +248,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: BusinessEntity
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
 - table: PersonPhone
   schema: Person
   columns:
@@ -228,6 +270,13 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
 - table: PhoneNumberType
   schema: Person
   columns:
@@ -270,3 +319,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  foreign_keys:
+  - columns:
+    - CountryRegionCode
+    references_table: CountryRegion
+    references_columns:
+    - CountryRegionCode
+    references_schema: Person
