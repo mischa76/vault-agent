@@ -22,6 +22,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections import Counter
 from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -176,13 +177,28 @@ def model_shape(model: DVModel) -> dict[str, Any]:
     Deliberately not the whole model: no descriptions, no requirement traces, no payloads. This
     exists to answer "which relationships exist and what do they span", and a fuller dump would
     grow every result file for questions nobody has asked."""
+    def _link(lk: Any) -> dict[str, Any]:
+        entry: dict[str, Any] = {
+            "name": lk.name,
+            "hubs": sorted(ref.hub for ref in lk.hub_refs),
+        }
+        # WP34: the staging ALIAS, recorded only where one exists so every pre-WP34 link
+        # entry stays byte-identical. It is what makes §6's safety clause auditable from the
+        # result file — "does the relation this link reads actually declare that column?" —
+        # instead of requiring a reviewer to re-run the generator to find out.
+        aliases = {
+            ref.hub: ref.source_key_column
+            for ref in lk.hub_refs
+            if ref.source_key_column is not None
+        }
+        if aliases:
+            entry["aliases"] = dict(sorted(aliases.items()))
+        return entry
+
     return {
         "hubs": sorted(h.name for h in model.hubs),
         "links": sorted(
-            (
-                {"name": lk.name, "hubs": sorted(ref.hub for ref in lk.hub_refs)}
-                for lk in model.links
-            ),
+            (_link(lk) for lk in model.links),
             key=lambda entry: str(entry["name"]),
         ),
         "satellites": sorted(
@@ -220,6 +236,14 @@ def run_metrics(
         # WP30.1: the counts above say how big the answer is; this says what it is.
         "model": model_shape(state.dv_model),
         "flags": len(state.flags),
+        # WP34: which validator codes fired, not merely whether the gate passed. §6's fourth
+        # clause is "zero wrong joins", and E_LINK_KEY_NOT_IN_SOURCE is the gate that answers
+        # it — a pass/fail boolean cannot distinguish "no link aliased anything" from "every
+        # alias was sound". Counted by code because consumers must branch on the code, never
+        # on the message.
+        "validation_codes": dict(
+            sorted(Counter(i.code for i in state.validation_report.issues if i.code).items())
+        ),
         # WP16: {} means every backstop stayed idle this run — a rule with a persistently
         # empty count is the ablation runner's first candidate-delete.
         "backstop_fires": dict(sorted((backstops or {}).items())),

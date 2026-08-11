@@ -3678,3 +3678,48 @@ anyone reading them.
 
 **Still not done:** the live run. §6's four-clause conjunction remains untested and WP34 is not
 finished until it is.
+
+## [2026-08-11] WP34's run prepared — the criterion is code, committed before the spend
+
+Pushed through `c05f163`, then built what the measurement needs. 850 green (+11), ruff and mypy
+clean. **The run has not been made.**
+
+**`eval/wp34_check.py` computes §6's four clauses from a result file**, and it is committed
+*before* the run for the reason WP30.3 taught: a criterion evaluated by hand after the numbers
+arrive explains anything. Two supporting additions make the clauses computable at all —
+`model_shape` now records a link's staging ALIAS where one exists (so "does the relation this
+link reads actually declare that column?" is answerable from the result file), and `run_metrics`
+records `validation_codes` by code (so `E_LINK_KEY_NOT_IN_SOURCE` is countable rather than
+hidden behind a pass/fail boolean). Both are additive; every pre-WP34 entry stays identical.
+
+**The checker was validated against the four runs already paid for**, which is the audit rule
+applied before spending again. Run over the archived 2026-08-09 chains it reproduces the log's
+table exactly:
+
+```
+review=456  hubs=44 links=37  cross_domain=0  zero_sat=3
+review=489  hubs=45 links=40  cross_domain=0  zero_sat=4
+review=619  hubs=43 links=36  cross_domain=2  zero_sat=2   <- WP30.2, the baseline
+review=777  hubs=47 links=39  cross_domain=2  zero_sat=6   <- WP30.3, reverted
+```
+
+and pointed at WP30.3's own result it FAILS three clauses and names the two links the log named
+(`link_customer_person`, `link_person_credit_card`). A checker that has been seen to fail on real
+data is worth something; one that has only ever passed is not.
+
+**A guessed constant, caught by that audit.** `BASELINE_ZERO_SAT_HUBS` was first written as 3 from
+a reading of the prose. Recomputed from the stored file, WP30.2 left **2** — `hub_contact_type`
+and `hub_shopping_cart`. A criterion carrying a made-up number judges nothing, and this is the
+second count in three days I took from prose instead of from the source.
+
+**Ready to run.** All 46 declared foreign keys reach the chain (8 / 4 / 15 / 4 / 15 across the
+five steps), the harness needs no change — `AUTO_RESUME_DECISION` already carries `accept: True`,
+which now ratifies link proposals too — and the command is
+
+```
+uv run python -m eval.run --dataset adventureworks_incremental --repeat 1
+uv run python -m eval.wp34_check eval/results/adventureworks_incremental/<newest>-run1.json
+```
+
+at roughly **$9**, against ~$46 already spent on the prompt route. It needs `ANTHROPIC_API_KEY`
+and it is Mischa's to start.
