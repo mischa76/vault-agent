@@ -203,6 +203,61 @@ Business Vault; any inference from data rather than declaration. **No requiremen
 `preserved_reference_is_a_link` steering rule** — it is ledger-labelled `keep — UNEVIDENCED`, and
 whether the prompt line goes is a separate WP16 judgement, not a side effect of this one.
 
+### 3.8 Scope of effect, and what the modeler is deliberately NOT shown
+
+Added 2026-08-11, after Mischa asked whether this is an arm-B-only change. It is not, and the
+distinction matters for the product rather than only for the experiment.
+
+**The trigger is a MODE, not an arm.** The pass needs an existing hub for the foreign key to point
+at, so it is gated on an existing model plus a declared schema. Verified against the case
+definitions rather than inferred:
+
+* `eval/datasets/adventureworks_full/dataset.yml` (arm A) declares **no** `existing:` — it is a
+  greenfield one-pass run over 68 tables, with no prior vault and therefore no delta detection at
+  all. WP34 is inert there, and arm A's artifacts stay byte-identical.
+* `eval/datasets/adventureworks_incremental/dataset.yml` (arm B) is a chain in which each step
+  reads the previous step's `metadata/dv_model.yml` through the real WP23 `--existing` path
+  (`eval/run.py:522`). WP34 is active from step 2 onward.
+
+So "arm A is unaffected" is true of arm A **as measured**, and true because that case is
+greenfield — not because one pass is somehow exempt. **A one-pass BROWNFIELD run — a large new
+source system onto an existing vault in a single increment — gets proposals too**, and that is a
+first-class product case, not a hypothetical: it is the everyday "onboard a new system onto our
+vault" job, and `run --existing` already serves it. Neither arm is a code path the other replaces;
+the comparison decides the charter's claim and the demo narrative, not which mode survives.
+
+**The foreign keys are NOT rendered into the modeler's prompt, and that is a decision.**
+`render_schema_prompt_section` (`grounding.py:29-46`) carries table and column **names** only —
+not types, not comments, and under this WP not foreign keys either. Only the deterministic
+proposer reads them. Two reasons, in order of weight:
+
+1. **The arms' inputs must not diverge.** Re-deriving the AdventureWorks cases with foreign keys
+   present would otherwise change arm A's prompt as well, and the arm comparison would then be
+   measuring a changed input *and* a new mechanism at once. WP30.2 already paid for that mistake
+   once — the steering rule and the rewritten register moved together, which is precisely why that
+   run cannot say which of them produced its 2 links, and why the ledger row still reads
+   `keep — UNEVIDENCED`.
+2. It keeps §5.2's byte-identity guard meaningful: with nothing rendered, "declared foreign keys
+   present, none ratified" is provably indistinguishable from today.
+
+**Stated plainly because it is a choice and not a necessity:** showing declared foreign keys to
+the modeler is cheap, plausible, and **untested**. Arm A builds 51 links without them, so the
+expected upside is unclear rather than obviously positive. If it is ever tried it is a **separate
+change, measured in a separate run** — never in the same run as the proposer, or the two cannot be
+told apart, which is the WP30.2 confound repeating with new variables.
+
+**A second consumer already exists in the tree, and it is out of scope here.**
+`SourceMapperAgent._is_fk_to` (`agents/source_mapper.py:433-441`) answers "is this column a foreign
+key to that table?" by substring-matching `"fk"` / `"foreign key"` in the column's **comment
+text**, then token-matching the anchor table's name in the same comment. That is the input to
+WP9.1's `fk_demotion` backstop, whose ledger row is `keep` on measured evidence (mapping accuracy
+0.870 → 0.972). It is also a branch on human-readable text, which this project's own invariant
+forbids — a typed field is exactly what it lacks, and this WP creates one.
+
+Changing it here is nevertheless **forbidden**: it would move the mapper's measured behaviour in
+the same run that introduces the proposer, confounding the two. Recorded as the first follow-on
+once WP34 has a number.
+
 ## 4. What persistence does and does not need
 
 WP29's open persistence gap does **not** recur here, and the reason is worth stating so nobody

@@ -3426,3 +3426,43 @@ rather than designed around, because the fix is WP29's undecided `metadata/resol
 question and this WP must not pre-empt it with a second decision file.
 
 Index and the CLAUDE.md open item updated. **Nothing measured, nothing built, no approval.**
+
+## [2026-08-11] WP34 §3.8 appended — the scope is a mode, not an arm
+
+Mischa asked whether WP34 substitutes for arm B's insufficiency and leaves arm A untouched. Mostly
+yes, and the "mostly" was worth writing into the spec rather than answering in chat.
+
+**The trigger is a MODE, not an arm**, verified against the case definitions rather than inferred:
+`adventureworks_full` (arm A) declares no `existing:` — greenfield, one pass, no prior vault, no
+delta detection at all — while `adventureworks_incremental` chains each step onto the previous
+`metadata/dv_model.yml` through the real `--existing` path (`eval/run.py:522`). So arm A is inert
+under WP34 **because that case is greenfield**, not because one pass is exempt. A one-pass
+BROWNFIELD run — a large new source system onto an existing vault in one increment — gets
+proposals, and that is the everyday enterprise job, not a hypothetical. Neither arm is a code path
+the other replaces.
+
+**The second half is a decision I had left implicit, and implicit was wrong.** Foreign keys are
+NOT rendered into the modeler's prompt: `render_schema_prompt_section` (`grounding.py:29-46`)
+carries table and column *names* only — no types, no comments, and now no foreign keys. Only the
+deterministic proposer reads them. The reason that outranks the others is that re-deriving the
+AdventureWorks cases with foreign keys present would otherwise change **arm A's** input too, and
+the comparison would measure a changed input and a new mechanism at once — which is exactly what
+WP30.2 did when the steering rule and the rewritten register moved together, and exactly why that
+run cannot say which of them produced its 2 links.
+
+Recorded as a choice and not a necessity: showing declared foreign keys to the modeler is cheap,
+plausible and **untested**, and arm A builds 51 links without them, so the upside is unclear rather
+than obviously positive. If it is tried it is a separate change in a separate run.
+
+**A second consumer of the new field already exists, and touching it is forbidden here.**
+`SourceMapperAgent._is_fk_to` (`agents/source_mapper.py:433-441`) answers "is this column a foreign
+key to that table?" by substring-matching `"fk"`/`"foreign key"` in the column's COMMENT text and
+then token-matching the anchor table's name in the same comment. It feeds WP9.1's `fk_demotion`
+backstop, whose ledger row is `keep` on measured evidence (0.870 → 0.972) — and it is a branch on
+human-readable text, which this project's own invariant forbids. WP34 creates precisely the typed
+field it lacks. Changing it in this WP would move the mapper's measured behaviour in the same run
+that introduces the proposer, so it is out of scope and recorded as the first follow-on once WP34
+has a number.
+
+Record-edit path again: Mischa asked for the append, `VAULT_AGENT_ALLOW_RECORD_EDIT=1` on the
+writing command, nothing above §3.8 altered. The spec remains **Proposed**, and nothing is built.
