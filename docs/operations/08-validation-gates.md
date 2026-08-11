@@ -51,6 +51,7 @@ match on the code, never on message text.
 | `E_LINK_DUP_ROLE` | The same hub participates twice with the same (or no) role. Qualify each repeated participation with a distinct role (payer/counterparty). |
 | `E_DRIVING_KEY_NOT_IN_LINK` | The declared driving key names participations the link doesn't have (role-aware: `hub:role` must match an actual participation). |
 | `E_TXNLINK_NO_TIMESTAMP` | Transactional link without an event timestamp — `t_link` needs it to order events. |
+| `E_LINK_KEY_NOT_IN_SOURCE` | A participation aliases a physical column to the hub's key (`source_key_column`, WP34) that the bound relation does not declare. An **error** where its grounded neighbours are warnings: a missing business key can mean a partial schema, but an alias is an explicit claim that *this relation calls the hub's key THIS*, which staging turns into a rename. Wrong, it fails the build or hashes a same-named column meaning something else into a link over live history. Checked against the relation the link's staging binds to, or the whole schema when none binds. |
 | `W_LINK_REDUNDANT_GRAIN` | Two links connect the same participations with the same type: likely one unit of work modelled twice, or a grain error. |
 
 ### Satellites & splitting

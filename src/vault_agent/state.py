@@ -426,8 +426,13 @@ class LinkProposals(BaseModel):
     proposals: list[LinkProposal] = Field(default_factory=list)
 
     def ratified(self) -> list[LinkProposal]:
-        """Only these may become links — the WP29 rule applied to relationships."""
-        return [p for p in self.proposals if p.ratification_status != "proposed"]
+        """Only these may become links — the WP29 rule applied to relationships.
+
+        ``accepted`` ONLY, deliberately not "anything already decided". A resolution's
+        ``overridden`` carries a human's different *answer*, which still steers; a link's
+        ``overridden`` is a refusal, and there is nothing to build. Written the other way
+        first, and a test caught it building the very link a human had just declined."""
+        return [p for p in self.proposals if p.ratification_status == "accepted"]
 
 
 class HubSource(BaseModel):
@@ -468,6 +473,14 @@ class LinkHubRef(BaseModel):
 
     hub: str  # hub name, e.g. "hub_account"
     role: str | None = None  # e.g. "counterparty"; None = unqualified
+    # WP34 §3.4: this participation's own physical name for the hub's key, when the relation
+    # feeding the link calls it something else (Sales.Customer.PersonID for a hub keyed on
+    # BusinessEntityID). Staging ALIASES it to the canonical name before hashing, exactly as
+    # HubSource.business_key_column does for a multi-source hub's feed — without which the
+    # staging model would demand a column the relation does not have, and the link would
+    # either fail to build or join on a same-named column meaning something else.
+    # None = today's behaviour and today's bytes. E_LINK_KEY_NOT_IN_SOURCE gates it.
+    source_key_column: str | None = None
 
     def __str__(self) -> str:
         return self.hub if self.role is None else f"{self.hub}:{self.role}"

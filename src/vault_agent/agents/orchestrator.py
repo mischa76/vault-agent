@@ -25,6 +25,7 @@ from langgraph.types import interrupt
 from pydantic import BaseModel, Field
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.link_proposal import proposal_key
 from vault_agent.models.contract import ContractOwner
 from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import (
@@ -61,6 +62,11 @@ REVIEW_FLAG_GROUPS: dict[str, str] = {
     FlagKind.MAPPING_UNRESOLVED: "mapping-unresolved",
     FlagKind.RESOLUTION_UNRESOLVED: "resolution-unresolved",
     FlagKind.RESOLUTION_SAME_AS: "resolution-same-as",
+    # WP34: a run over a real landscape declines many more foreign keys than it proposes for
+    # (22 skips against 16 proposals on AdventureWorks), almost all of them the same shape —
+    # a reference to a table this vault has not hubbed. Rendered individually they would bury
+    # the substantive items on exactly the axis §6 says must fall.
+    FlagKind.LINK_PROPOSAL_SKIPPED: "link-proposal-skipped",
 }
 _DEFAULT_GROUP = "other"
 # Above this many items in one group, the renderers collapse it to a single summarised line.
@@ -369,6 +375,41 @@ def apply_resolution_decision(state: VaultAgentState, decision: Any) -> list[str
     return [
         p.concept for p in state.resolutions.proposals if p.ratification_status != "proposed"
     ]
+
+
+def apply_link_decision(state: VaultAgentState, decision: Any) -> list[str]:
+    """Apply a human's ratification of WP34 link proposals; returns the keys decided.
+
+    ``decision["links"]`` is ``{"<Table>.<Column>": bool}`` — accept or reject one proposal —
+    and ``accept`` ratifies every proposal still pending, the same bulk key the resolution
+    half already honours so one ``--accept`` means one thing at this checkpoint.
+
+    A rejected proposal is marked ``overridden`` rather than deleted: the run's record should
+    show that a link was offered and declined, which is the difference between a model that
+    considered a relationship and one that never saw it.
+
+    Note what ``accept`` implies for an UNATTENDED run: the eval chain resumes with
+    ``accept: True``, so a measured arm-B run ratifies every FK-derived proposal without a
+    human reading it. That is the same configuration `adventureworks_incremental` already
+    discloses for mappings, and any writeup must say so rather than imply review happened.
+    """
+    links = decision.get("links", {}) if isinstance(decision, dict) else {}
+    accept = bool(decision.get("accept")) if isinstance(decision, dict) else False
+    if not isinstance(links, dict):
+        links = {}
+
+    decided: list[str] = []
+    for proposal in state.link_proposals.proposals:
+        if proposal.ratification_status != "proposed":
+            continue
+        key = proposal_key(proposal)
+        if key in links:
+            proposal.ratification_status = "accepted" if links[key] else "overridden"
+            decided.append(key)
+        elif accept:
+            proposal.ratification_status = "accepted"
+            decided.append(key)
+    return decided
 
 
 def _apply_resolution_decision(

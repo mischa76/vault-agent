@@ -22,8 +22,10 @@ declaration; the third is recorded as rejected rather than silently absent.
 """
 import logging
 
+from vault_agent.agents.base import BaseAgent
 from vault_agent.rules.dv2_rules import (
     canonical_hub_key_column,
+    construct_base_name,
     construct_binds_to_source_table,
     normalize_identifier,
 )
@@ -32,6 +34,8 @@ from vault_agent.state import (
     FlagKind,
     ForeignKeyRef,
     Hub,
+    Link,
+    LinkHubRef,
     LinkProposal,
     LinkProposals,
     SourceTable,
@@ -131,6 +135,144 @@ def propose_links(
     return LinkProposals(proposals=proposals), skipped
 
 
+def proposal_key(proposal: LinkProposal) -> str:
+    """The stable handle a human uses to answer one proposal: ``Customer.PersonID``.
+
+    The same string the skip flags use as their ``asset``, so everything a reviewer sees
+    about one foreign key is keyed identically — and it is a typed handle, not a rendered
+    sentence, because consumers must never parse a message."""
+    return f"{proposal.source_table}.{proposal.source_column}"
+
+
+def pending_link_decisions(link_proposals: LinkProposals) -> list[LinkProposal]:
+    """Proposals a human must answer before modelling. Pure, and safe above ``interrupt()``.
+
+    Every proposal is pending until answered: unlike a resolution, there is no class of link
+    proposal that needs no decision. A link is only ever built because someone said yes."""
+    return [p for p in link_proposals.proposals if p.ratification_status == "proposed"]
+
+
+def _link_name(near: str, target: str) -> str:
+    """``hub_customer`` + ``hub_person`` -> ``link_customer_person`` (E_BAD_NAME-shaped)."""
+    return "link_" + "_".join(
+        normalize_identifier(construct_base_name(name)).lower() for name in (near, target)
+    )
+
+
+def _grain(link: Link) -> frozenset[str]:
+    """A link's identity for duplicate detection: the SET of hubs it connects.
+
+    Names are the modeler's choice and the eval conventions already say so — score structure,
+    not free-form names. A link the modeler happened to build under a different name is the
+    same link, and proposing it again would be a duplicate, not a contribution."""
+    return frozenset(ref.hub for ref in link.hub_refs)
+
+
+def apply_ratified_link_proposals(
+    delta: DVModel, existing: DVModel, state: VaultAgentState
+) -> DVModel:
+    """Add a link per RATIFIED proposal to the modeler's delta, before it is merged.
+
+    Deliberately applied to the delta rather than to the merged model: the link then goes
+    through ``merge_models`` and every validator gate on the ordinary path, with no
+    privileged route into the model (§3.6). An unratified proposal is never applied — that is
+    the whole safety property, and it is why this reads ``ratified()`` and not ``proposals``.
+
+    Silent about nothing: a proposal whose near side was never modelled, or whose link the
+    modeler already built, is logged and flagged rather than dropped."""
+    ratified = state.link_proposals.ratified()
+    if not ratified:
+        return delta
+
+    hubs = {hub.name: hub for hub in [*existing.hubs, *delta.hubs]}
+    grains = {_grain(link) for link in [*existing.links, *delta.links]}
+    added = 0
+
+    for proposal in ratified:
+        near = next(
+            (
+                name
+                for name in hubs
+                if name.startswith("hub_")
+                and construct_binds_to_source_table(name, proposal.source_table)
+            ),
+            None,
+        )
+        if near is None:
+            state.flag(
+                "link_proposer",
+                f"ratified link to {proposal.target_hub} not applied: no hub was modelled "
+                f"for {proposal.source_table}",
+                kind=FlagKind.LINK_PROPOSAL_SKIPPED,
+                asset=f"{proposal.source_table}.{proposal.source_column}",
+            )
+            continue
+        if proposal.target_hub not in hubs:
+            state.flag(
+                "link_proposer",
+                f"ratified link not applied: {proposal.target_hub} is not in the model",
+                kind=FlagKind.LINK_PROPOSAL_SKIPPED,
+                asset=f"{proposal.source_table}.{proposal.source_column}",
+            )
+            continue
+
+        grain = frozenset({near, proposal.target_hub})
+        if grain in grains or len(grain) < 2:
+            # The modeler built it, or the FK points a table at its own hub. Neither is a
+            # defect and neither needs a second link.
+            logger.info(
+                "link proposal for %s already covered by an existing link", proposal.source_table
+            )
+            continue
+
+        delta.links.append(
+            Link(
+                name=_link_name(near, proposal.target_hub),
+                connected_hubs=[
+                    LinkHubRef(hub=near),
+                    LinkHubRef(
+                        hub=proposal.target_hub,
+                        # §3.4: only when the names differ. An alias that restates the
+                        # canonical name would be noise the gate then has to check.
+                        source_key_column=(
+                            proposal.source_column if proposal.needs_alias else None
+                        ),
+                    ),
+                ],
+                description=(
+                    f"Declared foreign key {proposal.source_table}."
+                    f"{proposal.source_column} references {proposal.target_business_key}; "
+                    f"ratified from the source catalogue (WP34)."
+                ),
+            )
+        )
+        grains.add(grain)
+        added += 1
+
+    logger.info("applied %d ratified link proposal(s) to the delta", added)
+    return delta
+
+
+def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
+    """Staging bindings an FK-derived link already knows (§3.5).
+
+    A link's staging relation is otherwise INFERRED as ``raw_<base>`` and flagged, because no
+    declared table is named like a link. The proposal knows it: the referencing table. Keyed
+    the way ``source_mapper.source_overrides`` keys its own entries, so the existing
+    ``bind_sources`` override path consumes them unchanged and raises no flag."""
+    overrides: dict[str, str] = {}
+    for proposal in state.link_proposals.ratified():
+        for link in state.dv_model.links:
+            if any(
+                construct_binds_to_source_table(ref.hub, proposal.source_table)
+                for ref in link.hub_refs
+            ) and any(ref.hub == proposal.target_hub for ref in link.hub_refs):
+                overrides[normalize_identifier(construct_base_name(link.name))] = (
+                    proposal.source_table
+                )
+    return overrides
+
+
 def is_grounded_extension(state: VaultAgentState) -> bool:
     """The gate WP29 uses, applied here: an existing model AND a declared schema.
 
@@ -165,3 +307,14 @@ def collect_link_proposals(state: VaultAgentState) -> VaultAgentState:
         len(skipped),
     )
     return state
+
+
+class LinkProposerAgent(BaseAgent):
+    """The ``link_proposer`` node: deterministic, keyless, no prompt (agent conventions).
+
+    It owns exactly one state field, ``link_proposals``, and raises typed flags for the
+    foreign keys it declines to answer for. Everything it does is a pure function of state,
+    which is what lets the checkpoint that follows re-execute safely on resume."""
+
+    async def run(self, state: VaultAgentState) -> VaultAgentState:
+        return collect_link_proposals(state)

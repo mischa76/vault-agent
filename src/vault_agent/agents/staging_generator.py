@@ -238,7 +238,15 @@ def collect_staging_specs(
             bk_col = role_bk_column(canonical_hub_key_column(hub), ref.role)
             bk_cols.append(bk_col)
             spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), bk_col)
-            spec.add_source_column(bk_col)
+            # WP34 §3.4: when the relation feeding this link calls the hub's key something
+            # else, alias it to the canonical name FIRST — the same mechanism a multi-source
+            # hub's feed uses above, and for the same reason: the hash must be taken over the
+            # canonical column or the FK cannot join the hub's own hash key. Without the
+            # alias the spec would demand a column the relation does not have.
+            src_col = _to_column(ref.source_key_column) if ref.source_key_column else bk_col
+            if src_col != bk_col:
+                spec.derived[bk_col] = src_col
+            spec.add_source_column(src_col)
         spec.add_hashed(_link_hashkey(link), bk_cols)
         if link.link_type == "transactional":
             for col in link.payload:

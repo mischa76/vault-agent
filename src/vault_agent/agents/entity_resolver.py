@@ -33,7 +33,8 @@ from typing import Any, Protocol, cast
 from langgraph.types import interrupt
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.agents.orchestrator import apply_resolution_decision
+from vault_agent.agents.orchestrator import apply_link_decision, apply_resolution_decision
+from vault_agent.link_proposal import pending_link_decisions
 from vault_agent.llm import call_with_truncation_split
 from vault_agent.rules.dv2_rules import normalize_identifier, resolution_category
 from vault_agent.state import (
@@ -508,30 +509,44 @@ class ResolutionCheckpointAgent(BaseAgent):
     the PREVIOUS node and must never be re-run by a resume."""
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
+        # WP34 §3.3: link proposals ratify at this same node. Two consecutive pauses for one
+        # human is a worse product than one pause with two sections, and the reason a link
+        # must be decided HERE is identical to a resolution's — after the modeler emits its
+        # delta the decision it would inform has already been made.
         pending = pending_resolution_decisions(state.resolutions)
-        if not pending:
+        pending_links = pending_link_decisions(state.link_proposals)
+        if not pending and not pending_links:
             return state
 
-        logger.info("resolution checkpoint: %d proposal(s) await a decision", len(pending))
+        logger.info(
+            "resolution checkpoint: %d resolution(s) and %d link(s) await a decision",
+            len(pending),
+            len(pending_links),
+        )
         # No state mutation above this line — see the class docstring.
         decision = interrupt(
             {
                 "checkpoint": "resolution",
                 "pending": [p.model_dump() for p in pending],
+                "pending_links": [p.model_dump() for p in pending_links],
                 "instructions": (
                     "Decide these before the model is built: resume with "
                     "vault-agent resume --resolve \"<concept>=<construct>\", an edited "
-                    "resolutions.review.yml via --resolutions, or --accept to ratify them "
-                    "as proposed."
+                    "resolutions.review.yml via --resolutions, --link \"<Table>.<Column>\" "
+                    "to build a proposed link (--no-link to decline it), or --accept to "
+                    "ratify everything as proposed."
                 ),
             }
         )
         decided = apply_resolution_decision(state, decision)
+        decided_links = apply_link_decision(state, decision)
         state.decisions.append(
             {
                 "agent": "resolution_checkpoint",
                 "pending": len(pending),
                 "decided": len(decided),
+                "pending_links": len(pending_links),
+                "decided_links": len(decided_links),
                 "steering": len(pending_resolution_decisions(state.resolutions)) < len(pending),
             }
         )

@@ -25,6 +25,7 @@ from vault_agent.agents.orchestrator import HumanCheckpointAgent, OrchestratorAg
 from vault_agent.agents.requirements_parser import RequirementsParserAgent
 from vault_agent.agents.source_mapper import SourceMapperAgent
 from vault_agent.agents.validator import ValidatorAgent
+from vault_agent.link_proposal import LinkProposerAgent
 from vault_agent.state import VaultAgentState
 
 # The orchestrator plans the run and validates inputs, then hands off to the pipeline.
@@ -44,6 +45,11 @@ PIPELINE: list[str] = [
     # name and the decision is already made — so "is this new PARTNER the existing
     # hub_customer?" has to be proposed, and ratifiable, before modelling.
     "entity_resolver",
+    # WP34: the deterministic link proposer runs beside the resolver and before the shared
+    # checkpoint, for the same reason: once the modeler has emitted its delta the decision it
+    # would inform is already made. Keyless, no model call, and inert unless BOTH an existing
+    # model and a declared schema are present.
+    "link_proposer",
     # WP29 §2.5 addendum (2026-08-01): ratification has to happen HERE, between the proposal
     # and the modelling, or it cannot steer anything. The sign-off checkpoint runs after
     # source_mapper — far past the modeler whose output the decision is about — so with it as
@@ -108,6 +114,7 @@ def default_agents() -> dict[str, BaseAgent]:
         "business_key_identifier": BusinessKeyIdentifierAgent(),
         "data_contract": DataContractAgent(),
         "entity_resolver": EntityResolverAgent(),
+        "link_proposer": LinkProposerAgent(),
         "resolution_checkpoint": ResolutionCheckpointAgent(),
         "dv2_modeler": Dv2ModelerAgent(),
         "code_generator": CodeGeneratorAgent(),

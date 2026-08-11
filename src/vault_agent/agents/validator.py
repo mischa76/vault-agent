@@ -35,6 +35,7 @@ from vault_agent.rules.dv2_rules import (
     REQUIRED_LINK_COLUMNS,
     REQUIRED_SAT_COLUMNS,
     SAT_WIDE_ATTRIBUTE_THRESHOLD,
+    construct_binds_to_source_table,
     effectivity_date_pair,
     is_valid_construct_name,
     normalize_identifier,
@@ -800,6 +801,44 @@ class ValidatorAgent(BaseAgent):
                             f"expects a source column {expected!r}, which matches no column "
                             f"in the declared source schema; verify the source or complete "
                             f"the schema",
+                        )
+                    )
+        # E_LINK_KEY_NOT_IN_SOURCE (WP34 §3.6): an ALIASED link participation names a
+        # physical column that must exist, and this is an ERROR where its neighbours are
+        # warnings. The difference is deliberate and narrow. A missing business key may mean
+        # a partial schema; an alias is an explicit claim that *this relation calls the hub's
+        # key THIS*, and staging turns it into a rename. Wrong, it either fails the build or —
+        # worse — hashes a same-named column meaning something else into a link that joins
+        # live history. `source_key_column` is set only by a ratified FK-derived proposal, so
+        # by construction the column was declared; if it is not, something is broken rather
+        # than merely incomplete. Checked against the relation the link's staging actually
+        # binds to where the schema names one, and against the whole schema where it does not
+        # — as precise as the available information allows, never stricter.
+        for link in state.dv_model.links:
+            if link.name in pre_existing:
+                continue
+            bound = [
+                table
+                for table in state.source_schemas
+                if construct_binds_to_source_table(link.name, table.table)
+            ]
+            in_scope = (
+                {normalize_identifier(c) for t in bound for c in t.column_names}
+                if bound
+                else columns
+            )
+            where = bound[0].table if bound else "the declared source schema"
+            for ref in link.hub_refs:
+                if ref.source_key_column is None:
+                    continue
+                if normalize_identifier(ref.source_key_column) not in in_scope:
+                    issues.append(
+                        _issue(
+                            "error", "E_LINK_KEY_NOT_IN_SOURCE", link.name,
+                            f"participation {ref.hub} aliases "
+                            f"{ref.source_key_column!r} to the hub's key column, but "
+                            f"{where} declares no such column; staging would rename a "
+                            f"column that is not there",
                         )
                     )
         for sat in state.dv_model.satellites:

@@ -227,3 +227,77 @@ def test_the_prompt_comparison_can_fail() -> None:
             "the rendered schema section did not notice an added declared column — it "
             "cannot guard §3.8's decision that foreign keys stay out of the prompt"
         )
+
+
+# ── §3.4/§3.6 the alias, and the gate that keeps it honest ─────────────────────────────
+
+
+def test_an_aliased_participation_renames_the_source_column_before_hashing() -> None:
+    """The §3.4 mechanism, end to end in the rendered staging model.
+
+    Without this, the spec would demand BUSINESS_ENTITY_ID from a relation that only has
+    PersonID: the model would not build, or would build against a same-named column meaning
+    something else.
+    """
+    from vault_agent.state import Link, LinkHubRef
+
+    model = DVModel(
+        hubs=[
+            Hub(name="hub_customer", business_key="CustomerID", source_entity="customer",
+                description="A customer."),
+            Hub(name="hub_person", business_key="BusinessEntityID", source_entity="person",
+                description="A person."),
+        ],
+        links=[
+            Link(
+                name="link_customer_person",
+                connected_hubs=[
+                    LinkHubRef(hub="hub_customer"),
+                    LinkHubRef(hub="hub_person", source_key_column="PersonID"),
+                ],
+                description="Declared foreign key.",
+            )
+        ],
+    )
+    result = build_staging(model, source_schemas=_schemas(foreign_keys=True))
+    sql = result.models["stg_customer_person"]
+
+    assert "PERSONID" in sql          # the column the relation actually has
+    assert "BUSINESSENTITYID" in sql  # aliased to the canonical name the hash needs
+
+
+async def test_the_gate_fires_when_an_alias_names_a_column_the_relation_does_not_have(
+) -> None:
+    from vault_agent.agents.validator import ValidatorAgent
+    from vault_agent.state import Link, LinkHubRef
+
+    async def _issues(alias: str) -> list[str]:
+        state = VaultAgentState(document_path="req.md")
+        state.source_schemas = _schemas(foreign_keys=True)
+        state.dv_model = DVModel(
+            hubs=[
+                Hub(name="hub_customer", business_key="CustomerID",
+                    source_entity="customer", description="A customer."),
+                Hub(name="hub_person", business_key="BusinessEntityID",
+                    source_entity="person", description="A person."),
+            ],
+            links=[
+                Link(
+                    name="link_customer",  # binds to the declared Customer table
+                    connected_hubs=[
+                        LinkHubRef(hub="hub_customer"),
+                        LinkHubRef(hub="hub_person", source_key_column=alias),
+                    ],
+                    description="Declared foreign key.",
+                )
+            ],
+        )
+        state = await ValidatorAgent().run(state)
+        return [
+            i.code
+            for i in state.validation_report.issues
+            if i.code == "E_LINK_KEY_NOT_IN_SOURCE"
+        ]
+
+    assert await _issues("NoSuchColumn") == ["E_LINK_KEY_NOT_IN_SOURCE"]
+    assert await _issues("PersonID") == []

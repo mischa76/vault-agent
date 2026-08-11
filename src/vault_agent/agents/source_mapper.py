@@ -29,8 +29,9 @@ import re
 from typing import Any, Protocol, cast
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.link_proposal import link_source_overrides
 from vault_agent.llm import TraceEvent, call_with_truncation_split, emit_trace
-from vault_agent.rules.dv2_rules import normalize_identifier
+from vault_agent.rules.dv2_rules import construct_base_name, normalize_identifier
 from vault_agent.state import (
     ColumnProfile,
     FlagKind,
@@ -506,12 +507,11 @@ def source_overrides(state: VaultAgentState) -> dict[str, str]:
         )
         table = state.mappings.proposals[index].table if index is not None else None
         if table:
-            base = hub.name
-            for prefix in ("hub_", "link_", "sat_"):
-                if base.startswith(prefix):
-                    base = base[len(prefix):]
-                    break
-            overrides[normalize_identifier(base)] = table
+            overrides[normalize_identifier(construct_base_name(hub.name))] = table
+    # WP34 §3.5: an FK-derived link already knows its relation — the referencing table — so
+    # it needs no mapping proposal to find one. Merged here rather than in a second override
+    # path so `bind_sources` keeps ONE notion of "this construct's binding was decided".
+    overrides.update(link_source_overrides(state))
     return overrides
 
 

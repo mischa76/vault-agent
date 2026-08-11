@@ -3598,3 +3598,53 @@ share where the referenced table does not break the tie.
 Three test expectations were wrong and the code was right: `canonical_hub_key_column` returns the
 normalised staging column (`BUSINESSENTITYID`), not the label. Fixed in the tests — which is the
 helper earning its invariant in miniature.
+
+## [2026-08-11] WP34 built, keyless-complete and unmeasured
+
+The rest of the work package: the graph node, ratification at the shared checkpoint, the alias,
+the gate, and the deterministic staging binding. 834 green (+10 over the proposer commit), ruff
+and mypy clean. **Nothing has been measured** — no live run has happened, and every claim below
+is from the keyless suite or a scripted check over the checked-in AdventureWorks assets.
+
+**Verified end to end without a model call**, against the real `adventureworks_sales` schema and a
+Person-domain vault: 6 proposals, the flagship `Customer.PersonID -> hub_person` among them and
+correctly categorised `declared_fk_renamed`. Ratified, applied to the delta, merged, validated
+(**no errors**) and staged. The rendered `stg_customer_person` carries
+
+```
+BUSINESSENTITYID: 'PERSONID'      <- the alias
+PERSON_HK: 'BUSINESSENTITYID'     <- the hash, taken over the canonical column
+```
+
+which is precisely the §3.4 mechanism doing its job: without it the spec would have demanded
+`BUSINESSENTITYID` from a relation that only has `PersonID`.
+
+**A defect the tests caught, worth recording because the fix is a semantic distinction.**
+`LinkProposals.ratified()` first read "anything no longer `proposed`". For a resolution that is
+right — `overridden` carries a human's different *answer*, which still steers. For a link it is
+exactly wrong: `overridden` is a **refusal**, and the code built the link a human had just
+declined. Now `accepted` only, and the docstring says why the two differ.
+
+**Decisions taken while building, each with its reason in the code:**
+
+- **`--accept` DOES ratify link proposals.** The eval chain resumes unattended with
+  `accept: True`, so a bar that excluded them could never be measured. The applier's docstring
+  states the consequence plainly: a measured arm-B run ratifies every FK-derived proposal without
+  a human reading it, the same configuration `adventureworks_incremental` already discloses for
+  mappings. Any writeup must say so rather than imply review happened.
+- **Duplicate detection is on the GRAIN**, the set of participating hubs, never the name. A link
+  the modeler happened to build under another name is the same link; the eval conventions have
+  said "score structure, not free-form names" since WP9.2.
+- **`E_LINK_KEY_NOT_IN_SOURCE` is an ERROR where its grounded neighbours are warnings.** A missing
+  business key can mean a partial schema; an alias is an explicit claim about a physical column
+  that staging turns into a rename. It is checked against the relation the link's staging actually
+  binds to, and only against the whole schema when none binds.
+- **Skips are grouped in the review queue.** A real landscape declines more foreign keys than it
+  proposes for — 22 against 16 on AdventureWorks, nearly all the same shape — and rendering them
+  individually would bury the substantive items on the very axis §6 says must fall.
+
+**What is NOT done.** No live run, so §6's four-clause conjunction is untested and the WP is not
+finished. `key_name_only` remains unimplemented (recorded in the previous entry). The interactive
+checkpoint prompt does not yet offer link decisions — only the `--link` / `--no-link` flags and
+`--accept` do, so WP12's capability-parity rule is not satisfied for this checkpoint and that is a
+gap, not a decision.

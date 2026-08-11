@@ -179,6 +179,7 @@ def test_build_decision_collects_owners() -> None:
         "mappings": {},
         "mapping_sources": {},
         "resolutions": {},
+        "links": {},
     }
 
 

@@ -123,8 +123,8 @@ fresh clone does not lose them.
 ## Current state
 
 The pipeline runs end-to-end: orchestrator → requirements parser → business keys → data contracts
-→ modeler → code generator → validator (bounded re-model loop) → source mapper → HITL checkpoint
-→ ADR author. Output is a runnable dbt project (staging + raw vault + scaffolding), data
+→ entity resolver + link proposer → resolution checkpoint → modeler → code generator → validator
+(bounded re-model loop) → source mapper → HITL checkpoint → ADR author. Output is a runnable dbt project (staging + raw vault + scaffolding), data
 contracts, a review queue, an HTML report, and a proposed ADR. Brownfield mode (`run --existing`)
 extends an existing vault instead of modelling into an empty one. Verified on real PostgreSQL
 several times, most recently for brownfield additivity. Details and dates: `docs/log.md`.

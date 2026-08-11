@@ -196,7 +196,14 @@ class Dv2ModelerAgent(BaseAgent):
             # stays orchestration-only) so everything downstream — code generation,
             # validation, mapping, the ADR — sees one complete model, as in greenfield.
             from vault_agent.agents.model_merger import merge_models
+            from vault_agent.link_proposal import apply_ratified_link_proposals
 
+            # WP34: a RATIFIED link proposal joins the delta here — before the merge, so it
+            # goes through merge_models and every validator gate exactly as a modeler-emitted
+            # link does. No privileged route into the model (§3.6). Inert when nothing is
+            # ratified, which is every greenfield run and every extension run whose
+            # checkpoint said no.
+            model = apply_ratified_link_proposals(model, state.existing_model, state)
             model = merge_models(state.existing_model, model, state)
         state.dv_model = model
         logger.info(

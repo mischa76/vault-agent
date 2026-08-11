@@ -4,12 +4,19 @@ The properties under test are the ones that decide whether this pass is safe rat
 merely useful: it proposes only from a DECLARATION, it matches on the hub's CANONICAL key
 column, and where it cannot answer it says so instead of picking.
 """
-from vault_agent.link_proposal import collect_link_proposals, propose_links
+from vault_agent.agents.orchestrator import apply_link_decision
+from vault_agent.link_proposal import (
+    apply_ratified_link_proposals,
+    collect_link_proposals,
+    link_source_overrides,
+    propose_links,
+)
 from vault_agent.state import (
     DVModel,
     FlagKind,
     Hub,
     HubSource,
+    Link,
     LinkProposals,
     SourceTable,
     VaultAgentState,
@@ -221,3 +228,104 @@ def test_the_node_is_idempotent_because_the_checkpoint_re_executes_on_resume() -
     state = collect_link_proposals(state)
 
     assert state.link_proposals == once
+
+
+# ── ratification and application ───────────────────────────────────────────────────────
+
+
+def _proposed(state: VaultAgentState) -> VaultAgentState:
+    return collect_link_proposals(state)
+
+
+def _delta() -> DVModel:
+    return DVModel(
+        hubs=[Hub(name="hub_customer", business_key="CustomerID",
+                  source_entity="customer", description="A customer.")]
+    )
+
+
+def test_an_unratified_proposal_is_never_applied() -> None:
+    """The whole safety property in one test: proposing is not building."""
+    state = _proposed(_state(_vault(), [_customer()]))
+    delta = apply_ratified_link_proposals(_delta(), _vault(), state)
+
+    assert not delta.links
+
+
+def test_a_ratified_proposal_becomes_a_link_with_the_alias_set() -> None:
+    state = _proposed(_state(_vault(), [_customer()]))
+    apply_link_decision(state, {"links": {"Customer.PersonID": True}})
+    delta = apply_ratified_link_proposals(_delta(), _vault(), state)
+
+    assert len(delta.links) == 1
+    link = delta.links[0]
+    assert link.name == "link_customer_person"
+    assert [ref.hub for ref in link.hub_refs] == ["hub_customer", "hub_person"]
+    # §3.4: the far side carries the referencing table's own name for the hub's key.
+    assert link.hub_refs[0].source_key_column is None
+    assert link.hub_refs[1].source_key_column == "PersonID"
+
+
+def test_a_same_named_key_gets_no_alias_because_there_is_nothing_to_rename() -> None:
+    state = _proposed(_state(_vault(), [_customer(fk_column="BusinessEntityID")]))
+    apply_link_decision(state, {"links": {"Customer.BusinessEntityID": True}})
+    delta = apply_ratified_link_proposals(_delta(), _vault(), state)
+
+    assert delta.links[0].hub_refs[1].source_key_column is None
+
+
+def test_a_declined_proposal_is_recorded_as_overridden_rather_than_deleted() -> None:
+    """A model that considered a relationship and declined it is not the same as one that
+    never saw it, and the run's record should be able to tell them apart."""
+    state = _proposed(_state(_vault(), [_customer()]))
+    apply_link_decision(state, {"links": {"Customer.PersonID": False}})
+    delta = apply_ratified_link_proposals(_delta(), _vault(), state)
+
+    assert state.link_proposals.proposals[0].ratification_status == "overridden"
+    assert not delta.links
+
+
+def test_accept_ratifies_everything_still_pending() -> None:
+    """The unattended path the eval chain uses — without it §6 could not be measured."""
+    state = _proposed(_state(_vault(), [_customer()]))
+    decided = apply_link_decision(state, {"accept": True})
+
+    assert decided == ["Customer.PersonID"]
+    assert state.link_proposals.proposals[0].ratification_status == "accepted"
+
+
+def test_a_link_the_modeler_already_built_is_not_duplicated() -> None:
+    """Matched on the GRAIN, not the name: the modeler's name for it is its own choice."""
+    state = _proposed(_state(_vault(), [_customer()]))
+    apply_link_decision(state, {"accept": True})
+    delta = _delta()
+    delta.links.append(
+        Link(name="link_something_else_entirely",
+             connected_hubs=["hub_person", "hub_customer"], description="Already there.")
+    )
+
+    result = apply_ratified_link_proposals(delta, _vault(), state)
+
+    assert len(result.links) == 1
+
+
+def test_a_ratified_proposal_whose_near_hub_was_never_modelled_is_flagged_not_applied() -> None:
+    state = _proposed(_state(_vault(), [_customer()]))
+    apply_link_decision(state, {"accept": True})
+
+    delta = apply_ratified_link_proposals(DVModel(), _vault(), state)
+
+    assert not delta.links
+    assert any(
+        f.kind == FlagKind.LINK_PROPOSAL_SKIPPED and "no hub was modelled" in f.message
+        for f in state.flags
+    )
+
+
+def test_the_link_binds_its_staging_to_the_referencing_table(tmp_path: object) -> None:
+    """§3.5: the proposal knows the relation, so the binding is not inferred and not flagged."""
+    state = _proposed(_state(_vault(), [_customer()]))
+    apply_link_decision(state, {"accept": True})
+    state.dv_model = apply_ratified_link_proposals(_delta(), _vault(), state)
+
+    assert link_source_overrides(state) == {"CUSTOMER_PERSON": "Customer"}

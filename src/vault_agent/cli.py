@@ -767,6 +767,7 @@ def _build_decision(
     mappings: dict[str, str] | None = None,
     mapping_sources: dict[str, list[dict[str, str]]] | None = None,
     resolutions: dict[str, str] | None = None,
+    links: dict[str, bool] | None = None,
 ) -> dict[str, Any]:
     parsed: dict[str, dict[str, str | None]] = {}
     for spec in owners:
@@ -778,6 +779,9 @@ def _build_decision(
         "mappings": mappings or {},
         "mapping_sources": mapping_sources or {},
         "resolutions": resolutions or {},
+        # WP34: {"<Table>.<Column>": build it / decline it}. Same payload, same appliers, so
+        # a flag and an interactive answer cannot mean different things.
+        "links": links or {},
     }
 
 
@@ -1371,6 +1375,8 @@ def _resume_paused(
     write: bool = True,
     resolutions: Path | None = None,
     resolve: list[str] | None = None,
+    link: list[str] | None = None,
+    no_link: list[str] | None = None,
 ) -> None:
     """Answer the HITL checkpoint of a paused run — the flag path and the WP12 prompt.
 
@@ -1412,7 +1418,13 @@ def _resume_paused(
         for spec in resolve or []:
             concept, answer = _parse_resolve(spec)
             ratified[concept] = answer
-        decision = _build_decision(owner or [], accept, overrides, multi, ratified)
+        # WP34: an explicit --no-link wins over --link for the same proposal, because a
+        # deliberate refusal must never be overridden by a bulk answer given earlier.
+        link_answers: dict[str, bool] = {spec: True for spec in link or []}
+        link_answers.update({spec: False for spec in no_link or []})
+        decision = _build_decision(
+            owner or [], accept, overrides, multi, ratified, link_answers
+        )
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]{exc}[/bold red]")
         raise typer.Exit(code=1) from exc
@@ -1481,6 +1493,20 @@ def resume(
         typer.Option(
             "--resolve",
             help="Ratify one entity resolution: 'concept=hub_name' (or =NEW) (WP29).",
+        ),
+    ] = None,
+    link: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--link",
+            help="Build a proposed link: 'Table.Column' (WP34).",
+        ),
+    ] = None,
+    no_link: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--no-link",
+            help="Decline a proposed link: 'Table.Column' (WP34).",
         ),
     ] = None,
     trace: Annotated[
@@ -1599,7 +1625,7 @@ def resume(
     _resume_paused(
         console, out, pending,
         owner=owner, accept=accept, mappings=mappings, map_=map_,
-        resolutions=resolutions, resolve=resolve,
+        resolutions=resolutions, resolve=resolve, link=link, no_link=no_link,
         trace=trace, interactive=interactive, write=write,
     )
 
