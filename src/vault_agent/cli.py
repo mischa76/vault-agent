@@ -42,6 +42,7 @@ from vault_agent.agents.orchestrator import (
 from vault_agent.existing_model import DV_MODEL_FILENAME, load_existing_model
 from vault_agent.extension_diff import DIFF_FILENAME, ExtensionDiff, render_extension_diff_md
 from vault_agent.graph import MAX_MODELING_ATTEMPTS, build_graph
+from vault_agent.link_proposal import pending_link_decisions, proposal_key
 from vault_agent.models.contract import ContractOwner
 from vault_agent.profiling import load_profiling
 from vault_agent.report import build_report
@@ -824,6 +825,8 @@ def _has_decision_flags(
     map_: list[str] | None,
     resolutions: Path | None = None,
     resolve: list[str] | None = None,
+    link: list[str] | None = None,
+    no_link: list[str] | None = None,
 ) -> bool:
     """True when ``resume`` was given any explicit decision — flags win, no prompt is shown."""
     return (
@@ -833,6 +836,8 @@ def _has_decision_flags(
         or bool(map_)
         or resolutions is not None
         or bool(resolve)
+        or bool(link)
+        or bool(no_link)
     )
 
 
@@ -947,14 +952,16 @@ def _interactive_checkpoint(
         owners: list[str]
         overrides: dict[str, str]
         resolutions: dict[str, str]
+        links: dict[str, bool]
         try:
             if at_resolution:
                 owners, overrides = [], {}
                 resolutions = _collect_resolution_decision(console, state)
+                links = _collect_link_decision(console, state)
                 confirm = "Ratify the remaining proposal(s) as shown and build the model?"
             else:
                 owners, overrides = _collect_decision(console, state)
-                resolutions = {}
+                resolutions, links = {}, {}
                 confirm = "Accept and finalize?"
                 for issue in state.validation_report.issues:
                     if issue.severity == "error":
@@ -969,7 +976,7 @@ def _interactive_checkpoint(
             _report_paused(console, out, state=state)
             return state
 
-        decision = _build_decision(owners, True, overrides, {}, resolutions)
+        decision = _build_decision(owners, True, overrides, {}, resolutions, links)
         state, paused = asyncio.run(_resume_pipeline(out, thread_id, decision, trace))
         _print_summary(console, state)
         counts = write_outputs(state, out)
@@ -1014,6 +1021,36 @@ def _collect_resolution_decision(
         ).strip()
         if answer:
             answers[proposal.concept] = answer
+    return answers
+
+
+def _collect_link_decision(console: Console, state: VaultAgentState) -> dict[str, bool]:
+    """Walk the pending link proposals, collecting a build/decline answer each (WP34 §3.3).
+
+    Capability-parity with ``--link`` / ``--no-link``, the same rule
+    :func:`_collect_resolution_decision` follows: this collects the same handles the flags
+    take and hands them to the same ``_build_decision`` → ``apply_link_decision`` path. No
+    decision semantics live here.
+
+    The default is deliberately *build it*. A proposal exists only because the source's own
+    catalogue declares the foreign key and an existing hub is keyed on its target — declining
+    is the exception, and the confirm that follows ratifies whatever was left untouched
+    exactly as ``--accept`` does. The evidence is printed first so the answer is informed:
+    which declaration was read, which hub it points at, and whether staging will have to
+    rename a column."""
+    answers: dict[str, bool] = {}
+    for proposal in pending_link_decisions(state.link_proposals):
+        key = proposal_key(proposal)
+        console.print(
+            f"  [yellow]{key}[/yellow] → link to [cyan]{proposal.target_hub}[/cyan] "
+            f"[dim]({proposal.category})[/dim]"
+        )
+        for line in proposal.evidence:
+            console.print(f"    [dim]{line}[/dim]")
+        if not _prompter.confirm(
+            console, f"Build the link for {key!r}?", default=True
+        ):
+            answers[key] = False
     return answers
 
 
@@ -1155,9 +1192,16 @@ def _paused_at_resolution(state: VaultAgentState) -> bool:
     the modeler has not run, which is true only between the resolver and the modeler; the
     pending-decision clause says something is actually waiting there. At the sign-off
     checkpoint the first clause is false, and a resolution pause cannot reach sign-off
-    undecided because the node re-executes and would simply pause again."""
+    undecided because the node re-executes and would simply pause again.
+
+    WP34: link proposals pause the SAME node, and a run can pause for them with no
+    resolution pending at all — the resolver answering only NEW/unresolved while the source
+    declares foreign keys is the ordinary case, not an edge one. Without this clause such a
+    pause was misread as sign-off, and the terminal asked for owners and mappings at a point
+    where the model does not yet exist."""
     return state.modeling_attempts == 0 and bool(
         pending_resolution_decisions(state.resolutions)
+        or pending_link_decisions(state.link_proposals)
     )
 
 
@@ -1170,11 +1214,13 @@ def _report_paused_at_resolution(
     BUILT, and the alternative to reading them is opening a YAML file to find out what the run
     is waiting for."""
     pending = pending_resolution_decisions(state.resolutions)
-    console.print(
-        f"\n[bold yellow]Paused before modelling — {len(pending)} entity resolution(s) "
-        f"need a decision.[/bold yellow] Each one says a concept the new source introduces "
-        f"IS something the existing vault already holds:"
-    )
+    links = pending_link_decisions(state.link_proposals)
+    if pending:
+        console.print(
+            f"\n[bold yellow]Paused before modelling — {len(pending)} entity resolution(s) "
+            f"need a decision.[/bold yellow] Each one says a concept the new source introduces "
+            f"IS something the existing vault already holds:"
+        )
     for proposal in pending:
         label, entity = split_concept_key(proposal.concept)
         origin = f" (from {entity})" if entity else ""
@@ -1187,11 +1233,26 @@ def _report_paused_at_resolution(
             f"  [yellow]{label}[/yellow]{origin}: {target} "
             f"[dim]({proposal.category}, confidence {proposal.confidence:.2f})[/dim]"
         )
+    # WP34: a run can pause here for links alone, so this section stands on its own rather
+    # than hanging off the resolution one.
+    if links:
+        console.print(
+            f"\n[bold yellow]{len(links)} link(s) proposed from the source's own declared "
+            f"foreign keys.[/bold yellow] Each one relates what you are adding to a hub the "
+            f"vault already has:"
+        )
+        for link_proposal in links:
+            console.print(
+                f"  [yellow]{proposal_key(link_proposal)}[/yellow] → link to "
+                f"[cyan]{link_proposal.target_hub}[/cyan] [dim]({link_proposal.category})[/dim]"
+            )
     console.print(
         "\n  [cyan]vault-agent resume --out "
         f"{out} --resolve \"<concept>=<construct>\"[/cyan]  (decide one; repeat per concept)\n"
         f"  [cyan]vault-agent resume --out {out} --resolutions "
         f"{out}/resolutions.review.yml[/cyan]  (edit the file, then ratify it)\n"
+        f"  [cyan]vault-agent resume --out {out} --link \"<Table>.<Column>\"[/cyan]   "
+        "(build one proposed link; --no-link declines it)\n"
         f"  [cyan]vault-agent resume --out {out} --accept[/cyan]   "
         "(ratify all of the above as proposed)"
     )
@@ -1391,7 +1452,9 @@ def _resume_paused(
     # paused state from its checkpoint, then prompt + resume in-process. Flags win (no prompt),
     # and a non-TTY keeps today's flag-based path byte-identical.
     if (
-        not _has_decision_flags(owner, accept, mappings, map_, resolutions, resolve)
+        not _has_decision_flags(
+            owner, accept, mappings, map_, resolutions, resolve, link, no_link
+        )
         and write
         and _is_interactive(interactive)
     ):
@@ -1613,7 +1676,7 @@ def resume(
         _write_pending(out, thread_id, input_path)
         pending = {"thread_id": thread_id, "input": str(input_path)}
         if not _has_decision_flags(
-            owner, accept, mappings, map_, resolutions, resolve
+            owner, accept, mappings, map_, resolutions, resolve, link, no_link
         ):
             if write and _is_interactive(interactive):
                 state = _interactive_checkpoint(console, out, thread_id, state, trace)

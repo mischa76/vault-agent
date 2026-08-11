@@ -3648,3 +3648,33 @@ finished. `key_name_only` remains unimplemented (recorded in the previous entry)
 checkpoint prompt does not yet offer link decisions — only the `--link` / `--no-link` flags and
 `--accept` do, so WP12's capability-parity rule is not satisfied for this checkpoint and that is a
 gap, not a decision.
+
+## [2026-08-11] WP34's capability-parity gap closed, and a real bug behind it
+
+The gap recorded in the previous entry: the interactive checkpoint offered no way to answer a
+link proposal, so `--link` / `--no-link` / `--accept` were the only paths and WP12's
+capability-parity rule was violated. 839 green (+5), ruff and mypy clean. Still **nothing
+measured**.
+
+**The parity work turned up a defect worth more than the parity.** `_paused_at_resolution` read
+*"the modeler has not run AND a resolution is pending"*. Link proposals pause the same node, and a
+run can pause for them with **no resolution pending at all** — the resolver answering only
+NEW/unresolved while the source declares foreign keys is the ordinary case on AdventureWorks, not
+an edge one. Such a pause was classified as the SIGN-OFF checkpoint, so the terminal asked for
+contract owners and mapping ratifications for a model that does not exist yet. Fixed, and pinned
+by a test that asserts a link-only pause is recognised.
+
+**The prompt defaults to building.** A proposal exists only where the source's own catalogue
+declares the foreign key and an existing hub is keyed on its target, so declining is the
+exception; the confirm that follows ratifies whatever was left untouched, exactly as `--accept`
+does. Parity is asserted as *sameness of payload*, not as "both paths exist": the prompted answer
+and the `--no-link` answer are compared for equality in a test, because two paths that produce
+different payloads are two semantics wearing one name.
+
+Also: a link-only pause now prints its own section in the paused-run report rather than hanging
+off the resolution heading, and `docs/operations/07-hitl-checkpoint.md` documents both flags —
+including the sentence that matters for unattended runs, that `--accept` ratifies links without
+anyone reading them.
+
+**Still not done:** the live run. §6's four-clause conjunction remains untested and WP34 is not
+finished until it is.

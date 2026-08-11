@@ -76,7 +76,16 @@ vault-agent resume --owner "customer=Jane Doe <jane@bank.example>" \
 | `--owner "asset=Name <email>"` | yes | Assigns the contract owner; prunes exactly that asset's owner flag |
 | `--map "concept=TABLE.COLUMN"` | yes | Ratifies/overrides one mapping |
 | `--mappings <file>` | no | Ratifies an edited `mappings.review.yml` wholesale |
+| `--link "Table.Column"` | yes | Builds one link proposed from a declared foreign key (WP34) |
+| `--no-link "Table.Column"` | yes | Declines one proposed link; wins over `--link` for the same one |
 | `--accept` | — | Signs off and proceeds past the checkpoint |
+
+**`--accept` ratifies link proposals too.** That matters for unattended runs: an automated
+resume accepts every foreign-key-derived link without anyone reading it. Decline individually
+with `--no-link`, or answer them one by one in the terminal — the interactive prompt offers
+exactly what these flags offer, which is the capability-parity rule, and it defaults to
+building each one because a proposal exists only where the source's own catalogue declares
+the foreign key and an existing hub is keyed on its target.
 
 `apply_human_decision` performs the commit: owners are written onto the contracts,
 ratified mappings promote their concepts (and re-bind the staging layer to the real

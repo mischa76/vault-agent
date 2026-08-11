@@ -329,3 +329,89 @@ def test_the_link_binds_its_staging_to_the_referencing_table(tmp_path: object) -
     state.dv_model = apply_ratified_link_proposals(_delta(), _vault(), state)
 
     assert link_source_overrides(state) == {"CUSTOMER_PERSON": "Customer"}
+
+
+# ── WP12 capability parity at the interactive checkpoint ───────────────────────────────
+
+
+class _ScriptedPrompter:
+    """Keyless stand-in for cli._prompter: queued confirms, recorded questions."""
+
+    def __init__(self, confirms: list[bool]) -> None:
+        self._confirms = list(confirms)
+        self.asked: list[str] = []
+
+    def text(self, console: object, message: str) -> str:
+        self.asked.append(message)
+        return ""
+
+    def confirm(self, console: object, message: str, *, default: bool = False) -> bool:
+        self.asked.append(message)
+        return self._confirms.pop(0)
+
+
+def test_a_pause_for_links_alone_is_recognised_as_the_resolution_checkpoint() -> None:
+    """The bug this closes: with no resolution pending, a link-only pause was read as
+    sign-off, and the terminal asked for owners and mappings for a model that does not
+    exist yet."""
+    from vault_agent.cli import _paused_at_resolution
+
+    state = _proposed(_state(_vault(), [_customer()]))
+    assert not state.resolutions.proposals  # nothing from the resolver at all
+    assert _paused_at_resolution(state)
+
+
+def test_the_prompt_offers_every_pending_link_and_defaults_to_building_it(
+    monkeypatch: object,
+) -> None:
+    from rich.console import Console
+
+    from vault_agent import cli
+
+    state = _proposed(_state(_vault(), [_customer()]))
+    scripted = _ScriptedPrompter([True])
+    monkeypatch.setattr("vault_agent.cli._prompter", scripted)  # type: ignore[attr-defined]
+
+    answers = cli._collect_link_decision(Console(), state)
+
+    assert "Build the link for 'Customer.PersonID'?" in scripted.asked
+    # Confirmed -> no override recorded; the following confirm ratifies it, as --accept does.
+    assert answers == {}
+
+
+def test_declining_at_the_prompt_records_the_same_answer_as_no_link(
+    monkeypatch: object,
+) -> None:
+    """Capability parity is only real if the two paths produce the SAME payload."""
+    from rich.console import Console
+
+    from vault_agent import cli
+
+    state = _proposed(_state(_vault(), [_customer()]))
+    monkeypatch.setattr(  # type: ignore[attr-defined]
+        "vault_agent.cli._prompter", _ScriptedPrompter([False])
+    )
+
+    prompted = cli._collect_link_decision(Console(), state)
+    from_flags = cli._build_decision([], False, links={"Customer.PersonID": False})["links"]
+
+    assert prompted == from_flags == {"Customer.PersonID": False}
+
+
+def test_an_explicit_no_link_beats_a_link_for_the_same_proposal() -> None:
+    """A deliberate refusal must not be overridden by a bulk answer given earlier."""
+    from vault_agent import cli
+
+    decision = cli._build_decision([], False, links={"Customer.PersonID": False})
+    state = _proposed(_state(_vault(), [_customer()]))
+    apply_link_decision(state, decision)
+
+    assert state.link_proposals.proposals[0].ratification_status == "overridden"
+
+
+def test_link_flags_count_as_decision_flags_so_no_prompt_is_shown() -> None:
+    from vault_agent import cli
+
+    assert cli._has_decision_flags(None, False, None, None, None, None, ["A.B"], None)
+    assert cli._has_decision_flags(None, False, None, None, None, None, None, ["A.B"])
+    assert not cli._has_decision_flags(None, False, None, None, None, None, None, None)
