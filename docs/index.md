@@ -119,7 +119,7 @@ own overview.
 | [wp30](architecture/backlog-2026-07/wp30-adventureworks-semantic-axis-spec.md) | AdventureWorks as an independent instrument; the domain-partitioning experiment — **arm comparison open** |
 | [wp31](architecture/backlog-2026-07/wp31-attribute-overlap-narrowing-spec.md) | Narrowing `E_SAT_ATTR_OVERLAP` to one payload namespace (ADR-0012) |
 | [wp32](architecture/backlog-2026-07/wp32-concept-identity-spec.md) | Concept identity is (label, entity), not the label alone |
-| [wp34](architecture/backlog-2026-07/wp34-fk-derived-link-proposals-spec.md) | Links proposed from the source's own foreign keys, ratified at the WP29 checkpoint — **proposed, not approved** |
+| [wp34](architecture/backlog-2026-07/wp34-fk-derived-link-proposals-spec.md) | Links proposed from the source's own foreign keys, ratified at the WP29 checkpoint — **approved 2026-08-11, not built** |
 
 Earlier specs, before the backlog was numbered:
 [poc-end-to-end-dbt](architecture/poc-end-to-end-dbt-spec.md) (the slice from requirements to a

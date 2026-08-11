@@ -1,6 +1,6 @@
 # WP34 — Links proposed from the source's own foreign keys
 
-Status: **Proposed** (2026-08-11, Claude — awaiting Mischa's approval) · Owner: Mischa Eismann
+Status: **Approved** (2026-08-11, Mischa — with §3.4's one open decision resolved: the staging alias IS in v1) · Proposed 2026-08-11 (Claude) · Owner: Mischa Eismann
 Depends on: WP23 (brownfield mode), WP29 (the propose → pause → ratify checkpoint), WP24
 (canonical staging keys), WP30.1-30.3 (the measurements that motivate it).
 Supersedes nothing. **Closes the prompt route opened by WP30.1** and recorded as stopped in
@@ -167,6 +167,13 @@ is the flagship example, one of the two links arm A builds and arm B misses, and
 whole line of work has been quoting since WP30.1. A version that cannot express the motivating
 example is not worth measuring. **Recommendation: build the alias in v1.** It is a field, a
 staging alias that mirrors machinery already proven for hubs, and one gate (below).
+
+**DECIDED 2026-08-11 (Mischa): the alias is in v1.** So `declared_fk_renamed` is in scope from the
+first line of code, and `LinkHubRef.source_key_column` plus `E_LINK_KEY_NOT_IN_SOURCE` are binding
+deliverables rather than options. What keeps that honest is §5.4 and §6's fourth clause: the alias
+is the one part of this WP that can write a join against the wrong column, so it ships with its
+gate or it does not ship. `Sales.Customer.PersonID -> hub_person` is therefore expected in the
+measured run, and its absence would be a mechanism failure, not a scope note.
 
 ### 3.5 What the proposal buys beyond the link itself
 

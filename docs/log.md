@@ -3466,3 +3466,28 @@ has a number.
 
 Record-edit path again: Mischa asked for the append, `VAULT_AGENT_ALLOW_RECORD_EDIT=1` on the
 writing command, nothing above §3.8 altered. The spec remains **Proposed**, and nothing is built.
+
+## [2026-08-11] WP34 approved, and §3.4's open decision closed
+
+Mischa approved the spec and resolved the one question it deliberately left open: **the staging
+alias is in v1.**
+
+The status header moved `Proposed → Approved` along its intended path, with the date and the
+amendment named — the one edit `.claude/rules/records.md` sanctions on a record. A dated `DECIDED`
+note is appended inside §3.4; the recommendation that preceded it is untouched, so the reasoning
+that led to the decision is still readable next to the decision.
+
+**What the decision commits us to.** `declared_fk_renamed` is in scope from the first line of
+code, which means `LinkHubRef.source_key_column` and `E_LINK_KEY_NOT_IN_SOURCE` are deliverables
+rather than options. The alias is the one part of this WP that can write a join against the wrong
+column — `BUSINESS_ENTITY_ID` demanded from a relation that only has `PersonID` — so it ships with
+its gate or it does not ship. `Sales.Customer.PersonID -> hub_person` is now expected to appear in
+the measured run: if it does not, that is a mechanism failure and not a scope note.
+
+The cheaper alternative is recorded as rejected rather than dropped: restricting v1 to
+same-name foreign keys would have needed no alias and no new field, and would have dropped the
+example this entire line of work has quoted since WP30.1.
+
+**Still nothing built.** The kick-off's first instruction stands: the byte-identity and greenfield
+inertness guards are written and run BEFORE any behaviour change, per the invariant that a guard
+written afterwards proves only that you wrote it afterwards.
