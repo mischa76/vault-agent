@@ -136,15 +136,19 @@ several times, most recently for brownfield additivity. Details and dates: `docs
   with table count, so the upper cases measure width and repetition tolerance rather than semantic
   scale (`scale-test-findings.md`, candidate #5). `scale_300` has not been run; `emit_dv_model` is
   the one agent that cannot split its output, so its budget is the only lever there.
-- **WP30's arm comparison: one repeat each on current code (2026-08-01), and it goes AGAINST the
-  charter.** Arm B totals 3x arm A's review items and builds 73% of its links, at 12% lower cost.
-  At n=1 that is a direction, not a verdict. The link deficit is the open question, and the
-  PROMPT route to it is measured out — three interventions, none moved it (WP30.1-30.3, the last
-  reverted). Spec §7.3.
-- **WP34 is built and measured (2026-08-12), and §6 is NOT met.** 2 of a possible 16 cross-domain
-  links; review load fell for the first time in five runs (619 → 546). Why 10 of 11 viable
-  proposals never landed is not reconstructible from the result — the proposer's skips and the
-  hubs' key columns are not recorded. Add that telemetry before paying for another run.
+- **WP30's arm comparison is CONTAMINATED and its conclusion does not currently stand.** Every
+  arm-B measurement — the 73%-of-arm-A link deficit, the 3x review items, WP30.1-30.3's ~$46 of
+  prompt interventions — ran with a binder that could not match a multi-word CamelCase table
+  (53 of 68 on AdventureWorks), which is exactly the near-side lookup incremental runs depend
+  on. Fixed 2026-08-12 (`cb01b9c`); the comparison must be repeated before it is cited. At n=1
+  it was a direction, not a verdict, and now not even that. Spec §7.3.
+- **WP34's §6 is unmet, and the remaining gap is a DESIGN question, not a defect** (2026-08-12,
+  two runs, ~$18). With the binder fixed, ~5 of the needed 8 cross-domain links land. Of the 22
+  foreign keys the proposer declines, 18 are structural — they reference a table from their own
+  increment, which the modeler handles — and 4 are the real limit: the source references
+  `Product.ProductID` while `hub_product` is keyed on `ProductNumber`, the natural key DV2.0
+  asks for. Closing those needs surrogate→natural key translation through the referenced table,
+  which is new capability and ADR-shaped, not an alias.
 - **WP29's mechanism is live-verified; its correctness is not, and §4 cannot run yet.** The
   checkpoint steers the modeler in a real chain (2026-08-01). But `brownfield_resolution` has no
   `dataset.yml`, no requirements, no scorer dispatch — and `false_merge_rate` matches the golden

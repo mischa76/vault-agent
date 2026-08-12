@@ -3978,3 +3978,45 @@ is checkable without spending anything.
 `no_hub_for_key` at 22, the vault being keyed differently from how the sources reference it.
 `E_HUB_HK_COLLISION` remains unexplained. The next run's numbers are predicted above, in
 writing, before it is paid for.
+
+## [2026-08-12] The remaining 22 audited: 18 are by design, 4 are a design question
+
+Free, offline, against the recorded shapes. The previous entry named `no_hub_for_key` at 22 as
+the ceiling and read it as "the vault is keyed differently from how the sources reference it".
+That reading is right for 4 of the 22 and wrong for the other 18.
+
+```
+18  the referenced table is first declared in the SAME increment
+ 4  a hub for the referenced table exists and is keyed on another column
+```
+
+**The 18 are structural and not a defect.** `ProductCostHistory.ProductID -> Product` skips
+because the proposer runs BEFORE the modeler — graph order is load-bearing — so no hub exists
+yet for a table this increment is only now introducing. Those relationships are the modeler's
+job; it sees the whole increment at once. Chasing them would mean reordering nodes, which the
+invariants forbid for good reasons, and would duplicate work the modeler already does. They
+should be counted as *out of the proposer's reach by design*, not as its shortfall — and §6's
+"16 cross-schema foreign keys" ceiling should have excluded them from the start.
+
+**The 4 are one case, and it is the interesting one.** All four reference `Product.ProductID`
+from Purchasing and Sales. `hub_product` is keyed on **`PRODUCTNUMBER`** — and the source's own
+comments say why that is the RIGHT choice: `ProductID` is "Primary key for Product records",
+`ProductNumber` is "Unique product identification number". DV2.0 doctrine wants the natural
+business key in the hub, and the modeler picked it correctly.
+
+So neither side is wrong. **The source expresses referential integrity on the surrogate; the
+vault is keyed on the natural key; and an FK-derived proposer that matches on the hub's business
+key can never bridge the two.** That is a limitation of WP34 §3.2's conditions, not an
+implementation bug, and it is not an alias: bridging it means translating `ProductID` to
+`ProductNumber` through the `Product` relation, which is a join through a third table and a real
+modelling operation. ADR-shaped work, deliberately not smuggled in as a rename.
+
+**What this does to §6's link clause.** ~5 from the binder fix, plus 4 if surrogate translation
+is built = 9, against a bar of 8. The bar is reachable — but only by building a new capability,
+and only if the modeler keeps choosing natural keys, which is one run's behaviour and not a
+guarantee. Both numbers are predictions on record before anything is paid for.
+
+**A caveat I am not going to hide:** `hub_product` being keyed on `ProductNumber` is one run's
+modelling choice, read from one result file. DV2.0 doctrine makes it the likely choice rather
+than a certain one, and a run that keys `hub_product` on `ProductID` would turn all four of
+these into ordinary proposals with no new capability needed at all.
