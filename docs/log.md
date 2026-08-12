@@ -4098,3 +4098,37 @@ silent one.
 **No cost error**, since nothing was priced off that percentage. But it is the same defect class
 as the day's others: a figure that looks complete, is read as authoritative, and quietly answers
 a different question than the one asked.
+
+## [2026-08-13] Cache writes are counted, so a cost figure can be a total for the first time
+
+879 green (+1), ruff and mypy clean. Keyless, nothing measured. This closes the gap the
+previous entry could only name: `cache_creation_input_tokens` — billed at **1.25x input** —
+was captured nowhere, so every cost this project could report was a floor wearing the clothes
+of a total.
+
+**The seam changed, deliberately.** `UsageRecorder` is now
+`Callable[[str, int, int, int, int], None]` — the fifth count is cache writes. Five test stubs
+carried the old arity and were updated; that is the signature change working, not collateral.
+Worth recording that the failure would otherwise have been *silent in production*:
+`_record_usage` swallows recorder exceptions by design (a broken accounting sink must never
+discard a response that is already billed), so a four-argument recorder would have logged a
+warning and recorded nothing. The tests caught it because they assert on the recorded values;
+the guard alone would not have.
+
+**All four counts are disjoint, and the docstring now says so** — that misconception is what
+produced both of today's defects. `input_tokens` is the UNCACHED remainder; the prompt total is
+`input + cache_read + cache_creation`; none contains another.
+
+The count also reaches the trace (`TraceEvent.cache_write_tokens`), so a per-call audit can see
+it without re-running anything, and `usage.cache_write_tokens` is additive in the result file.
+**Archived runs lack the key, and that must read as "not measured", never as zero writes** —
+the comment at the emit site says so, because a missing-equals-zero reading would make every
+pre-2026-08-13 run look cheaper than a current one.
+
+**Deliberately NOT added: pricing.** No rate table enters this repo. Rates change, they are the
+`claude-api` reference's job, and a stale constant that produces a confident dollar figure is
+exactly the failure this whole day has been about. The result file now carries every quantity a
+price list needs; multiplying is the caller's business.
+
+**Still not measured:** what cache writes actually amount to on a real chain. The next paid run
+answers that, and only then does the ~$6-per-run figure become a total rather than a floor.

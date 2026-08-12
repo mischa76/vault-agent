@@ -38,6 +38,9 @@ class _Usage:
     input_tokens: int = 0
     output_tokens: int = 0
     cache_read_input_tokens: int = 0
+    # The SDK's four token counts are disjoint; this one bills at 1.25x input and went
+    # uncaptured until 2026-08-13, which is why every cost figure was a floor.
+    cache_creation_input_tokens: int = 0
 
 
 @dataclass
@@ -211,13 +214,13 @@ async def test_system_prompt_is_sent_as_a_cache_controlled_block() -> None:
 
 def _recording_caller(
     outcomes: list[Any],
-) -> tuple[ForcedToolCaller, _StubClient, list[tuple[str, int, int, int]]]:
+) -> tuple[ForcedToolCaller, _StubClient, list[tuple[str, int, int, int, int]]]:
     client = _StubClient(outcomes)
     _SLEEPS.clear()
-    recorded: list[tuple[str, int, int, int]] = []
+    recorded: list[tuple[str, int, int, int, int]] = []
 
-    def record(model: str, inp: int, out: int, cache: int) -> None:
-        recorded.append((model, inp, out, cache))
+    def record(model: str, inp: int, out: int, cache: int, write: int) -> None:
+        recorded.append((model, inp, out, cache, write))
 
     caller = ForcedToolCaller(
         "test-model", client=client, sleep=_no_sleep, usage_recorder=record
@@ -231,7 +234,7 @@ async def test_usage_recorder_receives_response_usage() -> None:
 
     await _call(caller)
 
-    assert recorded == [("test-model", 1200, 340, 900)]
+    assert recorded == [("test-model", 1200, 340, 900, 0)]
 
 
 async def test_usage_recorder_defaults_missing_fields_to_zero() -> None:
@@ -241,7 +244,7 @@ async def test_usage_recorder_defaults_missing_fields_to_zero() -> None:
 
     await _call(caller)
 
-    assert recorded == [("test-model", 0, 0, 0)]
+    assert recorded == [("test-model", 0, 0, 0, 0)]
 
 
 async def test_usage_recorded_even_on_truncation() -> None:
@@ -254,7 +257,7 @@ async def test_usage_recorded_even_on_truncation() -> None:
 
     with pytest.raises(LLMCallError, match="truncated"):
         await _call(caller)
-    assert recorded == [("test-model", 500, 4096, 0)]
+    assert recorded == [("test-model", 500, 4096, 0, 0)]
 
 
 async def test_no_recorder_is_a_no_op() -> None:
@@ -272,7 +275,7 @@ async def test_module_level_recorder_captures_agent_constructed_callers() -> Non
     # eval.run registers a module-level recorder because the agents build their own callers.
     from vault_agent import llm
 
-    recorded: list[tuple[str, int, int, int]] = []
+    recorded: list[tuple[str, int, int, int, int]] = []
     llm.set_usage_recorder(lambda *args: recorded.append(args))
     try:
         caller, _ = _caller([_Message(content=[_tool_block()], usage=_Usage(10, 20, 5))])
@@ -280,7 +283,7 @@ async def test_module_level_recorder_captures_agent_constructed_callers() -> Non
     finally:
         llm.set_usage_recorder(None)
 
-    assert recorded == [("test-model", 10, 20, 5)]
+    assert recorded == [("test-model", 10, 20, 5, 0)]
     assert llm._default_usage_recorder is None  # cleared
 
 
@@ -480,7 +483,9 @@ async def test_raising_usage_recorder_never_disturbs_the_call() -> None:
     # WP21 §2.2: the docstring promised this; there was no try/except. The response is
     # already generated and billed by then, so a broken accounting sink discarding it would
     # be the most expensive possible failure mode.
-    def boom(model: str, input_tokens: int, output_tokens: int, cache_read: int) -> None:
+    def boom(
+        model: str, input_tokens: int, output_tokens: int, cache_read: int, cache_write: int
+    ) -> None:
         raise RuntimeError("usage sink is broken")
 
     client = _StubClient([_Message(content=[_tool_block({"ok": 1})])])
@@ -600,17 +605,17 @@ async def test_payload_usage_and_trace_come_from_the_final_message() -> None:
     cache_read_input_tokens — so nothing downstream had to change."""
     usage = _Usage(input_tokens=900, output_tokens=120, cache_read_input_tokens=800)
     events: list[TraceEvent] = []
-    recorded: list[tuple[str, int, int, int]] = []
+    recorded: list[tuple[str, int, int, int, int]] = []
     client = _StubClient([_Message(content=[_tool_block({"x": 1})], usage=usage)])
     _SLEEPS.clear()
     caller = ForcedToolCaller(
         "test-model", client=client, sleep=_no_sleep,
-        usage_recorder=lambda m, i, o, c: recorded.append((m, i, o, c)),
+        usage_recorder=lambda m, i, o, c, w: recorded.append((m, i, o, c, w)),
         trace_recorder=events.append,
     )
 
     assert await _call(caller) == {"x": 1}
-    assert recorded == [("test-model", 900, 120, 800)]
+    assert recorded == [("test-model", 900, 120, 800, 0)]
     (event,) = events
     assert event.kind == "llm_call"
     assert event.payload == {"x": 1}
@@ -640,3 +645,35 @@ async def test_non_retryable_error_while_opening_the_stream_propagates_traced() 
         await _call(caller)
     assert len(client.messages.calls) == 1
     assert [event.kind for event in events] == ["llm_error"]
+
+
+async def test_cache_writes_reach_the_recorder_and_the_trace() -> None:
+    """The count that made every cost figure a floor (2026-08-13).
+
+    Cache writes bill at 1.25x input and were captured nowhere — not in the recorder, not in
+    the trace — so a run's reported spend looked complete while omitting a whole rate class.
+    All four counts are asserted together because the defect was believing one contained
+    another: they are disjoint, and the prompt total is input + read + write."""
+    usage = _Usage(
+        input_tokens=100,
+        output_tokens=20,
+        cache_read_input_tokens=700,
+        cache_creation_input_tokens=400,
+    )
+    events: list[TraceEvent] = []
+    recorded: list[tuple[str, int, int, int, int]] = []
+    client = _StubClient([_Message(content=[_tool_block()], usage=usage)])
+    _SLEEPS.clear()
+    caller = ForcedToolCaller(
+        "test-model", client=client, sleep=_no_sleep,
+        usage_recorder=lambda m, i, o, c, w: recorded.append((m, i, o, c, w)),
+        trace_recorder=events.append,
+    )
+
+    await _call(caller)
+
+    assert recorded == [("test-model", 100, 20, 700, 400)]
+    (event,) = events
+    assert event.cache_write_tokens == 400
+    assert event.cache_read_tokens == 700
+    assert event.input_tokens == 100  # the UNCACHED remainder, not the prompt total

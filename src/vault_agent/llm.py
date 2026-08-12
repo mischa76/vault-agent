@@ -31,12 +31,20 @@ _BASE_DELAY_SECONDS = 2.0
 _MAX_RETRY_DELAY_SECONDS = 60.0
 
 # Token/cost capture (WP13 §3): a callback fired once per completed API response with
-# ``(model, input_tokens, output_tokens, cache_read_tokens)`` from ``response.usage``.
-# Purely observational — in-memory, no behaviour change when unset. The agents construct
-# their own callers, so a *module-level* default lets a harness (eval.run) capture usage
-# across every agent without threading a recorder through each constructor; per-instance
-# injection (the ``usage_recorder`` ctor arg) is for tests.
-UsageRecorder = Callable[[str, int, int, int], None]
+# ``(model, input_tokens, output_tokens, cache_read_tokens, cache_write_tokens)`` from
+# ``response.usage``. Purely observational — in-memory, no behaviour change when unset. The
+# agents construct their own callers, so a *module-level* default lets a harness (eval.run)
+# capture usage across every agent without threading a recorder through each constructor;
+# per-instance injection (the ``usage_recorder`` ctor arg) is for tests.
+#
+# All FOUR token fields are separate quantities, not subsets of one another — this is the
+# distinction that made every cost figure this project printed a floor (2026-08-13):
+#   input_tokens             the UNCACHED prompt remainder, billed at full input price
+#   cache_read_input_tokens  served from cache, ~0.1x
+#   cache_creation_input_tokens  WRITTEN to cache, 1.25x (5m TTL) — captured nowhere until now
+#   output_tokens            generated, at the output price
+# Prompt total is input + cache_read + cache_creation; none of them contains another.
+UsageRecorder = Callable[[str, int, int, int, int], None]
 
 _default_usage_recorder: UsageRecorder | None = None
 
@@ -77,6 +85,7 @@ class TraceEvent:
     input_tokens: int = 0
     output_tokens: int = 0
     cache_read_tokens: int = 0
+    cache_write_tokens: int = 0
     error: str | None = None
     # WP16 backstop events: which repair fired, and on what.
     backstop_id: str = ""
@@ -326,6 +335,7 @@ class ForcedToolCaller:
                 input_tokens=int(getattr(usage, "input_tokens", 0) or 0),
                 output_tokens=int(getattr(usage, "output_tokens", 0) or 0),
                 cache_read_tokens=int(getattr(usage, "cache_read_input_tokens", 0) or 0),
+                cache_write_tokens=int(getattr(usage, "cache_creation_input_tokens", 0) or 0),
             )
 
             # A truncated response means an incomplete (or absent) tool payload; falling
@@ -420,6 +430,7 @@ class ForcedToolCaller:
                 int(getattr(usage, "input_tokens", 0) or 0),
                 int(getattr(usage, "output_tokens", 0) or 0),
                 int(getattr(usage, "cache_read_input_tokens", 0) or 0),
+                int(getattr(usage, "cache_creation_input_tokens", 0) or 0),
             )
         except Exception:  # noqa: BLE001 - observational channel, never fatal (as emit_trace)
             # The response is already generated and BILLED at this point; letting a broken

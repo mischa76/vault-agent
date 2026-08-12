@@ -110,20 +110,43 @@ class UsageTotals:
         self.input_tokens = 0
         self.output_tokens = 0
         self.cache_read_tokens = 0
+        self.cache_write_tokens = 0
         self.by_model: dict[str, dict[str, int]] = {}
 
-    def record(self, model: str, input_tokens: int, output_tokens: int, cache_read: int) -> None:
+    def record(
+        self,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+        cache_read: int,
+        cache_write: int = 0,
+    ) -> None:
+        """Accumulate one response's usage. All four token counts are DISJOINT.
+
+        ``cache_write`` defaults to 0 so a recorder wired before 2026-08-13 — or any test
+        stub calling with four arguments — keeps working; the default is a compatibility
+        shim, not a licence to omit it. Cache writes bill at 1.25x input, so a run that
+        does not record them reports a cost floor while looking like a total."""
         self.calls += 1
         self.input_tokens += input_tokens
         self.output_tokens += output_tokens
         self.cache_read_tokens += cache_read
+        self.cache_write_tokens += cache_write
         per = self.by_model.setdefault(
-            model, {"calls": 0, "input_tokens": 0, "output_tokens": 0, "cache_read_tokens": 0}
+            model,
+            {
+                "calls": 0,
+                "input_tokens": 0,
+                "output_tokens": 0,
+                "cache_read_tokens": 0,
+                "cache_write_tokens": 0,
+            },
         )
         per["calls"] += 1
         per["input_tokens"] += input_tokens
         per["output_tokens"] += output_tokens
         per["cache_read_tokens"] += cache_read
+        per["cache_write_tokens"] += cache_write
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -131,6 +154,10 @@ class UsageTotals:
             "input_tokens": self.input_tokens,
             "output_tokens": self.output_tokens,
             "cache_read_tokens": self.cache_read_tokens,
+            # WP34 (2026-08-13): additive. Results written before this key exists simply lack
+            # it — read with .get(..., 0) and treat a missing value as "not measured", never
+            # as zero writes, or an archived run silently looks cheaper than a current one.
+            "cache_write_tokens": self.cache_write_tokens,
             "by_model": self.by_model,
         }
 
