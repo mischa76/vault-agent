@@ -125,9 +125,9 @@ def test_a_composite_foreign_key_is_skipped_with_a_reason_and_never_guessed() ->
 
     assert not proposals.proposals
     assert len(skipped) == 1
-    asset, reason = skipped[0]
-    assert asset == "Customer.PersonID,StoreID"
-    assert "composite" in reason
+    assert skipped[0].asset == "Customer.PersonID,StoreID"
+    assert skipped[0].reason == "composite_key"
+    assert "composite" in skipped[0].message
 
 
 def test_a_foreign_key_pointing_at_no_existing_hub_is_skipped() -> None:
@@ -136,7 +136,8 @@ def test_a_foreign_key_pointing_at_no_existing_hub_is_skipped() -> None:
     )
 
     assert not proposals.proposals
-    assert "no existing hub is keyed on" in skipped[0][1]
+    assert skipped[0].reason == "no_hub_for_key"
+    assert "no existing hub is keyed on" in skipped[0].message
 
 
 def test_an_ambiguous_target_is_skipped_rather_than_picked() -> None:
@@ -162,8 +163,9 @@ def test_an_ambiguous_target_is_skipped_rather_than_picked() -> None:
     proposals, skipped = propose_links(vault, [ambiguous])
 
     assert not proposals.proposals
-    assert "does not single one out" in skipped[0][1]
-    assert "hub_party, hub_person" in skipped[0][1]
+    assert skipped[0].reason == "ambiguous_hub"
+    assert "does not single one out" in skipped[0].message
+    assert "hub_party, hub_person" in skipped[0].message
 
 
 def test_the_referenced_table_breaks_a_tie_when_it_can() -> None:

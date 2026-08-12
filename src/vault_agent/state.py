@@ -393,6 +393,30 @@ class EntityResolution(BaseModel):
 # illustrative tier (`key_name_only`) is deliberately not implemented.
 LinkProposalCategory = Literal["declared_fk_same_name", "declared_fk_renamed"]
 
+# Why the proposer declined to answer for a declared foreign key. A CODE, not the sentence:
+# the 2026-08-12 run left 10 of 11 viable cross-schema foreign keys unaccounted for, and the
+# only record of each decision was a human-readable flag message — which nothing may branch
+# on and no analysis could count. Each member is one branch of `link_proposal._target_hub`
+# or of the composite-key condition above it.
+LinkSkipReason = Literal[
+    "composite_key",  # several columns; which pairs with which hub key is a modelling call
+    "no_hub_for_key",  # no existing hub is keyed on the referenced column
+    "ambiguous_hub",  # several hubs share that key and the referenced table breaks no tie
+]
+
+
+class LinkSkip(BaseModel):
+    """One declared foreign key the proposer left alone, and why — typed, then phrased.
+
+    A skip is honest output, not a defect (WP34 §3.2). It is recorded so the *distribution* of
+    skips is countable: "the mechanism is shy" and "the vault is keyed differently than the
+    source references it" are different diagnoses that produce identical link counts, and
+    telling them apart is what this exists for."""
+
+    asset: str  # "Table.column" — the same handle the flag carries
+    reason: LinkSkipReason
+    message: str  # human-readable; presentation only, never parsed
+
 
 class LinkProposal(BaseModel):
     """One link the source's own catalogue says exists (WP34 §3.2).
@@ -421,9 +445,14 @@ class LinkProposal(BaseModel):
 
 
 class LinkProposals(BaseModel):
-    """The proposer's full answer for one run; empty on greenfield and ungrounded runs."""
+    """The proposer's full answer for one run; empty on greenfield and ungrounded runs.
+
+    ``skipped`` is part of the answer, not exhaust: a foreign key the pass declined is a
+    relationship the model will not carry, and a run that proposes nothing looks identical to
+    a run that was never given foreign keys unless the declines are on the record."""
 
     proposals: list[LinkProposal] = Field(default_factory=list)
+    skipped: list[LinkSkip] = Field(default_factory=list)
 
     def ratified(self) -> list[LinkProposal]:
         """Only these may become links — the WP29 rule applied to relationships.

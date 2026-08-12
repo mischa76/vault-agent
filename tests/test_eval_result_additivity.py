@@ -81,7 +81,7 @@ def test_the_satellite_and_link_entries_keep_their_established_keys() -> None:
 def test_run_metrics_never_loses_a_key() -> None:
     """The additive contract, stated as an equality so a rename fails here and not six weeks
     later when an archived run is re-read."""
-    assert METRICS_KEYS <= set(_metrics())
+    assert set(_metrics()) >= METRICS_KEYS
 
 
 def test_the_established_keys_keep_their_established_types() -> None:

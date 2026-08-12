@@ -65,6 +65,7 @@ from vault_agent.existing_model import DV_MODEL_FILENAME, load_existing_model
 from vault_agent.graph import build_graph
 from vault_agent.llm import TraceEvent
 from vault_agent.profiling import load_profiling
+from vault_agent.rules.dv2_rules import canonical_hub_key_column
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import DVModel, VaultAgentState
 from vault_agent.trace import JsonlTraceWriter
@@ -197,6 +198,19 @@ def model_shape(model: DVModel) -> dict[str, Any]:
 
     return {
         "hubs": sorted(h.name for h in model.hubs),
+        # WP34 (2026-08-12): BESIDE the hub list, never inside it — `hub_origin` and
+        # `zero_satellite_hubs` index `hubs` as strings, and the archived runs cannot be
+        # re-emitted in a richer form (pinned by tests/test_eval_result_additivity.py).
+        #
+        # The canonical key column is what the link proposer matches a foreign key against, so
+        # without it "no existing hub is keyed on ProductID" is unfalsifiable from the result:
+        # the 2026-08-12 run left 10 of 11 viable cross-schema foreign keys unexplained and
+        # the leading hypothesis — hubs keyed off the referenced column — could not be checked
+        # against anything on disk. Through the helper, because re-deriving it is the defect
+        # class that once staged a hash from the wrong relation.
+        "hub_keys": {h.name: canonical_hub_key_column(h) for h in sorted(
+            model.hubs, key=lambda h: h.name
+        )},
         "links": sorted(
             (_link(lk) for lk in model.links),
             key=lambda entry: str(entry["name"]),
@@ -236,6 +250,31 @@ def run_metrics(
         # WP30.1: the counts above say how big the answer is; this says what it is.
         "model": model_shape(state.dv_model),
         "flags": len(state.flags),
+        # WP34 (2026-08-12): the breakdown, under a NEW key because `flags` is an integer in
+        # every archived file and an int cannot be compared against a dict. Keyed by
+        # `FlagKind`, which is what consumers branch on; the message text is never counted.
+        "flag_kinds": dict(sorted(Counter(f.kind for f in state.flags).items())),
+        # WP34 (2026-08-12): the link proposer's own bookkeeping. The 2026-08-12 run built 2
+        # cross-domain links where 16 declared foreign keys crossed a schema and 11 had their
+        # target hub already in the vault — and nothing in the result said whether the other
+        # nine were never proposed, proposed and declined, or proposed and deduplicated. These
+        # three counters separate exactly those cases; `{}` on greenfield runs, where the
+        # proposer does not run at all.
+        "link_proposals": {
+            "by_category": dict(
+                sorted(Counter(p.category for p in state.link_proposals.proposals).items())
+            ),
+            "by_status": dict(
+                sorted(
+                    Counter(
+                        p.ratification_status for p in state.link_proposals.proposals
+                    ).items()
+                )
+            ),
+            "skipped": dict(
+                sorted(Counter(s.reason for s in state.link_proposals.skipped).items())
+            ),
+        },
         # WP34: which validator codes fired, not merely whether the gate passed. §6's fourth
         # clause is "zero wrong joins", and E_LINK_KEY_NOT_IN_SOURCE is the gate that answers
         # it — a pass/fail boolean cannot distinguish "no link aliased anything" from "every

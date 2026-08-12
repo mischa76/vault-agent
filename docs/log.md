@@ -3779,3 +3779,58 @@ record the proposer's proposals and skips by category, and hub key columns in `m
 Additive, keyless, guard first — the same shape `wp34_check` itself was built in. Then one run
 answers the open question instead of a third one measuring the same silence. The §6 numbers
 stay as written; a criterion adjusted after seeing the result judges nothing.
+
+## [2026-08-12] The telemetry the last run needed, added before the next one is paid for
+
+859 green (+9), ruff and mypy clean. Keyless throughout; **nothing new measured** — this is
+instrument work, and its whole purpose is that the *next* paid run can answer what the
+2026-08-12 run could not.
+
+**The guard went first and was verified to bite** (`tests/test_eval_result_additivity.py`,
+committed separately as `dad7078`). `eval/results/` is gitignored, so no fixture can hold a
+real result and the guard had to be the key set itself. It pins two things: `model_shape["hubs"]`
+stays a list of plain STRINGS — `hub_origin` and `zero_satellite_hubs` index it directly and
+the archived runs cannot be re-emitted in a richer form — and `run_metrics` only ever grows.
+Turning `hubs` into `[{"name": ...}]`, the exact shape this work was tempted to reach for,
+fails it. That is why hub key columns went BESIDE the list, in a new `hub_keys` map, rather
+than into it.
+
+**Three additions, each answering a question the last run left open:**
+
+- **`model["hub_keys"]`** — each hub's canonical key column, through
+  `canonical_hub_key_column` rather than re-derived. Without it the standing hypothesis for
+  the missing links (hubs keyed off the column the source references — `hub_product` on a
+  product number rather than `ProductID`) is unfalsifiable from anything on disk.
+- **`link_proposals`** — `by_category`, `by_status`, `skipped`. These separate *never
+  proposed* from *proposed and declined* from *proposed and deduplicated*, which the last run
+  could not: a run reporting few links with an empty `by_status` means something entirely
+  different from one reporting `{"overridden": 9}`.
+- **`flag_kinds`** — the breakdown, keyed by `FlagKind`. Under a NEW key, deliberately:
+  `flags` is an integer in every archived file, and an int cannot be compared against a dict.
+
+**A typed skip reason, because the old one was a sentence.** The proposer's declines existed
+only inside human-readable flag messages, so no analysis could count them without matching on
+text — the thing the invariants forbid outright. `LinkSkipReason` now carries
+`composite_key` / `no_hub_for_key` / `ambiguous_hub`, `LinkSkip` pairs the code with the
+phrasing, and `LinkProposals.skipped` keeps them as part of the proposer's answer rather than
+as exhaust. The two decline codes are deliberately distinct: `no_hub_for_key` says the vault
+is keyed differently from how the source references it, `ambiguous_hub` says it is keyed the
+same way twice, and counting them together hides which one a landscape actually suffers from.
+Three existing tests moved from asserting the message to asserting the code, which is the
+change working as intended.
+
+**A correction while writing the tests.** `hub_keys` was first asserted as `BusinessEntityID`;
+`canonical_hub_key_column` returns it NORMALISED, so the value on disk is `BUSINESSENTITYID`.
+The helper is right — normalised is what the proposer matches against, and recording the
+source's casing would have made the file prettier and the comparison wrong in the one
+direction that matters. Also: `dad7078` went in with a Yoda condition ruff rejects; it was
+caught and fixed here, in the commit after the one that introduced it.
+
+**`eval/wp34_check.py` was NOT touched.** It reads `model["hubs"]` and the clauses stand
+exactly as pre-registered. Extending a criterion after seeing the result it judged is the
+failure this project has already recorded once, and reporting new telemetry through it would
+be the first step of doing so again.
+
+**Still open, unchanged:** WP34 §6 is not met, and why 10 of 11 viable cross-schema foreign
+keys never landed remains a hypothesis. The next `adventureworks_incremental` run answers it —
+at the same ~$9, but now with the evidence recorded rather than discarded with the tempdir.

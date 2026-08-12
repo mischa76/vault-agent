@@ -38,6 +38,8 @@ from vault_agent.state import (
     LinkHubRef,
     LinkProposal,
     LinkProposals,
+    LinkSkip,
+    LinkSkipReason,
     SourceTable,
     VaultAgentState,
 )
@@ -45,13 +47,20 @@ from vault_agent.state import (
 logger = logging.getLogger(__name__)
 
 
-def _target_hub(existing: DVModel, fk: ForeignKeyRef) -> tuple[Hub | None, str]:
-    """The existing hub an FK points at, or ``(None, reason)`` — never a guess.
+def _target_hub(
+    existing: DVModel, fk: ForeignKeyRef
+) -> tuple[Hub | None, LinkSkipReason | None, str]:
+    """The existing hub an FK points at, or ``(None, reason_code, message)`` — never a guess.
 
     Matched on the hub's CANONICAL key column, through the helper: that column is what the
     join is actually made of, so anything else can be right about the concept and wrong about
     the data. Where several hubs share the key, the referenced TABLE breaks the tie; where it
     cannot, this returns nothing rather than picking one.
+
+    The CODE is returned beside the sentence because the two declines are different findings:
+    ``no_hub_for_key`` says the vault is keyed differently from how the source references it,
+    ``ambiguous_hub`` says the vault is keyed the same way twice. Counting them together
+    hides which one a landscape actually suffers from.
     """
     referenced = normalize_identifier(fk.references_columns[0])
     matches = [
@@ -60,17 +69,19 @@ def _target_hub(existing: DVModel, fk: ForeignKeyRef) -> tuple[Hub | None, str]:
         if normalize_identifier(canonical_hub_key_column(hub)) == referenced
     ]
     if not matches:
-        return None, f"no existing hub is keyed on {fk.references_columns[0]!r}"
+        return None, "no_hub_for_key", (
+            f"no existing hub is keyed on {fk.references_columns[0]!r}"
+        )
     if len(matches) == 1:
-        return matches[0], ""
+        return matches[0], None, ""
 
     by_table = [
         hub for hub in matches if construct_binds_to_source_table(hub.name, fk.references_table)
     ]
     if len(by_table) == 1:
-        return by_table[0], ""
+        return by_table[0], None, ""
     names = ", ".join(sorted(hub.name for hub in matches))
-    return None, (
+    return None, "ambiguous_hub", (
         f"{len(matches)} hubs are keyed on {fk.references_columns[0]!r} ({names}) and the "
         f"referenced table {fk.references_table!r} does not single one out"
     )
@@ -78,15 +89,16 @@ def _target_hub(existing: DVModel, fk: ForeignKeyRef) -> tuple[Hub | None, str]:
 
 def propose_links(
     existing: DVModel, source_schemas: list[SourceTable]
-) -> tuple[LinkProposals, list[tuple[str, str]]]:
+) -> tuple[LinkProposals, list[LinkSkip]]:
     """Propose one link per declared foreign key that points at an existing hub.
 
-    Returns the proposals and a list of ``(asset, reason)`` skips the caller flags. A skip is
-    honest output, not a defect: a composite key or an ambiguous target is a question this
-    pass is not entitled to answer.
+    Returns the proposals and the typed skips the caller flags. A skip is honest output, not a
+    defect: a composite key or an ambiguous target is a question this pass is not entitled to
+    answer. The skips come back in the ``LinkProposals`` too — this second return value stays
+    because the caller raises one flag per skip and would otherwise re-walk the list.
     """
     proposals: list[LinkProposal] = []
-    skipped: list[tuple[str, str]] = []
+    skipped: list[LinkSkip] = []
 
     for table in source_schemas:
         for fk in table.foreign_keys:
@@ -95,13 +107,20 @@ def propose_links(
                 # §3.2 condition 2. Which column pairs with which hub key is a modelling
                 # decision, and a composite link built from the wrong pairing is wrong data.
                 skipped.append(
-                    (asset, f"composite foreign key ({len(fk.columns)} columns) — not guessed at")
+                    LinkSkip(
+                        asset=asset,
+                        reason="composite_key",
+                        message=(
+                            f"composite foreign key ({len(fk.columns)} columns) — not guessed at"
+                        ),
+                    )
                 )
                 continue
 
-            hub, reason = _target_hub(existing, fk)
+            hub, reason_code, reason = _target_hub(existing, fk)
             if hub is None:
-                skipped.append((asset, reason))
+                assert reason_code is not None  # a decline always carries its code
+                skipped.append(LinkSkip(asset=asset, reason=reason_code, message=reason))
                 continue
 
             canonical = canonical_hub_key_column(hub)
@@ -132,7 +151,7 @@ def propose_links(
                 )
             )
 
-    return LinkProposals(proposals=proposals), skipped
+    return LinkProposals(proposals=proposals, skipped=skipped), skipped
 
 
 def proposal_key(proposal: LinkProposal) -> str:
@@ -294,12 +313,12 @@ def collect_link_proposals(state: VaultAgentState) -> VaultAgentState:
 
     proposals, skipped = propose_links(state.existing_model, state.source_schemas)
     state.link_proposals = proposals
-    for asset, reason in skipped:
+    for skip in skipped:
         state.flag(
             "link_proposer",
-            f"no link proposed for {asset}: {reason}",
+            f"no link proposed for {skip.asset}: {skip.message}",
             kind=FlagKind.LINK_PROPOSAL_SKIPPED,
-            asset=asset,
+            asset=skip.asset,
         )
     logger.info(
         "link proposer: %d proposal(s) from declared foreign keys, %d skipped",
