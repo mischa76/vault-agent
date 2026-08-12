@@ -3723,3 +3723,59 @@ uv run python -m eval.wp34_check eval/results/adventureworks_incremental/<newest
 
 at roughly **$9**, against ~$46 already spent on the prompt route. It needs `ANTHROPIC_API_KEY`
 and it is Mischa's to start.
+
+## [2026-08-12] WP34 measured — §6 NOT MET, and the mechanism works anyway
+
+The run was made: `20260812T114716146058Z-run1.json` at `git_sha 74d676d`, 44 minutes
+(2657.7s), 105 calls (97 Sonnet-4.6, 8 Opus-4.8), 392,318 in / 269,756 out, 39% cache-read.
+All five steps validated — `validation_gate` 1.000, no errors, warnings only. `wp34_check`
+ran **unmodified**, exit 1.
+
+```
+[FAILED] links:      2 cross-domain (need >= 8; baseline 2, arm A 16)
+[FAILED] invention:  4 zero-satellite hub(s) (must not exceed 2)
+[HELD]   review:     546 items (must FALL below 619)
+[HELD]   joins:      0 unsound alias(es), 0 E_LINK_KEY_NOT_IN_SOURCE fire(s)
+```
+
+**WP34 §6 is not met.** Two of four clauses fell, and the bar is a conjunction, so the work
+package does not close on this run. Writing that down before anything that softens it.
+
+**The mechanism is nonetheless live-verified for the first time.** `link_customer_person` was
+built in the sales step carrying `aliases: {hub_person: PersonID}` — the §3.4 alias mechanism
+doing exactly what the keyless verification predicted, in a real chain, and the joins clause
+confirms deterministically that every applied link projects a column its bound relation
+declares. `hub_sales_representative` did not return. Review load **fell for the first time in
+five runs**, 619 → 546, which is the axis the charter claim lives on.
+
+**The four zero-satellite hubs** are `hub_business_entity`, `hub_purchase_order_employee`,
+`hub_shopping_cart`, `hub_vendor_business_entity`. Only the third was in the WP30.2 baseline.
+Backstops fired `attributes_without_cdk` twice and `fk_demotion` once.
+
+**Why only 2 cross-domain links — audited at zero cost, from the checked-in assets and the
+stored result, before proposing any further spend.** Of the 46 declared foreign keys, **16 are
+schema-crossing**; the ≥8 bar was not overreach, the supply was there. At proposal time the
+target hub already existed for **11** of those 16. Exactly **one** became an applied
+cross-domain link.
+
+**Where the other ten went is not answerable from this run**, and that is the finding with
+consequences. The proposer's proposals and skips are nowhere machine-readable in the result
+file — `metrics.flags` is a bare count (142) — and `model_shape` records hub names without
+their key columns. What the audit *can* rule out: grain-deduplication is not the main
+explanation, because a modeler-built link of the same grain would still be counted as
+cross-domain by `hub_origin`, and those links are absent from the final model entirely. The
+standing hypothesis is `_target_hub` declining because the existing hub is not keyed on the
+referenced column — `hub_product` on a product number rather than `ProductID`. **Hypothesis,
+not measurement.** The eval artefacts live in a tempdir and are gone; the review queue that
+held the skip reasons went with them.
+
+**§6's named falsification did not occur.** The spec called out one specific shape — "links
+appear and review load rises", the WP30.3 failure repeating — as the case where the charter's
+review-load claim must be recorded as false. Review load fell 12%. That clause is not
+triggered, and the charter claim survives this run.
+
+**Next, and deliberately not another run.** Make the answer recoverable before paying again:
+record the proposer's proposals and skips by category, and hub key columns in `model_shape`.
+Additive, keyless, guard first — the same shape `wp34_check` itself was built in. Then one run
+answers the open question instead of a third one measuring the same silence. The §6 numbers
+stay as written; a criterion adjusted after seeing the result judges nothing.

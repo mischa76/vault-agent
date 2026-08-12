@@ -140,7 +140,11 @@ several times, most recently for brownfield additivity. Details and dates: `docs
   charter.** Arm B totals 3x arm A's review items and builds 73% of its links, at 12% lower cost.
   At n=1 that is a direction, not a verdict. The link deficit is the open question, and the
   PROMPT route to it is measured out — three interventions, none moved it (WP30.1-30.3, the last
-  reverted). Next candidate is WP34, deterministic and unbuilt. Spec §7.3.
+  reverted). Spec §7.3.
+- **WP34 is built and measured (2026-08-12), and §6 is NOT met.** 2 of a possible 16 cross-domain
+  links; review load fell for the first time in five runs (619 → 546). Why 10 of 11 viable
+  proposals never landed is not reconstructible from the result — the proposer's skips and the
+  hubs' key columns are not recorded. Add that telemetry before paying for another run.
 - **WP29's mechanism is live-verified; its correctness is not, and §4 cannot run yet.** The
   checkpoint steers the modeler in a real chain (2026-08-01). But `brownfield_resolution` has no
   `dataset.yml`, no requirements, no scorer dispatch — and `false_merge_rate` matches the golden
