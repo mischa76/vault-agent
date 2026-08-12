@@ -511,11 +511,17 @@ def render_metrics(case_name: str, metrics: list[dict[str, Any]]) -> str:
     calls = sum(m["usage"]["calls"] for m in metrics) / n
     review = sum(m["review_items_total"] for m in metrics) / n
     lines = sum(m["review_queue_lines"] for m in metrics) / n
-    cache_share = cache / tin if tin else 0.0
+    # The HIT RATE, over the prompt tokens actually sent. `input_tokens` from the Anthropic
+    # SDK is the UNCACHED remainder — cached tokens are reported separately in
+    # `cache_read_input_tokens` and are NOT part of it. Dividing cache reads by input alone
+    # therefore compares two disjoint quantities and reads high: the 2026-08-12 runs printed
+    # 39% and 47% where the hit rates were 28% and 32%. Prompt total is the sum.
+    prompt_tokens = tin + cache
+    cache_share = cache / prompt_tokens if prompt_tokens else 0.0
     return (
-        f"  usage (mean/run): {calls:.0f} calls, in={tin:,.0f} tok "
-        f"(cache-read {cache_share:.0%}), out={tout:,.0f} tok · wall={wall:.1f}s · "
-        f"review items={review:.0f} ({lines:.0f} rendered lines)"
+        f"  usage (mean/run): {calls:.0f} calls, prompt={prompt_tokens:,.0f} tok "
+        f"({cache_share:.0%} cache hit, {tin:,.0f} uncached), out={tout:,.0f} tok · "
+        f"wall={wall:.1f}s · review items={review:.0f} ({lines:.0f} rendered lines)"
     )
 
 

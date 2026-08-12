@@ -4062,3 +4062,39 @@ checkpoint starts, and it is the third free finding of the day.
 The full review, including the two changes I propose to the charter's Part A and the criterion I
 think it is missing, is `docs/architecture/checkpoint-2026-08-review.md`. The charter itself
 remains **proposed**; ratification is Mischa's.
+
+## [2026-08-13] What the two runs actually cost, and a cache figure that read high
+
+Asked what to top the credit up by, and the answer was not the one on record. 878 green, ruff
+and mypy clean, nothing measured — this is arithmetic over runs already paid for.
+
+**A full `adventureworks_incremental` run costs ~$6, not the ~$9 the 2026-08-11 entry
+estimated.** Computed per model from the stored `usage`, at the rates in the installed
+`claude-api` reference (Opus 4.8 $5/$25 per MTok, Sonnet 4.6 $3/$15, cache read 0.1x):
+
+```
+74d676d   opus $1.84 + sonnet $4.16 = $6.01
+c238abc   opus $2.30 + sonnet $3.49 = $5.79
+```
+
+**It is a floor, and the missing piece is structural.** `UsageTotals.record()` takes
+`input_tokens`, `output_tokens` and `cache_read` — `cache_creation_input_tokens` is captured
+nowhere, and cache WRITES bill at 1.25x input. Every cost figure this project can produce is
+therefore short by an unmeasured amount. Output dominates at 76% of spend, so the gap is small,
+but "small" is an argument, not a measurement.
+
+**And the cache figure in the runner's summary was wrong in the direction that flatters it.**
+`render_metrics` computed the share as `cache_read / input_tokens`. In the Anthropic SDK
+`input_tokens` is the UNCACHED remainder — cached tokens are reported separately and are not
+part of it — so the denominator excluded the very tokens being counted. Printed 39% and 47%;
+the actual hit rates are **28%** and **32%**. Now rendered as
+`prompt=544,688 tok (28% cache hit, 392,318 uncached)`, which names what the denominator is
+instead of leaving it to be inferred.
+
+The pinning test asserted the wrong number (`50%` where the corrected formula gives 33%) and was
+updated in the same commit with the reason in place — the deliberate-fixture-update path, not a
+silent one.
+
+**No cost error**, since nothing was priced off that percentage. But it is the same defect class
+as the day's others: a figure that looks complete, is read as authoritative, and quietly answers
+a different question than the one asked.

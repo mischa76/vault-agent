@@ -288,7 +288,12 @@ def test_render_metrics_is_pure_and_reports_cache_share() -> None:
         }
     ]
     out = render_metrics("scale_30", metrics)
-    assert "50%" in out  # cache-read share
+    # 500 cached of 1500 prompt tokens = 33%. This asserted 50% until 2026-08-12 — the share
+    # was computed against `input_tokens` alone, which is the UNCACHED remainder and excludes
+    # the cached tokens, so the denominator was missing the very tokens being counted.
+    assert "33% cache hit" in out
+    assert "prompt=1,500 tok" in out
+    assert "1,000 uncached" in out
     assert "review items=7" in out
 
 
