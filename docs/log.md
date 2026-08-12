@@ -3834,3 +3834,78 @@ be the first step of doing so again.
 **Still open, unchanged:** WP34 §6 is not met, and why 10 of 11 viable cross-schema foreign
 keys never landed remains a hypothesis. The next `adventureworks_incremental` run answers it —
 at the same ~$9, but now with the evidence recorded rather than discarded with the tempdir.
+
+## [2026-08-12] The second run: the question answered, the gap moved, and n=1 shown to be n=1
+
+`20260812T130841770648Z-run1.json` at `git_sha c238abc`, 42 minutes, 100 calls, ~$9. §6 is
+**still not met, and by more than before**: three clauses failed rather than two.
+
+```
+[FAILED] links      2 cross-domain (need >= 8)
+[FAILED] invention  3 zero-satellite hubs (max 2)
+[FAILED] review     833 items (must fall below 619)
+[HELD]   joins      0 unsound aliases, 0 E_LINK_KEY_NOT_IN_SOURCE fires
+```
+
+**The telemetry paid for itself: the proposer's ledger now closes exactly.**
+
+```
+step                proposals  accepted  skipped
+person                      0         0  (greenfield — the proposer does not run)
+humanresources              1         1  ambiguous_hub 2, no_hub_for_key 1
+production                  0         0  ambiguous_hub 1, no_hub_for_key 14
+purchasing                  0         0  ambiguous_hub 2, no_hub_for_key 2
+sales                       6         6  ambiguous_hub 4, no_hub_for_key 5
+
+TOTAL   7 proposals, all accepted · 31 skips (22 no_hub_for_key, 9 ambiguous_hub)
+        7 + 31 + 8 unseen in the greenfield first step = 46 declared foreign keys
+```
+
+Every one of the 46 is now accounted for, which is precisely what the 2026-08-12 morning run
+could not do.
+
+**My standing hypothesis was right about the proposer and wrong about where the loss is.**
+`no_hub_for_key` does dominate — 22 of 31 — so the vault *is* keyed differently from how the
+sources reference it. But that is not what costs the cross-domain links: **7 proposals were
+ratified and only 2 cross-domain links exist in the final model.** The loss is downstream of
+ratification, in `apply_ratified_link_proposals`, which drops a proposal when no hub was
+modelled for the referencing table, when the target hub is absent from the model, or when the
+modeler already built the grain. Step 5 carries 24 `link_proposal_skipped` flags against 9
+proposer skips; the surplus is the applier, re-flagging across the re-model loop's attempts.
+
+**And its three branches cannot be told apart, because two of them share one `FlagKind` and
+the third only logs.** That is the same defect this instrument work was meant to remove, one
+stage further down the pipeline, and it is the cheap next fix: the applier needs its own typed
+outcome per ratified proposal — applied / no near hub / no target hub / grain already built.
+Diagnosing "the modeler never modelled the referencing table" and "the modeler built the link
+itself" as the same event is the difference between a proposer that is redundant and one that
+is being discarded.
+
+**A correction to the previous entry.** It reports "11 of those 16 had their target hub
+present at proposal time". That 11 is an artefact of my own name matching — I compared hub
+names to referenced TABLE names, and `hub_business_entity` failed against `BusinessEntity` on
+an underscore. The proposer never matched that way; it matches on the key COLUMN, which is
+what `hub_keys` now records. The 16 cross-schema foreign keys stand (they come from schema
+membership, not hub names); the 11 does not, and the honest number is the one measured above:
+7 proposed, 31 skipped.
+
+**Two runs, one day, and they disagree loudly.** Same pipeline inputs — the telemetry commit
+touches no prompt, verified: every consumer of `link_proposals` iterates `.proposals` or calls
+`ratified()`, and the modeler's payload dumps only `requirements` and `business_keys`.
+
+```
+              gate   review  flags  zero-sat  cross-domain
+74d676d       1.000     546    142         4             2
+c238abc       0.000     833    324         3             2
+```
+
+The gate FAILED the second time, on `E_HUB_HK_COLLISION` ×3, and `source_binding` flags went
+from a minority of 142 to **242 of 324**. Nothing in the diff explains it; this is run-to-run
+variance, and it is far larger than the effects WP30's arm comparison has been reading off
+single runs. `docs/architecture/`'s WP30 note already says "at n=1 that is a direction, not a
+verdict" — this is the direct evidence for that sentence, and it argues that the review-load
+axis in particular cannot carry a conclusion at one repeat. The one number stable across both
+runs is the one §6 cares most about: **2 cross-domain links, twice.**
+
+**Not done, and not to be papered over:** WP34 remains unmet, `E_HUB_HK_COLLISION` is an error
+this chain has not shown before and is unexplained, and the applier telemetry is unbuilt.
