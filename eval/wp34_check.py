@@ -82,6 +82,25 @@ def zero_satellite_hubs(final: dict[str, Any]) -> list[str]:
     return sorted(hub for hub in final["hubs"] if hub not in parents)
 
 
+# §6's invention clause has TWO halves and only one was implemented. The spec: "Zero-satellite
+# hubs must not rise above the WP30.2 baseline, **and `hub_sales_representative` must not
+# return**. This is the clause WP30.3 failed." The named half was missing from this file
+# entirely, so both 2026-08-12 runs were reported against a clause that was never computed —
+# and the hub was present in both. Added 2026-08-12 as an IMPLEMENTATION of what §6 already
+# required, deliberately not a re-derivation: nothing here is loosened, a clause that was
+# always in the pre-registration simply started being checked.
+NAMED_REGRESSIONS = ("hub_sales_representative",)
+
+
+def named_regressions(final: dict[str, Any]) -> list[str]:
+    """Constructs §6 names individually as symptoms that must not come back.
+
+    A named regression is stricter than the zero-satellite count on purpose: WP30.3 invented
+    this hub out of a prompt's phrasing, and it can return while carrying a satellite — which
+    the count would not notice and a reader of the count would read as absence."""
+    return sorted(hub for hub in NAMED_REGRESSIONS if hub in final["hubs"])
+
+
 def unsound_aliases(steps: list[dict[str, Any]]) -> list[str]:
     """Every alias checked against the columns its referencing table actually declares.
 
@@ -118,6 +137,7 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
 
     cross = cross_domain_links(steps)
     zero_sat = zero_satellite_hubs(final)
+    returned = named_regressions(final)
     review = metrics["review_items_total"]
     aliases = unsound_aliases(steps)
     # The chain's validation_codes come from the FINAL state, whose report covers the whole
@@ -128,9 +148,10 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
     clauses = [
         (len(cross) >= 8, f"links:      {len(cross)} cross-domain (need >= 8; "
                           f"baseline {BASELINE_CROSS_DOMAIN}, arm A {ARM_A_CROSS_DOMAIN})"),
-        (len(zero_sat) <= BASELINE_ZERO_SAT_HUBS,
+        (len(zero_sat) <= BASELINE_ZERO_SAT_HUBS and not returned,
          f"invention:  {len(zero_sat)} zero-satellite hub(s) "
-         f"(must not exceed {BASELINE_ZERO_SAT_HUBS}): {zero_sat}"),
+         f"(must not exceed {BASELINE_ZERO_SAT_HUBS}): {zero_sat}"
+         + (f"; NAMED REGRESSION present: {returned}" if returned else "")),
         (review < BASELINE_REVIEW_ITEMS,
          f"review:     {review} items (must FALL below {BASELINE_REVIEW_ITEMS})"),
         (not aliases and gate_fires == 0,

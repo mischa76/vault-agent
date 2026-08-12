@@ -40,6 +40,8 @@ to **new** documents only; existing records were left untouched.
 | [architecture/reviews/project-review-2026-07-06.md](architecture/reviews/project-review-2026-07-06.md) | Review that produced the P1–P3 hardening batch |
 | [architecture/reviews/project-review-2026-07-28.md](architecture/reviews/project-review-2026-07-28.md) | Review behind WP17–WP21 |
 | [architecture/reviews/project-review-2026-07-29.md](architecture/reviews/project-review-2026-07-29.md) | Review behind WP24–WP27 |
+| [architecture/checkpoint-2026-08-proposal.md](architecture/checkpoint-2026-08-proposal.md) | **Proposed** charter: a named "clean state", and WP34 §6's link bar re-derived from the 2026-08-12 audits |
+| [architecture/checkpoint-2026-08-review.md](architecture/checkpoint-2026-08-review.md) | Review of that charter — ratify with three changes; found §6's invention clause half-implemented |
 | [architecture/scale-test-findings.md](architecture/scale-test-findings.md) | Live scale measurements and breakpoint candidates; the protocol says quote the trace, not a hunch |
 | [architecture/steering-ledger.md](architecture/steering-ledger.md) | Which prompt rules the harness still needs, with the evidence and the release protocol (WP16) |
 | [reality-test.md](reality-test.md) | The pipeline against a deliberately messy multi-source document |

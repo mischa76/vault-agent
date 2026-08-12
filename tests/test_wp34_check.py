@@ -151,3 +151,22 @@ def test_the_gate_firing_fails_the_run_regardless_of_every_other_number() -> Non
 
     assert not held
     assert any("FAILED" in line and "joins:" in line for line in lines)
+
+
+def test_the_named_regression_fails_the_run_even_while_it_carries_a_satellite() -> None:
+    """§6's invention clause has two halves and only the count was implemented, so both
+    2026-08-12 runs were reported against a clause never computed — while the hub was present
+    in both. The named half is stricter than the count on purpose: give the hub a satellite and
+    the zero-satellite count goes quiet, which is exactly how it stayed invisible."""
+    chain = _chain()
+    sales = chain["metrics"]["chain_steps"][-1]
+    sales["model"]["hubs"].append("hub_sales_representative")
+    sales["model"]["satellites"].append(
+        {"name": "sat_sales_representative_details", "parent": "hub_sales_representative"}
+    )
+
+    held, lines = check(chain)
+
+    assert not held
+    assert any("NAMED REGRESSION" in line and "hub_sales_representative" in line
+               for line in lines)

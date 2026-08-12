@@ -4020,3 +4020,45 @@ guarantee. Both numbers are predictions on record before anything is paid for.
 modelling choice, read from one result file. DV2.0 doctrine makes it the likely choice rather
 than a certain one, and a run that keys `hub_product` on `ProductID` would turn all four of
 these into ordinary proposals with no new capability needed at all.
+
+## [2026-08-12] §6's invention clause was half-implemented, and it failed silently twice
+
+Found while reviewing `checkpoint-2026-08-proposal.md`, not by looking for it. 878 green (+1),
+ruff and mypy clean, nothing measured.
+
+§6's second bullet reads: *"Zero-satellite hubs must not rise above the WP30.2 baseline, and
+`hub_sales_representative` must not return. This is the clause WP30.3 failed."* The named half
+**was absent from `eval/wp34_check.py` entirely** — the string appears nowhere in the file. And
+the hub is in the final model of **both** 2026-08-12 runs.
+
+So both runs were reported against a clause that was never computed, and this includes my own
+summary after the first run, which told Mischa the hub had not returned. I read that out of the
+checker's silence. The silence meant nothing.
+
+**This is worse than a missing check, because of what the checker was for.** Its stated value is
+its commit date — "a criterion evaluated by hand after the numbers arrive explains anything"
+(2026-08-11). A pre-registered criterion that was never implemented is weaker than a hand
+evaluation, because it looks like it was checked. The lesson generalises past this file: a
+pre-registration and its implementation are two artefacts, and only one of them runs.
+
+**Implemented now, deliberately as implementation and not re-derivation** — nothing is loosened,
+a clause always in the pre-registration simply started being computed. Validated against the
+four archived 2026-08-09 chains, where it reproduces the record exactly: absent in the WP30.2
+baseline (review 619), present in WP30.3 (review 777), the run the log says failed on it. The
+named check is stricter than the count on purpose — the hub can return *carrying a satellite*,
+where the zero-satellite count goes quiet.
+
+Re-run over both paid runs, the invention clause now reads
+`NAMED REGRESSION present: ['hub_sales_representative']` in each.
+
+**Also from the review, at zero cost: `E_HUB_HK_COLLISION` ×3 is explained.** Three groups of
+hubs share a canonical key column in run `c238abc` — `BUSINESSENTITYID` across five hubs
+(`hub_business_entity`, `hub_person`, `hub_sales_representative`, `hub_store`,
+`hub_vendor_business_entity`), `ACCOUNTNUMBER` across two, `NAME` across eight
+(`hub_department`, `hub_location`, `hub_product_category`, …). No trace reading was needed; the
+`hub_keys` added that morning are sufficient. That closes the proposal's criterion 3 before the
+checkpoint starts, and it is the third free finding of the day.
+
+The full review, including the two changes I propose to the charter's Part A and the criterion I
+think it is missing, is `docs/architecture/checkpoint-2026-08-review.md`. The charter itself
+remains **proposed**; ratification is Mischa's.
