@@ -3909,3 +3909,72 @@ runs is the one §6 cares most about: **2 cross-domain links, twice.**
 
 **Not done, and not to be papered over:** WP34 remains unmet, `E_HUB_HK_COLLISION` is an error
 this chain has not shown before and is unexplained, and the applier telemetry is unbuilt.
+
+## [2026-08-12] The missing links were a separator, and the applier telemetry was never needed
+
+877 green (+18), ruff and mypy clean. **No run was paid for.** The answer the previous entry
+called "the next fix — the applier needs its own typed outcome per ratified proposal" was
+obtained instead by replaying the deterministic path offline against the recorded shapes, which
+is what `hub_keys` was added for one entry earlier. That telemetry is not built and should not
+be: it would have cost ~$9 to report what follows.
+
+**`construct_binds_to_source_table` could not match a multi-word CamelCase table.** Construct
+names are lowercase snake_case by `CONSTRUCT_NAME_PATTERN`; `normalize_identifier` turns runs of
+non-alphanumerics into `_`, so `hub_sales_order_header` reduced to `SALES_ORDER_HEADER` while
+`SalesOrderHeader` reduced to `SALESORDERHEADER`. Underscore against none, and 53 of the 68
+declared tables in the eval corpus are multi-word.
+
+Replaying the proposer against the run's own recorded shapes reproduces its telemetry exactly —
+7 proposals — and then shows where five went:
+
+```
+Employee.BusinessEntityID                -> hub_person           near hub OK   (hub_employee)
+Customer.PersonID                        -> hub_person           near hub OK   (hub_customer)
+CountryRegionCurrency.CountryRegionCode  -> hub_country_region   NONE  dropped
+PersonCreditCard.BusinessEntityID        -> hub_person           NONE  dropped
+SalesOrderHeader.BillToAddressID         -> hub_address          NONE  dropped
+SalesTaxRate.StateProvinceID             -> hub_state_province   NONE  dropped
+SalesTerritory.CountryRegionCode         -> hub_country_region   NONE  dropped
+```
+
+Exactly the two single-word tables survived, and those are exactly the two cross-domain links
+both runs produced. **The ≥8 bar was unreachable by construction**, in both runs and in every
+WP30 arm-B measurement before them. The same helper backs `staging_generator.bind_sources`, so
+34 of the 47 hubs bound to `raw_*` relations that do not exist — the 242 `SOURCE_BINDING` flags.
+
+**The rule is now separator-insensitive**, exact modulo the separator convention rather than
+fuzzy, and it is a widening: nothing that bound before stops binding. Guard committed first
+(`4e8d1d1`), pinning monotonicity, that a construct never binds a table it merely prefixes, and
+the precondition the widening rests on — the declared table names stay distinct once separators
+are ignored (68 tables, 68 distinct forms, checked against the corpus rather than argued).
+
+**Two corrections to what I predicted an hour ago, both against me.**
+
+*The effect is smaller than I said.* I put "2 → 7 cross-domain links" on record. Recomputed
+offline with the fixed rule: **9 proposals** (the widened rule also breaks ties `_target_hub`
+previously called ambiguous — `ambiguous_hub` skips fall 9 → 7), of which **5** find a near hub.
+So the expectation is **2 → about 5**, an upper bound before grain-deduplication, and §6's link
+clause still fails. Predicting 7 and delivering 5 would have read as a shortfall; it is my
+arithmetic that was short.
+
+*The conservation ledger does not catch this defect*, and I built it saying it would.
+`tests/test_link_proposal_conservation.py` asserts every declared foreign key is proposed or
+skipped with a reason and every ratified proposal is applied or flagged — and those held
+**while the bug was live**, because the applier did flag all five losses. The books balanced on
+a reason that read as legitimate: "no hub was modelled for SalesOrderHeader", when a hub had
+been modelled and the binder could not see it. Accounting proves nothing was swallowed; it
+cannot prove the reasons are true. What catches it is a claim about the real corpus —
+`test_every_declared_table_binds_to_its_own_canonical_hub_name`, verified to fail on the old
+rule with 53 entries. The ledger is kept anyway: it guards the class of loss that has no flag
+at all.
+
+**What this says about method, since it is the second finding this week that was free.** Both
+paid runs measured a number the source code already determined. The reusable rule: where two
+stages match the same two things by *different* identity rules — the proposer matches hub↔FK on
+the key COLUMN, the applier matches hub↔table on the NAME — that seam is the defect site, and it
+is checkable without spending anything.
+
+**Unchanged and still open:** §6 is unmet and the fix alone will not meet it; the ceiling is now
+`no_hub_for_key` at 22, the vault being keyed differently from how the sources reference it.
+`E_HUB_HK_COLLISION` remains unexplained. The next run's numbers are predicted above, in
+writing, before it is paid for.

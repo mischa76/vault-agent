@@ -18,6 +18,7 @@ and `Sales_Person` this rule becomes ambiguous and must be reconsidered rather t
 from __future__ import annotations
 
 import glob
+import re
 from collections import defaultdict
 from pathlib import Path
 
@@ -61,6 +62,32 @@ def test_a_pair_that_binds_today_keeps_binding(construct: str, table: str) -> No
 @pytest.mark.parametrize(("construct", "table"), NEVER_BINDS)
 def test_a_construct_never_binds_a_table_it_merely_prefixes(construct: str, table: str) -> None:
     assert not construct_binds_to_source_table(construct, table)
+
+
+def test_every_declared_table_binds_to_its_own_canonical_hub_name() -> None:
+    """The test that would have caught the 2026-08-12 defect before either run was paid for.
+
+    A hub the modeler builds for `SalesOrderHeader` is called `hub_sales_order_header` —
+    `CONSTRUCT_NAME_PATTERN` allows nothing else. So every declared table must bind to that
+    name, and 53 of the 68 in this corpus did not.
+
+    Worth stating why the conservation ledger in test_link_proposal_conservation.py does NOT
+    catch this: the applier flagged all five losses, so the books balanced. They balanced on a
+    reason that read as legitimate — "no hub was modelled for SalesOrderHeader" — when a hub
+    had been modelled and the binder could not see it. Accounting proves nothing was swallowed;
+    only a claim about the real corpus proves the reasons are true."""
+    unbound = []
+    for schema in glob.glob("eval/datasets/*/source_schema.yml"):
+        for table in load_source_schemas(Path(schema)):
+            # The snake_case name CONSTRUCT_NAME_PATTERN forces: SalesOrderHeader is split at
+            # the word boundaries, NOT merely lower-cased — `hub_salesorderheader` would bind
+            # under the old rule too and prove nothing.
+            snake = re.sub(r"(?<!^)(?=[A-Z])", "_", table.table).lower()
+            canonical = "hub_" + normalize_identifier(snake).lower()
+            if not construct_binds_to_source_table(canonical, table.table):
+                unbound.append((canonical, table.table))
+
+    assert not unbound, f"{len(unbound)} declared table(s) unreachable: {unbound[:5]}"
 
 
 def test_the_declared_tables_stay_distinct_when_separators_are_ignored() -> None:

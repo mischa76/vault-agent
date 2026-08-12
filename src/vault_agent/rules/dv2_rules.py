@@ -492,6 +492,16 @@ def construct_base_name(construct_name: str) -> str:
     return construct_name
 
 
+def _separator_insensitive(name: str) -> str:
+    """An identifier reduced to the form ``snake_case`` and ``CamelCase`` share.
+
+    ``normalize_identifier`` turns runs of non-alphanumerics into ``_`` and upper-cases, which
+    leaves ``sales_order_header`` as ``SALES_ORDER_HEADER`` and ``SalesOrderHeader`` as
+    ``SALESORDERHEADER``. Dropping the separators is what makes those the same name. Private
+    on purpose: this is a comparison key for binding, never something to render or store."""
+    return normalize_identifier(name).replace("_", "")
+
+
 def construct_binds_to_source_table(construct_name: str, table_name: str) -> bool:
     """True when a construct's base names this declared source table.
 
@@ -499,10 +509,28 @@ def construct_binds_to_source_table(construct_name: str, table_name: str) -> boo
     ``staging_generator.bind_sources``: the base matches the table directly, or its
     ``raw_<base>`` form does. The proposer needs the near side of an FK-derived link — the
     hub built for the referencing table — and deriving that independently is exactly the
-    class of duplication that once staged a hash from the wrong relation (WP24)."""
+    class of duplication that once staged a hash from the wrong relation (WP24).
+
+    **Separator-insensitive since 2026-08-12, and that was a defect, not a preference.**
+    Construct names are lowercase snake_case by ``CONSTRUCT_NAME_PATTERN``; a CamelCase source
+    table normalises with no separators at all. So ``SALES_ORDER_HEADER`` was compared against
+    ``SALESORDERHEADER`` and no multi-word CamelCase table could ever bind — 34 of 47 hubs on
+    AdventureWorks, which is every enterprise landscape shaped like it. Measured consequences:
+    5 of 7 ratified link proposals dropped for want of a near hub (exactly the two single-word
+    tables, ``Employee`` and ``Customer``, survived), and 242 ``SOURCE_BINDING`` flags binding
+    staging to ``raw_*`` relations that do not exist. The two spellings are one identifier.
+
+    The comparison stays EXACT modulo the separator convention — deliberately not fuzzy
+    matching. It is a widening: every pair that bound before still binds (pinned in
+    ``tests/test_construct_binding_guard.py``), and it is unambiguous only while declared table
+    names stay distinct once separators are ignored, which the same guard asserts against the
+    corpus rather than assuming."""
     base = construct_base_name(construct_name)
-    candidates = {normalize_identifier(base), normalize_identifier(RAW_SOURCE_PREFIX + base)}
-    return normalize_identifier(table_name) in candidates
+    candidates = {
+        _separator_insensitive(base),
+        _separator_insensitive(RAW_SOURCE_PREFIX + base),
+    }
+    return _separator_insensitive(table_name) in candidates
 
 
 def resolution_category(
