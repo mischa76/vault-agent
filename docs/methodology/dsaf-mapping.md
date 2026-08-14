@@ -6,26 +6,22 @@
 > pulls us away from DV2.0/CDVP² conformance.
 >
 > **Sources:** a curated study set compiled from roelantvos.com (glossary, pattern catalog,
-> decision tables, bibliography) plus live verification of the GitHub repositories. Version
-> numbers below are as of the study set (May 2026) and should be re-checked against the repos
-> before relying on them.
+> decision tables, bibliography), May 2026.
 
-## Vos's stack and where the code lives
+## Vos's stack — deliberately not catalogued here
 
-All current open source lives under the **`data-solution-automation-engine`** GitHub org
-(the older `RoelantVos/*` repos are deprecated and their URLs often redirect):
+Vos's tooling ecosystem (metadata tool, code generator, run-time control framework, metadata
+exchange schema) is real and coherent, but its repo names, GitHub orgs, and version numbers have
+proven volatile — three renames/moves and two deprecations between May and August 2026 alone.
+Cataloguing them here reproduced exactly the defect class the project's invariants forbid for its
+own code: prose repeating values it does not own. So this document deliberately records none of
+them. **Look the current state up live** (Vos's active GitHub org, `dataenginethinking.com`,
+`agnosticdatalabs.com`) whenever a concrete repo or version matters.
 
-| Component | What it is | Repo |
-|---|---|---|
-| **VDW** — Virtual Data Warehouse | Code generator: DWA-JSON metadata + **Handlebars** templates → SQL/DDL/Biml. Database-less since v1.6.2. | `data-solution-automation-engine/Virtual_Data_Warehouse` |
-| **TEAM** — Taxonomy of ETL Automation Metadata | Desktop tool to manage source-to-target mapping metadata; emits DWA-JSON into Git. Git directory *is* the repository (no DB since v1.6.5). | `data-solution-automation-engine/TEAM` |
-| **DIRECT** — Data Integration Run-time Execution Control | ETL process-control framework: Module/Batch lifecycle, restartable, auditable. v2.0 ported to MS Fabric. | `data-solution-automation-engine/DIRECT` |
-| **DWA Schema** | JSON Schema (draft 7, v2.1) for design-metadata interchange between any metadata tool and any generator. Core classes: DataObject, DataItem, DataObjectMapping, DataItemMapping, BusinessKeyDefinition. | `data-solution-automation-engine/data-warehouse-automation-metadata-schema` |
-| **Agnostic Data Labs (ADL)** | Commercial, git-native successor to TEAM; non-opinionated (DV/ELM, Dimensional, Lakehouse). | agnosticdatalabs.com |
-
-His current umbrella synthesis is the 2025 book **Data Engine Thinking** (with Dirk Lerner,
-TEDAMOH), `dataenginethinking.com`. The **DSAF workshop sample** studied for this project is a concrete VDW+TEAM instance — Handlebars templates plus
-TEAM connection config.
+Two stable facts suffice for this document: his umbrella synthesis is the 2025 book **Data Engine
+Thinking** (with Dirk Lerner, TEDAMOH), and the **DSAF workshop sample** studied for this project
+is a concrete instance of his generator approach — Handlebars templates driven by mapping-metadata
+config.
 
 ## What Vault-Agent already embodies (credit, don't rebuild)
 

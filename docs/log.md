@@ -4132,3 +4132,24 @@ price list needs; multiplying is the caller's business.
 
 **Still not measured:** what cache writes actually amount to on a real chain. The next paid run
 answers that, and only then does the ~$6-per-run figure become a total rather than a floor.
+
+## [2026-08-14] The Vos stack table is gone, because no one owns its facts
+
+Live verification of the "Vos's stack and where the code lives" section in
+`docs/methodology/dsaf-mapping.md` (compiled May 2026) found it three months later: VDW and TEAM
+archived 2026-07-27 and deprecated in favour of the closed-source Agnostic Data Labs; DIRECT and
+the metadata-schema repo moved to a new `data-engine-thinking` org, the schema repo renamed on
+the way; the headline claim — all current open source under `data-solution-automation-engine` —
+false. One claim was wrong *at compile time*, not merely aged: the section said DIRECT v2.0 when
+v2.1 had shipped 2026-02-14, three months before the study set.
+
+**The section was deleted, not corrected.** The invariant "the code owns every count, version
+and threshold" exists because prose repeating such values has been wrong twice; a catalogue of
+*someone else's* repo names and versions is the same defect class with no owning code anywhere —
+it cannot be guarded, only re-verified, and nobody re-verifies a reference table. Replaced by a
+short block that says exactly this and points at live lookup. The two stable facts (the Data
+Engine Thinking book, the studied DSAF workshop sample) stay; the critical half of the file —
+Vos ≠ Linstedt table, scope decisions, candidate ADRs, tooling honesty — is untouched.
+
+**For future readers: do not reinstate the table.** If a concrete repo or version matters, look
+it up at that moment; a snapshot here is a confident wrong answer waiting to be cited.
