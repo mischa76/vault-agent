@@ -3,7 +3,7 @@
 > **Purpose.** An honest map of where Vault-Agent sits relative to existing Data Vault
 > automation and the emerging "LLM-for-Data-Vault" work — what is already crowded, what is
 > emerging, and where the genuine niche is. Written to keep the project's positioning sharp.
-> Based on public information; **snapshot: June 2026** — this space moves fast.
+> Based on public information; **snapshot: summer 2026** — this space moves fast.
 
 ## TL;DR
 
@@ -17,8 +17,9 @@ rules**, generates code through the **open AutomateDV/dbt** stack, and documents
 ## The space has three layers
 
 **1. Data Vault automation — crowded and mature.** A rearmed commercial category: VaultSpeed,
-WhereScape (Data Vault Express), Datavault Builder, Coalesce, biGENIUS-X, plus open-source dbt
-packages (AutomateDV, datavault4dbt). These are production-proven and enterprise-supported. Two
+WhereScape (Data Vault Express), Datavault Builder, Coalesce, biGENIUS-X, Agnostic Data Labs
+(Roelant Vos's closed-source successor to his TEAM/VDW open-source line, archived 2026), plus
+open-source dbt packages (AutomateDV, datavault4dbt). These are production-proven and enterprise-supported. Two
 things characterise almost all of them: they start from **source schemas / metadata**, and they
 are **GUI- or template/YAML-driven**, not LLM-driven. DACH relevance is high — several of the
 strongest players are German/Swiss (biGENIUS, Scalefree's ecosystem, the Linstedt-adjacent world).
@@ -43,6 +44,7 @@ no public equivalent surfaced in research. This is Vault-Agent's lane.
 | **Datavault Builder** | Source metadata | Integrated GUI, ELT generation | Proprietary, multi-platform | Commercial | — | Built-in testing | Production |
 | **Coalesce** | Source/columns | Column-aware GUI transforms; DV patterns | Proprietary → Snowflake et al. | Commercial | — | Pattern/tests | Production |
 | **biGENIUS-X** | Source metadata | DWA, AI-assisted, metadata-driven | Proprietary, multi-platform | Commercial | — | Built-in | Production (DACH) |
+| **Agnostic Data Labs** | Source-to-target mapping metadata (git-native) | Metadata + template-driven generation; non-opinionated (DV/ELM, Dimensional, Lakehouse) | Template-driven SQL, platform-agnostic | Free, closed-source | — | Metadata/schema validation | New; successor to the long-standing TEAM/VDW OSS line |
 | **AutomateDV / datavault4dbt** | Hand-written staging metadata (YAML) | dbt macros/templates | dbt (you target the platform) | Open source | — | Macro contracts + dbt tests | Production (OSS) |
 | **Academic LLM-for-DV** (MDPI, Preprints 2025) | Source schema / metadata | LLM (ChatGPT) + prompt engineering | Varies / conceptual | Research | — | Validity-coefficient research | Research / PoC |
 | **Vault-Agent** (this project) | **Business requirements documents** (IREB-aligned) | **Multi-agent LLM** (LangGraph), rules-as-code | **AutomateDV / dbt** (open) | **Open source** | **Yes — ADR per decision** | **Independent validator gates + self-correcting loop** | Early / build-in-public |
@@ -99,6 +101,7 @@ This matters for credibility — overclaiming is the fastest way to lose a techn
 - [Scalefree — Automation Options for Data Vault](https://www.scalefree.com/knowledge/webinars/data-vault-friday/automation-options-for-data-vault/)
 - [MDPI — Enabling Intelligent Data Modeling with AI: A Data Vault Case Study (2025)](https://www.mdpi.com/2079-8954/13/9/811)
 - [Preprints.org — AI-Powered Data Vault 2.0 Modeling (2025)](https://www.preprints.org/manuscript/202502.2012)
+- [Agnostic Data Labs](https://agnosticdatalabs.com)
 - [dbt Developer Blog — dbt Agent Skills](https://docs.getdbt.com/blog/dbt-agent-skills)
 - [Datavault-UK/automate-dv — GitHub](https://github.com/Datavault-UK/automate-dv)
 - [AutomateDV — Platform Support](https://automate-dv.readthedocs.io/en/latest/platform_support/)

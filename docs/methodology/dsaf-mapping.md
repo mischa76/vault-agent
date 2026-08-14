@@ -1,57 +1,32 @@
-# Roelant Vos / DSAF — Mapping onto Vault-Agent
+# Roelant Vos / DSAF — assessment outcome
 
-> **Purpose:** Turn "Vos/DSAF" from a name-drop into an explicit, *critically assessed* foundation.
-> Records (a) what Vault-Agent already embodies, (b) what is deliberately out of scope, and
-> (c) where Vos diverges from the Linstedt DV2.0 canon — so adopting his ideas never silently
-> pulls us away from DV2.0/CDVP² conformance.
+> **Purpose:** Record the outcome of critically assessing Vos/DSAF against Vault-Agent, so future
+> work neither repeats the assessment nor silently adopts Vos positions that diverge from the
+> Linstedt/Olschimke DV2.0 canon (CDVP² conformance).
 >
-> **Sources:** a curated study set compiled from roelantvos.com (glossary, pattern catalog,
-> decision tables, bibliography), May 2026.
+> **Sources:** a curated study set compiled from roelantvos.com (May 2026). Vos's tooling, repo
+> and version specifics are volatile and deliberately not recorded here — look them up live when
+> they matter; his current commercial product is listed where vendor names belong, in
+> `docs/competitive-landscape.md`.
 
-## Vos's stack — deliberately not catalogued here
+## The finding: nothing adopted
 
-Vos's tooling ecosystem (metadata tool, code generator, run-time control framework, metadata
-exchange schema) is real and coherent, but its repo names, GitHub orgs, and version numbers have
-proven volatile — three renames/moves and two deprecations between May and August 2026 alone.
-Cataloguing them here reproduced exactly the defect class the project's invariants forbid for its
-own code: prose repeating values it does not own. So this document deliberately records none of
-them. **Look the current state up live** (Vos's active GitHub org, `dataenginethinking.com`,
-`agnosticdatalabs.com`) whenever a concrete repo or version matters.
+The assessment concluded with **zero adoptions**. The one genuine resemblance — metadata-driven
+automation of Data Vault generation — is convergent, not inherited: Vault-Agent's
+rules-and-metadata-in-code plus AutomateDV-template architecture predates the DSAF study and was
+chosen independently. Vos/DSAF material is **commentary and an alternative school**, not a
+foundation of this project. His tooling ecosystem (metadata tool, generator, run-time control)
+is a parallel stack, not a dependency.
 
-Two stable facts suffice for this document: his umbrella synthesis is the 2025 book **Data Engine
-Thinking** (with Dirk Lerner, TEDAMOH), and the **DSAF workshop sample** studied for this project
-is a concrete instance of his generator approach — Handlebars templates driven by mapping-metadata
-config.
+## The guardrail: where Vos ≠ Linstedt DV2.0
 
-## What Vault-Agent already embodies (credit, don't rebuild)
+This is the part of this file that must survive. Vos has, over fifteen years, *deliberately
+revised* several DV2.0 positions; an agent that encounters his material while researching a
+modelling question must not mistake those revisions for canon. Stance: **anchor DV2.0 correctness
+on Linstedt/Olschimke (matches CDVP²); each Vos revision is an opt-in, ADR-gated alternative —
+never the silent default.**
 
-- **Metadata/pattern/template separation.** Vos's whole thesis (TEAM = metadata, VDW = templates,
-  generator = engine) is the same separation Vault-Agent lives: rules/metadata in code,
-  generation through AutomateDV templates. This is the single biggest "we already do DSAF" point —
-  it just was never credited.
-- **Deterministic, idempotent, restartable loads.** Vos makes this a first-class principle (the
-  "anti-duplicate" `WHERE NOT EXISTS` tail on every load; re-initialisation from the PSA).
-  Vault-Agent already aims for idempotent tools — worth elevating to an explicit generation rule.
-
-## What is absent (deliberate scope decisions, not oversights)
-
-| DSAF concept | Status in Vault-Agent | Disposition |
-|---|---|---|
-| **Persistent Staging Area (PSA)** — his "single most consequential idea": insert-only, ordered archive enabling full DV rebuild | Not modelled | **ADR decision.** Architecturally heavy; sits *outside* core DV2.0. Decide deliberately, don't default. |
-| **PIT / Bridge** presentation tables | Code generator emits hubs, links (standard / transactional / role-qualified), satellites (standard / multi-active / effectivity), and multi-source hubs — but no PIT/Bridge | Concrete, codeable gap; AutomateDV supports both. Reasonable next feature. |
-| **Virtualisation (schema-on-read)** as the default above PSA | Vault-Agent materialises physical dbt models | Deliberate divergence — keep materialised; note it. |
-| **DIRECT-style run-time control** (Module/Batch audit) | Out of scope (LangGraph orchestrates) | Leave out; different layer. |
-
-## The critical lens — where Vos ≠ Linstedt DV2.0
-
-This is the part that matters for CDVP² conformance. Vos has, over fifteen years, *deliberately
-revised* several DV2.0 positions. Several are genuine improvements; all of them move away from the
-strict Linstedt/Olschimke canon. Adopting "Vos" wholesale would therefore change what "DV2.0
-compliant" means for the agent. Recommended stance: **anchor DV2.0 correctness on Linstedt/Olschimke
-(matches CDVP²); treat each Vos revision as an opt-in, ADR-gated alternative — never the silent
-default.**
-
-| Topic | Linstedt DV2.0 canon | Vos's position | Recommended for Vault-Agent |
+| Topic | Linstedt DV2.0 canon | Vos's position | Vault-Agent |
 |---|---|---|---|
 | Surrogate key | Hash key (MD5/SHA-1) | **Natural Business Key (NBK)** preferred for small/medium; hash only for MPP | Default to hash (canon, AutomateDV-native). NBK = future ADR. |
 | Satellite end-dating | Persisted load-end-date common | **Insert-only**, derive end-date on read; end-dating deprecated | Keep canon default; insert-only is a legitimate ADR. |
@@ -60,38 +35,30 @@ default.**
 | Multi-active sats | Attribute-in-PK / separate sat | Prefers **weak Hub** or JSON-in-SAT | Support canon; weak-Hub as option. |
 | Key collision | **BKCC** (per-source collision code) | Composite/concatenated keys + Record Source | Note both; BKCC is the canon answer. |
 
-Two of the schools the user flagged show up directly here: Vos has **adopted Hultgren's ELM** as his
-preferred physical implementation since ~2023, which is exactly the Genesee-Academy (modelling-only)
-vs Scalefree/Linstedt (full methodology+modelling+architecture trilogy) tension. Vault-Agent should
-stay on the Linstedt trilogy as its spec of record and reference ELM/Vos as commentary.
+Vos has adopted Hultgren's ELM as his preferred physical implementation since ~2023 — the
+Genesee-Academy (modelling-only) vs Scalefree/Linstedt (full trilogy) tension. Vault-Agent stays
+on the Linstedt trilogy as its spec of record and references ELM/Vos as commentary.
 
-## Tooling honesty
+## Out-of-scope constructs (DV-generic, not DSAF debts)
 
-Vos does **not** use dbt/AutomateDV — the study set explicitly notes dbtvault/AutomateDV are
-"not engaged by name" in his work. His generator is VDW/Handlebars over the DWA JSON schema. So his
-*patterns and decision tables* are transferable to Vault-Agent, but his *tooling* is a parallel
-ecosystem, not a dependency. We borrow the thinking, not the engine.
+PSA and PIT/Bridge entered the discussion via the study set but are generic warehouse constructs,
+not Vos-specific ideas. Both are ADR-gated out of scope in code (see the out-of-scope comment in
+`src/vault_agent/rules/dv2_rules.py`); the code generator's actual repertoire is owned by
+`src/vault_agent/agents/code_generator.py` — read it there, don't trust prose. PIT/Bridge is the
+codeable next feature (AutomateDV supports both — re-verify against the installed package when
+implementing); PSA is architecturally heavy, sits outside the core DV2.0 raw vault, and is a
+deliberate ADR decision if ever.
 
-## Candidate ADRs this surfaces
+## Candidate ADRs
 
-1. **PSA: yes/no** — adopt a Persistent Staging Area, or rely on AutomateDV staging + source replay?
-2. **Hash key vs NBK** — keep hash as the DV2.0-canon default; document when NBK would win.
-3. **End-dating vs insert-only satellites** — which is the generated default, and on which target.
-4. **ELM / foreign-key Link vs classic Link-Satellite + driving key** — modelling-school stance.
+1. **PSA: yes/no** — persistent staging area, or AutomateDV staging + source replay?
+2. **Hash key vs NBK** — keep hash as the canon default; document when NBK would win.
+3. **End-dating vs insert-only satellites** — which is the generated default, on which target.
+4. **ELM / foreign-key Link vs classic LSAT + driving key** — modelling-school stance.
 5. **PIT/Bridge generation** — add to the code generator's repertoire for the presentation layer.
 
-## Reference architecture (for the docs)
+## Primary sources, if ever needed
 
-Vos's four layers, for mapping our generated artifacts onto a recognised DSAF frame:
-**Source → Staging Layer (transient SA + persistent PSA) → Integration Layer (Raw DV + Business DV)
-→ Presentation Layer (Information Marts, via PIT/Bridge).** Vault-Agent currently targets the
-Integration Layer (Raw DV) and the source-to-staging boundary; PSA and Presentation are the
-explicit white space.
-
-## Where to go deeper (primary sources beyond the blog)
-
-The study set flags these as thin on the blog and best taken from the whitepapers / book:
-*Pattern for Data Mart Delivery* (canonical PIT/Bridge/dimension generation), *Consistency &
-Referential Integrity* (15 pp.), *Merging Time-Variant Data Sets*, and **Data Engine Thinking**
-(the 700-page canonical methodology). Worth fetching from the roelantvos.com Publications page when
-implementing PSA or the presentation layer in earnest.
+*Data Engine Thinking* (Vos & Lerner, 2025) is the canonical methodology; the whitepapers on data
+mart delivery, referential integrity and merging time-variant sets are the deep material for PSA
+or presentation-layer work. Fetch them at implementation time.
