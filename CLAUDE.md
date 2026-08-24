@@ -47,6 +47,10 @@ mapping before citing the source; the deviations are deliberate and argued.
 - `docs/methodology/` — the cheatsheets and the four critical mappings
 - `docs/operations/` — the 13-chapter operations manual (gates, flags, exit codes, troubleshooting)
 - `tests/fixtures/` — byte-identity baselines · `eval/` — the eval harness · `demo/` — runnable demos
+- `~/.claude/projects/<path-slug>/memory/` — **not a storage location.** Machine-local and keyed
+  by checkout path, so copying the project to a second path silently starts a second, empty store
+  — which is what the WSL→`/mnt/c` move for Cowork's tools did here. Durable facts go to
+  `docs/log.md` (SKILL step 5). Conventions: `~/.claude/rules/wissensbasis.md`
 
 ## Invariants
 
@@ -127,7 +131,9 @@ The pipeline runs end-to-end: orchestrator → requirements parser → business 
 (bounded re-model loop) → source mapper → HITL checkpoint → ADR author. Output is a runnable dbt project (staging + raw vault + scaffolding), data
 contracts, a review queue, an HTML report, and a proposed ADR. Brownfield mode (`run --existing`)
 extends an existing vault instead of modelling into an empty one. Verified on real PostgreSQL
-several times, most recently for brownfield additivity. Details and dates: `docs/log.md`.
+several times, most recently for brownfield additivity. WP29 §4 (entity-resolution safety) is
+met: `false_merge_rate` 1.000 over 5 clean repeats, zero blinded merges (2026-08-08; trap 5 is
+blinded-untestable by design). Details and dates: `docs/log.md`.
 
 ## Open items — do not assume these work
 
@@ -149,11 +155,6 @@ several times, most recently for brownfield additivity. Details and dates: `docs
   `Product.ProductID` while `hub_product` is keyed on `ProductNumber`, the natural key DV2.0
   asks for. Closing those needs surrogate→natural key translation through the referenced table,
   which is new capability and ADR-shaped, not an alias.
-- **WP29's mechanism is live-verified; its correctness is not, and §4 cannot run yet.** The
-  checkpoint steers the modeler in a real chain (2026-08-01). But `brownfield_resolution` has no
-  `dataset.yml`, no requirements, no scorer dispatch — and `false_merge_rate` matches the golden
-  by concept name while the pipeline emits `entity::field` keys, so it would score every correct
-  merge as a false one. Fix that before spending anything on §4.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 
 ## How this file is maintained

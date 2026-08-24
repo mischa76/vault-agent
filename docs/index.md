@@ -26,6 +26,7 @@ to **new** documents only; existing records were left untouched.
 | [operations/README.md](operations/README.md) | The operations manual, 13 chapters — installation, running, HITL, gates, warehouse, troubleshooting |
 | [architecture/0-vision.md](architecture/0-vision.md) | What this is for, in one page |
 | [architecture/1-architecture-overview.md](architecture/1-architecture-overview.md) | The system in one page |
+| [reference-architecture.md](reference-architecture.md) | **Maintained yardstick** — the DV2.0 reference architecture as Erfüllungsziel, with per-layer target role and current coverage; rewritable, statuses derived from code |
 | [architecture/3-diagrams.md](architecture/3-diagrams.md) | The pipeline and model diagrams |
 | [architecture/2-multi-agent-design.md](architecture/2-multi-agent-design.md) | Agent topology and responsibilities |
 | [how-requirements-become-a-model.md](how-requirements-become-a-model.md) | End-to-end walk of the actual behaviour, with its assumptions named |
@@ -65,6 +66,7 @@ Append-only. Status is the ADR's own header, not this table's opinion.
 | [0010](architecture/adrs/ADR-0010-modeler-output-scaling.md) | Modeler output scaling — streaming before staged modelling | Accepted |
 | [0011](architecture/adrs/ADR-0011-satellite-source-binding-on-multi-source-hubs.md) | Satellite source binding on multi-source hubs | Accepted |
 | [0012](architecture/adrs/ADR-0012-attribute-overlap-across-satellites.md) | Attribute overlap across satellites of one parent | Accepted |
+| [0013](architecture/adrs/ADR-0013-surrogate-to-natural-key-translation.md) | Surrogate→natural-key translation for FK-derived link proposals | Proposed |
 | [template](architecture/adrs/ADR-template.md) | The shape a new ADR takes | — |
 
 ## Charters and spikes
@@ -121,7 +123,8 @@ own overview.
 | [wp30](architecture/backlog-2026-07/wp30-adventureworks-semantic-axis-spec.md) | AdventureWorks as an independent instrument; the domain-partitioning experiment — **arm comparison open** |
 | [wp31](architecture/backlog-2026-07/wp31-attribute-overlap-narrowing-spec.md) | Narrowing `E_SAT_ATTR_OVERLAP` to one payload namespace (ADR-0012) |
 | [wp32](architecture/backlog-2026-07/wp32-concept-identity-spec.md) | Concept identity is (label, entity), not the label alone |
-| [wp34](architecture/backlog-2026-07/wp34-fk-derived-link-proposals-spec.md) | Links proposed from the source's own foreign keys, ratified at the WP29 checkpoint — **approved 2026-08-11, not built** |
+| [wp34](architecture/backlog-2026-07/wp34-fk-derived-link-proposals-spec.md) | Links proposed from the source's own foreign keys, ratified at the WP29 checkpoint — **built and measured 2026-08-12; §6 unmet, remaining gap is ADR-0013's question** |
+| [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — blocked on ADR-0013 |
 
 Earlier specs, before the backlog was numbered:
 [poc-end-to-end-dbt](architecture/poc-end-to-end-dbt-spec.md) (the slice from requirements to a

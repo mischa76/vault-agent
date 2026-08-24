@@ -4132,3 +4132,12 @@ price list needs; multiplying is the caller's business.
 
 **Still not measured:** what cache writes actually amount to on a real chain. The next paid run
 answers that, and only then does the ~$6-per-run figure become a total rather than a floor.
+
+## [2026-08-14] CLAUDE.md's WP29 open item was three fixes stale
+
+Same class as the 2026-08-13 `scale_100` catch, opposite direction: CLAUDE.md's "Open items"
+still claimed `brownfield_resolution` had no `dataset.yml`, no scorer dispatch, and a
+concept-name/`entity::field` keying mismatch — all of which WP29.1/29.2/29.5 closed, and §4 was
+measured and met on 2026-08-08 (this log). An agent trusting the file would have re-planned work
+that is done. The bullet is removed; one sentence in "Current state" now carries the outcome
+with its date and the trap-5 caveat. The records were right; the prose lagged.
