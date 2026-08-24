@@ -4141,3 +4141,40 @@ concept-name/`entity::field` keying mismatch — all of which WP29.1/29.2/29.5 c
 measured and met on 2026-08-08 (this log). An agent trusting the file would have re-planned work
 that is done. The bullet is removed; one sentence in "Current state" now carries the outcome
 with its date and the trap-5 caveat. The records were right; the prose lagged.
+
+## [2026-08-24] Four Dependabot alerts, one package, and a fix the pin forbids
+
+GitHub reported four vulnerabilities on `main` (3 high, 1 moderate) on the WP34/ADR-0013 docs
+push. All four are the **same package**: `sqlparse 0.5.5`, which enters only transitively through
+`dbt-core`, and only via the optional `demo` extra. No first-party code imports it —
+`grep -rn sqlparse src/ eval/ tests/` is empty.
+
+**The advertised fix is unreachable from this pin.** All four advisories name 0.6.0 as the first
+patched version, and `dbt-core 1.9.10` requires `sqlparse>=0.5.0,<0.6.0` (`setup.py:67` of the
+sdist). The locked 0.5.5 is already the maximum that constraint permits, so `uv lock --upgrade`
+changes nothing. Nor does moving one line up: `dbt-core 1.10.x` requires `sqlparse<0.5.5`, which
+is *older*. The first line admitting 0.6.0 is **1.11.x** (`sqlparse<0.7.0,>=0.5.5`), likewise
+1.12.x.
+
+**The vulnerable path is not reached here.** In `dbt-core 1.9.10` the only call site is
+`sqlparse.parse(sql)` at `dbt/compilation.py:606`, inside `_inject_ctes_into_sql` — which returns
+at line 602 when `len(ctes) == 0`. Those CTEs originate from **ephemeral** models, and this
+project has none: AutomateDV 0.11.4 declares no ephemeral materialization, and every generated
+model configures `view` or `incremental`. The moderate advisory concerns sqlparse's
+`sqlformat --output-format=python|php`, which nothing here calls. Worst case on the reachable
+surface would have been a slow local `dbt compile` — not a data or execution compromise.
+
+Alerts 9, 10, 11 and 12 are therefore **dismissed as `not_used`**, each carrying the
+`compilation.py:606` pointer and one reopening condition: *if ephemeral models are ever
+introduced, reopen them.* That is the single change that would make the path live.
+
+**Deliberately NOT treated as the fix: the dbt upgrade.** Moving `dbt-core~=1.9.0` /
+`dbt-postgres~=1.9.0` to 1.11+ would clear the alerts as a side effect, and AutomateDV 0.11.4
+permits it on paper (`require-dbt-version: [">=1.0.0", "<3.0.0"]`). But it is a jump across two
+minor lines that needs a verified PostgreSQL run and the byte-identity fixtures re-checked. It
+should happen when something else justifies it, not to silence four unreachable DoS findings.
+
+**How this was verified:** by reading the published package metadata and the `dbt-core 1.9.10`
+sdist, plus greps over this repo. Nothing was installed, run or measured — no dbt invocation
+confirmed the early return empirically, and the reachability claim rests on reading that call
+site, not on executing it.
