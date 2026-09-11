@@ -47,6 +47,7 @@ from vault_agent.models.contract import ContractOwner
 from vault_agent.profiling import load_profiling
 from vault_agent.report import build_report
 from vault_agent.rules.dv2_rules import normalize_identifier
+from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import (
     RESOLUTION_SAME_AS,
@@ -577,6 +578,7 @@ async def _run_pipeline(
     write: bool = True,
     existing_model: DVModel | None = None,
     existing_source: str | None = None,
+    target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
@@ -586,7 +588,8 @@ async def _run_pipeline(
     inert. ``trace`` (WP15) writes the run's LLM transcript beside its checkpoint. ``write``
     is the ``--no-write`` flag, honoured by the crash rescue as well. ``existing_model``
     (from ``--existing``, WP23) switches the run to brownfield mode; ``None`` = greenfield,
-    and resume needs no flag because the model is persisted in the checkpoint."""
+    and resume needs no flag because the model is persisted in the checkpoint. The same
+    holds for ``target_platform`` (from ``--target-platform``, WP35)."""
     thread_id = uuid4().hex
     _checkpoint_dir(out_dir).mkdir(parents=True, exist_ok=True)
     state, paused = await _invoke_checkpointed(
@@ -600,6 +603,7 @@ async def _run_pipeline(
             profiling=profiling or {},
             existing_model=existing_model,
             existing_source=existing_source,
+            target_platform=target_platform,
         ),
         input_doc=input_doc,
         trace=trace,
@@ -1085,6 +1089,7 @@ def _print_summary(console: Console, state: VaultAgentState) -> None:
     )
     console.print(
         f"  mode:          {mode}\n"
+        f"  platform:      {state.target_platform}\n"
         f"  requirements:  {len(state.requirements)}\n"
         f"  business keys: {len(state.business_keys)}\n"
         f"  grounding:     {grounding}\n"
@@ -1341,6 +1346,15 @@ def run(
                  "metadata/dv_model.yml). Without this, the run is greenfield.",
         ),
     ] = None,
+    target_platform: Annotated[
+        TargetPlatform,
+        typer.Option(
+            "--target-platform",
+            help="Warehouse the generated dbt project is aimed at: seed column types and "
+                 "the README's profile hint. The vault SQL itself is platform-neutral "
+                 "(AutomateDV dispatches per adapter).",
+        ),
+    ] = DEFAULT_TARGET_PLATFORM,
     write: Annotated[
         bool,
         typer.Option(
@@ -1381,6 +1395,7 @@ def run(
             _run_pipeline(
                 input_doc, out, schemas, profiles, trace, write, prior_model,
                 str(existing) if existing else None,
+                target_platform=target_platform,
             )
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI

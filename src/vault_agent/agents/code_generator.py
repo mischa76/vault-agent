@@ -576,7 +576,7 @@ class CodeGeneratorAgent(BaseAgent):
         # types for matching staging sources (WP7 §7.3).
         staging = build_staging(
             model, state.source_schemas, contracts=state.artifacts.contracts,
-            existing=state.existing_model,
+            existing=state.existing_model, target_platform=state.target_platform,
         )
         state.artifacts.staging_models = staging.models
         state.artifacts.scaffolding = staging.scaffolding

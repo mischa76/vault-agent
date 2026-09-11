@@ -38,6 +38,7 @@ vault-agent [--debug] run <input_doc> [OPTIONS]
 | `--source-schema`, `-s <file>` | — | Ground against a declared schema (6.1) |
 | `--profiling <file>` | — | Mapper evidence (6.1) |
 | `--existing`, `-e <dir\|file>` | — | **Extend** an existing vault instead of modelling into an empty one (6.7) |
+| `--target-platform <name>` | `postgres` | Warehouse the generated project is aimed at (9.6): seed column types and the README's profile hint. The vault SQL is platform-neutral. Values: the `TargetPlatform` members in `rules/platforms.py` |
 | `--write / --no-write` | write | Write **artifacts** to disk. Run state (checkpoint, `pending.json`, trace) is written regardless — a paused `--no-write` run must stay resumable |
 | `--trace / --no-trace` | trace | LLM transcript under `.vault-agent/traces/` (10.2) |
 | `--interactive / --no-interactive` | auto | Checkpoint prompt in-terminal; auto = only when run in a TTY |
@@ -45,6 +46,7 @@ vault-agent [--debug] run <input_doc> [OPTIONS]
 
 Console output, in order: the execution plan, per-agent progress with construct
 counts, a `mode: greenfield` / `extension (N existing construct(s))` line, a
+`platform: <name>` line, a
 `grounding: on (N source table(s))` / `off` line, the run summary, and — when
 the run pauses — the review queue, blocking items first. A malformed
 `--source-schema`/`--profiling` fails before any LLM call with an attributable message. An

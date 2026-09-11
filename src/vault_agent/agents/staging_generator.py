@@ -36,6 +36,12 @@ from vault_agent.rules.dv2_rules import (
     satellite_feed,
     source_table_on_multi_source_hub,
 )
+from vault_agent.rules.platforms import (
+    DEFAULT_TARGET_PLATFORM,
+    PlatformProfile,
+    TargetPlatform,
+    platform_profile,
+)
 from vault_agent.state import DVModel, FlagKind, Hub, HubSource, PipelineFlag, SourceTable
 
 # dbt project/profile name used in the generated scaffolding.
@@ -512,8 +518,10 @@ def _stage_metadata(spec: StagingSpec) -> dict[str, object]:
     return meta
 
 
-# Contract data_type -> dbt/Postgres-safe seed column type (WP7 §7.3). JSON Schema base
-# types only; "string" is refined by a `format` semantic (date / date-time) below.
+# Contract data_type -> ABSTRACT seed column type (WP7 §7.3), spelled the Postgres way
+# because that output is the pinned baseline; `rules/platforms.py` translates it into the
+# target platform's physical type (WP35). JSON Schema base types only; "string" is
+# refined by a `format` semantic (date / date-time) below.
 # Unmapped types (unknown/object/array/null) are OMITTED — dbt seed inference, as before;
 # absence of knowledge stays visible, never papered over with a guess.
 _SEED_TYPE_BY_JSON_TYPE = {
@@ -551,7 +559,9 @@ def _seed_type(contract_field: dict[str, Any]) -> str | None:
 
 
 def _collect_seed_column_types(
-    specs: dict[str, StagingSpec], contracts: list[dict[str, Any]]
+    specs: dict[str, StagingSpec],
+    contracts: list[dict[str, Any]],
+    profile: PlatformProfile,
 ) -> dict[str, dict[str, str]]:
     """Seed column types per staging source, from the drafted data contracts (WP7 §7.3).
 
@@ -559,7 +569,9 @@ def _collect_seed_column_types(
     (normalised) — on grounded runs the contracts are per source table, so the names
     line up; ungrounded entity contracts match nothing and change nothing. Column names
     are normalised to the UPPER_SNAKE seed headers; ``LOAD_DATETIME`` / ``RECORD_SOURCE``
-    are always typed timestamp / varchar (every raw relation carries them)."""
+    are always typed timestamp / varchar (every raw relation carries them). Every type
+    goes through ``profile.seed_type`` — the contract's abstract type becomes the target
+    platform's physical one (WP35), never a spelling one warehouse happens to accept."""
     by_name: dict[str, dict[str, Any]] = {}
     for contract in contracts:
         name = contract.get("name")
@@ -582,9 +594,9 @@ def _collect_seed_column_types(
                 continue
             seed_type = _seed_type(contract_field)
             if seed_type is not None:
-                columns[_to_column(label)] = seed_type
-        columns[LOAD_DATETIME_COLUMN] = "timestamp"
-        columns[RECORD_SOURCE_COLUMN] = "varchar"
+                columns[_to_column(label)] = profile.seed_type(seed_type)
+        columns[LOAD_DATETIME_COLUMN] = profile.seed_type("timestamp")
+        columns[RECORD_SOURCE_COLUMN] = profile.seed_type("varchar")
         column_types[spec.source_model] = columns
     return column_types
 
@@ -759,7 +771,25 @@ def _render_sources_yml(
     return "\n".join(lines) + "\n"
 
 
-def _render_readme(specs: dict[str, StagingSpec]) -> str:
+def _render_platform_section(profile: PlatformProfile) -> str:
+    """The README's target-platform section (WP35) — present only when the run chose a
+    platform other than the default. The default's README is the pinned baseline and says
+    'any AutomateDV-supported warehouse', which stays true; a chosen platform is a decision
+    the operator should see named, with the adapter and profile shape it implies."""
+    if profile.name == DEFAULT_TARGET_PLATFORM:
+        return ""
+    return f"""
+## Target platform: {profile.name}
+
+This project was generated for **{profile.name}** (`--target-platform {profile.name}`):
+the seed column types in `dbt_project.yml` use its native types. The models themselves
+are platform-neutral — AutomateDV dispatches per adapter. Install `{profile.dbt_adapter}`
+and give the `{PROJECT_NAME}` profile a target of `type: {profile.profile_type}` with
+{profile.profile_hint}.
+"""
+
+
+def _render_readme(specs: dict[str, StagingSpec], profile: PlatformProfile) -> str:
     inputs = "\n".join(
         f"- `{spec.source_model}` → feeds `{spec.name}` "
         f"(expected columns: {', '.join(spec.source_columns)})"
@@ -785,7 +815,7 @@ Every raw relation must also carry `{LOAD_DATETIME_COLUMN}` and `{RECORD_SOURCE_
 1. Define a `{PROJECT_NAME}` profile in `profiles.yml` (any AutomateDV-supported warehouse).
 2. `dbt deps`
 3. `dbt seed` (if using seeds), then `dbt build`.
-"""
+""" + _render_platform_section(profile)
 
 
 def build_staging(
@@ -794,6 +824,7 @@ def build_staging(
     contracts: list[dict[str, Any]] | None = None,
     source_overrides: dict[str, str] | None = None,
     existing: DVModel | None = None,
+    target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
 ) -> StagingResult:
     """The full staging pass: specs -> bindings -> rendered models + scaffolding.
 
@@ -807,19 +838,24 @@ def build_staging(
 
     ``existing`` (WP23 §2.6) is the vault being extended: feeds it already carried keep
     their legacy staging names instead of gaining a WP10 source suffix. ``None`` =
-    greenfield, where nothing is grandfathered and naming is symmetric."""
+    greenfield, where nothing is grandfathered and naming is symmetric.
+
+    ``target_platform`` (WP35) selects the seed-type dialect and the README's profile
+    hint; the rendered models are identical across platforms. The default is the
+    byte-identity baseline."""
     specs = collect_staging_specs(model, legacy_feeds(existing))
     flags = bind_sources(specs, source_schemas, source_overrides)
     # Grounded runs only (ungrounded: no blocks, no source_name — byte-identical output).
     blocks = group_sources(specs, source_schemas)
-    seed_column_types = _collect_seed_column_types(specs, contracts or [])
+    profile = platform_profile(target_platform)
+    seed_column_types = _collect_seed_column_types(specs, contracts or [], profile)
     models = {name: render_stage_model(spec) for name, spec in specs.items()}
     metadata = {name: _stage_metadata(spec) for name, spec in specs.items()}
     scaffolding = {
         "dbt_project.yml": _render_dbt_project(seed_column_types),
         "packages.yml": _render_packages(),
         "models/staging/sources.yml": _render_sources_yml(specs, blocks),
-        "README.md": _render_readme(specs),
+        "README.md": _render_readme(specs, profile),
     }
     return StagingResult(
         models=models, metadata=metadata, scaffolding=scaffolding, flags=flags

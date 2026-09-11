@@ -4178,3 +4178,51 @@ should happen when something else justifies it, not to silence four unreachable 
 sdist, plus greps over this repo. Nothing was installed, run or measured — no dbt invocation
 confirmed the early return empirically, and the reachability claim rests on reading that call
 site, not on executing it.
+
+## [2026-09-11] WP35 — Databricks as a selectable target platform, keyless
+
+**What changed.** `vault-agent run --target-platform databricks` now aims the generated dbt
+project at Databricks. The knowledge sits in one new module, `rules/platforms.py`: a
+`TargetPlatform` Literal, a profile per platform (adapter, profile type, seed-type dialect,
+README hint), and an import-time check that the Literal and the profile table agree. The choice
+is run state (`VaultAgentState.target_platform`, default `postgres`), persisted in the
+checkpoint like `--existing`, and passed through both `build_staging` call sites — the code
+generator and the source-mapper rebind. A `demo-databricks` extra pins `dbt-databricks~=1.9.0`;
+the lock resolved it to 1.9.7 with `dbt-core` unchanged at 1.9.10, so the dbt line the
+2026-08-24 entry chose to keep is untouched. Spec and kick-off:
+`architecture/backlog-2026-07/wp35-target-platform-databricks-spec.md`.
+
+**Why it was wrong before.** The seed column types a contract pins into `dbt_project.yml`
+(WP7 §7.3) were spelled the Postgres way for every warehouse. On Databricks `varchar` needs a
+length and `numeric` without precision is accepted as `DECIMAL(10,0)` — the SQL reference
+documents that default — so a contract's "number" would have loaded a balance with its
+fractions silently dropped. A wrong type that loads is a data defect, the one class this
+project has actually produced (WP24). The dialect now writes `string` and `decimal(38,18)`;
+the wide scale is a named default (`DATABRICKS_UNSCALED_DECIMAL`), chosen because the contract
+spec carries no precision to read.
+
+**Verified keyless.** `uv run pytest`: 891 passed, 2 skipped (the two regeneration helpers);
+ruff and bare mypy clean. The pre-existing byte-identity guards (WP7 staging baseline, WP23
+greenfield manifest) passed untouched — the default output is byte-identical, and a new test
+pins "default equals postgres" explicitly. Raw-vault and staging SQL are identical across the
+two platforms; with no contract, only the README differs, with one, also the `+column_types`.
+The Databricks scaffolding is pinned under `tests/fixtures/staging_databricks_baseline/`.
+Every macro the generator's source calls (`hub`, `link`, `sat`, `eff_sat`, `t_link`, `ma_sat`,
+`stage`) has a Databricks implementation in the installed AutomateDV 0.11.4, checked by a test
+that reads `dbt_packages/` and skips where `dbt deps` has not run. Databricks type facts were
+read from learn.microsoft.com (DECIMAL default p=10 s=0, max 38; STRING as the native type), the
+adapter constraint from PyPI metadata (`dbt-databricks 1.9.8`: `dbt-core<1.10.14,>=1.8.7`).
+
+**Not verified — and everything about running on Databricks is in this list.** No workspace
+exists on this machine; no `dbt build` has run against Databricks. Unmeasured: whether
+dbt-databricks' default `merge` strategy without a `unique_key` behaves as append under
+AutomateDV's incremental models (expected, not shown); identifier casing on a real build; that
+`BALANCE` actually round-trips with its fractions — the assertion this WP exists for. Until a
+run is recorded here, "runs on Databricks" is keyless-only and worded so in 9.6.
+
+**Deliberately not done.** No `demo/bank_databricks/` — it would be a copy of the Postgres
+demo that nobody has run. No `+incremental_strategy: append` in generated output — that would
+encode the unverified belief above. No profiles for Snowflake, BigQuery or SQL Server — they
+keep running under the default with Postgres-spelled types, which they accept. No ADR: ADR-0003
+already lists Databricks; this makes one listed platform selectable. The earlier estimate
+(this morning's session, not logged) put the keyless part at 2–3 h; it took about that.

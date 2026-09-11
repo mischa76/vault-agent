@@ -5,6 +5,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
+
 FlagSeverity = Literal["error", "advisory"]
 
 
@@ -698,6 +700,11 @@ class VaultAgentState(BaseModel):
     # The --existing path as the user gave it, for the diff artifact and the delta-ADR's
     # "Extends" section. Presentation only — nothing branches on it.
     existing_source: str | None = None
+    # WP35: the warehouse the generated dbt project is aimed at (`run --target-platform`).
+    # Read by the staging pass for seed column types and the README's profile hint —
+    # nothing else branches on it, the vault SQL is platform-neutral (AutomateDV dispatches
+    # per adapter). Persisted here so a resumed run keeps the choice without re-passing it.
+    target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM
     # WP29: entity-resolution proposals for an extension run (concept -> existing
     # construct / NEW / same-as candidate / unresolved). Empty unless BOTH an existing
     # model and a declared schema are present — the grounding gate.

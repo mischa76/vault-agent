@@ -124,6 +124,7 @@ own overview.
 | [wp31](architecture/backlog-2026-07/wp31-attribute-overlap-narrowing-spec.md) | Narrowing `E_SAT_ATTR_OVERLAP` to one payload namespace (ADR-0012) |
 | [wp32](architecture/backlog-2026-07/wp32-concept-identity-spec.md) | Concept identity is (label, entity), not the label alone |
 | [wp34](architecture/backlog-2026-07/wp34-fk-derived-link-proposals-spec.md) | Links proposed from the source's own foreign keys, ratified at the WP29 checkpoint — **built and measured 2026-08-12; §6 unmet, remaining gap is ADR-0013's question** |
+| [wp35](architecture/backlog-2026-07/wp35-target-platform-databricks-spec.md) | Databricks as a selectable target platform: seed-type dialect in `rules/platforms.py`, `--target-platform` — **built 2026-09-11, keyless-only; no workspace build yet** |
 | [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — blocked on ADR-0013 |
 
 Earlier specs, before the backlog was numbered:

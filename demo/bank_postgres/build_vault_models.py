@@ -16,6 +16,7 @@ import asyncio
 from pathlib import Path
 
 from vault_agent.agents.code_generator import CodeGeneratorAgent
+from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.state import DVModel, Hub, Link, LinkHubRef, Satellite, VaultAgentState
 
 # Where the generated raw-vault models land — resolved from this file, not the cwd, so the
@@ -110,9 +111,12 @@ def build_bank_dv_model_with_transfer() -> DVModel:
     return model
 
 
-async def generate_models(model: DVModel) -> VaultAgentState:
-    """Run the real code generator over the fixed model."""
-    state = VaultAgentState(dv_model=model)
+async def generate_models(
+    model: DVModel, target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM
+) -> VaultAgentState:
+    """Run the real code generator over the fixed model. ``target_platform`` (WP35) is
+    what the Databricks output fixture is captured with; the demo itself stays Postgres."""
+    state = VaultAgentState(dv_model=model, target_platform=target_platform)
     return await CodeGeneratorAgent().run(state)
 
 

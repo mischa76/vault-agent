@@ -90,11 +90,34 @@ layers side by side is the fastest way to internalise 9.3.
 
 ## 9.6 Platform notes
 
-Verified end-to-end on **PostgreSQL 16** with the pinned AutomateDV version; the
-Postgres-specific convention worth knowing is casing — every identifier stays
-*unquoted* (seeds set `quote_columns: false`), so UPPER_SNAKE names fold consistently.
-Snowflake, BigQuery, Databricks, and MS SQL Server are supported by the AutomateDV
-backend but not covered by the project's own verification; on a first build there,
-treat the demo checklist (build green, incremental idempotent, end-dating closes) as
-the acceptance test and expect platform-specific casing/quoting to be the first thing
-to check.
+The vault SQL is platform-neutral: every physical difference is AutomateDV's, dispatched
+per adapter inside the package. What the generator itself knows per platform is the seed
+column types it writes when a contract pins a staging source's types (WP7), and the
+profile hint in the generated README. That knowledge lives in one place,
+`rules/platforms.py`; `--target-platform` (6.2) selects it, and the choice is persisted
+with the run so a resume keeps it.
+
+**PostgreSQL** — the default, and the only platform **verified end-to-end** (PostgreSQL 16,
+pinned AutomateDV, both demos in 9.5). The convention worth knowing is casing — every
+identifier stays *unquoted* (seeds set `quote_columns: false`), so UPPER_SNAKE names fold
+consistently.
+
+**Databricks** — selectable since WP35 (2026-09-11), **keyless-only**: no workspace build
+has been recorded. Selecting it changes two things — seed types use the native spellings
+(`string` instead of `varchar`, which needs a length there; `decimal(38,18)` instead of
+`numeric`, whose platform default `DECIMAL(10,0)` would silently truncate fractions) and
+the README names the adapter (`dbt-databricks`, `uv sync --extra demo-databricks`) and
+the profile shape. Every macro the generated project calls has a Databricks implementation
+in the pinned AutomateDV, checked by a test that reads the installed package. On the first
+build there, run the demo checklist (build green, incremental idempotent, end-dating
+closes) and two Databricks-specific checks: that a plain `dbt build` appends rather than
+merges (dbt-databricks defaults to `merge`; without a `unique_key` it should insert every
+row — unverified), and that a `number` column loads with its fractions intact, which is
+the defect this dialect exists to prevent. The spec's §6 lists the open questions:
+`backlog-2026-07/wp35-target-platform-databricks-spec.md`.
+
+**Snowflake, BigQuery, MS SQL Server** — supported by the AutomateDV backend, no profile of
+their own yet: they run under the default platform, i.e. with Postgres-spelled seed types,
+which those platforms accept. Not covered by the project's own verification; treat the
+demo checklist as the acceptance test and expect platform-specific casing/quoting to be
+the first thing to check. A profile is added when someone verifies one.
