@@ -47,6 +47,8 @@ they explain behaviour you will observe:
 | `SAT_WIDE_ATTRIBUTE_THRESHOLD` | 30 | `rules/dv2_rules.py` | Wider satellites get an advisory split flag (`W_SAT_WIDE`) |
 | `AUTOMATE_DV_VERSION` | 0.11.4 | `rules/dv2_rules.py` | Pin written into generated `packages.yml`; bump deliberately and re-verify the demos |
 | `AGGREGATE_THRESHOLD` | 3 | orchestrator | More than 3 advisory flags per group collapse to one review-queue line |
+| `DEFAULT_TARGET_PLATFORM` | `postgres` | `rules/platforms.py` | The platform a run without `--target-platform` generates for; its output is the byte-identity baseline |
+| `DATABRICKS_UNSCALED_DECIMAL` | `decimal(38,18)` | `rules/platforms.py` | Seed type for a contract `number` on Databricks, where bare `NUMERIC` would be `DECIMAL(10,0)` and truncate fractions (9.6) |
 
 ## 5.4 LangSmith (optional, eval-only)
 

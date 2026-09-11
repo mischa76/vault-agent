@@ -39,12 +39,15 @@
 | Case/quoting errors on Postgres | An identifier got quoted somewhere — the whole pattern relies on unquoted UPPER_SNAKE folding. | Keep `quote_columns: false`; don't quote identifiers in hand-supplied seeds/tables. |
 | Everything green, but incremental re-run changes counts | Not acceptable (9.2) — usually wrong staging grain or key duplication in the raw data. | Compare the first duplicated construct's staging against its source grain; check `W_MASAT_SHARED_GRAIN`-style advisories from the run. |
 | AutomateDV version conflict on `dbt deps` | Version drift vs. the generated pin. | Keep the pin; bump only deliberately and re-run both demos as the regression gate. |
+| `Invalid value for '--target-platform'` | The name is not a `TargetPlatform` member (`rules/platforms.py`). | Use a listed platform; other AutomateDV platforms run under the default (9.6). The error is a usage error — no LLM tokens were spent. |
+| On Databricks, seeded numbers lose their fractions | The project was generated for the default platform, so `dbt_project.yml` types a contract `number` as bare `numeric`, which Databricks reads as `DECIMAL(10,0)`. | Re-run with `--target-platform databricks` (deterministic, same model); the seed type becomes `decimal(38,18)` (9.6). Seeds already loaded must be rebuilt with `--full-refresh`. |
 
 ## 12.4 Environment issues
 
 WSL performance: repo and venv belong on ext4, not `/mnt/c` (4.1). Missing extras
-show up as import errors for dbt (`--extra demo`) or langsmith (`--extra eval`) —
-`uv sync` with the right extra fixes both. Postgres auth failures are almost always
+show up as import errors for dbt (`--extra demo`, or `--extra demo-databricks` for the
+Databricks adapter) or langsmith (`--extra eval`) — `uv sync` with the right extra fixes
+them. Postgres auth failures are almost always
 `profiles.yml` (host/port/role) rather than the generated project; the demos bundle a
 working profile to compare against.
 

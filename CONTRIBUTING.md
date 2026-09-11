@@ -9,7 +9,7 @@ MIT licensed. By contributing you agree your work ships under the same terms.
 ## Getting set up
 
 ```bash
-uv sync --extra dev          # Python 3.12+; add --extra eval or --extra demo as needed
+uv sync --extra dev          # Python 3.12+; add --extra eval, --extra demo or --extra demo-databricks as needed
 uv run pytest                # must pass with NO Anthropic API key set
 ```
 
@@ -81,6 +81,9 @@ The most valuable habit in this repo, and the one most often skipped. Distinguis
 A PR that says "keyless-only" is welcome. A PR that implies live verification it did not do is
 the problem. If you change a **rendered dbt template**, the honest evidence is a real Postgres
 build; `demo/bank_postgres/` and `demo/mapping_postgres/` exist so you do not have to invent one.
+The Databricks target (`--target-platform databricks`) has no live evidence yet — a change to
+its dialect in `rules/platforms.py` is keyless-only by definition until a workspace build is
+recorded in `docs/log.md`, and must say so.
 
 Live runs cost real money. Before paying for another one, read the traces under
 `.vault-agent/traces/` and the stored results in `eval/results/` — three ~$5 runs once found

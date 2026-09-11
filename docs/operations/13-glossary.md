@@ -14,6 +14,7 @@ Short definitions with pointers to the chapter that explains each term in contex
 | Data contract | JSON-Schema-based description of one source asset incl. failure modes and owner; drafted per asset | 2.3, 6.4 |
 | Driving key | The link participation that stays fixed while others rotate; required for effectivity satellites | 2.2 |
 | Effectivity satellite | Tracks a relationship's active period (start, end); end-dates superseded rows | 2.2, 9.4 |
+| Target platform | The warehouse a run's generated project is aimed at (`--target-platform`); selects the seed-type dialect and README hint, never the vault SQL. Default `postgres`; Databricks selectable, keyless-only | 6.2, 9.6 |
 | Flag | Typed pipeline signal (agent, severity, kind, asset); feeds the review queue | 2.3, 7.3 |
 | Gap (mapping) | A concept with no in-scope source — honest output, not a defect | 7.1, 7.6 |
 | Gate (E_/W_ code) | One deterministic validator check; E_ blocks, W_ advises | 8 |

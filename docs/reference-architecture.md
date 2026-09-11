@@ -62,5 +62,6 @@ The fulfilment gradient follows ADR-0007's roadmap: staging → source-scoping a
 → business-rule registry → mart scaffolding. Today the pattern-based front (Stage + Raw Vault,
 plus validation, contracts, HITL and brownfield) is built and live-verified; the Business Vault
 axis is the open frontier, starting with PIT/Bridge as the only *Generate*-class gap. Platform
-reality: strategic targets Snowflake + MS Fabric, demo/verification on PostgreSQL (AutomateDV has
+reality: strategic targets Snowflake + MS Fabric, demo/verification on PostgreSQL; Databricks
+selectable since WP35 (2026-09-11), keyless-only (AutomateDV has
 no DuckDB support).

@@ -97,7 +97,7 @@ one-off overrides).
 
 - **Speed without sacrificing rigor** — collapse initial DV2.0 modeling from weeks toward hours
 - **Reproducible outputs** — reviewed dbt projects in git, never a no-code black box
-- **Warehouse-agnostic** — focus on Snowflake & MS Fabric (DACH), but runs on any AutomateDV-supported platform (Snowflake, BigQuery, Databricks, MS SQL Server, PostgreSQL); PostgreSQL for the local demo
+- **Warehouse-agnostic** — focus on Snowflake & MS Fabric (DACH), but runs on any AutomateDV-supported platform (Snowflake, BigQuery, Databricks, MS SQL Server, PostgreSQL); PostgreSQL for the local demo. Databricks is a selectable target (`--target-platform databricks`: native seed types, adapter hint) — keyless-only so far, no workspace build recorded
 - **Knowledge capture** — every modeling decision documented as an ADR
 - **Human-in-the-loop sign-off** — the run pauses for owner assignment and approval, then resumes from a checkpoint
 - **A force multiplier, not a replacement** — the architect keeps judgment; the agents do the toil
@@ -179,6 +179,13 @@ the **source mapper** additionally proposes, per business concept, the physical 
 column that feeds it (ADR-0008 — assist-level, evidence trail, coverage gaps reported,
 never guessed); add `--profiling <file.yml>` to supply column profiling statistics as
 extra evidence. Proposals land in `output/mappings.review.yml` for human ratification.
+
+`--target-platform databricks` aims the generated project at Databricks: the vault SQL is
+the same (AutomateDV dispatches per adapter), but the seed column types a contract pins
+use Databricks' native spellings (`string`, `decimal(38,18)` — bare `numeric` would be
+`DECIMAL(10,0)` there and truncate fractions) and the README names the adapter. The
+default, `postgres`, is byte-identical to the output before the option existed. Keyless-only
+so far: see the operations manual, chapter 9.6, for what the first live build must check.
 
 This produces a **runnable dbt project**: raw-vault models (`output/models/raw_vault/`),
 generated staging models computing every hash key and hashdiff

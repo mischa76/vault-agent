@@ -135,6 +135,7 @@ The design passes the three-files test from the harness literature the project c
 |------|----------|
 | `src/vault_agent/agents/` | One agent per file |
 | `src/vault_agent/rules/dv2_rules.py` | DV rules, steering registry, naming — single source of truth |
+| `src/vault_agent/rules/platforms.py` | Target-platform profiles: adapter, seed-type dialect, README hint (9.6) |
 | `src/vault_agent/prompts/` | LLM agent prompts (Markdown, loaded at runtime) |
 | `src/vault_agent/{graph,state,llm,cli}.py` | Topology · typed state · LLM chokepoint · CLI and output writing |
 | `demo/` | Re-runnable, no-API-key Postgres end-to-end demos (9.5) |

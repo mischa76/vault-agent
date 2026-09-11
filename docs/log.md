@@ -4226,3 +4226,39 @@ encode the unverified belief above. No profiles for Snowflake, BigQuery or SQL S
 keep running under the default with Postgres-spelled types, which they accept. No ADR: ADR-0003
 already lists Databricks; this makes one listed platform selectable. The earlier estimate
 (this morning's session, not logged) put the keyless part at 2–3 h; it took about that.
+
+## [2026-09-11] Three thrift alerts from the Databricks extra, and the fix is behind the same pin
+
+Pushing WP35 (`aabcecf`) triggered Dependabot's graph update, and it raised **three new alerts
+(20, 21, 22 — two high, one medium) on `thrift 0.20.0`**, which enters only through the new
+`demo-databricks` extra as a dependency of `databricks-sql-connector`. No first-party code
+imports it. CI, CodeQL and the graph update themselves were green.
+
+**The advertised fix is unreachable from this pin — the same shape as the sqlparse case
+(2026-08-24), one layer deeper.** All three advisories name 0.24.0 as the first patched
+version. `dbt-databricks 1.9.7` requires `databricks-sql-connector <4.0.0,>=3.5.0`; the locked
+connector 3.7.5 requires `thrift <0.21.0,>=0.16.0`, and so does every connector release through
+4.2. The first connector line admitting 0.24 is 4.5 (`thrift<0.25.0,>=0.24.0`), which
+`dbt-databricks` first admits at **1.12** (`databricks-sql-connector[pyarrow]<4.4.1,>=4.1.1`
+— 4.3 pins `thrift<0.23`, **4.4.0** is the first with `thrift<0.25.0,>=0.24.0`, and 1.12.5's
+cap of `<4.4.1` lets exactly that one through). And `dbt-databricks 1.12.x` requires
+`dbt-core <1.12.4,>=1.11.2` — the jump across two minor lines the 2026-08-24 entry deferred.
+`uv lock --upgrade-package thrift --dry-run`: no lockfile changes.
+
+**Unlike sqlparse, the vulnerable path IS reachable — by the first live build.** Thrift is the
+wire protocol the connector speaks to the SQL warehouse; alert 22 concerns certificate
+validation on host mismatch, i.e. the TLS session to the workspace. Nobody has run that here,
+so today the code is dead. A `not_used` dismissal would be true until the day someone follows
+WP35 §5 items 7–10, and false from then on. **The alerts stay open.** The condition is recorded
+in `CLAUDE.md` "Open items": lift the extra to a `dbt-databricks` line whose connector admits
+`thrift 0.24` — with `dbt-core 1.11` and the Postgres demos re-verified — *before* the first
+live Databricks build, not after.
+
+**Also noted, not acted on:** alert 16 (`sqlparse <= 0.5.5`, medium, 2026-09-01) is a fifth
+advisory in the class the 24.08 entry dismissed, with the same reachability argument and the
+same pin; and the three tornado alerts (13, 14, 19) have an open Dependabot PR (#27, 6.5.7 →
+6.5.8) since 2026-09-01 that has not been merged.
+
+**How this was verified:** `gh api` on the alerts, PyPI metadata for `databricks-sql-connector`
+3.7.5 / 4.0.0 / 4.1.0 / 4.2.0 / 4.5.0 and `dbt-databricks` 1.9.7 / 1.12.5, the lock file, and
+the dry-run upgrade. Nothing was installed or executed against a warehouse.

@@ -10,7 +10,9 @@ models — including the staging layer, data contracts for the source assets, a 
 queue for human sign-off, and an Architecture Decision Record explaining what was
 modelled and why. The output builds on a real warehouse: the reference verification runs
 on PostgreSQL 16, and any AutomateDV-supported platform (Snowflake, BigQuery,
-Databricks, MS SQL Server, PostgreSQL) is a valid target.
+Databricks, MS SQL Server, PostgreSQL) is a valid target. Databricks is additionally a
+*selectable* target (`--target-platform databricks`, 9.6) whose native seed types the
+generator writes itself — keyless-only so far, no workspace build recorded.
 
 The design conviction behind it: the slow, unforgiving part of Data Vault work — key
 identification, construct selection, loading logic — is automatable, but the *judgment*
