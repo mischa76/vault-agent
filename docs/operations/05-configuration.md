@@ -70,7 +70,9 @@ EU region is the default answer for Swiss/DACH class-1 contexts).
 A route with a missing value fails **at construction**, naming the variable
 (`llm_provider='bedrock' requires aws_region (AWS_REGION)`); a missing provider library
 fails at the first client build, naming the extra to install. Both before any token is
-spent.
+spent. The route is visible twice per run: the summary's `llm route:` line, and the
+`llm_route` header plus the per-call `client` field in the trace (10.2) — the evidence a
+customer's residency questionnaire asks for.
 
 **Model identifiers are not translated.** Set `PRIMARY_MODEL`/`HEAVY_MODEL` to what the
 chosen provider lists: first-party `claude-sonnet-4-6`; Bedrock IDs carry an `anthropic.`

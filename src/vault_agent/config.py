@@ -60,6 +60,28 @@ class Settings(BaseSettings):
     langsmith_tracing: bool = False
     langsmith_project: str = "vault-agent-dev"
 
+    def route(self) -> dict[str, str]:
+        """The route as facts — for the trace header and the console. Never a secret."""
+        facts: dict[str, str] = {"provider": self.llm_provider}
+        if self.llm_provider == "bedrock":
+            facts["region"] = self.aws_region or ""
+            if self.aws_profile:
+                facts["profile"] = self.aws_profile
+        elif self.llm_provider == "vertex":
+            facts["project"] = self.gcp_project_id or ""
+            facts["region"] = self.gcp_region or ""
+        return facts
+
+    def route_description(self) -> str:
+        """One line for the run summary: ``bedrock eu-central-2 (profile dwh)``."""
+        r = self.route()
+        if r["provider"] == "bedrock":
+            tail = f" (profile {r['profile']})" if "profile" in r else ""
+            return f"bedrock {r['region']}{tail}"
+        if r["provider"] == "vertex":
+            return f"vertex {r['project']} {r['region']}"
+        return "anthropic (first-party API)"
+
     @model_validator(mode="after")
     def _route_has_its_credentials(self) -> "Settings":
         """Fail at construction, naming the missing field for the chosen route."""

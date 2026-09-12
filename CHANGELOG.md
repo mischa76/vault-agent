@@ -17,6 +17,8 @@ is not the project's.
   switch from `docs/architecture/deployment-residency.md`, now wired: one client factory,
   construction-time validation naming the missing variable, optional extras `bedrock` and
   `vertex`. Keyless-only: no run has gone through Bedrock or Vertex yet (manual 5.5).
+- The route is reported: `llm route:` in the run summary, an `llm_route` header event in every
+  trace segment, and a `client` field on every call event naming the SDK client that carried it.
 
 ## [0.9.1] - 2026-09-12
 

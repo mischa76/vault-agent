@@ -46,7 +46,7 @@ vault-agent [--debug] run <input_doc> [OPTIONS]
 
 Console output, in order: the execution plan, per-agent progress with construct
 counts, a `mode: greenfield` / `extension (N existing construct(s))` line, a
-`platform: <name>` line, a
+`platform: <name>` line, an `llm route: <provider …>` line (5.5), a
 `grounding: on (N source table(s))` / `off` line, the run summary, and — when
 the run pauses — the review queue, blocking items first. A malformed
 `--source-schema`/`--profiling` fails before any LLM call with an attributable message. An

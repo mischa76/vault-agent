@@ -72,9 +72,13 @@ class TraceEvent:
     ``system_prompt`` is always filled — deduplication by ``system_prompt_sha`` is purely a
     writer concern (:mod:`vault_agent.trace`), so a recorder that wants the full text has it."""
 
-    kind: Literal["llm_call", "llm_error", "backstop"]
+    kind: Literal["llm_call", "llm_error", "backstop", "llm_route"]
     tool_name: str = ""
     model: str = ""
+    # The SDK client class that actually carried the call (``AsyncAnthropic``,
+    # ``AsyncAnthropicBedrockMantle``, ``AsyncAnthropicVertex``): the residency evidence per
+    # call, as opposed to the configured route in the ``llm_route`` header event.
+    client: str = ""
     attempt: int = 0
     system_prompt_sha: str = ""
     system_prompt: str = ""
@@ -116,6 +120,14 @@ def emit_trace(event: TraceEvent, recorder: TraceRecorder | None = None) -> None
         sink(event)
     except Exception:  # noqa: BLE001 - observational channel, never fatal
         logger.warning("trace recorder failed for a %s event", event.kind, exc_info=True)
+
+
+def route_event(settings: Any | None) -> TraceEvent:
+    """The trace header naming the configured route (``llm_route``), written once per run
+    segment before the first call. ``None`` — settings not constructible, as in keyless
+    tests — is recorded as such rather than guessed."""
+    payload = settings.route() if settings is not None else {"provider": "unknown"}
+    return TraceEvent(kind="llm_route", payload=payload)
 
 
 def prompt_sha(system_prompt: str) -> str:
@@ -279,6 +291,7 @@ class ForcedToolCaller:
                     kind=kind,
                     tool_name=tool_name,
                     model=self._model,
+                    client=type(self._client).__name__,
                     attempt=attempt,
                     system_prompt_sha=sha,
                     system_prompt=system_prompt,

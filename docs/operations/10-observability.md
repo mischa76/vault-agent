@@ -16,9 +16,14 @@ Every run writes a transcript of its LLM interactions:
 (`--no-trace` opts out). A resume appends to the same file, so one HITL run reads as
 one transcript; a crash keeps everything written so far.
 
-Event kinds: `llm_call` (a completed API response — including a truncated one),
+Event kinds: `llm_route` (the first line of every run segment: the configured route as
+facts — `{"provider": "bedrock", "region": "eu-central-2"}`, or `unknown` when settings
+did not construct; 5.5), `llm_call` (a completed API response — including a truncated one),
 `llm_error` (a terminal failure: truncation, missing tool block, exhausted retries, a
-non-retryable 4xx), and `backstop` (10.4). Fields per event: timestamp, `tool_name`
+non-retryable 4xx), and `backstop` (10.4). Fields per event: timestamp, `tool_name`,
+`client` (the SDK client class that carried the call — `AsyncAnthropic`,
+`AsyncAnthropicBedrockMantle`, `AsyncAnthropicVertex`; the per-call residency evidence,
+as opposed to the configured route in the header)
 (the de-facto agent id — e.g. `emit_dv_model` is the modeler), `model`, `attempt`,
 `system_prompt` + `system_prompt_sha` (full text only on the first event per sha —
 later events carry the sha alone), `user_content`, `max_tokens`. Every `llm_call`

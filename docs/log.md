@@ -4407,3 +4407,21 @@ the residency evidence a customer will ask for). **Not verified:** no run has cr
 Bedrock or Vertex; whether the EU geographic inference profile the residency document
 recommends is reachable through the Mantle endpoint or only through the legacy client is a
 question for the first deployment, not answerable offline. Manual 5.5 says keyless-only.
+
+## [2026-09-12] The route is now visible: console line, trace header, per-call client
+
+Follow-up to the residency switch, on request. Three places say which route a run took:
+`llm route: bedrock eu-central-2 (profile dwh)` in the run summary (`Settings.route_description`),
+an `llm_route` event as the **first line of every trace segment** with the configured route as
+facts (`Settings.route()`: provider, region, profile / project — never a credential), and a new
+`client` field on every `llm_call`/`llm_error` event carrying the SDK client class that actually
+made the call (`AsyncAnthropic`, `AsyncAnthropicBedrockMantle`, `AsyncAnthropicVertex`). The
+header states what was configured; the field states what ran — a customer's residency
+questionnaire needs both, and they can disagree only if someone injected a client. When settings
+do not construct (keyless tests), header and console say `unknown` rather than guessing; the
+lookup never raises, so it cannot fail a run.
+
+Keyless: 912 passed, 2 skipped; ruff, bare mypy clean. One existing test was updated on purpose
+(`test_run_writes_a_grepable_trace_per_thread`): the header is now the first record, so the
+assertions filter to call events. Manual 5.5, 6.2 and 10.2, CHANGELOG. Not measured: no trace
+from a Bedrock or Vertex run exists yet to show the field with a non-first-party value.

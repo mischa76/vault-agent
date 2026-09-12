@@ -381,10 +381,24 @@ def _tracing(out_dir: Path, thread_id: str, enabled: bool) -> Iterator[None]:
         yield
         return
     _llm.set_trace_recorder(JsonlTraceWriter(_trace_path(out_dir, thread_id)))
+    # First line of every run segment: which route the calls below travelled (residency
+    # evidence; the per-call `client` field says what actually carried each one).
+    _llm.emit_trace(_llm.route_event(_settings_or_none()))
     try:
         yield
     finally:
         _llm.set_trace_recorder(None)
+
+
+def _settings_or_none() -> Any | None:
+    """Settings if they construct, else None — the summary and the trace header must never
+    fail a run (or a keyless test) over a missing credential."""
+    from vault_agent.config import get_settings
+
+    try:
+        return get_settings()
+    except Exception:  # noqa: BLE001 - reporting only
+        return None
 
 
 def _pending_path(out_dir: Path) -> Path:
@@ -1092,6 +1106,11 @@ def _construct_count(model: DVModel) -> int:
     return len(model.hubs) + len(model.links) + len(model.satellites)
 
 
+def _route_line() -> str:
+    settings = _settings_or_none()
+    return settings.route_description() if settings is not None else "unknown (settings not loaded)"
+
+
 def _print_summary(console: Console, state: VaultAgentState) -> None:
     model = state.dv_model
     report = state.validation_report
@@ -1107,6 +1126,7 @@ def _print_summary(console: Console, state: VaultAgentState) -> None:
     console.print(
         f"  mode:          {mode}\n"
         f"  platform:      {state.target_platform}\n"
+        f"  llm route:     {_route_line()}\n"
         f"  requirements:  {len(state.requirements)}\n"
         f"  business keys: {len(state.business_keys)}\n"
         f"  grounding:     {grounding}\n"

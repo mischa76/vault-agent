@@ -708,8 +708,12 @@ def test_run_writes_a_grepable_trace_per_thread(
     traces = _trace_files(tmp_path)
     assert [path.name for path in traces] == [f"{thread_id}.jsonl"]
     records = [json.loads(line) for line in traces[0].read_text().splitlines()]
-    assert [record["tool_name"] for record in records] == ["emit_dv_model", "emit_adr"]
-    assert records[0]["payload"] == {"hubs": []}
+    # The first line of a trace is the route header (residency evidence, 2026-09-12); the
+    # calls follow it.
+    assert records[0]["kind"] == "llm_route"
+    calls = [record for record in records if record["kind"] != "llm_route"]
+    assert [record["tool_name"] for record in calls] == ["emit_dv_model", "emit_adr"]
+    assert calls[0]["payload"] == {"hubs": []}
     assert llm._default_trace_recorder is None  # cleared after the run
 
 
