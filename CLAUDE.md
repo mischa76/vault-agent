@@ -122,7 +122,9 @@ fresh clone does not lose them.
 
 - **Definition of done.** `uv run pytest`, `uv run ruff check`, and a bare `uv run mypy` — no path
   argument, it overrides `pyproject`'s file list and silently skips `eval/`. Then a `docs/log.md`
-  entry. A live-verified claim names its evidence; a keyless-only claim says so.
+  entry. A live-verified claim names its evidence and says *which* live: a paid LLM run verifies
+  modelling, a keyless `dbt build` verifies the warehouse output; a keyless-only claim says so.
+  "No dbt build on either line" once erased months of Postgres builds (`docs/log.md`, 2026-09-12).
 
 ## Current state
 
@@ -157,12 +159,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   which is new capability and ADR-shaped, not an alias.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
-  changes seed types and the README; no `dbt build` has run against a workspace. Its extra
-  `demo-databricks` sits on dbt-core 1.11 and **conflicts with `demo`** (dbt-core 1.9, the
-  Postgres-verified line) — `uv sync` installs one or the other, never both (`tool.uv.conflicts`,
-  2026-09-12). The Postgres line is verified live many times (`docs/log.md`, from 2026-06-23);
-  the Databricks line has never been built anywhere — no workspace. Two kinds of "live" here:
-  a paid LLM pipeline run verifies modelling, a keyless `dbt build` verifies the warehouse output.
+  changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`
+  (dbt-core 1.11) **conflicts with `demo`** (dbt-core 1.9, the line verified on Postgres since
+  2026-06-23) — `uv sync` installs one or the other, never both (`tool.uv.conflicts`, 2026-09-12).
 
 ## How this file is maintained
 
