@@ -96,6 +96,18 @@ source_schemas:
     references_columns:
     - AddressID
     references_schema: Person
+  - columns:
+    - AddressTypeID
+    references_table: AddressType
+    references_columns:
+    - AddressTypeID
+    references_schema: Person
+  - columns:
+    - BusinessEntityID
+    references_table: BusinessEntity
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
 - table: BusinessEntityContact
   schema: Person
   columns:
@@ -119,6 +131,18 @@ source_schemas:
   - columns:
     - PersonID
     references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
+  - columns:
+    - ContactTypeID
+    references_table: ContactType
+    references_columns:
+    - ContactTypeID
+    references_schema: Person
+  - columns:
+    - BusinessEntityID
+    references_table: BusinessEntity
     references_columns:
     - BusinessEntityID
     references_schema: Person
@@ -277,6 +301,12 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  - columns:
+    - PhoneNumberTypeID
+    references_table: PhoneNumberType
+    references_columns:
+    - PhoneNumberTypeID
+    references_schema: Person
 - table: PhoneNumberType
   schema: Person
   columns:
@@ -326,3 +356,9 @@ source_schemas:
     references_columns:
     - CountryRegionCode
     references_schema: Person
+  - columns:
+    - TerritoryID
+    references_table: SalesTerritory
+    references_columns:
+    - TerritoryID
+    references_schema: Sales

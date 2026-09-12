@@ -106,6 +106,18 @@ source_schemas:
     references_columns:
     - DepartmentID
     references_schema: HumanResources
+  - columns:
+    - BusinessEntityID
+    references_table: Employee
+    references_columns:
+    - BusinessEntityID
+    references_schema: HumanResources
+  - columns:
+    - ShiftID
+    references_table: Shift
+    references_columns:
+    - ShiftID
+    references_schema: HumanResources
 - table: EmployeePayHistory
   schema: HumanResources
   columns:

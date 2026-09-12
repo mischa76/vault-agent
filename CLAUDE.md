@@ -149,8 +149,10 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   direction, not a verdict. **WP34 §6 is NOT MET** (7 < 8, `hub_sales_representative` returned).
   The residual ceiling is named: FK-derived proposals are near-hub links, and 3 of the 4 translated
   foreign keys (WP36, live-verified once on `ShoppingCartItem`) reference from relationship or
-  detail tables that get no hub. Closing that is a further capability (relationship-table links),
-  not a fix; the charter's falsification clause applies. `docs/log.md` 2026-09-12.
+  detail tables that get no hub. Same day: the extractor had dropped 44 of AdventureWorks' 90
+  foreign keys (fixed, re-derived); with all 90, arm A's 16 links split 8 direct / 6 relationship-
+  table / 2 none — the FK-evidence ceiling for incremental mode is 15 of 16, reached by adding the
+  relationship-table rule. Do not pay for another rerun before it exists. `docs/log.md` 2026-09-12.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

@@ -69,10 +69,16 @@ _AK_RE = re.compile(
     r"\((?P<cols>.*?)\)",
     re.S,
 )
+# Two stages, on purpose. instawdb.sql adds SEVERAL constraints per statement
+# (`ADD CONSTRAINT [FK_a] ..., CONSTRAINT [FK_b] ...;`); a single regex anchored on
+# `ALTER TABLE ... ADD CONSTRAINT` matched only the first of each and silently dropped 44 of
+# the 90 foreign keys (found 2026-09-12 — every relationship table lost its second key).
+_ALTER_ADD_RE = re.compile(
+    r"ALTER TABLE \[(?P<schema>\w+)\]\.\[(?P<table>\w+)\] ADD\s+(?P<body>.*?);", re.S
+)
 _FK_RE = re.compile(
-    r"ALTER TABLE \[(?P<schema>\w+)\]\.\[(?P<table>\w+)\] ADD\s+CONSTRAINT \[FK_\w+\] "
-    r"FOREIGN KEY\s*\((?P<cols>.*?)\)\s*REFERENCES \[(?P<ref_schema>\w+)\]\."
-    r"\[(?P<ref_table>\w+)\]\s*\((?P<ref_cols>.*?)\)",
+    r"CONSTRAINT \[FK_\w+\]\s+FOREIGN KEY\s*\((?P<cols>.*?)\)\s*REFERENCES "
+    r"\[(?P<ref_schema>\w+)\]\.\[(?P<ref_table>\w+)\]\s*\((?P<ref_cols>.*?)\)",
     re.S,
 )
 
@@ -171,16 +177,17 @@ def parse(sql: str) -> list[Table]:
              "technical_guid": cols == ["rowguid"]}
         )
 
-    for match in _FK_RE.finditer(sql):
-        table = tables.get((match.group("schema"), match.group("table")))
+    for statement in _ALTER_ADD_RE.finditer(sql):
+        table = tables.get((statement.group("schema"), statement.group("table")))
         if table is None:
             continue
-        table.foreign_keys.append({
-            "columns": _names(match.group("cols")),
-            "references_schema": match.group("ref_schema"),
-            "references_table": match.group("ref_table"),
-            "references_columns": _names(match.group("ref_cols")),
-        })
+        for match in _FK_RE.finditer(statement.group("body")):
+            table.foreign_keys.append({
+                "columns": _names(match.group("cols")),
+                "references_schema": match.group("ref_schema"),
+                "references_table": match.group("ref_table"),
+                "references_columns": _names(match.group("ref_cols")),
+            })
 
     return list(tables.values())
 

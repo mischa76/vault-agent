@@ -46,6 +46,18 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  - columns:
+    - UnitMeasureCode
+    references_table: UnitMeasure
+    references_columns:
+    - UnitMeasureCode
+    references_schema: Production
+  - columns:
+    - BusinessEntityID
+    references_table: Vendor
+    references_columns:
+    - BusinessEntityID
+    references_schema: Purchasing
 - table: PurchaseOrderDetail
   schema: Purchasing
   columns:
@@ -89,6 +101,12 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  - columns:
+    - PurchaseOrderID
+    references_table: PurchaseOrderHeader
+    references_columns:
+    - PurchaseOrderID
+    references_schema: Purchasing
 - table: PurchaseOrderHeader
   schema: Purchasing
   columns:
@@ -139,6 +157,18 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: HumanResources
+  - columns:
+    - VendorID
+    references_table: Vendor
+    references_columns:
+    - BusinessEntityID
+    references_schema: Purchasing
+  - columns:
+    - ShipMethodID
+    references_table: ShipMethod
+    references_columns:
+    - ShipMethodID
+    references_schema: Purchasing
 - table: ShipMethod
   schema: Purchasing
   columns:

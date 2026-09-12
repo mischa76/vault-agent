@@ -635,3 +635,13 @@ WP34 §6 is not met (7 < 8, named regression). The residual ceiling is named in 
 (2026-09-12): FK-derived proposals are near-hub links, and three of the four translated foreign
 keys reference from tables that get no hub. The old §7.3 text stands as the record of what was
 believed; this addendum is what replaced it.
+
+## Addendum 2026-09-12, later — §7.1's derivation rested on 46 of 90 foreign keys
+
+The extractor read only the first constraint of each multi-constraint `ALTER TABLE`; the
+derived schemas carried 46 foreign keys, not the 90 §7.1 names. Fixed and re-derived the same
+day (`docs/log.md`). With all 90, `Person.StateProvince.TerritoryID → Sales.SalesTerritory`
+makes Person↔Sales a cycle: no step order honours every edge, and `ARM_B_ORDER` stays as
+registered with that one edge as its recorded exception. Arm A's 16 cross-domain links split
+8 / 6 / 2 (direct FK / relationship table / none) — the ceiling for arm B from declared
+evidence is 15 of 16, not the 2, 5 or 9 discussed before.

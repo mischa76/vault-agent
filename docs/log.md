@@ -4594,3 +4594,55 @@ usage, not invoice numbers.
 untouched): the repaired arm-B measurement at n=1 reads 7 cross-domain links against arm A's 16,
 review load 519, gates green, one named regression. The 73 %-deficit sentence is replaced by
 "56 % of arm A's cross-domain links at one repeat, with the two structural ceilings named".
+
+## [2026-09-12] The extractor dropped 44 of 90 foreign keys — every WP34/WP36 measurement ran on half the evidence
+
+Asked whether incremental modelling faces an unsolvable problem, the honest answer needed one
+number: how many of arm A's 16 cross-domain links rest on declared foreign keys. Computing it
+found that the derived schemas carry **46** foreign keys while `instawdb.sql` declares **90**
+(counted in the file, fetched from microsoft/sql-server-samples). Cause, read in
+`eval/adventureworks/extract.py`: `_FK_RE` was anchored on `ALTER TABLE … ADD CONSTRAINT [FK_…]`,
+and AdventureWorks adds *several* constraints per statement — the regex took the first of each
+and silently dropped the rest. Precisely the second key of every relationship table was lost
+(`ProductVendor → Vendor`, `SpecialOfferProduct → SpecialOffer`, `PersonCreditCard →
+CreditCard`, `CountryRegionCurrency → Currency`, …). WP30 §7.1's "derived from the extract's 90
+foreign keys" counted the SQL; the extract never had them.
+
+**Fixed, guard first.** `tests/test_adventureworks_extract.py` pins a three-constraint statement
+(failed on the old code, passes now); the parser is two-stage (statement, then constraints
+within it). Extract regenerated: 68 tables, **90** foreign keys, 89 single-column; datasets
+re-derived deterministically (7 files changed, columns and comments untouched). One
+pre-registration could not survive the full set: **`Person.StateProvince.TerritoryID →
+Sales.SalesTerritory` makes Person↔Sales a cycle**, so no step order honours every edge.
+`ARM_B_ORDER` stays as registered — an order chosen after results is worth nothing — and the
+order test now names that single edge as its recorded exception. 931 passed, 2 skipped; ruff,
+bare mypy clean.
+
+**What the full evidence says — the computation that was asked for:**
+
+```
+Arm A's 16 cross-domain links, by evidence:
+   8  a direct foreign key between the two hubs' tables      (near-hub — WP34's rule)
+   6  the two keys of a relationship table without a hub     (the rule nobody built)
+   2  no declared foreign key at all                          (business_entity↔employee, store↔sales_person)
+
+Ceiling of FK evidence against arm A's hubs: 8 near-hub pairs + 7 relationship tables
+   (ProductVendor, PurchaseOrderHeader, CountryRegionCurrency, PersonCreditCard,
+    SalesOrderHeader, SalesPerson, SpecialOfferProduct) = 15 of 16 constructible;
+   3 cross-schema keys unreachable (2 detail tables whose header has no hub, 1 target without a hub).
+```
+
+Replayed offline against today's recorded vault with all 90 keys, the proposer as built makes
+16 proposals over four increments (9 same-name, 3 renamed, 4 translated) against 12 before —
+still near-hub only. **So: not unsolvable, and not even close.** Incremental mode's ceiling from
+declared evidence is 15 of 16, reached with two deterministic rules, one of which exists. The
+bar of 8 was never the problem; the missing keys and the missing rule were. The named
+regression (`hub_sales_representative`) is a separate, modeler-side matter.
+
+**Consequences for the record.** The 2026-08-12 "18 structural / 4 design" audit, the WP34 §6
+ceiling of "16 cross-schema foreign keys", the WP30 rerun protocol's predictions and today's
+7-of-8 result were all computed on 46 keys; none is wrong about what it measured, all are
+smaller than the truth. The step order's derivation claim in WP30 §7.1 is corrected here, not
+there. No paid run was needed for any of this, and none should be paid for before the
+relationship-table rule exists — the next rerun would otherwise measure the same near-hub
+ceiling on more keys.

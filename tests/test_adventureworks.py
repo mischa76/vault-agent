@@ -140,13 +140,26 @@ def test_rowguid_is_a_false_friend_never_a_mapping(extract: dict) -> None:
         assert all(m.source_column != "rowguid" for m in golden.mappings)
 
 
+# The one cross-area foreign key the pre-registered order cannot honour. It surfaced on
+# 2026-09-12, when the extractor was fixed to read every constraint of a multi-constraint
+# ALTER TABLE (90 foreign keys instead of 46): Person.StateProvince.TerritoryID references
+# Sales.SalesTerritory, so Person↔Sales is a CYCLE and no order satisfies both directions.
+# (Production.Document.Owner → HumanResources.Employee also appeared; the order honours it.)
+# ARM_B_ORDER stays as pre-registered (§7.1 — an order chosen after seeing results is worth
+# nothing); this edge is the recorded exception, and any second one fails here.
+_ORDER_EXCEPTIONS = {("Person", "Sales")}
+
+
 def test_arm_b_order_follows_the_foreign_keys(extract: dict) -> None:
-    """§7.1: the step order is derived, not chosen — every area follows what it references."""
+    """§7.1: the step order is derived, not chosen — every area follows what it references,
+    except the edge named above, which the full foreign-key set revealed as a cycle."""
     edges = foreign_key_edges(extract)
     seen: set[str] = set()
+    violations: set[tuple[str, str]] = set()
     for schema in ARM_B_ORDER:
-        assert edges[schema] <= seen, f"{schema} precedes an area it references"
+        violations |= {(schema, ref) for ref in edges[schema] - seen}
         seen.add(schema)
+    assert violations == _ORDER_EXCEPTIONS, violations
     assert set(ARM_B_ORDER) == set(subject_areas(extract))
 
 

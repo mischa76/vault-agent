@@ -266,6 +266,26 @@
           ],
           "references_schema": "HumanResources",
           "references_table": "Department"
+        },
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "HumanResources",
+          "references_table": "Employee"
+        },
+        {
+          "columns": [
+            "ShiftID"
+          ],
+          "references_columns": [
+            "ShiftID"
+          ],
+          "references_schema": "HumanResources",
+          "references_table": "Shift"
         }
       ],
       "name": "EmployeeDepartmentHistory",
@@ -680,6 +700,26 @@
           ],
           "references_schema": "Person",
           "references_table": "Address"
+        },
+        {
+          "columns": [
+            "AddressTypeID"
+          ],
+          "references_columns": [
+            "AddressTypeID"
+          ],
+          "references_schema": "Person",
+          "references_table": "AddressType"
+        },
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "BusinessEntity"
         }
       ],
       "name": "BusinessEntityAddress",
@@ -744,6 +784,26 @@
           ],
           "references_schema": "Person",
           "references_table": "Person"
+        },
+        {
+          "columns": [
+            "ContactTypeID"
+          ],
+          "references_columns": [
+            "ContactTypeID"
+          ],
+          "references_schema": "Person",
+          "references_table": "ContactType"
+        },
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Person",
+          "references_table": "BusinessEntity"
         }
       ],
       "name": "BusinessEntityContact",
@@ -1103,6 +1163,16 @@
           ],
           "references_schema": "Person",
           "references_table": "Person"
+        },
+        {
+          "columns": [
+            "PhoneNumberTypeID"
+          ],
+          "references_columns": [
+            "PhoneNumberTypeID"
+          ],
+          "references_schema": "Person",
+          "references_table": "PhoneNumberType"
         }
       ],
       "name": "PersonPhone",
@@ -1234,6 +1304,16 @@
           ],
           "references_schema": "Person",
           "references_table": "CountryRegion"
+        },
+        {
+          "columns": [
+            "TerritoryID"
+          ],
+          "references_columns": [
+            "TerritoryID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesTerritory"
         }
       ],
       "name": "StateProvince",
@@ -1318,6 +1398,26 @@
           ],
           "references_schema": "Production",
           "references_table": "Product"
+        },
+        {
+          "columns": [
+            "ComponentID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
+        },
+        {
+          "columns": [
+            "UnitMeasureCode"
+          ],
+          "references_columns": [
+            "UnitMeasureCode"
+          ],
+          "references_schema": "Production",
+          "references_table": "UnitMeasure"
         }
       ],
       "name": "BillOfMaterials",
@@ -1786,6 +1886,36 @@
           ],
           "references_schema": "Production",
           "references_table": "UnitMeasure"
+        },
+        {
+          "columns": [
+            "WeightUnitMeasureCode"
+          ],
+          "references_columns": [
+            "UnitMeasureCode"
+          ],
+          "references_schema": "Production",
+          "references_table": "UnitMeasure"
+        },
+        {
+          "columns": [
+            "ProductModelID"
+          ],
+          "references_columns": [
+            "ProductModelID"
+          ],
+          "references_schema": "Production",
+          "references_table": "ProductModel"
+        },
+        {
+          "columns": [
+            "ProductSubcategoryID"
+          ],
+          "references_columns": [
+            "ProductSubcategoryID"
+          ],
+          "references_schema": "Production",
+          "references_table": "ProductSubcategory"
         }
       ],
       "name": "Product",
@@ -1983,6 +2113,16 @@
           ],
           "references_schema": "Production",
           "references_table": "Product"
+        },
+        {
+          "columns": [
+            "DocumentNode"
+          ],
+          "references_columns": [
+            "DocumentNode"
+          ],
+          "references_schema": "Production",
+          "references_table": "Document"
         }
       ],
       "name": "ProductDocument",
@@ -2053,6 +2193,16 @@
           ],
           "references_schema": "Production",
           "references_table": "Location"
+        },
+        {
+          "columns": [
+            "ProductID"
+          ],
+          "references_columns": [
+            "ProductID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Product"
         }
       ],
       "name": "ProductInventory",
@@ -2218,6 +2368,16 @@
           ],
           "references_schema": "Production",
           "references_table": "ProductModel"
+        },
+        {
+          "columns": [
+            "IllustrationID"
+          ],
+          "references_columns": [
+            "IllustrationID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Illustration"
         }
       ],
       "name": "ProductModelIllustration",
@@ -2267,6 +2427,26 @@
           ],
           "references_schema": "Production",
           "references_table": "ProductDescription"
+        },
+        {
+          "columns": [
+            "CultureID"
+          ],
+          "references_columns": [
+            "CultureID"
+          ],
+          "references_schema": "Production",
+          "references_table": "Culture"
+        },
+        {
+          "columns": [
+            "ProductModelID"
+          ],
+          "references_columns": [
+            "ProductModelID"
+          ],
+          "references_schema": "Production",
+          "references_table": "ProductModel"
         }
       ],
       "name": "ProductModelProductDescriptionCulture",
@@ -2368,6 +2548,16 @@
           ],
           "references_schema": "Production",
           "references_table": "Product"
+        },
+        {
+          "columns": [
+            "ProductPhotoID"
+          ],
+          "references_columns": [
+            "ProductPhotoID"
+          ],
+          "references_schema": "Production",
+          "references_table": "ProductPhoto"
         }
       ],
       "name": "ProductProductPhoto",
@@ -2842,6 +3032,16 @@
           ],
           "references_schema": "Production",
           "references_table": "Product"
+        },
+        {
+          "columns": [
+            "ScrapReasonID"
+          ],
+          "references_columns": [
+            "ScrapReasonID"
+          ],
+          "references_schema": "Production",
+          "references_table": "ScrapReason"
         }
       ],
       "name": "WorkOrder",
@@ -2947,6 +3147,16 @@
           ],
           "references_schema": "Production",
           "references_table": "Location"
+        },
+        {
+          "columns": [
+            "WorkOrderID"
+          ],
+          "references_columns": [
+            "WorkOrderID"
+          ],
+          "references_schema": "Production",
+          "references_table": "WorkOrder"
         }
       ],
       "name": "WorkOrderRouting",
@@ -3045,6 +3255,26 @@
           ],
           "references_schema": "Production",
           "references_table": "Product"
+        },
+        {
+          "columns": [
+            "UnitMeasureCode"
+          ],
+          "references_columns": [
+            "UnitMeasureCode"
+          ],
+          "references_schema": "Production",
+          "references_table": "UnitMeasure"
+        },
+        {
+          "columns": [
+            "BusinessEntityID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Purchasing",
+          "references_table": "Vendor"
         }
       ],
       "name": "ProductVendor",
@@ -3143,6 +3373,16 @@
           ],
           "references_schema": "Production",
           "references_table": "Product"
+        },
+        {
+          "columns": [
+            "PurchaseOrderID"
+          ],
+          "references_columns": [
+            "PurchaseOrderID"
+          ],
+          "references_schema": "Purchasing",
+          "references_table": "PurchaseOrderHeader"
         }
       ],
       "name": "PurchaseOrderDetail",
@@ -3255,6 +3495,26 @@
           ],
           "references_schema": "HumanResources",
           "references_table": "Employee"
+        },
+        {
+          "columns": [
+            "VendorID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Purchasing",
+          "references_table": "Vendor"
+        },
+        {
+          "columns": [
+            "ShipMethodID"
+          ],
+          "references_columns": [
+            "ShipMethodID"
+          ],
+          "references_schema": "Purchasing",
+          "references_table": "ShipMethod"
         }
       ],
       "name": "PurchaseOrderHeader",
@@ -3449,6 +3709,16 @@
           ],
           "references_schema": "Person",
           "references_table": "CountryRegion"
+        },
+        {
+          "columns": [
+            "CurrencyCode"
+          ],
+          "references_columns": [
+            "CurrencyCode"
+          ],
+          "references_schema": "Sales",
+          "references_table": "Currency"
         }
       ],
       "name": "CountryRegionCurrency",
@@ -3628,6 +3898,16 @@
           ],
           "references_schema": "Sales",
           "references_table": "Currency"
+        },
+        {
+          "columns": [
+            "ToCurrencyCode"
+          ],
+          "references_columns": [
+            "CurrencyCode"
+          ],
+          "references_schema": "Sales",
+          "references_table": "Currency"
         }
       ],
       "name": "CurrencyRate",
@@ -3713,6 +3993,26 @@
           ],
           "references_schema": "Person",
           "references_table": "Person"
+        },
+        {
+          "columns": [
+            "StoreID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "Store"
+        },
+        {
+          "columns": [
+            "TerritoryID"
+          ],
+          "references_columns": [
+            "TerritoryID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesTerritory"
         }
       ],
       "name": "Customer",
@@ -3755,6 +4055,16 @@
           ],
           "references_schema": "Person",
           "references_table": "Person"
+        },
+        {
+          "columns": [
+            "CreditCardID"
+          ],
+          "references_columns": [
+            "CreditCardID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "CreditCard"
         }
       ],
       "name": "PersonCreditCard",
@@ -3861,6 +4171,18 @@
           ],
           "references_schema": "Sales",
           "references_table": "SalesOrderHeader"
+        },
+        {
+          "columns": [
+            "SpecialOfferID",
+            "ProductID"
+          ],
+          "references_columns": [
+            "SpecialOfferID",
+            "ProductID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SpecialOfferProduct"
         }
       ],
       "name": "SalesOrderDetail",
@@ -4079,6 +4401,76 @@
           ],
           "references_schema": "Person",
           "references_table": "Address"
+        },
+        {
+          "columns": [
+            "ShipToAddressID"
+          ],
+          "references_columns": [
+            "AddressID"
+          ],
+          "references_schema": "Person",
+          "references_table": "Address"
+        },
+        {
+          "columns": [
+            "CreditCardID"
+          ],
+          "references_columns": [
+            "CreditCardID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "CreditCard"
+        },
+        {
+          "columns": [
+            "CurrencyRateID"
+          ],
+          "references_columns": [
+            "CurrencyRateID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "CurrencyRate"
+        },
+        {
+          "columns": [
+            "CustomerID"
+          ],
+          "references_columns": [
+            "CustomerID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "Customer"
+        },
+        {
+          "columns": [
+            "SalesPersonID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesPerson"
+        },
+        {
+          "columns": [
+            "ShipMethodID"
+          ],
+          "references_columns": [
+            "ShipMethodID"
+          ],
+          "references_schema": "Purchasing",
+          "references_table": "ShipMethod"
+        },
+        {
+          "columns": [
+            "TerritoryID"
+          ],
+          "references_columns": [
+            "TerritoryID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesTerritory"
         }
       ],
       "name": "SalesOrderHeader",
@@ -4121,6 +4513,16 @@
           ],
           "references_schema": "Sales",
           "references_table": "SalesReason"
+        },
+        {
+          "columns": [
+            "SalesOrderID"
+          ],
+          "references_columns": [
+            "SalesOrderID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesOrderHeader"
         }
       ],
       "name": "SalesOrderHeaderSalesReason",
@@ -4213,6 +4615,16 @@
           ],
           "references_schema": "HumanResources",
           "references_table": "Employee"
+        },
+        {
+          "columns": [
+            "TerritoryID"
+          ],
+          "references_columns": [
+            "TerritoryID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesTerritory"
         }
       ],
       "name": "SalesPerson",
@@ -4578,6 +4990,16 @@
           ],
           "references_schema": "Sales",
           "references_table": "SalesPerson"
+        },
+        {
+          "columns": [
+            "TerritoryID"
+          ],
+          "references_columns": [
+            "TerritoryID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesTerritory"
         }
       ],
       "name": "SalesTerritoryHistory",
@@ -4793,6 +5215,16 @@
           ],
           "references_schema": "Production",
           "references_table": "Product"
+        },
+        {
+          "columns": [
+            "SpecialOfferID"
+          ],
+          "references_columns": [
+            "SpecialOfferID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SpecialOffer"
         }
       ],
       "name": "SpecialOfferProduct",
@@ -4864,6 +5296,16 @@
           ],
           "references_schema": "Person",
           "references_table": "BusinessEntity"
+        },
+        {
+          "columns": [
+            "SalesPersonID"
+          ],
+          "references_columns": [
+            "BusinessEntityID"
+          ],
+          "references_schema": "Sales",
+          "references_table": "SalesPerson"
         }
       ],
       "name": "Store",

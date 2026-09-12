@@ -23,6 +23,11 @@ is not the project's.
   translation no ratified proposal produced — added after a paid run showed the modeler filling
   the field the moment it could see it.
 
+### Fixed
+- `eval/adventureworks/extract.py` read only the first constraint of a multi-constraint
+  `ALTER TABLE`; 44 of AdventureWorks' 90 foreign keys were missing from every derived schema.
+  Re-derived; one pre-registered step-order edge (Person↔Sales) is now a recorded cycle.
+
 ### Measured
 - WP30 arm-B rerun (2026-09-12, one repeat, ~$17): 7 cross-domain links (was 2), review load 519
   (< 619), all gates green; WP34 §6 not met (7 < 8, `hub_sales_representative` returned). One

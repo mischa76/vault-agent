@@ -21,6 +21,12 @@ source_schemas:
     references_columns:
     - CountryRegionCode
     references_schema: Person
+  - columns:
+    - CurrencyCode
+    references_table: Currency
+    references_columns:
+    - CurrencyCode
+    references_schema: Sales
 - table: CreditCard
   schema: Sales
   columns:
@@ -85,6 +91,12 @@ source_schemas:
     references_columns:
     - CurrencyCode
     references_schema: Sales
+  - columns:
+    - ToCurrencyCode
+    references_table: Currency
+    references_columns:
+    - CurrencyCode
+    references_schema: Sales
 - table: Customer
   schema: Sales
   columns:
@@ -118,6 +130,18 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  - columns:
+    - StoreID
+    references_table: Store
+    references_columns:
+    - BusinessEntityID
+    references_schema: Sales
+  - columns:
+    - TerritoryID
+    references_table: SalesTerritory
+    references_columns:
+    - TerritoryID
+    references_schema: Sales
 - table: PersonCreditCard
   schema: Sales
   columns:
@@ -137,6 +161,12 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  - columns:
+    - CreditCardID
+    references_table: CreditCard
+    references_columns:
+    - CreditCardID
+    references_schema: Sales
 - table: SalesOrderDetail
   schema: Sales
   columns:
@@ -181,6 +211,14 @@ source_schemas:
     references_table: SalesOrderHeader
     references_columns:
     - SalesOrderID
+    references_schema: Sales
+  - columns:
+    - SpecialOfferID
+    - ProductID
+    references_table: SpecialOfferProduct
+    references_columns:
+    - SpecialOfferID
+    - ProductID
     references_schema: Sales
 - table: SalesOrderHeader
   schema: Sales
@@ -273,6 +311,48 @@ source_schemas:
     references_columns:
     - AddressID
     references_schema: Person
+  - columns:
+    - ShipToAddressID
+    references_table: Address
+    references_columns:
+    - AddressID
+    references_schema: Person
+  - columns:
+    - CreditCardID
+    references_table: CreditCard
+    references_columns:
+    - CreditCardID
+    references_schema: Sales
+  - columns:
+    - CurrencyRateID
+    references_table: CurrencyRate
+    references_columns:
+    - CurrencyRateID
+    references_schema: Sales
+  - columns:
+    - CustomerID
+    references_table: Customer
+    references_columns:
+    - CustomerID
+    references_schema: Sales
+  - columns:
+    - SalesPersonID
+    references_table: SalesPerson
+    references_columns:
+    - BusinessEntityID
+    references_schema: Sales
+  - columns:
+    - ShipMethodID
+    references_table: ShipMethod
+    references_columns:
+    - ShipMethodID
+    references_schema: Purchasing
+  - columns:
+    - TerritoryID
+    references_table: SalesTerritory
+    references_columns:
+    - TerritoryID
+    references_schema: Sales
 - table: SalesOrderHeaderSalesReason
   schema: Sales
   columns:
@@ -291,6 +371,12 @@ source_schemas:
     references_table: SalesReason
     references_columns:
     - SalesReasonID
+    references_schema: Sales
+  - columns:
+    - SalesOrderID
+    references_table: SalesOrderHeader
+    references_columns:
+    - SalesOrderID
     references_schema: Sales
 - table: SalesPerson
   schema: Sales
@@ -330,6 +416,12 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: HumanResources
+  - columns:
+    - TerritoryID
+    references_table: SalesTerritory
+    references_columns:
+    - TerritoryID
+    references_schema: Sales
 - table: SalesPersonQuotaHistory
   schema: Sales
   columns:
@@ -474,6 +566,12 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Sales
+  - columns:
+    - TerritoryID
+    references_table: SalesTerritory
+    references_columns:
+    - TerritoryID
+    references_schema: Sales
 - table: ShoppingCartItem
   schema: Sales
   columns:
@@ -562,6 +660,12 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  - columns:
+    - SpecialOfferID
+    references_table: SpecialOffer
+    references_columns:
+    - SpecialOfferID
+    references_schema: Sales
 - table: Store
   schema: Sales
   columns:
@@ -592,3 +696,9 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  - columns:
+    - SalesPersonID
+    references_table: SalesPerson
+    references_columns:
+    - BusinessEntityID
+    references_schema: Sales

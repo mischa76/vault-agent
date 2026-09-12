@@ -39,6 +39,18 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  - columns:
+    - ComponentID
+    references_table: Product
+    references_columns:
+    - ProductID
+    references_schema: Production
+  - columns:
+    - UnitMeasureCode
+    references_table: UnitMeasure
+    references_columns:
+    - UnitMeasureCode
+    references_schema: Production
 - table: Culture
   schema: Production
   columns:
@@ -219,6 +231,24 @@ source_schemas:
     references_columns:
     - UnitMeasureCode
     references_schema: Production
+  - columns:
+    - WeightUnitMeasureCode
+    references_table: UnitMeasure
+    references_columns:
+    - UnitMeasureCode
+    references_schema: Production
+  - columns:
+    - ProductModelID
+    references_table: ProductModel
+    references_columns:
+    - ProductModelID
+    references_schema: Production
+  - columns:
+    - ProductSubcategoryID
+    references_table: ProductSubcategory
+    references_columns:
+    - ProductSubcategoryID
+    references_schema: Production
 - table: ProductCategory
   schema: Production
   columns:
@@ -295,6 +325,12 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  - columns:
+    - DocumentNode
+    references_table: Document
+    references_columns:
+    - DocumentNode
+    references_schema: Production
 - table: ProductInventory
   schema: Production
   columns:
@@ -326,6 +362,12 @@ source_schemas:
     references_table: Location
     references_columns:
     - LocationID
+    references_schema: Production
+  - columns:
+    - ProductID
+    references_table: Product
+    references_columns:
+    - ProductID
     references_schema: Production
 - table: ProductListPriceHistory
   schema: Production
@@ -393,6 +435,12 @@ source_schemas:
     references_columns:
     - ProductModelID
     references_schema: Production
+  - columns:
+    - IllustrationID
+    references_table: Illustration
+    references_columns:
+    - IllustrationID
+    references_schema: Production
 - table: ProductModelProductDescriptionCulture
   schema: Production
   columns:
@@ -414,6 +462,18 @@ source_schemas:
     references_table: ProductDescription
     references_columns:
     - ProductDescriptionID
+    references_schema: Production
+  - columns:
+    - CultureID
+    references_table: Culture
+    references_columns:
+    - CultureID
+    references_schema: Production
+  - columns:
+    - ProductModelID
+    references_table: ProductModel
+    references_columns:
+    - ProductModelID
     references_schema: Production
 - table: ProductPhoto
   schema: Production
@@ -457,6 +517,12 @@ source_schemas:
     references_table: Product
     references_columns:
     - ProductID
+    references_schema: Production
+  - columns:
+    - ProductPhotoID
+    references_table: ProductPhoto
+    references_columns:
+    - ProductPhotoID
     references_schema: Production
 - table: ProductReview
   schema: Production
@@ -642,6 +708,12 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  - columns:
+    - ScrapReasonID
+    references_table: ScrapReason
+    references_columns:
+    - ScrapReasonID
+    references_schema: Production
 - table: WorkOrderRouting
   schema: Production
   columns:
@@ -675,4 +747,10 @@ source_schemas:
     references_table: Location
     references_columns:
     - LocationID
+    references_schema: Production
+  - columns:
+    - WorkOrderID
+    references_table: WorkOrder
+    references_columns:
+    - WorkOrderID
     references_schema: Production
