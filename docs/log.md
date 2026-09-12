@@ -4291,3 +4291,10 @@ demo, but it will run on a dbt line that demo has never seen.
 lock no longer contains a vulnerable `thrift`; whether they did is checked after CI, not
 assumed. Alert 16 (`sqlparse 0.5.5`) is untouched — `dbt-core 1.9.10` still caps it below 0.6
 in the `demo` fork, same reachability argument as 2026-08-24.
+
+## [2026-09-12] Confirmed: alerts 20–22 closed on the graph update after `d094dce`
+
+Checked, not assumed: Dependabot's graph update after the push (rebased onto the merged
+tornado 6.5.8 and pypdf 6.16.1 PRs, lock re-resolved without changes) marked alerts 20, 21 and
+22 (`thrift`) as **fixed** at 05:14 UTC. Open on `main`: only alert 16 (`sqlparse 0.5.5`,
+`demo` fork, dbt-core 1.9 cap) — the 2026-08-24 reachability argument stands for it.
