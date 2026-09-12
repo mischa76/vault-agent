@@ -1,7 +1,9 @@
 # ADR-0013: Surrogate→natural-key translation for FK-derived link proposals
 
-**Status:** Proposed
-**Date:** 2026-08-14
+**Status:** Accepted (2026-09-12, Mischa Eismann — option "accept, build, then rerun" over
+"defer and rerun the binder fix alone", "both reruns" and "reject and lower the bar"; the
+build is WP36, the paid rerun follows it per the WP30 rerun protocol)
+**Date:** 2026-08-14 (proposed) · 2026-09-12 (accepted)
 **Decision makers:** Mischa Eismann
 
 ## Context

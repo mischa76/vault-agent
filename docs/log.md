@@ -4425,3 +4425,25 @@ Keyless: 912 passed, 2 skipped; ruff, bare mypy clean. One existing test was upd
 (`test_run_writes_a_grepable_trace_per_thread`): the header is now the first record, so the
 assertions filter to call events. Manual 5.5, 6.2 and 10.2, CHANGELOG. Not measured: no trace
 from a Bedrock or Vertex run exists yet to show the field with a non-first-party value.
+
+## [2026-09-12] ADR-0013 accepted; WP36 opened; WP30's rerun measures the full mechanism
+
+The user decided both open items in one answer, from four options laid out with their costs:
+**accept ADR-0013, build it, then run the paid WP30 rerun** — over "defer and rerun the binder
+fix alone" (~5 links, §6 fails by construction, bar revised), "both reruns" (~$40, the ADR's
+effect as a measured delta), and "reject and lower the bar" (which would cap incremental mode
+where surrogate-referencing sources are the norm). The ADR's status line records the decision
+and the alternatives; the rerun protocol's step 0 is thereby decided: prediction on record,
+~9 cross-domain links against the bar of 8.
+
+**WP36** (`backlog-2026-07/wp36-surrogate-key-translation-spec.md`, kick-off beside it) carries
+the build. Read from the schemas and the 2026-08-12 result, the four cases are
+`ProductVendor`, `PurchaseOrderDetail` (purchasing) and `SpecialOfferProduct`, `ShoppingCartItem`
+(sales), each `ProductID → Production.Product.ProductID`, against `hub_product` keyed
+`PRODUCTNUMBER`. Design: a deterministic trigger (one hub binds the referenced table, keyed on
+another column), a typed `KeyTranslation`, a **translation model** — the referencing relation
+left-joined to the referenced one, projecting the natural key — that the link's stage reads,
+`schema.yml` tests that make an unmatched surrogate fail `dbt build`, a gate branch, a flag kind,
+a checkpoint line. Guard first: `tests/test_wp36_translation_guard.py` pins today's skip (to be
+flipped by the WP, deliberately) and the counter-case (surrogate-keyed hub → plain proposal, must
+never change). 2 tests green, nothing else touched yet.

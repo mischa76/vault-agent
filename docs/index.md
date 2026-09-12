@@ -67,7 +67,7 @@ Append-only. Status is the ADR's own header, not this table's opinion.
 | [0010](architecture/adrs/ADR-0010-modeler-output-scaling.md) | Modeler output scaling — streaming before staged modelling | Accepted |
 | [0011](architecture/adrs/ADR-0011-satellite-source-binding-on-multi-source-hubs.md) | Satellite source binding on multi-source hubs | Accepted |
 | [0012](architecture/adrs/ADR-0012-attribute-overlap-across-satellites.md) | Attribute overlap across satellites of one parent | Accepted |
-| [0013](architecture/adrs/ADR-0013-surrogate-to-natural-key-translation.md) | Surrogate→natural-key translation for FK-derived link proposals | Proposed |
+| [0013](architecture/adrs/ADR-0013-surrogate-to-natural-key-translation.md) | Surrogate→natural-key translation for FK-derived link proposals | Accepted 2026-09-12 → WP36 |
 | [template](architecture/adrs/ADR-template.md) | The shape a new ADR takes | — |
 
 ## Charters and spikes
@@ -126,7 +126,8 @@ own overview.
 | [wp32](architecture/backlog-2026-07/wp32-concept-identity-spec.md) | Concept identity is (label, entity), not the label alone |
 | [wp34](architecture/backlog-2026-07/wp34-fk-derived-link-proposals-spec.md) | Links proposed from the source's own foreign keys, ratified at the WP29 checkpoint — **built and measured 2026-08-12; §6 unmet, remaining gap is ADR-0013's question** |
 | [wp35](architecture/backlog-2026-07/wp35-target-platform-databricks-spec.md) | Databricks as a selectable target platform: seed-type dialect in `rules/platforms.py`, `--target-platform` — **built 2026-09-11, keyless-only; no workspace build yet** |
-| [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — blocked on ADR-0013 |
+| [wp36](architecture/backlog-2026-07/wp36-surrogate-key-translation-spec.md) | Surrogate→natural-key translation for FK-derived links (ADR-0013) — **in progress 2026-09-12** |
+| [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — step 0 decided 2026-09-12: measure the full mechanism after WP36 |
 
 Earlier specs, before the backlog was numbered:
 [poc-end-to-end-dbt](architecture/poc-end-to-end-dbt-spec.md) (the slice from requirements to a
