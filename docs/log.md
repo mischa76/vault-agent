@@ -4485,3 +4485,27 @@ WP30 rerun, next.
 **One slip, recorded.** A rewrite of the renderer wiped the seed-type functions between two
 anchors; the staging tests caught it within the minute and the block was restored from HEAD.
 The lesson is the old one: anchor an edit on both ends, not on one.
+
+## [2026-09-12] WP30 rerun protocol, step 1 — the trigger fires on the real corpus, at zero cost
+
+Before paying (the invariant), the proposer with WP36 was replayed offline against the vault as
+the recorded 2026-08-12 chain (`20260812T130841770648Z`) had it **before** each increment —
+`hub_keys` of the previous step turned into a `DVModel` — and the real schemas of the two
+increments the audit concerned:
+
+```
+purchasing  vault 27 hubs ->  3 proposals  {translated 2, same_name 1}   skips {ambiguous_hub 1}
+sales       vault 33 hubs ->  9 proposals  {same_name 5, renamed 2, translated 2}
+                                                                          skips {no_hub_for_key 3, ambiguous_hub 3}
+TRANSLATED  ProductVendor.ProductID, PurchaseOrderDetail.ProductID,
+            ShoppingCartItem.ProductID, SpecialOfferProduct.ProductID
+            -> hub_product via Product: ProductID -> PRODUCTNUMBER
+```
+
+Exactly the four cases the audit named, and no other; 12 proposals over the two increments
+against 7 in August (the binder fix accounts for the rest). What the replay cannot say: how many
+survive the applier (near hub modelled, grain not already built) and the modeler's own choices
+in a fresh run — the paid rerun measures that. Prediction on record (protocol step 0, ADR-0013):
+~9 cross-domain links against the bar of 8. **Step 2 started** at this entry's time: one repeat
+of `adventureworks_incremental`, cap $20, `eval.run --dataset adventureworks_incremental
+--repeat 1`.
