@@ -4365,3 +4365,13 @@ tag, which is its first real test. 896 passed, 2 skipped; ruff, bare mypy clean.
 publishing, no container image, no installer — those wait on the residency switch and the
 open WP30/ADR-0013 items (this log, 2026-09-12 question on installers). The model-release
 re-test of WP16 is a different "release" and is named as such in CONTRIBUTING.
+
+## [2026-09-12] Release 0.9.1 published by the workflow on its first run
+
+The user tagged `0.9.1` (annotated, at `1d16fcf`) and pushed. The `Release` workflow ran once,
+green: tag equalled `uv version --short`, ruff, bare mypy and pytest passed again on the runner,
+`uv build` produced `vault_agent-0.9.1-py3-none-any.whl` (201 942 B) and
+`vault_agent-0.9.1.tar.gz` (1 368 105 B), and the GitHub release "vault-agent 0.9.1" was created
+at 06:59 UTC with the CHANGELOG section as its notes and both artifacts attached; it is now the
+repository's latest release. Verified by reading the run's jobs and the release object via `gh`,
+not by assuming the workflow file is right — it had never run before this tag.
