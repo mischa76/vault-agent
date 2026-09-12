@@ -4317,3 +4317,21 @@ dbt builds, which are local, keyless and free. Both are "live"; they verify diff
 a paid run verifies modelling behaviour, a dbt build verifies that the generated project runs
 on a warehouse. This log keeps them apart; today's entry did not. The morning entry stays as
 written; this one corrects it.
+
+## [2026-09-12] Alert 16 (`sqlparse 0.5.5`, CVE-2026-84305) dismissed: the reindent path is not in this project's call graph
+
+GHSA-cfqr-cjx5-5jcm concerns `ReindentFilter`, which runs only when someone calls
+`sqlparse.format(sql, reindent=True)` and controls the SQL fed to it. **Verified against the
+installed packages, not the advisory prose:** in an ephemeral environment (`uv run --no-project
+--with dbt-core==1.9.10 --with dbt-postgres==1.9.1 --with sqlparse==0.5.5`) a search over
+`dbt`, `dbt.adapters` and `dbt.adapters.postgres` finds exactly one file that imports sqlparse,
+`dbt/compilation.py` — `sqlparse.parse` at line 606 plus `sqlparse.sql.Token` construction for
+CTE injection. No `sqlparse.format`, no `reindent`, in any of the three packages. First-party
+code (`src/`, `eval/`, `tests/`, the demo builders) imports sqlparse nowhere.
+
+This is a stronger case than 2026-08-24's: alerts 9–12 hinged on "no ephemeral models" because
+`sqlparse.parse` itself was the call site; here the affected filter is never instantiated by
+anything on the path. The patched 0.6.x stays out of reach for the same reason as before —
+`dbt-core 1.9.10` caps `sqlparse<0.6` in the `demo` fork — and the fix arrives with whatever
+moves that line. **Dismissed as `not_used`** with the `compilation.py` pointer and one reopening
+condition: *if any dependency on the path ever calls `sqlparse.format`, reopen.*
