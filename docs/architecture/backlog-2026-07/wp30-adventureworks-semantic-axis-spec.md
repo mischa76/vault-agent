@@ -621,3 +621,17 @@ unlikely to reverse it, while the link deficit and the per-step reading both nee
 **Not measured, and not to be inferred from any of the above:** whether arm B's model is
 *correct*. See the resolver findings below — a merge was auto-ratified at confidence 0.55, and
 no gate here would have caught it had it been wrong.
+
+---
+
+## Addendum 2026-09-12 — the CONTAMINATED arm-B measurement has been repeated
+
+§7.3's arm-B numbers were marked contaminated on 2026-08-12 (binder defect, `cb01b9c`). The
+repeat ran on 2026-09-12 per `wp30-arm-b-rerun-protocol.md` with the binder fix **and** WP36's
+translation (protocol step 0, decided that day): `20260912T152704634091Z`, `git_sha 10773e3`.
+Result, one repeat: **7 cross-domain links against arm A's 16** (was 2), review load **519**
+(was 546/833; arm A's baseline 619), all gates green, `hub_sales_representative` returned.
+WP34 §6 is not met (7 < 8, named regression). The residual ceiling is named in `docs/log.md`
+(2026-09-12): FK-derived proposals are near-hub links, and three of the four translated foreign
+keys reference from tables that get no hub. The old §7.3 text stands as the record of what was
+believed; this addendum is what replaced it.

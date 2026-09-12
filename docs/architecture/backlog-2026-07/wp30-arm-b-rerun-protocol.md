@@ -59,3 +59,14 @@ ADR-0013 changes the mechanism.
 Log entry with the numbers and the §6 verdict; update wp30 §7.3's CONTAMINATED marker to point
 at the rerun entry (new dated text, never editing the old); if §6 fails with the capability
 built, the falsification clause applies — revise the charter claim, no fifth intervention.
+
+---
+
+## Step 3 — closed 2026-09-12
+
+Step 0 decided: full mechanism (ADR-0013 accepted, WP36 built). Step 1 done at zero cost (the
+four translated proposals reproduced on the recorded shapes). Step 2 ran twice: attempt 1 aborted
+in step 4 after the modeler was found filling `key_translation` through its tool schema (~$7,
+fixed in `10773e3`); attempt 2 complete (~$17). Result: §6 NOT MET, 7 of 8 links, named
+regression present, review load fell, joins sound. Verdict and the newly named ceiling in
+`docs/log.md` 2026-09-12. Cap note: the two attempts together exceeded the $20 cap by ~$4.

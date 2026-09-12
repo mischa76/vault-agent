@@ -144,17 +144,13 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   with table count, so the upper cases measure width and repetition tolerance rather than semantic
   scale (`scale-test-findings.md`, candidate #5). `scale_300` has not been run; `emit_dv_model` is
   the one agent that cannot split its output, so its budget is the only lever there.
-- **WP30's arm comparison is CONTAMINATED and its conclusion does not currently stand.** Every
-  arm-B measurement — the 73%-of-arm-A link deficit, the 3x review items, WP30.1-30.3's ~$46 of
-  prompt interventions — ran with a binder that could not match a multi-word CamelCase table
-  (53 of 68 on AdventureWorks), which is exactly the near-side lookup incremental runs depend
-  on. Fixed 2026-08-12 (`cb01b9c`); the comparison must be repeated before it is cited. At n=1
-  it was a direction, not a verdict, and now not even that. Spec §7.3.
-- **WP34's §6 is unmet; the capability meant to close it is built but unmeasured** (2026-09-12).
-  With the binder fixed, ~5 of the needed 8 cross-domain links land; the 4 surrogate-referencing
-  foreign keys (`Product.ProductID` vs `hub_product` on `ProductNumber`) are now translated
-  proposals (WP36, ADR-0013 accepted) — keyless-verified only. The WP30 rerun protocol's step 2
-  measures the full mechanism; prediction on record ~9 against the bar of 8.
+- **WP30's arm comparison was repeated on 2026-09-12 and reads 7 of arm A's 16 cross-domain links
+  at n=1** (was 2 under the contaminated binder), review load 519 (arm A 619), gates green — a
+  direction, not a verdict. **WP34 §6 is NOT MET** (7 < 8, `hub_sales_representative` returned).
+  The residual ceiling is named: FK-derived proposals are near-hub links, and 3 of the 4 translated
+  foreign keys (WP36, live-verified once on `ShoppingCartItem`) reference from relationship or
+  detail tables that get no hub. Closing that is a further capability (relationship-table links),
+  not a fix; the charter's falsification clause applies. `docs/log.md` 2026-09-12.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

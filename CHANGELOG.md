@@ -22,6 +22,11 @@ is not the project's.
   (`source_key_column`, `key_translation`), and `E_LINK_TRANSLATION_UNRATIFIED` refuses a
   translation no ratified proposal produced — added after a paid run showed the modeler filling
   the field the moment it could see it.
+
+### Measured
+- WP30 arm-B rerun (2026-09-12, one repeat, ~$17): 7 cross-domain links (was 2), review load 519
+  (< 619), all gates green; WP34 §6 not met (7 < 8, `hub_sales_representative` returned). One
+  translated link built live; three of four blocked by the applier's near-hub rule.
 - `LLM_PROVIDER=anthropic|bedrock|vertex` selects the route to Claude — the data-residency
   switch from `docs/architecture/deployment-residency.md`, now wired: one client factory,
   construction-time validation naming the missing variable, optional extras `bedrock` and

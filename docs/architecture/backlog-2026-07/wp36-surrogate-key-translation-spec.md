@@ -135,3 +135,13 @@ Two changes, both keyless-tested: the modeler's schema strips `source_key_column
 `key_translation` and the `KeyTranslation` def (`dv2_modeler._strip_proposer_owned`), and a new
 gate `E_LINK_TRANSLATION_UNRATIFIED` refuses any translation not produced by a ratified proposal.
 §2's "no judgement" now has a mechanical guard on both ends. The rerun restarts from step 1.
+
+## 9 Stand 2026-09-12, Abend — live once, and the applier is the next wall
+
+§6 live: `link_shopping_cart_item_product` built from a translated proposal in the WP30 rerun,
+gate held, flag raised, no modeler-authored translation anywhere. Acceptance items 7–10 (a
+`dbt build` of the translation model) remain **open** — the rerun is an LLM eval, not a warehouse
+build. Finding: 3 of the 4 cases never reach the applier's link because their referencing tables
+are relationship or detail tables without a hub; the translation is correct and unused. That is
+not this WP's defect; it is the next capability (relationship-table links), recorded in
+`docs/log.md`.

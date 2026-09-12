@@ -121,13 +121,13 @@ own overview.
 | [wp27](architecture/backlog-2026-07/wp27-ci-retry-hygiene-spec.md) | CI parity, retry policy honouring `Retry-After`, corrupt pointer |
 | [wp28](architecture/backlog-2026-07/wp28-satellite-feed-binding-spec.md) | Satellite feed binding on multi-source hubs (ADR-0011) |
 | [wp29](architecture/backlog-2026-07/wp29-entity-resolution-spec.md) | Entity resolution against an existing vault — **partially built** |
-| [wp30](architecture/backlog-2026-07/wp30-adventureworks-semantic-axis-spec.md) | AdventureWorks as an independent instrument; the domain-partitioning experiment — **arm comparison open** |
+| [wp30](architecture/backlog-2026-07/wp30-adventureworks-semantic-axis-spec.md) | AdventureWorks as an independent instrument; the domain-partitioning experiment — **arm comparison repeated 2026-09-12: 7 of 16 at n=1** |
 | [wp31](architecture/backlog-2026-07/wp31-attribute-overlap-narrowing-spec.md) | Narrowing `E_SAT_ATTR_OVERLAP` to one payload namespace (ADR-0012) |
 | [wp32](architecture/backlog-2026-07/wp32-concept-identity-spec.md) | Concept identity is (label, entity), not the label alone |
-| [wp34](architecture/backlog-2026-07/wp34-fk-derived-link-proposals-spec.md) | Links proposed from the source's own foreign keys, ratified at the WP29 checkpoint — **built and measured 2026-08-12; §6 unmet, remaining gap is ADR-0013's question** |
+| [wp34](architecture/backlog-2026-07/wp34-fk-derived-link-proposals-spec.md) | Links proposed from the source's own foreign keys, ratified at the WP29 checkpoint — **§6 NOT MET on the 2026-09-12 rerun (7 of 8); remaining gap: near-hub rule** |
 | [wp35](architecture/backlog-2026-07/wp35-target-platform-databricks-spec.md) | Databricks as a selectable target platform: seed-type dialect in `rules/platforms.py`, `--target-platform` — **built 2026-09-11, keyless-only; no workspace build yet** |
-| [wp36](architecture/backlog-2026-07/wp36-surrogate-key-translation-spec.md) | Surrogate→natural-key translation for FK-derived links (ADR-0013) — **in progress 2026-09-12** |
-| [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — step 0 decided 2026-09-12: measure the full mechanism after WP36 |
+| [wp36](architecture/backlog-2026-07/wp36-surrogate-key-translation-spec.md) | Surrogate→natural-key translation for FK-derived links (ADR-0013) — **built and live-verified once 2026-09-12; 3 of 4 cases blocked by the near-hub rule** |
+| [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — **closed 2026-09-12: 7 of 8, §6 not met, ceiling named** |
 
 Earlier specs, before the backlog was numbered:
 [poc-end-to-end-dbt](architecture/poc-end-to-end-dbt-spec.md) (the slice from requirements to a

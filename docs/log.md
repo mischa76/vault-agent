@@ -4536,3 +4536,61 @@ type the modeler emits must be stripped, and the test now says which.
 **Money.** Attempt 1: ~$7.09 for three usable steps (their results stay on disk, `git_sha fa2f19c`,
 and document the leak). Attempt 2 restarts from step 1 with the fix; expected ~$9; protocol cap $20
 holds if it stays under ~$13. Prediction unchanged: ~9 cross-domain links against 8.
+
+## [2026-09-12] WP30 rerun done (attempt 2): §6 NOT MET at 7 of 8 — translation works, the applier cannot use 3 of the 4
+
+`20260912T152704634091Z-run1.json` at `git_sha 10773e3`, 42 minutes, 106 calls, 536k prompt
+tokens (27 % cache hit), 274k out, **every step's gate 1.000**, `wp34_check` unmodified:
+
+```
+[FAILED] links      7 cross-domain (need >= 8; baseline 2, arm A 16)
+[FAILED] invention  0 zero-satellite hubs — but NAMED REGRESSION: hub_sales_representative returned
+[HELD]   review     519 items (must fall below 619)          — first time it fell
+[HELD]   joins      0 unsound aliases, 0 E_LINK_KEY_NOT_IN_SOURCE
+```
+
+**The mechanism is live-verified end to end, once.** `link_shopping_cart_item_product` was built
+in the sales step from a `declared_fk_translated` proposal: `ShoppingCartItem.ProductID` joined
+through `Product` to `PRODUCTNUMBER`, `translations` recorded, `link_translation` flag raised, the
+gate held, the modeler authored no translation of its own (0 in every step — the schema strip of
+`10773e3` confirmed live). Cross-domain links went 2 → 7: the binder fix accounts for five, the
+translation for one.
+
+**Why 7 and not the predicted ~9, and it is structural.** All four translated proposals were
+made and ratified (2 in purchasing, 2 in sales). Three were dropped by the applier with the
+reason it has always had — *no hub was modelled for the referencing table*. `ProductVendor` and
+`SpecialOfferProduct` are m:n relationship tables, `PurchaseOrderDetail` a detail table; the
+modeler rightly built no hub for them, so a link `hub_<table> ↔ hub_product` has no near side.
+Only `ShoppingCartItem` got a hub this run (`hub_shopping_cart_item`, a modelling choice one could
+argue with), and only that translation landed. The August audit sorted the 22 declines into
+18 structural and 4 design, and the 4 were real — but it did not check whether their referencing
+tables would ever be hubs. The right link for `ProductVendor.ProductID` is `hub_vendor ↔
+hub_product`, formed from the table's **two** foreign keys. That is a third capability —
+relationship-table links: pair the FKs of a table that gets no hub of its own into one link among
+their targets — which neither WP34 nor WP36 has. The prediction stood on an unchecked assumption,
+and this entry records that as mine.
+
+**The named regression is the modeler's, not the proposer's.** `hub_sales_representative` returned
+with a satellite (zero-satellite count 0, the named check caught it — the check the 2026-08-12
+entry found half-implemented). Same behaviour as WP30.3 and both August runs; nothing in WP34/36
+touches it.
+
+**Review load fell for the first time** — 519 against 619 (August: 546 and 833). One repeat, one
+direction; the August pair showed run-to-run variance of 287 items on this axis.
+
+**The falsification clause applies.** §6 failed with the capability built, so the charter's claim
+is to be revised rather than a fifth intervention attempted — but the revision has a specific
+shape now: the remaining gap is not modelling judgement and not translation, it is that FK-derived
+proposals are only ever *near-hub* links. Whether relationship-table links are worth a WP37 is the
+user's call; the four cases and their skip reason are on record for it.
+
+**Money, stated plainly.** Attempt 1 (aborted, my leak): ~$7.09. Attempt 2: ~$17.22 — heavier than
+August's ~$9 for the same chain (more prompt tokens, lower cache hit). **Together ~$24.30 at list
+prices, over the protocol's $20 cap by about $4.** The cap was written for one rerun; the second
+attempt alone was within it, the leak was not. Both figures are list-price sums over the recorded
+usage, not invoice numbers.
+
+**WP30 §7.3's CONTAMINATED marker** now points here (dated addendum in the spec, the old text
+untouched): the repaired arm-B measurement at n=1 reads 7 cross-domain links against arm A's 16,
+review load 519, gates green, one named regression. The 73 %-deficit sentence is replaced by
+"56 % of arm A's cross-domain links at one repeat, with the two structural ceilings named".
