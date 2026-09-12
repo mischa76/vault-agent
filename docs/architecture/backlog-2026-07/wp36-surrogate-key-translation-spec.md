@@ -120,3 +120,18 @@ if not with the capability built, the falsification clause of the charter applie
 - No hub re-keying, no alias smuggling, no modeler scope change — the ADR's rejected
   alternatives, rejected here too.
 - No second translation hop (`T → R → S`); one join through the referenced relation only.
+
+## 8 Addendum 2026-09-12 — the field leaked into the modeler's schema, the first paid run was aborted
+
+Step 3 (production) of the first WP30 rerun after this WP returned **9 of 23 links carrying
+`translations` and `aliases` authored by the modeler**, where the August run's step 3 had none.
+Cause: `Link.model_json_schema()` handed `LinkHubRef.key_translation` — docstring included — to
+the modeler's tool schema, and the modeler used it (and, encouraged, started filling
+`source_key_column` too). `E_LINK_KEY_NOT_IN_SOURCE` fired once on one of them. The run was
+stopped in step 4 (~$7 spent on three steps) because it was measuring an LLM-authored
+translation mechanism that §2 explicitly rules out ("no judgement").
+
+Two changes, both keyless-tested: the modeler's schema strips `source_key_column`,
+`key_translation` and the `KeyTranslation` def (`dv2_modeler._strip_proposer_owned`), and a new
+gate `E_LINK_TRANSLATION_UNRATIFIED` refuses any translation not produced by a ratified proposal.
+§2's "no judgement" now has a mechanical guard on both ends. The rerun restarts from step 1.

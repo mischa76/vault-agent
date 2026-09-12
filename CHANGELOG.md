@@ -18,6 +18,10 @@ is not the project's.
   proposal (`declared_fk_translated`) instead of a skip; a ratified one renders a translation
   model (LEFT JOIN through the referenced relation, with `not_null`/`relationships` tests) that
   the link's stage reads, a `link_translation` review item, and a gate branch. Keyless-only.
+- The modeler's tool schema no longer exposes the proposer-owned `LinkHubRef` fields
+  (`source_key_column`, `key_translation`), and `E_LINK_TRANSLATION_UNRATIFIED` refuses a
+  translation no ratified proposal produced — added after a paid run showed the modeler filling
+  the field the moment it could see it.
 - `LLM_PROVIDER=anthropic|bedrock|vertex` selects the route to Claude — the data-residency
   switch from `docs/architecture/deployment-residency.md`, now wired: one client factory,
   construction-time validation naming the missing variable, optional extras `bedrock` and

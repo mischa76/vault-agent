@@ -814,6 +814,11 @@ class ValidatorAgent(BaseAgent):
         # than merely incomplete. Checked against the relation the link's staging actually
         # binds to where the schema names one, and against the whole schema where it does not
         # — as precise as the available information allows, never stricter.
+        ratified_translations = {
+            (p.target_hub, normalize_identifier(p.translation.referencing_column))
+            for p in state.link_proposals.ratified()
+            if p.translation is not None
+        }
         for link in state.dv_model.links:
             if link.name in pre_existing:
                 continue
@@ -829,6 +834,23 @@ class ValidatorAgent(BaseAgent):
             )
             where = bound[0].table if bound else "the declared source schema"
             for ref in link.hub_refs:
+                if ref.key_translation is not None and (
+                    ref.hub, normalize_identifier(ref.key_translation.referencing_column)
+                ) not in ratified_translations:
+                    # E_LINK_TRANSLATION_UNRATIFIED (WP36): a translation exists only as the
+                    # product of a human-ratified proposal; anything else — the modeler
+                    # inventing one, a hand edit — is refused. Measured necessary on
+                    # 2026-09-12, when the modeler filled the field the moment it saw it.
+                    issues.append(
+                        _issue(
+                            "error", "E_LINK_TRANSLATION_UNRATIFIED", link.name,
+                            f"participation {ref.hub} carries a surrogate→natural-key "
+                            f"translation through {ref.key_translation.through_table} that "
+                            f"no ratified link proposal produced; translations are decided "
+                            f"by a human at the checkpoint, never by the modeler",
+                        )
+                    )
+                    continue
                 if ref.key_translation is not None:
                     # WP36 (ADR-0013): a translation joins instead of renaming, so what must
                     # exist is the SURROGATE on the referencing relation — and, when the

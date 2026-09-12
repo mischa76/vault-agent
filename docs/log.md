@@ -4509,3 +4509,30 @@ in a fresh run — the paid rerun measures that. Prediction on record (protocol 
 ~9 cross-domain links against the bar of 8. **Step 2 started** at this entry's time: one repeat
 of `adventureworks_incremental`, cap $20, `eval.run --dataset adventureworks_incremental
 --repeat 1`.
+
+## [2026-09-12] WP30 rerun, first attempt aborted: the modeler saw `key_translation` and used it
+
+Three steps in (~$7.09 at list prices, run `20260912T145232567981Z`), step 3's gate came back
+0.0 where August's step 3 had passed, with `E_LINK_KEY_NOT_IN_SOURCE` ×1 and — read from the
+recorded model, at zero cost — **9 of 23 production links carrying `translations` and `aliases`**
+although the proposer had proposed nothing in that step (15 skips). August's step 3 had 0 aliased
+links. The cause is mine: WP36 added `LinkHubRef.key_translation`, and `Link.model_json_schema()`
+handed the field with its docstring ("reached by joining through the referenced relation") to the
+modeler's tool schema. The modeler filled it — and, once shown the idea, started filling
+`source_key_column` too, which it had left alone for a month. The run was measuring an
+LLM-authored translation mechanism that the ADR's §1 rules out; it was stopped in step 4.
+
+**Fixed on both ends, keyless.** `dv2_modeler._strip_proposer_owned` removes `source_key_column`,
+`key_translation` and the `KeyTranslation` def from the tool schema (pinned by a test that greps
+the schema). `E_LINK_TRANSLATION_UNRATIFIED` refuses any translation that no ratified proposal
+produced (pinned both ways). 930 passed, 2 skipped; ruff, bare mypy clean; every fixture untouched.
+
+**What this says about the WP34 assumption.** The gate comment claimed "`source_key_column` is set
+only by a ratified FK-derived proposal, so by construction the column was declared". That was true
+of the code path, never of the schema: the field had been visible to the modeler since WP34 and
+merely unused. A pydantic field is an offer to the model. Every proposer-owned field on a state
+type the modeler emits must be stripped, and the test now says which.
+
+**Money.** Attempt 1: ~$7.09 for three usable steps (their results stay on disk, `git_sha fa2f19c`,
+and document the leak). Attempt 2 restarts from step 1 with the fix; expected ~$9; protocol cap $20
+holds if it stays under ~$13. Prediction unchanged: ~9 cross-domain links against 8.

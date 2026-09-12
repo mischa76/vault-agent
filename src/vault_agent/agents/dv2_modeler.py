@@ -62,6 +62,29 @@ _TOOL_NAME = "emit_dv_model"
 _MAX_TOKENS = 32768
 
 
+# Fields of the state model the modeler must NEVER see, let alone fill. They are written by
+# exactly one path — a human-ratified, FK-derived link proposal (WP34 §3.4 alias, WP36
+# translation) — and the gates assume that provenance. Measured on 2026-09-12: the moment
+# `LinkHubRef.key_translation` existed, `Link.model_json_schema()` handed its docstring to the
+# modeler and the production step of a paid rerun came back with 9 of 23 links carrying
+# LLM-authored translations AND aliases where the August run had none. The run was aborted.
+_PROPOSER_OWNED_LINK_REF_FIELDS = ("source_key_column", "key_translation")
+_PROPOSER_OWNED_DEFS = ("KeyTranslation",)
+
+
+def _strip_proposer_owned(schema: dict[str, Any]) -> dict[str, Any]:
+    """Remove the proposer-owned fields (and their def) from a pydantic-generated schema."""
+    defs = schema.get("$defs", {})
+    ref = defs.get("LinkHubRef", {})
+    for name in _PROPOSER_OWNED_LINK_REF_FIELDS:
+        ref.get("properties", {}).pop(name, None)
+        if name in ref.get("required", []):
+            ref["required"].remove(name)
+    for name in _PROPOSER_OWNED_DEFS:
+        defs.pop(name, None)
+    return schema
+
+
 def _tool_schema() -> dict[str, Any]:
     """Wrap the Hub / Link / Satellite schemas as the tool input."""
     return {
@@ -74,7 +97,7 @@ def _tool_schema() -> dict[str, Any]:
             },
             "links": {
                 "type": "array",
-                "items": Link.model_json_schema(),
+                "items": _strip_proposer_owned(Link.model_json_schema()),
                 "description": "One link per relationship between business objects.",
             },
             "satellites": {

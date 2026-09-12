@@ -169,3 +169,37 @@ def test_the_checkpoint_names_the_join() -> None:
     proposals, _ = propose_links(product_hub(), [shopping_cart_item()])
     note = _link_category_note(proposals.proposals[0])
     assert note == "declared_fk_translated: ProductID → PRODUCTNUMBER through Production.Product"
+
+
+# --- the modeler must never see or author these -------------------------------------------
+
+def test_the_modeler_tool_schema_hides_the_proposer_owned_fields() -> None:
+    """2026-09-12: the moment `key_translation` existed, the modeler filled it (9 of 23 links
+    in a paid production step). The fields belong to the ratified-proposal path only."""
+    import json
+
+    from vault_agent.agents.dv2_modeler import _tool_schema
+
+    schema = json.dumps(_tool_schema())
+    assert "key_translation" not in schema
+    assert "source_key_column" not in schema
+    assert "KeyTranslation" not in schema
+    assert "role" in schema  # the legitimate LinkHubRef fields survive
+
+
+async def test_the_gate_refuses_a_translation_no_proposal_produced() -> None:
+    from vault_agent.agents.validator import ValidatorAgent
+
+    state = _ratified_state(with_product=True)
+    # Same link, but forget the ratified proposal: the translation is now authorless.
+    state.link_proposals.proposals = []
+    report = (await ValidatorAgent().run(state)).validation_report
+    assert [i.code for i in report.issues if i.code == "E_LINK_TRANSLATION_UNRATIFIED"]
+
+
+async def test_the_gate_accepts_the_translation_the_ratified_proposal_produced() -> None:
+    from vault_agent.agents.validator import ValidatorAgent
+
+    state = _ratified_state(with_product=True)
+    report = (await ValidatorAgent().run(state)).validation_report
+    assert not [i for i in report.issues if i.code == "E_LINK_TRANSLATION_UNRATIFIED"]
