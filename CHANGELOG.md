@@ -12,6 +12,12 @@ is not the project's.
 
 ## [Unreleased]
 
+### Added
+- `LLM_PROVIDER=anthropic|bedrock|vertex` selects the route to Claude — the data-residency
+  switch from `docs/architecture/deployment-residency.md`, now wired: one client factory,
+  construction-time validation naming the missing variable, optional extras `bedrock` and
+  `vertex`. Keyless-only: no run has gone through Bedrock or Vertex yet (manual 5.5).
+
 ## [0.9.1] - 2026-09-12
 
 ### Changed

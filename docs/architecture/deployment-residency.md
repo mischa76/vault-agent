@@ -62,3 +62,17 @@ Anthropic (deployment-account architecture); first-party: Anthropic per DPA/trus
 center. · **What data classes are sent?** Documents + metadata + profiling stats, no
 row data (see above). · **Sub-processors?** trust.anthropic.com/subprocessors (check
 live — the list is dynamic).
+
+
+---
+
+## Addendum 2026-09-12 — the configuration path is wired
+
+The switch described above as "already architected, not yet wired" exists:
+`LLM_PROVIDER=anthropic|bedrock|vertex` in `config.py`, `AWS_REGION`/`AWS_PROFILE` and
+`GCP_PROJECT_ID`/`GCP_REGION` alongside, and one factory `llm.make_client` that builds
+`AsyncAnthropic`, `AsyncAnthropicBedrockMantle` or `AsyncAnthropicVertex` (anthropic
+0.107.0). Operations manual 5.5 has the how-to. Two things this addendum does **not**
+change: the model-ID nuance stays with the operator (IDs are passed as configured, not
+mapped), and the verification status is keyless-only — no pipeline run has crossed
+Bedrock or Vertex. The facts in the table above are still those of 2026-07-18.

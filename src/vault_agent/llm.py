@@ -187,11 +187,44 @@ async def call_with_truncation_split[T, R](
     return await attempt(unit, 0)
 
 
+def make_client(settings: Any) -> Any:
+    """Build the async Messages-API client for the configured route (data residency).
+
+    The three SDK clients expose the same ``messages.create`` surface, so everything
+    below this function is route-agnostic; the switch lives here and nowhere else
+    (``docs/architecture/deployment-residency.md``). Verified against anthropic 0.107.0:
+    ``AsyncAnthropicBedrockMantle(aws_region=, aws_profile=)`` and
+    ``AsyncAnthropicVertex(project_id=, region=)`` exist with these parameters. The
+    provider SDKs behind them (boto3, google-auth) are optional extras; a missing one
+    is turned into an attributable error naming the extra to install."""
+    provider = settings.llm_provider
+    if provider == "anthropic":
+        return anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+    try:
+        if provider == "bedrock":
+            kwargs: dict[str, Any] = {"aws_region": settings.aws_region}
+            if settings.aws_profile:
+                kwargs["aws_profile"] = settings.aws_profile
+            return anthropic.AsyncAnthropicBedrockMantle(**kwargs)
+        if provider == "vertex":
+            return anthropic.AsyncAnthropicVertex(
+                project_id=settings.gcp_project_id, region=settings.gcp_region
+            )
+    except ImportError as exc:
+        extra = "bedrock" if provider == "bedrock" else "vertex"
+        raise LLMCallError(
+            f"llm_provider={provider!r} needs the optional dependency set "
+            f"'{extra}': uv sync --extra {extra} (underlying error: {exc})"
+        ) from exc
+    raise LLMCallError(f"unknown llm_provider {provider!r}")
+
+
 class ForcedToolCaller:
     """Calls the Anthropic Messages API forcing one tool; returns the tool's input.
 
-    ``client``, ``sleep`` and ``rng`` are injectable for tests; by default a real
-    ``AsyncAnthropic`` client is built from the settings (lazily, at construction)."""
+    ``client``, ``sleep`` and ``rng`` are injectable for tests; by default the client for
+    the configured route is built from the settings (lazily, at construction) by
+    :func:`make_client`."""
 
     def __init__(
         self,
@@ -206,8 +239,7 @@ class ForcedToolCaller:
             # Imported here so module import never requires an API key.
             from vault_agent.config import get_settings
 
-            settings = get_settings()
-            client = anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+            client = make_client(get_settings())
         self._client = client
         self._model = model
         self._sleep = sleep or asyncio.sleep

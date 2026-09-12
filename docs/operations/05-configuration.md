@@ -8,9 +8,12 @@ upper-case forms of the fields:
 
 | Variable | Default | Consumed by | Notes |
 |----------|---------|-------------|-------|
-| `ANTHROPIC_API_KEY` | — (required) | all LLM agents | Required only at the first LLM call, not at import |
-| `PRIMARY_MODEL` | `claude-sonnet-4-6` | parser, key identifier, contracts, mapper | Sonnet tier |
-| `HEAVY_MODEL` | `claude-opus-4-8` | dv2_modeler | Opus tier for the hard reasoning step |
+| `LLM_PROVIDER` | `anthropic` | all LLM agents | The route to Claude and therefore where text and metadata are processed: `anthropic`, `bedrock`, `vertex` (5.5) |
+| `ANTHROPIC_API_KEY` | — (required for `anthropic`) | all LLM agents | Required only at the first LLM call, not at import; not needed on the other routes |
+| `AWS_REGION`, `AWS_PROFILE` | — (`AWS_REGION` required for `bedrock`) | client construction | Region of the Bedrock endpoint, e.g. `eu-central-2` (Zurich); credentials via the standard AWS chain |
+| `GCP_PROJECT_ID`, `GCP_REGION` | — (both required for `vertex`) | client construction | `europe-west1`, `eu` or `global`; auth via Application Default Credentials |
+| `PRIMARY_MODEL` | `claude-sonnet-4-6` | parser, key identifier, contracts, mapper | Sonnet tier. Passed to the provider **as written** — on `bedrock`/`vertex` set the ID the provider lists (5.5) |
+| `HEAVY_MODEL` | `claude-opus-4-8` | dv2_modeler | Opus tier for the hard reasoning step; same rule |
 | `LANGSMITH_API_KEY` | unset | eval upload only (11.5) | Pipeline never uses it |
 | `LANGSMITH_TRACING` | `false` | eval harness | |
 | `LANGSMITH_PROJECT` | `vault-agent-dev` | eval upload | Workspace name |
@@ -49,6 +52,38 @@ they explain behaviour you will observe:
 | `AGGREGATE_THRESHOLD` | 3 | orchestrator | More than 3 advisory flags per group collapse to one review-queue line |
 | `DEFAULT_TARGET_PLATFORM` | `postgres` | `rules/platforms.py` | The platform a run without `--target-platform` generates for; its output is the byte-identity baseline |
 | `DATABRICKS_UNSCALED_DECIMAL` | `decimal(38,18)` | `rules/platforms.py` | Seed type for a contract `number` on Databricks, where bare `NUMERIC` would be `DECIMAL(10,0)` and truncate fractions (9.6) |
+
+## 5.5 LLM route and data residency
+
+`LLM_PROVIDER` selects which client `ForcedToolCaller` is built with
+(`llm.make_client`); everything above that function is route-agnostic. The choice
+decides where requirements text, schema metadata and profiling statistics are processed —
+the assessment behind it is `docs/architecture/deployment-residency.md` (Bedrock with an
+EU region is the default answer for Swiss/DACH class-1 contexts).
+
+| Route | Client (anthropic SDK) | You supply | Install |
+|---|---|---|---|
+| `anthropic` | `AsyncAnthropic` | `ANTHROPIC_API_KEY` | default |
+| `bedrock` | `AsyncAnthropicBedrockMantle` (Bedrock's Messages-API endpoint) | `AWS_REGION`, AWS credentials (env, `AWS_PROFILE`, role) | `uv sync --extra bedrock` |
+| `vertex` | `AsyncAnthropicVertex` | `GCP_PROJECT_ID`, `GCP_REGION`, ADC login | `uv sync --extra vertex` |
+
+A route with a missing value fails **at construction**, naming the variable
+(`llm_provider='bedrock' requires aws_region (AWS_REGION)`); a missing provider library
+fails at the first client build, naming the extra to install. Both before any token is
+spent.
+
+**Model identifiers are not translated.** Set `PRIMARY_MODEL`/`HEAVY_MODEL` to what the
+chosen provider lists: first-party `claude-sonnet-4-6`; Bedrock IDs carry an `anthropic.`
+prefix and, on the legacy InvokeModel route, a geography profile such as `eu.`; Vertex
+uses bare or `@`-versioned IDs. Look them up in the provider console at deployment time —
+they change per release, and a guessed ID is a 404 after the first prompt has been built.
+
+**Verification status (2026-09-12): keyless-only.** The switch, its validation and the
+factory's dispatch are pinned by `tests/test_llm_provider.py` against recording fakes and
+against the installed SDK's class names (anthropic 0.107.0). No run has gone through
+Bedrock or Vertex; prompt caching and forced tool use are listed as available on both by
+the SDK's platform table, which is a statement about the platforms, not a measurement of
+this pipeline on them. The first customer deployment on either route is the measurement.
 
 ## 5.4 LangSmith (optional, eval-only)
 

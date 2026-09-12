@@ -4375,3 +4375,35 @@ green: tag equalled `uv version --short`, ruff, bare mypy and pytest passed agai
 at 06:59 UTC with the CHANGELOG section as its notes and both artifacts attached; it is now the
 repository's latest release. Verified by reading the run's jobs and the release object via `gh`,
 not by assuming the workflow file is right — it had never run before this tag.
+
+## [2026-09-12] The residency switch is wired: `LLM_PROVIDER` picks Anthropic, Bedrock or Vertex
+
+`deployment-residency.md` (2026-07-18) said the switch was "already architected, not yet
+wired": all traffic goes through `ForcedToolCaller` with an injectable client, so the route
+is a client-construction question. Now it is a setting. `LLM_PROVIDER=anthropic|bedrock|vertex`
+in `config.py`, with `AWS_REGION`/`AWS_PROFILE` and `GCP_PROJECT_ID`/`GCP_REGION`; a
+`model_validator` fails at construction naming the missing variable for the chosen route,
+and `ANTHROPIC_API_KEY` is no longer required when the route is not first-party. One factory,
+`llm.make_client`, builds `AsyncAnthropic`, `AsyncAnthropicBedrockMantle(aws_region=,
+aws_profile=)` or `AsyncAnthropicVertex(project_id=, region=)`; a missing provider library
+becomes an `LLMCallError` naming the extra (`uv sync --extra bedrock|vertex`, both added to
+`pyproject`). Everything above the factory is untouched.
+
+**Verified against the installed thing, not memory.** anthropic 0.107.0 exposes exactly those
+classes with those constructor parameters (introspected); the skill's platform table lists
+tool use and prompt caching — the two features `ForcedToolCaller` relies on — as available
+on Bedrock and Vertex; the Mantle client is the SDK's Messages-API Bedrock endpoint and the
+recommended one for new code, the older `AnthropicBedrock` is the InvokeModel path. Keyless:
+906 passed, 2 skipped; ruff and bare mypy clean. `tests/test_llm_provider.py` pins the
+validation per route, the factory's kwargs per provider against recording fakes, the
+attributable extra-missing error, the caller's use of the factory, and the SDK class names.
+
+**Deliberately not done, and why.** No model-ID mapping: Bedrock IDs carry an `anthropic.`
+prefix and, on the legacy route, a geography profile (`eu.`); Vertex uses bare or
+`@`-versioned IDs; both change per release. The operator sets `PRIMARY_MODEL`/`HEAVY_MODEL`
+to what the provider lists — a derived mapping would be the "plausible name that does not
+exist" of the craft rules. No console line or trace field naming the route (candidate for
+the residency evidence a customer will ask for). **Not verified:** no run has crossed
+Bedrock or Vertex; whether the EU geographic inference profile the residency document
+recommends is reachable through the Mantle endpoint or only through the legacy client is a
+question for the first deployment, not answerable offline. Manual 5.5 says keyless-only.
