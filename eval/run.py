@@ -303,7 +303,12 @@ def run_metrics(
         # proposer does not run at all.
         "link_proposals": {
             "by_category": dict(
-                sorted(Counter(p.category for p in state.link_proposals.proposals).items())
+                sorted(
+                    Counter(
+                        [str(p.category) for p in state.link_proposals.proposals]
+                        + [str(r.category) for r in state.link_proposals.relationships]
+                    ).items()  # WP37: relationship_table counted beside the per-key categories
+                )
             ),
             "by_status": dict(
                 sorted(

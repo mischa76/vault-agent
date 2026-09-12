@@ -25,8 +25,9 @@ import logging
 from vault_agent.agents.base import BaseAgent
 from vault_agent.rules.dv2_rules import (
     canonical_hub_key_column,
+    construct_base_from_table,
     construct_base_name,
-    construct_binds_to_source_table,
+    hub_binds_to_source_table,
     normalize_identifier,
 )
 from vault_agent.state import (
@@ -41,6 +42,8 @@ from vault_agent.state import (
     LinkProposals,
     LinkSkip,
     LinkSkipReason,
+    Participation,
+    RelationshipLinkProposal,
     SourceTable,
     VaultAgentState,
 )
@@ -77,7 +80,7 @@ def _target_hub(
         return matches[0], None, ""
 
     by_table = [
-        hub for hub in matches if construct_binds_to_source_table(hub.name, fk.references_table)
+        hub for hub in matches if hub_binds_to_source_table(hub, fk.references_table)
     ]
     if len(by_table) == 1:
         return by_table[0], None, ""
@@ -105,8 +108,7 @@ def _translation_target(
     keeps its ordinary ``no_hub_for_key`` skip; a typed ``translation_key_missing`` when the
     shape holds but the declared relation lacks a column."""
     bound = [
-        hub for hub in existing.hubs
-        if construct_binds_to_source_table(hub.name, fk.references_table)
+        hub for hub in existing.hubs if hub_binds_to_source_table(hub, fk.references_table)
     ]
     if len(bound) != 1:
         return None, None, None, ""
@@ -136,6 +138,99 @@ def _translation_target(
     ), None, ""
 
 
+def resolve_fk_target(
+    model: DVModel, fk: ForeignKeyRef, declared: dict[str, SourceTable]
+) -> tuple[Hub | None, KeyTranslation | None, LinkSkipReason | None, str]:
+    """One foreign key against one model: the hub it points at, with translation if needed.
+
+    The single resolution the proposer (against the existing vault) and the relationship
+    applier (against the merged model, WP37) both use — two call sites, one rule, per the
+    invariant that a seam matched by two different identity rules is the defect site."""
+    hub, reason, message = _target_hub(model, fk)
+    if hub is not None:
+        return hub, None, None, ""
+    # The key column declined — none keyed so, or several. Either way, if exactly ONE hub is
+    # built from the REFERENCED table and keyed on another column, the foreign key means that
+    # hub through a translation (ADR-0013 §1): the declaration names the table, and several
+    # hubs sharing a key NAME (BusinessEntityID on Person, Employee, Store …) say nothing about
+    # Vendor. Measured necessary on 2026-09-12: ProductVendor.BusinessEntityID → Vendor was
+    # "ambiguous" against the vault while hub_vendor sat right there, keyed on AccountNumber.
+    t_hub, translation, t_reason, t_message = _translation_target(model, fk, declared)
+    if t_hub is not None:
+        return t_hub, translation, None, ""
+    if t_reason is not None:
+        return None, None, t_reason, t_message
+    return None, None, reason, message
+
+
+def _participation(
+    fk: ForeignKeyRef, hub: Hub | None, translation: KeyTranslation | None
+) -> Participation:
+    p = Participation(
+        referencing_column=fk.columns[0],
+        references_table=fk.references_table,
+        references_column=fk.references_columns[0],
+        references_schema=fk.references_schema,
+    )
+    if hub is None:
+        return p
+    canonical = canonical_hub_key_column(hub)
+    p.target_hub = hub.name
+    p.target_business_key = canonical
+    if translation is not None:
+        p.key_translation = translation
+    elif normalize_identifier(fk.columns[0]) != normalize_identifier(canonical):
+        p.source_key_column = fk.columns[0]
+    return p
+
+
+def _relationship_candidate(
+    existing: DVModel, table: SourceTable, declared: dict[str, SourceTable]
+) -> RelationshipLinkProposal | None:
+    """WP37 §2: a table with two or more single-column keys, at least one of which resolves
+    against the existing vault now; keys into THIS increment's tables stay pending for the
+    applier. Purely intra-increment tables are the modeler's own business and yield nothing."""
+    keys = [fk for fk in table.foreign_keys if fk.is_single_column]
+    if len(keys) < 2:
+        return None
+    participations: list[Participation] = []
+    resolved_now = 0
+    for fk in keys:
+        hub, translation, reason, _ = resolve_fk_target(existing, fk, declared)
+        if hub is not None:
+            resolved_now += 1
+        elif not (
+            normalize_identifier(fk.references_table) in declared
+            and not any(hub_binds_to_source_table(h, fk.references_table) for h in existing.hubs)
+        ):
+            # Points outside this increment at nothing this vault can name (no hub, or several
+            # hubs and no tie-break): never completable, so no candidate. A key into THIS
+            # increment's own, not-yet-hubbed table is PENDING whatever the key-name match said.
+            return None
+        participations.append(_participation(fk, hub, translation))
+    if resolved_now == 0:
+        return None
+    return RelationshipLinkProposal(
+        source_table=table.table,
+        participations=participations,
+        evidence=[
+            f"{table.table} declares {len(keys)} single-column foreign keys and is therefore a "
+            f"relationship between the tables they reference, not a business object of its own",
+        ] + [
+            (
+                f"{table.table}.{p.referencing_column} → {p.references_table}."
+                f"{p.references_column}: "
+                + (f"{p.target_hub} (existing)" if p.resolved
+                   else "no hub yet — this increment's table, resolved after the modeler")
+            )
+            for p in participations
+        ] + [
+            "applies only if the modeler builds no hub for the table itself; a hub there means "
+            "the ordinary per-key links apply instead"
+        ],
+    )
+
+
 def propose_links(
     existing: DVModel, source_schemas: list[SourceTable]
 ) -> tuple[LinkProposals, list[LinkSkip]]:
@@ -148,11 +243,15 @@ def propose_links(
     """
     proposals: list[LinkProposal] = []
     skipped: list[LinkSkip] = []
+    relationships: list[RelationshipLinkProposal] = []
     declared: dict[str, SourceTable] = {}
     for table in source_schemas:
         declared.setdefault(normalize_identifier(table.table), table)
 
     for table in source_schemas:
+        candidate = _relationship_candidate(existing, table, declared)
+        if candidate is not None:
+            relationships.append(candidate)
         for fk in table.foreign_keys:
             asset = f"{table.table}.{','.join(fk.columns)}"
             if not fk.is_single_column:
@@ -170,7 +269,7 @@ def propose_links(
                 continue
 
             hub, reason_code, reason = _target_hub(existing, fk)
-            if hub is None and reason_code == "no_hub_for_key":
+            if hub is None:
                 # WP36: the vault may be keyed on the natural key while the source references
                 # the surrogate — one join away, not unreachable. Tried only after the plain
                 # match declined, so every WP34 shape is decided exactly as before.
@@ -235,24 +334,34 @@ def propose_links(
                 )
             )
 
-    return LinkProposals(proposals=proposals, skipped=skipped), skipped
+    return LinkProposals(proposals=proposals, skipped=skipped, relationships=relationships), skipped
 
 
-def proposal_key(proposal: LinkProposal) -> str:
-    """The stable handle a human uses to answer one proposal: ``Customer.PersonID``.
+def proposal_key(proposal: LinkProposal | RelationshipLinkProposal) -> str:
+    """The stable handle a human uses to answer one proposal: ``Customer.PersonID``, or
+    ``ProductVendor.*`` for a relationship table (WP37 — one decision per table).
 
     The same string the skip flags use as their ``asset``, so everything a reviewer sees
     about one foreign key is keyed identically — and it is a typed handle, not a rendered
     sentence, because consumers must never parse a message."""
+    if isinstance(proposal, RelationshipLinkProposal):
+        return f"{proposal.source_table}.*"
     return f"{proposal.source_table}.{proposal.source_column}"
 
 
-def pending_link_decisions(link_proposals: LinkProposals) -> list[LinkProposal]:
+def pending_link_decisions(
+    link_proposals: LinkProposals,
+) -> list[LinkProposal | RelationshipLinkProposal]:
     """Proposals a human must answer before modelling. Pure, and safe above ``interrupt()``.
 
     Every proposal is pending until answered: unlike a resolution, there is no class of link
-    proposal that needs no decision. A link is only ever built because someone said yes."""
-    return [p for p in link_proposals.proposals if p.ratification_status == "proposed"]
+    proposal that needs no decision. A link is only ever built because someone said yes.
+    Relationship-table proposals (WP37) are listed after the per-key ones."""
+    pending: list[LinkProposal | RelationshipLinkProposal] = [
+        p for p in link_proposals.proposals if p.ratification_status == "proposed"
+    ]
+    pending.extend(p for p in link_proposals.relationships if p.ratification_status == "proposed")
+    return pending
 
 
 def _link_name(near: str, target: str) -> str:
@@ -295,9 +404,8 @@ def apply_ratified_link_proposals(
         near = next(
             (
                 name
-                for name in hubs
-                if name.startswith("hub_")
-                and construct_binds_to_source_table(name, proposal.source_table)
+                for name, hub in hubs.items()
+                if name.startswith("hub_") and hub_binds_to_source_table(hub, proposal.source_table)
             ),
             None,
         )
@@ -368,7 +476,90 @@ def apply_ratified_link_proposals(
         added += 1
 
     logger.info("applied %d ratified link proposal(s) to the delta", added)
+
+    # WP37: relationship tables. Resolved against the MERGED model, because the pending
+    # participations reference this increment's own tables, which have hubs only now.
+    declared = {normalize_identifier(t.table): t for t in state.source_schemas}
+    merged = DVModel(hubs=list(hubs.values()), links=[*existing.links, *delta.links])
+    for rel in state.link_proposals.ratified_relationships():
+        if any(hub_binds_to_source_table(hub, rel.source_table) for hub in hubs.values()):
+            logger.info(
+                "relationship proposal for %s not applied: the table got a hub of its own, the "
+                "per-key links cover it", rel.source_table,
+            )
+            continue
+        fk_by_column = {
+            normalize_identifier(fk.columns[0]): fk
+            for t in state.source_schemas if t.table == rel.source_table
+            for fk in t.foreign_keys if fk.is_single_column
+        }
+        unresolved: list[str] = []
+        for p in rel.participations:
+            if p.resolved:
+                continue
+            fk = fk_by_column.get(normalize_identifier(p.referencing_column))
+            hub, translation = (None, None)
+            if fk is not None:
+                hub, translation, _, _ = resolve_fk_target(merged, fk, declared)
+            if hub is None:
+                unresolved.append(p.referencing_column)
+                continue
+            fresh = _participation(fk, hub, translation)  # type: ignore[arg-type]
+            p.target_hub, p.target_business_key = fresh.target_hub, fresh.target_business_key
+            p.source_key_column, p.key_translation = fresh.source_key_column, fresh.key_translation
+        targets = [p.target_hub for p in rel.participations if p.target_hub]
+        if unresolved or len(set(targets)) != len(rel.participations) or len(targets) < 2:
+            why = (
+                f"unresolved participation(s) {', '.join(unresolved)}" if unresolved
+                else "two participations resolve to the same hub"
+            )
+            state.flag(
+                "link_proposer",
+                f"ratified relationship link for {rel.source_table} not built: {why} — a "
+                f"link with a missing or merged participation has a different grain",
+                kind=FlagKind.LINK_RELATIONSHIP_INCOMPLETE,
+                asset=f"{rel.source_table}.*",
+            )
+            continue
+        grain = frozenset(targets)
+        if grain in grains:
+            logger.info("relationship link for %s already built", rel.source_table)
+            continue
+        for p in rel.participations:
+            if p.key_translation is not None:
+                state.flag(
+                    "link_proposer",
+                    f"link for {rel.source_table} requires surrogate→natural-key translation "
+                    f"through {p.key_translation.through_table} for {p.target_hub}; review the "
+                    f"translation model",
+                    kind=FlagKind.LINK_TRANSLATION,
+                    asset=f"{rel.source_table}.{p.referencing_column}",
+                )
+        delta.links.append(
+            Link(
+                name=_relationship_link_name(rel.source_table),
+                connected_hubs=[
+                    LinkHubRef(
+                        hub=p.target_hub or "",
+                        source_key_column=p.source_key_column,
+                        key_translation=p.key_translation,
+                    )
+                    for p in rel.participations
+                ],
+                description=(
+                    f"Relationship table {rel.source_table}: its declared foreign keys "
+                    f"relate {', '.join(targets)}; ratified from the source catalogue (WP37)."
+                ),
+            )
+        )
+        grains.add(grain)
+        added += 1
     return delta
+
+
+def _relationship_link_name(table: str) -> str:
+    """``ProductVendor`` -> ``link_product_vendor``: the relationship table names its link."""
+    return "link_" + construct_base_from_table(table)
 
 
 def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
@@ -379,11 +570,17 @@ def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
     the way ``source_mapper.source_overrides`` keys its own entries, so the existing
     ``bind_sources`` override path consumes them unchanged and raises no flag."""
     overrides: dict[str, str] = {}
+    for rel in state.link_proposals.ratified_relationships():
+        name = _relationship_link_name(rel.source_table)
+        if any(link.name == name for link in state.dv_model.links):
+            overrides[normalize_identifier(construct_base_name(name))] = rel.source_table
     for proposal in state.link_proposals.ratified():
         for link in state.dv_model.links:
             if any(
-                construct_binds_to_source_table(ref.hub, proposal.source_table)
+                hub_binds_to_source_table(hub, proposal.source_table)
                 for ref in link.hub_refs
+                for hub in state.dv_model.hubs
+                if hub.name == ref.hub
             ) and any(ref.hub == proposal.target_hub for ref in link.hub_refs):
                 overrides[normalize_identifier(construct_base_name(link.name))] = (
                     proposal.source_table

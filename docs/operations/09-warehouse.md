@@ -67,6 +67,12 @@ referenced relation). The translation is therefore visible SQL and a failing tes
 hidden mapping. `metadata/automatedv.yml` records it under the link's staging entry as
 `key_translation`. **Keyless-only** as of 2026-09-12 — no build has exercised one.
 
+**Relationship-table link** (WP37): a link ratified for a whole table (`Table.*`, 7.5) is
+named `link_<table>` and its stage binds to *that* table — the one relation that carries every
+participation's key — through the same override path a ratified mapping uses, so no
+`SOURCE_BINDING` flag is raised for it. Translated participations read their translation
+views as above. Keyless-only as of 2026-09-12.
+
 ## 9.4 Incremental behaviour & effectivity end-dating
 
 The generated effectivity satellite closes superseded relationships: AutomateDV's

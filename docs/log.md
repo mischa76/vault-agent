@@ -4646,3 +4646,43 @@ smaller than the truth. The step order's derivation claim in WP30 §7.1 is corre
 there. No paid run was needed for any of this, and none should be paid for before the
 relationship-table rule exists — the next rerun would otherwise measure the same near-hub
 ceiling on more keys.
+
+## [2026-09-12] WP37 built — relationship-table links, and the binding that hid the modeler's own hubs
+
+The rule the previous entry named as missing now exists, keyless: a declared table with two or
+more single-column foreign keys and no hub of its own is proposed as ONE link among the tables it
+references (`RelationshipLinkProposal`, category `relationship_table`, checkpoint key `Table.*`);
+a key into a table of the same increment is a PENDING participation, resolved by the applier
+against the merged model after the modeler ran, with the WP36 translation where the new hub is
+keyed on the natural key; a participation that cannot be resolved, or two that merge onto one hub,
+yields `link_relationship_incomplete` and no link. Spec, kick-off, manuals 7 and 9, CHANGELOG,
+index. 946 passed, 2 skipped; ruff, bare mypy clean.
+
+**Two findings the offline replay forced — and it cost nothing to find them.** Replaying the paid
+chain of this afternoon (recorded hubs per step, `source_entity` from the trace, every proposal
+ratified) through the new code gave 4 applier links, not the ~5 predicted, with `ProductVendor`
+missing. (1) Its key to `Vendor` was declined as `ambiguous_hub`, not `no_hub_for_key`, and the
+draft made only the latter pending. Fixed by ONE resolution rule for proposer and applier:
+translation is tried after any decline of the key-name match, pending is "referenced table
+declared here and no hub built from it" — 8 links, one of them a duplicate. (2) The duplicate:
+`link_purchase_order_header` beside the modeler's `link_purchase_order_vendor`, because the
+modeler had emitted `hub_purchase_order` FROM `PurchaseOrderHeader` and the name-only binding
+could not see it — the same blindness that made the per-key applier skip
+`PurchaseOrderHeader.EmployeeID` as "no hub was modelled" this afternoon, and that left
+`SalesOrderHeader.SalesPersonID` unresolved with `hub_sales_representative` (from `SalesPerson`)
+in the model. New helper `rules.hub_binds_to_source_table` binds by name, then `source_entity`,
+then WP10 feeds; guard `tests/test_wp37_hub_table_binding.py` written failing first. Result:
+**10 applier links, no duplicate, no incomplete flag**; the §6 counter reads 17 cross-domain
+links on the replayed chain against 7 recorded. Details, the ten names and what the replay
+assumes: wp37 spec §7.
+
+**Not measured.** Nothing ran against a model or a database. The replay is deterministic code
+over yesterday's hubs — a run whose modeler hubs differently resolves differently, and a reviewer
+who declines changes the count. Pre-registered for the next paid rerun, should the user call one:
+§6's link clause met, 12–15 of arm A's 16. The rerun protocol's cap is spent (~$24.30 of $20).
+
+**Observed and left alone, on the record:** the per-key applier logs a same-table second key
+onto an already-built hub (`SalesOrderHeader.ShipToAddressID` after `BillToAddressID`, both to
+`hub_address`) as "already covered" — that is a two-role link, neither built nor flagged; and
+WP34 tier 1 takes a single hub keyed on the referenced column without asking which table it was
+built from. Both are WP34 spec questions, spelled out in wp37 §7.

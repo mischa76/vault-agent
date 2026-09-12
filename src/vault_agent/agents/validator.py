@@ -818,6 +818,12 @@ class ValidatorAgent(BaseAgent):
             (p.target_hub, normalize_identifier(p.translation.referencing_column))
             for p in state.link_proposals.ratified()
             if p.translation is not None
+        } | {
+            # WP37: participations of a ratified relationship proposal, resolved at apply time
+            (part.target_hub, normalize_identifier(part.referencing_column))
+            for rel in state.link_proposals.ratified_relationships()
+            for part in rel.participations
+            if part.key_translation is not None
         }
         for link in state.dv_model.links:
             if link.name in pre_existing:

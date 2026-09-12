@@ -57,6 +57,7 @@ from vault_agent.state import (
     FlagKind,
     LinkProposal,
     ProposedMapping,
+    RelationshipLinkProposal,
     SourceTable,
     VaultAgentState,
     split_concept_key,
@@ -1077,8 +1078,12 @@ def _collect_link_decision(console: Console, state: VaultAgentState) -> dict[str
     answers: dict[str, bool] = {}
     for proposal in pending_link_decisions(state.link_proposals):
         key = proposal_key(proposal)
+        target = (
+            proposal.target_hub if isinstance(proposal, LinkProposal)
+            else f"{len(proposal.participations)} hubs"
+        )
         console.print(
-            f"  [yellow]{key}[/yellow] → link to [cyan]{proposal.target_hub}[/cyan] "
+            f"  [yellow]{key}[/yellow] → link to [cyan]{target}[/cyan] "
             f"[dim]({_link_category_note(proposal)})[/dim]"
         )
         for line in proposal.evidence:
@@ -1112,9 +1117,19 @@ def _route_line() -> str:
     return settings.route_description() if settings is not None else "unknown (settings not loaded)"
 
 
-def _link_category_note(proposal: LinkProposal) -> str:
+def _link_category_note(proposal: LinkProposal | RelationshipLinkProposal) -> str:
     """The category, and for a translation the join it implies — the reviewer must see that
-    this link is reached through another relation, not by renaming a column (ADR-0013 §3)."""
+    this link is reached through another relation, not by renaming a column (ADR-0013 §3).
+    A relationship-table proposal (WP37) lists its participations and the condition."""
+    if isinstance(proposal, RelationshipLinkProposal):
+        parts = ", ".join(
+            p.target_hub if p.target_hub else f"({p.references_table}, pending)"
+            for p in proposal.participations
+        )
+        return (
+            f"relationship table → link {parts} — applies only if "
+            f"{proposal.source_table} gets no hub of its own"
+        )
     t = proposal.translation
     if t is None:
         return proposal.category
@@ -1298,9 +1313,13 @@ def _report_paused_at_resolution(
             f"vault already has:"
         )
         for link_proposal in links:
+            target = (
+                link_proposal.target_hub if isinstance(link_proposal, LinkProposal)
+                else f"{len(link_proposal.participations)} hubs"
+            )
             console.print(
                 f"  [yellow]{proposal_key(link_proposal)}[/yellow] → link to "
-                f"[cyan]{link_proposal.target_hub}[/cyan] "
+                f"[cyan]{target}[/cyan] "
                 f"[dim]({_link_category_note(link_proposal)})[/dim]"
             )
     console.print(

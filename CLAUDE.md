@@ -151,8 +151,11 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   foreign keys (WP36, live-verified once on `ShoppingCartItem`) reference from relationship or
   detail tables that get no hub. Same day: the extractor had dropped 44 of AdventureWorks' 90
   foreign keys (fixed, re-derived); with all 90, arm A's 16 links split 8 direct / 6 relationship-
-  table / 2 none — the FK-evidence ceiling for incremental mode is 15 of 16, reached by adding the
-  relationship-table rule. Do not pay for another rerun before it exists. `docs/log.md` 2026-09-12.
+  table / 2 none — the FK-evidence ceiling for incremental mode is 15 of 16. **The relationship-
+  table rule exists since 2026-09-12 (WP37, keyless):** replayed over the recorded chain the
+  applier builds 10 links instead of 1 and the §6 counter reads 17 (7 recorded) — an offline
+  number against yesterday's hubs, not a measurement. The next paid rerun is the user's call;
+  the protocol's cap is already spent. `docs/log.md` 2026-09-12, wp37 spec §7.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

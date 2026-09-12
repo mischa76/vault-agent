@@ -3,7 +3,7 @@
 A hub-less table with two foreign keys is a link between the keys' targets. Today the proposer
 knows only the near-hub shape. Two pins: the WP34/WP36 miniatures (one key each) must never
 yield a relationship proposal; and the two-key miniature yields per-FK proposals only — the
-second pin is flipped by the WP in its own commit.
+second pin was flipped by the WP in its own commit (0070562 holds the pre-WP state).
 """
 from __future__ import annotations
 
@@ -42,10 +42,23 @@ def test_one_key_tables_never_yield_a_relationship_proposal() -> None:
         assert getattr(proposals, "relationships", []) == []
 
 
-def test_today_a_two_key_hubless_table_yields_per_key_proposals_only() -> None:
-    proposals, skipped = propose_links(product_and_unit_measure(), [product_vendor()])
+def vendor() -> SourceTable:
+    """This increment's own table: at proposal time it has no hub, so its key is PENDING."""
+    return SourceTable(table="Vendor", schema="Purchasing",
+                       columns=["BusinessEntityID", "AccountNumber", "Name"])
+
+
+def test_a_two_key_hubless_table_is_a_relationship_proposal_with_a_pending_key() -> None:
+    """Flipped by WP37 in its own commit (pinned at 0070562 as: per-key proposals only)."""
+    proposals, skipped = propose_links(product_and_unit_measure(), [product_vendor(), vendor()])
     assert sorted(p.category for p in proposals.proposals) == [
         "declared_fk_same_name", "declared_fk_translated"
     ]
     assert [s.reason for s in skipped] == ["no_hub_for_key"]  # Vendor: this increment's table
-    assert getattr(proposals, "relationships", []) == []
+    [rel] = proposals.relationships
+    assert rel.source_table == "ProductVendor" and rel.category == "relationship_table"
+    by_col = {p.referencing_column: p for p in rel.participations}
+    assert by_col["ProductID"].target_hub == "hub_product"
+    assert by_col["ProductID"].key_translation is not None
+    assert by_col["UnitMeasureCode"].target_hub == "hub_unit_measure"
+    assert by_col["BusinessEntityID"].target_hub is None  # pending

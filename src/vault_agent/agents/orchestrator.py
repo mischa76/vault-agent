@@ -36,7 +36,9 @@ from vault_agent.state import (
     FlagKind,
     Hub,
     HubSource,
+    LinkProposal,
     Proposal,
+    RelationshipLinkProposal,
     VaultAgentState,
     concept_ref_matches,
     match_concept_refs,
@@ -402,7 +404,11 @@ def apply_link_decision(state: VaultAgentState, decision: Any) -> list[str]:
         links = {}
 
     decided: list[str] = []
-    for proposal in state.link_proposals.proposals:
+    # WP37: relationship-table proposals decide by `Table.*`, otherwise identically.
+    decidable: list[LinkProposal | RelationshipLinkProposal] = [
+        *state.link_proposals.proposals, *state.link_proposals.relationships,
+    ]
+    for proposal in decidable:
         if proposal.ratification_status != "proposed":
             continue
         key = proposal_key(proposal)

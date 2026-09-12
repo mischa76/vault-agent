@@ -78,6 +78,7 @@ vault-agent resume --owner "customer=Jane Doe <jane@bank.example>" \
 | `--mappings <file>` | no | Ratifies an edited `mappings.review.yml` wholesale |
 | `--link "Table.Column"` | yes | Builds one link proposed from a declared foreign key (WP34) |
 | `--no-link "Table.Column"` | yes | Declines one proposed link; wins over `--link` for the same one |
+| `--link "Table.*"` / `--no-link "Table.*"` | yes | Ratifies or declines the **relationship-table** link proposed for a whole table (WP37) — one decision per table, not per key |
 
 A link proposal's note names its category. `declared_fk_same_name` and
 `declared_fk_renamed` are WP34's two: the referencing column is, or is renamed to, the hub's
@@ -87,6 +88,19 @@ a *surrogate* (`ShoppingCartItem.ProductID`) while the hub is keyed on the *natu
 Production.Product`. Ratifying it builds a link whose staging **joins through** the
 referenced relation (9.3); the review queue carries one `link_translation` item per such
 link, never aggregated, because a join is a decision a reviewer must see.
+
+**`relationship_table` (WP37) is a proposal for a whole table, keyed `Table.*`.** A declared
+table with two or more single-column foreign keys and no hub of its own — `ProductVendor`,
+`PersonCreditCard`, `SpecialOfferProduct` — *is* the link between the tables it references,
+and the rendering names every participation: resolved ones by hub, translated ones marked, and
+*(Vendor, pending)* for a key into a table of this same increment, which has a hub only after
+the modeler runs. The applier resolves pending participations against the merged model — by
+the referenced table's hub, whatever the modeler named it (`hub_sales_representative` built
+from `SalesPerson` counts) — and builds the link **only if the table itself got no hub**; a
+hubbed table is covered by its per-key proposals, which stay listed beside the table one.
+A participation the merged model cannot resolve, or two that merge onto one hub, yields a
+`link_relationship_incomplete` review item and no link: a link with a missing participation
+has a different grain, and a wrong grain over history is a migration.
 | `--accept` | — | Signs off and proceeds past the checkpoint |
 
 **`--accept` ratifies link proposals too.** That matters for unattended runs: an automated

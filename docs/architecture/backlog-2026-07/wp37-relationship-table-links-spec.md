@@ -80,3 +80,69 @@ must hub what the pending participations need; §6's link clause (8) met.
 Composite keys; a relationship table with **one** resolvable key (stays a skip); tables the
 modeler hubs (near-hub path); role-qualification when two keys hit the same hub (flagged, not
 guessed); any change to the modeler.
+
+## 7 Addendum 2026-09-12 — built; two findings the build forced, and the offline replay
+
+**Built keyless the same day** (`link_proposal.py`, `state.py`, `orchestrator.py`, `cli.py`,
+`validator.py`, `eval/run.py`; 946 tests, ruff, bare mypy). §5's keyless acceptance holds on the
+ProductVendor miniature. Two things §2 did not foresee, both found by replaying the paid chain of
+2026-09-12 (`eval/results/adventureworks_incremental/20260912T152704634091Z-*`) through the
+proposer and applier at zero cost:
+
+1. **Resolution is one rule for both paths, whatever the key-name match said.** §2 phrased
+   PENDING as "the key was declined as `no_hub_for_key`". On the recorded vault
+   `ProductVendor.BusinessEntityID → Vendor` is declined as `ambiguous_hub` (several hubs are
+   keyed `BusinessEntityID`; none is Vendor's), and the candidate was dropped. Now
+   `resolve_fk_target` tries the WP36 translation after *any* decline of the key match — the
+   declaration names a TABLE, and a shared key name says nothing about it — and a participation
+   is pending exactly when the referenced table is declared in this increment and no hub is
+   built from it. The per-key proposer takes the same branch (`if hub is None:`), so proposer and
+   applier cannot disagree about one foreign key.
+2. **A hub binds the table it was built FROM, not only the table it is named after.** The
+   modeler emitted `hub_purchase_order` with `source_entity: PurchaseOrderHeader`,
+   `hub_sales_order` from `SalesOrderHeader`, `hub_sales_representative` from `SalesPerson`.
+   Name-only binding (`construct_binds_to_source_table`) saw none of them, so the per-key applier
+   skipped `PurchaseOrderHeader.EmployeeID` as "no hub was modelled", the relationship rule took
+   the hubbed header for hub-less and built `link_purchase_order_header` beside the modeler's own
+   `link_purchase_order_vendor`, and `SalesOrderHeader.SalesPersonID` stayed unresolved with the
+   hub in the model. `rules.hub_binds_to_source_table(hub, table)` answers by name, then by
+   `source_entity`, then by each WP10 feed; every hub↔table question in `link_proposal.py` asks
+   it. Staging's spec↔relation binding (`bind_sources`) is unchanged: it binds by construct name
+   on purpose, and that is a different question. Guard: `tests/test_wp37_hub_table_binding.py`.
+
+**Offline replay, recorded hubs per step, provenance from the trace, every proposal ratified as
+`--accept` would** (`replay_wp37.py`, scratch; numbers reproducible from the results files):
+
+| Stage of the build | Links the applier adds over the 4 increments |
+|---|---|
+| WP34 + WP36 as measured on 2026-09-12 (paid) | 1 (`link_shopping_cart_item_product`) |
+| + relationship rule, §2 as written | 4 |
+| + finding 1 (one resolution rule) | 8, one of them a duplicate of a modeler link |
+| + finding 2 (provenance binding) | **10**, no duplicate, no `link_relationship_incomplete` |
+
+The ten: `document_employee`, `purchase_order_employee`, `product_vendor` (three-way),
+`purchase_order_detail`, `sales_order_address`, `sales_order_ship_method`,
+`sales_representative_employee`, `country_region_currency`, `person_credit_card`,
+`special_offer_product`. Through `eval/wp34_check.cross_domain_links` the recorded chain reads
+7 cross-domain links and the replayed one **17** — more than arm A's 16 because the counter
+counts every link whose hubs entered at different steps, not only arm A's set.
+
+**What the replay assumes, stated so the live run can falsify it.** (a) The modeler emits the
+same hubs, with the same names and `source_entity`, as on 2026-09-12 — the proposals are
+computed against *those*; a run that hubs differently resolves differently. (b) Every proposal
+is ratified; a reviewer declining any changes the count. (c) Nothing here was built by dbt: the
+relationship links' staging (one stage per link reading the relationship table, translation
+views included) is keyless-only. **Pre-registered prediction for the next paid rerun, if the
+user calls one: §6's link clause met (≥ 8), 12 to 15 of arm A's 16 constructible.** The cap of
+the rerun protocol is already exceeded (~$24.30 of $20); no run without the user's word.
+
+**Observed, not fixed (out of §6 scope, recorded so nobody rediscovers it).** *Role
+qualification:* `SalesOrderHeader` carries `BillToAddressID` and `ShipToAddressID`, both to
+`hub_address`. The per-key applier builds the first and logs the second as "already covered by
+an existing link" — a same-table second key onto the same hub is a two-role link, not coverage,
+and today it is neither built nor flagged. *WP34 tier 1:* a **single** hub keyed on the
+referenced column is taken without asking which table it was built from; with only one hub keyed
+`BusinessEntityID` in a vault, `Vendor.BusinessEntityID` would land on it. AdventureWorks never
+shows this (those hubs come in packs and the tie-break asks the table), a brownfield vault
+whose `source_entity` is a business term rather than a table name would lose links if tier 1
+were tightened — so it is a spec question for WP34, not a silent change here.

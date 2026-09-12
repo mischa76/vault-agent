@@ -39,6 +39,10 @@ class FlagKind:
     # WP36 (ADR-0013): a ratified link needed surrogate→natural-key translation through the
     # referenced relation. Its own review class: the reviewer must see the join, not a rename.
     LINK_TRANSLATION = "link_translation"
+    # WP37: a ratified relationship-table link was NOT built because a participation stayed
+    # unresolved or two hit the same hub — a partial link has a different grain, so nothing is
+    # built and the reviewer sees which participation failed.
+    LINK_RELATIONSHIP_INCOMPLETE = "link_relationship_incomplete"
     # WP34: a declared foreign key the link proposer would not answer for — a composite key,
     # or a referenced column several hubs share. Advisory: an unproposed link is an
     # incomplete model, which is what this pass exists to reduce, not a broken one.
@@ -475,6 +479,44 @@ class LinkProposal(BaseModel):
         return self.category == "declared_fk_renamed"
 
 
+class Participation(BaseModel):
+    """One foreign key of a relationship table, as a participation in the link it implies (WP37).
+
+    ``target_hub`` is ``None`` while the participation is PENDING — the referenced table belongs
+    to this increment and has no hub until the modeler runs; the applier resolves it against the
+    merged model, with the same helpers and the same translation rule (WP36) as at proposal
+    time. Alias or translation are set exactly as :class:`LinkHubRef` carries them."""
+
+    referencing_column: str
+    references_table: str
+    references_column: str
+    references_schema: str | None = None
+    target_hub: str | None = None
+    target_business_key: str | None = None
+    source_key_column: str | None = None
+    key_translation: KeyTranslation | None = None
+
+    @property
+    def resolved(self) -> bool:
+        return self.target_hub is not None
+
+
+class RelationshipLinkProposal(BaseModel):
+    """A hub-less table with two or more foreign keys IS the link among their targets (WP37).
+
+    `ProductVendor(ProductID, BusinessEntityID, UnitMeasureCode)` is not a business object; it
+    is `hub_product ↔ hub_vendor ↔ hub_unit_measure`. WP34's proposer needs a hub on the
+    referencing side and so could never say this; arm A said it six times out of sixteen
+    cross-domain links. One proposal per table, one decision (`Table.*`), applied only when
+    every participation resolves to a distinct hub and no hub was built for the table itself."""
+
+    source_table: str
+    participations: list[Participation]
+    evidence: list[str] = Field(default_factory=list)
+    ratification_status: RatificationStatus = "proposed"
+    category: Literal["relationship_table"] = "relationship_table"
+
+
 class LinkProposals(BaseModel):
     """The proposer's full answer for one run; empty on greenfield and ungrounded runs.
 
@@ -484,6 +526,11 @@ class LinkProposals(BaseModel):
 
     proposals: list[LinkProposal] = Field(default_factory=list)
     skipped: list[LinkSkip] = Field(default_factory=list)
+    # WP37: one per relationship table; empty on every pre-WP37 shape (byte-identity).
+    relationships: list[RelationshipLinkProposal] = Field(default_factory=list)
+
+    def ratified_relationships(self) -> list[RelationshipLinkProposal]:
+        return [p for p in self.relationships if p.ratification_status == "accepted"]
 
     def ratified(self) -> list[LinkProposal]:
         """Only these may become links — the WP29 rule applied to relationships.

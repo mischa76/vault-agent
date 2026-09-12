@@ -126,7 +126,8 @@ own overview.
 | [wp32](architecture/backlog-2026-07/wp32-concept-identity-spec.md) | Concept identity is (label, entity), not the label alone |
 | [wp34](architecture/backlog-2026-07/wp34-fk-derived-link-proposals-spec.md) | Links proposed from the source's own foreign keys, ratified at the WP29 checkpoint — **§6 NOT MET on the 2026-09-12 rerun (7 of 8); remaining gap: near-hub rule** |
 | [wp35](architecture/backlog-2026-07/wp35-target-platform-databricks-spec.md) | Databricks as a selectable target platform: seed-type dialect in `rules/platforms.py`, `--target-platform` — **built 2026-09-11, keyless-only; no workspace build yet** |
-| [wp36](architecture/backlog-2026-07/wp36-surrogate-key-translation-spec.md) | Surrogate→natural-key translation for FK-derived links (ADR-0013) — **built and live-verified once 2026-09-12; 3 of 4 cases blocked by the near-hub rule** |
+| [wp36](architecture/backlog-2026-07/wp36-surrogate-key-translation-spec.md) | Surrogate→natural-key translation for FK-derived links (ADR-0013) — **built and live-verified once 2026-09-12; the 3 cases the near-hub rule blocked are WP37's** |
+| [wp37](architecture/backlog-2026-07/wp37-relationship-table-links-spec.md) | Relationship-table links: a hub-less table with ≥2 foreign keys is the link among their targets; one `Table.*` decision — **built 2026-09-12, keyless; offline replay 10 applier links (was 1), §7** |
 | [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — **closed 2026-09-12: 7 of 8, §6 not met, ceiling named** |
 
 Earlier specs, before the backlog was numbered:

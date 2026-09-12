@@ -13,6 +13,14 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- Relationship-table links (WP37): a declared table with two or more single-column foreign
+  keys and no hub of its own is proposed as the link among the tables it references — one
+  `Table.*` decision at the checkpoint, participations pending on this increment's own tables
+  are resolved after the modeler ran, translations (WP36) per participation, a
+  `link_relationship_incomplete` review item where a participation cannot be resolved. The
+  applier now finds a hub by the table it was built from (`source_entity`, WP10 feeds), not only
+  by name, so `hub_purchase_order` built from `PurchaseOrderHeader` counts as that table's hub.
+  Keyless-only; offline replay of the 2026-09-12 chain: 10 applier links instead of 1.
 - Surrogate→natural-key translation for FK-derived links (WP36, ADR-0013 accepted 2026-09-12):
   a foreign key that references a surrogate while the hub is keyed on the natural key is now a
   proposal (`declared_fk_translated`) instead of a skip; a ratified one renders a translation

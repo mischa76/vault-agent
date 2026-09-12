@@ -18,6 +18,20 @@ def normalize_identifier(label: str) -> str:
     return re.sub(r"[^0-9a-zA-Z]+", "_", label).strip("_").upper()
 
 
+def construct_base_from_table(table: str) -> str:
+    """A source table's name as a construct base: ``ProductVendor`` -> ``product_vendor``.
+
+    Construct names are lowercase snake_case (``CONSTRUCT_NAME_PATTERN``); source tables are
+    often CamelCase, and ``normalize_identifier`` alone would fold ``ProductVendor`` to
+    ``productvendor`` (WP37 named its first link that way). CamelCase boundaries become
+    underscores first — ``SalesOrderDetail`` -> ``sales_order_detail``, ``HTMLParser`` ->
+    ``html_parser`` — then the ordinary normalisation applies. One place, because a link named
+    from a table and a hub named by the modeler must fold to the same base or the binder
+    (``construct_binds_to_source_table``) cannot see that they are the same table."""
+    spaced = re.sub(r"(?<=[a-z0-9])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])", "_", table)
+    return normalize_identifier(spaced).lower()
+
+
 # Well-formed construct names (WP20 §2.1). A construct name is not decoration: it becomes a
 # dbt model name, a file on disk (``<name>.sql``), and the stem of the staging model feeding
 # it. DV2.0 convention prefixes the construct kind (hub_/link_/sat_ — the prefix the
@@ -531,6 +545,28 @@ def construct_binds_to_source_table(construct_name: str, table_name: str) -> boo
         _separator_insensitive(RAW_SOURCE_PREFIX + base),
     }
     return _separator_insensitive(table_name) in candidates
+
+
+def hub_binds_to_source_table(hub: Any, table_name: str) -> bool:
+    """True when a hub is built FROM this declared source table — by name or by provenance.
+
+    Name first: ``construct_binds_to_source_table`` on the hub's name, the same rule staging
+    binds by. Then provenance: the hub's ``source_entity`` (the relation the modeler named it
+    from), and each ``sources[].source_table`` of a multi-source hub (WP10), compared through
+    the same separator-insensitive key. Names and provenance disagree exactly where a hub is
+    named after the CONCEPT and the table after the RECORD — ``hub_purchase_order`` from
+    ``PurchaseOrderHeader``, ``hub_sales_representative`` from ``SalesPerson`` — which is what
+    the modeler did on 2026-09-12 and what name-only binding could not see: it skipped ratified
+    links "for want of a hub" and took a hubbed header table for hub-less (WP37 §3.1).
+
+    ``Any``-typed like its neighbours so ``rules/`` stays free of the state models."""
+    if construct_binds_to_source_table(hub.name, table_name):
+        return True
+    wanted = _separator_insensitive(table_name)
+    provenance = [
+        source.source_table for source in (getattr(hub, "sources", None) or [])
+    ] + [getattr(hub, "source_entity", None) or ""]
+    return any(_separator_insensitive(rel) == wanted for rel in provenance if rel)
 
 
 def resolution_category(
