@@ -4298,3 +4298,22 @@ Checked, not assumed: Dependabot's graph update after the push (rebased onto the
 tornado 6.5.8 and pypdf 6.16.1 PRs, lock re-resolved without changes) marked alerts 20, 21 and
 22 (`thrift`) as **fixed** at 05:14 UTC. Open on `main`: only alert 16 (`sqlparse 0.5.5`,
 `demo` fork, dbt-core 1.9 cap) — the 2026-08-24 reachability argument stands for it.
+
+## [2026-09-12] Correction to this morning's entry: "no dbt build on either line" conflated two things
+
+The extras-split entry above says *"no `dbt build` on either line"*. That is wrong as written,
+and the user caught it. **The Postgres line (dbt-core 1.9, dbt-postgres 1.9, AutomateDV 0.11.4)
+is verified live, repeatedly** — `dbt build --full-refresh` green on PostgreSQL 16 on 2026-06-23
+(PASS=29, eff_sat end-dating closes the first owner), 2026-07-06 (PASS=12, incremental re-run
+idempotent), 2026-07-14 for `demo/mapping_postgres` (PASS=9 with no seeds, real raw tables), and
+later runs at PASS=36 and PASS=17, all in this log. What the sentence should have said: *after
+the split no build was re-run, because the Postgres pins did not move, and the Databricks line
+(dbt-core 1.11, dbt-databricks 1.12) has never been built anywhere because no workspace exists.*
+
+The entry also risks a second conflation, which the user's question exposed: the money spent on
+"live runs" went into **LLM pipeline runs** against the Anthropic API — the WP30 arm comparison
+($19.31), three ~$5 scale attempts, WP30.1–30.3 (~$46), the two WP34 runs (~$18) — not into
+dbt builds, which are local, keyless and free. Both are "live"; they verify different things:
+a paid run verifies modelling behaviour, a dbt build verifies that the generated project runs
+on a warehouse. This log keeps them apart; today's entry did not. The morning entry stays as
+written; this one corrects it.

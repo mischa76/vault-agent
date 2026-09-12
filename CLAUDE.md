@@ -160,7 +160,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   changes seed types and the README; no `dbt build` has run against a workspace. Its extra
   `demo-databricks` sits on dbt-core 1.11 and **conflicts with `demo`** (dbt-core 1.9, the
   Postgres-verified line) — `uv sync` installs one or the other, never both (`tool.uv.conflicts`,
-  2026-09-12). The first live build therefore runs on a dbt line the Postgres demo has not seen.
+  2026-09-12). The Postgres line is verified live many times (`docs/log.md`, from 2026-06-23);
+  the Databricks line has never been built anywhere — no workspace. Two kinds of "live" here:
+  a paid LLM pipeline run verifies modelling, a keyless `dbt build` verifies the warehouse output.
 
 ## How this file is maintained
 
