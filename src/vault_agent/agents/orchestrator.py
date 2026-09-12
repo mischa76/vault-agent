@@ -67,6 +67,9 @@ REVIEW_FLAG_GROUPS: dict[str, str] = {
     # a reference to a table this vault has not hubbed. Rendered individually they would bury
     # the substantive items on exactly the axis §6 says must fall.
     FlagKind.LINK_PROPOSAL_SKIPPED: "link-proposal-skipped",
+    # WP36: deliberately NOT aggregated — a translation is a join through another relation
+    # and each one is a review item in its own right (ADR-0013 §3). Listed here only as a
+    # comment so the omission reads as a decision, not an oversight.
 }
 _DEFAULT_GROUP = "other"
 # Above this many items in one group, the renderers collapse it to a single summarised line.

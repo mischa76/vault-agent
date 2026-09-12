@@ -55,6 +55,7 @@ from vault_agent.state import (
     DVModel,
     EntityResolution,
     FlagKind,
+    LinkProposal,
     ProposedMapping,
     SourceTable,
     VaultAgentState,
@@ -1078,7 +1079,7 @@ def _collect_link_decision(console: Console, state: VaultAgentState) -> dict[str
         key = proposal_key(proposal)
         console.print(
             f"  [yellow]{key}[/yellow] → link to [cyan]{proposal.target_hub}[/cyan] "
-            f"[dim]({proposal.category})[/dim]"
+            f"[dim]({_link_category_note(proposal)})[/dim]"
         )
         for line in proposal.evidence:
             console.print(f"    [dim]{line}[/dim]")
@@ -1109,6 +1110,19 @@ def _construct_count(model: DVModel) -> int:
 def _route_line() -> str:
     settings = _settings_or_none()
     return settings.route_description() if settings is not None else "unknown (settings not loaded)"
+
+
+def _link_category_note(proposal: LinkProposal) -> str:
+    """The category, and for a translation the join it implies — the reviewer must see that
+    this link is reached through another relation, not by renaming a column (ADR-0013 §3)."""
+    t = proposal.translation
+    if t is None:
+        return proposal.category
+    through = f"{t.through_schema}.{t.through_table}" if t.through_schema else t.through_table
+    return (
+        f"{proposal.category}: {t.referencing_column} → {t.natural_key_column} "
+        f"through {through}"
+    )
 
 
 def _print_summary(console: Console, state: VaultAgentState) -> None:
@@ -1286,7 +1300,8 @@ def _report_paused_at_resolution(
         for link_proposal in links:
             console.print(
                 f"  [yellow]{proposal_key(link_proposal)}[/yellow] → link to "
-                f"[cyan]{link_proposal.target_hub}[/cyan] [dim]({link_proposal.category})[/dim]"
+                f"[cyan]{link_proposal.target_hub}[/cyan] "
+                f"[dim]({_link_category_note(link_proposal)})[/dim]"
             )
     console.print(
         "\n  [cyan]vault-agent resume --out "

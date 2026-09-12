@@ -36,6 +36,9 @@ class FlagKind:
     # blocks sign-off — an unresolved concept is honest output, as a mapping gap is.
     RESOLUTION_UNRESOLVED = "resolution_unresolved"  # is this an existing construct? undecided
     RESOLUTION_SAME_AS = "resolution_same_as"  # asserted equivalent, differently keyed
+    # WP36 (ADR-0013): a ratified link needed surrogate→natural-key translation through the
+    # referenced relation. Its own review class: the reviewer must see the join, not a rename.
+    LINK_TRANSLATION = "link_translation"
     # WP34: a declared foreign key the link proposer would not answer for — a composite key,
     # or a referenced column several hubs share. Advisory: an unproposed link is an
     # incomplete model, which is what this pass exists to reduce, not a broken one.
@@ -393,7 +396,26 @@ class EntityResolution(BaseModel):
 # never claimed by anything. Only two tiers can occur, because the proposer reads DECLARED
 # foreign keys and nothing else — see `link_proposal.propose_links` for why the spec's third
 # illustrative tier (`key_name_only`) is deliberately not implemented.
-LinkProposalCategory = Literal["declared_fk_same_name", "declared_fk_renamed"]
+LinkProposalCategory = Literal[
+    "declared_fk_same_name", "declared_fk_renamed", "declared_fk_translated"
+]
+
+
+class KeyTranslation(BaseModel):
+    """How a surrogate reference becomes the hub's natural key (WP36, ADR-0013).
+
+    The source declares referential integrity on a surrogate (``ShoppingCartItem.ProductID →
+    Product.ProductID``) while the vault keys ``hub_product`` on the natural key
+    ``ProductNumber``. Neither side is wrong, and no alias bridges them: the natural key is not
+    in the referencing table at all. Bridging is a JOIN through the referenced relation, and this
+    record is that join as facts — visible to the reviewer at the checkpoint and rendered as a
+    dedicated dbt model, never hidden in a mapping."""
+
+    referencing_column: str  # the surrogate as the referencing table calls it (T.X)
+    through_table: str  # the referenced relation R
+    through_schema: str | None = None
+    surrogate_column: str  # R's own name for the surrogate (R.Xref)
+    natural_key_column: str  # the hub's canonical key column, projected from R (R.Y)
 
 # Why the proposer declined to answer for a declared foreign key. A CODE, not the sentence:
 # the 2026-08-12 run left 10 of 11 viable cross-schema foreign keys unaccounted for, and the
@@ -404,6 +426,10 @@ LinkSkipReason = Literal[
     "composite_key",  # several columns; which pairs with which hub key is a modelling call
     "no_hub_for_key",  # no existing hub is keyed on the referenced column
     "ambiguous_hub",  # several hubs share that key and the referenced table breaks no tie
+    # WP36: a hub binds the referenced table but that table, declared in this increment,
+    # lacks the surrogate or the natural key — translation would join on a column that is
+    # not there, so it is declined rather than guessed.
+    "translation_key_missing",
 ]
 
 
@@ -439,6 +465,9 @@ class LinkProposal(BaseModel):
     category: LinkProposalCategory
     evidence: list[str] = Field(default_factory=list)
     ratification_status: RatificationStatus = "proposed"
+    # WP36: set exactly when category is declared_fk_translated — the join the staging layer
+    # must render for this link. None for the two WP34 categories (byte-identity).
+    translation: KeyTranslation | None = None
 
     @property
     def needs_alias(self) -> bool:
@@ -512,6 +541,11 @@ class LinkHubRef(BaseModel):
     # either fail to build or join on a same-named column meaning something else.
     # None = today's behaviour and today's bytes. E_LINK_KEY_NOT_IN_SOURCE gates it.
     source_key_column: str | None = None
+    # WP36 (ADR-0013): this participation's key is not in the feeding relation under ANY
+    # name — it is reached by joining through the referenced relation. Mutually exclusive
+    # with source_key_column by construction (an alias renames, a translation joins). The
+    # staging pass renders a translation model for it; None = today's bytes.
+    key_translation: KeyTranslation | None = None
 
     def __str__(self) -> str:
         return self.hub if self.role is None else f"{self.hub}:{self.role}"

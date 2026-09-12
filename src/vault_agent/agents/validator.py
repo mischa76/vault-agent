@@ -829,6 +829,41 @@ class ValidatorAgent(BaseAgent):
             )
             where = bound[0].table if bound else "the declared source schema"
             for ref in link.hub_refs:
+                if ref.key_translation is not None:
+                    # WP36 (ADR-0013): a translation joins instead of renaming, so what must
+                    # exist is the SURROGATE on the referencing relation — and, when the
+                    # referenced relation is declared in this run, both its columns. Same
+                    # severity as the alias branch, for the same reason: staging turns this
+                    # into a join that either fails or joins the wrong column.
+                    t = ref.key_translation
+                    if normalize_identifier(t.referencing_column) not in in_scope:
+                        issues.append(
+                            _issue(
+                                "error", "E_LINK_KEY_NOT_IN_SOURCE", link.name,
+                                f"participation {ref.hub} translates "
+                                f"{t.referencing_column!r} through {t.through_table}, but "
+                                f"{where} declares no such column; the translation would "
+                                f"join on a column that is not there",
+                            )
+                        )
+                    through = [
+                        tbl for tbl in state.source_schemas
+                        if normalize_identifier(tbl.table) == normalize_identifier(t.through_table)
+                    ]
+                    if through:
+                        r_cols = {normalize_identifier(c) for c in through[0].column_names}
+                        for needed in (t.surrogate_column, t.natural_key_column):
+                            if normalize_identifier(needed) not in r_cols:
+                                issues.append(
+                                    _issue(
+                                        "error", "E_LINK_KEY_NOT_IN_SOURCE", link.name,
+                                        f"participation {ref.hub} translates through "
+                                        f"{t.through_table}, which declares no column "
+                                        f"{needed!r}; the translation would join on or "
+                                        f"project a column that is not there",
+                                    )
+                                )
+                    continue
                 if ref.source_key_column is None:
                     continue
                 if normalize_identifier(ref.source_key_column) not in in_scope:

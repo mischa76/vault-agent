@@ -78,6 +78,15 @@ vault-agent resume --owner "customer=Jane Doe <jane@bank.example>" \
 | `--mappings <file>` | no | Ratifies an edited `mappings.review.yml` wholesale |
 | `--link "Table.Column"` | yes | Builds one link proposed from a declared foreign key (WP34) |
 | `--no-link "Table.Column"` | yes | Declines one proposed link; wins over `--link` for the same one |
+
+A link proposal's note names its category. `declared_fk_same_name` and
+`declared_fk_renamed` are WP34's two: the referencing column is, or is renamed to, the hub's
+key. **`declared_fk_translated` (WP36, ADR-0013) is different in kind**: the source references
+a *surrogate* (`ShoppingCartItem.ProductID`) while the hub is keyed on the *natural* key
+(`ProductNumber`), and the note says so — `ProductID → PRODUCTNUMBER through
+Production.Product`. Ratifying it builds a link whose staging **joins through** the
+referenced relation (9.3); the review queue carries one `link_translation` item per such
+link, never aggregated, because a join is a decision a reviewer must see.
 | `--accept` | — | Signs off and proceeds past the checkpoint |
 
 **`--accept` ratifies link proposals too.** That matters for unattended runs: an automated

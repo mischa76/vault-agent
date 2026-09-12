@@ -126,6 +126,23 @@ def unsound_aliases(steps: list[dict[str, Any]]) -> list[str]:
                         f"{step['case']}: {link['name']} aliases {column!r} for {hub}, "
                         f"which no declared table carries"
                     )
+            # WP36: a translation has no alias; its soundness is that the referencing
+            # relation declares the surrogate it joins on, and the referenced relation
+            # declares both columns of the join.
+            for hub, t in link.get("translations", {}).items():
+                for column, label in (
+                    (t["referencing_column"], "joins on"),
+                    (t["surrogate_column"], "joins through"),
+                    (t["natural_key_column"], "projects"),
+                ):
+                    if not any(
+                        normalize_identifier(column) in columns for columns in declared.values()
+                    ):
+                        problems.append(
+                            f"{step['case']}: {link['name']} {label} {column!r} for {hub} "
+                            f"(translation through {t['through_table']}), which no declared "
+                            f"table carries"
+                        )
     return problems
 
 

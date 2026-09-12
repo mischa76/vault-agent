@@ -4447,3 +4447,41 @@ left-joined to the referenced one, projecting the natural key — that the link'
 a checkpoint line. Guard first: `tests/test_wp36_translation_guard.py` pins today's skip (to be
 flipped by the WP, deliberately) and the counter-case (surrogate-keyed hub → plain proposal, must
 never change). 2 tests green, nothing else touched yet.
+
+## [2026-09-12] WP36 built — surrogate→natural-key translation, keyless
+
+**What changed.** A declared foreign key that references a *surrogate* while the only hub built
+from the referenced relation is keyed on another column is now a proposal of category
+`declared_fk_translated`, carrying a typed `KeyTranslation` (referencing column, referenced
+relation and schema, surrogate, natural key). The trigger runs only after WP34's plain match
+declined with `no_hub_for_key`, so every WP34 shape is decided exactly as before; a referenced
+relation declared without one of the two columns is a new typed skip, `translation_key_missing`;
+a hub keyed on the surrogate itself never triggers (counter-case pinned). A ratified translation
+becomes a link whose target participation carries `LinkHubRef.key_translation` (exclusive with the
+alias), raises one `FlagKind.LINK_TRANSLATION` flag — deliberately not aggregated — and is
+rendered by the staging pass as a **translation model**: `stg_<link>_via_<relation>`, a view that
+LEFT JOINs the referencing relation to the referenced one on the surrogate and projects the
+natural key under the canonical name; the link's stage reads that view, its hashes unchanged. The
+referenced relation's reference is taken from the spec that already stages its hub, so the two
+cannot disagree. The model ships `models/staging/<name>.yml` with `not_null` on the projected key
+and a `relationships` test — the data-time gate, refusing at `dbt build`. `E_LINK_KEY_NOT_IN_SOURCE`
+gains a translation branch; the checkpoint note names the join (`ProductID → PRODUCTNUMBER
+through Production.Product`); `automatedv.yml` records `key_translation`; `eval/run.py` records
+`translations` per link and `wp34_check`'s soundness clause audits them.
+
+**Guard, flipped on purpose.** `tests/test_wp36_translation_guard.py` was committed first at
+`2b64d03` pinning the skip; this commit flips that one assertion to the translated proposal and
+keeps the counter-case untouched. Three WP34 fixtures assumed "no hub keyed on the referenced
+column" while referencing `Person`, which `hub_person` is built from — under WP36 that IS the
+translation shape, so they now reference a table no hub binds. All byte-identity fixtures (WP7,
+WP23, WP35) passed untouched.
+
+**Verified keyless:** 927 passed, 2 skipped; ruff, bare mypy clean; 15 WP36 tests (trigger,
+counter-case, typed skip, marker, flag, translation SQL, tests yml, metadata, inertness without
+translation, gate refuses/holds, checkpoint note). **Not verified:** no `dbt build` has compiled
+a translation model, and no paid run has exercised the trigger on AdventureWorks — that is the
+WP30 rerun, next.
+
+**One slip, recorded.** A rewrite of the renderer wiped the seed-type functions between two
+anchors; the staging tests caught it within the minute and the block was restored from HEAD.
+The lesson is the old one: anchor an edit on both ends, not on one.

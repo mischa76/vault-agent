@@ -150,13 +150,11 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   (53 of 68 on AdventureWorks), which is exactly the near-side lookup incremental runs depend
   on. Fixed 2026-08-12 (`cb01b9c`); the comparison must be repeated before it is cited. At n=1
   it was a direction, not a verdict, and now not even that. Spec §7.3.
-- **WP34's §6 is unmet, and the remaining gap is a DESIGN question, not a defect** (2026-08-12,
-  two runs, ~$18). With the binder fixed, ~5 of the needed 8 cross-domain links land. Of the 22
-  foreign keys the proposer declines, 18 are structural — they reference a table from their own
-  increment, which the modeler handles — and 4 are the real limit: the source references
-  `Product.ProductID` while `hub_product` is keyed on `ProductNumber`, the natural key DV2.0
-  asks for. Closing those needs surrogate→natural key translation through the referenced table,
-  which is new capability and ADR-shaped, not an alias.
+- **WP34's §6 is unmet; the capability meant to close it is built but unmeasured** (2026-09-12).
+  With the binder fixed, ~5 of the needed 8 cross-domain links land; the 4 surrogate-referencing
+  foreign keys (`Product.ProductID` vs `hub_product` on `ProductNumber`) are now translated
+  proposals (WP36, ADR-0013 accepted) — keyless-verified only. The WP30 rerun protocol's step 2
+  measures the full mechanism; prediction on record ~9 against the bar of 8.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

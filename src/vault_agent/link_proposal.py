@@ -34,6 +34,7 @@ from vault_agent.state import (
     FlagKind,
     ForeignKeyRef,
     Hub,
+    KeyTranslation,
     Link,
     LinkHubRef,
     LinkProposal,
@@ -87,6 +88,54 @@ def _target_hub(
     )
 
 
+def _translation_target(
+    existing: DVModel, fk: ForeignKeyRef, declared: dict[str, SourceTable]
+) -> tuple[Hub | None, KeyTranslation | None, LinkSkipReason | None, str]:
+    """WP36 (ADR-0013): when no hub is keyed on the referenced column, is there exactly one
+    hub built FROM the referenced relation, keyed on another column? Then the FK references a
+    surrogate and the hub the natural key, and the bridge is a join through that relation.
+
+    Deterministic, three conditions (spec §2): one hub binds the referenced table by name
+    (the prefix-exact helper — ``hub_product`` binds ``Product``, ``hub_product_category`` does
+    not); its canonical key differs from the referenced column; and if the referenced table is
+    declared in THIS increment it must carry both columns — otherwise the hub's own provenance
+    stands for the natural key being there (it was modelled from that relation on that key).
+
+    Returns ``(None, None, None, "")`` when the shape is simply not this one, so the caller
+    keeps its ordinary ``no_hub_for_key`` skip; a typed ``translation_key_missing`` when the
+    shape holds but the declared relation lacks a column."""
+    bound = [
+        hub for hub in existing.hubs
+        if construct_binds_to_source_table(hub.name, fk.references_table)
+    ]
+    if len(bound) != 1:
+        return None, None, None, ""
+    hub = bound[0]
+    natural = canonical_hub_key_column(hub)
+    surrogate = fk.references_columns[0]
+    if normalize_identifier(natural) == normalize_identifier(surrogate):
+        return None, None, None, ""  # cannot happen after _target_hub declined, kept explicit
+    relation = declared.get(normalize_identifier(fk.references_table))
+    if relation is not None:
+        present = {normalize_identifier(c) for c in relation.column_names}
+        missing = [
+            c for c in (surrogate, natural) if normalize_identifier(c) not in present
+        ]
+        if missing:
+            return None, None, "translation_key_missing", (
+                f"{fk.references_table!r} is declared without {', '.join(repr(m) for m in missing)}"
+                f" — translating {fk.columns[0]!r} to {hub.name}'s key {natural!r} would join on "
+                f"a column that is not there"
+            )
+    return hub, KeyTranslation(
+        referencing_column=fk.columns[0],
+        through_table=fk.references_table,
+        through_schema=fk.references_schema,
+        surrogate_column=surrogate,
+        natural_key_column=natural,
+    ), None, ""
+
+
 def propose_links(
     existing: DVModel, source_schemas: list[SourceTable]
 ) -> tuple[LinkProposals, list[LinkSkip]]:
@@ -99,6 +148,9 @@ def propose_links(
     """
     proposals: list[LinkProposal] = []
     skipped: list[LinkSkip] = []
+    declared: dict[str, SourceTable] = {}
+    for table in source_schemas:
+        declared.setdefault(normalize_identifier(table.table), table)
 
     for table in source_schemas:
         for fk in table.foreign_keys:
@@ -118,6 +170,38 @@ def propose_links(
                 continue
 
             hub, reason_code, reason = _target_hub(existing, fk)
+            if hub is None and reason_code == "no_hub_for_key":
+                # WP36: the vault may be keyed on the natural key while the source references
+                # the surrogate — one join away, not unreachable. Tried only after the plain
+                # match declined, so every WP34 shape is decided exactly as before.
+                t_hub, translation, t_reason, t_message = _translation_target(
+                    existing, fk, declared
+                )
+                if t_hub is not None and translation is not None:
+                    proposals.append(
+                        LinkProposal(
+                            source_table=table.table,
+                            source_column=fk.columns[0],
+                            target_hub=t_hub.name,
+                            target_business_key=translation.natural_key_column,
+                            category="declared_fk_translated",
+                            translation=translation,
+                            evidence=[
+                                f"{table.table}.{fk.columns[0]} references "
+                                f"{fk.references_table}.{translation.surrogate_column} (declared "
+                                f"foreign key in the source catalogue)",
+                                f"{t_hub.name} is built from {fk.references_table} and keyed on "
+                                f"{translation.natural_key_column}, not on "
+                                f"{translation.surrogate_column}",
+                                f"staging must join {table.table} to {fk.references_table} on "
+                                f"{translation.surrogate_column} and hash the link from "
+                                f"{translation.natural_key_column} — a translation, not an alias",
+                            ],
+                        )
+                    )
+                    continue
+                if t_reason is not None:
+                    reason_code, reason = t_reason, t_message
             if hub is None:
                 assert reason_code is not None  # a decline always carries its code
                 skipped.append(LinkSkip(asset=asset, reason=reason_code, message=reason))
@@ -244,6 +328,19 @@ def apply_ratified_link_proposals(
             )
             continue
 
+        if proposal.translation is not None:
+            # WP36: its own review class — the reviewer must see that this link is a join
+            # through another relation, not a renamed column (ADR-0013 §3).
+            state.flag(
+                "link_proposer",
+                f"link to {proposal.target_hub} from {proposal.source_table} requires "
+                f"surrogate→natural-key translation through "
+                f"{proposal.translation.through_table} "
+                f"({proposal.translation.surrogate_column} → "
+                f"{proposal.translation.natural_key_column}); review the translation model",
+                kind=FlagKind.LINK_TRANSLATION,
+                asset=f"{proposal.source_table}.{proposal.source_column}",
+            )
         delta.links.append(
             Link(
                 name=_link_name(near, proposal.target_hub),
@@ -256,6 +353,8 @@ def apply_ratified_link_proposals(
                         source_key_column=(
                             proposal.source_column if proposal.needs_alias else None
                         ),
+                        # WP36: a translation instead of an alias; the two exclude each other.
+                        key_translation=proposal.translation,
                     ),
                 ],
                 description=(

@@ -33,11 +33,11 @@ def _vault() -> DVModel:
 
 
 def _customer(fk_column: str = "PersonID", references: str = "BusinessEntityID",
-              *, composite: bool = False) -> SourceTable:
+              *, composite: bool = False, references_table: str = "Person") -> SourceTable:
     columns = ["CustomerID", fk_column, "AccountNumber"]
     fk = {
         "columns": [fk_column] + (["StoreID"] if composite else []),
-        "references_table": "Person",
+        "references_table": references_table,
         "references_columns": [references] + (["OtherID"] if composite else []),
         "references_schema": "Person",
     }
@@ -131,8 +131,10 @@ def test_a_composite_foreign_key_is_skipped_with_a_reason_and_never_guessed() ->
 
 
 def test_a_foreign_key_pointing_at_no_existing_hub_is_skipped() -> None:
+    # The referenced table must be one NO hub was built from: a hub built from it and keyed
+    # on another column is WP36's translation shape, not a skip (2026-09-12).
     proposals, skipped = propose_links(
-        _vault(), [_customer(references="SomethingElseID")]
+        _vault(), [_customer(references="TerritoryID", references_table="SalesTerritory")]
     )
 
     assert not proposals.proposals

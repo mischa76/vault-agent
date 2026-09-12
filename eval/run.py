@@ -221,6 +221,20 @@ def model_shape(model: DVModel) -> dict[str, Any]:
         }
         if aliases:
             entry["aliases"] = dict(sorted(aliases.items()))
+        # WP36: the translation, likewise only where one exists — what `wp34_check` audits
+        # for the soundness clause: does the referencing relation declare the surrogate?
+        translations = {
+            ref.hub: {
+                "referencing_column": ref.key_translation.referencing_column,
+                "through_table": ref.key_translation.through_table,
+                "surrogate_column": ref.key_translation.surrogate_column,
+                "natural_key_column": ref.key_translation.natural_key_column,
+            }
+            for ref in lk.hub_refs
+            if ref.key_translation is not None
+        }
+        if translations:
+            entry["translations"] = dict(sorted(translations.items()))
         return entry
 
     return {

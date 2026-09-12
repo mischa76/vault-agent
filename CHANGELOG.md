@@ -13,6 +13,11 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- Surrogate→natural-key translation for FK-derived links (WP36, ADR-0013 accepted 2026-09-12):
+  a foreign key that references a surrogate while the hub is keyed on the natural key is now a
+  proposal (`declared_fk_translated`) instead of a skip; a ratified one renders a translation
+  model (LEFT JOIN through the referenced relation, with `not_null`/`relationships` tests) that
+  the link's stage reads, a `link_translation` review item, and a gate branch. Keyless-only.
 - `LLM_PROVIDER=anthropic|bedrock|vertex` selects the route to Claude — the data-residency
   switch from `docs/architecture/deployment-residency.md`, now wired: one client factory,
   construction-time validation naming the missing variable, optional extras `bedrock` and

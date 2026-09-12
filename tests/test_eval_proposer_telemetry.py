@@ -35,12 +35,13 @@ def _vault() -> DVModel:
     )
 
 
-def _customer_fk(references: str = "BusinessEntityID") -> SourceTable:
+def _customer_fk(references: str = "BusinessEntityID",
+                 references_table: str = "Person") -> SourceTable:
     return SourceTable(
         table="Customer", schema="Sales", columns=["CustomerID", "PersonID"],
         foreign_keys=[{
             "columns": ["PersonID"],
-            "references_table": "Person",
+            "references_table": references_table,
             "references_columns": [references],
             "references_schema": "Person",
         }],
@@ -67,7 +68,9 @@ def test_the_hub_keys_make_the_standing_hypothesis_checkable() -> None:
 def test_a_skip_carries_its_code_into_the_proposals() -> None:
     """The skips are part of the proposer's answer, not exhaust: a run given no foreign keys
     and a run whose foreign keys all missed are indistinguishable without them."""
-    proposals, _ = propose_links(_vault(), [_customer_fk(references="SomethingElseID")])
+    proposals, _ = propose_links(
+        _vault(), [_customer_fk(references="TerritoryID", references_table="SalesTerritory")]
+    )
 
     assert not proposals.proposals
     assert [s.reason for s in proposals.skipped] == ["no_hub_for_key"]
@@ -81,7 +84,9 @@ def test_the_metrics_separate_never_proposed_from_declined() -> None:
     empty `by_status` means something entirely different from one reporting few links and
     `{"overridden": 9}`."""
     state = VaultAgentState(input_documents=["r.md"])
-    proposals, _ = propose_links(_vault(), [_customer_fk(references="SomethingElseID")])
+    proposals, _ = propose_links(
+        _vault(), [_customer_fk(references="TerritoryID", references_table="SalesTerritory")]
+    )
     proposals.proposals = [
         LinkProposal(source_table="Customer", source_column="PersonID",
                      target_hub="hub_person", target_business_key="BusinessEntityID",

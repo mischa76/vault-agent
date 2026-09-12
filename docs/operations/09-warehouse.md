@@ -55,6 +55,18 @@ staging binds via dbt's `source()` and `sources.yml` becomes a real source defin
 raw tables. Ratifying mappings at the checkpoint (7.6) upgrades bindings to this form
 and clears the inferred-binding flags.
 
+**Translation model** (WP36, ADR-0013): a link ratified from a foreign key that references a
+surrogate while the hub is keyed on the natural key gets a second staging model,
+`stg_<link>_via_<relation>` — a view that LEFT JOINs the referencing relation to the
+referenced one on the surrogate and projects the natural key under the hub's canonical
+column name. The link's ordinary `stage` model reads that view instead of the raw relation;
+its hashes are unchanged. Every row of the referencing relation survives the join; an
+unmatched surrogate becomes a NULL key that the model's own `schema.yml` refuses at
+`dbt build` (`not_null` on the projected key, `relationships` from the surrogate to the
+referenced relation). The translation is therefore visible SQL and a failing test, never a
+hidden mapping. `metadata/automatedv.yml` records it under the link's staging entry as
+`key_translation`. **Keyless-only** as of 2026-09-12 — no build has exercised one.
+
 ## 9.4 Incremental behaviour & effectivity end-dating
 
 The generated effectivity satellite closes superseded relationships: AutomateDV's
