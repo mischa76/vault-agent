@@ -1,6 +1,6 @@
 [project]
 name = "vault-agent"
-version = "0.1.0"
+version = "0.9.1"
 description = "Agentic AI for Data Vault 2.0 automation"
 readme = "README.md"
 requires-python = ">=3.12"

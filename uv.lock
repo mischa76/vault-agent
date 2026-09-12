@@ -18,13 +18,13 @@ name = "agate"
 version = "1.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "babel", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "isodate", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "leather", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "parsedatetime", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "python-slugify", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "pytimeparse", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "tzdata", marker = "(sys_platform == 'win32' and extra == 'extra-11-vault-agent-demo') or (sys_platform == 'win32' and extra == 'extra-11-vault-agent-demo-databricks') or (extra == 'extra-11-vault-agent-demo' and extra == 'extra-11-vault-agent-demo-databricks')" },
+    { name = "babel" },
+    { name = "isodate" },
+    { name = "leather" },
+    { name = "parsedatetime" },
+    { name = "python-slugify" },
+    { name = "pytimeparse" },
+    { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/29/77/6f5df1c68bf056f5fdefc60ccc616303c6211e71cd6033c830c12735f605/agate-1.9.1.tar.gz", hash = "sha256:bc60880c2ee59636a2a80cd8603d63f995be64526abf3cbba12f00767bcd5b3d", size = 202303, upload-time = "2023-12-21T20:05:24.316Z" }
 wheels = [
@@ -271,7 +271,7 @@ name = "click"
 version = "8.4.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "colorama", marker = "(sys_platform == 'win32' and extra == 'extra-11-vault-agent-demo') or (sys_platform == 'win32' and extra == 'extra-11-vault-agent-demo-databricks') or (extra == 'extra-11-vault-agent-demo' and extra == 'extra-11-vault-agent-demo-databricks')" },
+    { name = "colorama", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9b/98/518d8e5081007684232226f475082b30087d0f585e8457db087298259f49/click-8.4.1.tar.gz", hash = "sha256:918b5633eddf6b41c32d4f454bf0de810065c74e3f7dbf8ee5452f8be88d3e96", size = 353007, upload-time = "2026-05-22T04:08:37.769Z" }
 wheels = [
@@ -485,13 +485,13 @@ name = "dbt-adapters"
 version = "1.24.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "agate", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "dbt-common", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "dbt-protos", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "agate" },
+    { name = "dbt-common" },
+    { name = "dbt-protos" },
     { name = "mashumaro", extra = ["msgpack"], marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "protobuf", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "pytz", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "typing-extensions", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "protobuf" },
+    { name = "pytz" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/46/6c/65190ca22dea211471275355c69fd84925d2e1712993c5868352234cb084/dbt_adapters-1.24.2.tar.gz", hash = "sha256:fb27141acdfad1188bcb584e9b9b1976cb9ae718618fcac132660fdaeb9b11a4", size = 143779, upload-time = "2026-05-21T10:36:02.862Z" }
 wheels = [
@@ -503,19 +503,19 @@ name = "dbt-common"
 version = "1.38.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "agate", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "colorama", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "dbt-protos", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "deepdiff", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "isodate", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "jinja2", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "jsonschema", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "agate" },
+    { name = "colorama" },
+    { name = "dbt-protos" },
+    { name = "deepdiff" },
+    { name = "isodate" },
+    { name = "jinja2" },
+    { name = "jsonschema" },
     { name = "mashumaro", extra = ["msgpack"], marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "pathspec", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "protobuf", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "python-dateutil", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "requests", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "typing-extensions", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "pathspec" },
+    { name = "protobuf" },
+    { name = "python-dateutil" },
+    { name = "requests" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/c5/27/1cb45b595e280d4e66b122c539655be280236af27a964114b8f163702674/dbt_common-1.38.0.tar.gz", hash = "sha256:05f9c682c1c09b6a0ce79fe18dd7244a4549c3740329692bc19be9e7498f516f", size = 87065, upload-time = "2026-05-04T20:28:19.274Z" }
 wheels = [
@@ -654,7 +654,7 @@ name = "dbt-protos"
 version = "1.0.514"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "protobuf", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "protobuf" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/91/42/95900473fad036d813da7785c33a27d5ccca9f0eae1065364cabbc1e40d1/dbt_protos-1.0.514.tar.gz", hash = "sha256:4429a8b0675140467206aaaf9d9468e619a9697f443e4b3921f297d01e4a77a0", size = 166219, upload-time = "2026-05-28T23:43:10.215Z" }
 wheels = [
@@ -756,7 +756,7 @@ name = "deepdiff"
 version = "8.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "orderly-set", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "orderly-set" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/89/50/767448e792d41bfb6094ee317a355c1cb221dca24b2e178e2203bbea2a77/deepdiff-8.6.2.tar.gz", hash = "sha256:186dcbd181e4d76cef11ab05f802d0056c5d6083c5a6748c1473e9d7481e183e", size = 634860, upload-time = "2026-03-18T17:16:33.785Z" }
 wheels = [
@@ -863,7 +863,7 @@ name = "importlib-metadata"
 version = "8.9.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "zipp", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "zipp" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/e7/72/c600ae4f68c28fc19f9c31b9403053e5dbb8cace2e6842c7b7c3e4d42fe9/importlib_metadata-8.9.0.tar.gz", hash = "sha256:58850626cef4bd2df100378b0f2aea9724a7b92f10770d547725b047078f99ee", size = 56140, upload-time = "2026-03-20T16:56:26.362Z" }
 wheels = [
@@ -964,7 +964,7 @@ name = "jinja2"
 version = "3.1.6"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "markupsafe", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "markupsafe" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
 wheels = [
@@ -1069,10 +1069,10 @@ name = "jsonschema"
 version = "4.26.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "attrs", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "jsonschema-specifications", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "referencing", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "rpds-py", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "attrs" },
+    { name = "jsonschema-specifications" },
+    { name = "referencing" },
+    { name = "rpds-py" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/b3/fc/e067678238fa451312d4c62bf6e6cf5ec56375422aee02f9cb5f909b3047/jsonschema-4.26.0.tar.gz", hash = "sha256:0c26707e2efad8aa1bfc5b7ce170f3fccc2e4918ff85989ba9ffa9facb2be326", size = 366583, upload-time = "2026-01-07T13:41:07.246Z" }
 wheels = [
@@ -1084,7 +1084,7 @@ name = "jsonschema-specifications"
 version = "2025.9.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "referencing", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "referencing" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/19/74/a633ee74eb36c44aa6d1095e7cc5569bebf04342ee146178e2d36600708b/jsonschema_specifications-2025.9.1.tar.gz", hash = "sha256:b540987f239e745613c7a9176f3edb72b832a4ac465cf02712288397832b5e8d", size = 32855, upload-time = "2025-09-08T01:34:59.186Z" }
 wheels = [
@@ -1540,7 +1540,7 @@ name = "mashumaro"
 version = "3.14"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/eb/47/0a450b281bef2d7e97ec02c8e1168d821e283f58e02e6c403b2bb4d73c1c/mashumaro-3.14.tar.gz", hash = "sha256:5ef6f2b963892cbe9a4ceb3441dfbea37f8c3412523f25d42e9b3a7186555f1d", size = 166160, upload-time = "2024-10-23T21:48:40.164Z" }
 wheels = [
@@ -1549,7 +1549,7 @@ wheels = [
 
 [package.optional-dependencies]
 msgpack = [
-    { name = "msgpack", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "msgpack" },
 ]
 
 [[package]]
@@ -2217,10 +2217,10 @@ name = "pydantic"
 version = "2.13.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "annotated-types" },
-    { name = "pydantic-core", version = "2.46.4", source = { registry = "https://pypi.org/simple" } },
-    { name = "typing-extensions" },
-    { name = "typing-inspection" },
+    { name = "annotated-types", marker = "extra == 'extra-11-vault-agent-demo' or extra != 'extra-11-vault-agent-demo-databricks'" },
+    { name = "pydantic-core", version = "2.46.4", source = { registry = "https://pypi.org/simple" }, marker = "extra == 'extra-11-vault-agent-demo' or extra != 'extra-11-vault-agent-demo-databricks'" },
+    { name = "typing-extensions", marker = "extra == 'extra-11-vault-agent-demo' or extra != 'extra-11-vault-agent-demo-databricks'" },
+    { name = "typing-inspection", marker = "extra == 'extra-11-vault-agent-demo' or extra != 'extra-11-vault-agent-demo-databricks'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/18/a5/b60d21ac674192f8ab0ba4e9fd860690f9b4a6e51ca5df118733b487d8d6/pydantic-2.13.4.tar.gz", hash = "sha256:c40756b57adaa8b1efeeced5c196f3f3b7c435f90e84ea7f443901bec8099ef6", size = 844775, upload-time = "2026-05-06T13:43:05.343Z" }
 wheels = [
@@ -2308,7 +2308,7 @@ name = "pydantic-core"
 version = "2.46.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions" },
+    { name = "typing-extensions", marker = "extra == 'extra-11-vault-agent-demo' or extra != 'extra-11-vault-agent-demo-databricks'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/9d/56/921726b776ace8d8f5db44c4ef961006580d91dc52b803c489fafd1aa249/pydantic_core-2.46.4.tar.gz", hash = "sha256:62f875393d7f270851f20523dd2e29f082bcc82292d66db2b64ea71f64b6e1c1", size = 471464, upload-time = "2026-05-06T13:37:06.98Z" }
 wheels = [
@@ -2503,7 +2503,7 @@ name = "python-slugify"
 version = "8.0.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "text-unidecode", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "text-unidecode" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/87/c7/5e1547c44e31da50a460df93af11a535ace568ef89d7a811069ead340c4a/python-slugify-8.0.4.tar.gz", hash = "sha256:59202371d1d05b54a9e7720c5e038f928f45daaffe41dd10822f3907b937c856", size = 10921, upload-time = "2024-02-08T18:32:45.488Z" }
 wheels = [
@@ -2622,9 +2622,9 @@ name = "referencing"
 version = "0.37.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "attrs", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "rpds-py", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "typing-extensions", marker = "(python_full_version < '3.13' and extra == 'extra-11-vault-agent-demo') or (python_full_version < '3.13' and extra == 'extra-11-vault-agent-demo-databricks') or (extra == 'extra-11-vault-agent-demo' and extra == 'extra-11-vault-agent-demo-databricks')" },
+    { name = "attrs" },
+    { name = "rpds-py" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/22/f5/df4e9027acead3ecc63e50fe1e36aca1523e1719559c499951bb4b53188f/referencing-0.37.0.tar.gz", hash = "sha256:44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8", size = 78036, upload-time = "2025-10-13T15:30:48.871Z" }
 wheels = [
@@ -2838,8 +2838,8 @@ name = "snowplow-tracker"
 version = "1.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "requests", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
-    { name = "typing-extensions", marker = "extra == 'extra-11-vault-agent-demo' or extra == 'extra-11-vault-agent-demo-databricks'" },
+    { name = "requests" },
+    { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/ff/77/1ab6e5bafb9c80d8128f065a355377a04ac5b3c38eb719d920a9909d346e/snowplow_tracker-1.1.0.tar.gz", hash = "sha256:95d8fdc8bd542fd12a0b9a076852239cbaf0599eda8721deaf5f93f7138fe755", size = 34135, upload-time = "2025-02-21T10:58:48.112Z" }
 wheels = [
@@ -3106,7 +3106,7 @@ wheels = [
 
 [[package]]
 name = "vault-agent"
-version = "0.1.0"
+version = "0.9.1"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },

@@ -32,6 +32,7 @@ to **new** documents only; existing records were left untouched.
 | [how-requirements-become-a-model.md](how-requirements-become-a-model.md) | End-to-end walk of the actual behaviour, with its assumptions named |
 | [log.md](log.md) | **The record** — every closed WP, measurement and correction, chronological, append-only |
 | [../CONTRIBUTING.md](../CONTRIBUTING.md) | Conventions, definition of done, and how verification levels are reported |
+| [../CHANGELOG.md](../CHANGELOG.md) | Release summary per version; the tag, `pyproject.toml` and this file must agree (`tests/test_release.py`) |
 ## The record
 
 | Document | What it is |

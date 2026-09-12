@@ -74,6 +74,14 @@ logger = logging.getLogger(__name__)
 _DEBUG = False
 
 
+def _print_version(value: bool) -> None:
+    if value:
+        from vault_agent import __version__
+
+        typer.echo(f"vault-agent {__version__}")
+        raise typer.Exit()
+
+
 @app.callback()
 def main(
     debug: Annotated[
@@ -81,6 +89,15 @@ def main(
         typer.Option(
             "--debug",
             help="Enable DEBUG logging (incl. library INFO/DEBUG) and full tracebacks.",
+        ),
+    ] = False,
+    version: Annotated[
+        bool,
+        typer.Option(
+            "--version",
+            help="Print the version — pyproject.toml, the git tag and CHANGELOG.md agree on it.",
+            callback=_print_version,
+            is_eager=True,
         ),
     ] = False,
 ) -> None:

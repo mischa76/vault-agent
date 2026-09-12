@@ -4335,3 +4335,33 @@ anything on the path. The patched 0.6.x stays out of reach for the same reason a
 `dbt-core 1.9.10` caps `sqlparse<0.6` in the `demo` fork — and the fix arrives with whatever
 moves that line. **Dismissed as `not_used`** with the `compilation.py` pointer and one reopening
 condition: *if any dependency on the path ever calls `sqlparse.format`, reopen.*
+
+## [2026-09-12] Versioning and release process — one source, three guards, a tag-driven workflow
+
+**Why it was wrong before.** Tag `0.9.0` and the GitHub release "Requirements in, a runnable Data
+Vault out" were published this morning at `6eeac6b`, whose `pyproject.toml` and
+`vault_agent.__version__` both still said `0.1.0`. The version was a constant copied into two
+files and bumped in neither; nothing checked the tag against either. `uv.lock` carried 0.1.0 as
+well. Three places, three answers. The user asked for this to be cleaned up before any installer
+is built — a package without an honest version is a promise without a date.
+
+**What changed.** `pyproject.toml` is the single source, bumped with `uv version X.Y.Z` (which
+also rewrites the lock). `__version__` reads it from the installed distribution instead of being
+a copy. `vault-agent --version` prints it (eager typer option; the helper had to sit above the
+`@app.callback` decorator, the first attempt hung the decorator on the helper). `CHANGELOG.md`
+(Keep a Changelog) summarises per version and records the 0.9.0 mismatch in a quoted note
+instead of moving the tag. `tests/test_release.py` pins pyproject = `__version__` = lock =
+CHANGELOG section = `--version` output (five keyless tests). `.github/workflows/release.yml`
+runs on a pushed tag `X.Y.Z`: refuses a tag that is not `uv version --short`, repeats the
+definition of done, `uv build`s sdist and wheel, and creates or completes the GitHub release
+with the CHANGELOG section as notes — no PyPI, deliberately. `CONTRIBUTING.md` gains
+"Releasing" with the five steps and the rule that a published tag is never moved.
+
+**Version now 0.9.1**, not tagged: the tag is the user's act. `uv build` locally produces
+`vault_agent-0.9.1.tar.gz` and `.whl`; the workflow itself has not run yet — it runs on the first
+tag, which is its first real test. 896 passed, 2 skipped; ruff, bare mypy clean.
+
+**Deliberately not done.** Tag `0.9.0` left where it is, with the mismatch documented. No PyPI
+publishing, no container image, no installer — those wait on the residency switch and the
+open WP30/ADR-0013 items (this log, 2026-09-12 question on installers). The model-release
+re-test of WP16 is a different "release" and is named as such in CONTRIBUTING.

@@ -124,6 +124,30 @@ constrains agents, not people.
 - The PR template asks a handful of questions. They are the same ones a reviewer would ask; an
   honest "no" is a fine answer to most of them.
 
+## Releasing
+
+A release is a pushed tag `X.Y.Z` — no `v` prefix, the existing `0.9.0` set the form. The version
+has **one** source, `pyproject.toml`; `__version__`, `uv.lock`, `CHANGELOG.md` and the tag must
+agree with it, and `tests/test_release.py` fails when they do not. Two kinds of "release" exist in
+this project and must not be confused: this one, and the *model-release re-test* of WP16
+(`docs/architecture/steering-ledger.md`), which is about a new Claude model, not a new tag.
+
+1. Move the `[Unreleased]` items in `CHANGELOG.md` under a new `## [X.Y.Z] - YYYY-MM-DD` heading
+   and update the compare links at the bottom. Say what is verified live and what keyless-only.
+2. `uv version X.Y.Z` — bumps `pyproject.toml` and `uv.lock` in one step. Never edit the number
+   by hand, and never add a second copy of it anywhere.
+3. Definition of done, then a `docs/log.md` entry naming the release.
+4. Commit as `release: X.Y.Z`, then `git tag -a X.Y.Z -m "vault-agent X.Y.Z"` and
+   `git push --follow-tags`.
+5. The `Release` workflow refuses a tag whose version is not the project's, runs the definition
+   of done again, builds sdist and wheel with `uv build`, and creates (or completes) the GitHub
+   release with the CHANGELOG section as its notes. Nothing goes to PyPI; that is a separate
+   decision.
+
+Below 1.0 the minor version moves on new capability and the patch version on fixes and
+dependency work; 1.0 waits for the first live Databricks build (0.9.0 release notes). A published
+tag is never moved — a wrong one gets a correcting patch release and a CHANGELOG note, as 0.9.0 did.
+
 ## About the `.claude/` directory
 
 `.claude/rules/` and `.claude/skills/` ship with the repo. They configure Claude Code, and they
