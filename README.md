@@ -233,7 +233,7 @@ end-dating) on a local PostgreSQL 16 — no API key, no Docker required:
 ```bash
 cd demo/bank_postgres
 uv sync --extra demo                        # dbt-core + dbt-postgres
-uv sync --extra demo-databricks             # dbt-core + dbt-databricks (target: --target-platform databricks)
+uv sync --extra demo-databricks             # dbt-core 1.11 + dbt-databricks 1.12 — not together with `demo`
 uv run python build_vault_models.py         # regenerate raw_vault/*.sql from the generator
 DBT_PROFILES_DIR=. uv run dbt deps          # pull AutomateDV
 DBT_PROFILES_DIR=. uv run dbt build --full-refresh   # seed + run + test, all green

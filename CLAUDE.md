@@ -157,9 +157,10 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   which is new capability and ADR-shaped, not an alias.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
-  changes seed types and the README; no `dbt build` has run against a workspace. Its adapter
-  extra pins `thrift 0.20`, whose fix needs dbt-databricks 1.12 / dbt-core 1.11 — the dbt
-  bump the 2026-08-24 entry deferred. Do the bump before the first live build, not after.
+  changes seed types and the README; no `dbt build` has run against a workspace. Its extra
+  `demo-databricks` sits on dbt-core 1.11 and **conflicts with `demo`** (dbt-core 1.9, the
+  Postgres-verified line) — `uv sync` installs one or the other, never both (`tool.uv.conflicts`,
+  2026-09-12). The first live build therefore runs on a dbt line the Postgres demo has not seen.
 
 ## How this file is maintained
 

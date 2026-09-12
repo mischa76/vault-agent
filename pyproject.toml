@@ -47,9 +47,21 @@ demo = [
 # so it shares the 1.9 line the Postgres demo is verified on — no dbt bump involved. Kept as
 # its own extra: it drags in dbt-spark and databricks-sql-connector, which the local demo
 # never needs. Keyless-only until a workspace build is recorded in docs/log.md.
+# Pinned to the 1.12 line on purpose (2026-09-12): its connector (databricks-sql-connector
+# >=4.4.0) is the first that admits thrift >=0.24.0, the version that closes Dependabot
+# alerts 20-22. That drags dbt-core to 1.11, which the Postgres demo must NOT follow until it
+# is re-verified on a real build — so the two extras are declared conflicting below and are
+# never installed together. `uv sync --extra demo` keeps dbt-core 1.9.
 demo-databricks = [
-    "dbt-core~=1.9.0",
-    "dbt-databricks~=1.9.0",
+    "dbt-core~=1.11.0",
+    "dbt-databricks~=1.12.0",
+]
+
+[tool.uv]
+# The two dbt extras pin different dbt-core lines (see the demo-databricks comment) and
+# cannot be resolved into one environment. uv resolves them as separate forks.
+conflicts = [
+    [{ extra = "demo" }, { extra = "demo-databricks" }],
 ]
 
 [project.scripts]

@@ -32,7 +32,7 @@ optional extras exist and are needed only for what their names say:
 
 ```bash
 uv sync --extra demo    # dbt-core + dbt-postgres (~1.9) — for chapter 9 builds
-uv sync --extra demo-databricks   # dbt-core + dbt-databricks (~1.9) — a Databricks target (9.6)
+uv sync --extra demo-databricks   # dbt-core 1.11 + dbt-databricks 1.12 — a Databricks target (9.6). Conflicts with `demo`: one or the other, never both
 uv sync --extra eval    # langsmith — ONLY for the optional eval upload (11.5)
 ```
 

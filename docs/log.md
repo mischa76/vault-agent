@@ -4262,3 +4262,32 @@ same pin; and the three tornado alerts (13, 14, 19) have an open Dependabot PR (
 **How this was verified:** `gh api` on the alerts, PyPI metadata for `databricks-sql-connector`
 3.7.5 / 4.0.0 / 4.1.0 / 4.2.0 / 4.5.0 and `dbt-databricks` 1.9.7 / 1.12.5, the lock file, and
 the dry-run upgrade. Nothing was installed or executed against a warehouse.
+
+## [2026-09-12] The thrift alerts close after all — the two dbt extras are allowed to disagree
+
+The 2026-09-11 triage left alerts 20–22 (`thrift 0.20.0`, via `demo-databricks`) open because
+the patched 0.24 sits behind `dbt-databricks 1.12` → `dbt-core 1.11`, a line the Postgres demo
+must not move to unverified. That framed the two extras as one environment. They are not:
+nobody builds the Postgres demo and a Databricks target in the same venv. `uv` has a first-class
+answer, **`[tool.uv] conflicts`** — the extras are declared mutually exclusive and resolved as
+separate forks in one lock file. The user pointed out that this path had been overlooked.
+
+**What changed.** `demo-databricks` now pins `dbt-core~=1.11.0` and `dbt-databricks~=1.12.0`;
+`demo` stays at `dbt-core~=1.9.0` / `dbt-postgres~=1.9.0`. `uv lock` resolves
+`dbt-core 1.9.10` **and** `1.11.15`, `dbt-databricks 1.12.5`, `databricks-sql-connector 4.4.0`,
+`thrift 0.24.0` as the only thrift, `dbt-postgres 1.9.1` untouched. Side effect in the
+Databricks fork only: `pydantic` 2.12.5 instead of 2.13.4 (dbt-core 1.11's cap) — inside the
+project's `>=2.8` floor. `uv sync --extra demo --extra demo-databricks` is refused with the
+declared conflict; `--extra demo-databricks --dry-run` would install 61 packages and remove 39.
+
+**Verified keyless:** `uv run pytest` 891 passed, 2 skipped; ruff and bare mypy clean — the
+default environment carries neither extra (`dbt-core` is not installed there), so nothing the
+suite runs changed. **Not verified:** no `dbt build` on either line; the Postgres demo was not
+re-run (its pins did not move), and the Databricks line still has no workspace. The 2026-09-11
+open item in `CLAUDE.md` is rewritten: the live build no longer forces a bump of the Postgres
+demo, but it will run on a dbt line that demo has never seen.
+
+**Alerts.** 20–22 should close on Dependabot's next graph update after this push, because the
+lock no longer contains a vulnerable `thrift`; whether they did is checked after CI, not
+assumed. Alert 16 (`sqlparse 0.5.5`) is untouched — `dbt-core 1.9.10` still caps it below 0.6
+in the `demo` fork, same reachability argument as 2026-08-24.
