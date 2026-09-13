@@ -80,11 +80,13 @@ class StagingSpec:
     # rendered model then uses automate_dv.stage's source() mapping form instead of a
     # bare relation name.
     source_name: str | None = None
-    # WP36 (ADR-0013): this link's target key is reached by joining through another relation.
+    # WP36 (ADR-0013): this link's target keys are reached by joining through other
+    # relations — one entry per translated participation (a WP37 relationship link can carry
+    # several; 2026-09-13's first dbt build found a single slot silently keeping the last).
     # The stage model then reads the TRANSLATION model (`stage_source`) instead of the raw
     # relation, while `source_model`/`source_name` keep naming the raw relation for
     # sources.yml and the metadata — what the project READS is still that relation.
-    translation: KeyTranslation | None = None
+    translations: list[KeyTranslation] = field(default_factory=list)
     stage_source: str | None = None
 
     def add_hashed(self, name: str, value: str | list[str] | _HashDiff) -> None:
@@ -267,7 +269,7 @@ def collect_staging_specs(
                 # WP36: the hub's key is not in this relation under any name; it arrives
                 # through the translation model (build_staging), which projects it as the
                 # canonical column. What THIS relation must carry is the surrogate.
-                spec.translation = ref.key_translation
+                spec.translations.append(ref.key_translation)
                 spec.add_source_column(_to_column(ref.key_translation.referencing_column))
                 continue
             src_col = _to_column(ref.source_key_column) if ref.source_key_column else bk_col
@@ -539,14 +541,19 @@ def _stage_metadata(spec: StagingSpec) -> dict[str, object]:
     }
     if spec.derived:
         meta["derived_columns"] = dict(spec.derived)
-    if spec.translation is not None and spec.stage_source:
-        # WP36: the join a reader of automatedv.yml must see without opening the SQL.
+    if spec.translations and spec.stage_source:
+        # WP36: the joins a reader of automatedv.yml must see without opening the SQL.
         meta["key_translation"] = {
             "model": spec.stage_source,
-            "through_table": spec.translation.through_table,
-            "on": f"{_to_column(spec.translation.referencing_column)} = "
-                  f"{_to_column(spec.translation.surrogate_column)}",
-            "projects": _to_column(spec.translation.natural_key_column),
+            "joins": [
+                {
+                    "through_table": t.through_table,
+                    "on": f"{_to_column(t.referencing_column)} = "
+                          f"{_to_column(t.surrogate_column)}",
+                    "projects": _to_column(t.natural_key_column),
+                }
+                for t in spec.translations
+            ],
         }
     return meta
 
@@ -558,48 +565,87 @@ def _relation_ref(source_model: str, source_name: str | None) -> str:
     return f"{{{{ ref('{source_model}') }}}}"
 
 
+def _relation_test_ref(source_model: str, source_name: str | None) -> str:
+    """How a schema.yml test names a relation: the Jinja expression WITHOUT braces.
+
+    ``to: {{ ref('x') }}`` is a YAML flow mapping with an unhashable key — dbt refused to
+    parse every project that carried a translated link until the first build ran
+    (2026-09-13). dbt's own form for ``relationships.to`` is ``ref('x')`` / ``source(...)``."""
+    if source_name:
+        return f"source('{source_name}', '{source_model}')"
+    return f"ref('{source_model}')"
+
+
 def translation_model_name(spec: StagingSpec) -> str:
-    assert spec.translation is not None
-    via = normalize_identifier(construct_base_name(spec.translation.through_table)).lower()
+    """``stg_<link>_via_<table>``; several translations join their tables with ``_and_``."""
+    assert spec.translations
+    via = "_and_".join(
+        normalize_identifier(construct_base_name(t.through_table)).lower()
+        for t in spec.translations
+    )
     return f"{spec.name}_via_{via}"
 
 
 def render_translation_model(
-    spec: StagingSpec, through: StagingSpec | None
+    spec: StagingSpec, throughs: list[StagingSpec | None]
 ) -> tuple[str, str]:
-    """The WP36 translation model and its schema.yml: a LEFT JOIN through the referenced
-    relation that makes the hub's natural key available to the link's stage model.
+    """The WP36 translation model and its schema.yml: one LEFT JOIN per translated
+    participation, through the referenced relation, so the hub's natural key is available to
+    the link's stage model. ``throughs`` is parallel to ``spec.translations``: the spec that
+    already stages the referenced relation (the hub's), or ``None`` when nothing stages it.
 
     LEFT, not INNER: every row of the referencing relation survives, and an unmatched
     surrogate shows as a NULL natural key — which the ``not_null`` test refuses at build time.
     Data-time facts (unmatched surrogates, duplicate matches) are gated by dbt tests, because
     no model-time gate can see rows; nothing is repaired silently (ADR-0013 consequences)."""
-    t = spec.translation
-    assert t is not None
+    assert spec.translations and len(throughs) == len(spec.translations)
     name = translation_model_name(spec)
-    x = _to_column(t.referencing_column)
-    xref = _to_column(t.surrogate_column)
-    y = _to_column(t.natural_key_column)
     t_ref = _relation_ref(spec.source_model, spec.source_name)
-    r_ref = (
-        _relation_ref(through.source_model, through.source_name)
-        if through is not None
-        else _relation_ref(t.through_table, None)
+    single = len(spec.translations) == 1
+    joins: list[tuple[str, KeyTranslation, str, str]] = []  # alias, translation, ref, test ref
+    for i, (t, through) in enumerate(zip(spec.translations, throughs, strict=True), start=1):
+        alias = "r" if single else f"r{i}"
+        if through is not None:
+            r_ref = _relation_ref(through.source_model, through.source_name)
+            r_test = _relation_test_ref(through.source_model, through.source_name)
+        else:
+            r_ref = _relation_ref(t.through_table, None)
+            r_test = _relation_test_ref(t.through_table, None)
+        joins.append((alias, t, r_ref, r_test))
+    projected = ", ".join(
+        f"{alias}.{_to_column(t.natural_key_column)} as {_to_column(t.natural_key_column)}"
+        for alias, t, _, _ in joins
     )
     sql_lines = [
         "-- Generated by vault-agent (WP36, ADR-0013): surrogate→natural-key translation for",
-        f"-- the link staged by '{spec.name}'. '{spec.source_model}' references",
-        f"-- '{t.through_table}.{t.surrogate_column}', a surrogate; the hub is keyed on",
-        f"-- '{t.natural_key_column}', the natural key. This view joins the natural key in so",
-        "-- the stage model can hash the link from it. LEFT JOIN: every source row survives; an",
-        f"-- unmatched surrogate becomes a NULL {y}, which {name}.yml's not_null test refuses",
-        "-- at build time. The translation is visible here, never hidden in a mapping.",
+        f"-- the link staged by '{spec.name}'.",
+    ]
+    for _, t, _, _ in joins:
+        sql_lines.append(
+            f"-- '{spec.source_model}' references '{t.through_table}.{t.surrogate_column}', a "
+            f"surrogate; the hub is keyed on '{t.natural_key_column}', the natural key."
+        )
+    sql_lines += [
+        "-- This view joins the natural key(s) in so the stage model can hash the link from",
+        "-- them. LEFT JOIN: every source row survives; an unmatched surrogate becomes a NULL",
+        f"-- natural key, which {name}.yml's not_null test refuses at build time. The",
+        "-- translation is visible here, never hidden in a mapping.",
         "{{ config(materialized='view') }}",
         "",
-        f"select t.*, r.{y} as {y}",
+        f"select t.*, {projected}",
         f"from {t_ref} t",
-        f"left join {r_ref} r on t.{x} = r.{xref}",
     ]
+    sql_lines += [
+        f"left join {r_ref} {alias} on t.{_to_column(t.referencing_column)} = "
+        f"{alias}.{_to_column(t.surrogate_column)}"
+        for alias, t, r_ref, _ in joins
+    ]
+    description = "; ".join(
+        f"{spec.source_model} joined to {t.through_table} on "
+        f"{_to_column(t.referencing_column)} = {_to_column(t.surrogate_column)}, projecting "
+        f"{_to_column(t.natural_key_column)}"
+        for _, t, _, _ in joins
+    )
     test_lines = [
         "# Generated by vault-agent (WP36): the data-time gates of a surrogate→natural-key",
         "# translation. An unmatched surrogate or a dangling reference fails `dbt build` here,",
@@ -608,18 +654,20 @@ def render_translation_model(
         "",
         "models:",
         f"  - name: {name}",
-        f"    description: \"{spec.source_model} joined to {t.through_table} on {x} = {xref},"
-        f" projecting {y} for the link's hash (ADR-0013).\"",
+        f"    description: \"{description} for the link's hash (ADR-0013).\"",
         "    columns:",
-        f"      - name: {y}",
-        "        tests:",
-        "          - not_null",
-        f"      - name: {x}",
-        "        tests:",
-        "          - relationships:",
-        f"              to: {r_ref}",
-        f"              field: {xref}",
     ]
+    for _, t, _, r_test in joins:
+        test_lines += [
+            f"      - name: {_to_column(t.natural_key_column)}",
+            "        tests:",
+            "          - not_null",
+            f"      - name: {_to_column(t.referencing_column)}",
+            "        tests:",
+            "          - relationships:",
+            f"              to: {r_test}",
+            f"              field: {_to_column(t.surrogate_column)}",
+        ]
     return "\n".join(sql_lines) + "\n", "\n".join(test_lines) + "\n"
 
 
@@ -964,11 +1012,13 @@ def build_staging(
         normalize_identifier(s.source_model): s for s in specs.values() if s.bound
     }
     for spec in specs.values():
-        if spec.translation is None:
+        if not spec.translations:
             continue
-        through = by_relation.get(normalize_identifier(spec.translation.through_table))
+        throughs = [
+            by_relation.get(normalize_identifier(t.through_table)) for t in spec.translations
+        ]
         name = translation_model_name(spec)
-        sql, tests = render_translation_model(spec, through)
+        sql, tests = render_translation_model(spec, throughs)
         translations[name] = sql
         translation_tests[f"models/staging/{name}.yml"] = tests
         spec.stage_source = name

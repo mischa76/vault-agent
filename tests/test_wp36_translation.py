@@ -124,7 +124,8 @@ def test_the_metadata_records_the_join() -> None:
     result = build_staging(state.dv_model, state.source_schemas)
     stage = next(n for n in result.metadata if n.startswith("stg_shopping_cart_item_product"))
     kt = result.metadata[stage]["key_translation"]
-    assert kt["through_table"] == "Product" and kt["projects"] == "PRODUCTNUMBER"
+    [join] = kt["joins"]  # one shape whatever the count (2026-09-13); a WP37 link has several
+    assert join["through_table"] == "Product" and join["projects"] == "PRODUCTNUMBER"
 
 
 def test_without_a_translation_no_translation_model_or_yml_appears() -> None:
