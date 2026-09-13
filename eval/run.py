@@ -599,19 +599,49 @@ def write_step_vault(state: VaultAgentState, step_dir: Path) -> Path:
     meta_dir = step_dir / "metadata"
     meta_dir.mkdir(parents=True, exist_ok=True)
     path = meta_dir / DV_MODEL_FILENAME
-    path.write_text(
-        yaml.safe_dump(state.dv_model.model_dump(mode="json"), sort_keys=True),
-        encoding="utf-8",
-    )
+    path.write_text(dump_model_yaml(state), encoding="utf-8")
     return path
+
+
+def dump_model_yaml(state: VaultAgentState) -> str:
+    """The bytes ``cli.write_outputs`` writes as ``metadata/dv_model.yml`` — one renderer for
+    the step vault in the workdir and for the copy persisted beside the step's result."""
+    return yaml.safe_dump(state.dv_model.model_dump(mode="json"), sort_keys=True)
+
+
+def step_model_path(case_dir: Path, stamp: str, index: int, step_name: str, run: int) -> Path:
+    """Where a chain step's model is persisted, beside its result JSON (2026-09-13)."""
+    return case_dir / f"{stamp}-step{index}-{step_name}-run{run}.dv_model.yml"
+
+
+def resumable_steps(case_dir: Path, stamp: str, steps: list[str], run: int = 1) -> dict[int, Path]:
+    """The leading steps of ``stamp`` that left both a result and a model on disk.
+
+    Consecutive from step 1: a chain is threaded, so step 4 without step 3 is not resumable
+    even if its files exist. Empty when the stamp left nothing usable."""
+    found: dict[int, Path] = {}
+    for index, step_name in enumerate(steps, start=1):
+        model = step_model_path(case_dir, stamp, index, step_name, run)
+        result = case_dir / f"{stamp}-step{index}-{step_name}-run{run}.json"
+        if not (model.is_file() and result.is_file()):
+            break
+        found[index] = model
+    return found
 
 
 async def run_chain_once(
     case: EvalCase,
     workdir: Path,
     on_step: "Callable[[int, EvalCase, VaultAgentState], None] | None" = None,
+    resume: dict[int, Path] | None = None,
 ) -> list[tuple[EvalCase, VaultAgentState]]:
     """Run every step of a chained case, threading each step's output into the next.
+
+    ``resume`` (2026-09-13) maps step indices to persisted models of an earlier run of this
+    chain: those steps are not paid for again — their model is loaded, re-threaded into the
+    workdir exactly as a fresh step's would be, and the chain continues at the first step
+    without one. A resumed step's state carries its model and its existing vault, nothing
+    else (no flags, no mappings, no usage): the step's own result file holds those.
 
     Returns one ``(step_case, state)`` pair per step. A failing step raises, which
     ``_run_score_write`` turns into the usual WP14.1 partial-batch failure.
@@ -635,6 +665,20 @@ async def run_chain_once(
         step_case = load_eval_case(DATASETS_ROOT / step_name / DATASET_FILENAME)
         if previous is not None:
             step_case = step_case.model_copy(update={"existing": previous})
+        persisted = (resume or {}).get(index)
+        if persisted is not None:
+            print(
+                f"    step {index}/{len(case.chain.steps)}: {step_name} ... resumed from "
+                f"{persisted.name}", flush=True,
+            )
+            state = VaultAgentState(
+                dv_model=load_existing_model(persisted) or DVModel(),
+                existing_model=load_existing_model(previous) if previous else None,
+                existing_source=str(previous) if previous else None,
+            )
+            runs.append((step_case, state))
+            previous = write_step_vault(state, workdir / f"step{index}_{step_name}")
+            continue
         print(f"    step {index}/{len(case.chain.steps)}: {step_name} ...", flush=True)
         state = await run_case_once(step_case)
         runs.append((step_case, state))
@@ -732,8 +776,15 @@ async def _run_score_write(
     out_root: Path,
     models: dict[str, str],
     git_sha: str,
+    resume_chain: str | None = None,
 ) -> tuple[list[list[ScorerResult]], list[dict[str, Any]], list[Path], tuple[int, str] | None]:
     """Run + score + **persist each repeat immediately** (WP14.1, findings Candidate #3).
+
+    ``resume_chain`` (2026-09-13) names the stamp of an earlier, unfinished run of a chain
+    case: every leading step that left its result AND its model on disk is reused, the rest
+    is run. One repeat only — a resumed chain is one measurement continued, not a batch.
+    The result's ``metrics.resumed_from`` says which steps were not run, and its ``usage``
+    covers the steps that were.
 
     A repeat's JSON (scores + metrics + proposal dump) is written the moment that repeat is
     scored, not after the whole batch — so a mid-batch failure (e.g. an exhausted credit
@@ -749,6 +800,16 @@ async def _run_score_write(
     runs: list[list[ScorerResult]] = []
     metrics: list[dict[str, Any]] = []
     written: list[Path] = []
+    resume: dict[int, Path] = {}
+    if resume_chain is not None:
+        if case.chain is None or repeat != 1:
+            raise ValueError("--resume-chain applies to a chain case with --repeat 1")
+        resume = resumable_steps(out_root / case.name, resume_chain, case.chain.steps)
+        if not resume:
+            raise ValueError(
+                f"nothing to resume: {resume_chain!r} left no step with both a result and a "
+                f"model under {out_root / case.name}"
+            )
     for index in range(repeat):
         print(f"  run {index + 1}/{repeat} ...", flush=True)
         usage = UsageTotals()
@@ -791,9 +852,18 @@ async def _run_score_write(
                         mappings=step_state.mappings.model_dump(mode="json"),
                         timestamp=f"{repeat_stamp}-step{step_index}-{step_case.name}",
                     )
+                    # The model itself, beside the result, in the CLI's artifact form — so a
+                    # chain that dies later can be resumed here instead of bought again
+                    # (2026-09-13: four paid steps were lost to a temp workdir).
+                    step_model_path(
+                        out_root / case.name, repeat_stamp, step_index, step_case.name,
+                        repeat_index,
+                    ).write_text(dump_model_yaml(step_state), encoding="utf-8")
 
                 with tempfile.TemporaryDirectory() as workdir:
-                    chain = await run_chain_once(case, Path(workdir), on_step=persist_step)
+                    chain = await run_chain_once(
+                        case, Path(workdir), on_step=persist_step, resume=resume or None,
+                    )
                 state = chain[-1][1]
             else:
                 state = await run_case_once(case)
@@ -806,6 +876,8 @@ async def _run_score_write(
         if chain:
             results = score_chain(case, chain, golden_path)
             run_meta = chain_metrics(chain, elapsed, usage, trace_path, backstops.fires)
+            if resume:
+                run_meta["resumed_from"] = {"stamp": resume_chain, "steps": sorted(resume)}
         else:
             results = _score_run(case, state, golden_path)
             run_meta = run_metrics(state, elapsed, usage, trace_path, backstops.fires)
@@ -862,6 +934,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--out", type=Path, default=DEFAULT_OUT, help="directory for per-run JSON results"
     )
+    parser.add_argument(
+        "--resume-chain", metavar="STAMP", default=None,
+        help="continue an unfinished chain run: reuse every leading step STAMP persisted "
+             "(result + model) and run the rest; chain case, --repeat 1",
+    )
     args = parser.parse_args(argv)
 
     # The project convention keeps the key in .env (config.Settings reads it via
@@ -904,6 +981,7 @@ def main(argv: list[str] | None = None) -> int:
                 _run_score_write(
                     resolved, golden_path, args.repeat,
                     out_root=args.out, models=models, git_sha=git_sha,
+                    resume_chain=args.resume_chain,
                 )
             )
         # Each completed repeat is already on disk (WP14.1); the summary renders from the

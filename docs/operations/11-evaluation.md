@@ -29,7 +29,13 @@ executes the real graph:
 
 ```bash
 uv run python -m eval.run --dataset bank --repeat 3     # or --all
+uv run python -m eval.run --dataset adventureworks_incremental --repeat 1 --resume-chain <stamp>
 ```
+
+The second form continues a chain run that died mid-way (an exhausted credit, a network
+failure): every leading step whose result and model (`…-stepN-<case>-run1.dv_model.yml`) are
+on disk under that stamp is reused, the rest is run and paid for; the result records
+`metrics.resumed_from`. Only chain cases, only one repeat.
 
 Each repeat auto-resumes the checkpoint (like `resume --accept`), is scored, and is
 written to `eval/results/<case>/<timestamp>-run<N>.json` **immediately** — a crash or

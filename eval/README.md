@@ -56,6 +56,12 @@ A case declares **exactly one input mode**:
   `existing_construct_preservation` is scored **per step** and aggregated as the *minimum*.
   Every step auto-resumes unattended, so a chain measures the pipeline without human
   ratification quality — unratified mappings carry forward into the next step.
+  Each completed step leaves its result JSON **and its model**
+  (`<stamp>-stepN-<case>-runR.dv_model.yml`, the CLI's artifact form) in the results
+  directory; a chain that died later is continued with
+  `--resume-chain <stamp>` (`--repeat 1`): the leading steps with both files are reused,
+  the rest run, and the result's `metrics.resumed_from` names them — its `usage` covers only
+  the steps that ran (2026-09-13: four paid steps had been lost to a temporary workdir).
 
 Shipped cases: `bank` (the Postgres-verified end-to-end PoC model; gated), `bank_extension`
 (WP23 brownfield mode), `health_insurance` (from the demo walkthrough), `messy_insurance`

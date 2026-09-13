@@ -23,6 +23,9 @@ is not the project's.
   them under `key_translation.joins`.
 
 ### Added
+- `eval.run --resume-chain <stamp>`: a chain step now leaves its model beside its result, and
+  a chain that died mid-way is continued from the first step without one instead of being
+  bought again (`metrics.resumed_from` says what was reused).
 - `demo/fk_links_postgres/`: the keyless, runnable capture of WP36 and WP37 — a translated link
   and a three-way relationship link built green on local PostgreSQL through the real proposer,
   applier and generator (`tests/test_demo_fk_links_postgres.py` guards it).
