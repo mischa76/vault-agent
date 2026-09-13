@@ -160,7 +160,8 @@ The Postgres build uses the *same* code generator the pipeline uses, just fed a 
 instead of an LLM — see [`demo/bank_postgres/README.md`](demo/bank_postgres/README.md) for
 prerequisites, verification, and the effectivity-satellite end-dating demo, and
 [`demo/mapping_postgres/`](demo/mapping_postgres/README.md) for the grounded + ratified
-variant.
+variant, and [`demo/fk_links_postgres/`](demo/fk_links_postgres/README.md) for links derived
+from declared foreign keys (translated and relationship-table links).
 
 Optionally ground the model against a **declared source schema** (YAML/JSON listing each
 source table and its columns) so proposed business keys and satellite attributes are

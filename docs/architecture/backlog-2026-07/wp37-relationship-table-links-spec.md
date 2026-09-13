@@ -146,3 +146,22 @@ referenced column is taken without asking which table it was built from; with on
 shows this (those hubs come in packs and the tie-break asks the table), a brownfield vault
 whose `source_entity` is a business term rather than a table name would lose links if tier 1
 were tightened — so it is a spec question for WP34, not a silent change here.
+
+## 8 Addendum 2026-09-13 — dbt-built once, keyless; a link with two translations had one view
+
+§7 (c) said nothing here was built by dbt. `demo/fk_links_postgres` builds the ProductVendor
+miniature — three participations, Product and Vendor translated, Vendor pending until
+`hub_vendor` exists — through the pipeline's own functions and `dbt build --full-refresh` on
+local PostgreSQL 16. The first build found that `StagingSpec` held ONE translation slot: the
+Vendor translation overwrote the Product one, `stg_product_vendor` read
+`stg_product_vendor_via_vendor` and hashed `PRODUCTNUMBER` from a view that never projected it
+(`tests/test_wp37_relationship.py` had asserted that *a* `_via_` model exists, not that both
+keys arrive). A stage now carries `translations: list[KeyTranslation]`, rendered as one view
+with one LEFT JOIN per translation, named `stg_product_vendor_via_product_and_vendor`, its
+`.yml` carrying `not_null` on each projected key and `relationships` on each surrogate.
+Verified: `PASS=26`, all 3 link rows join all three hubs, a second build inserts 0 rows.
+What this does NOT verify: the modeler's part (the delta is fixed by hand), and any run on
+AdventureWorks — the offline replay's 10 links (§7) are still an offline number. The
+per-key proposals of a relationship table are ratified by `--accept` and then flagged
+`link_proposal_skipped` ("no hub was modelled for ProductVendor") — two advisory items that
+restate what the relationship link already says; observed, left alone, noted in the demo README.

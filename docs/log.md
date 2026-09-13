@@ -4686,3 +4686,48 @@ onto an already-built hub (`SalesOrderHeader.ShipToAddressID` after `BillToAddre
 `hub_address`) as "already covered" — that is a two-role link, neither built nor flagged; and
 WP34 tier 1 takes a single hub keyed on the referenced column without asking which table it was
 built from. Both are WP34 spec questions, spelled out in wp37 §7.
+
+## [2026-09-13] The first dbt build of a translated link — two WP36 renderer defects, fixed, and a third Postgres demo
+
+**What was missing.** WP36 (2026-09-12) and WP37 (2026-09-12) both closed with the sentence that
+no `dbt build` had compiled a translation model or a relationship link's staging. That is the
+one class of verification the definition of done names as free and local, so it came first
+today: `demo/fk_links_postgres/`, the ProductVendor/ShoppingCartItem miniature the two WPs were
+measured on, driven through the pipeline's own functions in the pipeline's order (proposer →
+`--accept` → `apply_ratified_link_proposals` → `merge_models` → generator → validator →
+`rebind_staging`), with the modeler's delta fixed by hand — the same principle as the bank
+demos. `uv sync --extra demo` first (dbt was not installed in this checkout's environment).
+
+**What the first build found, before any model ran.** (1) The translation view's generated
+`.yml` rendered `to: {{ ref('Vendor') }}` — YAML reads the braces as a flow mapping and dbt
+refused to *parse* the project. Every project with a translated link had been unbuildable since
+WP36 was built, the paid run's output included; that run verified modelling and checkpoint, not
+the project. (2) `link_product_vendor` has two translated participations and got one view: the
+staging spec held a single translation slot, Vendor overwrote Product, and the stage hashed
+`PRODUCTNUMBER` from a view that never projected it. The WP37 test had asserted that *a*
+`_via_` model exists. Both pinned in `tests/test_translation_build_guard.py`, written and run
+failing first (`yaml.parser.ParserError: while parsing a flow mapping`; `assert
+'r1.PRODUCTNUMBER as PRODUCTNUMBER' in ...`), then fixed in `staging_generator.py`: brace-free
+test references (`ref('x')`, `source('a', 'b')`), `translations: list[KeyTranslation]` per
+stage, one view with one LEFT JOIN each (`_via_product_and_vendor`), `key_translation.joins` in
+`automatedv.yml` — one shape whatever the count, the WP36 metadata test flipped in the same
+commit. 948 passed, 2 skipped; ruff, bare mypy clean.
+
+**Verified live, keyless, on PostgreSQL 16 + AutomateDV 0.11.4 (dbt-core 1.9.10):**
+`dbt build --full-refresh` `PASS=26 WARN=0 ERROR=0` (5 seeds, 8 views, 7 incremental, 6 tests);
+every row of both links joins every hub it references (3 of 3, queried); a second `dbt build`
+inserts 0 rows; an inserted `ProductVendor` row with an unknown `ProductID` fails the view's
+`not_null` and `relationships` tests (2 of 4 FAIL) and a full refresh restores green. That is
+ADR-0013's data-time gate, seen for the first time. Guard: `tests/test_demo_fk_links_postgres.py`.
+
+**Not verified.** Nothing ran against a model; the delta is hand-written and the AdventureWorks
+replay numbers of wp37 §7 remain offline. The Databricks target was not touched.
+
+**Observed, left alone.** A relationship table's per-key proposals are ratified by `--accept`
+and then flagged `link_proposal_skipped` ("no hub was modelled for ProductVendor") — two advisory
+review items that restate the relationship link. Noise, not wrong data; recorded in the demo
+README and wp37 §8, not fixed here.
+
+**Corrects:** the WP36 entry of 2026-09-12 ("built and live-verified once") — live-verified as
+modelling, never as a buildable project until today; and the CHANGELOG's WP36/WP37 "keyless-only"
+now reads "dbt-built once, keyless" for the staging half. Spec addenda: wp36 §10, wp37 §8.

@@ -12,7 +12,20 @@ is not the project's.
 
 ## [Unreleased]
 
+### Fixed
+- The translation view's generated `schema.yml` (WP36) rendered `to: {{ ref('x') }}` — not
+  valid YAML, so dbt refused to parse every project that carried a translated link. Found by the
+  first `dbt build` of one (2026-09-13); now `to: ref('x')` / `to: source('a', 'b')`.
+- A link with two translated participations (a WP37 relationship link such as `ProductVendor`)
+  got one translation view, the last translation overwriting the first, and its stage hashed a
+  natural key the view never projected. A stage now carries a list of translations, rendered as
+  one view with one LEFT JOIN each (`stg_<link>_via_<a>_and_<b>`); `automatedv.yml` records
+  them under `key_translation.joins`.
+
 ### Added
+- `demo/fk_links_postgres/`: the keyless, runnable capture of WP36 and WP37 — a translated link
+  and a three-way relationship link built green on local PostgreSQL through the real proposer,
+  applier and generator (`tests/test_demo_fk_links_postgres.py` guards it).
 - Relationship-table links (WP37): a declared table with two or more single-column foreign
   keys and no hub of its own is proposed as the link among the tables it references — one
   `Table.*` decision at the checkpoint, participations pending on this increment's own tables

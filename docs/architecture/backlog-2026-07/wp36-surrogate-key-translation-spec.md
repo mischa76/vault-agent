@@ -145,3 +145,20 @@ build. Finding: 3 of the 4 cases never reach the applier's link because their re
 are relationship or detail tables without a hub; the translation is correct and unused. That is
 not this WP's defect; it is the next capability (relationship-table links), recorded in
 `docs/log.md`.
+
+## 10 Addendum 2026-09-13 — the first dbt build of a translation model, and what it found
+
+§9 said no `dbt build` had compiled a translation model. The first one ran today, keyless, on
+local PostgreSQL 16 (`demo/fk_links_postgres`), and failed before a single model ran: the
+generated `stg_*_via_*.yml` wrote `to: {{ ref('Vendor') }}`, which YAML reads as a flow mapping
+with an unhashable key — dbt refused to parse the project. Every project that carried a
+translated link, including the one the paid run of 2026-09-12 wrote, was unbuildable; the paid
+run verified the modelling and the checkpoint, not the project. dbt's own form for
+`relationships.to` is `ref('x')` / `source('a', 'b')` without braces, and that is what
+`_relation_test_ref` renders now. Guard: `tests/test_translation_build_guard.py`, written and
+run failing before the fix. After it: `PASS=26 WARN=0 ERROR=0`; the link's three rows join
+`hub_product` through the projected `PRODUCTNUMBER`; an inserted orphan surrogate fails the
+view's `not_null` and `relationships` tests — the data-time gate §3 promised, seen live for the
+first time. The second defect the same build found belongs to a link with two translations and
+is recorded in wp37 §8; the `automatedv.yml` shape changed with it (`key_translation.joins`, a
+list, whatever the count).

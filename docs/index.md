@@ -126,8 +126,8 @@ own overview.
 | [wp32](architecture/backlog-2026-07/wp32-concept-identity-spec.md) | Concept identity is (label, entity), not the label alone |
 | [wp34](architecture/backlog-2026-07/wp34-fk-derived-link-proposals-spec.md) | Links proposed from the source's own foreign keys, ratified at the WP29 checkpoint — **§6 NOT MET on the 2026-09-12 rerun (7 of 8); remaining gap: near-hub rule** |
 | [wp35](architecture/backlog-2026-07/wp35-target-platform-databricks-spec.md) | Databricks as a selectable target platform: seed-type dialect in `rules/platforms.py`, `--target-platform` — **built 2026-09-11, keyless-only; no workspace build yet** |
-| [wp36](architecture/backlog-2026-07/wp36-surrogate-key-translation-spec.md) | Surrogate→natural-key translation for FK-derived links (ADR-0013) — **built and live-verified once 2026-09-12; the 3 cases the near-hub rule blocked are WP37's** |
-| [wp37](architecture/backlog-2026-07/wp37-relationship-table-links-spec.md) | Relationship-table links: a hub-less table with ≥2 foreign keys is the link among their targets; one `Table.*` decision — **built 2026-09-12, keyless; offline replay 10 applier links (was 1), §7** |
+| [wp36](architecture/backlog-2026-07/wp36-surrogate-key-translation-spec.md) | Surrogate→natural-key translation for FK-derived links (ADR-0013) — **built and live-verified once 2026-09-12; the 3 cases the near-hub rule blocked are WP37's; **translation view dbt-built green 2026-09-13 after two renderer defects (§10)** |
+| [wp37](architecture/backlog-2026-07/wp37-relationship-table-links-spec.md) | Relationship-table links: a hub-less table with ≥2 foreign keys is the link among their targets; one `Table.*` decision — **built 2026-09-12, keyless; offline replay 10 applier links (was 1), §7; three-way link with two translations dbt-built green 2026-09-13, §8** |
 | [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — **closed 2026-09-12: 7 of 8, §6 not met, ceiling named** |
 
 Earlier specs, before the backlog was numbered:
@@ -184,5 +184,6 @@ an error message.
 | [competitive-landscape.md](competitive-landscape.md) | Market and differentiation |
 | [blog/2026-06-why-data-vault-is-ready-for-agentic-ai.md](blog/2026-06-why-data-vault-is-ready-for-agentic-ai.md) | Draft article |
 
-Runnable demos live outside `docs/`: `demo/bank_postgres/` (ungrounded, hand-authored staging)
-and `demo/mapping_postgres/` (grounded and ratified, generated staging).
+Runnable demos live outside `docs/`: `demo/bank_postgres/` (ungrounded, hand-authored staging),
+`demo/mapping_postgres/` (grounded and ratified, generated staging) and `demo/fk_links_postgres/`
+(FK-derived links: a translated link and a relationship-table link, WP36/WP37).
