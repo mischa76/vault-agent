@@ -70,3 +70,14 @@ in step 4 after the modeler was found filling `key_translation` through its tool
 fixed in `10773e3`); attempt 2 complete (~$17). Result: §6 NOT MET, 7 of 8 links, named
 regression present, review load fell, joins sound. Verdict and the newly named ceiling in
 `docs/log.md` 2026-09-12. Cap note: the two attempts together exceeded the $20 cap by ~$4.
+
+## Step 2 again — rerun 3, 2026-09-13, with WP37 (user's call, cap re-examined)
+
+Run `20260913T021958659285Z` at `git_sha d39bc28`, 38.6 minutes, 103 calls, **$6.38** at the
+list prices `docs/log.md` 2026-08-13 documents (the script reproduces that entry's $6.01/$5.79
+exactly). At those rates the two attempts of 2026-09-12 cost $4.03 and $6.39, not the $7.09 and
+$17.22 recorded — all three attempts together **$16.80, under the $20 cap**. No increment exceeded
+2x its arm-A sibling (per step $0.93 / 0.72 / 1.79 / 0.89 / 2.05 against $1.92 / 1.14 / 3.69 /
+1.62 / 3.59). Result against wp34 §6: links **16 (held, arm A's count)**, invention FAILED (4
+zero-satellite hubs, named regression present), review FAILED (913), joins held. Verdict, causes and
+the defect it exposed: `docs/log.md` 2026-09-13, wp37 spec §9.

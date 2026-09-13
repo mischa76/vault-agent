@@ -165,3 +165,25 @@ AdventureWorks — the offline replay's 10 links (§7) are still an offline numb
 per-key proposals of a relationship table are ratified by `--accept` and then flagged
 `link_proposal_skipped` ("no hub was modelled for ProductVendor") — two advisory items that
 restate what the relationship link already says; observed, left alone, noted in the demo README.
+
+## 9 Addendum 2026-09-13 — the paid rerun: 16 of 16 links, and the conjunction fails elsewhere
+
+§7 pre-registered "§6's link clause met (≥ 8), 12 to 15 of arm A's 16". Run
+`20260913T021958659285Z` (`d39bc28`, $6.38): **16 cross-domain links** — arm A's count, above
+the prediction — with 3 relationship proposals in purchasing and 7 in sales, every one of the ten
+names §7 replayed present in the final model (`link_sales_order_ship_method` as
+`link_sales_order_shipping_method`), 7 links carrying `translations`, which only the applier can
+set. Joins sound. **§6 is still NOT MET**, on the clauses this WP does not touch: the modeler
+built two hubs from `Vendor` (`hub_vendor` on `AccountNumber`, `hub_vendor_business_entity` on
+`BusinessEntityID`) and two from `PurchaseOrderHeader`; `E_HUB_HK_COLLISION` exhausted the three
+modelling attempts of step 4, was inherited by step 5's existing vault where no delta can repair
+it, and step 5 exhausted its attempts too (adding `hub_shopping_cart`/`hub_shopping_cart_item`).
+Four zero-satellite hubs, `hub_sales_representative` back, review 913. One consequence for this
+WP: `link_product_vendor` bound its Vendor participation to `hub_vendor_business_entity` by
+key-name match — correct by declaration, and the WP34 tier-1 question §7 raised, now seen live.
+The modeler's inputs were unchanged from 2026-09-12 (the extractor fix touched only
+`source_schema.yml`, which the modeler never sees); the duplicates are one repeat's variance until
+a second says otherwise. Recorded defect, not fixed here: on the exhausted path the mapper never
+runs, so the code generator's flags are appended per attempt and never deduplicated
+(`source_binding` 182 in step 4 against 50 the day before) — the review clause measures that
+before it measures the model.

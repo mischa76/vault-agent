@@ -4731,3 +4731,64 @@ README and wp37 §8, not fixed here.
 **Corrects:** the WP36 entry of 2026-09-12 ("built and live-verified once") — live-verified as
 modelling, never as a buildable project until today; and the CHANGELOG's WP36/WP37 "keyless-only"
 now reads "dbt-built once, keyless" for the staging half. Spec addenda: wp36 §10, wp37 §8.
+
+## [2026-09-13] WP30 rerun 3 with WP36+WP37: 16 of arm A's 16 cross-domain links — §6 still NOT MET, on duplicate hubs and a flag-accumulation defect
+
+**The run.** User's call, cap re-examined below. `eval.run --dataset adventureworks_incremental
+--repeat 1`, run `20260913T021958659285Z` at `git_sha d39bc28` (WP37 plus this morning's staging
+fix), 38.6 minutes, 103 calls, 556k prompt tokens (31 % cache hit), 260k out, **$6.38** at list
+prices. Per step $0.93 / 0.72 / 1.79 / 0.89 / 2.05 against arm A's $1.92 / 1.14 / 3.69 / 1.62 /
+3.59 — no increment near the protocol's 2x abort line. Steps 1–3 passed their gates as on
+2026-09-12; **steps 4 and 5 failed theirs**, see below.
+
+**wp34 §6, computed by `eval.wp34_check`, unmodified:**
+
+```
+[HELD]   links      16 cross-domain (need >= 8; baseline 2, arm A 16)       — 7 yesterday
+[FAILED] invention  4 zero-satellite hubs (must not exceed 2); hub_sales_representative returned
+[FAILED] review     913 items (must fall below 619)                            — 519 yesterday
+[HELD]   joins      0 unsound aliases, 0 E_LINK_KEY_NOT_IN_SOURCE
+```
+
+**The link clause is met for the first time, above the pre-registration.** wp37 §7 predicted
+12–15; the count is 16, arm A's own. 3 relationship-table proposals in purchasing and 7 in sales;
+all ten names of the offline replay are in the final model (one renamed with its hub); 7 links
+carry `translations`, which only the applier can set (`E_LINK_TRANSLATION_UNRATIFIED` pins that).
+`link_product_vendor` is three-way — `hub_product` through `Product`, `hub_unit_measure`, and
+`hub_vendor_business_entity` by key-name match rather than `hub_vendor` by translation, because
+the modeler built both; that is the WP34 tier-1 question of wp37 §7, seen live.
+
+**Why the conjunction fails, read from the trace at zero cost.** Step 4's modeler emitted two hubs
+from `Vendor` (`hub_vendor` on `AccountNumber`, `hub_vendor_business_entity` on `BusinessEntityID`)
+and two from `PurchaseOrderHeader` (`hub_purchase_order`, `hub_purchasing_employee`);
+`E_HUB_HK_COLLISION` ×2 fed the re-model loop, attempt 2 fixed the sat overlap it was also told
+about and kept the pairs, attempt 3 ended with the same two collisions — three attempts, cap
+reached, straight to the checkpoint. Step 5 then received those hubs as its **existing vault**: a
+collision inherited from the previous step is one the delta cannot repair, so step 5's three
+attempts were spent on errors about hubs it did not emit, and its own attempt 3 added
+`hub_shopping_cart`/`hub_shopping_cart_item`. Final: `E_HUB_HK_COLLISION` ×3, four
+zero-satellite hubs — three of them exactly the duplicates. The modeler's inputs were the same as
+on 2026-09-12: the extractor fix (`80b5251`) changed only `source_schema.yml`, which the modeler
+never sees (pinned). One repeat; variance until a second repeat says otherwise.
+
+**A defect the failure exposed (recorded, not fixed):** the code generator appends its flags to
+`state.flags` on every pass, and only the mapper's `rebind_staging` deduplicates the
+`source_binding` ones. On the exhausted path the mapper never runs, so three attempts leave three
+copies: `source_binding` 182 in step 4 (50 the day before at 31 hubs), 252 in step 5 (65).
+Review load 913 measures that accumulation before it measures the model; the review clause cannot
+be read from this run.
+
+**Corrections.** (1) Yesterday's money figures: at the rates the 2026-08-13 entry documents
+(Opus 4.8 $5/$25, Sonnet 4.6 $3/$15, cache read 0.1x, cache write 1.25x — a script over the
+stored `usage` reproduces that entry's $6.01 and $5.79 exactly), attempt 1 cost $4.03 and attempt
+2 $6.39, not $7.09 and $17.22; all three attempts together **$16.80, under the $20 cap**, so the
+2026-09-12 "over the cap by about $4" was wrong. The stated token counts of that entry stand.
+(2) The "no dbt build" gap of WP36/WP37 was closed this morning (entry above); this run's dbt
+project was not built (the eval's workdir is temporary) — the demo is the build evidence.
+
+**Verdict.** The capability WP34 was written for — relating a new increment to a prior vault from
+declared foreign keys — now delivers arm A's link count in incremental mode, at n=1. §6 as a
+conjunction is not met, and the two failing clauses point at the modeler (duplicate hubs from one
+table, the named regression) and at the harness (flag accumulation), not at WP34/36/37. Next
+zero-cost steps, in order: deduplicate flags across attempts (a keyless fix with a guard), then
+decide whether a second repeat is worth ~$6.5 to tell variance from behaviour. Both the user's call.

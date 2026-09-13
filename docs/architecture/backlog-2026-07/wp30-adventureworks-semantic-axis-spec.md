@@ -645,3 +645,12 @@ makes Person↔Sales a cycle: no step order honours every edge, and `ARM_B_ORDER
 registered with that one edge as its recorded exception. Arm A's 16 cross-domain links split
 8 / 6 / 2 (direct FK / relationship table / none) — the ceiling for arm B from declared
 evidence is 15 of 16, not the 2, 5 or 9 discussed before.
+
+## Addendum 2026-09-13 — the arm-B measurement repeated a third time, with relationship-table links
+
+Rerun 3 (`20260913T021958659285Z`, WP36 + WP37 built, $6.38): the repaired arm B reads **16
+cross-domain links at n=1, arm A's own count** (7 on 2026-09-12). The §7.3 comparison is no
+longer a deficit on the link axis. On the other axes the run is worse than the day before — two
+steps exhausted the re-model loop on duplicate hubs, review load 913 with a flag-accumulation
+defect named — so the arm comparison's narrative stays "direction, not verdict" until a second
+repeat. `docs/log.md` 2026-09-13, wp37 §9, rerun protocol.

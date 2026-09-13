@@ -334,3 +334,10 @@ one arm-B repeat, ~$9, against ~$46 already spent on the prompt route.
 ## 8. Results
 
 *(empty until the WP runs — filled by dated append, never by revision)*
+
+## 9. Addendum 2026-09-13 — §6 measured a third time
+
+Rerun 3 with WP36 and WP37 built: links **16** (held; 7 the day before), joins held, invention
+and review failed on the modeler's duplicate hubs and on flag accumulation across an exhausted
+re-model loop. §6 NOT MET; the link clause that this WP exists for is met for the first time.
+`docs/log.md` 2026-09-13, wp37 §9.

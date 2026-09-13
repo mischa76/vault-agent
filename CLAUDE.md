@@ -144,18 +144,16 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   with table count, so the upper cases measure width and repetition tolerance rather than semantic
   scale (`scale-test-findings.md`, candidate #5). `scale_300` has not been run; `emit_dv_model` is
   the one agent that cannot split its output, so its budget is the only lever there.
-- **WP30's arm comparison was repeated on 2026-09-12 and reads 7 of arm A's 16 cross-domain links
-  at n=1** (was 2 under the contaminated binder), review load 519 (arm A 619), gates green — a
-  direction, not a verdict. **WP34 §6 is NOT MET** (7 < 8, `hub_sales_representative` returned).
-  The residual ceiling is named: FK-derived proposals are near-hub links, and 3 of the 4 translated
-  foreign keys (WP36, live-verified once on `ShoppingCartItem`) reference from relationship or
-  detail tables that get no hub. Same day: the extractor had dropped 44 of AdventureWorks' 90
-  foreign keys (fixed, re-derived); with all 90, arm A's 16 links split 8 direct / 6 relationship-
-  table / 2 none — the FK-evidence ceiling for incremental mode is 15 of 16. **The relationship-
-  table rule exists since 2026-09-12 (WP37, keyless):** replayed over the recorded chain the
-  applier builds 10 links instead of 1 and the §6 counter reads 17 (7 recorded) — an offline
-  number against yesterday's hubs, not a measurement. The next paid rerun is the user's call;
-  the protocol's cap is already spent. `docs/log.md` 2026-09-12, wp37 spec §7.
+- **WP30's arm comparison, third paid repeat 2026-09-13 with WP36+WP37: 16 of arm A's 16
+  cross-domain links at n=1** (7 on 2026-09-12, 2 under the contaminated binder); 7 of them carry
+  applier-only translations. **WP34 §6 is still NOT MET, on the other clauses:** the modeler built
+  duplicate hubs from one table (`hub_vendor` beside `hub_vendor_business_entity`,
+  `hub_purchase_order` beside `hub_purchase_employee`), `E_HUB_HK_COLLISION` exhausted the re-model
+  loop in steps 4 and 5 — a collision inherited from the previous step's vault is one the delta
+  can never repair — and the failing path skips the mapper, so the code generator's flags are
+  appended once per attempt and never deduplicated: review load 913 against the 619 bar is mostly
+  that. `hub_sales_representative` returned again. n=1, a direction; the flag accumulation is a
+  named, unfixed defect. `docs/log.md` 2026-09-13, wp37 spec §9, rerun protocol.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`
