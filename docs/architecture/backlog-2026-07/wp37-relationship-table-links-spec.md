@@ -225,3 +225,14 @@ correct link, which the keyless replay caught. Replayed over the run's recorded 
 2 with the step-3 persisted model: attempt 2 now builds the link to `hub_vendor` by translation
 with no `E_` code. Guard `tests/test_wp37_reresolve_guard.py`, written failing first. Not run
 live since the fix.
+
+## 12 Addendum 2026-09-14 — the chain with §11's fix: every gate green, 17 links
+
+`20260913T230429748887Z` (`0f6760c`, $5.94, 40 min): 17 cross-domain links (n=4: 16, 16, 16,
+17), joins held, review 547, **validation gate 1.0 in all five steps** — the first chain of the
+whole WP30 series with no red gate. `link_product_vendor` binds `hub_product` (translated),
+`hub_unit_measure` and `hub_vendor` — the demo's shape, live, with the modeler building one
+Vendor hub in the first attempt this time; the §11 fix was therefore not exercised by a retry
+in this run (it is replay-verified, not live-verified). The one retry with a collision (step
+2, `hub_employee_business_entity`) followed the remedy. §6 fails on `hub_sales_representative`
+alone — the modeler's, on record since WP30.1.

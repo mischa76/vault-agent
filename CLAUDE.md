@@ -144,16 +144,16 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   with table count, so the upper cases measure width and repetition tolerance rather than semantic
   scale (`scale-test-findings.md`, candidate #5). `scale_300` has not been run; `emit_dv_model` is
   the one agent that cannot split its output, so its budget is the only lever there.
-- **WP30's arm comparison with WP36+WP37 reads 16 of arm A's 16 cross-domain links in all
-  three repeats of 2026-09-13** (7 on 2026-09-12); 7–8 links carry applier-only translations,
-  joins sound, review load 612 against the 619 bar once the flags are deduplicated. **WP34 §6 is
-  still NOT MET on invention:** the business-key identifier offers two candidates for tables
-  carrying `BusinessEntityID` and the modeler hubs both; since `84642b4` the re-model feedback
-  names the hub to drop and Opus followed it 3 of 3 times (one chain). The vendor step of that
-  chain still failed because the applier re-used an earlier attempt's participation (fixed
-  `dea6857`, replayed, not yet run live). Open: a collision inherited from an earlier step's
-  vault burns all three attempts on an error no delta can repair — a gate-semantics question
-  for the user. `docs/log.md` 2026-09-13 (evening), wp37 §9–11, rerun protocol.
+- **WP30's arm comparison with WP36+WP37: 16, 16, 16, 17 cross-domain links against arm A's 16
+  over four repeats (2026-09-13/14)**, joins sound; the fourth chain (`0f6760c`: collision
+  remedy in the re-model feedback, applier re-resolving per attempt) passed **every step's gate**
+  with review load 547 against the 619 bar. **WP34 §6 is still NOT MET on one clause:** the
+  named regression `hub_sales_representative` (invented beside `hub_employee`, on record since
+  2026-08-09) returned in every repeat; zero-satellite hubs are at the cap. The duplicate-hub
+  pattern (two business-key candidates, both hubbed) is now repaired by the remedy at the next
+  attempt, 4 of 4 times over two chains — Opus 4.8, not ablated. Open, the user's call: a
+  collision inherited from an earlier step's vault still burns all three attempts.
+  `docs/log.md` 2026-09-14, wp37 §9–11, rerun protocol.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

@@ -341,3 +341,11 @@ Rerun 3 with WP36 and WP37 built: links **16** (held; 7 the day before), joins h
 and review failed on the modeler's duplicate hubs and on flag accumulation across an exhausted
 re-model loop. §6 NOT MET; the link clause that this WP exists for is met for the first time.
 `docs/log.md` 2026-09-13, wp37 §9.
+
+## 10. Addendum 2026-09-14 — fourth measurement: three clauses held, the fourth fails on one named hub
+
+`20260913T230429748887Z`: links 17, joins 0/0, review 547 < 619, zero-satellite hubs 2 (at the
+cap), **named regression `hub_sales_representative` present** — the only failing clause. The
+link clause has now held four times (16, 16, 16, 17); the invention clause has never held
+because of that one hub, invented beside `hub_employee` in every repeat since 2026-08-09.
+`docs/log.md` 2026-09-14.

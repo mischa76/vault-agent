@@ -98,3 +98,9 @@ resumed with `--resume-chain`, not bought again.
 review **612 — held for the first time** (deduplicated flags), invention failed (3 hubs, one of
 them the vendor duplicate a WP37 applier defect re-created, wp37 §11). Remedy followed 3 of 3
 times. Spend over all six attempts $36.20 at the documented rates; today $25.78.
+
+## Step 2, repeat 4 — 2026-09-14, with the applier fix
+
+`20260913T230429748887Z` at `0f6760c`, **$5.94**, 40 min, 7 modeller calls: every step's gate
+1.0, links 17, joins held, review 547 held, invention failed on `hub_sales_representative`
+alone. Spend over all seven attempts $42.14 at the documented rates.

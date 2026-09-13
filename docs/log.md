@@ -4981,3 +4981,46 @@ clause: `hub_inventory_transaction` and `hub_shopping_cart` without satellites a
 **Money.** Today $6.38 + 5.86 + 6.81 + 6.73 = **$25.78**; all six attempts of the protocol
 $36.20 at the documented rates. Next paid step, the user's call: one chain with `dea6857`
 (~$6.7) to see the applier fix and the remedy together.
+
+## [2026-09-14] Chain with the applier fix and the remedy: every gate green, 17 links, three of four §6 clauses hold
+
+**The run (`20260913T230429748887Z`, `0f6760c`, user's word):** 40 min, 102 calls, 506k prompt
+tokens (29 % cache), 254k out, **$5.94** — the cheapest chain of the series, because only two
+steps needed a second modelling attempt (7 Opus calls against 10 and 13 in the exhausted
+chains). **`validation_gate` 1.0 in all five steps**, the first chain of the WP30 series with no
+red gate. `eval.wp34_check`, unmodified:
+
+```
+[HELD]   links      17 cross-domain (need >= 8; arm A 16)           — 16, 16, 16, 17 over four repeats
+[FAILED] invention  2 zero-satellite hubs (at the cap of 2); NAMED REGRESSION hub_sales_representative
+[HELD]   review     547 (must fall below 619)                       — 29/58/159/100/201 per step
+[HELD]   joins      0 unsound aliases, 0 E_LINK_KEY_NOT_IN_SOURCE
+```
+
+**What held and why.** Step 2 built `hub_employee_business_entity` again, was told to drop it,
+and did — remedy followed 4 of 4 times over two chains now. Step 4 built ONE Vendor hub in its
+first attempt (the duplicate appeared in 2 of 4 purchasing steps; this was not one of them), so
+`link_product_vendor` came out as `hub_product` (translated), `hub_unit_measure`, `hub_vendor` —
+the demo's shape, live — and the `dea6857` fix was not exercised by a retry: it stays
+replay-verified. Step 5 retried once on two `E_SAT_ATTR_OVERLAP` and passed. No step inherited
+a collision, so the open question of the previous entry did not arise here.
+
+**What fails, precisely.** One clause, one hub: `hub_sales_representative` beside
+`hub_employee` (keyed `BusinessEntityID`; the vault's `hub_employee` is on `NationalIDNumber`),
+invented in every repeat since WP30.1 (2026-08-09) and untouched by anything built this
+weekend. The zero-satellite count sits exactly at the cap (`hub_inventory_transaction`,
+`hub_shopping_cart`). WP34 §6 as a conjunction is therefore NOT MET, on the named-regression
+clause alone; the three clauses WP34/36/37 were built for hold.
+
+**Verified live:** the numbers above, on Opus 4.8 / Sonnet 4.6, one chain. **Replay-verified
+only:** the applier re-resolution. **Not measured:** a dbt build of this run's output; whether
+the sales-representative invention yields to the same kind of remedy (it is not a collision —
+it is a second hub for a concept the vault already anchors, which `E_DUP_HUB` does not catch
+because the source entities differ). **Money:** all seven attempts of the rerun protocol
+$42.14 at the documented rates; this weekend $31.72.
+
+**Next, the user's call.** The residual is one modeler behaviour with a name. Candidates, in
+the order of the invariant (gate before backstop, both before steering): a gate that refuses a
+new hub whose business key column is an existing hub's key on the same referenced table
+(`SalesPerson.BusinessEntityID` → `Employee`) unless a ratified resolution says otherwise; or
+extending the WP29 resolver's prompt section. Either is a spec, not a patch.
