@@ -187,3 +187,21 @@ a second says otherwise. Recorded defect, not fixed here: on the exhausted path 
 runs, so the code generator's flags are appended per attempt and never deduplicated
 (`source_binding` 182 in step 4 against 50 the day before) — the review clause measures that
 before it measures the model.
+
+## 10 Addendum 2026-09-13, evening — second repeat: 16 of 16 again, and the duplicate hub is a pattern
+
+Run `20260913T063515062284Z` (`80cb960`, $6.81): **16 cross-domain links**, 8 with
+applier-only translations, joins sound — the link clause at n=2 (16, 16). Everything else worse:
+step 2 already exhausted its three attempts on `hub_employee`/`hub_employee_business_entity`,
+every later step inherited that pair, step 4 added `hub_vendor`/`hub_vendor_business_entity`
+again and step 5 `hub_person`/`hub_person_customer`; five collisions at the end, seven
+zero-satellite hubs, review 637 (sum of 30/76/167/121/243, deduplicated), `pipeline_health` 0
+on two `extension_conflict` links. **The duplicate is not variance.** The business-key
+identifier offers two candidates for these tables in every run (`Vendor`: `AccountNumber` 0.95,
+`BusinessEntityID` 0.75–0.88; `Employee`: `NationalIDNumber` 0.95, `BusinessEntityID` 0.82),
+and the modeler hubs both in 3 of the 4 such steps observed today, alongside the same-as link it
+also builds (`link_vendor_business_entity`). The consequence for this WP is unchanged and now
+seen twice: `link_product_vendor` binds the surrogate-keyed hub by key-name match. Not this WP's
+defect and not fixed here; the two remedies on the table — sharper re-model feedback naming the
+hub to drop, or a backstop collapsing a surrogate-keyed duplicate onto the natural-key hub — are
+model compensation and a spec question for the user.

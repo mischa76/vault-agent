@@ -4833,3 +4833,58 @@ $28.48 at the documented rates.
 
 **Also today, outside the project:** the WLAN of this machine measured again while a Samba audio
 stream stuttered — the 2026-09-10 finding (wiki chronicle) reproduced, worse; recorded there.
+
+## [2026-09-13] Second repeat done: 16 of 16 links again; the duplicate hub is a modeler pattern, not variance; chains are resumable
+
+**Two things built first, keyless, guards failing first.** (1) `b2e68bb`, previous entry: flags
+deduplicated at the validator. (2) `80cb960`: a chain step persists its model beside its result
+(`<stamp>-stepN-<case>-runR.dv_model.yml`, the CLI's bytes) and `eval.run --resume-chain <stamp>`
+continues a chain at the first step without one, recording `metrics.resumed_from`
+(`tests/test_chain_resume_guard.py`; 954 passed, ruff, bare mypy). The aborted
+`20260913T031718223484Z` predates it and could not be resumed.
+
+**The repeat (`20260913T063515062284Z`, `80cb960`), on the user's word after the credit was
+topped up:** 43 min, 102 calls, 596k prompt tokens (33 % cache), 262k out, **$6.81**; per step
+$0.94 / 0.89 / 2.04 / 0.89 / 2.05, none near the 2x line. `eval.wp34_check`, unmodified:
+
+```
+[HELD]   links      16 cross-domain (need >= 8; arm A 16)        — 16 in both repeats
+[FAILED] invention  7 zero-satellite hubs; hub_sales_representative returned
+[FAILED] review     637 (must fall below 619)                     — 30/76/167/121/243 per step
+[HELD]   joins      0 unsound aliases, 0 E_LINK_KEY_NOT_IN_SOURCE
+```
+
+**The link clause holds at n=2.** 16 and 16, arm A's count both times, 7 and 8 links with
+applier-only translations; all ten replayed relationship names present again. That is the
+WP34/36/37 mechanism measured twice with the same answer.
+
+**The duplicate hub is a pattern, and its input is on record.** Step 2 exhausted three attempts
+on `hub_employee` (NationalIDNumber) beside `hub_employee_business_entity` (BusinessEntityID);
+every later step inherited the pair; step 4 built `hub_vendor_business_entity` beside
+`hub_vendor` again (2 of 3 purchasing runs); step 5 added `hub_person_customer`. Read from the
+modeler payloads of all four runs since yesterday: the business-key identifier offers TWO
+candidates for these tables every time — `Vendor`: `AccountNumber` 0.95 and `BusinessEntityID`
+0.75–0.88; `Employee`: `NationalIDNumber` 0.95 and `BusinessEntityID` 0.82 — and the modeler
+hubs both in 3 of the 4 such steps observed today, while also building the same-as link
+(`link_vendor_business_entity`) that says the two are one thing. `E_HUB_HK_COLLISION` refuses
+correctly; the re-model loop repairs it when the pair is the delta's own (step 2 of the morning
+run, step 4 of the aborted run) and cannot when it is inherited from the previous step's vault —
+so one duplicate early poisons every later gate of the chain. Consequence seen twice:
+`link_product_vendor` binds the surrogate-keyed hub by key-name match.
+
+**Review load under the dedup:** 637, the sum over five checkpoints, three of them after an
+exhausted loop, against 913 this morning with the accumulation — and against 519 on
+2026-09-12 with every step passing. The clause now measures the model.
+
+**`pipeline_health` 0.0** on two `extension_conflict` flags (`link_customer_person`,
+`link_person_credit_card`: the modeler re-emitted links the vault already had, differently) —
+the first time the chain's health gate fired; the morning run passed it with four such flags
+at step level. Recorded, not investigated.
+
+**Money.** Today $6.38 + 5.86 + 6.81 = **$19.05**; all five attempts of the protocol $29.47
+(the previous entry's "$28.48" was an arithmetic slip; $22.66 was the four-attempt figure).
+
+**Not measured:** the dbt build of either run's output; a third repeat. **Deliberately not
+done:** no fix for the duplicate hub — the two candidate remedies (re-model feedback that names
+the hub to drop; a backstop collapsing a surrogate-keyed duplicate onto the natural-key hub) are
+model compensation per the invariant and need a spec and the user's word.

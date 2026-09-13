@@ -81,3 +81,13 @@ $17.22 recorded — all three attempts together **$16.80, under the $20 cap**. N
 1.62 / 3.59). Result against wp34 §6: links **16 (held, arm A's count)**, invention FAILED (4
 zero-satellite hubs, named regression present), review FAILED (913), joins held. Verdict, causes and
 the defect it exposed: `docs/log.md` 2026-09-13, wp37 spec §9.
+
+## Step 2, repeat 2 — 2026-09-13, evening
+
+Two attempts: `20260913T031718223484Z` died in step 5 on an exhausted API credit after $5.86
+(steps 1–4 green, single `hub_vendor`); `20260913T063515062284Z` completed, **$6.81**, 43 min.
+Links 16 (held, n=2), joins held, invention and review failed on the modeler's duplicate hubs
+(wp37 §10). Spend over all five attempts at the documented rates: $4.03 + 6.39 + 6.38 + 5.86 +
+6.81 = **$29.47**; the $28.48 in the previous log entry was an arithmetic slip ($22.66 was
+right for the four). Since `80cb960` a chain step persists its model, so a dying chain is
+resumed with `--resume-chain`, not bought again.

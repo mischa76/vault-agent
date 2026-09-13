@@ -36,8 +36,8 @@ is not the project's.
   `link_relationship_incomplete` review item where a participation cannot be resolved. The
   applier now finds a hub by the table it was built from (`source_entity`, WP10 feeds), not only
   by name, so `hub_purchase_order` built from `PurchaseOrderHeader` counts as that table's hub.
-  Measured live 2026-09-13 (one repeat): 16 cross-domain links, arm A's count; the §6
-  conjunction still fails on duplicate hubs and review load (`docs/log.md`).
+  Measured live 2026-09-13, two repeats: 16 cross-domain links in both, arm A's count; the §6
+  conjunction still fails on the modeler's duplicate hubs (`docs/log.md`).
 - Surrogate→natural-key translation for FK-derived links (WP36, ADR-0013 accepted 2026-09-12):
   a foreign key that references a surrogate while the hub is keyed on the natural key is now a
   proposal (`declared_fk_translated`) instead of a skip; a ratified one renders a translation
