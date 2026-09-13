@@ -68,6 +68,29 @@ class PipelineFlag(BaseModel):
     def __str__(self) -> str:
         return f"{self.agent}: {self.message}"
 
+    def identity(self) -> tuple[str, str, str, str | None, str]:
+        """What makes two flags the same review item: everything but list position."""
+        return (self.agent, self.kind, self.severity, self.asset, self.message)
+
+
+def dedupe_flags(flags: list[PipelineFlag]) -> list[PipelineFlag]:
+    """The flag list with each identical flag kept once, first occurrence, order preserved.
+
+    A re-model attempt re-runs the modeler (and the link applier inside it), the code
+    generator and the validator, and each APPENDS its flags; a resume re-executes a node the
+    same way. Three exhausted attempts once left three copies of every generator flag
+    (`source_binding` 182 against 50, 2026-09-13) and the review-load measurement read the
+    accumulation instead of the model. An identical flag twice says nothing the first did not."""
+    seen: set[tuple[str, str, str, str | None, str]] = set()
+    kept: list[PipelineFlag] = []
+    for flag in flags:
+        key = flag.identity()
+        if key in seen:
+            continue
+        seen.add(key)
+        kept.append(flag)
+    return kept
+
 
 class ParsedRequirement(BaseModel):
     """One requirement extracted by the Requirements Parser."""

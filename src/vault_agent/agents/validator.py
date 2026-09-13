@@ -50,6 +50,7 @@ from vault_agent.state import (
     ValidationIssue,
     ValidationReport,
     VaultAgentState,
+    dedupe_flags,
 )
 
 logger = logging.getLogger(__name__)
@@ -380,6 +381,10 @@ class ValidatorAgent(BaseAgent):
 
         errors = [issue for issue in issues if issue.severity == "error"]
         state.validation_report = ValidationReport(passed=not errors, issues=issues)
+        # The validator closes every modelling attempt, so this is the one place that sees the
+        # flags of every re-run: a flag the loop re-emitted is one review item, not one per
+        # attempt (`tests/test_flag_dedup_guard.py`, 2026-09-13).
+        state.flags = dedupe_flags(state.flags)
         logger.info(
             "validation %s: %d error(s), %d warning(s)",
             "failed" if errors else "passed",
