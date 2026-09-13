@@ -13,6 +13,11 @@ is not the project's.
 ## [Unreleased]
 
 ### Fixed
+- WP37's applier re-used the resolution of a pending relationship participation from an
+  earlier modelling attempt; when the re-model loop dropped that hub, the link was built to a
+  hub no longer in the model (`E_LINK_UNKNOWN_HUB`) and the next attempt re-created the hub.
+  A pending participation is now resolved against each attempt's merged model
+  (`Participation.resolved_by_applier`).
 - The translation view's generated `schema.yml` (WP36) rendered `to: {{ ref('x') }}` — not
   valid YAML, so dbt refused to parse every project that carried a translated link. Found by the
   first `dbt build` of one (2026-09-13); now `to: ref('x')` / `to: source('a', 'b')`.
