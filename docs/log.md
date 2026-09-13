@@ -4792,3 +4792,44 @@ conjunction is not met, and the two failing clauses point at the modeler (duplic
 table, the named regression) and at the harness (flag accumulation), not at WP34/36/37. Next
 zero-cost steps, in order: deduplicate flags across attempts (a keyless fix with a guard), then
 decide whether a second repeat is worth ~$6.5 to tell variance from behaviour. Both the user's call.
+
+## [2026-09-13] Flags deduplicated across modelling attempts; repeat 2 of the rerun aborted in step 5 — the API credit ran out
+
+**Fixed, keyless (`b2e68bb`).** `PipelineFlag.identity()` and `dedupe_flags()`; the validator,
+which closes every modelling attempt, keeps one copy of each identical flag (agent, kind,
+severity, asset, message), first occurrence, order preserved. Guard
+`tests/test_flag_dedup_guard.py` — two generator+validator passes over the WP36 miniature with the
+applier re-run between them — written first and failing at 6 flags against 3; 952 passed, ruff,
+bare mypy. This is the harness/pipeline defect the previous entry named: three exhausted attempts
+had left three copies of every generator and applier flag.
+
+**Repeat 2 (`20260913T031718223484Z`, `b2e68bb`), aborted by the API, not by us.** Steps 1–4
+landed green — every gate 1.000, no `E_` code, cumulative $0.94 / 1.64 / 3.42 / 4.03 — and step 5
+died at its third modelling attempt on `invalid_request_error: Your credit balance is too low`
+(request `req_011CezmcrVXNzvn2gQqZBVs6`, 04:01 UTC). Nothing of step 5 was persisted; the traced
+spend is **$5.86**, $1.90 of it in the lost step. What the four steps say, at zero further cost:
+
+- **The duplicate hubs were variance.** This time the purchasing modeler built ONE `hub_vendor`
+  (`AccountNumber`) and one `hub_purchase_order`; `link_product_vendor` is three-way with
+  `hub_vendor` reached by translation — the demo's shape, live. Step 2's modeler produced a
+  collision of its own (`hub_department`/`hub_department_group`) and repaired it on attempt 2;
+  step 5's attempt 1 produced `hub_shopping_cart`/`hub_shopping_cart_item` again, attempt 2
+  repaired that and left two `E_EFFSAT_NO_DRIVING_KEY`, attempt 3 never ran. The modeler's
+  first answer contains an `E_HUB_HK_COLLISION` in 3 of the last 7 chain steps observed; the
+  loop repairs it when it is the delta's own, and cannot when it is inherited.
+- **The dedup shows in the numbers.** Step 4 review 111 items, `source_binding` 57 for 33 hubs
+  and 36 links — against 251 and 182 in the exhausted step 4 of the morning, and 85 / 50 on
+  2026-09-12 at 31 hubs. Step 4 passed on one attempt, so this is the passing path's count, not
+  yet a measurement of the exhausted path under the fix.
+- **wp34 §6 cannot be computed** for this repeat: the checker needs the chain result, and the
+  chain has no step 5.
+
+**No resume from step 4 is possible.** The step files persist summaries (`hub_keys`, names), the
+full `metadata/dv_model.yml` lived in the eval's temporary workdir. A third repeat is a full chain
+again, ~$6.4 at list prices, once the account has credit. Candidate for the harness, not built:
+persist each step's `dv_model.yml` beside its result file so a chain can restart at the step that
+failed. Spend today: $6.38 + $5.86 = **$12.24**; the three attempts of the protocol plus today
+$28.48 at the documented rates.
+
+**Also today, outside the project:** the WLAN of this machine measured again while a Samba audio
+stream stuttered — the 2026-09-10 finding (wiki chronicle) reproduced, worse; recorded there.
