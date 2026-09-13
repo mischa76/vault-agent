@@ -518,6 +518,11 @@ class Participation(BaseModel):
     target_business_key: str | None = None
     source_key_column: str | None = None
     key_translation: KeyTranslation | None = None
+    # True when the APPLIER resolved this participation against one attempt's merged model —
+    # a resolution that must be redone on the next attempt, because the hub it chose may be
+    # gone (2026-09-13: attempt 2 dropped the hub attempt 1 had resolved to, the link was
+    # still built to it). A proposer resolution against the existing vault is permanent.
+    resolved_by_applier: bool = False
 
     @property
     def resolved(self) -> bool:

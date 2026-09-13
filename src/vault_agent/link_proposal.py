@@ -493,21 +493,37 @@ def apply_ratified_link_proposals(
             for t in state.source_schemas if t.table == rel.source_table
             for fk in t.foreign_keys if fk.is_single_column
         }
+        # A pending participation is resolved against THIS attempt's merged model, every
+        # time. The first build resolved it once and kept the answer, so when attempt 2 of a
+        # re-model loop dropped the hub attempt 1 had resolved to, the link was still built
+        # to it (`E_LINK_UNKNOWN_HUB`) and attempt 3 re-created the hub to satisfy the link
+        # (2026-09-13, run 20260913T153801752650Z). The resolution IS written back — the
+        # gate `E_LINK_TRANSLATION_UNRATIFIED` reads the participations as the provenance of
+        # every translation — but marked as the applier's, so the next attempt redoes it.
+        # A participation the PROPOSER resolved is permanent: its hub is in the existing
+        # vault, and existing hubs are immutable.
         unresolved: list[str] = []
+        participations: list[Participation] = []
         for p in rel.participations:
-            if p.resolved:
+            if p.resolved and not p.resolved_by_applier:
+                participations.append(p)
                 continue
             fk = fk_by_column.get(normalize_identifier(p.referencing_column))
             hub, translation = (None, None)
             if fk is not None:
                 hub, translation, _, _ = resolve_fk_target(merged, fk, declared)
             if hub is None:
+                p.target_hub = p.target_business_key = None
+                p.source_key_column = p.key_translation = None
+                p.resolved_by_applier = False
                 unresolved.append(p.referencing_column)
                 continue
             fresh = _participation(fk, hub, translation)  # type: ignore[arg-type]
             p.target_hub, p.target_business_key = fresh.target_hub, fresh.target_business_key
             p.source_key_column, p.key_translation = fresh.source_key_column, fresh.key_translation
-        targets = [p.target_hub for p in rel.participations if p.target_hub]
+            p.resolved_by_applier = True
+            participations.append(p)
+        targets = [p.target_hub for p in participations if p.target_hub]
         if unresolved or len(set(targets)) != len(rel.participations) or len(targets) < 2:
             why = (
                 f"unresolved participation(s) {', '.join(unresolved)}" if unresolved
@@ -525,7 +541,7 @@ def apply_ratified_link_proposals(
         if grain in grains:
             logger.info("relationship link for %s already built", rel.source_table)
             continue
-        for p in rel.participations:
+        for p in participations:
             if p.key_translation is not None:
                 state.flag(
                     "link_proposer",
@@ -544,7 +560,7 @@ def apply_ratified_link_proposals(
                         source_key_column=p.source_key_column,
                         key_translation=p.key_translation,
                     )
-                    for p in rel.participations
+                    for p in participations
                 ],
                 description=(
                     f"Relationship table {rel.source_table}: its declared foreign keys "
