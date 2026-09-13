@@ -205,3 +205,23 @@ seen twice: `link_product_vendor` binds the surrogate-keyed hub by key-name matc
 defect and not fixed here; the two remedies on the table — sharper re-model feedback naming the
 hub to drop, or a backstop collapsing a surrogate-keyed duplicate onto the natural-key hub — are
 model compensation and a spec question for the user.
+
+## 11 Addendum 2026-09-13, night — the applier's resolution was sticky across modelling attempts
+
+Run `20260913T153801752650Z` (`a21e2a3`, the collision remedy in the loop, $6.73): links **16**
+(n=3), joins held, review 612 — the first time that clause held with the flags deduplicated —
+invention failed at 3 zero-satellite hubs. Step 4 exposed a defect of this WP: attempt 1 hubbed
+Vendor twice, the applier resolved ProductVendor's pending Vendor participation to
+`hub_vendor_business_entity` by key-name match and wrote it onto the proposal; attempt 2
+followed the remedy and dropped that hub, and the applier — the participation now "resolved" —
+built `link_product_vendor` to a hub no longer in the model (`E_LINK_UNKNOWN_HUB`); attempt 3
+re-created the hub to satisfy the link, the collision returned, the loop was exhausted, and
+step 5 inherited the pair. Fixed in `dea6857`: `Participation.resolved_by_applier` marks a
+resolution made against one attempt's merged model and the next attempt redoes it (cleared
+when nothing resolves); proposer resolutions against the existing vault stay permanent; the
+write-back stays because `E_LINK_TRANSLATION_UNRATIFIED` reads the participations as every
+translation's provenance — a draft that kept the resolution local made that gate refuse the
+correct link, which the keyless replay caught. Replayed over the run's recorded attempts 1 and
+2 with the step-3 persisted model: attempt 2 now builds the link to `hub_vendor` by translation
+with no `E_` code. Guard `tests/test_wp37_reresolve_guard.py`, written failing first. Not run
+live since the fix.

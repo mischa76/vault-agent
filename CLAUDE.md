@@ -144,16 +144,16 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   with table count, so the upper cases measure width and repetition tolerance rather than semantic
   scale (`scale-test-findings.md`, candidate #5). `scale_300` has not been run; `emit_dv_model` is
   the one agent that cannot split its output, so its budget is the only lever there.
-- **WP30's arm comparison with WP36+WP37 reads 16 of arm A's 16 cross-domain links in both
-  repeats of 2026-09-13** (7 on 2026-09-12, 2 under the contaminated binder); 7–8 links carry
-  applier-only translations, joins sound. **WP34 §6 is still NOT MET, on the modeler's clauses:**
-  the business-key identifier offers two candidates for tables carrying `BusinessEntityID`
-  (`Vendor`: `AccountNumber` 0.95 and `BusinessEntityID` ~0.8) and the modeler hubs BOTH in 3 of
-  4 such steps observed (`hub_vendor_business_entity`, `hub_employee_business_entity`,
-  `hub_person_customer`); `E_HUB_HK_COLLISION` then exhausts the re-model loop, and a collision
-  inherited from an earlier step's vault is one no delta can repair. Review load is measured
-  deduplicated since `b2e68bb`. A spec question (sharper re-model feedback, or a backstop), the
-  user's call. `docs/log.md` 2026-09-13, wp37 spec §9–10, rerun protocol.
+- **WP30's arm comparison with WP36+WP37 reads 16 of arm A's 16 cross-domain links in all
+  three repeats of 2026-09-13** (7 on 2026-09-12); 7–8 links carry applier-only translations,
+  joins sound, review load 612 against the 619 bar once the flags are deduplicated. **WP34 §6 is
+  still NOT MET on invention:** the business-key identifier offers two candidates for tables
+  carrying `BusinessEntityID` and the modeler hubs both; since `84642b4` the re-model feedback
+  names the hub to drop and Opus followed it 3 of 3 times (one chain). The vendor step of that
+  chain still failed because the applier re-used an earlier attempt's participation (fixed
+  `dea6857`, replayed, not yet run live). Open: a collision inherited from an earlier step's
+  vault burns all three attempts on an error no delta can repair — a gate-semantics question
+  for the user. `docs/log.md` 2026-09-13 (evening), wp37 §9–11, rerun protocol.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

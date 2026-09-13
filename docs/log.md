@@ -4930,3 +4930,54 @@ error reserved for the vault owner is a spec question, not changed here.
 
 **Next paid step, the user's call:** one repeat of `adventureworks_incremental` (~$6.5) to
 see whether the loop now converges on the pairs it produced today; resumable since `80cb960`.
+
+## [2026-09-13] Remedy run: 16 of 16 links at n=3, review clause held, Opus followed the remedy 3 of 3 times — and the applier undid one of them
+
+**The run (`20260913T153801752650Z`, `a21e2a3`, user's word):** 46 min, 105 calls, 565k prompt
+tokens (31 % cache), 276k out, **$6.73**. `eval.wp34_check`, unmodified:
+
+```
+[HELD]   links      16 cross-domain (need >= 8; arm A 16)         — 16, 16, 16 over three repeats
+[FAILED] invention  3 zero-satellite hubs (must not exceed 2): hub_inventory_transaction,
+                    hub_shopping_cart, hub_vendor_business_entity; hub_sales_representative returned
+[HELD]   review     612 (must fall below 619)                     — 28/55/150/128/251 per step
+[HELD]   joins      0 unsound aliases, 0 E_LINK_KEY_NOT_IN_SOURCE
+```
+
+Three of four clauses hold; the review clause holds for the first time since it was written
+(519 on 2026-09-12 was a sum over passing steps before the dedup; 913 and 637 today).
+
+**The remedy was followed every time it was given.** Step 2: attempt 1 built `hub_employee`
+beside `hub_employee_business_entity`, attempt 2 was told "drop hub_employee_business_entity;
+keep hub_employee — … AccountNumber 0.95 …" and passed. Step 4: attempt 2 dropped
+`hub_vendor_business_entity` as told. Step 5: attempt 2 dropped `hub_shopping_cart` as told.
+Yesterday's and this morning's chains had exhausted three attempts on the diagnosis alone.
+One chain, Opus 4.8; the ledger row says 3/3 live once, not established.
+
+**And step 4 still failed, because the WP37 applier undid what the modeler had just done.**
+Attempt 1's applier had resolved ProductVendor's pending Vendor participation to
+`hub_vendor_business_entity` by key-name match and written it onto the proposal. In attempt 2
+the hub was gone and the applier, seeing the participation as resolved, built
+`link_product_vendor` to it: `E_LINK_UNKNOWN_HUB`. Attempt 3 re-created the hub to satisfy the
+link, the collision came back, the loop was exhausted, and step 5 inherited the pair and spent
+its own attempt 3 on an error it could not repair. **Fixed keyless, `dea6857`**: a pending
+participation is resolved against each attempt's merged model (`Participation.resolved_by_applier`;
+proposer resolutions against the existing vault stay permanent; the write-back stays because
+`E_LINK_TRANSLATION_UNRATIFIED` reads the participations as provenance — a local-only draft
+made that gate refuse the correct link, caught by the replay). Guard written failing first;
+963 passed, ruff, bare mypy. Replayed over the run's recorded attempts 1 and 2 of step 4 with
+the step-3 persisted model: attempt 2 builds the link to `hub_vendor` by translation, no `E_`
+code — the step would have passed at attempt 2, and step 5 would not have inherited the pair.
+That is a replay, not a run.
+
+**What remains open, in order.** (1) A collision inherited from an earlier step's vault burns
+all three attempts on an error no delta can repair (step 5 here, steps 3–5 this afternoon): the
+remedy already says "do not re-emit", but the loop still retries. Whether the router should
+stop retrying when every remaining error is inherited, or the gate should grade an inherited
+collision as a warning for the increment, is a spec question — not changed. (2) The invention
+clause: `hub_inventory_transaction` and `hub_shopping_cart` without satellites and
+`hub_sales_representative` are the modeler's, not touched by anything built today.
+
+**Money.** Today $6.38 + 5.86 + 6.81 + 6.73 = **$25.78**; all six attempts of the protocol
+$36.20 at the documented rates. Next paid step, the user's call: one chain with `dea6857`
+(~$6.7) to see the applier fix and the remedy together.

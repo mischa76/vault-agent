@@ -91,3 +91,10 @@ Links 16 (held, n=2), joins held, invention and review failed on the modeler's d
 6.81 = **$29.47**; the $28.48 in the previous log entry was an arithmetic slip ($22.66 was
 right for the four). Since `80cb960` a chain step persists its model, so a dying chain is
 resumed with `--resume-chain`, not bought again.
+
+## Step 2, repeat 3 — 2026-09-13, night, with the collision remedy in the loop
+
+`20260913T153801752650Z` at `a21e2a3`, **$6.73**, 46 min: links 16 (n=3), joins held,
+review **612 — held for the first time** (deduplicated flags), invention failed (3 hubs, one of
+them the vendor duplicate a WP37 applier defect re-created, wp37 §11). Remedy followed 3 of 3
+times. Spend over all six attempts $36.20 at the documented rates; today $25.78.
