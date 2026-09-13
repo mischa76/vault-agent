@@ -37,6 +37,7 @@ from vault_agent.rules.dv2_rules import (
     SAT_WIDE_ATTRIBUTE_THRESHOLD,
     construct_binds_to_source_table,
     effectivity_date_pair,
+    hub_collision_remedy,
     is_valid_construct_name,
     normalize_identifier,
     role_bk_column,
@@ -104,9 +105,12 @@ def _shares_payload_namespace(
 
 
 def _issue(
-    severity: IssueSeverity, code: str, construct: str, message: str
+    severity: IssueSeverity, code: str, construct: str, message: str,
+    remedy: str | None = None,
 ) -> ValidationIssue:
-    return ValidationIssue(severity=severity, code=code, construct=construct, message=message)
+    return ValidationIssue(
+        severity=severity, code=code, construct=construct, message=message, remedy=remedy
+    )
 
 
 class ValidatorAgent(BaseAgent):
@@ -525,6 +529,12 @@ class ValidatorAgent(BaseAgent):
                         f"they would derive the same {source_norm}_HK hash-key column "
                         f"and staging model, silently binding one hub's hash key to "
                         f"the other's business key",
+                        # 2026-09-13: the diagnosis alone did not converge in three paid
+                        # attempts; the rule now says which hub stays and why.
+                        remedy=hub_collision_remedy(
+                            hubs, state.business_keys, state.existing_model,
+                            model_hubs=model.hubs,
+                        ).text,
                     )
                 )
 

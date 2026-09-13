@@ -204,6 +204,7 @@ class Dv2ModelerAgent(BaseAgent):
         if errors:
             payload["previous_validation_issues"] = [
                 {"code": issue.code, "construct": issue.construct, "message": issue.message}
+                | ({"remedy": issue.remedy} if issue.remedy else {})
                 for issue in errors
             ]
         payload_json = json.dumps(payload, indent=2)

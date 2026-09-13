@@ -764,6 +764,10 @@ with warnings.catch_warnings():
         # runtime suppression above: the shadowed classmethod is deprecated and unused.
         construct: str  # type: ignore[assignment]
         message: str  # human-readable; presentation only, never parsed
+        # What the re-model loop should DO about it, when the rule can say so
+        # deterministically (2026-09-13: `rules.hub_collision_remedy`). Sent to the modeler
+        # beside the diagnosis; presentation for the model, never parsed by code.
+        remedy: str | None = None
 
 
 class ValidationReport(BaseModel):

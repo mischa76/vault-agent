@@ -613,3 +613,166 @@ def resolution_category(
         return "comment_grounded"
     return "semantic"
 
+
+
+@dataclass(frozen=True)
+class HubCollisionRemedy:
+    """What the re-model loop should do about two hubs built from one source entity.
+
+    ``keep`` / ``drop`` name the hubs; ``inherited`` says the pair is in the existing vault,
+    where no delta can remove it; ``text`` is the sentence sent to the modeler."""
+
+    keep: str | None
+    drop: list[str]
+    inherited: bool
+    text: str
+
+
+def _entity_matches(candidate_entity: str, hub: Any) -> bool:
+    """`vendor` names `Vendor`; `purchase order` names `PurchaseOrderHeader` (prefix)."""
+    cand = normalize_identifier(candidate_entity).replace("_", "")
+    for label in (hub.source_entity, construct_base_name(hub.name)):
+        ent = normalize_identifier(label).replace("_", "")
+        if cand and ent and (cand == ent or ent.startswith(cand) or cand.startswith(ent)):
+            return True
+    return False
+
+
+def _references(key: str, other: Any) -> bool:
+    """`BusinessEntityID` references `hub_business_entity`: the other hub's key AND named
+    after its entity. A generic key shared by name alone (`Name`) references nothing."""
+    if normalize_identifier(key) != normalize_identifier(other.business_key):
+        return False
+    bare = normalize_identifier(key).replace("_", "")
+    for label in (other.source_entity, construct_base_name(other.name)):
+        ent = normalize_identifier(label).replace("_", "")
+        if ent and bare in (ent, ent + "ID", ent + "KEY", ent + "CODE", ent + "NUMBER"):
+            return True
+    return False
+
+
+def hub_collision_remedy(
+    hubs: list[Any],
+    business_keys: list[Any],
+    existing: Any | None,
+    model_hubs: list[Any] | None = None,
+) -> HubCollisionRemedy:
+    """Decide which of the colliding hubs stays, deterministically, and say why.
+
+    Three paid chain steps on 2026-09-13 exhausted the re-model loop on
+    ``E_HUB_HK_COLLISION`` with the diagnosis alone as feedback: the modeler had hubbed both
+    business-key candidates the identifier offered for one table (`Vendor`: `AccountNumber`
+    0.95 and `BusinessEntityID` ~0.8) and, told only that they collide, kept both. The rule,
+    in order:
+
+    1. A pair that is entirely in the existing vault is INHERITED — nothing this increment
+       emits can remove it, so the remedy is "do not re-emit either" and the pair stays a
+       review item for the vault's owner.
+    2. An existing hub always stays: its key is immutable (changing it re-hashes every row),
+       so the new hub is the one to drop.
+    3. Among new hubs, the one keyed on the business-key candidate the identifier ranked
+       HIGHEST for that entity stays; a hub whose key is no candidate at all loses to one
+       whose key is (the replay's `hub_department_group` on `GroupName`).
+    4. Without a ranking, a hub keyed on another hub's key AND named after that hub's entity
+       (``BusinessEntityID`` is ``hub_business_entity``'s) is a reference, not an identity:
+       it is the one to drop. A generic key shared by name alone (``Name``) is no reference —
+       the first replay said "Name on Department references hub_shift", which is nonsense.
+    5. Otherwise the first by name stays, and the text says the choice was arbitrary.
+
+    Whatever is dropped, the relationship its key expressed is a link to the hub keyed on
+    that key, which the model may already contain."""
+    by_name = {hub.name: hub for hub in hubs}
+    existing_names = {h.name for h in existing.hubs} if existing is not None else set()
+    names = sorted(by_name)
+    inherited = [n for n in names if n in existing_names]
+    others = [o for o in (model_hubs or []) if o.name not in by_name]
+
+    def _referenced_hub(name: str) -> str | None:
+        for other in others:
+            if _references(by_name[name].business_key, other):
+                return str(other.name)
+        return None
+
+    def _link_hint(dropped: list[str]) -> str:
+        hints = []
+        for name in dropped:
+            target = _referenced_hub(name)
+            if target:
+                hints.append(
+                    f"{by_name[name].business_key} on {by_name[name].source_entity} is a "
+                    f"reference to {target}; model that relationship as a link to "
+                    f"{target}, not as a second hub"
+                )
+        if hints:
+            return "; " + "; ".join(hints)
+        return (
+            "; if the dropped hub's key references another concept, that relationship is a "
+            "link to the hub keyed on it, not a second hub"
+        )
+
+    if len(inherited) == len(names):
+        return HubCollisionRemedy(
+            keep=None, drop=[], inherited=True,
+            text=(
+                f"{', '.join(names)} are all in the existing vault; nothing this increment "
+                f"emits can remove them — do not re-emit either hub; the duplicate is a "
+                f"review item for the vault's owner"
+            ),
+        )
+    if inherited:
+        keep = inherited[0]
+        drop = [n for n in names if n not in existing_names]
+        return HubCollisionRemedy(
+            keep=keep, drop=drop, inherited=False,
+            text=(
+                f"drop {', '.join(drop)}; keep {keep}, which is in the existing vault keyed on "
+                f"{by_name[keep].business_key} (an existing hub's key is immutable)"
+                + _link_hint(drop)
+            ),
+        )
+    scores: dict[str, float] = {}
+    for cand in business_keys:
+        for name in names:
+            hub = by_name[name]
+            if _entity_matches(cand.entity, hub) and (
+                normalize_identifier(hub.business_key) == normalize_identifier(cand.field)
+            ):
+                scores[name] = max(scores.get(name, float("-inf")), cand.score)
+    if scores and (len(scores) < len(names) or len(set(scores.values())) > 1):
+        keep = max(scores, key=lambda n: (scores[n], n))
+        drop = [n for n in names if n != keep]
+        ranked = ", ".join(
+            f"{by_name[n].business_key} {scores[n]:.2f}"
+            for n in sorted(scores, key=lambda n: scores[n], reverse=True)
+        )
+        unranked = [by_name[n].business_key for n in drop if n not in scores]
+        why = (
+            f"the business-key identifier ranked {by_name[keep].source_entity}'s candidates "
+            f"{ranked}"
+            + (f" and never proposed {', '.join(unranked)} as a key" if unranked else "")
+            + ", and one entity is one hub on its highest-ranked key"
+        )
+        return HubCollisionRemedy(
+            keep=keep, drop=drop, inherited=False,
+            text=f"drop {', '.join(drop)}; keep {keep} — {why}" + _link_hint(drop),
+        )
+    referencing = [n for n in names if _referenced_hub(n)]
+    if referencing and len(referencing) < len(names):
+        keep = next(n for n in names if n not in referencing)
+        return HubCollisionRemedy(
+            keep=keep, drop=referencing, inherited=False,
+            text=(
+                f"drop {', '.join(referencing)}; keep {keep} — a hub keyed on another hub's "
+                f"key is a reference, not an identity" + _link_hint(referencing)
+            ),
+        )
+    keep, drop = names[0], names[1:]
+    return HubCollisionRemedy(
+        keep=keep, drop=drop, inherited=False,
+        text=(
+            f"drop {', '.join(drop)}; keep {keep} — one source entity is one hub; the choice "
+            f"between these keys is arbitrary here (no ranked candidate, no reference), so "
+            f"keep the first and express the other key as a link if it references a concept"
+            + _link_hint(drop)
+        ),
+    )
