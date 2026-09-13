@@ -97,7 +97,9 @@ re-binds the staging layer itself when a mapping is ratified.
 
 The **re-model loop** is the pipeline's self-correction: a failing validation routes
 back to the modeler with only the *errors* as feedback (warnings are for humans, not
-steering), each reduced to code/construct/message. The loop is bounded by
+steering), each reduced to code/construct/message — plus a `remedy` where the rule can say
+deterministically what to do (since 2026-09-13 `E_HUB_HK_COLLISION` names the hub to drop:
+`rules.hub_collision_remedy`). The loop is bounded by
 `MAX_MODELING_ATTEMPTS` (3); at the cap the run ends as failed, with the artifacts so
 far, the report, and the review queue on disk for diagnosis. The system prompt is
 byte-identical across attempts, so retries hit the prompt cache and cost mainly output

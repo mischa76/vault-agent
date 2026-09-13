@@ -23,6 +23,11 @@ is not the project's.
   them under `key_translation.joins`.
 
 ### Added
+- The re-model feedback for `E_HUB_HK_COLLISION` now carries a `remedy` that names the hub
+  to drop (`rules.hub_collision_remedy`: an inherited pair is unrepairable, an existing hub
+  stays, the higher-ranked business-key candidate stays, a key that references another hub's
+  entity is dropped) and the modeler is told to apply it. Keyless; replayed over the day's
+  recorded attempts with `eval.replay_collision_remedy`; no live datapoint yet.
 - `eval.run --resume-chain <stamp>`: a chain step now leaves its model beside its result, and
   a chain that died mid-way is continued from the first step without one instead of being
   bought again (`metrics.resumed_from` says what was reused).

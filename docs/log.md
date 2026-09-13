@@ -4888,3 +4888,45 @@ at step level. Recorded, not investigated.
 done:** no fix for the duplicate hub — the two candidate remedies (re-model feedback that names
 the hub to drop; a backstop collapsing a surrogate-keyed duplicate onto the natural-key hub) are
 model compensation per the invariant and need a spec and the user's word.
+
+## [2026-09-13] Re-model feedback names the hub to drop — built keyless, replayed over the day's recorded attempts, not yet run live
+
+**User's call: option 1 of the previous entry.** `84642b4`: `rules.hub_collision_remedy`
+decides deterministically which of two hubs built from one source entity stays, and the
+validator carries the sentence on `ValidationIssue.remedy` (new typed field, presentation for
+the model, never parsed); the modeler sends it beside code/construct/message; one sentence in
+`prompts/dv2_modeler.md` says to apply it and not keep both. Ledger row in the second table of
+`steering-ledger.md`: keep — untested live. Guard `tests/test_collision_remedy_guard.py` written
+and run failing first (ImportError); 962 passed, ruff, bare mypy.
+
+**The rule, in order, and why each clause exists.** (1) Both hubs in the existing vault:
+inherited — "do not re-emit either", the pair is the vault owner's review item, because no
+delta can remove an existing hub. (2) One existing: it stays, its key is immutable. (3) Among
+new hubs the business-key candidate the identifier ranked highest stays; a hub whose key was
+never proposed loses to one whose key was — that is `hub_department_group` on `GroupName`
+beside `hub_department` on `Name` (0.88). (4) Without a ranking, a hub keyed on another hub's
+key AND named after that hub's entity (`BusinessEntityID` → `hub_business_entity`) is a
+reference, to drop. (5) Otherwise the first by name, and the text says the choice was
+arbitrary. Whatever is dropped, the text says the dropped key's relationship is a link.
+
+**The replay caught a wrong draft before anything was paid.** `eval/replay_collision_remedy.py`
+takes the recorded first attempts of a chain (the trace holds the modeler's raw output per
+call and its business-key candidates) plus the persisted step models and runs today's
+validator. The first draft's clause (4) took any shared key name as a reference and produced
+"Name on Department is a reference to hub_shift" — nonsense a paid attempt would have been
+told. Tightened to "the other hub's key and named after its entity", and clause (3) extended to
+prefer a ranked key over an unranked one. Final replay over both chains of the day, 12
+collisions: every new pair names the surrogate- or secondary-keyed hub for dropping
+(`hub_vendor_business_entity`, `hub_purchasing_employee`, `hub_person_customer`,
+`hub_shopping_cart_item`, `hub_department_group`, `hub_purchase_order_employee`); every pair
+inherited from the previous step's vault is named unrepairable.
+
+**What this does not settle.** Whether Opus follows the remedy is the model's part — no live
+datapoint; the ledger says so. And the inherited case is a gate-semantics question left open:
+an increment whose existing vault already carries a collision fails `E_HUB_HK_COLLISION` on
+every attempt whatever it emits, which is what turned one bad step into four red gates today.
+Whether an inherited collision should be an error for the increment or a warning with the
+error reserved for the vault owner is a spec question, not changed here.
+
+**Next paid step, the user's call:** one repeat of `adventureworks_incremental` (~$6.5) to
+see whether the loop now converges on the pairs it produced today; resumable since `80cb960`.

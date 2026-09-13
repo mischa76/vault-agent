@@ -232,6 +232,19 @@ completed repeat, so a mid-run failure never discards a paid-for arm). Rule ids 
 production code. Verdicts belong in `docs/architecture/steering-ledger.md` — the runner
 measures, a human decides, and validator gates are never ablated.
 
+## Replaying recorded modelling attempts (keyless)
+
+`eval.replay_collision_remedy <trace.jsonl>` runs every recorded first modelling attempt of a
+chain through the current validator and prints the `remedy` each `E_HUB_HK_COLLISION` would
+carry now — the zero-cost check that a feedback change says the right thing on the shapes the
+model actually produced, before a paid run asks whether the model follows it. A step's existing
+vault comes from the persisted step model when the run wrote one; without it, inherited pairs
+cannot be told from new ones and the output says so.
+
+```bash
+uv run python -m eval.replay_collision_remedy eval/results/adventureworks_incremental/<stamp>-run1.trace.jsonl
+```
+
 ## LangSmith (optional)
 
 With `LANGSMITH_API_KEY` set (see `config.Settings.langsmith_api_key`) **and** the
