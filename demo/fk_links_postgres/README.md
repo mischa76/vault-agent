@@ -15,7 +15,12 @@ on PostgreSQL. No API key.
 > `ProductID` fails the translation view's `not_null` and `relationships` tests (2 of 4 FAIL),
 > which is the data-time gate ADR-0013 promised.
 >
-> **This build found two defects the keyless tests had not** (see [Findings](#findings)).
+> **WP38 verified 2026-09-14** on the same stack: a subtype feed — `SalesPerson`, keyed on
+> `Employee`'s surrogate, feeding `sat_sales_person_details` on `hub_employee` (keyed on
+> `NationalIDNumber`). `PASS=35 WARN=0 ERROR=0`; both satellite rows join `hub_employee`; a second
+> build green; an orphan `BusinessEntityID` fails both view tests (2 of 2).
+>
+> **The first build found two defects the keyless tests had not** (see [Findings](#findings)).
 
 ## What is fixed here, and what is computed
 
@@ -32,6 +37,7 @@ Computed by the pipeline's own functions, in the pipeline's order — link propo
 |---|---|---|
 | `link_shopping_cart_item_product` | WP36: `ShoppingCartItem.ProductID → Product.ProductID`, hub keyed on `ProductNumber` | `stg_shopping_cart_item_product` reads `..._via_product` (LEFT JOIN, projects `PRODUCTNUMBER`) |
 | `link_product_vendor` | WP37: hub-less `ProductVendor` with keys to Product, UnitMeasure, Vendor; Vendor is this increment's table, so its participation is **pending** until `hub_vendor` exists | `stg_product_vendor` reads `..._via_product_and_vendor` (two LEFT JOINs, projects `PRODUCTNUMBER` and `ACCOUNTNUMBER`) |
+| `sat_sales_person_details` | WP38: a satellite on `hub_employee` (NationalIDNumber) read from `SalesPerson`, whose key is `Employee`'s surrogate; the same-as is ratified and the join declared | `stg_sales_person_details` reads `..._via_employee` (LEFT JOIN, projects `NATIONALIDNUMBER`) |
 
 Each translation view ships a `.yml` with `not_null` on the projected natural key and a
 `relationships` test on the surrogate — the gates that make an unmatched surrogate fail

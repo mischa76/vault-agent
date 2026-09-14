@@ -5108,3 +5108,49 @@ audit, not hidden.
 `preserved_reference_is_a_link` ("keep — UNEVIDENCED … evidence against it") rests on the
 dropped links and is now unevidenced in both directions; recorded here, the ledger row is
 updated with WP38's close.
+
+## [2026-09-14] WP38 built — translated subtype feeds, keyless and on Postgres; the next chain measures three changes at once
+
+**What changed** (user: „ja, hau rein"). A ratified same-as whose join the source schema DECLARES
+is a *subtype feed* (`src/vault_agent/subtype_feed.py`): exactly one declared table carries a
+single-column foreign key on the concept's field into the table the target hub binds, does not
+carry the hub's key itself, and WP36's `_translation_target` yields the join. Then the WP29 prompt
+section says *"IS hub_employee … do not create a hub for it: put its descriptive attributes in
+satellites on hub_employee with `source_table: SalesPerson`"* instead of *"model it as its OWN
+hub"*; `apply_subtype_feeds` (in the modeler, before the merge, recomputed every attempt) sets
+`Satellite.key_translation` on the matching delta satellites and raises
+`FlagKind.SAT_TRANSLATION`; the field is stripped from the modeler's schema; the satellite's stage
+reads the WP36 view; `E_SAT_TRANSLATION_UNRATIFIED` and, for translated satellites only,
+`E_SAT_KEY_NOT_IN_SOURCE` gate it; the checkpoint note says what accepting does; the result file
+records the join where one exists. Guard first (`ccdb548`), feature `25bfffc`, demo `e8a85c2`.
+
+**Why it was wrong before.** `hub_sales_representative` was the product doing what WP29 told it
+(entry above). A role of an employee is satellites on `hub_employee`; that was unbuildable because
+a satellite attaches through its parent's key and `SalesPerson` carries only the surrogate. The
+build also needed the parser fix of the entry before this one, or the satellites on
+`hub_employee` would have been dropped before the applier saw them.
+
+**Verified.** Keyless: 979 passed, 2 skipped; ruff; bare mypy. On recordings, zero cost: over the
+persisted step-4 vault and real sales schema of `20260913T230429748887Z` with the recorded
+resolver answer, detection fires on `SalesPerson → hub_employee` through `Employee` and on
+nothing else; `Store`'s same-as keeps its own-hub sentence (it carries the hub's key). **On
+PostgreSQL 16 + AutomateDV 0.11.4** (`demo/fk_links_postgres`): `dbt build --full-refresh`
+`PASS=35 WARN=0 ERROR=0`; both `sat_sales_person_details` rows join `hub_employee` through
+`NationalIDNumber`; a second build green; an inserted `SalesPerson` row with an unknown
+`BusinessEntityID` fails both view tests (2 of 2); full refresh restores green.
+
+**Not verified.** The modeler following the new sentence — no paid run. Two hops: the last chain
+also hung `sat_representative_quota_history` (from `SalesPersonQuotaHistory → SalesPerson`) on the
+role hub; the new sentence gives that data no place, so the role hub may survive for it alone.
+
+**Corrections the build forced** (wp38 §8): the spec named a satellite gate that did not exist
+(built here, narrowly); the subtype table is derived from declared foreign keys, not from the
+concept's label; §5's link prediction (15–16) was written before the parser fix and is withdrawn.
+
+**Observed, left alone.** The per-key link proposal `SalesPerson.BusinessEntityID → hub_employee`
+is ratified by `--accept` and then flagged "no hub was modelled for SalesPerson" — correct now, and
+the same noise wp37 §8 recorded for relationship tables.
+
+**Next, the user's call:** one chain (~$6.5). It measures three changes at once — the parser fix,
+WP38, the collision remedy — so its numbers cannot be attributed to one of them; the
+pre-registration in wp38 §8 says what each would have to show.

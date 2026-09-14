@@ -65,13 +65,19 @@ unmatched surrogate becomes a NULL key that the model's own `schema.yml` refuses
 `dbt build` (`not_null` on the projected key, `relationships` from the surrogate to the
 referenced relation). The translation is therefore visible SQL and a failing test, never a
 hidden mapping. `metadata/automatedv.yml` records it under the link's staging entry as
-`key_translation`. **Keyless-only** as of 2026-09-12 — no build has exercised one.
+`key_translation`, one entry per join. **Built on PostgreSQL since 2026-09-13** (`demo/fk_links_postgres`); that first build fixed the view's `schema.yml` (not valid YAML before) and the case of two translations in one link (one view, one LEFT JOIN each, `_via_<a>_and_<b>`).
 
 **Relationship-table link** (WP37): a link ratified for a whole table (`Table.*`, 7.5) is
 named `link_<table>` and its stage binds to *that* table — the one relation that carries every
 participation's key — through the same override path a ratified mapping uses, so no
 `SOURCE_BINDING` flag is raised for it. Translated participations read their translation
-views as above. Keyless-only as of 2026-09-12.
+views as above. Built on PostgreSQL in the same demo since 2026-09-13.
+
+**Subtype feed** (WP38): a satellite on a hub keyed on the natural key, read from a table keyed
+on the supertype's surrogate — `sat_sales_person_details` on `hub_employee` from `SalesPerson` —
+has its dedicated stage read `stg_<satellite>_via_<relation>`: the same translation view and the
+same data-time tests. It arises only from a ratified same-as whose join the schema declares
+(7.5). Built on PostgreSQL since 2026-09-14 (`demo/fk_links_postgres`).
 
 ## 9.4 Incremental behaviour & effectivity end-dating
 

@@ -115,3 +115,41 @@ new `subtype_feed.py` (the applier: same-as → feed, translation on satellites)
 `collect_staging_specs`, `build_staging`'s translation loop generalised to any spec),
 `agents/validator.py` (the two gates), `cli.py` (checkpoint note), `eval/run.py` (metrics),
 `demo/fk_links_postgres/`, manuals 7 and 9, CHANGELOG, index, log.
+
+## 8 Addendum 2026-09-14 — built, keyless and on Postgres; what the build corrected
+
+Built the same day: guard `ccdb548` (four pins, two flipped by the feature), feature `25bfffc`,
+demo `e8a85c2`, and a prerequisite `535610a`. Four corrections to §1–5:
+
+1. **A prerequisite the spec did not see.** In brownfield mode the modeler's parser dropped any
+   satellite whose parent is an existing hub — and every modeler link into the existing vault
+   (`docs/log.md` 2026-09-14). The satellites §2 relies on would never have reached the applier.
+   Fixed first, with its own guard.
+2. **The subtype table is not in the concept.** The resolver keys a concept `entity::field` with a
+   business label (`sales representative`), never a table. `subtype_feed` derives the table from
+   the declared foreign keys: exactly one table with a single-column key on the concept's field
+   into a table the target hub binds, not itself carrying the hub's key. None or several: no feed.
+3. **§2 named a gate that did not exist.** Nothing checked a satellite's `source_table` for its
+   parent's key. `E_SAT_KEY_NOT_IN_SOURCE` was built here, narrowly: translated satellites only,
+   so no other run changes outcome.
+4. **§5's link prediction is withdrawn.** "15–16" was written before the parser fix; that fix
+   keeps modeler links into the vault that the applier used to half-replace. Revised below.
+
+**Verified.** Keyless: 979 passed, ruff, bare mypy; 14 WP38 tests (detection and its two declines,
+ratification, applier and flag, schema strip, both gates, metadata, result file). On recordings:
+over the persisted vault and real sales schema of `20260913T230429748887Z`, with the recorded
+resolver answer, detection fires on `SalesPerson → hub_employee` through `Employee` and on
+nothing else — `Store`'s same-as keeps its own-hub sentence because `Store` carries the hub's
+key. On PostgreSQL 16: the demo's `dbt build --full-refresh` `PASS=35`, both satellite rows join
+`hub_employee`, a second build green, an orphan surrogate fails both view tests.
+
+**Not verified.** Whether the modeler follows the sentence (no paid run). Two hops stay out: in
+the last chain the modeler also hung `sat_representative_quota_history` (from
+`SalesPersonQuotaHistory → SalesPerson`) on the role hub, and the new sentence gives that data no
+attachable place — the role hub may survive for it alone.
+
+**Pre-registered for the next chain, which measures three changes at once** (parser fix, WP38,
+and the collision remedy of 2026-09-13): `hub_sales_representative` absent, or present carrying
+only data from tables that reference `SalesPerson`; zero-satellite hubs ≤ 2; cross-domain links
+≥ 17; review load not predicted — more kept modeler links mean more review items, and the bar of
+619 may fail for that reason alone, which would be a finding about the bar, not a regression.

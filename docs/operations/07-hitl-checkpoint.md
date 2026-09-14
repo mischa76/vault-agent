@@ -79,6 +79,9 @@ vault-agent resume --owner "customer=Jane Doe <jane@bank.example>" \
 | `--link "Table.Column"` | yes | Builds one link proposed from a declared foreign key (WP34) |
 | `--no-link "Table.Column"` | yes | Declines one proposed link; wins over `--link` for the same one |
 | `--link "Table.*"` / `--no-link "Table.*"` | yes | Ratifies or declines the **relationship-table** link proposed for a whole table (WP37) — one decision per table, not per key |
+| `--resolve "concept=answer"` | yes | Ratifies one entity resolution (WP29): `answer` is an existing construct's name, `NEW`, `same_as_candidate` or `unresolved` |
+| `--resolutions <file>` | no | Ratifies an edited `resolutions.review.yml` wholesale (WP29) |
+| `--accept` | — | Signs off and proceeds past the checkpoint |
 
 A link proposal's note names its category. `declared_fk_same_name` and
 `declared_fk_renamed` are WP34's two: the referencing column is, or is renamed to, the hub's
@@ -101,7 +104,17 @@ hubbed table is covered by its per-key proposals, which stay listed beside the t
 A participation the merged model cannot resolve, or two that merge onto one hub, yields a
 `link_relationship_incomplete` review item and no link: a link with a missing participation
 has a different grain, and a wrong grain over history is a migration.
-| `--accept` | — | Signs off and proceeds past the checkpoint |
+
+**A same-as resolution whose join is declared is a subtype feed (WP38).** The resolver may say a
+new concept is *equivalent to an existing hub but keyed differently* — `sales representative` and
+`hub_employee`, where `SalesPerson`'s key is a foreign key to `Employee` and `hub_employee` is
+keyed on `NationalIDNumber`. When the schema declares that join, the rendering adds *"a subtype
+feed — accepted, SalesPerson gets no hub and its satellites on hub_employee join
+NATIONALIDNUMBER through Employee"*, and that is what accepting does: no second hub, the
+subtype table's satellites on the supertype hub, staged through a translation view (9.3), one
+`sat_translation` review item each, never aggregated. Without a declared join, accepting keeps
+the concept as its own hub, because a join nobody declared is a guess. A table that references
+the subtype (`SalesPersonQuotaHistory → SalesPerson`) is not joined this way.
 
 **`--accept` ratifies link proposals too.** That matters for unattended runs: an automated
 resume accepts every foreign-key-derived link without anyone reading it. Decline individually

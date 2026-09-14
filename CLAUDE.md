@@ -144,16 +144,15 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   with table count, so the upper cases measure width and repetition tolerance rather than semantic
   scale (`scale-test-findings.md`, candidate #5). `scale_300` has not been run; `emit_dv_model` is
   the one agent that cannot split its output, so its budget is the only lever there.
-- **WP34 §6 held on the 2026-09-14 chain — under a corrected clause, and say so.** Four
-  chains with WP36+WP37 read 16, 16, 16, 17 cross-domain links against arm A's 16; the fourth
-  (`0f6760c`) passed every step's gate with review 547 < 619. Its invention clause holds only
-  because the named-regression half was corrected the same day: `hub_sales_representative` is
-  what WP29's ratified same-as prompt section prescribes ("keyed differently: model it as its
-  OWN hub" — `SalesPerson`'s key is a foreign key to `Employee`, `hub_employee` is on
-  `NationalIDNumber`), not an invention. **WP38 (planned) is the answer to the hub itself:**
-  translated subtype feeds, the satellite half of WP36. The collision remedy (`84642b4`) was
-  followed 4 of 4 times, two chains, Opus 4.8, not ablated; the per-attempt applier
-  (`dea6857`) is replay-verified only. Open: an inherited collision still burns three attempts.
+- **WP34 §6 held on the 2026-09-14 chain — under a corrected clause, and say so.** Four chains
+  with WP36+WP37 read 16, 16, 16, 17 cross-domain links (arm A 16); the fourth passed every gate,
+  review 547 < 619, with the named-hub half corrected the same day (`hub_sales_representative` was
+  WP29's prescribed outcome). **Every one of those counts ran through a parser that dropped all
+  modeler links into the existing vault** — since brownfield mode existed; the August "0 of 37"
+  was the parser too (fixed `535610a`). **WP38 is built** (translated subtype feeds; keyless and
+  Postgres demo, no live run). The next chain measures parser fix, WP38 and the collision remedy
+  at once — pre-registered in wp38 §8. Remedy followed 4/4 live; the per-attempt applier is
+  replay-verified only; an inherited collision still burns three attempts. `docs/log.md` 2026-09-14.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`
