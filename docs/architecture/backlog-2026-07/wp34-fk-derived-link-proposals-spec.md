@@ -349,3 +349,17 @@ cap), **named regression `hub_sales_representative` present** — the only faili
 link clause has now held four times (16, 16, 16, 17); the invention clause has never held
 because of that one hub, invented beside `hub_employee` in every repeat since 2026-08-09.
 `docs/log.md` 2026-09-14.
+
+## 11. Correction 2026-09-14 — the named-regression half of §6 penalised a rule of the product
+
+§6 pre-registered *"and `hub_sales_representative` must not return"*. Traced on the chain of
+2026-09-14 (`20260913T230429748887Z`): the hub is what `render_resolution_prompt_section`
+tells the modeler to build for a ratified `same_as_candidate → hub_employee` — *"keyed
+differently: model it as its OWN hub"* — because `SalesPerson`'s key is a foreign key to
+`Employee` and `hub_employee` is keyed on `NationalIDNumber`. Not an invention; the WP29 rule
+working. `eval.wp34_check` now REPORTS the named hub and no longer fails on it (commit of
+2026-09-14, test flipped in the same commit); the zero-satellite count stands. This is a
+pre-registered criterion changed after the fact, and this section is the record of it. Under
+the corrected clause the three earlier chains of 2026-09-13 are still NOT MET; the fourth
+reads **ALL FOUR CLAUSES HELD** (links 17, invention 2 at the cap, review 547, joins 0/0).
+WP38 answers the hub itself.

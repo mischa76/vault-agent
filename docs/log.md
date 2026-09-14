@@ -5024,3 +5024,37 @@ the order of the invariant (gate before backstop, both before steering): a gate 
 new hub whose business key column is an existing hub's key on the same referenced table
 (`SalesPerson.BusinessEntityID` → `Employee`) unless a ratified resolution says otherwise; or
 extending the WP29 resolver's prompt section. Either is a spec, not a patch.
+
+## [2026-09-14] The sales-representative "mystery" is WP29's own rule; §6's named half corrected; WP38 planned
+
+**The trace, not a guess.** `SalesPerson.BusinessEntityID` is the table's key and a declared
+foreign key to `Employee`. The resolver in step 5 proposes `sales representative` as
+`same_as_candidate → hub_employee` at 0.65, evidence: *"hub_employee is keyed on
+NationalIDNumber … cannot be hashed into the same hub without a mapping table"*. The eval
+ratifies it; `render_resolution_prompt_section` renders, for a ratified same-as, *"keyed
+differently: model it as its OWN hub. Do not reuse that name, and do not merge"*; the modeler
+obeys and writes it into the hub's description. The applier then builds the same-as link by
+translation. Seven repeats since 2026-08-09, the same outcome, because the pipeline asks for it.
+
+**§6 corrected, and recorded as a criterion changed after the fact.** The named-regression half
+is now reported, not failing (`eval/wp34_check.py`, test flipped in the same commit; wp34 §11).
+Under the corrected clause: chains 1–3 of 2026-09-13 still NOT MET (their zero-satellite
+counts exceed the cap), chain 4 **ALL FOUR CLAUSES HELD** — links 17, invention 2 at the cap,
+review 547, joins 0/0. The correction does not flatter the earlier runs; it stops penalising a
+rule of the product. The hub stays named in the output so its disappearance is visible.
+
+**Why the hub is still wrong in DV terms, and why it is unbuildable today.** A role of an
+employee is satellites on `hub_employee`, not a hub. A satellite attaches through its parent's
+canonical key column, which must be in the satellite's relation; `SalesPerson` carries only
+the surrogate. WP36 built the translation view for links; satellites have none. The same gap
+makes the modeler hub surrogates (`hub_vendor_business_entity`): it is the only place it can
+put attributes keyed on the surrogate.
+
+**WP38 planned: translated subtype feeds** (`wp38-translated-subtype-feeds-spec.md`, kick-off).
+A ratified same-as whose join is DECLARED (the concept's key is a foreign key to the table the
+target hub binds) becomes a subtype feed: no hub, the prompt sentence changes only for that
+case, the satellites with `source_table: T` carry a `KeyTranslation` set by the applier and are
+staged through the WP36 view, two gates mirror the link ones. Pre-registered for the live
+chain: the hub absent, zero-satellite hubs ≤ 2, review < 619, cross-domain links **15–16** —
+the two links that today attach to the role hub need a two-hop translation, out of scope, and
+become skips. Keyless plus a Postgres build first; the chain is the user's call.

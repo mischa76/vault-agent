@@ -12,6 +12,13 @@ is not the project's.
 
 ## [Unreleased]
 
+### Changed
+- `eval.wp34_check`: the named-regression half of §6's invention clause is reported, not
+  failing — `hub_sales_representative` is the outcome WP29's ratified same-as prompt
+  prescribes ("keyed differently: model it as its OWN hub"), not an invention. Recorded as a
+  correction of a pre-registered criterion (`docs/log.md` 2026-09-14). WP38 is the planned
+  answer to the hub itself.
+
 ### Fixed
 - WP37's applier re-used the resolution of a pending relationship participation from an
   earlier modelling attempt; when the re-model loop dropped that hub, the link was built to a
