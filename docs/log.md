@@ -5058,3 +5058,53 @@ staged through the WP36 view, two gates mirror the link ones. Pre-registered for
 chain: the hub absent, zero-satellite hubs ≤ 2, review < 619, cross-domain links **15–16** —
 the two links that today attach to the role hub need a two-hop translation, out of scope, and
 become skips. Keyless plus a Postgres build first; the chain is the user's call.
+
+## [2026-09-14] The parser dropped every modeler link into the existing vault — since brownfield mode existed
+
+**Found while planning WP38, not while looking for it.** WP38 needs satellites on an existing
+hub, so the question was whether the modeler's answer keeps them. `Dv2ModelerAgent._validate_model`
+accepted a link only if every hub it connects was in the modeler's OWN output, and a satellite
+only if its parent was. In an extension run the delta does not re-emit existing hubs — and the
+extension prompt section tells the modeler to build links to them "by its exact name". Every
+such link was dropped before the merge, with a `DROPPED_RECORD` flag and nothing else. The check
+dates from `f075252` (2026-07-07, greenfield); WP23's merge arrived in `329adc9` (2026-07-29)
+without it being widened. **Fixed in `535610a`**: with an existing vault, its hubs and links are
+known endpoints; a hub in neither is still dropped; greenfield unchanged. Guard
+`tests/test_brownfield_parent_guard.py`, failing first; 965 passed, ruff, bare mypy.
+
+**Measured at zero cost, on recordings.** The recorded sales attempts of the chain that passed
+every gate (`20260913T230429748887Z`), replayed through parse → link applier → merge → validator
+against the persisted step-4 vault:
+
+| | before | after |
+|---|---|---|
+| links in the merged model | 55 / 55 | 58 / 57 |
+| new links touching the existing vault | 11 / 11 | 14 / 13 |
+| dropped records | 13 / 12 | 0 / 0 |
+| error codes | `E_SAT_ATTR_OVERLAP` ×2 / none | unchanged |
+
+The applier had been re-adding part of what the parser threw away, which is why the counter read
+16–17 at all.
+
+**Correction of 2026-08-09, and of every entry built on it.** The entries "The link deficit,
+answered: arm B builds no cross-domain links at all", "Correction: the link deficit is a modeler
+defect, not a cost of partitioning" and "The steering rule was delivered and changed nothing"
+attributed arm B's 0 of 37 cross-domain links to the modeler. The traces of all six chains of
+2026-08-09 and 2026-08-12 still exist. Read against the hub lists of each chain's step results:
+the modeler emitted **15 to 38 links per chain whose missing hubs were all in the previous step's
+vault** (`20260809T023439582530Z` 18, `…074928…` 17, `…120352…` 26, `…152852…` 38,
+`20260812T114716146058Z` 28, `…130841…` 15), and the parser dropped each one. So the modeler did
+build cross-domain links, the steering rule may well have worked, and the WP30.2 register rewrite
+and WP34's premise ("three prompt interventions failed") were measured through a parser that
+could not show a success. What stays true: the declared foreign keys were missing from the
+modeler's input until WP34, and the deterministic proposer is still the only path that carries
+aliases and translations. What is not established: how many of those dropped links were
+*correct* — they were never generated, staged or validated. The assignment of a recorded call to
+a step is a heuristic over hub sets (a call belongs to the first step whose hubs contain its
+delta), so a residual of links naming a hub in neither set is reported beside each number in the
+audit, not hidden.
+
+**Not done here.** No paid run with the fix. The steering ledger row
+`preserved_reference_is_a_link` ("keep — UNEVIDENCED … evidence against it") rests on the
+dropped links and is now unevidenced in both directions; recorded here, the ledger row is
+updated with WP38's close.

@@ -12,6 +12,13 @@ is not the project's.
 
 ## [Unreleased]
 
+### Fixed
+- In brownfield mode the modeler's links to existing hubs, and satellites on existing hubs or
+  links, were dropped while parsing its answer: only hubs the delta itself emitted counted as
+  known, although the extension prompt asks for links to existing hubs by name. The defect
+  dates from the brownfield merge (2026-07-29). Existing hubs and links now count; a reference
+  to a hub in neither the delta nor the vault is still dropped.
+
 ### Changed
 - `eval.wp34_check`: the named-regression half of §6's invention clause is reported, not
   failing — `hub_sales_representative` is the outcome WP29's ratified same-as prompt
