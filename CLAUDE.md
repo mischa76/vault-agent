@@ -150,11 +150,11 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   the brownfield parser fix (`535610a`; before it, every modeler link into the vault was
   dropped — the August "0 of 37" too), WP38 (live once: two satellites on `hub_employee` from
   `SalesPerson` staged through the translation view) and the collision remedy (followed 6 of 6,
-  three chains). **Not buildable as generated:** the modeler hung a satellite from a table that
-  references the subtype (`SalesPersonQuotaHistory`) on `hub_employee` — its stage demands
-  `NATIONALIDNUMBER`, which that table lacks, and no gate refuses it (`E_SAT_KEY_NOT_IN_SOURCE`
-  checks translated satellites only). Next, the user's call: widen that gate, or two-hop
-  translation. `docs/log.md` 2026-09-15.
+  three chains). **That chain was not buildable:** 9 satellites were read from relations lacking
+  their parent's key. `E_SAT_KEY_NOT_IN_SOURCE` now refuses every such satellite (2026-09-15), so
+  the next chain will meet them in the re-model loop, not at `dbt build`. Of the 9: 1 two-hop
+  (WP39, in progress), 8 one-hop through a declared foreign key — a satellite translation with no
+  ratification path yet (candidate WP40, the user's call). `docs/log.md` 2026-09-15.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

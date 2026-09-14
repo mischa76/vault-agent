@@ -5207,3 +5207,43 @@ today pass model validation and would fail at `dbt build`; (2) two-hop translati
 would make `SalesPersonQuotaHistory`'s satellite buildable on `hub_employee` instead of refused.
 (1) first makes the failure visible; (2) makes it a success. Money: all eight attempts of the
 rerun protocol $48.27 at the documented rates; this chain $6.13.
+
+## [2026-09-15] E_SAT_KEY_NOT_IN_SOURCE widened to every declared-source satellite — the green chain had nine that could not build
+
+**User's call: "mach erst 1".** The gate WP38 built for translated satellites now refuses, in
+grounded runs, every satellite with a declared `source_table` whose relation lacks the column(s)
+its parent's hash key is computed from: the parent hub's canonical key, or each (role-qualified)
+participation key of a parent link — exactly what `collect_staging_specs` demands in its
+`source_table` branch. Out of scope: effectivity satellites, multi-source feeds (their own
+ADR-0011 gate), translated satellites (WP38's branch), pre-existing satellites, undeclared
+relations. Test written and run failing first (2 failed, 3 scope cases passed); 984 passed, ruff,
+bare mypy.
+
+**What it would have done to runs already paid for** — replayed on the persisted step models of
+the four chains that have them, each step with its own schema:
+
+| chain | person | HR | production | purchasing | sales | total |
+|---|---|---|---|---|---|---|
+| `20260913T063515062284Z` | 0 | 0 | 2 | 0 | 0 | 2 |
+| `20260913T153801752650Z` | 0 | 1 | 5 | 3 | 2 | 11 |
+| `20260913T230429748887Z` | 0 | 0 | 3 | 0 | 0 | 3 |
+| `20260914T213855724138Z` | 0 | 0 | 5 | 0 | 4 | 9 |
+
+The chain that "held all four clauses" this morning would have failed its production and sales
+gates. That is the gate telling the truth about a project that could not have built.
+
+**The nine of the green chain, classified from the declared schemas.** All true positives —
+every stage demands a key its relation does not declare. **1 two-hop**
+(`sat_representative_quota_history`: `SalesPersonQuotaHistory.BusinessEntityID → SalesPerson →
+Employee`). **8 with a one-hop declared foreign key** to the parent's (or a participation's)
+table — `ProductCostHistory.ProductID → Product` with `hub_product` on `ProductNumber`, and the
+same shape for list price history, inventory, transaction history, shopping-cart items and
+sales-order lines; in 3 of them another participation has no declared path at all (composite keys).
+
+**What that means for what comes next.** WP39 (two-hop translation, the user's "2") repairs 1 of
+the 9. The 8 one-hop cases are the satellite form of WP36's link translation, and they are the
+larger lever — but WP38's translation is licensed by a ratified same-as, and these have no
+ratification artifact: no proposal, no checkpoint decision. Building them needs a HITL design
+decision (a satellite-translation proposal at the checkpoint), so it is recorded as candidate
+WP40 and not built. Until then the re-model loop has to move such satellites; the next paid
+chain will show whether it can, and it may fail steps that passed before.

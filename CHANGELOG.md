@@ -28,6 +28,11 @@ is not the project's.
   (2026-09-15): no `hub_sales_representative`, two translated satellites on `hub_employee`.
 
 ### Changed
+- `E_SAT_KEY_NOT_IN_SOURCE` now refuses every satellite with a declared `source_table` whose
+  relation lacks its parent's key column(s), not only translated ones. Such a stage could never
+  build; the refusal moves the failure from `dbt build` into the re-model loop. Expect runs that
+  passed validation before to fail it now: replayed on four recorded AdventureWorks chains it
+  refuses 2 to 11 satellites each.
 - `eval.wp34_check`: the named-regression half of §6's invention clause is reported, not
   failing — `hub_sales_representative` is the outcome WP29's ratified same-as prompt
   prescribes ("keyed differently: model it as its OWN hub"), not an invention. Recorded as a
