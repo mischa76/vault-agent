@@ -35,12 +35,14 @@ from vault_agent.rules.dv2_rules import (
     REQUIRED_LINK_COLUMNS,
     REQUIRED_SAT_COLUMNS,
     SAT_WIDE_ATTRIBUTE_THRESHOLD,
+    canonical_hub_key_column,
     construct_binds_to_source_table,
     effectivity_date_pair,
     hub_collision_remedy,
     is_valid_construct_name,
     normalize_identifier,
     role_bk_column,
+    satellite_feed,
     satellite_payload_relations,
     source_table_on_multi_source_hub,
 )
@@ -926,6 +928,7 @@ class ValidatorAgent(BaseAgent):
                 state.resolutions, state.dv_model, state.source_schemas
             )
         }
+        links_by_name = {link.name: link for link in state.dv_model.links}
         for sat in state.dv_model.satellites:
             if sat.name in pre_existing:
                 continue
@@ -966,6 +969,49 @@ class ValidatorAgent(BaseAgent):
                                 f"through {translation.through_table}, but {feed.table} "
                                 f"declares no such column; the translation would join on a "
                                 f"column that is not there",
+                            )
+                        )
+            if translation is None and sat.source_table and sat.sat_type != "effectivity":
+                # E_SAT_KEY_NOT_IN_SOURCE, widened 2026-09-15 from translated satellites to all.
+                # A satellite with its own source table is staged from THAT relation, and its
+                # stage hashes the parent's key column(s) from it (`collect_staging_specs`). The
+                # paid chain of 2026-09-15 passed every gate with a satellite on hub_employee read
+                # from SalesPersonQuotaHistory, which has no NATIONALIDNUMBER: `dbt build` would
+                # have failed. Known at model time when the relation is declared, so refused here.
+                # Multi-source feeds have their own gate (ADR-0011) and are skipped, as is any
+                # relation the schema does not declare — that cannot be judged.
+                relation = next(
+                    (t for t in state.source_schemas
+                     if normalize_identifier(t.table) == normalize_identifier(sat.source_table)),
+                    None,
+                )
+                parent_keys: list[str] = []
+                parent_hub = hub_by_name.get(sat.parent)
+                if relation is None:
+                    pass
+                elif parent_hub is not None:
+                    if satellite_feed(sat, parent_hub) is None and not (
+                        source_table_on_multi_source_hub(sat, parent_hub)
+                    ):
+                        parent_keys = [canonical_hub_key_column(parent_hub)]
+                elif sat.parent in links_by_name:
+                    parent_keys = [
+                        role_bk_column(canonical_hub_key_column(hub_by_name[ref.hub]), ref.role)
+                        for ref in links_by_name[sat.parent].hub_refs
+                        if ref.hub in hub_by_name
+                    ]
+                if relation is not None and parent_keys:
+                    present = {normalize_identifier(c) for c in relation.column_names}
+                    missing = [c for c in parent_keys if normalize_identifier(c) not in present]
+                    if missing:
+                        issues.append(
+                            _issue(
+                                "error", "E_SAT_KEY_NOT_IN_SOURCE", sat.name,
+                                f"satellite on {sat.parent} is read from {relation.table}, which "
+                                f"declares no {', '.join(missing)} — the column(s) its parent's "
+                                f"hash key is computed from; the stage would fail at dbt build. "
+                                f"Hang it on a parent whose key {relation.table} carries, or read "
+                                f"it from a table that carries {', '.join(missing)}",
                             )
                         )
             for attr in sat.attributes:
