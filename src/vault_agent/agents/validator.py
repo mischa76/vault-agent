@@ -923,10 +923,11 @@ class ValidatorAgent(BaseAgent):
                         )
                     )
         feeds = {
-            (feed.hub, normalize_identifier(feed.table)): feed
+            (feed.hub, normalize_identifier(covered)): feed
             for feed in ratified_subtype_feeds(
                 state.resolutions, state.dv_model, state.source_schemas
             )
+            for covered in feed.covered_tables()
         }
         links_by_name = {link.name: link for link in state.dv_model.links}
         for sat in state.dv_model.satellites:
@@ -935,7 +936,7 @@ class ValidatorAgent(BaseAgent):
             translation = sat.key_translation
             if translation is not None:
                 feed = feeds.get((sat.parent, normalize_identifier(sat.source_table or "")))
-                if feed is None or feed.translation != translation:
+                if feed is None or feed.translation_for(sat.source_table or "") != translation:
                     # E_SAT_TRANSLATION_UNRATIFIED (WP38): the mirror of the link gate. A
                     # satellite's translation exists only as the product of a ratified same-as
                     # whose join the schema declares; anything else is refused.
@@ -951,7 +952,8 @@ class ValidatorAgent(BaseAgent):
                 else:
                     subtype = next(
                         (t for t in state.source_schemas
-                         if normalize_identifier(t.table) == normalize_identifier(feed.table)),
+                         if normalize_identifier(t.table)
+                         == normalize_identifier(sat.source_table or "")),
                         None,
                     )
                     declared_cols = (
@@ -966,7 +968,7 @@ class ValidatorAgent(BaseAgent):
                             _issue(
                                 "error", "E_SAT_KEY_NOT_IN_SOURCE", sat.name,
                                 f"satellite translates {translation.referencing_column!r} "
-                                f"through {translation.through_table}, but {feed.table} "
+                                f"through {translation.through_table}, but {sat.source_table} "
                                 f"declares no such column; the translation would join on a "
                                 f"column that is not there",
                             )

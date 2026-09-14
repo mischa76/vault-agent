@@ -261,8 +261,16 @@ def render_resolution_prompt_section(
                 f"`{t.through_table}.{t.surrogate_column}`, and {feed.hub} is keyed on "
                 f"`{t.natural_key_column}`. Do not create a hub for it: put its descriptive "
                 f"attributes in satellites on **{feed.hub}** with `source_table: {feed.table}` "
-                f"— the pipeline joins the key in. This covers `{feed.table}` itself only; a "
-                f"table that references `{feed.table}` is not joined this way."
+                f"— the pipeline joins the key in. "
+                + (
+                    f"This covers `{feed.table}` and the tables keyed on its key — "
+                    + ", ".join(f"`{name}`" for name, _ in feed.referencing)
+                    + f" — which may be `source_table` of such satellites too; any other table "
+                    f"that references `{feed.table}` is not joined this way."
+                    if feed.referencing
+                    else f"This covers `{feed.table}` itself only; a table that references "
+                    f"`{feed.table}` is not joined this way."
+                )
             )
         elif proposal.resolution == RESOLUTION_SAME_AS:
             lines.append(

@@ -1037,9 +1037,12 @@ def _subtype_note(proposal: ResolutionProposal, state: VaultAgentState) -> str:
     if feed is None:
         return ""
     t = feed.translation
+    also = (
+        f" (also {', '.join(name for name, _ in feed.referencing)})" if feed.referencing else ""
+    )
     return (
         f"; a subtype feed — accepted, {feed.table} gets no hub and its satellites on "
-        f"{feed.hub} join {t.natural_key_column} through {t.through_table}"
+        f"{feed.hub} join {t.natural_key_column} through {t.through_table}{also}"
     )
 
 

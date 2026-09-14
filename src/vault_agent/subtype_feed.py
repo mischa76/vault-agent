@@ -56,6 +56,21 @@ class SubtypeFeed:
     hub: str
     table: str
     translation: KeyTranslation
+    # WP39: tables keyed on the subtype's key (`SalesPersonQuotaHistory.BusinessEntityID →
+    # SalesPerson.BusinessEntityID`), each with its two-hop translation to the same hub.
+    referencing: tuple[tuple[str, KeyTranslation], ...] = ()
+
+    def translation_for(self, table: str) -> KeyTranslation | None:
+        """The translation for a satellite read from ``table``, if this feed covers it."""
+        if normalize_identifier(table) == normalize_identifier(self.table):
+            return self.translation
+        for name, translation in self.referencing:
+            if normalize_identifier(name) == normalize_identifier(table):
+                return translation
+        return None
+
+    def covered_tables(self) -> list[str]:
+        return [self.table, *(name for name, _ in self.referencing)]
 
 
 def subtype_feed(
@@ -91,8 +106,31 @@ def subtype_feed(
     target, translation, _, _ = _translation_target(model, fk, declared)
     if target is None or translation is None or target.name != hub.name:
         return None
+    # WP39: the tables keyed on the subtype's key. The proxy for "keyed on" is the column NAME
+    # (the catalogue declares no primary keys): `SalesPersonQuotaHistory.BusinessEntityID` is
+    # covered, `Store.SalesPersonID` — a store that has a salesperson, not a row of one — is not.
+    key = normalize_identifier(fk.columns[0])
+    referencing: list[tuple[str, KeyTranslation]] = []
+    for other in source_schemas:
+        if normalize_identifier(other.table) in (
+            normalize_identifier(table.table), normalize_identifier(fk.references_table)
+        ):
+            continue
+        refs = [
+            g for g in other.foreign_keys
+            if g.is_single_column
+            and normalize_identifier(g.references_table) == normalize_identifier(table.table)
+            and normalize_identifier(g.references_columns[0]) == key
+            and normalize_identifier(g.columns[0]) == key
+        ]
+        if len(refs) != 1 or natural in {normalize_identifier(c) for c in other.column_names}:
+            continue
+        two_hub, two, _, _ = _translation_target(model, refs[0], declared)
+        if two_hub is not None and two is not None and two_hub.name == hub.name:
+            referencing.append((other.table, two))
     return SubtypeFeed(
-        concept=proposal.concept, hub=hub.name, table=table.table, translation=translation
+        concept=proposal.concept, hub=hub.name, table=table.table, translation=translation,
+        referencing=tuple(referencing),
     )
 
 
@@ -126,20 +164,17 @@ def apply_subtype_feeds(
     feeds = ratified_subtype_feeds(state.resolutions, model, state.source_schemas)
     applied = 0
     for feed in feeds:
-        t = feed.translation
         for sat in delta.satellites:
-            if (
-                sat.parent != feed.hub
-                or sat.sat_type == "effectivity"
-                or not sat.source_table
-                or normalize_identifier(sat.source_table) != normalize_identifier(feed.table)
-            ):
+            if sat.parent != feed.hub or sat.sat_type == "effectivity" or not sat.source_table:
+                continue
+            t = feed.translation_for(sat.source_table)
+            if t is None:
                 continue
             sat.key_translation = t
             applied += 1
             state.flag(
                 "subtype_feed",
-                f"satellite {sat.name} on {feed.hub} reads {feed.table}, a subtype keyed on "
+                f"satellite {sat.name} on {feed.hub} reads {sat.source_table}, keyed on "
                 f"{t.referencing_column}: {feed.hub}'s key {t.natural_key_column} is joined in "
                 f"through {t.through_table} ({t.referencing_column} → {t.surrogate_column}); "
                 f"review the translation model",

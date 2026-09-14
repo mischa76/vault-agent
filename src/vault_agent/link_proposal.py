@@ -91,8 +91,37 @@ def _target_hub(
     )
 
 
+def _onward_key(fk: ForeignKeyRef, declared: dict[str, SourceTable]) -> ForeignKeyRef | None:
+    """WP39: ``A.c → B.k`` read as ``A.c → C.x`` when ``B`` declares exactly one single-column
+    foreign key on ``k`` itself (``B.k → C.x``). Every value of ``A.c`` is a value of ``B.k``,
+    and every value of ``B.k`` a value of ``C.x`` — the same key, one table further. ``None``
+    when ``B`` is not declared here or does not carry exactly one such key."""
+    middle = declared.get(normalize_identifier(fk.references_table))
+    if middle is None:
+        return None
+    key = normalize_identifier(fk.references_columns[0])
+    onward = [
+        g for g in middle.foreign_keys
+        if g.is_single_column
+        and normalize_identifier(g.columns[0]) == key
+        and normalize_identifier(g.references_table) != normalize_identifier(middle.table)
+    ]
+    if len(onward) != 1:
+        return None
+    return ForeignKeyRef(
+        columns=list(fk.columns),
+        references_table=onward[0].references_table,
+        references_columns=list(onward[0].references_columns),
+        references_schema=onward[0].references_schema,
+    )
+
+
 def _translation_target(
-    existing: DVModel, fk: ForeignKeyRef, declared: dict[str, SourceTable]
+    existing: DVModel,
+    fk: ForeignKeyRef,
+    declared: dict[str, SourceTable],
+    *,
+    hop: bool = True,
 ) -> tuple[Hub | None, KeyTranslation | None, LinkSkipReason | None, str]:
     """WP36 (ADR-0013): when no hub is keyed on the referenced column, is there exactly one
     hub built FROM the referenced relation, keyed on another column? Then the FK references a
@@ -110,6 +139,15 @@ def _translation_target(
     bound = [
         hub for hub in existing.hubs if hub_binds_to_source_table(hub, fk.references_table)
     ]
+    if not bound and hop:
+        # WP39: no hub is built from the referenced table, so the nearest hub may be one table
+        # further — `SalesOrderHeader.SalesPersonID → SalesPerson.BusinessEntityID → Employee`,
+        # `hub_employee` keyed on NationalIDNumber. One hop only, and only here: a hub bound to
+        # the referenced table is always found first, and WP34's key match runs before any
+        # translation is tried, so the nearest hub decides every shape it decided before.
+        onward = _onward_key(fk, declared)
+        if onward is not None:
+            return _translation_target(existing, onward, declared, hop=False)
     if len(bound) != 1:
         return None, None, None, ""
     hub = bound[0]
@@ -277,6 +315,9 @@ def propose_links(
                     existing, fk, declared
                 )
                 if t_hub is not None and translation is not None:
+                    hopped = normalize_identifier(translation.through_table) != (
+                        normalize_identifier(fk.references_table)
+                    )
                     proposals.append(
                         LinkProposal(
                             source_table=table.table,
@@ -287,13 +328,26 @@ def propose_links(
                             translation=translation,
                             evidence=[
                                 f"{table.table}.{fk.columns[0]} references "
-                                f"{fk.references_table}.{translation.surrogate_column} (declared "
+                                f"{fk.references_table}.{fk.references_columns[0]} (declared "
                                 f"foreign key in the source catalogue)",
-                                f"{t_hub.name} is built from {fk.references_table} and keyed on "
-                                f"{translation.natural_key_column}, not on "
+                            ]
+                            + (
+                                [
+                                    f"{fk.references_table}.{fk.references_columns[0]} is itself "
+                                    f"a declared foreign key to {translation.through_table}."
+                                    f"{translation.surrogate_column}, and no hub is built from "
+                                    f"{fk.references_table} — the same key one table further "
+                                    f"(WP39)"
+                                ]
+                                if hopped
+                                else []
+                            )
+                            + [
+                                f"{t_hub.name} is built from {translation.through_table} and "
+                                f"keyed on {translation.natural_key_column}, not on "
                                 f"{translation.surrogate_column}",
-                                f"staging must join {table.table} to {fk.references_table} on "
-                                f"{translation.surrogate_column} and hash the link from "
+                                f"staging must join {table.table} to {translation.through_table} "
+                                f"on {translation.surrogate_column} and hash the link from "
                                 f"{translation.natural_key_column} — a translation, not an alias",
                             ],
                         )

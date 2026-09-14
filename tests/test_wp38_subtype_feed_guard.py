@@ -127,6 +127,10 @@ async def test_a_same_as_without_a_declared_join_still_prompts_an_own_hub() -> N
     assert "OWN hub" in prompt
 
 
-async def test_a_table_that_references_the_subtype_is_not_translated() -> None:
+async def test_a_table_keyed_on_the_subtype_key_is_translated_since_wp39() -> None:
+    """Pinned by WP38 as "never flipped — two hops are out of scope (spec §6)". Flipped by WP39
+    in its own commit, 2026-09-15: a paid chain hung exactly this table's satellite on the
+    supertype hub, and it could not build. The two-hop translation joins the key in."""
     _, state = await _run(subtype_state(), subtype_payload("SalesPersonQuotaHistory"))
-    assert not any("_via_" in name for name in state.artifacts.staging_models)
+    stage = state.artifacts.staging_models["stg_sales_person_details"]
+    assert "source_model: 'stg_sales_person_details_via_employee'" in stage

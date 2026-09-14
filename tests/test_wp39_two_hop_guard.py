@@ -35,12 +35,15 @@ def sales_order_header() -> SourceTable:
     )
 
 
-def test_a_key_into_a_hubless_subtype_is_a_skip() -> None:
+def test_a_key_into_a_hubless_subtype_reaches_the_supertype_hub() -> None:
+    """Flipped by WP39 in its own commit (pinned at the WP39 opening commit as: skip
+    `no_hub_for_key`)."""
     proposals, skipped = propose_links(existing_vault(), [sales_order_header(), sales_person()])
-    assert [p for p in proposals.proposals if p.source_table == "SalesOrderHeader"] == []
-    assert ("SalesOrderHeader.SalesPersonID", "no_hub_for_key") in [
-        (s.asset, s.reason) for s in skipped
-    ]
+    [proposal] = [p for p in proposals.proposals if p.source_table == "SalesOrderHeader"]
+    assert (proposal.target_hub, proposal.category) == ("hub_employee", "declared_fk_translated")
+    assert proposal.translation is not None
+    assert proposal.translation.through_table == "Employee"
+    assert "SalesOrderHeader.SalesPersonID" not in [s.asset for s in skipped]
 
 
 def test_a_chain_whose_middle_table_has_a_hub_is_decided_by_that_hub() -> None:
@@ -52,6 +55,8 @@ def test_a_chain_whose_middle_table_has_a_hub_is_decided_by_that_hub() -> None:
     assert proposal.target_hub == "hub_sales_person" and proposal.translation is None
 
 
-async def test_the_subtype_sentence_covers_the_subtype_table_only() -> None:
+async def test_the_subtype_sentence_names_the_tables_keyed_on_the_subtype_key() -> None:
+    """Flipped by WP39 in its own commit (pinned as: "covers `SalesPerson` itself only")."""
     prompt, _ = await _run(subtype_state(), subtype_payload())
-    assert "covers `SalesPerson` itself only" in prompt
+    assert "itself only" not in prompt
+    assert "`SalesPersonQuotaHistory`" in prompt
