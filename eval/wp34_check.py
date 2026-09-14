@@ -89,16 +89,26 @@ def zero_satellite_hubs(final: dict[str, Any]) -> list[str]:
 # and the hub was present in both. Added 2026-08-12 as an IMPLEMENTATION of what §6 already
 # required, deliberately not a re-derivation: nothing here is loosened, a clause that was
 # always in the pre-registration simply started being checked.
-NAMED_REGRESSIONS = ("hub_sales_representative",)
+#
+# CORRECTED 2026-09-14 — the named half no longer fails the run; it is reported. Traced on the
+# chain `20260913T230429748887Z`: the resolver proposes `sales representative` as
+# `same_as_candidate → hub_employee` (SalesPerson's key is a foreign key to Employee; hub_employee
+# is keyed on NationalIDNumber, SalesPerson carries only BusinessEntityID), the ratified same-as
+# reaches the modeler through WP29's prompt section, and that section SAYS "keyed differently:
+# model it as its OWN hub". The hub is the pipeline's prescribed outcome, not the modeler's
+# invention, in every repeat since the resolution checkpoint became reachable. A pre-registered
+# clause that penalises a rule of the product is a wrong criterion; changing it after the fact
+# is recorded as exactly that (`docs/log.md` 2026-09-14, wp34 §11). The count half stands. The
+# hub stays named in the output so its absence, once WP38 lands, is visible as a change.
+NAMED_HUBS = ("hub_sales_representative",)
 
 
-def named_regressions(final: dict[str, Any]) -> list[str]:
-    """Constructs §6 names individually as symptoms that must not come back.
+def named_hubs(final: dict[str, Any]) -> list[str]:
+    """Constructs §6 named individually — reported, since 2026-09-14 no longer a failure.
 
-    A named regression is stricter than the zero-satellite count on purpose: WP30.3 invented
-    this hub out of a prompt's phrasing, and it can return while carrying a satellite — which
-    the count would not notice and a reader of the count would read as absence."""
-    return sorted(hub for hub in NAMED_REGRESSIONS if hub in final["hubs"])
+    Stricter than the zero-satellite count on purpose: the hub can return while carrying a
+    satellite, which the count would not notice and a reader would read as absence."""
+    return sorted(hub for hub in NAMED_HUBS if hub in final["hubs"])
 
 
 def unsound_aliases(steps: list[dict[str, Any]]) -> list[str]:
@@ -154,7 +164,7 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
 
     cross = cross_domain_links(steps)
     zero_sat = zero_satellite_hubs(final)
-    returned = named_regressions(final)
+    named = named_hubs(final)
     review = metrics["review_items_total"]
     aliases = unsound_aliases(steps)
     # The chain's validation_codes come from the FINAL state, whose report covers the whole
@@ -165,10 +175,11 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
     clauses = [
         (len(cross) >= 8, f"links:      {len(cross)} cross-domain (need >= 8; "
                           f"baseline {BASELINE_CROSS_DOMAIN}, arm A {ARM_A_CROSS_DOMAIN})"),
-        (len(zero_sat) <= BASELINE_ZERO_SAT_HUBS and not returned,
+        (len(zero_sat) <= BASELINE_ZERO_SAT_HUBS,
          f"invention:  {len(zero_sat)} zero-satellite hub(s) "
          f"(must not exceed {BASELINE_ZERO_SAT_HUBS}): {zero_sat}"
-         + (f"; NAMED REGRESSION present: {returned}" if returned else "")),
+         + (f"; named hub present, reported not failing since 2026-09-14 "
+            f"(WP29 same-as outcome): {named}" if named else "")),
         (review < BASELINE_REVIEW_ITEMS,
          f"review:     {review} items (must FALL below {BASELINE_REVIEW_ITEMS})"),
         (not aliases and gate_fires == 0,

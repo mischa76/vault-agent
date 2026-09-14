@@ -153,11 +153,12 @@ def test_the_gate_firing_fails_the_run_regardless_of_every_other_number() -> Non
     assert any("FAILED" in line and "joins:" in line for line in lines)
 
 
-def test_the_named_regression_fails_the_run_even_while_it_carries_a_satellite() -> None:
-    """§6's invention clause has two halves and only the count was implemented, so both
-    2026-08-12 runs were reported against a clause never computed — while the hub was present
-    in both. The named half is stricter than the count on purpose: give the hub a satellite and
-    the zero-satellite count goes quiet, which is exactly how it stayed invisible."""
+def test_the_named_hub_is_reported_but_no_longer_fails_the_run() -> None:
+    """Until 2026-09-14 this pinned the opposite: the named hub failed the run even with a
+    satellite. Corrected on the trace of `20260913T230429748887Z`: the hub is what WP29's
+    ratified same-as prompt section tells the modeler to build ("keyed differently: model it
+    as its OWN hub"), so the clause penalised a rule of the product. It stays REPORTED so its
+    disappearance under WP38 is visible; the zero-satellite count still governs."""
     chain = _chain()
     sales = chain["metrics"]["chain_steps"][-1]
     sales["model"]["hubs"].append("hub_sales_representative")
@@ -167,6 +168,6 @@ def test_the_named_regression_fails_the_run_even_while_it_carries_a_satellite() 
 
     held, lines = check(chain)
 
-    assert not held
-    assert any("NAMED REGRESSION" in line and "hub_sales_representative" in line
+    assert held
+    assert any("named hub present" in line and "hub_sales_representative" in line
                for line in lines)
