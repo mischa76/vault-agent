@@ -5154,3 +5154,56 @@ the same noise wp37 §8 recorded for relationship tables.
 **Next, the user's call:** one chain (~$6.5). It measures three changes at once — the parser fix,
 WP38, the collision remedy — so its numbers cannot be attributed to one of them; the
 pre-registration in wp38 §8 says what each would have to show.
+
+## [2026-09-15] Paid chain with the parser fix, WP38 and the remedy: WP34 §6 held as written — and a satellite no gate refuses
+
+**The run** (user: „Go für eine bezahlte Kette"), `20260914T213855724138Z` at `5f32bdd`: 40 min,
+104 calls, 531k prompt tokens (28 % cache), 263k out, **$6.13**; per step $0.92 / 0.61 / 1.76 /
+0.75 / 2.09. `validation_gate`, `pipeline_health` and `existing_construct_preservation` 1.000.
+`eval.wp34_check`:
+
+```
+[HELD] links      21 cross-domain (need >= 8; arm A 16)
+[HELD] invention  2 zero-satellite hubs (hub_inventory_transaction, hub_shopping_cart); no named hub
+[HELD] review     547 (must fall below 619)       — 27 / 61 / 154 / 96 / 209
+[HELD] joins      0 unsound aliases, 0 E_LINK_KEY_NOT_IN_SOURCE
+WP34 §6: ALL FOUR CLAUSES HELD
+```
+
+`hub_sales_representative` is absent, so the conjunction holds under §6 as pre-registered on
+2026-08-10, not only under the correction of 2026-09-14. wp38 §8's pre-registration, evaluated by
+a script written before the result: P1, P2, P3 held; review reported (547).
+
+**Three changes, one chain — what is attributable.** *WP38, by mechanism:* the sales modeler's
+prompt carried the subtype-feed sentence (re-rendered from the persisted step-4 vault and the
+recorded resolver answer — the trace does not keep system prompts); it built no hub for
+`SalesPerson` and two satellites on `hub_employee` from `SalesPerson`, both translated by the
+applier, their stages clean. *The parser fix:* zero dropped records in steps 3–5, 21 cross-domain
+links against 17 on the previous chain. *The remedy:* followed twice more
+(`hub_vendor_business_entity`, `hub_shopping_cart_item` dropped as told) — 6 of 6 over three
+chains. Review 547 and the green gates are not attributable to any one of them.
+
+**The finding that keeps this from being "done".** The modeler also hung
+`sat_representative_quota_history` — multi-active, `source_table: SalesPersonQuotaHistory`, a table
+whose key references `SalesPerson`, not `Employee` — on `hub_employee`, although the sentence says
+such a table is not joined this way. Regenerated keylessly from the persisted final model: its
+stage reads `SalesPersonQuotaHistory` and demands `NATIONALIDNUMBER`, which that table does not
+declare; the validator reports **no error**. `dbt build` would fail on that stage. The gate that
+would catch it exists only for translated satellites (`E_SAT_KEY_NOT_IN_SOURCE`, WP38), narrowed
+on purpose so no other run changed outcome; the shape itself — a satellite whose `source_table`
+lacks its parent's key — was always possible and never gated. The three modeler links now on
+`hub_employee` from sales tables read inferred `raw_*` relations with a `source_binding` flag,
+like every unbound modeler link: not new, not checked at model time either.
+
+**Verified live:** the numbers above, one chain, Opus 4.8 / Sonnet 4.6. **Verified keyless:** the
+regenerated staging of the final model and the validator on it. **Not measured:** a `dbt build`
+of this run's project (AdventureWorks has no seeds here); whether the three unbound links would
+bind after mapping.
+
+**Next, the user's call — two candidates, in the order of the invariant (a gate before a
+repair):** (1) widen `E_SAT_KEY_NOT_IN_SOURCE` to every satellite with a declared `source_table`
+in a grounded run — deterministic, feeds the re-model loop, and changes outcomes of runs that
+today pass model validation and would fail at `dbt build`; (2) two-hop translation (WP39), which
+would make `SalesPersonQuotaHistory`'s satellite buildable on `hub_employee` instead of refused.
+(1) first makes the failure visible; (2) makes it a success. Money: all eight attempts of the
+rerun protocol $48.27 at the documented rates; this chain $6.13.

@@ -363,3 +363,10 @@ pre-registered criterion changed after the fact, and this section is the record 
 the corrected clause the three earlier chains of 2026-09-13 are still NOT MET; the fourth
 reads **ALL FOUR CLAUSES HELD** (links 17, invention 2 at the cap, review 547, joins 0/0).
 WP38 answers the hub itself.
+
+## 12. Addendum 2026-09-15 — all four clauses held as originally written
+
+`20260914T213855724138Z`: links 21, zero-satellite hubs 2, review 547, joins 0/0, and
+`hub_sales_representative` absent — so the conjunction holds under §6 as pre-registered, not only
+under §11's correction. One chain; three changes measured at once (parser fix, WP38, collision
+remedy); `docs/log.md` 2026-09-15.

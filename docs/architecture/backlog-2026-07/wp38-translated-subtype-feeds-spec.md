@@ -153,3 +153,41 @@ and the collision remedy of 2026-09-13): `hub_sales_representative` absent, or p
 only data from tables that reference `SalesPerson`; zero-satellite hubs ≤ 2; cross-domain links
 ≥ 17; review load not predicted — more kept modeler links mean more review items, and the bar of
 619 may fail for that reason alone, which would be a finding about the bar, not a regression.
+
+## 9 Addendum 2026-09-15 — live once: the pre-registration held, and a two-hop satellite slipped through
+
+Chain `20260914T213855724138Z` at `5f32bdd`, $6.13, 40 min, every gate 1.000. The script that
+evaluates §8 was written before the result (scratchpad, `wp38_prereg.py`):
+
+```
+P1 HELD      hub_sales_representative absent
+P2 HELD      2 zero-satellite hubs (hub_inventory_transaction, hub_shopping_cart)
+P3 HELD      21 cross-domain links (>= 17)
+P4 reported  review 547 — per step 27 / 61 / 154 / 96 / 209
+```
+
+**The mechanism, live.** The sales modeler's resolution section, re-rendered from the persisted
+step-4 vault and the recorded resolver answer, carried the subtype-feed sentence for
+`sales_representative → hub_employee` and the own-hub sentence for `store` and `customer`. The
+modeler emitted no hub for `SalesPerson` and two satellites on `hub_employee` with
+`source_table: SalesPerson`; the applier translated both (4 `sat_translation` flags across the
+attempts, deduplicated per attempt); their stages read the view and demand nothing their
+relation lacks.
+
+**What slipped through.** The modeler also hung `sat_representative_quota_history`
+(multi-active, from `SalesPersonQuotaHistory → SalesPerson`) on `hub_employee`. §2's sentence
+says such a table "is not joined this way"; the modeler did it anyway. No translation applies
+(two hops, §6), the stage demands `NATIONALIDNUMBER` from `SalesPersonQuotaHistory`, which does
+not have it, and **no gate refuses it**: `E_SAT_KEY_NOT_IN_SOURCE` as built in §8 checks
+translated satellites only. Regenerated from the persisted final model, the validator reports no
+error. `dbt build` would fail on that stage. The same shape existed before WP38 for any
+satellite with a `source_table` lacking its parent's key; the parser fix and WP38 made the
+modeler use it. Also on `hub_employee` now: three modeler links from sales tables
+(`link_sales_order_representative`, `link_store_sales_representative`,
+`link_representative_territory`), staged from inferred `raw_*` relations with a
+`source_binding` flag, as every unbound modeler link is — not new, and not checked at model time.
+
+**Attribution.** Three changes were measured at once. The role hub's absence and the translated
+satellites are WP38's by mechanism (the sentence and the applier are the only paths to them).
+Zero drops and the 21 links are the parser fix's. The two followed remedies are the remedy's.
+Review 547 and the green gates cannot be split among them.

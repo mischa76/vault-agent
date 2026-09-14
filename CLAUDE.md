@@ -144,15 +144,17 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   with table count, so the upper cases measure width and repetition tolerance rather than semantic
   scale (`scale-test-findings.md`, candidate #5). `scale_300` has not been run; `emit_dv_model` is
   the one agent that cannot split its output, so its budget is the only lever there.
-- **WP34 §6 held on the 2026-09-14 chain — under a corrected clause, and say so.** Four chains
-  with WP36+WP37 read 16, 16, 16, 17 cross-domain links (arm A 16); the fourth passed every gate,
-  review 547 < 619, with the named-hub half corrected the same day (`hub_sales_representative` was
-  WP29's prescribed outcome). **Every one of those counts ran through a parser that dropped all
-  modeler links into the existing vault** — since brownfield mode existed; the August "0 of 37"
-  was the parser too (fixed `535610a`). **WP38 is built** (translated subtype feeds; keyless and
-  Postgres demo, no live run). The next chain measures parser fix, WP38 and the collision remedy
-  at once — pre-registered in wp38 §8. Remedy followed 4/4 live; the per-attempt applier is
-  replay-verified only; an inherited collision still burns three attempts. `docs/log.md` 2026-09-14.
+- **WP34 §6: ALL FOUR CLAUSES HELD on the 2026-09-15 chain, as originally pre-registered** —
+  21 cross-domain links (arm A 16), 2 zero-satellite hubs, review 547 < 619, joins sound, every
+  gate 1.000, `hub_sales_representative` absent. One chain, three changes measured at once:
+  the brownfield parser fix (`535610a`; before it, every modeler link into the vault was
+  dropped — the August "0 of 37" too), WP38 (live once: two satellites on `hub_employee` from
+  `SalesPerson` staged through the translation view) and the collision remedy (followed 6 of 6,
+  three chains). **Not buildable as generated:** the modeler hung a satellite from a table that
+  references the subtype (`SalesPersonQuotaHistory`) on `hub_employee` — its stage demands
+  `NATIONALIDNUMBER`, which that table lacks, and no gate refuses it (`E_SAT_KEY_NOT_IN_SOURCE`
+  checks translated satellites only). Next, the user's call: widen that gate, or two-hop
+  translation. `docs/log.md` 2026-09-15.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

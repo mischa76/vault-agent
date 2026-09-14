@@ -24,8 +24,8 @@ is not the project's.
   (`SalesPerson.BusinessEntityID → Employee`, `hub_employee` keyed on `NationalIDNumber`) no
   longer prompts an own hub; the subtype table's satellites on the supertype hub are staged
   through the WP36 translation view, with `E_SAT_TRANSLATION_UNRATIFIED` and
-  `E_SAT_KEY_NOT_IN_SOURCE`. Keyless and built on PostgreSQL (`demo/fk_links_postgres`); no
-  live run.
+  `E_SAT_KEY_NOT_IN_SOURCE`. Built on PostgreSQL (`demo/fk_links_postgres`) and live once
+  (2026-09-15): no `hub_sales_representative`, two translated satellites on `hub_employee`.
 
 ### Changed
 - `eval.wp34_check`: the named-regression half of §6's invention clause is reported, not
@@ -68,9 +68,9 @@ is not the project's.
   `link_relationship_incomplete` review item where a participation cannot be resolved. The
   applier now finds a hub by the table it was built from (`source_entity`, WP10 feeds), not only
   by name, so `hub_purchase_order` built from `PurchaseOrderHeader` counts as that table's hub.
-  Measured live over four chains (2026-09-13/14): 16, 16, 16, 17 cross-domain links against
-  arm A's 16; the fourth chain, with the collision remedy and the per-attempt applier, passed
-  every step's gate. §6 still fails on the named regression `hub_sales_representative`.
+  Measured live over five chains (2026-09-13 to 15): 16, 16, 16, 17, 21 cross-domain links
+  against arm A's 16. The fifth — with the brownfield parser fix, WP38 and the collision
+  remedy — passed every gate and held all four clauses of WP34 §6 as originally written.
 - Surrogate→natural-key translation for FK-derived links (WP36, ADR-0013 accepted 2026-09-12):
   a foreign key that references a surrogate while the hub is keyed on the natural key is now a
   proposal (`declared_fk_translated`) instead of a skip; a ratified one renders a translation

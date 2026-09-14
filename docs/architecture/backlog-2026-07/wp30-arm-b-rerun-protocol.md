@@ -104,3 +104,9 @@ times. Spend over all six attempts $36.20 at the documented rates; today $25.78.
 `20260913T230429748887Z` at `0f6760c`, **$5.94**, 40 min, 7 modeller calls: every step's gate
 1.0, links 17, joins held, review 547 held, invention failed on `hub_sales_representative`
 alone. Spend over all seven attempts $42.14 at the documented rates.
+
+## Step 2, repeat 5 — 2026-09-15, parser fix + WP38 + remedy
+
+`20260914T213855724138Z` at `5f32bdd`, **$6.13**, 40 min, 7 modeller calls: every gate 1.000,
+links 21, zero-satellite hubs 2, review 547, joins held — **WP34 §6 held as written**. Spend over
+all eight attempts $48.27 at the documented rates.
