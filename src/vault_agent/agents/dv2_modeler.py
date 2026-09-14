@@ -261,6 +261,16 @@ class Dv2ModelerAgent(BaseAgent):
         satellites = self._validate_items(raw.get("satellites", []), Satellite, "satellite", state)
 
         hub_names = {hub.name for hub in hubs}
+        existing_links: set[str] = set()
+        if state.existing_model is not None:
+            # Brownfield: the delta does not re-emit existing hubs, and the extension prompt
+            # tells the modeler to link to them by exact name — so they ARE known endpoints.
+            # Until 2026-09-14 only the delta's own hubs counted, and every link into the
+            # vault was dropped here, before the merge: 12 of 23 modeler links on the sales
+            # step of `20260913T230429748887Z`. The check predates brownfield mode (2026-07-07);
+            # WP23's merge (2026-07-29) arrived without it being widened.
+            hub_names |= {hub.name for hub in state.existing_model.hubs}
+            existing_links = {link.name for link in state.existing_model.links}
 
         kept_links: list[Link] = []
         for link in links:
@@ -276,7 +286,7 @@ class Dv2ModelerAgent(BaseAgent):
                 continue
             kept_links.append(link)
 
-        valid_parents = hub_names | {link.name for link in kept_links}
+        valid_parents = hub_names | {link.name for link in kept_links} | existing_links
         kept_satellites: list[Satellite] = []
         for sat in satellites:
             if sat.parent not in valid_parents:
