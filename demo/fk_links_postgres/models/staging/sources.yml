@@ -16,9 +16,13 @@ sources:
         # expected columns: PRODUCTNUMBER, LOAD_DATETIME, RECORD_SOURCE
       - name: UnitMeasure
         # expected columns: UNITMEASURECODE, LOAD_DATETIME, RECORD_SOURCE
+      - name: Employee
+        # expected columns: NATIONALIDNUMBER, LOAD_DATETIME, RECORD_SOURCE
       - name: Vendor
         # expected columns: ACCOUNTNUMBER, NAME, CREDITRATING, LOAD_DATETIME, RECORD_SOURCE
       - name: ShoppingCartItem
         # expected columns: SHOPPINGCARTITEMID, LOAD_DATETIME, RECORD_SOURCE, PRODUCTID
       - name: ProductVendor
         # expected columns: PRODUCTID, UNITMEASURECODE, BUSINESSENTITYID, LOAD_DATETIME, RECORD_SOURCE
+      - name: SalesPerson
+        # expected columns: BUSINESSENTITYID, SALESQUOTA, BONUS, LOAD_DATETIME, RECORD_SOURCE

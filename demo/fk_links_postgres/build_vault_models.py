@@ -43,7 +43,18 @@ from vault_agent.agents.orchestrator import apply_link_decision
 from vault_agent.agents.source_mapper import rebind_staging
 from vault_agent.agents.validator import ValidatorAgent
 from vault_agent.link_proposal import apply_ratified_link_proposals, collect_link_proposals
-from vault_agent.state import DVModel, Hub, Satellite, SourceTable, VaultAgentState
+from vault_agent.state import (
+    RESOLUTION_SAME_AS,
+    DVModel,
+    EntityResolution,
+    Hub,
+    ResolutionProposal,
+    Satellite,
+    SourceTable,
+    VaultAgentState,
+    concept_key,
+)
+from vault_agent.subtype_feed import apply_subtype_feeds
 
 HERE = Path(__file__).parent
 
@@ -58,6 +69,9 @@ def existing_vault() -> DVModel:
             description="A product, anchored on its product number."),
         Hub(name="hub_unit_measure", business_key="UnitMeasureCode",
             source_entity="UnitMeasure", description="A unit of measure."),
+        # WP38: the supertype, keyed on its natural key — the table's own key is a surrogate.
+        Hub(name="hub_employee", business_key="NationalIDNumber", source_entity="Employee",
+            description="An employee, anchored on the national ID number."),
     ])
 
 
@@ -72,6 +86,17 @@ def declared_source_schema() -> list[SourceTable]:
         SourceTable(table="Product",
                     columns=["ProductID", "Name", "ProductNumber", "Color"]),
         SourceTable(table="UnitMeasure", columns=["UnitMeasureCode", "Name"]),
+        SourceTable(table="Employee",
+                    columns=["BusinessEntityID", "NationalIDNumber", "JobTitle"]),
+        # WP38: a subtype keyed on the supertype's surrogate — no NationalIDNumber here.
+        SourceTable(
+            table="SalesPerson",
+            columns=["BusinessEntityID", "SalesQuota", "Bonus"],
+            foreign_keys=[
+                {"columns": ["BusinessEntityID"], "references_table": "Employee",
+                 "references_columns": ["BusinessEntityID"]},
+            ],
+        ),
         SourceTable(table="Vendor",
                     columns=["BusinessEntityID", "AccountNumber", "Name", "CreditRating"]),
         SourceTable(
@@ -116,6 +141,10 @@ def modeler_delta() -> DVModel:
             Satellite(name="sat_vendor_details", parent="hub_vendor",
                       attributes=["Name", "CreditRating"],
                       description="Descriptive vendor attributes.", sat_type="standard"),
+            # WP38: the sales-representative role, on the supertype hub, read from the subtype.
+            Satellite(name="sat_sales_person_details", parent="hub_employee",
+                      attributes=["SalesQuota", "Bonus"], source_table="SalesPerson",
+                      description="The sales-representative role of an employee."),
         ],
     )
 
@@ -123,10 +152,20 @@ def modeler_delta() -> DVModel:
 async def build_state() -> VaultAgentState:
     """The pipeline's order, with the modeler replaced by ``modeler_delta``."""
     existing = existing_vault()
-    state = VaultAgentState(existing_model=existing, source_schemas=declared_source_schema())
+    state = VaultAgentState(
+        existing_model=existing,
+        source_schemas=declared_source_schema(),
+        # WP38: the resolver's same-as, ratified at the resolution checkpoint as `--accept` does.
+        resolutions=EntityResolution(proposals=[ResolutionProposal(
+            concept=concept_key("BusinessEntityID", "sales representative"),
+            resolution=RESOLUTION_SAME_AS, same_as="hub_employee",
+            ratification_status="accepted",
+        )]),
+    )
     collect_link_proposals(state)          # the link_proposer node
     apply_link_decision(state, {"accept": True})  # the checkpoint, as `run --accept` answers it
     delta = apply_ratified_link_proposals(modeler_delta(), existing, state)  # dv2_modeler
+    delta = apply_subtype_feeds(delta, existing, state)                        # dv2_modeler, WP38
     state.dv_model = merge_models(existing, delta, state)
     state = await CodeGeneratorAgent().run(state)
     state = await ValidatorAgent().run(state)
