@@ -22,7 +22,11 @@ sources:
         # expected columns: ACCOUNTNUMBER, NAME, CREDITRATING, LOAD_DATETIME, RECORD_SOURCE
       - name: ShoppingCartItem
         # expected columns: SHOPPINGCARTITEMID, LOAD_DATETIME, RECORD_SOURCE, PRODUCTID
+      - name: SalesOrderHeader
+        # expected columns: SALESORDERNUMBER, LOAD_DATETIME, RECORD_SOURCE, SALESPERSONID
       - name: ProductVendor
         # expected columns: PRODUCTID, UNITMEASURECODE, BUSINESSENTITYID, LOAD_DATETIME, RECORD_SOURCE
       - name: SalesPerson
         # expected columns: BUSINESSENTITYID, SALESQUOTA, BONUS, LOAD_DATETIME, RECORD_SOURCE
+      - name: SalesPersonQuotaHistory
+        # expected columns: BUSINESSENTITYID, SALESQUOTA, QUOTADATE, LOAD_DATETIME, RECORD_SOURCE

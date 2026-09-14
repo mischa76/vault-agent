@@ -28,12 +28,15 @@ EXPECTED_RAW_VAULT = {
     "hub_product", "hub_unit_measure", "hub_vendor", "hub_shopping_cart_item",
     "link_shopping_cart_item_product", "link_product_vendor", "sat_vendor_details",
     "hub_employee", "sat_sales_person_details",  # WP38
+    "hub_sales_order", "link_sales_order_employee", "sat_sales_person_quota_history",  # WP39
 }
 EXPECTED_STAGING = {
     "stg_product", "stg_unit_measure", "stg_vendor", "stg_shopping_cart_item",
     "stg_shopping_cart_item_product", "stg_shopping_cart_item_product_via_product",
     "stg_product_vendor", "stg_product_vendor_via_product_and_vendor",
     "stg_employee", "stg_sales_person_details", "stg_sales_person_details_via_employee",  # WP38
+    "stg_sales_order", "stg_sales_order_employee", "stg_sales_order_employee_via_employee",
+    "stg_sales_person_quota_history", "stg_sales_person_quota_history_via_employee",  # WP39
 }
 
 
@@ -58,6 +61,8 @@ async def test_the_translation_views_ship_parseable_data_time_gates() -> None:
         "models/staging/stg_shopping_cart_item_product_via_product.yml",
         "models/staging/stg_product_vendor_via_product_and_vendor.yml",
         "models/staging/stg_sales_person_details_via_employee.yml",  # WP38
+        "models/staging/stg_sales_order_employee_via_employee.yml",  # WP39
+        "models/staging/stg_sales_person_quota_history_via_employee.yml",  # WP39
     }
     for content in ymls.values():
         [model] = yaml.safe_load(content)["models"]  # the 2026-09-13 finding: must parse

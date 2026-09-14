@@ -48,6 +48,8 @@ from vault_agent.state import (
     DVModel,
     EntityResolution,
     Hub,
+    Proposal,
+    ProposedMapping,
     ResolutionProposal,
     Satellite,
     SourceTable,
@@ -97,6 +99,24 @@ def declared_source_schema() -> list[SourceTable]:
                  "references_columns": ["BusinessEntityID"]},
             ],
         ),
+        # WP39: keyed on the subtype's key — two hops from Employee.
+        SourceTable(
+            table="SalesPersonQuotaHistory",
+            columns=["BusinessEntityID", "QuotaDate", "SalesQuota"],
+            foreign_keys=[
+                {"columns": ["BusinessEntityID"], "references_table": "SalesPerson",
+                 "references_columns": ["BusinessEntityID"]},
+            ],
+        ),
+        # WP39: a header that references the subtype — its link reaches hub_employee two hops on.
+        SourceTable(
+            table="SalesOrderHeader",
+            columns=["SalesOrderID", "SalesOrderNumber", "SalesPersonID"],
+            foreign_keys=[
+                {"columns": ["SalesPersonID"], "references_table": "SalesPerson",
+                 "references_columns": ["BusinessEntityID"]},
+            ],
+        ),
         SourceTable(table="Vendor",
                     columns=["BusinessEntityID", "AccountNumber", "Name", "CreditRating"]),
         SourceTable(
@@ -136,6 +156,9 @@ def modeler_delta() -> DVModel:
             Hub(name="hub_shopping_cart_item", business_key="ShoppingCartItemID",
                 source_entity="ShoppingCartItem",
                 description="A line in a shopping cart, anchored on its item id."),
+            # WP39: the near side of the two-hop link.
+            Hub(name="hub_sales_order", business_key="SalesOrderNumber",
+                source_entity="SalesOrderHeader", description="A sales order."),
         ],
         satellites=[
             Satellite(name="sat_vendor_details", parent="hub_vendor",
@@ -145,6 +168,11 @@ def modeler_delta() -> DVModel:
             Satellite(name="sat_sales_person_details", parent="hub_employee",
                       attributes=["SalesQuota", "Bonus"], source_table="SalesPerson",
                       description="The sales-representative role of an employee."),
+            # WP39: the role's quota history — a table keyed on the subtype's key, two hops on.
+            Satellite(name="sat_sales_person_quota_history", parent="hub_employee",
+                      attributes=["SalesQuota"], source_table="SalesPersonQuotaHistory",
+                      sat_type="multi_active", child_dependent_key=["QuotaDate"],
+                      description="Quota history of the sales-representative role."),
         ],
     )
 
@@ -169,6 +197,15 @@ async def build_state() -> VaultAgentState:
     state.dv_model = merge_models(existing, delta, state)
     state = await CodeGeneratorAgent().run(state)
     state = await ValidatorAgent().run(state)
+    # The source mapper's ratified answer for the one hub whose name does not match its table
+    # (hub_sales_order ← SalesOrderHeader): the pipeline's mapper proposes it and `--accept`
+    # ratifies it; the demo fixes it, as it fixes the modeler's delta.
+    state.mappings = ProposedMapping(proposals=[Proposal(
+        concept="SalesOrderNumber", entity="SalesOrderHeader", table="SalesOrderHeader",
+        column="SalesOrderNumber", confidence=0.99, category="exact_name",
+        ratification_status="accepted",
+        evidence=["SalesOrderHeader is the anchor table of the sales order."],
+    )])
     rebind_staging(state)                  # the source_mapper's re-bind (link overrides, WP34 §3.5)
     return state
 
