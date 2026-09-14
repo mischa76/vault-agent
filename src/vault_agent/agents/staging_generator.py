@@ -327,7 +327,15 @@ def collect_staging_specs(
                 parent_hub = hub_by_name[sat.parent]
                 bk_col = canonical_hub_key_column(parent_hub)
                 spec.add_hashed(_hub_hashkey(parent_hub), bk_col)
-                spec.add_source_column(bk_col)
+                if sat.key_translation is not None:
+                    # WP38: the relation carries the surrogate, not the hub's key; the key
+                    # arrives through the translation view `build_staging` renders, exactly as
+                    # for a translated link participation (WP36).
+                    if sat.key_translation not in spec.translations:
+                        spec.translations.append(sat.key_translation)
+                    spec.add_source_column(_to_column(sat.key_translation.referencing_column))
+                else:
+                    spec.add_source_column(bk_col)
             else:
                 parent_link = links_by_name[sat.parent]
                 bk_cols = []

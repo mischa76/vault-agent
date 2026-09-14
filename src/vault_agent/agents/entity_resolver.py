@@ -46,10 +46,12 @@ from vault_agent.state import (
     FlagKind,
     ResolutionCategory,
     ResolutionProposal,
+    SourceTable,
     VaultAgentState,
     concept_key,
     split_concept_key,
 )
+from vault_agent.subtype_feed import subtype_feed
 
 logger = logging.getLogger(__name__)
 
@@ -202,7 +204,11 @@ def pending_resolution_decisions(resolutions: EntityResolution) -> list[Resoluti
     ]
 
 
-def render_resolution_prompt_section(resolutions: EntityResolution) -> str:
+def render_resolution_prompt_section(
+    resolutions: EntityResolution,
+    existing: DVModel | None = None,
+    source_schemas: list[SourceTable] | None = None,
+) -> str:
     """Render RATIFIED resolutions as a modeler prompt section; ``''`` when there are none.
 
     Returning ``''`` unless a human has ratified something is the safety property, not a
@@ -238,7 +244,27 @@ def render_resolution_prompt_section(resolutions: EntityResolution) -> str:
     for proposal in ratified:
         label, entity = split_concept_key(proposal.concept)
         origin = f" (from {entity})" if entity else ""
-        if proposal.resolution == RESOLUTION_SAME_AS:
+        feed = (
+            subtype_feed(proposal, existing, source_schemas)
+            if proposal.resolution == RESOLUTION_SAME_AS and existing is not None
+            and source_schemas
+            else None
+        )
+        if feed is not None:
+            # WP38: the join is DECLARED, so the concept is a subtype of the hub, not a second
+            # hub. Before WP38 this case got the sentence below and built
+            # `hub_sales_representative` in every AdventureWorks chain.
+            t = feed.translation
+            lines.append(
+                f"- `{label}`{origin} IS **{feed.hub}**, reached through a declared key: "
+                f"`{feed.table}.{t.referencing_column}` references "
+                f"`{t.through_table}.{t.surrogate_column}`, and {feed.hub} is keyed on "
+                f"`{t.natural_key_column}`. Do not create a hub for it: put its descriptive "
+                f"attributes in satellites on **{feed.hub}** with `source_table: {feed.table}` "
+                f"— the pipeline joins the key in. This covers `{feed.table}` itself only; a "
+                f"table that references `{feed.table}` is not joined this way."
+            )
+        elif proposal.resolution == RESOLUTION_SAME_AS:
             lines.append(
                 f"- `{label}`{origin} is asserted equivalent to **{proposal.same_as}** but is "
                 f"keyed differently: model it as its OWN hub. Do not reuse that name, and do "

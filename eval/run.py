@@ -237,6 +237,18 @@ def model_shape(model: DVModel) -> dict[str, Any]:
             entry["translations"] = dict(sorted(translations.items()))
         return entry
 
+    def _sat(sat: Any) -> dict[str, Any]:
+        entry: dict[str, Any] = {"name": sat.name, "parent": sat.parent}
+        # WP38: only where one exists, so every pre-WP38 satellite entry stays byte-identical.
+        if sat.key_translation is not None:
+            entry["translation"] = {
+                "source_table": sat.source_table,
+                "referencing_column": sat.key_translation.referencing_column,
+                "through_table": sat.key_translation.through_table,
+                "natural_key_column": sat.key_translation.natural_key_column,
+            }
+        return entry
+
     return {
         "hubs": sorted(h.name for h in model.hubs),
         # WP34 (2026-08-12): BESIDE the hub list, never inside it — `hub_origin` and
@@ -257,7 +269,7 @@ def model_shape(model: DVModel) -> dict[str, Any]:
             key=lambda entry: str(entry["name"]),
         ),
         "satellites": sorted(
-            ({"name": s.name, "parent": s.parent} for s in model.satellites),
+            (_sat(s) for s in model.satellites),
             key=lambda entry: str(entry["name"]),
         ),
     }

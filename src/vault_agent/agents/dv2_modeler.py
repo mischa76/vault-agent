@@ -85,6 +85,24 @@ def _strip_proposer_owned(schema: dict[str, Any]) -> dict[str, Any]:
     return schema
 
 
+_PROPOSER_OWNED_SATELLITE_FIELDS = ("key_translation",)
+
+
+def _strip_satellite_owned(schema: dict[str, Any]) -> dict[str, Any]:
+    """WP38: the satellite's translation is the applier's, like the link's (see above)."""
+    properties = schema.get("properties", {})
+    for name in _PROPOSER_OWNED_SATELLITE_FIELDS:
+        properties.pop(name, None)
+        if name in schema.get("required", []):
+            schema["required"].remove(name)
+    defs = schema.get("$defs", {})
+    for name in _PROPOSER_OWNED_DEFS:
+        defs.pop(name, None)
+    if "$defs" in schema and not schema["$defs"]:
+        schema.pop("$defs")
+    return schema
+
+
 def _tool_schema() -> dict[str, Any]:
     """Wrap the Hub / Link / Satellite schemas as the tool input."""
     return {
@@ -102,7 +120,7 @@ def _tool_schema() -> dict[str, Any]:
             },
             "satellites": {
                 "type": "array",
-                "items": Satellite.model_json_schema(),
+                "items": _strip_satellite_owned(Satellite.model_json_schema()),
                 "description": "Descriptive attributes grouped by parent hub or link.",
             },
         },
@@ -165,7 +183,9 @@ class Dv2ModelerAgent(BaseAgent):
         extension_section = render_extension_prompt_section(state.existing_model)
         # WP29: only RATIFIED entity resolutions steer, and the renderer returns '' when there
         # are none — so greenfield, ungrounded and first runs keep a byte-identical prompt.
-        resolution_section = render_resolution_prompt_section(state.resolutions)
+        resolution_section = render_resolution_prompt_section(
+            state.resolutions, state.existing_model, state.source_schemas
+        )
         return (
             f"{template}\n\n## Data Vault modelling rules to apply\n\n{rules}\n"
             f"{schema_section}{extension_section}{resolution_section}"
@@ -228,6 +248,11 @@ class Dv2ModelerAgent(BaseAgent):
             # ratified, which is every greenfield run and every extension run whose
             # checkpoint said no.
             model = apply_ratified_link_proposals(model, state.existing_model, state)
+            # WP38: a ratified subtype feed puts its translation on the satellites the modeler
+            # hung on the supertype hub from the subtype table — same path, same reason.
+            from vault_agent.subtype_feed import apply_subtype_feeds
+
+            model = apply_subtype_feeds(model, state.existing_model, state)
             model = merge_models(state.existing_model, model, state)
         state.dv_model = model
         logger.info(

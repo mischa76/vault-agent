@@ -72,6 +72,7 @@ REVIEW_FLAG_GROUPS: dict[str, str] = {
     # WP36: deliberately NOT aggregated — a translation is a join through another relation
     # and each one is a review item in its own right (ADR-0013 §3). Listed here only as a
     # comment so the omission reads as a decision, not an oversight.
+    # WP38: FlagKind.SAT_TRANSLATION is likewise NOT aggregated, for the same reason.
 }
 _DEFAULT_GROUP = "other"
 # Above this many items in one group, the renderers collapse it to a single summarised line.

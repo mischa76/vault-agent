@@ -39,6 +39,9 @@ class FlagKind:
     # WP36 (ADR-0013): a ratified link needed surrogate→natural-key translation through the
     # referenced relation. Its own review class: the reviewer must see the join, not a rename.
     LINK_TRANSLATION = "link_translation"
+    # WP38: the satellite side of the same — a subtype table's satellite on the supertype hub,
+    # its key joined in through the referenced relation. Its own review class for the same reason.
+    SAT_TRANSLATION = "sat_translation"
     # WP37: a ratified relationship-table link was NOT built because a participation stayed
     # unresolved or two hit the same hub — a partial link has a different grain, so nothing is
     # built and the reviewer sees which participation failed.
@@ -715,6 +718,13 @@ class Satellite(BaseModel):
     # — that is what makes the rows attachable to the parent's hash key. Ignored for
     # effectivity satellites (their date pair lives in the relationship's own relation).
     source_table: str | None = None
+    # WP38: set by the APPLIER, never by the modeler (stripped from its tool schema, gated by
+    # E_SAT_TRANSLATION_UNRATIFIED). The satellite's source table is a subtype keyed on the
+    # surrogate the parent hub's table uses (`SalesPerson.BusinessEntityID → Employee`), while
+    # the hub is keyed on the natural key (`NationalIDNumber`); its stage reads the WP36
+    # translation view, which joins that key in. Only for a ratified same-as whose join is
+    # declared (`subtype_feed.py`).
+    key_translation: KeyTranslation | None = None
     # Optional: why this satellite's attributes are grouped/split as they are (rate of
     # change, source, classification). Surfaced in the ADR trail, not enforced.
     split_rationale: str | None = None

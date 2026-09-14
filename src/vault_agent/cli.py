@@ -58,6 +58,7 @@ from vault_agent.state import (
     LinkProposal,
     ProposedMapping,
     RelationshipLinkProposal,
+    ResolutionProposal,
     SourceTable,
     VaultAgentState,
     split_concept_key,
@@ -1026,6 +1027,22 @@ def _interactive_checkpoint(
         # case. Loop with the new state and answer that one too.
 
 
+def _subtype_note(proposal: ResolutionProposal, state: VaultAgentState) -> str:
+    """WP38: what accepting a same-as does when the schema declares the join — no hub."""
+    if state.existing_model is None or not state.source_schemas:
+        return ""
+    from vault_agent.subtype_feed import subtype_feed
+
+    feed = subtype_feed(proposal, state.existing_model, state.source_schemas)
+    if feed is None:
+        return ""
+    t = feed.translation
+    return (
+        f"; a subtype feed — accepted, {feed.table} gets no hub and its satellites on "
+        f"{feed.hub} join {t.natural_key_column} through {t.through_table}"
+    )
+
+
 def _collect_resolution_decision(
     console: Console, state: VaultAgentState
 ) -> dict[str, str]:
@@ -1044,7 +1061,7 @@ def _collect_resolution_decision(
             f"equivalent to {proposal.same_as!r} but keyed differently"
             if proposal.resolution == RESOLUTION_SAME_AS
             else f"IS the existing {proposal.resolution!r}"
-        )
+        ) + _subtype_note(proposal, state)
         console.print(
             f"  [yellow]{label}[/yellow]{origin}: proposed {claim} "
             f"[dim]({proposal.category}, confidence {proposal.confidence:.2f})[/dim]"
@@ -1299,7 +1316,7 @@ def _report_paused_at_resolution(
             f"equivalent to [cyan]{proposal.same_as}[/cyan] but keyed differently"
             if proposal.resolution == RESOLUTION_SAME_AS
             else f"IS the existing [cyan]{proposal.resolution}[/cyan]"
-        )
+        ) + _subtype_note(proposal, state)
         console.print(
             f"  [yellow]{label}[/yellow]{origin}: {target} "
             f"[dim]({proposal.category}, confidence {proposal.confidence:.2f})[/dim]"

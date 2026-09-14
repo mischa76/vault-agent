@@ -102,17 +102,24 @@ async def _run(state: VaultAgentState, payload: dict[str, Any]) -> tuple[str, Va
     return stub.calls[0][0], state
 
 
-async def test_a_ratified_same_as_prompts_an_own_hub() -> None:
+async def test_a_ratified_same_as_with_a_declared_join_prompts_satellites_on_the_hub() -> None:
+    """Flipped by WP38 in its own commit (pinned at ccdb548 as: "OWN hub")."""
     prompt, _ = await _run(subtype_state(), subtype_payload())
-    assert "OWN hub" in prompt
+    assert "OWN hub" not in prompt
+    assert "Do not create a hub for it" in prompt
+    assert "source_table: SalesPerson" in prompt
 
 
-async def test_a_satellite_from_the_subtype_table_demands_the_natural_key_from_it() -> None:
+async def test_a_satellite_from_the_subtype_table_reads_the_translation_view() -> None:
+    """Flipped by WP38 in its own commit (pinned at ccdb548 as: `source_model: 'SalesPerson'`,
+    demanding NATIONALIDNUMBER from a table that does not have it, no view)."""
     _, state = await _run(subtype_state(), subtype_payload())
     stage = state.artifacts.staging_models["stg_sales_person_details"]
-    assert "source_model: 'SalesPerson'" in stage
-    assert "NATIONALIDNUMBER" in stage
-    assert not any("_via_" in name for name in state.artifacts.staging_models)
+    assert "source_model: 'stg_sales_person_details_via_employee'" in stage
+    assert "NATIONALIDNUMBER" in stage  # the hub key is still what the HK is hashed from
+    view = state.artifacts.staging_models["stg_sales_person_details_via_employee"]
+    assert "left join" in view and "r.NATIONALIDNUMBER as NATIONALIDNUMBER" in view
+    assert "on t.BUSINESSENTITYID = r.BUSINESSENTITYID" in view
 
 
 async def test_a_same_as_without_a_declared_join_still_prompts_an_own_hub() -> None:

@@ -53,6 +53,7 @@ from vault_agent.state import (
     VaultAgentState,
     dedupe_flags,
 )
+from vault_agent.subtype_feed import ratified_subtype_feeds
 
 logger = logging.getLogger(__name__)
 
@@ -919,9 +920,54 @@ class ValidatorAgent(BaseAgent):
                             f"column that is not there",
                         )
                     )
+        feeds = {
+            (feed.hub, normalize_identifier(feed.table)): feed
+            for feed in ratified_subtype_feeds(
+                state.resolutions, state.dv_model, state.source_schemas
+            )
+        }
         for sat in state.dv_model.satellites:
             if sat.name in pre_existing:
                 continue
+            translation = sat.key_translation
+            if translation is not None:
+                feed = feeds.get((sat.parent, normalize_identifier(sat.source_table or "")))
+                if feed is None or feed.translation != translation:
+                    # E_SAT_TRANSLATION_UNRATIFIED (WP38): the mirror of the link gate. A
+                    # satellite's translation exists only as the product of a ratified same-as
+                    # whose join the schema declares; anything else is refused.
+                    issues.append(
+                        _issue(
+                            "error", "E_SAT_TRANSLATION_UNRATIFIED", sat.name,
+                            f"satellite on {sat.parent} carries a surrogate→natural-key "
+                            f"translation through {translation.through_table} that no ratified "
+                            f"subtype feed produced; translations are decided by a human at the "
+                            f"checkpoint, never by the modeler",
+                        )
+                    )
+                else:
+                    subtype = next(
+                        (t for t in state.source_schemas
+                         if normalize_identifier(t.table) == normalize_identifier(feed.table)),
+                        None,
+                    )
+                    declared_cols = (
+                        {normalize_identifier(c) for c in subtype.column_names}
+                        if subtype is not None else set()
+                    )
+                    if normalize_identifier(translation.referencing_column) not in declared_cols:
+                        # E_SAT_KEY_NOT_IN_SOURCE (WP38): the view joins on the surrogate, so
+                        # the subtype table must declare it. Narrow on purpose — only a
+                        # translated satellite; no existing run can change outcome.
+                        issues.append(
+                            _issue(
+                                "error", "E_SAT_KEY_NOT_IN_SOURCE", sat.name,
+                                f"satellite translates {translation.referencing_column!r} "
+                                f"through {translation.through_table}, but {feed.table} "
+                                f"declares no such column; the translation would join on a "
+                                f"column that is not there",
+                            )
+                        )
             for attr in sat.attributes:
                 if not is_grounded(attr, columns):
                     issues.append(
