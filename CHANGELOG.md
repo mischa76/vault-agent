@@ -20,6 +20,11 @@ is not the project's.
   to a hub in neither the delta nor the vault is still dropped.
 
 ### Added
+- Two-hop translation (WP39): a foreign key into a table that has no hub of its own, whose key is
+  itself a declared foreign key (`SalesOrderHeader.SalesPersonID → SalesPerson → Employee`), is
+  translated through the end table; the nearest hub always decides. Subtype feeds (WP38) also
+  cover tables keyed on the subtype's key (`SalesPersonQuotaHistory`). Keyless, replayed on a
+  recorded chain, built on PostgreSQL (`demo/fk_links_postgres`); no live run.
 - Translated subtype feeds (WP38): a ratified same-as whose join the source schema declares
   (`SalesPerson.BusinessEntityID → Employee`, `hub_employee` keyed on `NationalIDNumber`) no
   longer prompts an own hub; the subtype table's satellites on the supertype hub are staged

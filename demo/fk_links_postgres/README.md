@@ -20,6 +20,13 @@ on PostgreSQL. No API key.
 > `NationalIDNumber`). `PASS=35 WARN=0 ERROR=0`; both satellite rows join `hub_employee`; a second
 > build green; an orphan `BusinessEntityID` fails both view tests (2 of 2).
 >
+> **WP39 verified 2026-09-15** on the same stack: both two-hop shapes — a multi-active satellite on
+> `hub_employee` read from `SalesPersonQuotaHistory` (keyed on `SalesPerson`'s key, which is
+> `Employee`'s surrogate) and `link_sales_order_employee` from `SalesOrderHeader.SalesPersonID`
+> through `SalesPerson` to `Employee`. `PASS=49 WARN=0 ERROR=0`; all 3 link rows join both hubs and
+> the right employee; all 3 quota rows join `hub_employee`; a second build green; an orphan
+> `BusinessEntityID` in the quota history fails both view tests (2 of 2).
+>
 > **The first build found two defects the keyless tests had not** (see [Findings](#findings)).
 
 ## What is fixed here, and what is computed
@@ -38,6 +45,8 @@ Computed by the pipeline's own functions, in the pipeline's order — link propo
 | `link_shopping_cart_item_product` | WP36: `ShoppingCartItem.ProductID → Product.ProductID`, hub keyed on `ProductNumber` | `stg_shopping_cart_item_product` reads `..._via_product` (LEFT JOIN, projects `PRODUCTNUMBER`) |
 | `link_product_vendor` | WP37: hub-less `ProductVendor` with keys to Product, UnitMeasure, Vendor; Vendor is this increment's table, so its participation is **pending** until `hub_vendor` exists | `stg_product_vendor` reads `..._via_product_and_vendor` (two LEFT JOINs, projects `PRODUCTNUMBER` and `ACCOUNTNUMBER`) |
 | `sat_sales_person_details` | WP38: a satellite on `hub_employee` (NationalIDNumber) read from `SalesPerson`, whose key is `Employee`'s surrogate; the same-as is ratified and the join declared | `stg_sales_person_details` reads `..._via_employee` (LEFT JOIN, projects `NATIONALIDNUMBER`) |
+| `sat_sales_person_quota_history` | WP39: multi-active satellite on `hub_employee` from `SalesPersonQuotaHistory`, whose key references `SalesPerson` — two hops from `Employee` | `stg_sales_person_quota_history` reads `..._via_employee` |
+| `link_sales_order_employee` | WP39: `SalesOrderHeader.SalesPersonID → SalesPerson`, which has no hub and whose key references `Employee` — translated through the end table | `stg_sales_order_employee` reads `..._via_employee` |
 
 Each translation view ships a `.yml` with `not_null` on the projected natural key and a
 `relationships` test on the surrogate — the gates that make an unmatched surrogate fail

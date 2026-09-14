@@ -85,3 +85,48 @@ in an addendum after the replay, not before it.
 Chains of three or more; composite keys; the eight one-hop satellite translations without a
 ratified same-as (candidate WP40 — they need a checkpoint decision of their own); primary-key
 declarations in the source catalogue.
+
+## 7 Addendum 2026-09-15 — built, replayed, on Postgres; one assumption the real vault corrected
+
+Built the same day: opening `a0f4d25` (spec, kick-off, guard), feature `711ac2e`, demo `29f2be7`.
+993 passed, ruff, bare mypy.
+
+**The real vault declines differently than the miniature.** §1 and the guard describe the four
+keys as `no_hub_for_key` skips. On the persisted vault of `20260914T213855724138Z` they were
+`ambiguous_hub`: several hubs are keyed `BusinessEntityID` (`hub_person`, `hub_business_entity`,
+`hub_store` …), none built from `SalesPerson`. The hop sits where no hub binds the referenced
+table, whatever the key-name match said, so both declines lead to it; a test pins the ambiguous
+shape.
+
+**Replay, sales step of `20260914T213855724138Z`, before → after** (`replay_sales_full.py`, the
+proposer against the persisted step-4 vault, then both recorded modeler answers through parse,
+link applier, subtype feeds, merge, generator, validator):
+
+| | before | after |
+|---|---|---|
+| translated link proposals | 4 | 8 |
+| `ambiguous_hub` skips | 5 | 1 |
+| relationship-table proposals | 7 | 8 |
+| `E_SAT_KEY_NOT_IN_SOURCE`, last attempt | 4 | 3 — the quota-history satellite is translated; the three left are one-hop |
+
+On the chain before it (`20260913T230429748887Z`) the applier adds four translated links to
+`hub_employee` (`link_sales_order_employee`, `link_store_employee`, `link_sales_territory_history`,
+`link_sales_representative_employee`) and the last attempt has no error.
+
+**Observed, not changed.** On the green chain the modeler had built those links to `hub_employee`
+itself, untranslated; the applier then skips its correct, translated proposal as "already
+covered" because the grain is the same (WP34's rule). The modeler's link stages from an inferred
+relation and hashes a key its source does not carry. A proposal that translates should probably
+win over a modeler link of the same grain that does not — a WP34 spec question, recorded here.
+
+**On PostgreSQL 16** (`demo/fk_links_postgres`): `dbt build --full-refresh` `PASS=49`; all 3 rows of
+`link_sales_order_employee` join `hub_sales_order` and the right employee on `hub_employee`; all 3
+rows of the multi-active `sat_sales_person_quota_history` join `hub_employee`; a second build green;
+an orphan `BusinessEntityID` in the quota history fails both view tests (2 of 2).
+
+**Pre-registered for the next paid chain, written before it runs.** `hub_sales_representative`
+absent; any satellite the modeler reads from `SalesPersonQuotaHistory` onto `hub_employee`
+translated; cross-domain links ≥ 21. Not predicted as green: the widened
+`E_SAT_KEY_NOT_IN_SOURCE` now refuses the one-hop satellites that passed before (8 on the green
+chain, mostly in production), and nothing repairs them until candidate WP40 — the production and
+sales gates may fail for that reason alone.

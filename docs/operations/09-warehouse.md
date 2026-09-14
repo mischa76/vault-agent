@@ -65,7 +65,7 @@ unmatched surrogate becomes a NULL key that the model's own `schema.yml` refuses
 `dbt build` (`not_null` on the projected key, `relationships` from the surrogate to the
 referenced relation). The translation is therefore visible SQL and a failing test, never a
 hidden mapping. `metadata/automatedv.yml` records it under the link's staging entry as
-`key_translation`, one entry per join. **Built on PostgreSQL since 2026-09-13** (`demo/fk_links_postgres`); that first build fixed the view's `schema.yml` (not valid YAML before) and the case of two translations in one link (one view, one LEFT JOIN each, `_via_<a>_and_<b>`).
+`key_translation`, one entry per join. Since WP39 the join may go one table further than the relation the foreign key names — when that relation has no hub and its key is itself a declared foreign key — and the view is still one LEFT JOIN, to the end table. **Built on PostgreSQL since 2026-09-13** (`demo/fk_links_postgres`); that first build fixed the view's `schema.yml` (not valid YAML before) and the case of two translations in one link (one view, one LEFT JOIN each, `_via_<a>_and_<b>`).
 
 **Relationship-table link** (WP37): a link ratified for a whole table (`Table.*`, 7.5) is
 named `link_<table>` and its stage binds to *that* table — the one relation that carries every
@@ -77,7 +77,8 @@ views as above. Built on PostgreSQL in the same demo since 2026-09-13.
 on the supertype's surrogate — `sat_sales_person_details` on `hub_employee` from `SalesPerson` —
 has its dedicated stage read `stg_<satellite>_via_<relation>`: the same translation view and the
 same data-time tests. It arises only from a ratified same-as whose join the schema declares
-(7.5). Built on PostgreSQL since 2026-09-14 (`demo/fk_links_postgres`).
+(7.5). Since WP39 also a table keyed on the subtype's key (`SalesPersonQuotaHistory`). Built on
+PostgreSQL since 2026-09-14 (`demo/fk_links_postgres`).
 
 ## 9.4 Incremental behaviour & effectivity end-dating
 

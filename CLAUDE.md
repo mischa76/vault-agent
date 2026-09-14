@@ -153,7 +153,7 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   three chains). **That chain was not buildable:** 9 satellites were read from relations lacking
   their parent's key. `E_SAT_KEY_NOT_IN_SOURCE` now refuses every such satellite (2026-09-15), so
   the next chain will meet them in the re-model loop, not at `dbt build`. Of the 9: 1 two-hop
-  (WP39, in progress), 8 one-hop through a declared foreign key — a satellite translation with no
+  (WP39, built and on Postgres, not run live), 8 one-hop through a declared foreign key — a satellite translation with no
   ratification path yet (candidate WP40, the user's call). `docs/log.md` 2026-09-15.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)

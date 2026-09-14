@@ -91,6 +91,11 @@ a *surrogate* (`ShoppingCartItem.ProductID`) while the hub is keyed on the *natu
 Production.Product`. Ratifying it builds a link whose staging **joins through** the
 referenced relation (9.3); the review queue carries one `link_translation` item per such
 link, never aggregated, because a join is a decision a reviewer must see.
+Since WP39 the join may end one table further: a key into a table that has no hub of its own
+(`SalesOrderHeader.SalesPersonID → SalesPerson`), whose key is itself a declared foreign key
+(`SalesPerson.BusinessEntityID → Employee`), is translated through that end table, and the
+evidence names the table in between. The nearest hub always decides: if `SalesPerson` has a hub,
+the key goes there.
 
 **`relationship_table` (WP37) is a proposal for a whole table, keyed `Table.*`.** A declared
 table with two or more single-column foreign keys and no hub of its own — `ProductVendor`,
@@ -113,8 +118,10 @@ feed — accepted, SalesPerson gets no hub and its satellites on hub_employee jo
 NATIONALIDNUMBER through Employee"*, and that is what accepting does: no second hub, the
 subtype table's satellites on the supertype hub, staged through a translation view (9.3), one
 `sat_translation` review item each, never aggregated. Without a declared join, accepting keeps
-the concept as its own hub, because a join nobody declared is a guess. A table that references
-the subtype (`SalesPersonQuotaHistory → SalesPerson`) is not joined this way.
+the concept as its own hub, because a join nobody declared is a guess. Since WP39 the feed also covers the
+tables keyed on the subtype's key (`SalesPersonQuotaHistory.BusinessEntityID → SalesPerson`), and
+the rendering names them; a table that merely references the subtype through another column
+(`Store.SalesPersonID`) gets no satellite coverage.
 
 **`--accept` ratifies link proposals too.** That matters for unattended runs: an automated
 resume accepts every foreign-key-derived link without anyone reading it. Decline individually

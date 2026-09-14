@@ -5247,3 +5247,41 @@ ratification artifact: no proposal, no checkpoint decision. Building them needs 
 decision (a satellite-translation proposal at the checkpoint), so it is recorded as candidate
 WP40 and not built. Until then the re-model loop has to move such satellites; the next paid
 chain will show whether it can, and it may fail steps that passed before.
+
+## [2026-09-15] WP39 built — two-hop translation; keyless, replayed, on Postgres
+
+**What changed** (user: „dann im Anschluss 2"). `_translation_target` follows one declared foreign
+key further when no hub is built from the referenced table: `A.c → B.k` with `B.k → C.x` is read
+as `A.c → C.x` (`_onward_key`: `B` declared in this increment, exactly one single-column key on
+`k` itself). One hop, no recursion; the nearest hub always wins because a hub bound to `B`, and
+WP34's key match, are tried first. The proposer, the relationship candidates and the applier share
+the rule; a two-hop proposal names the middle table in its evidence. Subtype feeds (WP38) also
+cover tables keyed on the subtype's key — same column, same name, because the catalogue declares no
+primary keys — so `SalesPersonQuotaHistory` is covered and `Store.SalesPersonID` is not; the prompt
+sentence names them, the applier translates their satellites, both satellite gates look up by hub
+and table. Opening `a0f4d25` (spec, kick-off, guard), feature `711ac2e`, demo `29f2be7`; 993 passed,
+ruff, bare mypy. WP38's guard pin "a table that references the subtype is not translated" was
+flipped with its reason: a paid chain hung exactly that table's satellite on the supertype hub.
+
+**Measured basis, zero cost.** 20 identity chains across the five AdventureWorks schemas; in 16 the
+middle table has a hub and nothing changes; in 4 it has none — all through `SalesPerson → Employee`.
+
+**Replay on the green chain** (`20260914T213855724138Z`, sales step, before → after): translated link
+proposals 4 → 8, `ambiguous_hub` skips 5 → 1 (the real vault declined the four keys as ambiguous, not
+as `no_hub_for_key` as the spec assumed), relationship proposals 7 → 8, `E_SAT_KEY_NOT_IN_SOURCE` on
+the last attempt 4 → 3 — the quota-history satellite is translated, the three left are one-hop. On
+the chain before it the applier adds four translated links to `hub_employee`.
+
+**On PostgreSQL 16 + AutomateDV 0.11.4:** `demo/fk_links_postgres` `dbt build --full-refresh`
+`PASS=49`; the three `link_sales_order_employee` rows join both hubs and the right employee; the three
+multi-active quota rows join `hub_employee`; a second build green; an orphan surrogate fails both view
+tests.
+
+**Observed, not changed.** Where the modeler has built a link of the same grain untranslated, the
+applier skips the translated proposal as covered (WP34). On the green chain that is exactly the
+three links to `hub_employee`, staged from inferred relations. Recorded in wp39 §7 as a WP34 spec
+question.
+
+**Not verified:** any live run. **Pre-registered** in wp39 §7 for the next chain, including that its
+production and sales gates may fail on the one-hop satellites the widened gate now refuses and
+nothing repairs yet (candidate WP40).
