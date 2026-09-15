@@ -85,7 +85,7 @@ def _strip_proposer_owned(schema: dict[str, Any]) -> dict[str, Any]:
     return schema
 
 
-_PROPOSER_OWNED_SATELLITE_FIELDS = ("key_translation",)
+_PROPOSER_OWNED_SATELLITE_FIELDS = ("key_translation", "participation_translations")
 
 
 def _strip_satellite_owned(schema: dict[str, Any]) -> dict[str, Any]:
@@ -240,7 +240,10 @@ class Dv2ModelerAgent(BaseAgent):
             # stays orchestration-only) so everything downstream — code generation,
             # validation, mapping, the ADR — sees one complete model, as in greenfield.
             from vault_agent.agents.model_merger import merge_models
-            from vault_agent.link_proposal import apply_ratified_link_proposals
+            from vault_agent.link_proposal import (
+                apply_key_licenses,
+                apply_ratified_link_proposals,
+            )
 
             # WP34: a RATIFIED link proposal joins the delta here — before the merge, so it
             # goes through merge_models and every validator gate exactly as a modeler-emitted
@@ -253,6 +256,8 @@ class Dv2ModelerAgent(BaseAgent):
             from vault_agent.subtype_feed import apply_subtype_feeds
 
             model = apply_subtype_feeds(model, state.existing_model, state)
+            # WP40: ratified keys repair the staging of what the modeler built; nothing new.
+            model = apply_key_licenses(model, state.existing_model, state)
             model = merge_models(state.existing_model, model, state)
         state.dv_model = model
         logger.info(

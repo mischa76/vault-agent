@@ -842,6 +842,11 @@ class ValidatorAgent(BaseAgent):
             for rel in state.link_proposals.ratified_relationships()
             for part in rel.participations
             if part.key_translation is not None
+        } | {
+            # WP40: a ratified key license, resolved after the modeler, repairing its link
+            (lic.target_hub or "", normalize_identifier(lic.key_translation.referencing_column))
+            for lic in state.link_proposals.ratified_licenses()
+            if lic.key_translation is not None
         }
         for link in state.dv_model.links:
             if link.name in pre_existing:
@@ -930,13 +935,33 @@ class ValidatorAgent(BaseAgent):
             for covered in feed.covered_tables()
         }
         links_by_name = {link.name: link for link in state.dv_model.links}
+        # WP40: satellite translations a ratified key license or link proposal licenses.
+        licensed = [
+            (lic.target_hub or "", normalize_identifier(lic.source_table), lic.key_translation)
+            for lic in state.link_proposals.ratified_licenses()
+            if lic.key_translation is not None
+        ] + [
+            (p.target_hub, normalize_identifier(p.source_table), p.translation)
+            for p in state.link_proposals.ratified()
+            if p.translation is not None
+        ]
+
+        def _is_licensed(hub: str, table: str | None, t: object) -> bool:
+            return any(
+                h == hub and tb == normalize_identifier(table or "") and lt == t
+                for h, tb, lt in licensed
+            )
+
         for sat in state.dv_model.satellites:
             if sat.name in pre_existing:
                 continue
             translation = sat.key_translation
             if translation is not None:
                 feed = feeds.get((sat.parent, normalize_identifier(sat.source_table or "")))
-                if feed is None or feed.translation_for(sat.source_table or "") != translation:
+                if not (
+                    feed is not None
+                    and feed.translation_for(sat.source_table or "") == translation
+                ) and not _is_licensed(sat.parent, sat.source_table, translation):
                     # E_SAT_TRANSLATION_UNRATIFIED (WP38): the mirror of the link gate. A
                     # satellite's translation exists only as the product of a ratified same-as
                     # whose join the schema declares; anything else is refused.
@@ -973,6 +998,16 @@ class ValidatorAgent(BaseAgent):
                                 f"column that is not there",
                             )
                         )
+            for participant, p_translation in sat.participation_translations.items():
+                if not _is_licensed(participant, sat.source_table, p_translation):
+                    issues.append(
+                        _issue(
+                            "error", "E_SAT_TRANSLATION_UNRATIFIED", sat.name,
+                            f"satellite participation {participant} carries a translation "
+                            f"through {p_translation.through_table} that no ratified key "
+                            f"license or link proposal produced",
+                        )
+                    )
             if translation is None and sat.source_table and sat.sat_type != "effectivity":
                 # E_SAT_KEY_NOT_IN_SOURCE, widened 2026-09-15 from translated satellites to all.
                 # A satellite with its own source table is staged from THAT relation, and its
@@ -998,7 +1033,11 @@ class ValidatorAgent(BaseAgent):
                         parent_keys = [canonical_hub_key_column(parent_hub)]
                 elif sat.parent in links_by_name:
                     parent_keys = [
-                        role_bk_column(canonical_hub_key_column(hub_by_name[ref.hub]), ref.role)
+                        sat.participation_translations[ref.hub].referencing_column
+                        if ref.role is None and ref.hub in sat.participation_translations
+                        else role_bk_column(
+                            canonical_hub_key_column(hub_by_name[ref.hub]), ref.role
+                        )
                         for ref in links_by_name[sat.parent].hub_refs
                         if ref.hub in hub_by_name
                     ]

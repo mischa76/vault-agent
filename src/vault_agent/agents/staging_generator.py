@@ -344,7 +344,16 @@ def collect_staging_specs(
                         canonical_hub_key_column(hub_by_name[ref.hub]), ref.role
                     )
                     bk_cols.append(bk_col)
-                    spec.add_source_column(bk_col)
+                    translated = (
+                        sat.participation_translations.get(ref.hub) if ref.role is None else None
+                    )
+                    if translated is not None:
+                        # WP40: this participation's key arrives through the translation view.
+                        if translated not in spec.translations:
+                            spec.translations.append(translated)
+                        spec.add_source_column(_to_column(translated.referencing_column))
+                    else:
+                        spec.add_source_column(bk_col)
                 spec.add_hashed(_link_hashkey(parent_link), bk_cols)
             target_specs = [spec]
         else:

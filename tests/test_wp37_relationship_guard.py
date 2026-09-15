@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from tests.test_link_proposal import _customer, _vault
 from tests.test_wp36_translation_guard import product_hub, shopping_cart_item
-from vault_agent.link_proposal import propose_links
+from vault_agent.link_proposal import proposal_key, propose_links
 from vault_agent.state import DVModel, Hub, SourceTable
 
 
@@ -54,7 +54,10 @@ def test_a_two_key_hubless_table_is_a_relationship_proposal_with_a_pending_key()
     assert sorted(p.category for p in proposals.proposals) == [
         "declared_fk_same_name", "declared_fk_translated"
     ]
-    assert [s.reason for s in skipped] == ["no_hub_for_key"]  # Vendor: this increment's table
+    # Vendor is this increment's table and has no hub yet: a `no_hub_for_key` skip until WP40,
+    # a key license since (flipped by WP40 in its own commit, 2026-09-15).
+    assert skipped == []
+    assert [proposal_key(lic) for lic in proposals.licenses] == ["ProductVendor.BusinessEntityID"]
     [rel] = proposals.relationships
     assert rel.source_table == "ProductVendor" and rel.category == "relationship_table"
     by_col = {p.referencing_column: p for p in rel.participations}

@@ -55,6 +55,7 @@ from vault_agent.state import (
     DVModel,
     EntityResolution,
     FlagKind,
+    KeyLicense,
     LinkProposal,
     ProposedMapping,
     RelationshipLinkProposal,
@@ -1098,10 +1099,7 @@ def _collect_link_decision(console: Console, state: VaultAgentState) -> dict[str
     answers: dict[str, bool] = {}
     for proposal in pending_link_decisions(state.link_proposals):
         key = proposal_key(proposal)
-        target = (
-            proposal.target_hub if isinstance(proposal, LinkProposal)
-            else f"{len(proposal.participations)} hubs"
-        )
+        target = _link_target(proposal)
         console.print(
             f"  [yellow]{key}[/yellow] → link to [cyan]{target}[/cyan] "
             f"[dim]({_link_category_note(proposal)})[/dim]"
@@ -1109,7 +1107,10 @@ def _collect_link_decision(console: Console, state: VaultAgentState) -> dict[str
         for line in proposal.evidence:
             console.print(f"    [dim]{line}[/dim]")
         if not _prompter.confirm(
-            console, f"Build the link for {key!r}?", default=True
+            console,
+            (f"Allow the key license {key!r}?" if isinstance(proposal, KeyLicense)
+             else f"Build the link for {key!r}?"),
+            default=True,
         ):
             answers[key] = False
     return answers
@@ -1137,10 +1138,25 @@ def _route_line() -> str:
     return settings.route_description() if settings is not None else "unknown (settings not loaded)"
 
 
-def _link_category_note(proposal: LinkProposal | RelationshipLinkProposal) -> str:
+def _link_target(proposal: LinkProposal | RelationshipLinkProposal | KeyLicense) -> str:
+    if isinstance(proposal, LinkProposal):
+        return proposal.target_hub
+    if isinstance(proposal, KeyLicense):
+        return f"{proposal.references_table} (no hub yet)"
+    return f"{len(proposal.participations)} hubs"
+
+
+def _link_category_note(proposal: LinkProposal | RelationshipLinkProposal | KeyLicense) -> str:
     """The category, and for a translation the join it implies — the reviewer must see that
     this link is reached through another relation, not by renaming a column (ADR-0013 §3).
     A relationship-table proposal (WP37) lists its participations and the condition."""
+    if isinstance(proposal, KeyLicense):
+        return (
+            f"{proposal.category}: {proposal.source_table}.{proposal.source_column} → "
+            f"{proposal.references_table}.{proposal.references_column}, no hub yet — licenses a "
+            f"translation or alias for what the modeler builds from {proposal.source_table}; "
+            f"builds nothing"
+        )
     if isinstance(proposal, RelationshipLinkProposal):
         parts = ", ".join(
             p.target_hub if p.target_hub else f"({p.references_table}, pending)"
@@ -1333,10 +1349,7 @@ def _report_paused_at_resolution(
             f"vault already has:"
         )
         for link_proposal in links:
-            target = (
-                link_proposal.target_hub if isinstance(link_proposal, LinkProposal)
-                else f"{len(link_proposal.participations)} hubs"
-            )
+            target = _link_target(link_proposal)
             console.print(
                 f"  [yellow]{proposal_key(link_proposal)}[/yellow] → link to "
                 f"[cyan]{target}[/cyan] "

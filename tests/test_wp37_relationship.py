@@ -44,7 +44,10 @@ def _apply(state: VaultAgentState, delta: DVModel) -> DVModel:
 def test_the_relationship_proposal_is_pending_and_keyed_by_table() -> None:
     state = _state()
     keys = [proposal_key(p) for p in pending_link_decisions(state.link_proposals)]
-    assert "ProductVendor.*" in keys and keys[-1] == "ProductVendor.*"
+    # After the per-key proposals; since WP40 the key license for the pending Vendor key follows
+    # it (licenses build nothing and are listed last).
+    assert keys.index("ProductVendor.*") > keys.index("ProductVendor.ProductID")
+    assert keys.index("ProductVendor.BusinessEntityID") > keys.index("ProductVendor.*")
 
 
 def test_a_decision_by_table_key_ratifies_or_declines_it() -> None:

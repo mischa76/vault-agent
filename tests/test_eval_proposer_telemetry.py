@@ -103,6 +103,10 @@ def test_the_metrics_separate_never_proposed_from_declined() -> None:
         "by_category": {"declared_fk_renamed": 1, "declared_fk_same_name": 1},
         "by_status": {"accepted": 1, "overridden": 1},
         "skipped": {"no_hub_for_key": 1},
+        # WP40 (2026-09-15): key licenses by status and how many resolved — additive counters;
+        # this fixture's referenced table is not declared, so nothing is licensed.
+        "licenses": {},
+        "licenses_resolved": 0,
     }
 
 
@@ -114,7 +118,10 @@ def test_a_greenfield_run_reports_empty_counters_not_a_missing_key() -> None:
 
     metrics = run_metrics(state, 1.0, UsageTotals())
 
-    assert metrics["link_proposals"] == {"by_category": {}, "by_status": {}, "skipped": {}}
+    assert metrics["link_proposals"] == {
+        "by_category": {}, "by_status": {}, "skipped": {},
+        "licenses": {}, "licenses_resolved": 0,  # WP40, additive
+    }
 
 
 def test_flags_are_counted_by_kind_and_the_total_is_left_alone() -> None:

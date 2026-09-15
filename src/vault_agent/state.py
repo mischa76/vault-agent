@@ -548,6 +548,30 @@ class RelationshipLinkProposal(BaseModel):
     category: Literal["relationship_table"] = "relationship_table"
 
 
+class KeyLicense(BaseModel):
+    """A declared foreign key into a table of THIS increment that has no hub yet (WP40).
+
+    It is not a link proposal: intra-increment relationships are the modeler's (WP37 §2), and a
+    license builds nothing. Ratified at the link checkpoint by its ``Table.Column`` key, it is
+    resolved after the modeler against the merged model — every attempt, marked
+    ``resolved_by_applier`` — and the translation or alias it resolves to repairs the staging of
+    links and satellites the modeler built from ``source_table`` (ADR-0013's trigger, extended
+    to a hub built in the same run)."""
+
+    source_table: str
+    source_column: str
+    references_table: str
+    references_column: str
+    references_schema: str | None = None
+    category: Literal["declared_fk_pending"] = "declared_fk_pending"
+    evidence: list[str] = Field(default_factory=list)
+    ratification_status: RatificationStatus = "proposed"
+    target_hub: str | None = None
+    key_translation: KeyTranslation | None = None
+    source_key_column: str | None = None
+    resolved_by_applier: bool = False
+
+
 class LinkProposals(BaseModel):
     """The proposer's full answer for one run; empty on greenfield and ungrounded runs.
 
@@ -559,6 +583,11 @@ class LinkProposals(BaseModel):
     skipped: list[LinkSkip] = Field(default_factory=list)
     # WP37: one per relationship table; empty on every pre-WP37 shape (byte-identity).
     relationships: list[RelationshipLinkProposal] = Field(default_factory=list)
+    # WP40: key licenses; empty on every pre-WP40 shape.
+    licenses: list[KeyLicense] = Field(default_factory=list)
+
+    def ratified_licenses(self) -> list[KeyLicense]:
+        return [lic for lic in self.licenses if lic.ratification_status == "accepted"]
 
     def ratified_relationships(self) -> list[RelationshipLinkProposal]:
         return [p for p in self.relationships if p.ratification_status == "accepted"]
@@ -725,6 +754,10 @@ class Satellite(BaseModel):
     # translation view, which joins that key in. Only for a ratified same-as whose join is
     # declared (`subtype_feed.py`).
     key_translation: KeyTranslation | None = None
+    # WP40: for a satellite on a LINK read from its own source table, the translation of each
+    # (unqualified) participation whose hub key that table does not carry — keyed by hub name.
+    # Set by the key-license applier only, stripped from the modeler's schema; {} = today.
+    participation_translations: dict[str, KeyTranslation] = Field(default_factory=dict)
     # Optional: why this satellite's attributes are grouped/split as they are (rate of
     # change, source, classification). Surfaced in the ADR trail, not enforced.
     split_rationale: str | None = None

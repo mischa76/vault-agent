@@ -21,7 +21,7 @@ from vault_agent.agents.code_generator import CodeGeneratorAgent
 from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
 from vault_agent.agents.orchestrator import apply_link_decision
 from vault_agent.agents.validator import ValidatorAgent
-from vault_agent.link_proposal import collect_link_proposals, propose_links
+from vault_agent.link_proposal import collect_link_proposals, proposal_key, propose_links
 from vault_agent.state import (
     BusinessKeyCandidate,
     DVModel,
@@ -117,27 +117,31 @@ async def run_production(payload: dict[str, Any]) -> VaultAgentState:
     return await ValidatorAgent().run(state)
 
 
-def test_a_key_into_a_table_of_the_same_increment_is_a_skip() -> None:
-    _, skipped = propose_links(prior_vault(), production_schema())
-    assert ("ProductCostHistory.ProductID", "no_hub_for_key") in [
-        (s.asset, s.reason) for s in skipped
-    ]
+def test_a_key_into_a_table_of_the_same_increment_is_a_license() -> None:
+    """Flipped by WP40 in its own commit (pinned at 3a9696e as: skip `no_hub_for_key`)."""
+    proposals, skipped = propose_links(prior_vault(), production_schema())
+    assert "ProductCostHistory.ProductID" in [proposal_key(lic) for lic in proposals.licenses]
+    assert "ProductCostHistory.ProductID" not in [s.asset for s in skipped]
 
 
-async def test_a_hub_satellite_from_that_table_is_refused() -> None:
+async def test_a_hub_satellite_from_that_table_is_translated() -> None:
+    """Flipped by WP40 in its own commit (pinned at 3a9696e as: refused by
+    E_SAT_KEY_NOT_IN_SOURCE)."""
     state = await run_production(production_delta(with_link=False))
-    refused = [i.construct for i in state.validation_report.issues
-               if i.code == "E_SAT_KEY_NOT_IN_SOURCE"]
-    assert refused == ["sat_product_cost_history"]
+    [sat] = [s for s in state.dv_model.satellites if s.name == "sat_product_cost_history"]
+    assert sat.key_translation is not None and sat.key_translation.through_table == "Product"
+    assert not [i for i in state.validation_report.issues if i.code == "E_SAT_KEY_NOT_IN_SOURCE"]
 
 
-async def test_a_link_and_its_satellite_from_a_relation_lacking_keys_demand_them() -> None:
+async def test_a_link_and_its_satellite_from_a_relation_lacking_keys_read_views() -> None:
+    """Flipped by WP40 in its own commit (pinned at 3a9696e as: the link stage reads
+    ProductInventory demanding PRODUCTNUMBER, the satellite refused)."""
     state = await run_production(production_delta())
     link_stage = state.artifacts.staging_models["stg_product_inventory"]
-    assert "source_model: 'ProductInventory'" in link_stage and "PRODUCTNUMBER" in link_stage
+    assert "source_model: 'stg_product_inventory_via_" in link_stage
     refused = {i.construct for i in state.validation_report.issues
                if i.code == "E_SAT_KEY_NOT_IN_SOURCE"}
-    assert "sat_product_inventory_details" in refused
+    assert "sat_product_inventory_details" not in refused
 
 
 async def test_nothing_creates_a_link_the_modeler_did_not_build() -> None:

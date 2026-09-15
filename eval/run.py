@@ -247,6 +247,11 @@ def model_shape(model: DVModel) -> dict[str, Any]:
                 "through_table": sat.key_translation.through_table,
                 "natural_key_column": sat.key_translation.natural_key_column,
             }
+        # WP40: per-participation translations of a link satellite, only where they exist.
+        if sat.participation_translations:
+            entry["participation_translations"] = {
+                hub: t.through_table for hub, t in sorted(sat.participation_translations.items())
+            }
         return entry
 
     return {
@@ -331,6 +336,17 @@ def run_metrics(
             ),
             "skipped": dict(
                 sorted(Counter(s.reason for s in state.link_proposals.skipped).items())
+            ),
+            # WP40: key licenses by status, and how many resolved to a hub after modelling.
+            "licenses": dict(
+                sorted(
+                    Counter(
+                        lic.ratification_status for lic in state.link_proposals.licenses
+                    ).items()
+                )
+            ),
+            "licenses_resolved": sum(
+                1 for lic in state.link_proposals.licenses if lic.target_hub is not None
             ),
         },
         # WP34: which validator codes fired, not merely whether the gate passed. §6's fourth
