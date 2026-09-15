@@ -131,6 +131,14 @@ translation or alias, resolved after modelling, that **repairs** the staging of 
 satellites the modeler builds from that table; it never builds a link or a hub. `--link`,
 `--no-link` and `--accept` decide it like a link proposal.
 
+**Since WP41, key licenses appear in greenfield runs too.** With a declared schema and no
+`--existing` vault, every declared single-column key into another table of the same input is a key
+license, and the resolution checkpoint pauses on them; nothing else is proposed there, and a schema
+without foreign keys never pauses. A license also repairs role-qualified participations: a role
+takes the key when it is its hub's only participation in the link, or the key whose column its role
+names (`component` → `ComponentID`). An unqualified participation beside another of the same hub is
+never repaired — which key it means is not in the catalogue.
+
 **`--accept` ratifies link proposals too.** That matters for unattended runs: an automated
 resume accepts every foreign-key-derived link without anyone reading it. Decline individually
 with `--no-link`, or answer them one by one in the terminal — the interactive prompt offers

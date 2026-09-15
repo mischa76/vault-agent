@@ -86,6 +86,15 @@ or link proposal. The link's stage and a link satellite's stage then read one vi
 JOIN per translated participation (`stg_product_inventory_via_product_and_location`). Nothing is
 built that the modeler did not build. Built on PostgreSQL since 2026-09-15.
 
+**Role columns** (WP41): a role-qualified participation stops demanding `ROLE_<key>` from its
+relation once a ratified key pairs with it. A same-named key is derived into the role column
+(`ORGANISATION_BUSINESSENTITYID` from `BUSINESSENTITYID`), a renamed key the same way
+(`BUSINESSENTITYID` from `PERSONID`), and a translation projects under the role column
+(`r1.PRODUCTNUMBER as ASSEMBLY_PRODUCTNUMBER`), so two roles of one hub through one table stay two
+columns with their own `not_null` tests. AutomateDV computes derived columns together from the source
+row, so both derivations read source values. Link satellites read from their own table get the same,
+per participation. Built on PostgreSQL since 2026-09-15 (`demo/fk_links_postgres`, `PASS=103`).
+
 ## 9.4 Incremental behaviour & effectivity end-dating
 
 The generated effectivity satellite closes superseded relationships: AutomateDV's

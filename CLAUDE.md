@@ -148,13 +148,13 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   against arm A's 16; zero-satellite hubs 2, then 1; review 547, then 512). The second ran WP39 and
   WP40 live: 27 and 16 key licenses, all resolved, and the widened `E_SAT_KEY_NOT_IN_SOURCE`
   refused only what WP40 cannot repair (a composite key; a role column the table lacks) — so its
-  person and sales gates are red, honestly. **Wrong data, now gated — keyless only:** in step 1 of
-  3 of the 5 chains with persisted models — including the one that first held §6 as written —
-  `link_business_entity_contact` hashes `hub_person` from `BusinessEntityID`, which in
-  `BusinessEntityContact` is the organisation (`PersonID → Person`). `E_LINK_KEY_WRONG_COLUMN`
-  refuses exactly those 3 on replay; greenfield has no checkpoint to ratify the alias, so step 1 may
-  stay red. Open, the user's call: role columns resolved from declared foreign keys.
-  `docs/log.md` 2026-09-15.
+  person and sales gates are red, honestly. **Repaired since — keyless and on Postgres, not live:**
+  step 1 of all 5 persisted chains staged `link_business_entity_contact` from role columns the table
+  lacks, or hashed `hub_person` from the organisation's `BusinessEntityID`.
+  `E_LINK_KEY_WRONG_COLUMN` refuses that shape; WP41 gives greenfield key licenses and pairs keys with
+  roles, which repairs step 1 in 5 of 5 on replay. **Greenfield runs with declared foreign keys now
+  pause** for those licenses. Still unbuildable and ungated: an unqualified participation beside a
+  role of the same hub (`link_bill_of_materials`, 3 of 5). `docs/log.md` 2026-09-15.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

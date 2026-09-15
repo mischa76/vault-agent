@@ -20,6 +20,13 @@ is not the project's.
   to a hub in neither the delta nor the vault is still dropped.
 
 ### Added
+- Role columns from declared keys (WP41): a role-qualified link participation takes its key from a
+  ratified foreign key — the only key into its hub, or the one whose column its role names
+  (`component` → `ComponentID`) — instead of demanding `ROLE_<key>`. Same-named and renamed keys
+  are derived, translations projected under the role column, so `hub_product` as assembly and
+  component through one table stays two columns; link satellites follow per participation. A
+  ratified key also repairs the `E_LINK_KEY_WRONG_COLUMN` shape instead of refusing it. Built on
+  PostgreSQL (`demo/fk_links_postgres`, every link row joining the right entities); no live run.
 - `E_LINK_KEY_WRONG_COLUMN`: a link participation is refused when its stage would hash the hub's
   key from a same-named column of the link's source table while that table declares its foreign
   key into this hub on a different column — `hub_person` from `BusinessEntityContact.BusinessEntityID`

@@ -5426,3 +5426,70 @@ re-binds staging after the validator, the same limit `E_LINK_KEY_NOT_IN_SOURCE` 
 
 **Not verified:** any live run; the wrong join in loaded data — the audit read the regenerated
 staging, no `dbt build` loaded it. Candidates (2) and (3) are untouched and remain the user's call.
+
+## [2026-09-15] WP41 built — role columns from declared keys, key licenses in greenfield; keyless, replayed, on Postgres
+
+**What changed** (user: „mach 2, Rollenspalten aus deklarierten Fremdschlüsseln"; asked how a role
+column is ratified, the user chose „Lizenzen auch in Greenfield" over extension runs only and over a
+deterministic derivation without a checkpoint). The link proposer runs in every grounded run; in
+greenfield it keeps only key licenses, and the modeler applies them against an empty vault. The
+license applier groups ratified keys per relation and hub and pairs them with participations: one
+unqualified participation takes the single key unless the relation declares the hub's key itself —
+and a same-named key column beside it is repaired only by an alias, `E_LINK_KEY_WRONG_COLUMN`'s
+signature, which a ratified key now repairs instead of the gate refusing it; a role takes the only
+key, or the key its role names (`rules.role_names_column`, unique in both directions), a same-name key
+becoming an alias its role column is derived from; an unqualified participation beside another of the
+same hub is never paired. A translation projects under the column the stage hashes; link satellites
+carry `participation_aliases` and participation-keyed translations; `rules.satellite_participation_column`
+answers staging and `E_SAT_KEY_NOT_IN_SOURCE` alike. Opening `66b5621` (spec, kick-off, guard), feature
+`64e4b5f`, demo in the commit after it; 1029 passed, ruff, bare mypy.
+
+**Why it was wrong before.** A role-qualified participation staged `ROLE_<key>`, a column no catalogue
+carries, and WP40 repaired only single unqualified participations, only in extension runs; greenfield
+had no ratification path, so the person step of every chain staged `link_business_entity_contact` from
+missing role columns or from the organisation's column. WP40's per-key loop also took the first grant
+where two keys of one table lead into one hub — a guess, now declined. Checked against the installed
+automate_dv 0.11.4 (`macros/staging/stage.sql`, `derive_columns.sql`): derived columns are computed
+together from `source_data` and an overridden source column is dropped, so
+`ORGANISATION_BUSINESSENTITYID ← BUSINESSENTITYID` and `BUSINESSENTITYID ← PERSONID` in one stage
+both read source values.
+
+**Replay, zero cost** — every persisted step of the five chains; proposer, `--accept`, applier,
+validator; the code before and after:
+
+| | before | after |
+|---|---|---|
+| `E_LINK_KEY_WRONG_COLUMN` | 3 | 0 |
+| `W_ROLE_BK_NOT_IN_SOURCE` | 28 | 14 |
+| `E_SAT_KEY_NOT_IN_SOURCE` | 15 | 14 |
+| key licenses | 260 | 325 — 13 on each greenfield person step |
+
+Step 1: `link_business_entity_contact` repaired in 5 of 5 — the organisation role by alias in 3, the
+person through `PersonID` in 5 (as the role `contact` in 2, unqualified in 3) — and its satellite's
+refusal is gone. Step 3: `link_bill_of_materials` fully repaired in the 2 chains that modelled
+`assembly` and `component`; in the 3 with an unqualified `hub_product` beside `component`, only the
+role — that stage still demands `PRODUCTNUMBER` and no gate refuses it (spec §5). The 14 warnings left
+sit on role links read from no declared relation (`link_employee_manager`, the currency-rate and
+order-address links, `link_product_size_unit` and `_weight_unit`).
+
+**On PostgreSQL 16 + AutomateDV 0.11.4:** `demo/fk_links_postgres` gains the contact shape of
+`20260915T013719090467Z` (organisation role, unqualified person under `PersonID`) and a bill of
+materials with `hub_product` as assembly and component through one view, each with a satellite from
+its own table. `dbt build --full-refresh` `PASS=103`. The contact link's 3 rows join organisation,
+person and contact type exactly as seeded (292/291/11, 292/293/14, 294/293/14) — the organisation and
+person ids are disjoint, so a hash from the wrong column could not have joined `hub_person`. The bill
+of materials' 3 rows join the right assembly, component and unit. Both satellites 3 of 3. A second
+build green, `INSERT 0 0`. An orphan `ComponentID` fails exactly the two component tests of the view
+(2 of 4); the assembly tests pass.
+
+**Costs, as the spec named them.** Every grounded greenfield run with declared foreign keys now pauses
+at the resolution checkpoint (13 decisions on the person schema); arm A (`adventureworks_full`) gets
+licenses too, so arm-A results from before and after WP41 measure different pipelines. Where the
+wrong-column alias applies, the stage's `BUSINESSENTITYID` carries the person and the organisation's
+value survives only in its role column — right for every hash, and worth knowing when reading the
+stage.
+
+**Not verified:** any live run — whether the greenfield person step now validates end to end, and what
+the pause adds to review load. **Not done:** a dated addendum in the WP41 spec (the record hook refuses
+edits under `docs/architecture/`; this entry is the record); the 3 unqualified-beside-role links;
+candidate (3), `W_ROLE_BK_NOT_IN_SOURCE` as an error.
