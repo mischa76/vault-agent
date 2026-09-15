@@ -91,3 +91,45 @@ Links staged from no declared relation (the modeler's `raw_*` inferences — 31 
 a binding question); a link bound by name to the wrong relation (`link_product_subcategory` reads
 `ProductSubcategory` while its key lives in `Product`); composite keys; aliases for satellites;
 widening `E_LINK_KEY_NOT_IN_SOURCE` to untranslated participations.
+
+## 6 Addendum 2026-09-15 — built, replayed, on Postgres
+
+Opening `3a9696e` (spec, kick-off, guard), feature `1f60a85`, demo `1f2adc4`. 1006 passed, ruff, bare
+mypy. Three guard pins flipped, two counter-cases untouched; three existing tests updated on purpose
+(the WP37 guard's Vendor skip is a license now; licenses list after relationship proposals; the
+proposer telemetry dict gains `licenses` and `licenses_resolved`).
+
+**Replay, last attempt of `20260914T213855724138Z`, before → after** (`replay_step_full.py`):
+
+| | production | sales |
+|---|---|---|
+| key licenses | 0 → 27 | 0 → 16 |
+| link stages lacking a key | 7 → 4 | 1 → 0 |
+| `E_SAT_KEY_NOT_IN_SOURCE` | 5 → 1 | 3 → 2 |
+
+What is left is what §5 excludes: four production links bound by name to a relation that does not
+carry their key (`link_product_subcategory`, `link_product_model`, `link_product_photo`,
+`link_bill_of_materials`), one link satellite with a participation that has no declared path, and
+two sales-order-line satellites behind a composite key. Of the nine satellites the widened gate
+refused on that chain: 1 repaired by WP39, 5 by WP40, 3 not repairable.
+
+**On PostgreSQL 16:** `demo/fk_links_postgres` `dbt build --full-refresh` `PASS=73`; the modeler's
+`link_product_inventory` (repaired under a ratified WP36 proposal for `ProductID` and a key license
+for `LocationID`) loads 4 of 4 rows joining both hubs with the right pairs; its satellite 4 of 4 rows
+joining the link; `sat_location_capacity_history` 3 of 3 rows joining `hub_location`; a second build
+green; an orphan `LocationID` fails exactly the two location tests of the view. WP37's
+relationship-table rule saw the modeler's link of the same grain and built none.
+
+**Observed, not changed.** `apply_ratified_link_proposals` returns before its WP37 half when no
+per-key proposal is ratified, so a run whose only ratified proposals are relationship tables builds
+none of them. AdventureWorks never shows it (per-key proposals are always ratified alongside); a
+guard and a one-line fix, recorded as a candidate.
+
+**Pre-registered for the next paid chain, before it runs.** Licenses ≈ 27 in production and ≈ 16 in
+sales (the replay's counts); `hub_sales_representative` absent; cross-domain links ≥ 21;
+`E_SAT_KEY_NOT_IN_SOURCE` refusals in a step's first attempt limited to shapes with a composite key
+or no declared path, so a production or sales gate may still fail if the modeler keeps them and the
+loop cannot move them. **Review load may rise above 619:** each repair raises a
+`link_translation` or `sat_translation` item, deliberately not aggregated — if the bar fails for
+that reason alone, it is a finding about the bar (ADR-0013 §3 wants each join seen), not a
+regression of the model.

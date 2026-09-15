@@ -80,6 +80,12 @@ same data-time tests. It arises only from a ratified same-as whose join the sche
 (7.5). Since WP39 also a table keyed on the subtype's key (`SalesPersonQuotaHistory`). Built on
 PostgreSQL since 2026-09-14 (`demo/fk_links_postgres`).
 
+**Key-license repair** (WP40): a link or satellite the modeler built from a relation that lacks a
+participation's key gets that participation's translation, or alias, from a ratified key license
+or link proposal. The link's stage and a link satellite's stage then read one view with one LEFT
+JOIN per translated participation (`stg_product_inventory_via_product_and_location`). Nothing is
+built that the modeler did not build. Built on PostgreSQL since 2026-09-15.
+
 ## 9.4 Incremental behaviour & effectivity end-dating
 
 The generated effectivity satellite closes superseded relationships: AutomateDV's

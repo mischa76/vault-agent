@@ -27,6 +27,12 @@ on PostgreSQL. No API key.
 > the right employee; all 3 quota rows join `hub_employee`; a second build green; an orphan
 > `BusinessEntityID` in the quota history fails both view tests (2 of 2).
 >
+> **WP40 verified 2026-09-15** on the same stack: key-license repairs — the modeler's
+> `link_product_inventory`, its satellite, and `sat_location_capacity_history` on `hub_location`.
+> `PASS=73 WARN=0 ERROR=0`; 4 of 4 link rows join both hubs with the right product/location pairs,
+> 4 of 4 link-satellite rows join the link, 3 of 3 hub-satellite rows join `hub_location`; a second
+> build green; an orphan `LocationID` fails exactly the two location tests.
+>
 > **The first build found two defects the keyless tests had not** (see [Findings](#findings)).
 
 ## What is fixed here, and what is computed
@@ -47,6 +53,8 @@ Computed by the pipeline's own functions, in the pipeline's order — link propo
 | `sat_sales_person_details` | WP38: a satellite on `hub_employee` (NationalIDNumber) read from `SalesPerson`, whose key is `Employee`'s surrogate; the same-as is ratified and the join declared | `stg_sales_person_details` reads `..._via_employee` (LEFT JOIN, projects `NATIONALIDNUMBER`) |
 | `sat_sales_person_quota_history` | WP39: multi-active satellite on `hub_employee` from `SalesPersonQuotaHistory`, whose key references `SalesPerson` — two hops from `Employee` | `stg_sales_person_quota_history` reads `..._via_employee` |
 | `link_sales_order_employee` | WP39: `SalesOrderHeader.SalesPersonID → SalesPerson`, which has no hub and whose key references `Employee` — translated through the end table | `stg_sales_order_employee` reads `..._via_employee` |
+| `link_product_inventory` | WP40: the modeler's own link, read by name from `ProductInventory`, which carries neither `PRODUCTNUMBER` nor the location's `NAME`; repaired under a ratified link proposal and a key license | `stg_product_inventory` reads `..._via_product_and_location` (two LEFT JOINs) |
+| `sat_product_inventory_details`, `sat_location_capacity_history` | WP40: a link satellite with per-participation translations, and a hub satellite from a history keyed on `Location`'s surrogate | each reads its own `..._via_...` view |
 
 Each translation view ships a `.yml` with `not_null` on the projected natural key and a
 `relationships` test on the surrogate — the gates that make an unmatched surrogate fail

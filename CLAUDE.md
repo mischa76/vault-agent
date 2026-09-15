@@ -152,9 +152,10 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   `SalesPerson` staged through the translation view) and the collision remedy (followed 6 of 6,
   three chains). **That chain was not buildable:** 9 satellites were read from relations lacking
   their parent's key. `E_SAT_KEY_NOT_IN_SOURCE` now refuses every such satellite (2026-09-15), so
-  the next chain will meet them in the re-model loop, not at `dbt build`. Of the 9: 1 two-hop
-  (WP39, built and on Postgres, not run live), 8 one-hop through a declared foreign key — a satellite translation with no
-  ratification path yet (candidate WP40, the user's call). `docs/log.md` 2026-09-15.
+  the next chain will meet them in the re-model loop, not at `dbt build`. Of the 9: 1 two-hop (WP39), 5 repaired by key
+  licenses (WP40), 3 unrepairable (composite key or no declared path) — built, replayed and on
+  Postgres, **none run live**. Still open: modeler links bound by name to the wrong relation, and
+  links staged from undeclared `raw_*` relations. `docs/log.md` 2026-09-15.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

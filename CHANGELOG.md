@@ -20,6 +20,12 @@ is not the project's.
   to a hub in neither the delta nor the vault is still dropped.
 
 ### Added
+- Key licenses (WP40): a declared foreign key into a table of the same increment that has no hub
+  yet is a `Table.Column` decision at the link checkpoint instead of a skip. Resolved after
+  modelling, a ratified license — and a ratified translated or renamed link proposal — repairs the
+  staging of links and satellites the modeler built from that table, never building one; link
+  satellites carry per-participation translations. Keyless, replayed on a recorded chain, built
+  on PostgreSQL; no live run.
 - Two-hop translation (WP39): a foreign key into a table that has no hub of its own, whose key is
   itself a declared foreign key (`SalesOrderHeader.SalesPersonID → SalesPerson → Employee`), is
   translated through the end table; the nearest hub always decides. Subtype feeds (WP38) also

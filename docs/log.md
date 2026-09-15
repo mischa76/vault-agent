@@ -5285,3 +5285,37 @@ question.
 **Not verified:** any live run. **Pre-registered** in wp39 §7 for the next chain, including that its
 production and sales gates may fail on the one-hop satellites the widened gate now refuses and
 nothing repairs yet (candidate WP40).
+
+## [2026-09-15] WP40 built — key licenses repair what the modeler built; keyless, replayed, on Postgres
+
+**What changed** (user: „ok, gehen wir es an und machen weiter"). A declared single-column foreign key
+into a different table of the same increment that no existing hub binds is no longer a skip but a
+`KeyLicense`, decided at the link checkpoint by its `Table.Column` key. After the modeler, every
+attempt, `apply_key_licenses` resolves each ratified license against the merged model through
+`resolve_fk_target` (WP34/36/39 — one rule) and, together with ratified WP34/36 proposals that carry
+an alias or a translation, repairs — never creates — constructs reading that table: a link's single
+unqualified participation, a hub satellite, and a link satellite per participation
+(`Satellite.participation_translations`, staged through one view). Gates accept license provenance.
+Opening `3a9696e`, feature `1f60a85`, demo `1f2adc4`; 1006 passed, ruff, bare mypy.
+
+**Why it was wrong before.** Seven of the eight one-hop satellites the widened gate refused had no
+proposal at all: `Product` and `Location` are declared in the production increment and hubbed by the
+same modeler call, so their keys were skips; the parent links the modeler built from the same tables
+were unbuildable too and nothing gated them. ADR-0013's trigger required a hub that already exists;
+WP40 extends it to a hub built in the same run, and keeps its HITL rule by making each key a decision.
+
+**Replay on the green chain** (`20260914T213855724138Z`, last attempt, before → after): production
+licenses 0 → 27, link stages lacking a key 7 → 4, `E_SAT_KEY_NOT_IN_SOURCE` 5 → 1; sales licenses 0 →
+16, link stages lacking a key 1 → 0, `E_SAT_KEY_NOT_IN_SOURCE` 3 → 2. The rest is out of scope by
+design: four links bound by name to the wrong relation, three satellites behind composite keys or
+without a declared path. Of the nine refusals: WP39 repairs 1, WP40 5, 3 remain.
+
+**On PostgreSQL 16 + AutomateDV 0.11.4:** `demo/fk_links_postgres` `PASS=73`; the repaired modeler link
+loads 4 of 4 rows joining both hubs with the right pairs, its satellite 4 of 4, the hub satellite 3 of
+3; a second build green; an orphan `LocationID` fails exactly the location tests.
+
+**Observed, not changed.** `apply_ratified_link_proposals` returns before applying WP37 relationship
+proposals when no per-key proposal is ratified. Recorded in wp40 §6 as a candidate with a one-line fix.
+
+**Not verified:** any live run. **Pre-registered** in wp40 §6 — including that review load may cross
+619 because every repair raises its own, deliberately unaggregated translation item.

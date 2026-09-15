@@ -76,7 +76,7 @@ vault-agent resume --owner "customer=Jane Doe <jane@bank.example>" \
 | `--owner "asset=Name <email>"` | yes | Assigns the contract owner; prunes exactly that asset's owner flag |
 | `--map "concept=TABLE.COLUMN"` | yes | Ratifies/overrides one mapping |
 | `--mappings <file>` | no | Ratifies an edited `mappings.review.yml` wholesale |
-| `--link "Table.Column"` | yes | Builds one link proposed from a declared foreign key (WP34) |
+| `--link "Table.Column"` | yes | Builds one link proposed from a declared foreign key (WP34); for a key license (WP40) allows the repair it licenses |
 | `--no-link "Table.Column"` | yes | Declines one proposed link; wins over `--link` for the same one |
 | `--link "Table.*"` / `--no-link "Table.*"` | yes | Ratifies or declines the **relationship-table** link proposed for a whole table (WP37) — one decision per table, not per key |
 | `--resolve "concept=answer"` | yes | Ratifies one entity resolution (WP29): `answer` is an existing construct's name, `NEW`, `same_as_candidate` or `unresolved` |
@@ -122,6 +122,14 @@ the concept as its own hub, because a join nobody declared is a guess. Since WP3
 tables keyed on the subtype's key (`SalesPersonQuotaHistory.BusinessEntityID → SalesPerson`), and
 the rendering names them; a table that merely references the subtype through another column
 (`Store.SalesPersonID`) gets no satellite coverage.
+
+**`declared_fk_pending` (WP40) is a key license, keyed `Table.Column`.** A declared key into a
+table of this same increment that has no hub yet — `ProductInventory.LocationID → Location` —
+cannot be a link proposal, because the hub comes from this run's modeler. The rendering says *no
+hub yet*, and the interactive prompt asks *Allow the key license …?*. Answering yes licenses a
+translation or alias, resolved after modelling, that **repairs** the staging of links and
+satellites the modeler builds from that table; it never builds a link or a hub. `--link`,
+`--no-link` and `--accept` decide it like a link proposal.
 
 **`--accept` ratifies link proposals too.** That matters for unattended runs: an automated
 resume accepts every foreign-key-derived link without anyone reading it. Decline individually
