@@ -5373,3 +5373,56 @@ raised to an error, consistent with the satellite gate. In greenfield runs none 
 checkpoint to ratify an alias, so (1) and (3) refuse, and (2) would need its own ratification design.
 
 **Money.** $6.50; all nine attempts of the rerun protocol $54.77 at the documented rates.
+
+## [2026-09-15] E_LINK_KEY_WRONG_COLUMN — a participation hashed from a column its relation declares as another key is refused
+
+**What changed** (user: „mach 1, das Gate zuerst"). Candidate (1) of the entry above, built as
+written. In grounded runs, for a link that binds by name to exactly one declared relation with
+declared foreign keys: an unqualified participation without alias or translation is refused when its
+stage would hash the hub's canonical key column K from that relation (K present), while the relation
+declares a single-column foreign key resolving to that same hub — through `resolve_fk_target`, the
+proposer's and applier's rule, direct key match only — on a different column, and none on K. The
+message names K, what the relation declares K to be, and the column it declares for the hub. Test
+written and run failing first (1 failed, 3 scope cases passed); 1010 passed, 2 skipped, ruff, bare
+mypy. Manual chapter 8 carries the row.
+
+**Why it was wrong before.** The gates on a link participation checked that a column exists
+(`E_LINK_KEY_NOT_IN_SOURCE` for an alias or translation, `W_ROLE_BK_NOT_IN_SOURCE` for a role,
+`W_BK_NOT_IN_SOURCE` against the whole schema) or where a translation came from. None asked what the
+column *means* in that relation, and the declared foreign keys that say so were read only by the
+proposer. A same-named column of a different entity passed all of them and built.
+
+**Replay, zero cost** — every step of the five chains with persisted models, each against its own
+declared schema, the previous step's model as the existing vault:
+
+| chain | person | HR | production | purchasing | sales |
+|---|---|---|---|---|---|
+| `20260913T063515062284Z` | 0 | 0 | 0 | 0 | 0 |
+| `20260913T153801752650Z` | 1 | 0 | 0 | 0 | 0 |
+| `20260913T230429748887Z` | 0 | 0 | 0 | 0 | 0 |
+| `20260914T213855724138Z` | 1 | 0 | 0 | 0 | 0 |
+| `20260915T013719090467Z` | 1 | 0 | 0 | 0 | 0 |
+
+Exactly the three the audit of the entry above found by reading, and nothing else: each is
+`link_business_entity_contact`, `hub_person` hashed from `BusinessEntityContact.BUSINESSENTITYID`
+(declared into `BusinessEntity`) where the table declares `PersonID`. No other firing in 25 steps —
+which is all the replay shows: the corpus holds one instance of the shape, so precision beyond it is
+unmeasured.
+
+**What it will do to the next run.** Step 1 is greenfield: the WP34 proposer runs only on
+extensions, so no alias to `PersonID` can be ratified there, and the modeler is not shown
+`source_key_column`. Under the re-model feedback its moves are to leave `hub_person` out of that link
+or model the relationship otherwise; if it keeps the shape through the loop, the person gate is red —
+as it already was on the last chain, for the role column. A red gate instead of a green link that
+joins the wrong entity. In an extension step a ratified WP34 alias or WP40 license repairs the
+participation before the validator runs, and the gate stays silent.
+
+**Deliberately out of scope.** Role-qualified participations — candidate (2), which is the other
+half of the same link and `link_bill_of_materials`. A K the relation lacks: that fails loudly at
+`dbt build`, not silently. Foreign keys that reach the hub only through a translation: they
+reference a surrogate, and a same-named natural-key column beside them may be a legitimate copy. A
+link that binds by name to no declared relation, or to several, is not judged; the source mapper
+re-binds staging after the validator, the same limit `E_LINK_KEY_NOT_IN_SOURCE` has.
+
+**Not verified:** any live run; the wrong join in loaded data — the audit read the regenerated
+staging, no `dbt build` loaded it. Candidates (2) and (3) are untouched and remain the user's call.

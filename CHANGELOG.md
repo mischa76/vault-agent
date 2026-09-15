@@ -20,6 +20,14 @@ is not the project's.
   to a hub in neither the delta nor the vault is still dropped.
 
 ### Added
+- `E_LINK_KEY_WRONG_COLUMN`: a link participation is refused when its stage would hash the hub's
+  key from a same-named column of the link's source table while that table declares its foreign
+  key into this hub on a different column — `hub_person` from `BusinessEntityContact.BusinessEntityID`
+  (the organisation), where the table declares `PersonID → Person`. Such a link builds and joins the
+  wrong entity. Grounded runs with declared foreign keys only. Replayed on five recorded
+  AdventureWorks chains it refuses exactly that link, in step 1 of three. A greenfield step has no
+  checkpoint to ratify the alias, so expect that step's gate to fail unless the modeler changes the
+  link. Keyless; no live run.
 - Key licenses (WP40): a declared foreign key into a table of the same increment that has no hub
   yet is a `Table.Column` decision at the link checkpoint instead of a skip. Resolved after
   modelling, a ratified license — and a ratified translated or renamed link proposal — repairs the
