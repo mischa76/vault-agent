@@ -26,8 +26,18 @@ sources:
         # expected columns: SALESORDERNUMBER, LOAD_DATETIME, RECORD_SOURCE, SALESPERSONID
       - name: Location
         # expected columns: NAME, LOAD_DATETIME, RECORD_SOURCE
+      - name: BusinessEntity
+        # expected columns: BUSINESSENTITYID, LOAD_DATETIME, RECORD_SOURCE
+      - name: Person
+        # expected columns: BUSINESSENTITYID, FIRSTNAME, LOAD_DATETIME, RECORD_SOURCE
+      - name: ContactType
+        # expected columns: CONTACTTYPEID, LOAD_DATETIME, RECORD_SOURCE
       - name: ProductInventory
         # expected columns: PRODUCTID, LOCATIONID, LOAD_DATETIME, RECORD_SOURCE, QUANTITY, SHELF
+      - name: BusinessEntityContact
+        # expected columns: BUSINESSENTITYID, PERSONID, CONTACTTYPEID, LOAD_DATETIME, RECORD_SOURCE, MODIFIEDDATE
+      - name: BillOfMaterials
+        # expected columns: PRODUCTASSEMBLYID, COMPONENTID, UNITMEASURECODE, LOAD_DATETIME, RECORD_SOURCE, PERASSEMBLYQTY
       - name: ProductVendor
         # expected columns: PRODUCTID, UNITMEASURECODE, BUSINESSENTITYID, LOAD_DATETIME, RECORD_SOURCE
       - name: SalesPerson

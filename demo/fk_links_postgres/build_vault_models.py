@@ -29,6 +29,11 @@ The miniature is the AdventureWorks shape the two WPs were measured on:
     Vendor): WP37's relationship link, three-way, two of its participations translated;
     the Vendor participation is PENDING at proposal time (Vendor is this increment's table)
     and resolves only after the modeler has built ``hub_vendor``.
+  * WP41 — ``BusinessEntityContact`` read by the modeler's ``link_business_entity_contact``
+    with ``hub_business_entity`` in the role ``organisation`` (its column derived from the
+    same-named key) and an unqualified ``hub_person`` whose key the table calls ``PersonID``;
+    and ``BillOfMaterials`` read by ``link_bill_of_materials`` with ``hub_product`` twice, as
+    ``assembly`` and ``component``, both translated through ``Product`` in one view.
 
 Run: ``uv run python demo/fk_links_postgres/build_vault_models.py`` (or from this directory).
 """
@@ -53,6 +58,7 @@ from vault_agent.state import (
     EntityResolution,
     Hub,
     Link,
+    LinkHubRef,
     Proposal,
     ProposedMapping,
     ResolutionProposal,
@@ -167,6 +173,45 @@ def declared_source_schema() -> list[SourceTable]:
                  "references_columns": ["ProductID"]},
             ],
         ),
+        # WP41: the supertype of persons and stores, and one of its subtypes — both this
+        # increment's own tables, so keys into them are key licenses.
+        SourceTable(table="BusinessEntity", columns=["BusinessEntityID", "ModifiedDate"]),
+        SourceTable(
+            table="Person",
+            columns=["BusinessEntityID", "FirstName"],
+            foreign_keys=[
+                {"columns": ["BusinessEntityID"], "references_table": "BusinessEntity",
+                 "references_columns": ["BusinessEntityID"]},
+            ],
+        ),
+        SourceTable(table="ContactType", columns=["ContactTypeID", "Name"]),
+        # WP41: BusinessEntityID is the ORGANISATION here; the person is PersonID.
+        SourceTable(
+            table="BusinessEntityContact",
+            columns=["BusinessEntityID", "PersonID", "ContactTypeID", "ModifiedDate"],
+            foreign_keys=[
+                {"columns": ["PersonID"], "references_table": "Person",
+                 "references_columns": ["BusinessEntityID"]},
+                {"columns": ["ContactTypeID"], "references_table": "ContactType",
+                 "references_columns": ["ContactTypeID"]},
+                {"columns": ["BusinessEntityID"], "references_table": "BusinessEntity",
+                 "references_columns": ["BusinessEntityID"]},
+            ],
+        ),
+        # WP41: two keys into Product's surrogate; the roles name the columns.
+        SourceTable(
+            table="BillOfMaterials",
+            columns=["BillOfMaterialsID", "ProductAssemblyID", "ComponentID",
+                     "UnitMeasureCode", "PerAssemblyQty"],
+            foreign_keys=[
+                {"columns": ["ProductAssemblyID"], "references_table": "Product",
+                 "references_columns": ["ProductID"]},
+                {"columns": ["ComponentID"], "references_table": "Product",
+                 "references_columns": ["ProductID"]},
+                {"columns": ["UnitMeasureCode"], "references_table": "UnitMeasure",
+                 "references_columns": ["UnitMeasureCode"]},
+            ],
+        ),
     ]
 
 
@@ -190,12 +235,31 @@ def modeler_delta() -> DVModel:
             # WP40: built from this increment's Location, keyed on its natural key.
             Hub(name="hub_location", business_key="Name", source_entity="Location",
                 description="A stock location, anchored on its name."),
+            # WP41: two hubs keyed on the same column name, told apart by their tables.
+            Hub(name="hub_business_entity", business_key="BusinessEntityID",
+                source_entity="BusinessEntity", description="A person or a store."),
+            Hub(name="hub_person", business_key="BusinessEntityID", source_entity="Person",
+                description="A person."),
+            Hub(name="hub_contact_type", business_key="ContactTypeID",
+                source_entity="ContactType", description="A contact type."),
         ],
         links=[
             # WP40: the modeler's own link, read by name from ProductInventory, which carries
             # neither PRODUCTNUMBER nor the location's NAME — repaired under ratified keys.
             Link(name="link_product_inventory", connected_hubs=["hub_product", "hub_location"],
                  description="Stock of a product at a location."),
+            # WP41: the shape of the paid chain 20260915T013719090467Z — an organisation role
+            # and an unqualified person the table calls PersonID.
+            Link(name="link_business_entity_contact",
+                 connected_hubs=[LinkHubRef(hub="hub_business_entity", role="organisation"),
+                                 "hub_person", "hub_contact_type"],
+                 description="A person is a contact of an organisation."),
+            # WP41: one hub twice, each role naming its column.
+            Link(name="link_bill_of_materials",
+                 connected_hubs=[LinkHubRef(hub="hub_product", role="assembly"),
+                                 LinkHubRef(hub="hub_product", role="component"),
+                                 "hub_unit_measure"],
+                 description="A component of an assembly."),
         ],
         satellites=[
             Satellite(name="sat_vendor_details", parent="hub_vendor",
@@ -219,6 +283,16 @@ def modeler_delta() -> DVModel:
                       attributes=["SalesQuota"], source_table="SalesPersonQuotaHistory",
                       sat_type="multi_active", child_dependent_key=["QuotaDate"],
                       description="Quota history of the sales-representative role."),
+            # WP41: satellites read from each link's own table.
+            Satellite(name="sat_person_details", parent="hub_person", attributes=["FirstName"],
+                      description="A person's names."),
+            Satellite(name="sat_business_entity_contact_details",
+                      parent="link_business_entity_contact", attributes=["ModifiedDate"],
+                      source_table="BusinessEntityContact",
+                      description="When the contact was last changed."),
+            Satellite(name="sat_bill_of_materials_details", parent="link_bill_of_materials",
+                      attributes=["PerAssemblyQty"], source_table="BillOfMaterials",
+                      description="Quantity of a component per assembly."),
         ],
     )
 
@@ -240,7 +314,7 @@ async def build_state() -> VaultAgentState:
     apply_link_decision(state, {"accept": True})  # the checkpoint, as `run --accept` answers it
     delta = apply_ratified_link_proposals(modeler_delta(), existing, state)  # dv2_modeler
     delta = apply_subtype_feeds(delta, existing, state)                        # dv2_modeler, WP38
-    delta = apply_key_licenses(delta, existing, state)                         # dv2_modeler, WP40
+    delta = apply_key_licenses(delta, existing, state)                  # dv2_modeler, WP40/WP41
     state.dv_model = merge_models(existing, delta, state)
     state = await CodeGeneratorAgent().run(state)
     state = await ValidatorAgent().run(state)
@@ -294,7 +368,8 @@ def main() -> None:
           f"{len(proposals.relationships)} relationship-table; all ratified (--accept).")
     for link in state.dv_model.links:
         parts = ", ".join(
-            ref.hub + (f" via {ref.key_translation.through_table}" if ref.key_translation else "")
+            str(ref) + (f" via {ref.key_translation.through_table}" if ref.key_translation
+                        else f" as {ref.source_key_column}" if ref.source_key_column else "")
             for ref in link.hub_refs
         )
         print(f"  {link.name}: {parts}")
