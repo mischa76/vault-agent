@@ -29,6 +29,7 @@ from typing import Any
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import is_grounded, known_columns
+from vault_agent.link_proposal import resolve_fk_target
 from vault_agent.rules.dv2_rules import (
     CONSTRUCT_NAME_PATTERN,
     REQUIRED_HUB_COLUMNS,
@@ -927,6 +928,74 @@ class ValidatorAgent(BaseAgent):
                             f"column that is not there",
                         )
                     )
+        # E_LINK_KEY_WRONG_COLUMN (2026-09-15): an unqualified participation's stage hashes the
+        # hub's key column K from the link's relation (`collect_staging_specs`). When that relation
+        # declares a foreign key into this very hub on ANOTHER column — resolved by the proposer's
+        # rule, `resolve_fk_target` — and none on K, then K in this relation is some other key
+        # under the hub's key name: the stage builds and the link joins the wrong entity, silently.
+        # The paid chain 20260915T013719090467Z hashed hub_person from
+        # BusinessEntityContact.BusinessEntityID, the organisation; the table declares the person
+        # as PersonID → Person. Out of scope: role-qualified participations, repaired ones (alias,
+        # translation), a K the relation lacks (that fails loudly at build), relations without
+        # declared foreign keys (WP34 inertness).
+        declared = {normalize_identifier(t.table): t for t in state.source_schemas}
+        for link in state.dv_model.links:
+            if link.name in pre_existing:
+                continue
+            bound = [
+                table
+                for table in state.source_schemas
+                if construct_binds_to_source_table(link.name, table.table)
+            ]
+            if len(bound) != 1 or not bound[0].foreign_keys:
+                continue
+            link_relation = bound[0]
+            present = {normalize_identifier(c) for c in link_relation.column_names}
+            single_keys = [fk for fk in link_relation.foreign_keys if fk.is_single_column]
+            resolved = [
+                (fk, *resolve_fk_target(state.dv_model, fk, declared)[:2]) for fk in single_keys
+            ]
+            for ref in link.hub_refs:
+                ref_hub = hub_by_name.get(ref.hub)
+                if (
+                    ref_hub is None
+                    or ref.role is not None
+                    or ref.source_key_column is not None
+                    or ref.key_translation is not None
+                ):
+                    continue
+                hashed = normalize_identifier(canonical_hub_key_column(ref_hub))
+                if hashed not in present:
+                    continue
+                into_hub = [
+                    fk.columns[0]
+                    for fk, target, translation in resolved
+                    if target is not None and target.name == ref_hub.name and translation is None
+                ]
+                if not into_hub or hashed in {normalize_identifier(c) for c in into_hub}:
+                    continue
+                elsewhere = sorted({
+                    fk.references_table
+                    for fk in single_keys
+                    if normalize_identifier(fk.columns[0]) == hashed
+                })
+                meaning = (
+                    f", which {link_relation.table} declares as a key into {', '.join(elsewhere)}"
+                    if elsewhere
+                    else ""
+                )
+                issues.append(
+                    _issue(
+                        "error", "E_LINK_KEY_WRONG_COLUMN", link.name,
+                        f"participation {ref.hub} is hashed from {link_relation.table}.{hashed}"
+                        f"{meaning}, but {link_relation.table} declares {ref.hub}'s key as "
+                        f"{', '.join(into_hub)}; the link would join the wrong entity without "
+                        f"failing. Read the link from a relation that carries {ref.hub}'s key "
+                        f"under its own name, or leave this participation out — an alias to "
+                        f"{', '.join(into_hub)} is decided at the link checkpoint, never by the "
+                        f"modeler",
+                    )
+                )
         feeds = {
             (feed.hub, normalize_identifier(covered)): feed
             for feed in ratified_subtype_feeds(
