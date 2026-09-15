@@ -24,8 +24,8 @@ is not the project's.
   yet is a `Table.Column` decision at the link checkpoint instead of a skip. Resolved after
   modelling, a ratified license — and a ratified translated or renamed link proposal — repairs the
   staging of links and satellites the modeler built from that table, never building one; link
-  satellites carry per-participation translations. Keyless, replayed on a recorded chain, built
-  on PostgreSQL; no live run.
+  satellites carry per-participation translations. Built on PostgreSQL and live once
+  (2026-09-15): 27 and 16 licenses, all resolved.
 - Two-hop translation (WP39): a foreign key into a table that has no hub of its own, whose key is
   itself a declared foreign key (`SalesOrderHeader.SalesPersonID → SalesPerson → Employee`), is
   translated through the end table; the nearest hub always decides. Subtype feeds (WP38) also
@@ -86,7 +86,8 @@ is not the project's.
   by name, so `hub_purchase_order` built from `PurchaseOrderHeader` counts as that table's hub.
   Measured live over five chains (2026-09-13 to 15): 16, 16, 16, 17, 21 cross-domain links
   against arm A's 16. The fifth — with the brownfield parser fix, WP38 and the collision
-  remedy — passed every gate and held all four clauses of WP34 §6 as originally written.
+  remedy — passed every gate and held all four clauses of WP34 §6 as originally written. The
+  sixth, with WP39 and WP40, held them again at 23 links.
 - Surrogate→natural-key translation for FK-derived links (WP36, ADR-0013 accepted 2026-09-12):
   a foreign key that references a surrogate while the hub is keyed on the natural key is now a
   proposal (`declared_fk_translated`) instead of a skip; a ratified one renders a translation

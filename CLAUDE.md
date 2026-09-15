@@ -144,18 +144,16 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   with table count, so the upper cases measure width and repetition tolerance rather than semantic
   scale (`scale-test-findings.md`, candidate #5). `scale_300` has not been run; `emit_dv_model` is
   the one agent that cannot split its output, so its budget is the only lever there.
-- **WP34 §6: ALL FOUR CLAUSES HELD on the 2026-09-15 chain, as originally pre-registered** —
-  21 cross-domain links (arm A 16), 2 zero-satellite hubs, review 547 < 619, joins sound, every
-  gate 1.000, `hub_sales_representative` absent. One chain, three changes measured at once:
-  the brownfield parser fix (`535610a`; before it, every modeler link into the vault was
-  dropped — the August "0 of 37" too), WP38 (live once: two satellites on `hub_employee` from
-  `SalesPerson` staged through the translation view) and the collision remedy (followed 6 of 6,
-  three chains). **That chain was not buildable:** 9 satellites were read from relations lacking
-  their parent's key. `E_SAT_KEY_NOT_IN_SOURCE` now refuses every such satellite (2026-09-15), so
-  the next chain will meet them in the re-model loop, not at `dbt build`. Of the 9: 1 two-hop (WP39), 5 repaired by key
-  licenses (WP40), 3 unrepairable (composite key or no declared path) — built, replayed and on
-  Postgres, **none run live**. Still open: modeler links bound by name to the wrong relation, and
-  links staged from undeclared `raw_*` relations. `docs/log.md` 2026-09-15.
+- **WP34 §6 holds as written on the last two chains** (2026-09-15: 21, then 23 cross-domain links
+  against arm A's 16; zero-satellite hubs 2, then 1; review 547, then 512). The second ran WP39 and
+  WP40 live: 27 and 16 key licenses, all resolved, and the widened `E_SAT_KEY_NOT_IN_SOURCE`
+  refused only what WP40 cannot repair (a composite key; a role column the table lacks) — so its
+  person and sales gates are red, honestly. **Wrong data, ungated:** in step 1 of 3 of the 5
+  chains with persisted models — including the one that first held §6 as written —
+  `link_business_entity_contact` hashes `hub_person` from `BusinessEntityID`, which in
+  `BusinessEntityContact` is the organisation; the table declares `PersonID → Person`. It builds
+  cleanly. Candidates, the user's call: a gate for that shape, and role columns resolved from
+  declared foreign keys. `docs/log.md` 2026-09-15, wp40 §7.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

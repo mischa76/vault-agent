@@ -370,3 +370,8 @@ WP38 answers the hub itself.
 `hub_sales_representative` absent — so the conjunction holds under §6 as pre-registered, not only
 under §11's correction. One chain; three changes measured at once (parser fix, WP38, collision
 remedy); `docs/log.md` 2026-09-15.
+
+## 13. Addendum 2026-09-15, night — held again, with WP39 and WP40 live
+
+`20260915T013719090467Z`: links 23, zero-satellite hubs 1, review 512, joins 0/0 — all four clauses
+as written. Two step gates red on refusals outside WP40's scope (wp40 §7). `docs/log.md` 2026-09-15.

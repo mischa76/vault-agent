@@ -133,3 +133,35 @@ loop cannot move them. **Review load may rise above 619:** each repair raises a
 `link_translation` or `sat_translation` item, deliberately not aggregated — if the bar fails for
 that reason alone, it is a finding about the bar (ADR-0013 §3 wants each join seen), not a
 regression of the model.
+
+## 7 Addendum 2026-09-15, night — live once: the licenses resolved as replayed; the refusals left are §5's
+
+Chain `20260915T013719090467Z` at `d4ee1ed`, $6.50, 43 min. Per step:
+
+| step | gate | licenses (accepted, resolved) | link translations | satellite translations | review |
+|---|---|---|---|---|---|
+| person | 0.0 | — | 0 | 0 | 26 |
+| HR | 1.0 | 5, 5 | 0 | 0 | 43 |
+| production | 1.0 | 27, 27 | 6 | 4 | 138 |
+| purchasing | 1.0 | 4, 4 | 1 | 4 | 93 |
+| sales | 0.0 | 16, 16 | 7 | 13 | 212 |
+
+**§6's pre-registration, evaluated by the script written before the result** (`wp40_prereg.py`):
+L1 licenses 27 and 16 — exactly the replay's; L2 `hub_sales_representative` absent; L3 23
+cross-domain links; **L4 reported FAILED** — two sales satellites classified as WP40 misses; L5 review
+512 with 35 translation items (477 without). **L4 was the script's error, checked afterwards:** it
+tested each participation for a single-key path without reading `participation_translations`. Both
+satellites (`sat_sales_order_line_details`, `sat_sales_order_line_replication`) carry the translation
+for `hub_sales_order` through `SalesOrderHeader` and fail only on `hub_product`, which
+`SalesOrderDetail` reaches through the composite `SpecialOfferID, ProductID` — §5's excluded class.
+The pre-registered verdict stays on record as computed; the correction is this paragraph.
+
+**Why two gates are red, and both honestly.** Sales: the two satellites above. Person (greenfield,
+no licenses exist there): `sat_business_entity_contact_details` on `link_business_entity_contact`,
+whose participation `hub_business_entity` carries the role `organisation`, so its stage demands
+`ORGANISATION_BUSINESSENTITYID` — a column `BusinessEntityContact` does not have. Three attempts did
+not change the shape. §2 leaves role-qualified participations out by design.
+
+**The finding underneath.** The same link's stage hashes `PERSON_HK` from `BUSINESSENTITYID`, which in
+`BusinessEntityContact` identifies the organisation; the table declares the person as `PersonID →
+Person`. That link would build and join the wrong entity. Log 2026-09-15 has the audit across chains.

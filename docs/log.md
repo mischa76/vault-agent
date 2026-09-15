@@ -5319,3 +5319,57 @@ proposals when no per-key proposal is ratified. Recorded in wp40 §6 as a candid
 
 **Not verified:** any live run. **Pre-registered** in wp40 §6 — including that review load may cross
 619 because every repair raises its own, deliberately unaggregated translation item.
+
+## [2026-09-15] Paid chain with the widened gate, WP39 and WP40: §6 held at 23 links, licenses live — and a link that joins the wrong entity
+
+**The run** (user: „go!"), `20260915T013719090467Z` at `d4ee1ed`: 43 min, 103 calls, 557k prompt
+tokens (30 % cache), 263k out, **$6.50**. `eval.wp34_check`, unmodified:
+
+```
+[HELD] links      23 cross-domain (need >= 8; arm A 16)
+[HELD] invention  1 zero-satellite hub (hub_transaction)
+[HELD] review     512 (must fall below 619)      — 26 / 43 / 138 / 93 / 212
+[HELD] joins      0 unsound aliases, 0 E_LINK_KEY_NOT_IN_SOURCE
+WP34 §6: ALL FOUR CLAUSES HELD
+```
+
+`validation_gate` 0.0 for the chain: person and sales red, HR, production and purchasing green.
+
+**WP40 live, as replayed.** Key licenses accepted and resolved per step: 5, 27, 4, 16 — production and
+sales exactly the counts the replay predicted. Production, where the chain of the morning would have
+had five refusals under the widened gate, is green on its first modelling attempt, with 6 link and 4
+satellite translations applied under ratified keys. Across the chain 14 link and 21 satellite
+translation items; review 512 with them, 477 without.
+
+**wp40 §6's pre-registration, by the script written before the result:** L1 held (27, 16), L2 held
+(`hub_sales_representative` absent), L3 held (23 links), **L4 reported FAILED**, L5 reported. L4 is the
+script's error, checked afterwards: it ignored `participation_translations`. The two sales satellites
+it flagged carry `hub_sales_order`'s translation and fail only on `hub_product` behind the composite key
+`SpecialOfferID, ProductID` — the class wp40 §5 excludes. The computed verdict stays above; this is the
+correction.
+
+**Red gates, both outside what was built.** Sales: those two satellites. Person — greenfield, where no
+license exists because the proposer runs only on an extension — `sat_business_entity_contact_details`
+on `link_business_entity_contact`, whose `hub_business_entity` participation carries the role
+`organisation`; its stage demands `ORGANISATION_BUSINESSENTITYID`, absent from `BusinessEntityContact`.
+Three modelling attempts kept the shape. The link itself gets only `W_ROLE_BK_NOT_IN_SOURCE`, a warning.
+
+**Wrong data, found while reading that failure.** The same link's stage hashes `PERSON_HK` from
+`BUSINESSENTITYID` — in `BusinessEntityContact` that column is the organisation; the table declares
+the person as `PersonID → Person`. The column exists, so the stage builds and the link joins the wrong
+entity, with no error and no warning. Audited over every step of the five chains with persisted models:
+**present in step 1 of three** — `20260913T153801752650Z`, `20260914T213855724138Z` (the chain that
+first held §6 as written) and this one — and nowhere else. Role columns missing from the declared
+relation: `link_business_entity_contact` (organisation) in step 1 of three chains, `link_bill_of_materials`
+(assembly, component) in step 3 of all five; a satellite on the latter would be refused too.
+
+**Candidates, the user's call, in the invariant's order.** (1) A gate: an unqualified participation
+hashed from a column K of its relation, while the relation declares the hub's own foreign key on a
+different column, is refused — the deterministic signature of the wrong-entity join above. (2) Role
+columns from declared keys: a role-qualified participation takes as its source column the declared
+foreign key into the hub's table — one per hub directly, and for the same hub twice
+(`ProductAssemblyID`, `ComponentID`) only where the role names the column. (3) `W_ROLE_BK_NOT_IN_SOURCE`
+raised to an error, consistent with the satellite gate. In greenfield runs none of these has a
+checkpoint to ratify an alias, so (1) and (3) refuse, and (2) would need its own ratification design.
+
+**Money.** $6.50; all nine attempts of the rerun protocol $54.77 at the documented rates.

@@ -110,3 +110,9 @@ alone. Spend over all seven attempts $42.14 at the documented rates.
 `20260914T213855724138Z` at `5f32bdd`, **$6.13**, 40 min, 7 modeller calls: every gate 1.000,
 links 21, zero-satellite hubs 2, review 547, joins held — **WP34 §6 held as written**. Spend over
 all eight attempts $48.27 at the documented rates.
+
+## Step 2, repeat 6 — 2026-09-15, night, widened gate + WP39 + WP40
+
+`20260915T013719090467Z` at `d4ee1ed`, **$6.50**, 43 min: WP34 §6 held as written (links 23,
+zero-satellite hubs 1, review 512, joins 0/0); gates red in person and sales. Spend over all nine
+attempts $54.77 at the documented rates.
