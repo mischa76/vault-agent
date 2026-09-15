@@ -42,8 +42,10 @@ from vault_agent.rules.dv2_rules import (
     hub_collision_remedy,
     is_valid_construct_name,
     normalize_identifier,
+    participation_key,
     role_bk_column,
     satellite_feed,
+    satellite_participation_column,
     satellite_payload_relations,
     source_table_on_multi_source_hub,
 )
@@ -804,7 +806,11 @@ class ValidatorAgent(BaseAgent):
             if link.name in pre_existing:
                 continue
             for ref in link.hub_refs:
-                if ref.role is None:
+                if ref.role is None or ref.source_key_column is not None or (
+                    ref.key_translation is not None
+                ):
+                    # WP41: a repaired role participation reads its key from the alias or the
+                    # translation view, not from the role-prefixed column.
                     continue
                 ref_hub = hub_by_name.get(ref.hub)
                 if ref_hub is None or not ref_hub.business_key.strip():
@@ -1067,8 +1073,15 @@ class ValidatorAgent(BaseAgent):
                                 f"column that is not there",
                             )
                         )
+            participants = {
+                participation_key(ref.hub, ref.role): ref.hub
+                for ref in (
+                    links_by_name[sat.parent].hub_refs if sat.parent in links_by_name else []
+                )
+            }
             for participant, p_translation in sat.participation_translations.items():
-                if not _is_licensed(participant, sat.source_table, p_translation):
+                p_hub = participants.get(participant)
+                if p_hub is None or not _is_licensed(p_hub, sat.source_table, p_translation):
                     issues.append(
                         _issue(
                             "error", "E_SAT_TRANSLATION_UNRATIFIED", sat.name,
@@ -1102,11 +1115,7 @@ class ValidatorAgent(BaseAgent):
                         parent_keys = [canonical_hub_key_column(parent_hub)]
                 elif sat.parent in links_by_name:
                     parent_keys = [
-                        sat.participation_translations[ref.hub].referencing_column
-                        if ref.role is None and ref.hub in sat.participation_translations
-                        else role_bk_column(
-                            canonical_hub_key_column(hub_by_name[ref.hub]), ref.role
-                        )
+                        satellite_participation_column(sat, ref, hub_by_name[ref.hub])
                         for ref in links_by_name[sat.parent].hub_refs
                         if ref.hub in hub_by_name
                     ]

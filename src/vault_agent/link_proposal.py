@@ -21,6 +21,7 @@ column and 7 of those only because they are keyed on ``Name``. Two tiers, both e
 declaration; the third is recorded as rejected rather than silently absent.
 """
 import logging
+from dataclasses import dataclass
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.rules.dv2_rules import (
@@ -30,6 +31,9 @@ from vault_agent.rules.dv2_rules import (
     construct_binds_to_source_table,
     hub_binds_to_source_table,
     normalize_identifier,
+    participation_key,
+    role_bk_column,
+    role_names_column,
 )
 from vault_agent.state import (
     DVModel,
@@ -675,33 +679,94 @@ def apply_ratified_link_proposals(
     return delta
 
 
+@dataclass(frozen=True)
+class _Grant:
+    """One ratified key into a hub as the repair sees it (WP40/WP41): the referencing table and
+    column, and what that column needs — a translation, an alias, or nothing (same name)."""
+
+    table: str
+    column: str
+    hub: Hub
+    translation: KeyTranslation | None
+    alias: str | None
+    by_override: bool
+
+
+def _pair_participations(
+    refs: list[LinkHubRef], grants: list[_Grant], key: str, present: set[str] | None
+) -> list[tuple[LinkHubRef, _Grant]]:
+    """WP41 §2: which ratified key each participation of one hub reads — or none.
+
+    ``refs`` are one link's participations of the grants' hub, ``grants`` the ratified keys into
+    that hub from the relation being read, ``key`` the hub's canonical key column, ``present``
+    the relation's declared columns (``None`` when undeclared). Decided per relation and hub,
+    never per key alone: two keys into one hub are a question only a role can answer."""
+    by_column = {normalize_identifier(g.column): g for g in grants}
+    if len(refs) == 1 and refs[0].role is None:
+        if key in by_column or len(by_column) != 1:
+            return []  # the relation declares the hub's key itself, or which key is not known
+        [grant] = by_column.values()
+        if grant.translation is None and grant.alias is None:
+            return []
+        if present is not None and key in present and grant.translation is not None:
+            # A same-named key column beside a surrogate reference may be a legitimate copy; only
+            # an alias — the E_LINK_KEY_WRONG_COLUMN signature — says that column is another key.
+            return []
+        return [(refs[0], grant)]
+    if len(refs) == 1 and len(by_column) == 1:
+        return [(refs[0], next(iter(by_column.values())))]
+    pairs: list[tuple[LinkHubRef, _Grant]] = []
+    for ref in refs:
+        if ref.role is None:
+            continue  # beside another participation of the same hub: not in the catalogue
+        named = [g for g in by_column.values() if role_names_column(ref.role, g.column)]
+        if len(named) != 1:
+            continue
+        rivals = [
+            r for r in refs if r.role is not None and role_names_column(r.role, named[0].column)
+        ]
+        if len(rivals) == 1:
+            pairs.append((ref, named[0]))
+    return pairs
+
+
+def _needs_repair(ref: LinkHubRef, key: str, present: set[str] | None) -> bool:
+    """Neither alias nor translation yet, and — for a role — its column is not already there."""
+    if ref.key_translation is not None or ref.source_key_column is not None:
+        return False
+    return not (
+        ref.role is not None and present is not None and role_bk_column(key, ref.role) in present
+    )
+
+
 def apply_key_licenses(
     delta: DVModel, existing: DVModel, state: VaultAgentState
 ) -> DVModel:
-    """WP40: repair the staging of constructs the modeler built from a licensed table.
+    """WP40/WP41: repair the staging of constructs the modeler built from a licensed table.
 
     Grants come from ratified key licenses — resolved here against the merged model, every
-    attempt — and from ratified WP34/WP36 link proposals that carry an alias or a translation
-    (the modeler may have built their link itself, which made the link applier skip them as
-    covered). A grant repairs, and never creates:
+    attempt — and from ratified WP34/WP36 link proposals (the modeler may have built their link
+    itself, which made the link applier skip them as covered). Grants are grouped per relation and
+    hub, and each group repairs, never creates (pairing: :func:`_pair_participations`):
 
     1. a link whose staging reads the table — by construct name, or for a link proposal through
-       the override the mapper applies — on its single unqualified participation of the hub,
-       when that participation has neither alias nor translation and the table lacks the key;
-    2. a satellite on the hub read from the table (translation only);
-    3. a satellite on a link with that hub read from the table (translation only, per
-       participation)."""
+       the override the mapper applies — on each participation of the hub a grant pairs with: a
+       translation, or an alias (for a role also a same-named key, from which its role column is
+       derived — WP41);
+    2. a satellite on the hub read from the table, when exactly one key into the hub is ratified
+       and it is a translation;
+    3. a satellite on a link with that hub read from the table, per paired participation: a
+       translation or an alias, keyed by ``participation_key``.
+
+    In a greenfield run ``existing`` is empty (WP41)."""
     licenses = state.link_proposals.ratified_licenses()
-    link_grants = [
-        p for p in state.link_proposals.ratified()
-        if p.translation is not None or p.needs_alias
-    ]
-    if not licenses and not link_grants:
+    ratified = state.link_proposals.ratified()
+    if not licenses and not ratified:
         return delta
     declared = {normalize_identifier(t.table): t for t in state.source_schemas}
     merged = DVModel(hubs=[*existing.hubs, *delta.hubs])
     hubs = {hub.name: hub for hub in merged.hubs}
-    grants: list[tuple[str, Hub, KeyTranslation | None, str | None, bool]] = []
+    grants: list[_Grant] = []
     for lic in licenses:
         lic.target_hub = lic.key_translation = lic.source_key_column = None
         lic.resolved_by_applier = False
@@ -723,26 +788,28 @@ def apply_key_licenses(
         )
         lic.target_hub, lic.key_translation, lic.source_key_column = hub.name, translation, alias
         lic.resolved_by_applier = True
-        if translation is not None or alias is not None:
-            grants.append((lic.source_table, hub, translation, alias, False))
-    for proposal in link_grants:
+        grants.append(_Grant(lic.source_table, lic.source_column, hub, translation, alias, False))
+    for proposal in ratified:
         target = hubs.get(proposal.target_hub)
         if target is not None:
-            grants.append((
-                proposal.source_table, target, proposal.translation,
+            grants.append(_Grant(
+                proposal.source_table, proposal.source_column, target, proposal.translation,
                 proposal.source_column if proposal.needs_alias else None, True,
             ))
+    groups: dict[tuple[str, str], list[_Grant]] = {}
+    for grant in grants:
+        groups.setdefault((normalize_identifier(grant.table), grant.hub.name), []).append(grant)
 
     links_by_name = {link.name: link for link in [*existing.links, *delta.links]}
-    for table, hub, translation, alias, by_override in grants:
-        relation = declared.get(normalize_identifier(table))
+    for (table_key, _), group in groups.items():
+        table, hub = group[0].table, group[0].hub
+        by_override = any(g.by_override for g in group)
+        relation = declared.get(table_key)
         present = (
             {normalize_identifier(c) for c in relation.column_names}
             if relation is not None else None
         )
         key = normalize_identifier(canonical_hub_key_column(hub))
-        if present is not None and key in present:
-            continue  # the table carries the hub's key itself: nothing to repair
         for link in delta.links:
             reads = construct_binds_to_source_table(link.name, table) or (
                 by_override and any(
@@ -751,59 +818,81 @@ def apply_key_licenses(
                     for ref in link.hub_refs
                 )
             )
+            if not reads:
+                continue
             refs = [ref for ref in link.hub_refs if ref.hub == hub.name]
-            if not reads or len(refs) != 1 or refs[0].role is not None:
-                continue
-            ref = refs[0]
-            if ref.key_translation is not None or ref.source_key_column is not None:
-                continue
-            if translation is not None:
-                ref.key_translation = translation
-                state.flag(
-                    "link_proposer",
-                    f"link {link.name}, built by the modeler from {table}, requires "
-                    f"surrogate→natural-key translation through {translation.through_table} for "
-                    f"{hub.name} ({translation.referencing_column} → "
-                    f"{translation.natural_key_column}); repaired under a ratified key; review "
-                    f"the translation model",
-                    kind=FlagKind.LINK_TRANSLATION,
-                    asset=f"{table}.{translation.referencing_column}",
-                )
-            else:
-                ref.source_key_column = alias
-                logger.info("link %s: %s aliased to %s's key under a ratified key",
-                            link.name, alias, hub.name)
-        if translation is None:
-            continue
+            for ref, grant in _pair_participations(refs, group, key, present):
+                if not _needs_repair(ref, key, present):
+                    continue
+                if grant.translation is not None:
+                    t = grant.translation
+                    ref.key_translation = t
+                    state.flag(
+                        "link_proposer",
+                        f"link {link.name}, built by the modeler from {table}, requires "
+                        f"surrogate→natural-key translation through {t.through_table} for "
+                        f"{ref} ({t.referencing_column} → {t.natural_key_column}); repaired under "
+                        f"a ratified key; review the translation model",
+                        kind=FlagKind.LINK_TRANSLATION,
+                        asset=f"{table}.{t.referencing_column}",
+                    )
+                else:
+                    ref.source_key_column = grant.alias if ref.role is None else grant.column
+                    logger.info("link %s: %s aliased to %s's key under a ratified key",
+                                link.name, ref.source_key_column, ref)
         for sat in delta.satellites:
             if (
                 not sat.source_table or sat.sat_type == "effectivity"
-                or normalize_identifier(sat.source_table) != normalize_identifier(table)
+                or normalize_identifier(sat.source_table) != table_key
             ):
                 continue
             if sat.parent == hub.name:
-                if sat.key_translation is not None:
+                columns = {normalize_identifier(g.column) for g in group}
+                if (
+                    sat.key_translation is not None or len(columns) != 1
+                    or group[0].translation is None or (present is not None and key in present)
+                ):
                     continue
-                sat.key_translation = translation
-            else:
-                parent = links_by_name.get(sat.parent)
-                if parent is None:
+                t = group[0].translation
+                sat.key_translation = t
+                state.flag(
+                    "link_proposer",
+                    f"satellite {sat.name} reads {table}, which carries "
+                    f"{t.referencing_column} but not {hub.name}'s key "
+                    f"{t.natural_key_column}: joined in through "
+                    f"{t.through_table} under a ratified key; review the translation model",
+                    kind=FlagKind.SAT_TRANSLATION,
+                    asset=sat.name,
+                )
+                continue
+            parent = links_by_name.get(sat.parent)
+            if parent is None:
+                continue
+            refs = [ref for ref in parent.hub_refs if ref.hub == hub.name]
+            for ref, grant in _pair_participations(refs, group, key, present):
+                p_key = participation_key(ref.hub, ref.role)
+                if (
+                    p_key in sat.participation_translations or p_key in sat.participation_aliases
+                    or (ref.role is not None and present is not None
+                        and role_bk_column(key, ref.role) in present)
+                ):
                     continue
-                refs = [ref for ref in parent.hub_refs if ref.hub == hub.name]
-                if len(refs) != 1 or refs[0].role is not None:
+                if grant.translation is None:
+                    sat.participation_aliases[p_key] = (
+                        grant.alias if ref.role is None and grant.alias else grant.column
+                    )
                     continue
-                if hub.name in sat.participation_translations:
-                    continue
-                sat.participation_translations[hub.name] = translation
-            state.flag(
-                "link_proposer",
-                f"satellite {sat.name} reads {table}, which carries "
-                f"{translation.referencing_column} but not {hub.name}'s key "
-                f"{translation.natural_key_column}: joined in through "
-                f"{translation.through_table} under a ratified key; review the translation model",
-                kind=FlagKind.SAT_TRANSLATION,
-                asset=sat.name,
-            )
+                t = grant.translation
+                sat.participation_translations[p_key] = t
+                state.flag(
+                    "link_proposer",
+                    f"satellite {sat.name} reads {table}, which carries "
+                    f"{t.referencing_column} but not {hub.name}'s key "
+                    f"{t.natural_key_column}: joined in through "
+                    f"{t.through_table} under a ratified key; review the translation model",
+                    kind=FlagKind.SAT_TRANSLATION,
+                    asset=sat.name,
+                )
     return delta
 
 
@@ -853,6 +942,15 @@ def collect_link_proposals(state: VaultAgentState) -> VaultAgentState:
     ``state.link_proposals`` wholesale — because the checkpoint that follows re-executes its
     own node on resume and the two must not drift.
     """
+    if state.existing_model is None and state.source_schemas:
+        # WP41: a grounded greenfield run. Against an empty vault the proposer yields exactly the
+        # key licenses — every declared single-column key into another table of the increment —
+        # and only those are kept: with no vault there is no link to propose and no skip worth a
+        # flag. A schema without declared foreign keys yields nothing and never pauses.
+        greenfield, _ = propose_links(DVModel(), state.source_schemas)
+        state.link_proposals = LinkProposals(licenses=greenfield.licenses)
+        logger.info("link proposer (greenfield): %d key license(s)", len(greenfield.licenses))
+        return state
     if not is_grounded_extension(state):
         return state
     assert state.existing_model is not None  # implied by is_grounded_extension

@@ -362,6 +362,28 @@ def role_bk_column(bk_column: str, role: str | None) -> str:
     return _role_prefix(bk_column, role)
 
 
+def participation_key(hub: str, role: str | None) -> str:
+    """How one link participation is named where a string has to identify it (ADR-0009).
+
+    The hub name, or ``hub:role`` — the form ``LinkHubRef.__str__`` renders and ``driving_key``
+    entries use. WP41 keys a link satellite's per-participation repairs by it, so an unqualified
+    participation keeps the bare hub name WP40 keyed it by."""
+    return hub if role is None else f"{hub}:{role}"
+
+
+def role_names_column(role: str, column: str) -> bool:
+    """Does a participation's role name this source column? (WP41)
+
+    A catalogue does not carry ``COMPONENT_PRODUCTNUMBER``; it carries ``ComponentID`` and declares
+    it as a foreign key. The role names the column when, separator-insensitive, it is contained in
+    the column's name: ``component`` in ``ComponentID``, ``assembly`` in ``ProductAssemblyID``,
+    ``bill_to`` in ``BillToAddressID``. Containment, not similarity — and a caller must require
+    the match to be unique in both directions, because a role that names two columns, or a column
+    two roles name, says nothing about which key is meant."""
+    wanted = _separator_insensitive(role)
+    return bool(wanted) and wanted in _separator_insensitive(column)
+
+
 def canonical_hub_key_column(hub: Any) -> str:
     """The canonical staging column name a hub's key hashes from (WP10 §2.2, one source).
 
@@ -378,6 +400,23 @@ def canonical_hub_key_column(hub: Any) -> str:
     if len(columns) == 1:
         return next(iter(columns))  # sources agree — keep the source name
     return normalize_identifier(hub.business_key)  # disagree — harmonise to the business term
+
+
+def satellite_participation_column(satellite: Any, ref: Any, hub: Any) -> str:
+    """The source column a link satellite's stage reads one participation's key from (WP40/41).
+
+    The translation's referencing column when the key is joined in through a view; the alias
+    when the satellite's relation carries the key under another name; otherwise the
+    participation's own column (``role_bk_column`` over the hub's canonical key). One answer for
+    the staging generator and ``E_SAT_KEY_NOT_IN_SOURCE``, which must never disagree about it."""
+    key = participation_key(ref.hub, ref.role)
+    translation = satellite.participation_translations.get(key)
+    if translation is not None:
+        return str(translation.referencing_column)
+    alias = satellite.participation_aliases.get(key)
+    if alias is not None:
+        return str(alias)
+    return role_bk_column(canonical_hub_key_column(hub), ref.role)
 
 
 def satellite_payload_relations(satellite: Any, parent: Any) -> frozenset[str]:

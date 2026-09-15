@@ -31,9 +31,11 @@ from vault_agent.rules.dv2_rules import (
     construct_base_name,
     construct_binds_to_source_table,
     normalize_identifier,
+    participation_key,
     role_bk_column,
     role_fk_column,
     satellite_feed,
+    satellite_participation_column,
     source_table_on_multi_source_hub,
 )
 from vault_agent.rules.platforms import (
@@ -87,6 +89,10 @@ class StagingSpec:
     # relation, while `source_model`/`source_name` keep naming the raw relation for
     # sources.yml and the metadata — what the project READS is still that relation.
     translations: list[KeyTranslation] = field(default_factory=list)
+    # WP41: parallel to `translations` — the column each one projects the natural key AS. The
+    # natural key's own name for an unqualified participation (today's bytes); the role column
+    # for a role-qualified one, which two roles of one hub through one table cannot do without.
+    translation_columns: list[str] = field(default_factory=list)
     stage_source: str | None = None
 
     def add_hashed(self, name: str, value: str | list[str] | _HashDiff) -> None:
@@ -96,6 +102,13 @@ class StagingSpec:
     def add_source_column(self, column: str) -> None:
         if column not in self.source_columns:
             self.source_columns.append(column)
+
+    def add_translation(self, translation: KeyTranslation, column: str) -> None:
+        if (translation, column) not in zip(
+            self.translations, self.translation_columns, strict=True
+        ):
+            self.translations.append(translation)
+            self.translation_columns.append(column)
 
 
 @dataclass
@@ -268,8 +281,9 @@ def collect_staging_specs(
             if ref.key_translation is not None:
                 # WP36: the hub's key is not in this relation under any name; it arrives
                 # through the translation model (build_staging), which projects it as the
-                # canonical column. What THIS relation must carry is the surrogate.
-                spec.translations.append(ref.key_translation)
+                # canonical column. What THIS relation must carry is the surrogate. WP41: the view
+                # projects it as the column hashed here — a role's own column for a role.
+                spec.add_translation(ref.key_translation, bk_col)
                 spec.add_source_column(_to_column(ref.key_translation.referencing_column))
                 continue
             src_col = _to_column(ref.source_key_column) if ref.source_key_column else bk_col
@@ -331,8 +345,7 @@ def collect_staging_specs(
                     # WP38: the relation carries the surrogate, not the hub's key; the key
                     # arrives through the translation view `build_staging` renders, exactly as
                     # for a translated link participation (WP36).
-                    if sat.key_translation not in spec.translations:
-                        spec.translations.append(sat.key_translation)
+                    spec.add_translation(sat.key_translation, bk_col)
                     spec.add_source_column(_to_column(sat.key_translation.referencing_column))
                 else:
                     spec.add_source_column(bk_col)
@@ -340,20 +353,21 @@ def collect_staging_specs(
                 parent_link = links_by_name[sat.parent]
                 bk_cols = []
                 for ref in parent_link.hub_refs:
-                    bk_col = role_bk_column(
-                        canonical_hub_key_column(hub_by_name[ref.hub]), ref.role
-                    )
+                    ref_hub = hub_by_name[ref.hub]
+                    bk_col = role_bk_column(canonical_hub_key_column(ref_hub), ref.role)
                     bk_cols.append(bk_col)
-                    translated = (
-                        sat.participation_translations.get(ref.hub) if ref.role is None else None
+                    src_col = _to_column(satellite_participation_column(sat, ref, ref_hub))
+                    translated = sat.participation_translations.get(
+                        participation_key(ref.hub, ref.role)
                     )
                     if translated is not None:
-                        # WP40: this participation's key arrives through the translation view.
-                        if translated not in spec.translations:
-                            spec.translations.append(translated)
-                        spec.add_source_column(_to_column(translated.referencing_column))
-                    else:
-                        spec.add_source_column(bk_col)
+                        # WP40: this participation's key arrives through the translation view,
+                        # projected as the column hashed here (WP41: a role's own column).
+                        spec.add_translation(translated, bk_col)
+                    elif src_col != bk_col:
+                        # WP41: the relation carries this key under another name.
+                        spec.derived[bk_col] = src_col
+                    spec.add_source_column(src_col)
                 spec.add_hashed(_link_hashkey(parent_link), bk_cols)
             target_specs = [spec]
         else:
@@ -567,9 +581,9 @@ def _stage_metadata(spec: StagingSpec) -> dict[str, object]:
                     "through_table": t.through_table,
                     "on": f"{_to_column(t.referencing_column)} = "
                           f"{_to_column(t.surrogate_column)}",
-                    "projects": _to_column(t.natural_key_column),
+                    "projects": column,
                 }
-                for t in spec.translations
+                for t, column in zip(spec.translations, spec.translation_columns, strict=True)
             ],
         }
     return meta
@@ -629,9 +643,12 @@ def render_translation_model(
             r_ref = _relation_ref(t.through_table, None)
             r_test = _relation_test_ref(t.through_table, None)
         joins.append((alias, t, r_ref, r_test))
+    # WP41: parallel to the translations — a role-qualified participation's key is projected as
+    # its own role column, so two roles of one hub through one table stay two columns.
+    assert len(spec.translation_columns) == len(spec.translations)
     projected = ", ".join(
-        f"{alias}.{_to_column(t.natural_key_column)} as {_to_column(t.natural_key_column)}"
-        for alias, t, _, _ in joins
+        f"{alias}.{_to_column(t.natural_key_column)} as {column}"
+        for (alias, t, _, _), column in zip(joins, spec.translation_columns, strict=True)
     )
     sql_lines = [
         "-- Generated by vault-agent (WP36, ADR-0013): surrogate→natural-key translation for",
@@ -674,9 +691,9 @@ def render_translation_model(
         f"    description: \"{description} for the link's hash (ADR-0013).\"",
         "    columns:",
     ]
-    for _, t, _, r_test in joins:
+    for (_, t, _, r_test), column in zip(joins, spec.translation_columns, strict=True):
         test_lines += [
-            f"      - name: {_to_column(t.natural_key_column)}",
+            f"      - name: {column}",
             "        tests:",
             "          - not_null",
             f"      - name: {_to_column(t.referencing_column)}",

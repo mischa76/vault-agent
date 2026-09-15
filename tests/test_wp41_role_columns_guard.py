@@ -10,10 +10,10 @@ proposer, modeler (stub extractor), generator and validator:
 * production bill of materials: `BillOfMaterials(ProductAssemblyID, ComponentID → Product.ProductID,
   UnitMeasureCode)`, `hub_product` keyed on `ProductNumber`, the link taking `hub_product` twice.
 
-* ``test_greenfield_proposes_no_license`` — FLIPPED by WP41.
-* ``test_the_contact_link_stage_demands_role_columns_and_its_satellite_is_refused`` — FLIPPED.
-* ``test_an_unqualified_person_from_the_organisation_column_is_refused`` — FLIPPED.
-* ``test_the_bill_of_materials_stage_demands_role_columns`` — FLIPPED.
+* ``test_greenfield_proposes_key_licenses`` — FLIPPED by WP41.
+* ``test_the_contact_link_stage_derives_role_columns_and_its_satellite_passes`` — FLIPPED.
+* ``test_an_unqualified_person_from_the_organisation_column_is_repaired`` — FLIPPED.
+* ``test_the_bill_of_materials_stage_reads_both_roles_through_the_view`` — FLIPPED.
 * ``test_an_unqualified_participation_beside_a_role_of_the_same_hub_is_not_repaired`` — never.
 * ``test_declined_licenses_leave_greenfield_artifacts_byte_identical`` — never.
 * ``test_nothing_is_built_the_modeler_did_not_build`` — never.
@@ -28,12 +28,10 @@ from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
 from vault_agent.agents.orchestrator import apply_link_decision
 from vault_agent.agents.staging_generator import collect_staging_specs
 from vault_agent.agents.validator import ValidatorAgent
-from vault_agent.link_proposal import collect_link_proposals
+from vault_agent.link_proposal import collect_link_proposals, proposal_key
 from vault_agent.state import (
     BusinessKeyCandidate,
     DVModel,
-    Hub,
-    LinkProposals,
     ParsedRequirement,
     SourceTable,
     VaultAgentState,
@@ -51,13 +49,15 @@ def contact_schema(*, foreign_keys: bool = True) -> list[SourceTable]:
     return [
         SourceTable(table="BusinessEntity", columns=["BusinessEntityID", "ModifiedDate"]),
         SourceTable(table="Person", columns=["BusinessEntityID", "FirstName"],
-                    foreign_keys=fks(_fk("BusinessEntityID", "BusinessEntity", "BusinessEntityID"))),
+                    foreign_keys=fks(_fk("BusinessEntityID", "BusinessEntity",
+                                         "BusinessEntityID"))),
         SourceTable(table="ContactType", columns=["ContactTypeID", "Name"]),
         SourceTable(table="BusinessEntityContact",
                     columns=["BusinessEntityID", "PersonID", "ContactTypeID", "ModifiedDate"],
                     foreign_keys=fks(_fk("PersonID", "Person", "BusinessEntityID"),
                                      _fk("ContactTypeID", "ContactType", "ContactTypeID"),
-                                     _fk("BusinessEntityID", "BusinessEntity", "BusinessEntityID"))),
+                                     _fk("BusinessEntityID", "BusinessEntity",
+                                         "BusinessEntityID"))),
     ]
 
 
@@ -138,9 +138,8 @@ def greenfield_state(schemas: list[SourceTable], *, accept: bool = True) -> Vaul
     if accept:
         apply_link_decision(state, {"accept": True})
     else:
-        apply_link_decision(state, {"links": {
-            f"{lic.source_table}.{lic.source_column}": False for lic in state.link_proposals.licenses
-        }})
+        declined = {proposal_key(lic): False for lic in state.link_proposals.licenses}
+        apply_link_decision(state, {"links": declined})
     return state
 
 
@@ -161,27 +160,44 @@ def _codes(state: VaultAgentState, code: str) -> set[str]:
     return {i.construct for i in state.validation_report.issues if i.code == code}
 
 
-def test_greenfield_proposes_no_license() -> None:
+def test_greenfield_proposes_key_licenses() -> None:
+    """Flipped by WP41 in its own commit (pinned at 66b5621 as: no license, `LinkProposals()`)."""
     state = greenfield_state(contact_schema())
-    assert state.link_proposals == LinkProposals()
+    assert "BusinessEntityContact.PersonID" in [
+        proposal_key(lic) for lic in state.link_proposals.licenses
+    ]
+    assert not state.link_proposals.proposals and not state.link_proposals.skipped
 
 
-async def test_the_contact_link_stage_demands_role_columns_and_its_satellite_is_refused() -> None:
+async def test_the_contact_link_stage_derives_role_columns_and_its_satellite_passes() -> None:
+    """Flipped by WP41 (pinned at 66b5621 as: the stage demands ORGANISATION_ and
+    CONTACT_BUSINESSENTITYID, the satellite refused by E_SAT_KEY_NOT_IN_SOURCE)."""
     state = await run_greenfield(contact_payload(), contact_schema())
     columns = _stage_columns(state.dv_model, "stg_business_entity_contact")
-    assert {"ORGANISATION_BUSINESSENTITYID", "CONTACT_BUSINESSENTITYID"} <= columns
-    assert "sat_business_entity_contact_details" in _codes(state, "E_SAT_KEY_NOT_IN_SOURCE")
+    assert not {"ORGANISATION_BUSINESSENTITYID", "CONTACT_BUSINESSENTITYID"} & columns
+    assert {"BUSINESSENTITYID", "PERSONID"} <= columns
+    assert "sat_business_entity_contact_details" not in _codes(state, "E_SAT_KEY_NOT_IN_SOURCE")
 
 
-async def test_an_unqualified_person_from_the_organisation_column_is_refused() -> None:
+async def test_an_unqualified_person_from_the_organisation_column_is_repaired() -> None:
+    """Flipped by WP41 (pinned at 66b5621 as: refused by E_LINK_KEY_WRONG_COLUMN)."""
     state = await run_greenfield(contact_payload(person_role=None), contact_schema())
-    assert "link_business_entity_contact" in _codes(state, "E_LINK_KEY_WRONG_COLUMN")
+    assert "link_business_entity_contact" not in _codes(state, "E_LINK_KEY_WRONG_COLUMN")
+    [link] = state.dv_model.links
+    [person] = [r for r in link.hub_refs if r.hub == "hub_person"]
+    assert person.source_key_column == "PersonID"
 
 
-async def test_the_bill_of_materials_stage_demands_role_columns() -> None:
+async def test_the_bill_of_materials_stage_reads_both_roles_through_the_view() -> None:
+    """Flipped by WP41 (pinned at 66b5621 as: the stage demands ASSEMBLY_ and
+    COMPONENT_PRODUCTNUMBER from BillOfMaterials)."""
     state = await run_greenfield(bom_payload(), bom_schema())
     columns = _stage_columns(state.dv_model, "stg_bill_of_materials")
-    assert {"ASSEMBLY_PRODUCTNUMBER", "COMPONENT_PRODUCTNUMBER"} <= columns
+    assert not {"ASSEMBLY_PRODUCTNUMBER", "COMPONENT_PRODUCTNUMBER"} & columns
+    assert {"PRODUCTASSEMBLYID", "COMPONENTID"} <= columns
+    assert "source_model: 'stg_bill_of_materials_via_" in (
+        state.artifacts.staging_models["stg_bill_of_materials"]
+    )
 
 
 async def test_an_unqualified_participation_beside_a_role_of_the_same_hub_is_not_repaired() -> None:
@@ -205,4 +221,3 @@ async def test_nothing_is_built_the_modeler_did_not_build() -> None:
     assert {hub.name for hub in state.dv_model.hubs} == {
         "hub_business_entity", "hub_person", "hub_contact_type"
     }
-    assert isinstance(state.dv_model, DVModel) and all(isinstance(h, Hub) for h in state.dv_model.hubs)

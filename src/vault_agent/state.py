@@ -755,9 +755,13 @@ class Satellite(BaseModel):
     # declared (`subtype_feed.py`).
     key_translation: KeyTranslation | None = None
     # WP40: for a satellite on a LINK read from its own source table, the translation of each
-    # (unqualified) participation whose hub key that table does not carry — keyed by hub name.
-    # Set by the key-license applier only, stripped from the modeler's schema; {} = today.
+    # participation whose hub key that table does not carry — keyed by participation
+    # (`rules.participation_key`: the hub name, or `hub:role` since WP41). Set by the key-license
+    # applier only, stripped from the modeler's schema; {} = today.
     participation_translations: dict[str, KeyTranslation] = Field(default_factory=dict)
+    # WP41: the same, for a participation whose key that table carries under another name — the
+    # referencing column its key column is derived from. Applier-owned, stripped; {} = today.
+    participation_aliases: dict[str, str] = Field(default_factory=dict)
     # Optional: why this satellite's attributes are grouped/split as they are (rate of
     # change, source, classification). Surfaced in the ADR trail, not enforced.
     split_rationale: str | None = None

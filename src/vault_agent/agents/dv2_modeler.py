@@ -85,7 +85,9 @@ def _strip_proposer_owned(schema: dict[str, Any]) -> dict[str, Any]:
     return schema
 
 
-_PROPOSER_OWNED_SATELLITE_FIELDS = ("key_translation", "participation_translations")
+_PROPOSER_OWNED_SATELLITE_FIELDS = (
+    "key_translation", "participation_translations", "participation_aliases",
+)
 
 
 def _strip_satellite_owned(schema: dict[str, Any]) -> dict[str, Any]:
@@ -259,6 +261,13 @@ class Dv2ModelerAgent(BaseAgent):
             # WP40: ratified keys repair the staging of what the modeler built; nothing new.
             model = apply_key_licenses(model, state.existing_model, state)
             model = merge_models(state.existing_model, model, state)
+        elif state.link_proposals.licenses:
+            # WP41: a grounded greenfield run's proposer offers key licenses only; ratified ones
+            # repair the staging of what this call built, against an empty vault. The other
+            # appliers stay extension-only — there is no vault to link, resolve or subtype into.
+            from vault_agent.link_proposal import apply_key_licenses
+
+            model = apply_key_licenses(model, DVModel(), state)
         state.dv_model = model
         logger.info(
             "modeled %d hub(s), %d link(s), %d satellite(s)",
