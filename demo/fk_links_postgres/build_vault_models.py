@@ -42,12 +42,17 @@ from vault_agent.agents.model_merger import merge_models
 from vault_agent.agents.orchestrator import apply_link_decision
 from vault_agent.agents.source_mapper import rebind_staging
 from vault_agent.agents.validator import ValidatorAgent
-from vault_agent.link_proposal import apply_ratified_link_proposals, collect_link_proposals
+from vault_agent.link_proposal import (
+    apply_key_licenses,
+    apply_ratified_link_proposals,
+    collect_link_proposals,
+)
 from vault_agent.state import (
     RESOLUTION_SAME_AS,
     DVModel,
     EntityResolution,
     Hub,
+    Link,
     Proposal,
     ProposedMapping,
     ResolutionProposal,
@@ -97,6 +102,29 @@ def declared_source_schema() -> list[SourceTable]:
             foreign_keys=[
                 {"columns": ["BusinessEntityID"], "references_table": "Employee",
                  "references_columns": ["BusinessEntityID"]},
+            ],
+        ),
+        # WP40: this increment's own table, hubbed by the modeler in the same call (on Name).
+        SourceTable(table="Location", columns=["LocationID", "Name"]),
+        # WP40: references Product (existing hub, WP36 proposal) and Location (no hub yet — a
+        # key license); the modeler builds a link and a link satellite from it.
+        SourceTable(
+            table="ProductInventory",
+            columns=["ProductID", "LocationID", "Quantity", "Shelf"],
+            foreign_keys=[
+                {"columns": ["ProductID"], "references_table": "Product",
+                 "references_columns": ["ProductID"]},
+                {"columns": ["LocationID"], "references_table": "Location",
+                 "references_columns": ["LocationID"]},
+            ],
+        ),
+        # WP40: a history keyed on Location's surrogate, a satellite on hub_location.
+        SourceTable(
+            table="LocationCapacityHistory",
+            columns=["LocationID", "StartDate", "CostRate"],
+            foreign_keys=[
+                {"columns": ["LocationID"], "references_table": "Location",
+                 "references_columns": ["LocationID"]},
             ],
         ),
         # WP39: keyed on the subtype's key — two hops from Employee.
@@ -159,6 +187,15 @@ def modeler_delta() -> DVModel:
             # WP39: the near side of the two-hop link.
             Hub(name="hub_sales_order", business_key="SalesOrderNumber",
                 source_entity="SalesOrderHeader", description="A sales order."),
+            # WP40: built from this increment's Location, keyed on its natural key.
+            Hub(name="hub_location", business_key="Name", source_entity="Location",
+                description="A stock location, anchored on its name."),
+        ],
+        links=[
+            # WP40: the modeler's own link, read by name from ProductInventory, which carries
+            # neither PRODUCTNUMBER nor the location's NAME — repaired under ratified keys.
+            Link(name="link_product_inventory", connected_hubs=["hub_product", "hub_location"],
+                 description="Stock of a product at a location."),
         ],
         satellites=[
             Satellite(name="sat_vendor_details", parent="hub_vendor",
@@ -168,6 +205,15 @@ def modeler_delta() -> DVModel:
             Satellite(name="sat_sales_person_details", parent="hub_employee",
                       attributes=["SalesQuota", "Bonus"], source_table="SalesPerson",
                       description="The sales-representative role of an employee."),
+            # WP40: a link satellite from the link's own table, and a hub satellite from a history
+            # keyed on the location's surrogate.
+            Satellite(name="sat_product_inventory_details", parent="link_product_inventory",
+                      attributes=["Quantity", "Shelf"], source_table="ProductInventory",
+                      description="Stock level of a product at a location."),
+            Satellite(name="sat_location_capacity_history", parent="hub_location",
+                      attributes=["CostRate"], source_table="LocationCapacityHistory",
+                      sat_type="multi_active", child_dependent_key=["StartDate"],
+                      description="Capacity cost history of a location."),
             # WP39: the role's quota history — a table keyed on the subtype's key, two hops on.
             Satellite(name="sat_sales_person_quota_history", parent="hub_employee",
                       attributes=["SalesQuota"], source_table="SalesPersonQuotaHistory",
@@ -194,6 +240,7 @@ async def build_state() -> VaultAgentState:
     apply_link_decision(state, {"accept": True})  # the checkpoint, as `run --accept` answers it
     delta = apply_ratified_link_proposals(modeler_delta(), existing, state)  # dv2_modeler
     delta = apply_subtype_feeds(delta, existing, state)                        # dv2_modeler, WP38
+    delta = apply_key_licenses(delta, existing, state)                         # dv2_modeler, WP40
     state.dv_model = merge_models(existing, delta, state)
     state = await CodeGeneratorAgent().run(state)
     state = await ValidatorAgent().run(state)

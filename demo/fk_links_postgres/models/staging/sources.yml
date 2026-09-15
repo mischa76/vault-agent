@@ -24,9 +24,15 @@ sources:
         # expected columns: SHOPPINGCARTITEMID, LOAD_DATETIME, RECORD_SOURCE, PRODUCTID
       - name: SalesOrderHeader
         # expected columns: SALESORDERNUMBER, LOAD_DATETIME, RECORD_SOURCE, SALESPERSONID
+      - name: Location
+        # expected columns: NAME, LOAD_DATETIME, RECORD_SOURCE
+      - name: ProductInventory
+        # expected columns: PRODUCTID, LOCATIONID, LOAD_DATETIME, RECORD_SOURCE, QUANTITY, SHELF
       - name: ProductVendor
         # expected columns: PRODUCTID, UNITMEASURECODE, BUSINESSENTITYID, LOAD_DATETIME, RECORD_SOURCE
       - name: SalesPerson
         # expected columns: BUSINESSENTITYID, SALESQUOTA, BONUS, LOAD_DATETIME, RECORD_SOURCE
+      - name: LocationCapacityHistory
+        # expected columns: LOCATIONID, COSTRATE, STARTDATE, LOAD_DATETIME, RECORD_SOURCE
       - name: SalesPersonQuotaHistory
         # expected columns: BUSINESSENTITYID, SALESQUOTA, QUOTADATE, LOAD_DATETIME, RECORD_SOURCE
