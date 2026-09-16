@@ -152,10 +152,14 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   `20260916T153832701383Z`): the person step is green for the first time, 13 greenfield key licenses
   accepted and all resolved (13/5/27/4/16 over the chain), §6's four clauses held, review 516. Sales
   is red for causes outside WP41 (`E_HUB_HK_COLLISION`; a composite key under
-  `E_SAT_KEY_NOT_IN_SOURCE`). **Still unrepaired and only warned about:** a link whose NAME does not
-  match its relation gets no key repair — the modeler built `link_bom` (`BillOfMaterials`) and
-  `link_currency_rate_currencies` (`CurrencyRate`), each taking one hub twice by role; their stages
-  demand columns no relation carries. `docs/log.md` 2026-09-16.
+  `E_SAT_KEY_NOT_IN_SOURCE`). **WP42 (2026-09-16) repaired the name-bound gap:** a link's relation is
+  resolved by name, else by the one declared relation whose offer covers its participations, so
+  `link_bom` and `link_currency_rate_currencies` are repaired; replayed, role warnings fell 18 → 5.
+  **Still open from it:** staging binding is unchanged and still name-based, so a renamed link's
+  stage infers `raw_<name>` and **no `dbt build` covers WP42** (its own commit, next); and
+  `link_store_sales_representative` is newly refused in 3 steps for hashing `hub_sales_representative`
+  from `Store.BusinessEntityID` while the table declares `SalesPersonID` — a real wrong-entity join,
+  sitting on the two-hubs-on-one-source-entity defect. `docs/log.md` 2026-09-16.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

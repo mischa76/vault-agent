@@ -586,6 +586,64 @@ def construct_binds_to_source_table(construct_name: str, table_name: str) -> boo
     return _separator_insensitive(table_name) in candidates
 
 
+def link_relation_offer(relation: Any, model: Any, resolve: Any) -> dict[str, int]:
+    """Which hubs a relation offers, and how often (WP42 §2).
+
+    A relation offers every hub built FROM it (``hub_binds_to_source_table`` — by name or by
+    provenance) plus every hub its single-column foreign keys resolve to, counted with
+    multiplicity: ``BillOfMaterials`` declares two keys into ``Product`` and therefore offers
+    ``hub_product`` twice, which is exactly what a bill-of-materials link takes.
+
+    ``resolve`` is the caller's FK resolution (``link_proposal.resolve_fk_target`` bound to the
+    model and the declared tables) — passed in so ``rules/`` stays free of that module."""
+    angebot: dict[str, int] = {}
+    for fk in getattr(relation, "foreign_keys", None) or []:
+        if not getattr(fk, "is_single_column", False):
+            continue
+        hub = resolve(fk)
+        if hub is not None:
+            angebot[hub.name] = angebot.get(hub.name, 0) + 1
+    for hub in getattr(model, "hubs", None) or []:
+        if hub_binds_to_source_table(hub, relation.table):
+            angebot[hub.name] = max(angebot.get(hub.name, 0), 1)
+    return angebot
+
+
+def resolve_link_relation(link: Any, model: Any, schemas: Any, resolve: Any) -> tuple[Any, str]:
+    """The declared relation a link reads — ``(relation, grund)``; relation is None when unknown.
+
+    Two tiers, and deliberately no third (WP42 §2):
+
+    * **name** — exactly one declared table the link's construct name binds. Unchanged, tried
+      first, so every binding that held before holds now.
+    * **offer** — otherwise exactly one declared relation whose offer covers the link's
+      participations as a multiset. Two or more fitting relations bind NOTHING: over six chains
+      24 links fit more than one relation, always the same shapes (``Customer`` beside
+      ``SalesOrderHeader``, ``BillOfMaterials`` beside ``Product``), and picking one would be a
+      guess with wrong data as the failure mode.
+
+    A satellite's ``source_table`` is not a tier: measured over the same corpus it resolves 1 of
+    those 24 and contradicts a unique offer match once (``link_transaction_product``).
+
+    ``grund`` is a code, never a sentence: ``name``, ``offer``, ``ambiguous``, ``none``."""
+    benannt = [t for t in schemas if construct_binds_to_source_table(link.name, t.table)]
+    if len(benannt) == 1:
+        return benannt[0], "name"
+    gewollt: dict[str, int] = {}
+    for ref in link.hub_refs:
+        gewollt[ref.hub] = gewollt.get(ref.hub, 0) + 1
+    passend = []
+    for relation in schemas:
+        angebot = link_relation_offer(
+            relation, model, lambda fk, _relation=relation: resolve(_relation, fk)
+        )
+        if angebot and all(angebot.get(hub, 0) >= n for hub, n in gewollt.items()):
+            passend.append(relation)
+    if len(passend) == 1:
+        return passend[0], "offer"
+    return None, ("ambiguous" if passend else "none")
+
+
 def hub_binds_to_source_table(hub: Any, table_name: str) -> bool:
     """True when a hub is built FROM this declared source table — by name or by provenance.
 

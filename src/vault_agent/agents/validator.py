@@ -37,12 +37,12 @@ from vault_agent.rules.dv2_rules import (
     REQUIRED_SAT_COLUMNS,
     SAT_WIDE_ATTRIBUTE_THRESHOLD,
     canonical_hub_key_column,
-    construct_binds_to_source_table,
     effectivity_date_pair,
     hub_collision_remedy,
     is_valid_construct_name,
     normalize_identifier,
     participation_key,
+    resolve_link_relation,
     role_bk_column,
     satellite_feed,
     satellite_participation_column,
@@ -839,6 +839,9 @@ class ValidatorAgent(BaseAgent):
         # than merely incomplete. Checked against the relation the link's staging actually
         # binds to where the schema names one, and against the whole schema where it does not
         # — as precise as the available information allows, never stricter.
+        # WP42: das Tabellenverzeichnis, das die FK-Aufloesung und damit die Link-Bindung
+        # braucht — hier angelegt, weil beide Link-Gates es nutzen.
+        declared_tables = {normalize_identifier(t.table): t for t in state.source_schemas}
         ratified_translations = {
             (p.target_hub, normalize_identifier(p.translation.referencing_column))
             for p in state.link_proposals.ratified()
@@ -858,11 +861,12 @@ class ValidatorAgent(BaseAgent):
         for link in state.dv_model.links:
             if link.name in pre_existing:
                 continue
-            bound = [
-                table
-                for table in state.source_schemas
-                if construct_binds_to_source_table(link.name, table.table)
-            ]
+            # WP42: name first, then the relation whose offer covers this link's participations.
+            gelesen, _ = resolve_link_relation(
+                link, state.dv_model, state.source_schemas,
+                lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared_tables)[0],
+            )
+            bound = [gelesen] if gelesen is not None else []
             in_scope = (
                 {normalize_identifier(c) for t in bound for c in t.column_names}
                 if bound
@@ -944,18 +948,18 @@ class ValidatorAgent(BaseAgent):
         # as PersonID → Person. Out of scope: role-qualified participations, repaired ones (alias,
         # translation), a K the relation lacks (that fails loudly at build), relations without
         # declared foreign keys (WP34 inertness).
-        declared = {normalize_identifier(t.table): t for t in state.source_schemas}
+        declared = declared_tables
         for link in state.dv_model.links:
             if link.name in pre_existing:
                 continue
-            bound = [
-                table
-                for table in state.source_schemas
-                if construct_binds_to_source_table(link.name, table.table)
-            ]
-            if len(bound) != 1 or not bound[0].foreign_keys:
+            # WP42: dieselbe Bindung wie im Gate darueber — Name, sonst eindeutiges Angebot.
+            gelesen, _ = resolve_link_relation(
+                link, state.dv_model, state.source_schemas,
+                lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
+            )
+            if gelesen is None or not gelesen.foreign_keys:
                 continue
-            link_relation = bound[0]
+            link_relation = gelesen
             present = {normalize_identifier(c) for c in link_relation.column_names}
             single_keys = [fk for fk in link_relation.foreign_keys if fk.is_single_column]
             resolved = [

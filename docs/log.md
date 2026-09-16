@@ -5615,3 +5615,85 @@ eval/results` returns 0.
 generated models and traces into a repo that goes public, and the entries carry the numbers that
 matter. Recording the limit is the cheaper half of the trade — deciding whether to lift it is the
 user's.
+
+## [2026-09-16] WP42 built — a link's relation resolved by more than its name; keyless and replayed, no Postgres build
+
+**What changed** (user: „fahre fort mit dem topic 'Links nicht nur über den Namen an ihre Relation
+binden'", then „ago!"). One helper in `rules/` — `resolve_link_relation` — and three call sites, no
+fourth: the key-license repair (`apply_key_licenses`), `E_LINK_KEY_NOT_IN_SOURCE` and
+`E_LINK_KEY_WRONG_COLUMN`. Two tiers and deliberately no third. **Name:** exactly one declared table
+the link's construct name binds — unchanged, tried first, so every binding that held before holds
+now. **Offer:** otherwise the one relation whose offer covers the link's participations as a
+multiset, where a relation offers the hubs built from it (`hub_binds_to_source_table`) plus the hubs
+its single-column foreign keys resolve to (`resolve_fk_target`), counted with multiplicity. Two or
+more fitting relations bind nothing. The helper returns a typed reason — `name`, `offer`,
+`ambiguous`, `none` — and callers branch on that, never on prose. Opening `b7bad22` (spec, kick-off,
+guard), feature in the commit after it; 1043 passed, ruff, bare mypy.
+
+**Why it was wrong before.** A link was bound to its source relation by its CONSTRUCT NAME alone,
+and the modeler names links freely. Over the 348 links the six persisted `adventureworks_incremental`
+chains add, the name bound **84**. The rest were invisible to every key repair and every link gate —
+not because a rule failed, but because no relation was ever found to apply one against. The paid
+chain of 2026-09-16 built `link_bom` (relation `BillOfMaterials`) and `link_currency_rate_currencies`
+(relation `CurrencyRate`), each taking one hub twice by role; both kept `W_ROLE_BK_NOT_IN_SOURCE` and
+staged columns no relation carries.
+
+**Why a satellite's `source_table` is not a third tier.** Measured over the same corpus it resolves
+1 of the 24 ambiguous cases and contradicts a unique offer match once (`link_transaction_product`:
+the satellite names `ProductCostHistory`, the offer names `TransactionHistory`). A source that
+disagrees once in seven may inform a human; it must not set a binding.
+
+**Replay, zero cost** — every persisted step of the six chains; proposer, `--accept`, license
+applier, the validator's grounding gates; the same script on the tree before and after the feature:
+
+| | before | after |
+|---|---|---|
+| `W_ROLE_BK_NOT_IN_SOURCE` | 18 | 5 |
+| `E_LINK_KEY_WRONG_COLUMN` | 0 | 3 |
+| `E_SAT_KEY_NOT_IN_SOURCE` | 15 | 15 |
+| `W_ATTR_NOT_IN_SOURCE` | 24 | 24 |
+| `W_BK_NOT_IN_SOURCE` | 4 | 4 |
+| participations repaired (alias / translation) | 22 / 81 | 40 / 159 |
+| participations left unrepaired | 640 | 544 |
+
+The two gates that have nothing to do with link binding did not move — the control that says the
+change is where it claims to be. Both motivating links left the warning list: `link_bom` is now
+repaired through `Product` for `assembly` and `component`, `link_currency_rate_currencies` by alias
+for `from` and `to`.
+
+**The binding reasons reproduce the spec's own measurement**, computed by the shipped helper rather
+than by the throwaway script that produced §1: 84 `name`, 219 `offer`, 24 `ambiguous`, 21 `none`
+over all 348 links. Two independent implementations of the rule agree on every link.
+
+**The gates got stricter, and the finding is real.** The kick-off predicted red steps that were green
+out of blindness; all 3 new `E_LINK_KEY_WRONG_COLUMN` fires are one shape, on three separate chains:
+`link_store_sales_representative` hashes `hub_sales_representative` from `Store.BusinessEntityID`,
+which `Store` declares as a key into `BusinessEntity`, while the same table declares the sales
+representative's key as `SalesPersonID`. That is the same wrong-entity join class as the
+`link_business_entity_contact` case of 2026-09-15: it builds cleanly and joins the wrong entity. The
+gate is right to refuse it, and the refusal is new only because the link's name is not `Store`.
+Underneath it sits the modelling defect this WP does not touch: two hubs on one source entity
+(`hub_sales_representative` beside `hub_employee`).
+
+**What stays unbound, by design.** The 5 remaining role warnings are exactly the residue the rule
+declines to guess: `link_employee_manager` in 3 chains (reason `none` — no relation offers
+`hub_employee` twice), `link_product_size_unit` and `link_product_weight_unit` (reason `ambiguous`).
+
+**A guard corrected in its own commit.** Of the two pins written at `b7bad22`, the first flipped as
+predicted. The second — „the wrong-column gate is blind to such a link" — asserted the wrong
+mechanism: after the change the gate is indeed silent on the renamed contact link, but because the
+key-license repair runs BEFORE it and fixes the hash, not because the gate is still blind. It was
+rewritten to pin what actually happens and split in two: the repair reaching the renamed link, and —
+with the licence declined, so nothing repairs it — the gate now refusing the wrong-entity hash it
+never saw before. The old name and the reason are recorded in the file.
+
+**Not verified: anything on PostgreSQL, and no live run.** The demo was extended with the renamed
+link and then reverted, for a reason worth recording: WP42 binds the *vault*, but staging binding is
+still name-based. `link_source_overrides` finds a relationship link's table through
+`_relationship_link_name` (the link must be called `link_<table>`), so a renamed link's stage falls
+back to the inferred `raw_bom`, which no seed provides, and `dbt build` cannot be green. The builder
+said so itself: `source_binding: staging model 'stg_bom' assumes raw source 'raw_bom'`. Spec §6
+deferred exactly this change because it alters generated SQL. Asked, the user chose to land WP42
+first and do the staging binding as its own commit — guard first, then `link_source_overrides`
+through `resolve_link_relation`, then the demo and the build. So §5's Postgres acceptance is **not
+met by this commit**, deliberately and with the evidence above standing in its place.

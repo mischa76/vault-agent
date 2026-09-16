@@ -5,8 +5,14 @@ The shape the paid chain of 2026-09-16 produced: the modeler builds the bill of 
 `component`. WP41's pairing never sees it, because a link is bound to its relation by its
 CONSTRUCT NAME and `bom` is not `BillOfMaterials`.
 
-* ``test_a_link_whose_name_misses_its_relation_is_not_repaired`` — FLIPPED by WP42.
-* ``test_the_wrong_column_gate_is_blind_to_such_a_link`` — FLIPPED by WP42.
+* ``test_a_link_whose_name_misses_its_relation_is_repaired`` — FLIPPED by WP42.
+* ``test_the_repair_reaches_a_renamed_contact_link`` — FLIPPED by WP42. Renamed from
+  ``test_the_wrong_column_gate_is_blind_to_such_a_link``, which asserted the wrong mechanism: the
+  gate does stay silent, but because the key-license repair runs BEFORE it and fixes the hash, not
+  because the gate is still blind. The blindness it meant to pin is now pinned where it is
+  visible — with the licence declined, below.
+* ``test_with_the_licence_declined_the_gate_now_sees_the_wrong_column`` — the other half of the
+  same flip: unrepaired, the wrong-entity hash is refused, which before WP42 it never was.
 * ``test_two_fitting_relations_bind_nothing`` — never flipped.
 * ``test_a_relation_that_misses_a_participation_binds_nothing`` — never flipped.
 * ``test_nothing_is_built_that_the_modeler_did_not_build`` — never flipped.
@@ -49,21 +55,38 @@ def _codes(state: VaultAgentState, code: str) -> set[str]:
     return {i.construct for i in state.validation_report.issues if i.code == code}
 
 
-async def test_a_link_whose_name_misses_its_relation_is_not_repaired() -> None:
-    """Flipped by WP42 in its own commit: today no participation is paired, and both roles
-    raise W_ROLE_BK_NOT_IN_SOURCE."""
+async def test_a_link_whose_name_misses_its_relation_is_repaired() -> None:
+    """Flipped by WP42 (pinned at b7bad22 as: no participation paired, both roles raising
+    W_ROLE_BK_NOT_IN_SOURCE). `link_bom` binds `BillOfMaterials` through the offer tier, so
+    WP41's pairing reaches it."""
     state = await run_greenfield(bom_unter_falschem_namen(), bom_schema())
     [link] = [lk for lk in state.dv_model.links if lk.name == "link_bom"]
     produkt = [r for r in link.hub_refs if r.hub == "hub_product"]
-    assert all(r.key_translation is None and r.source_key_column is None for r in produkt)
-    assert _codes(state, "W_ROLE_BK_NOT_IN_SOURCE") == {"link_bom"}
+    assert all(r.key_translation is not None for r in produkt)
+    assert {r.role for r in produkt} == {"assembly", "component"}
+    assert _codes(state, "W_ROLE_BK_NOT_IN_SOURCE") == set()
 
 
-async def test_the_wrong_column_gate_is_blind_to_such_a_link() -> None:
-    """Flipped by WP42: the unqualified person is hashed from the organisation's column, but
-    the gate never looks, because the link's name binds no relation."""
+async def test_the_repair_reaches_a_renamed_contact_link() -> None:
+    """Flipped by WP42 (pinned at b7bad22 as: the link is invisible to the repair and the
+    wrong-column gate alike). The person is now hashed from `PersonID`, not from the
+    organisation's column — the repair runs before the gate, so the gate stays silent."""
     state = await run_greenfield(kontakt_unter_falschem_namen(), contact_schema())
+    [link] = [lk for lk in state.dv_model.links if lk.name == "link_kontaktrolle"]
+    [person] = [r for r in link.hub_refs if r.hub == "hub_person"]
+    assert person.source_key_column == "PersonID"
     assert _codes(state, "E_LINK_KEY_WRONG_COLUMN") == set()
+
+
+async def test_with_the_licence_declined_the_gate_now_sees_the_wrong_column() -> None:
+    """The other half of the same change: decline the key and nothing repairs the link — then
+    the wrong-entity hash must be refused, which before WP42 it never was, because the link's
+    name bound no relation to check against."""
+    state = await run_greenfield(kontakt_unter_falschem_namen(), contact_schema(), accept=False)
+    [link] = [lk for lk in state.dv_model.links if lk.name == "link_kontaktrolle"]
+    [person] = [r for r in link.hub_refs if r.hub == "hub_person"]
+    assert person.source_key_column is None
+    assert _codes(state, "E_LINK_KEY_WRONG_COLUMN") == {"link_kontaktrolle"}
 
 
 async def test_two_fitting_relations_bind_nothing() -> None:

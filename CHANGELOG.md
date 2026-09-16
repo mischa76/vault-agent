@@ -20,6 +20,16 @@ is not the project's.
   to a hub in neither the delta nor the vault is still dropped.
 
 ### Added
+- A link's relation resolved by more than its name (WP42): a link used to be tied to its source
+  relation by its construct name, and the modeler names links freely — over six recorded chains the
+  name bound 84 of 348 links, leaving the rest invisible to every key repair and every link gate.
+  The relation is now found by name first and otherwise by the single declared relation whose
+  offer — the hubs built from it plus the hubs its single-column foreign keys resolve to, counted
+  with multiplicity — covers the link's participations; two fitting relations bind nothing. Replayed
+  over those chains: role warnings 18 → 5, repaired participations 103 → 199, and three links whose
+  name never matched a table are now refused for hashing a hub from another entity's key
+  (`link_store_sales_representative` from `Store.BusinessEntityID`). Staging binding is unchanged and
+  still name-based. Keyless and replayed; no PostgreSQL build, no live run.
 - Role columns from declared keys (WP41): a role-qualified link participation takes its key from a
   ratified foreign key — the only key into its hub, or the one whose column its role names
   (`component` → `ComponentID`) — instead of demanding `ROLE_<key>`. Same-named and renamed keys

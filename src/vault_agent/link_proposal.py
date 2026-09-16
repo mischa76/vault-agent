@@ -28,10 +28,10 @@ from vault_agent.rules.dv2_rules import (
     canonical_hub_key_column,
     construct_base_from_table,
     construct_base_name,
-    construct_binds_to_source_table,
     hub_binds_to_source_table,
     normalize_identifier,
     participation_key,
+    resolve_link_relation,
     role_bk_column,
     role_names_column,
 )
@@ -811,7 +811,17 @@ def apply_key_licenses(
         )
         key = normalize_identifier(canonical_hub_key_column(hub))
         for link in delta.links:
-            reads = construct_binds_to_source_table(link.name, table) or (
+            # WP42: which relation a link reads is no longer its name alone. The modeler names
+            # links freely (`link_bom` from `BillOfMaterials`), and over six chains only 84 of
+            # 348 new links bound by name — the repair never saw the rest.
+            gelesen, _ = resolve_link_relation(
+                link, merged, state.source_schemas,
+                lambda _relation, fk: resolve_fk_target(merged, fk, declared)[0],
+            )
+            reads = (
+                gelesen is not None
+                and normalize_identifier(gelesen.table) == table_key
+            ) or (
                 by_override and any(
                     ref.hub != hub.name and ref.hub in hubs
                     and hub_binds_to_source_table(hubs[ref.hub], table)
