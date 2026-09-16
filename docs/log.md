@@ -5591,3 +5591,27 @@ name — the modeler's naming (`link_bom`, `link_currency_rate_currencies`) is w
 and WP34's own `hub_binds_to_source_table` already resolves hubs by provenance as well as by name.
 (2) Then, and only then, candidate 3 (`W_ROLE_BK_NOT_IN_SOURCE` as an error) becomes meaningful: today
 it would refuse exactly the four participations that (1) would repair.
+
+## [2026-09-16] Addendum to the entry above: the evidence it cites is machine-local
+
+**What this corrects.** The entry above says its numbers come "from the run's own result files and its
+trace". True — but a reader cannot follow that: `eval/results/` is ignored (`.gitignore:72`), and
+`git ls-files eval/results` counts **0** versioned files. The result JSONs, the persisted step models
+and the trace of `20260916T153832701383Z` exist only on the machine that paid for the run. The same
+holds for every earlier chain this log cites, back to the first.
+
+**Why it matters now.** The evidence classes fixed on 2026-09-16 rank a run stamp as a first-class
+reference, and the tool that resolves them (`~/wiki/tools/eintraege.py --belege`) resolved all 38
+stamps — but only because those artifacts happen to lie on this machine. Elsewhere the same stamp
+resolves to nothing. A stamp is therefore a pointer to a local artifact, not a durable record; what
+travels is the entry.
+
+**Verified:** `git check-ignore -v` names `.gitignore:72` for the result file, and `git ls-files
+eval/results` returns 0.
+
+**Only assumed:** nothing.
+
+**Not done:** the ignore rule was not changed. Committing chain artifacts would put megabytes of
+generated models and traces into a repo that goes public, and the entries carry the numbers that
+matter. Recording the limit is the cheaper half of the trade — deciding whether to lift it is the
+user's.
