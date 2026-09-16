@@ -5493,3 +5493,45 @@ stage.
 the pause adds to review load. **Not done:** a dated addendum in the WP41 spec (the record hook refuses
 edits under `docs/architecture/`; this entry is the record); the 3 unqualified-beside-role links;
 candidate (3), `W_ROLE_BK_NOT_IN_SOURCE` as an error.
+
+## [2026-09-16] Pre-registration for the next paid chain — WP41 live, written before the run
+
+**What this run measures.** WP41 (role columns from declared keys, key licenses in greenfield) has
+never run live; WP39, WP40 and `E_LINK_KEY_WRONG_COLUMN` are in the tree as well. One chain of
+`adventureworks_incremental`, one repeat, on the committed state `7fac6e9`:
+`uv run python eval/run.py --dataset adventureworks_incremental --repeat 1`. Cost at the documented
+rates: ≈ $6.50; abort and report if it passes $10.
+
+**Predictions, falsifiable, in the order they will be checked.**
+
+* **P1 — greenfield licenses exist.** Step 1 (person) is greenfield. The proposer offers key
+  licenses there for the first time; the replay counted 13 declared single-column keys into other
+  tables of that increment. Expected: licenses offered ≈ 13, all accepted by the unattended
+  `--accept`, and ≥ 1 resolved after modelling. Zero licenses would mean the greenfield path did not
+  fire at all.
+* **P2 — the wrong-entity join is gone.** `link_business_entity_contact` no longer hashes
+  `hub_person` from `BusinessEntityID`. Either the participation carries the alias `PersonID`, or
+  the modeler builds the link differently. `E_LINK_KEY_WRONG_COLUMN` does not appear in step 1.
+* **P3 — the person gate.** `validation_gate` = 1.0 for step 1. This is the actual bet: on
+  2026-09-15 it was 0.0 because of a role column the table lacks. If it is red again, the reason
+  must be a *different* code than `E_SAT_KEY_NOT_IN_SOURCE` on a role column or
+  `E_LINK_KEY_WRONG_COLUMN` — otherwise WP41 did not do its job.
+* **P4 — the bill of materials.** If the modeler again builds `hub_product` twice with roles
+  (`assembly`/`component`), both participations are translated through `Product` and the step's
+  satellites on that link are not refused. If it builds one participation unqualified beside a role,
+  that one stays unrepaired — spec §5 excludes it, and that outcome counts as expected, not as a
+  failure.
+* **P5 — review load rises.** Every license decision and every repair raises its own item, so the
+  load should exceed the 512 of 2026-09-15 and may cross WP34 §6's bar of 619. Crossing it is a
+  finding about the bar (ADR-0013 §3 wants each join seen), not a regression — but it must be named
+  as such, not explained away.
+* **P6 — §6's four clauses**, evaluated by the unmodified `eval.wp34_check`: cross-domain links ≥ 8
+  (arm A: 16), zero-satellite hubs ≤ 2, 0 unsound aliases and 0 `E_LINK_KEY_NOT_IN_SOURCE`, and no
+  `hub_sales_representative`.
+
+**Not predicted, deliberately.** Anything about `dbt build` — AdventureWorks has no seeds here, so
+this chain proves modelling, not warehouse output. And nothing about cost per step; the total is the
+only figure the protocol tracks.
+
+**Why this entry exists before the run:** the WP41 spec cannot take an addendum (the record hook
+refuses edits under `docs/architecture/`), and a prediction written afterwards is not a prediction.
