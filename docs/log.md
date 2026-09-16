@@ -5535,3 +5535,59 @@ only figure the protocol tracks.
 
 **Why this entry exists before the run:** the WP41 spec cannot take an addendum (the record hook
 refuses edits under `docs/architecture/`), and a prediction written afterwards is not a prediction.
+
+## [2026-09-16] Paid chain with WP41 live: the person step is green for the first time — and the repair misses a link whose name does not match its table
+
+**The run.** `20260916T153832701383Z` at `4a814cf` (the pre-registration commit; the code is
+identical to `7fac6e9`), 40 min, 102 calls, 543k prompt tokens (31 % cache hit), 256k out. Gates per
+step: **1.0, 1.0, 1.0, 1.0, 0.0**. Review 516 (20 / 46 / 129 / 97 / 224), 143 flags.
+
+**Against the pre-registration, clause by clause.**
+
+* **P1 held.** Greenfield licenses fired on their first live run: step 1 offered and accepted **13**,
+  and resolved all 13 — exactly the replay's count. Across the chain: 13 / 5 / 27 / 4 / 16, every one
+  resolved.
+* **P2 held.** `link_business_entity_contact` no longer hashes `hub_person` from `BusinessEntityID`.
+  The modeler built it role-qualified this time, and the pairing gave each role its declared key:
+  `hub_business_entity` (role `organisation`) ← `BusinessEntityID`, `hub_person` (role `contact`) ←
+  `PersonID`. `E_LINK_KEY_WRONG_COLUMN` appears in no step.
+* **P3 held — the bet.** Step 1's `validation_gate` is **1.0**, up from 0.0 on 2026-09-15. Its only
+  finding is `W_BK_COLLISION_RISK`, a warning. The person step has never been green before.
+* **P4 did not fire, and that is the finding.** The modeler built the bill of materials as
+  **`link_bom`**, with `hub_product` twice under the roles `assembly` and `component` — exactly the
+  shape WP41 was built for. Neither participation carries an alias or a translation. The reason is
+  not the pairing rule: the repair binds a link to its relation by CONSTRUCT NAME
+  (`construct_binds_to_source_table`), and `bom` does not match `BillOfMaterials`. The same shape
+  hits `link_currency_rate_currencies` (roles `from`/`to`, relation `CurrencyRate`). Both keep the
+  `W_ROLE_BK_NOT_IN_SOURCE` warnings — 2 in step 3, 2 in step 5 — and their stages still demand
+  `ASSEMBLY_PRODUCTNUMBER`, `FROM_CURRENCYCODE` and the like, which no relation carries.
+* **P5 was wrong.** I predicted the review load would rise clearly and might cross 619. It is **516**
+  against 512 — four items more, with 65 licenses decided on top. The load did not follow the number
+  of repairs; naming that prediction wrong is cheaper than explaining it away.
+* **P6 held.** `eval.wp34_check`, unmodified, on this result: **ALL FOUR CLAUSES HELD**.
+
+**Why step 5 is red, and it is not WP41's business.** Two errors: `E_HUB_HK_COLLISION` —
+`hub_shopping_cart` (key `ShoppingCartID`) and `hub_shopping_cart_item` (key `ShoppingCartItemID`)
+share the source entity `ShoppingCartItem`; and `E_SAT_KEY_NOT_IN_SOURCE` on
+`sat_sales_order_line_details`, whose relation `SalesOrderDetail` does not declare the composite key
+its parent hub is hashed from. Both are the classes the pre-registration named as acceptable: neither
+is a role column nor the wrong-column shape.
+
+**Verified:** the numbers above from the run's own result files and its trace; the two red codes and
+the four role warnings re-derived keylessly by running the validator over the persisted step models;
+the link shapes read from the persisted models, not from the prose.
+
+**Only assumed:** nothing about `dbt build` — this chain has no seeds, so it proves modelling, not
+warehouse output.
+
+**Not measured: the money.** Earlier entries cite dollar figures "at the documented rates", but no
+rate table exists in this repo, and I will not print a number I cannot source. What is recorded is the
+usage: Sonnet 4.6 — 95 calls, 214k uncached input, 193k output, 125k cache reads, 25k cache writes;
+Opus 4.8 — 10 calls, 160k uncached input, 63k output, 44k cache reads, 40k cache writes. At the rates
+the previous chains used, this is the same order as their $6.13–$6.50.
+
+**Candidates this run produces, the user's call.** (1) Bind a link to its relation by more than its
+name — the modeler's naming (`link_bom`, `link_currency_rate_currencies`) is what defeats the repair,
+and WP34's own `hub_binds_to_source_table` already resolves hubs by provenance as well as by name.
+(2) Then, and only then, candidate 3 (`W_ROLE_BK_NOT_IN_SOURCE` as an error) becomes meaningful: today
+it would refuse exactly the four participations that (1) would repair.
