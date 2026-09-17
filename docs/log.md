@@ -5932,3 +5932,75 @@ steering lines of `DV_MODELING_RULES`, and this repairs transport, not modelling
 line to ablate against. No retry of the malformed call (a retry costs a call and the answer is
 already there). No change to `ForcedToolCaller`: the shape is per-field, and a generic repair inside
 the caller would have to guess which field it is.
+
+## [2026-09-17] Paid brownfield run — WP42's staging binding and the re-bind fix live; six of seven predictions held
+
+**Autor:** Claude Code
+
+**The runs**, all at `859b839`, the pre-registration's own commit, against the entry
+„Pre-registration for the brownfield run" of the same day:
+
+| case | stamp | runs | calls | uncached in / out |
+|---|---|---|---|---|
+| `adventureworks_incremental` | `20260917T181755061438Z` | 1 chain, 5 steps | 101 | 362k / 256k |
+| `bank_extension` | `20260917T190123766057Z`, `…190324588393Z`, `…193700832178Z` | 3 | 27 | 41k / 26k |
+| `brownfield_resolution` | `20260917T190626799269Z` … `…192435099202Z` | 5 | 68 | 217k / 111k |
+
+Total over the nine saved runs: **196 calls, 621k uncached input, 393k output, 272k cache reads,
+122k cache writes**, ≈ 70 min wall clock. No rate table in the repo, so no dollar figure; the
+extrapolation in the pre-registration was ≈ $10 and the token totals are of that order. Two repeats
+were paid for and NOT saved: one `bank_extension` repeat hit `overloaded_error` from the API, and one
+died on a double-encoded tool field — the finding that produced `4051f6d`. The third repeat was
+re-run after that fix, which is why `bank_extension` has three saved runs at two stamps' distance.
+
+**P1 — missed by one, and its own escape clause covers it.** Predicted 0 `SOURCE_BINDING` flags in the
+person step; there is **1**. It is `link_business_entity_person`, whose relation is `ambiguous` — more
+than one declared relation offers its participations, so the rule binds nothing, exactly as P1 said a
+remaining flag would have to. The number was wrong because it assumed the modeler would build the same
+three links as on 2026-09-16; it built six.
+
+**P2 held — the prediction that does not depend on the modeler.** Replaying every step's persisted
+model through `rules.resolve_link_relation` and `bind_sources`: **no link stage is left inferred while
+exactly one declared relation offers it**, in any of the five steps. Flagged link stages per step:
+1, 8, 12, 26, 38 — every one of them reason `none` (their table is not declared in that step's schema,
+which is the per-step nature of the chain), `ambiguous`, or a stage shared with a hub.
+
+**P3 held, and by more than the margin.** `W_ROLE_BK_NOT_IN_SOURCE` appears **zero** times in the
+whole chain, against 4 on 2026-09-16 (2 in production, 2 in sales). Predicted ≤ 2.
+
+**P4 held.** `E_LINK_KEY_WRONG_COLUMN` fires nowhere. The sales step is red (gate 0.0) for two known
+classes and no new code: `E_HUB_HK_COLLISION` on `hub_shopping_cart` beside `hub_shopping_cart_item`
+(two hubs on `ShoppingCartItem` with different keys) and `E_SAT_KEY_NOT_IN_SOURCE` ×3 on satellites
+whose parent is keyed on a composite key (`SalesOrderDetail`, `CurrencyRate`) — the shape WP40 cannot
+repair, named as such since 2026-09-15. Steps 1–4 are green (1.0), as on 2026-09-16.
+
+**P5 held.** `eval.wp34_check`, unmodified: **all four clauses**, with 18 cross-domain links (arm A:
+16), and the licenses: 16 offered, 16 accepted, **15 resolved**, 1 skipped for a composite key.
+Review load 532 (2026-09-16: 516).
+
+**P6 held, 3 of 3.** In every `bank_extension` repeat the modeler made `hub_customer` multi-source
+(`customer` + `crm_contact`). Replayed from each run's recorded answers: `stg_customer` is present,
+`stg_customer_crm_contact` beside it, **no `stg_customer_customer`**, and no raw-vault model
+references a staging model that does not exist. `existing_construct_preservation` = 1.0 in all three,
+`validation_gate` 1.0, `construct_f1` 0.903–0.917. Before `5cf7986` this case wrote a vault whose
+extended hub could not build; it now does not.
+
+**P7 held on what it predicted, and the case's own gate failed on something else.**
+`false_merge_rate` = **1.000 in all five** repeats, as on 2026-08-08. But `pipeline_health` is 0.0 in
+2 of the 5 (mean 0.600 against the case's `min_scores` of 1.0, so the eval gate reports FAILED), both
+times for `extension_conflict` on `hub_customer` and `hub_account`: the modeler re-states an existing
+hub with a different business key, the merger keeps the existing key and flags it as an error. That is
+the model-behaviour class the merger was built to refuse, it was 1 of 5 on 2026-08-08 and is 2 of 5
+now — variance in the same class, not a new defect, and nothing in it touches staging or binding.
+`resolution_accuracy` 0.971 mean (0.857 min), `new_hub_detection` 0.950, `resolution_calibration`
+0.810 mean with one run at 0.047, which is the widest spread this case has shown.
+
+**Nur angenommen.** That the 0.047 calibration run and the two `extension_conflict` runs are sampling
+variance rather than a regression — five repeats cannot separate them, and no change since 2026-08-08
+touches the resolver's prompt. That the chain's remaining 38 flagged link stages would fall further if
+a step were given the earlier steps' schemas; the chain deliberately does not.
+
+**Bewusst nicht getan.** No `dbt build`: none of the three cases ships seeds, and the staging
+binding's warehouse evidence remains the PostgreSQL build of `link_bom` earlier today. No repeat of
+the chain — one chain measures a shape, not a distribution, and a second costs as much as the other
+eight runs together. The `extension_conflict` finding was not chased.

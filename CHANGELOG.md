@@ -13,6 +13,13 @@ is not the project's.
 ## [Unreleased]
 
 ### Fixed
+- The source mapper's re-bind rebuilt staging without the vault being extended, so a brownfield
+  run renamed a grandfathered `stg_<entity>` to `stg_<entity>_<source>` and rebound it, while the
+  raw-vault hub still read `stg_<entity>` — a vault that cannot build. Replayed from a recorded
+  paid run of the brownfield case; live since 2026-09-17.
+- A tool answer that double-encodes an object-valued field (the value as a JSON string) is
+  decoded instead of crashing the run; each repair is counted as a backstop in the trace. One
+  paid run was lost to this before the backstop existed.
 - In brownfield mode the modeler's links to existing hubs, and satellites on existing hubs or
   links, were dropped while parsing its answer: only hubs the delta itself emitted counted as
   known, although the extension prompt asks for links to existing hubs by name. The defect
@@ -30,9 +37,10 @@ is not the project's.
   name never matched a table are now refused for hashing a hub from another entity's key
   (`link_store_sales_representative` from `Store.BusinessEntityID`). A link bound this way also
   stages from that relation instead of an inferred `raw_<name>`: over the same chains the link stages
-  left to an inferred binding fell from 185 to 47 — 45 ambiguous or unbindable, 2 sharing a hub's
+  `SOURCE_BINDING` fell from 185 to 47 — 45 ambiguous or unbindable, 2 sharing a hub's
   stage, which the hub's binding decides. Built on PostgreSQL (`demo/fk_links_postgres`,
-  `link_bom`); no live run.
+  `link_bom`) and verified in a paid chain (2026-09-17): role warnings 4 → 0, no link stage left
+  inferred while one declared relation offers it.
 - Role columns from declared keys (WP41): a role-qualified link participation takes its key from a
   ratified foreign key — the only key into its hub, or the one whose column its role names
   (`component` → `ComponentID`) — instead of demanding `ROLE_<key>`. Same-named and renamed keys

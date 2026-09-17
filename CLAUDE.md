@@ -156,7 +156,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   resolved by name, else by the one declared relation whose offer covers its participations, so
   `link_bom` and `link_currency_rate_currencies` are repaired; replayed, role warnings fell 18 → 5.
   Since 2026-09-17 such a link also stages from that relation (replayed: link stages left to
-  `raw_<name>` 185 → 47), built on Postgres as `link_bom`; no live run covers WP42. **Still open:**
+  `raw_<name>` 185 → 47), built on Postgres as `link_bom`. **Verified live on 2026-09-17**
+  (`20260917T181755061438Z`): role warnings 4 → 0, no link stage inferred while one relation offers
+  it, §6's four clauses held, review 532; steps 1–4 green. **Still open:**
   `link_store_sales_representative` is newly refused in 3 steps for hashing `hub_sales_representative`
   from `Store.BusinessEntityID` while the table declares `SalesPersonID` — a real wrong-entity join,
   sitting on the two-hubs-on-one-source-entity defect. `docs/log.md` 2026-09-16 and 2026-09-17.
