@@ -78,9 +78,11 @@ async def test_a_rebind_keeps_the_grandfathered_staging_name_and_binding() -> No
     rebind_staging(state)
 
     assert "sales_order_header" in state.artifacts.staging_models["stg_order"]  # it did fire
-    # Pinned today — the defect: the grandfathered model is renamed and the hub reads nothing.
-    assert "stg_customer" not in state.artifacts.staging_models
-    assert "stg_customer_customer" in state.artifacts.staging_models
+    # Flipped by the fix (pinned at 788bfae as: `stg_customer` gone, `stg_customer_customer`
+    # present). The grandfathered model keeps its name and what it reads.
+    assert set(state.artifacts.staging_models) == set(generated)
+    assert state.artifacts.staging_models["stg_customer"] == generated["stg_customer"]
+    assert set(state.artifacts.automatedv_yaml["staging"]) == set(generated)
 
 
 async def test_a_rebind_in_greenfield_is_unchanged() -> None:

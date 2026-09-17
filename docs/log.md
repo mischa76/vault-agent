@@ -5768,3 +5768,42 @@ its failure mode, WP42 §2). No change to the two-hubs-on-one-source-entity defe
 `link_store_sales_representative`. The `existing=` observation above not pursued — it is outside
 this change and needs its own brownfield test first. No edit to the WP42 spec or to the entry of
 2026-09-16; this entry is the record.
+
+## [2026-09-17] fix — the source mapper's re-bind dropped WP23 grandfathering in brownfield runs
+
+**Autor:** Claude Code
+
+**What changed** (user: „überprüfen und korrigieren wir die sache mit dem rebind_staging und dem
+aufruf von build_staging ohne existing="). `rebind_staging` now passes
+`existing=state.existing_model` to `build_staging`, as `code_generator` always did. One line; the
+function serves the source mapper and the HITL resume (`orchestrator.apply_human_decision`), so both
+paths are covered. Guard first at `788bfae`, pinning the defect; flipped here. 1050 passed,
+2 skipped, ruff, bare mypy.
+
+**Why it was wrong before.** WP23 §2.6 keeps a feed the extended vault already materialised under its
+legacy name `stg_<entity>` and its old binding — renaming it would drop and rebuild a model that
+holds history. `legacy_feeds` derives that from the existing vault. The code generator passed it; the
+re-bind did not, so the rebuilt staging named the feed `stg_<entity>_<source>` and bound it verbatim
+to the feed's table, while the raw-vault hub — generated before and not regenerated — still selects
+from `stg_<entity>`. It fires whenever a brownfield run has a grandfathered feed AND any override
+(one resolved hub mapping suffices), i.e. on every grounded extension that adds a feed to an existing
+hub. Noted as an unchecked observation in the entry above; checked here.
+
+**Überprüft — a paid run's own record, replayed at zero cost.** The last `bank_extension` run
+(`20260729T065905665997Z`, run 3, at `f4a9d28`): its recorded `emit_dv_model` answer through
+validation, merge and generation, then the source mapper with its recorded `emit_mapping` answer.
+Without the fix: `stg_customer` vanishes at the re-bind, `stg_customer_customer` appears, and
+`hub_customer` reads a staging model that no longer exists. With it: no model vanishes or appears.
+So the paid `bank_extension` runs since the source mapper re-binds staging wrote a vault whose
+extended hub cannot build — their scores could not see it, because no scorer builds dbt. The six
+`adventureworks_incremental` chains are not affected: in none of their 30 steps does an existing hub
+gain a feed. `demo/fk_links_postgres` and `demo/mapping_postgres` regenerate byte-identically.
+
+**Nur angenommen.** That the on-disk output of those `bank_extension` runs was broken as replayed; the
+run's temp workdir is gone, so the files themselves were not inspected. Which earlier commit
+introduced the re-bind without `existing=` was not traced.
+
+**Bewusst nicht getan.** No PostgreSQL build: no demo has a grandfathered feed together with a
+mapping, and building one is its own piece of work; the next paid `bank_extension` run is where the
+fix meets a live answer. No check whether `extension_diff` — computed by the code generator before
+the re-bind — still describes the staging files the re-bind rewrites.

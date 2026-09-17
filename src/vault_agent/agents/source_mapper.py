@@ -532,6 +532,9 @@ def rebind_staging(state: VaultAgentState) -> None:
         state.source_schemas,
         contracts=state.artifacts.contracts,
         source_overrides=overrides,
+        # WP23 §2.6, as code_generator passes it: without the existing vault a re-bind renamed a
+        # grandfathered `stg_<entity>` the raw-vault hub still reads (found 2026-09-17).
+        existing=state.existing_model,
         target_platform=state.target_platform,
     )
     # Apply the FULL result (WP9.1 F2) — mirror code_generator so metadata and scaffolding
