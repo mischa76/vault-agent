@@ -17,6 +17,9 @@ validator, then `rebind_staging`.
 * ``test_a_stage_shared_with_a_hub_is_not_repointed`` — never flipped. Added with the change, not
   before it: the replay over six chains found two links sharing a hub's stage base, and an offer
   override there would replace the hub's mapped binding. It holds at cd523e9 as well.
+* ``test_the_next_run_keeps_a_renamed_link_bound`` — pinned 2026-09-17 as a defect of dcb708b, which
+  exempted the extended vault's links: staging is re-derived from model and schema on every run, so
+  the exemption let a brownfield run over the SAME vault and schema repoint `stg_bom` to `raw_bom`.
 """
 from __future__ import annotations
 
@@ -24,6 +27,7 @@ from typing import Any
 
 from tests.test_wp41_role_columns_guard import bom_payload, bom_schema, run_greenfield
 from tests.test_wp42_link_binding_guard import bom_unter_falschem_namen
+from vault_agent.agents.code_generator import CodeGeneratorAgent
 from vault_agent.agents.source_mapper import rebind_staging
 from vault_agent.link_proposal import link_source_overrides
 from vault_agent.state import FlagKind, SourceTable, VaultAgentState
@@ -101,3 +105,18 @@ async def test_a_stage_shared_with_a_hub_is_not_repointed() -> None:
                             "source_entity": "BillOfMaterialsHeader", "description": "A BOM."})
     state = await _bis_zum_rebind(payload, bom_schema())
     assert "BOM" not in link_source_overrides(state)
+
+
+async def test_the_next_run_keeps_a_renamed_link_bound() -> None:
+    """A brownfield run over the vault the previous run wrote, with the same schema and nothing
+    added, must stage `link_bom` as that run did."""
+    first = await _bis_zum_rebind(bom_unter_falschem_namen(), bom_schema())
+    naechster = VaultAgentState(existing_model=first.dv_model.model_copy(deep=True),
+                                source_schemas=bom_schema())
+    naechster.dv_model = first.dv_model.model_copy(deep=True)
+    naechster = await CodeGeneratorAgent().run(naechster)
+    rebind_staging(naechster)
+    assert "from {{ ref('BillOfMaterials') }} t" in first.artifacts.staging_models[_VIEW]
+    # Pinned today — the defect: the next run reads what no seed provides, and flags it.
+    assert "from {{ ref('raw_bom') }} t" in naechster.artifacts.staging_models[_VIEW]
+    assert _binding_flags(naechster) == {"stg_bom"}
