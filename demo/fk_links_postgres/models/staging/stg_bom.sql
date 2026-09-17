@@ -1,14 +1,14 @@
--- Generated AutomateDV staging model for the raw-vault constructs on 'bill_of_materials'.
+-- Generated AutomateDV staging model for the raw-vault constructs on 'bom'.
 -- Computes the hash keys / hashdiffs the raw-vault models reference and passes
 -- the source columns through (source binding: declared source schema).
 {{ config(materialized='view') }}
 {%- set yaml_metadata -%}
-source_model: 'stg_bill_of_materials_via_product_and_product'
+source_model: 'stg_bom_via_product_and_product'
 hashed_columns:
   ASSEMBLY_PRODUCT_HK: 'ASSEMBLY_PRODUCTNUMBER'
   COMPONENT_PRODUCT_HK: 'COMPONENT_PRODUCTNUMBER'
   UNITMEASURE_HK: 'UNITMEASURECODE'
-  LINK_BILL_OF_MATERIALS_HK:
+  LINK_BOM_HK:
     - 'ASSEMBLY_PRODUCTNUMBER'
     - 'COMPONENT_PRODUCTNUMBER'
     - 'UNITMEASURECODE'

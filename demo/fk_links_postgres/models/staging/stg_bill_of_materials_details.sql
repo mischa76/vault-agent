@@ -5,7 +5,7 @@
 {%- set yaml_metadata -%}
 source_model: 'stg_bill_of_materials_details_via_product_and_product'
 hashed_columns:
-  LINK_BILL_OF_MATERIALS_HK:
+  LINK_BOM_HK:
     - 'ASSEMBLY_PRODUCTNUMBER'
     - 'COMPONENT_PRODUCTNUMBER'
     - 'UNITMEASURECODE'

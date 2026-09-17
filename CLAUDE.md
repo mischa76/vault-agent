@@ -155,11 +155,11 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   `E_SAT_KEY_NOT_IN_SOURCE`). **WP42 (2026-09-16) repaired the name-bound gap:** a link's relation is
   resolved by name, else by the one declared relation whose offer covers its participations, so
   `link_bom` and `link_currency_rate_currencies` are repaired; replayed, role warnings fell 18 → 5.
-  **Still open from it:** staging binding is unchanged and still name-based, so a renamed link's
-  stage infers `raw_<name>` and **no `dbt build` covers WP42** (its own commit, next); and
+  Since 2026-09-17 such a link also stages from that relation (replayed: link stages left to
+  `raw_<name>` 185 → 47), built on Postgres as `link_bom`; no live run covers WP42. **Still open:**
   `link_store_sales_representative` is newly refused in 3 steps for hashing `hub_sales_representative`
   from `Store.BusinessEntityID` while the table declares `SalesPersonID` — a real wrong-entity join,
-  sitting on the two-hubs-on-one-source-entity defect. `docs/log.md` 2026-09-16.
+  sitting on the two-hubs-on-one-source-entity defect. `docs/log.md` 2026-09-16 and 2026-09-17.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

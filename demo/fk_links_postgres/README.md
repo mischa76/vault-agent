@@ -41,6 +41,13 @@ on PostgreSQL. No API key.
 > assembly, component and unit; both satellites 3 of 3; a second build `INSERT 0 0`; an orphan
 > `ComponentID` fails exactly the two component tests (2 of 4).
 >
+> **WP42 staging binding verified 2026-09-17** on the same stack: the bill-of-materials link renamed
+> `link_bom`, as the paid chain of 2026-09-16 named it, so no table matches its name. Its stage and
+> translation view read `BillOfMaterials` through the relation's offer — no `raw_bom`, no
+> `SOURCE_BINDING` flag. `PASS=103 WARN=0 ERROR=0` from an empty schema; the 3 `link_bom` rows join
+> the same assembly, component and unit as the 3 `link_bill_of_materials` rows of the build before
+> the rename; the satellite 3 of 3; a second build `INSERT 0 0`.
+>
 > **The first build found two defects the keyless tests had not** (see [Findings](#findings)).
 
 ## What is fixed here, and what is computed
@@ -64,7 +71,7 @@ Computed by the pipeline's own functions, in the pipeline's order — link propo
 | `link_product_inventory` | WP40: the modeler's own link, read by name from `ProductInventory`, which carries neither `PRODUCTNUMBER` nor the location's `NAME`; repaired under a ratified link proposal and a key license | `stg_product_inventory` reads `..._via_product_and_location` (two LEFT JOINs) |
 | `sat_product_inventory_details`, `sat_location_capacity_history` | WP40: a link satellite with per-participation translations, and a hub satellite from a history keyed on `Location`'s surrogate | each reads its own `..._via_...` view |
 | `link_business_entity_contact`, `sat_business_entity_contact_details` | WP41: `hub_business_entity` in the role `organisation` and an unqualified `hub_person` that `BusinessEntityContact` declares as `PersonID`; no hub key column named as the stage expects | `stg_business_entity_contact` derives `ORGANISATION_BUSINESSENTITYID` from `BUSINESSENTITYID` and `BUSINESSENTITYID` from `PERSONID`; the satellite's stage the same |
-| `link_bill_of_materials`, `sat_bill_of_materials_details` | WP41: `hub_product` twice, as `assembly` (`ProductAssemblyID`) and `component` (`ComponentID`), both surrogates of `Product` | `..._via_product_and_product` projects `ASSEMBLY_PRODUCTNUMBER` and `COMPONENT_PRODUCTNUMBER` |
+| `link_bom`, `sat_bill_of_materials_details` | WP41: `hub_product` twice, as `assembly` (`ProductAssemblyID`) and `component` (`ComponentID`), both surrogates of `Product`. WP42: named `link_bom`, so its relation is found by its offer, not its name | `stg_bom_via_product_and_product` reads `BillOfMaterials` and projects `ASSEMBLY_PRODUCTNUMBER` and `COMPONENT_PRODUCTNUMBER` |
 
 Each translation view ships a `.yml` with `not_null` on the projected natural key and a
 `relationships` test on the surrogate — the gates that make an unmatched surrogate fail

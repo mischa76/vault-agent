@@ -1,7 +1,7 @@
 {{ config(materialized='incremental') }}
 
 {%- set source_model = "stg_bill_of_materials_details" -%}
-{%- set src_pk = "LINK_BILL_OF_MATERIALS_HK" -%}
+{%- set src_pk = "LINK_BOM_HK" -%}
 {%- set src_hashdiff = "BILL_OF_MATERIALS_DETAILS_HASHDIFF" -%}
 {%- set src_payload = ["PERASSEMBLYQTY"] -%}
 {%- set src_ldts = "LOAD_DATETIME" -%}

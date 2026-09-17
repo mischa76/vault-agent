@@ -32,8 +32,11 @@ The miniature is the AdventureWorks shape the two WPs were measured on:
   * WP41 — ``BusinessEntityContact`` read by the modeler's ``link_business_entity_contact``
     with ``hub_business_entity`` in the role ``organisation`` (its column derived from the
     same-named key) and an unqualified ``hub_person`` whose key the table calls ``PersonID``;
-    and ``BillOfMaterials`` read by ``link_bill_of_materials`` with ``hub_product`` twice, as
-    ``assembly`` and ``component``, both translated through ``Product`` in one view.
+    and ``BillOfMaterials`` read by ``link_bom`` with ``hub_product`` twice, as ``assembly`` and
+    ``component``, both translated through ``Product`` in one view.
+  * WP42 — ``link_bom`` is named as the paid chain of 2026-09-16 named it, not after its table:
+    the key repair, the link gates AND its stage find ``BillOfMaterials`` through the relation's
+    offer, not through the name.
 
 Run: ``uv run python demo/fk_links_postgres/build_vault_models.py`` (or from this directory).
 """
@@ -254,8 +257,8 @@ def modeler_delta() -> DVModel:
                  connected_hubs=[LinkHubRef(hub="hub_business_entity", role="organisation"),
                                  "hub_person", "hub_contact_type"],
                  description="A person is a contact of an organisation."),
-            # WP41: one hub twice, each role naming its column.
-            Link(name="link_bill_of_materials",
+            # WP41: one hub twice, each role naming its column. WP42: not named after its table.
+            Link(name="link_bom",
                  connected_hubs=[LinkHubRef(hub="hub_product", role="assembly"),
                                  LinkHubRef(hub="hub_product", role="component"),
                                  "hub_unit_measure"],
@@ -290,7 +293,7 @@ def modeler_delta() -> DVModel:
                       parent="link_business_entity_contact", attributes=["ModifiedDate"],
                       source_table="BusinessEntityContact",
                       description="When the contact was last changed."),
-            Satellite(name="sat_bill_of_materials_details", parent="link_bill_of_materials",
+            Satellite(name="sat_bill_of_materials_details", parent="link_bom",
                       attributes=["PerAssemblyQty"], source_table="BillOfMaterials",
                       description="Quantity of a component per assembly."),
         ],

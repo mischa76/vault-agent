@@ -33,7 +33,7 @@ EXPECTED_RAW_VAULT = {
     "sat_location_capacity_history",  # WP40
     "hub_business_entity", "hub_person", "hub_contact_type", "sat_person_details",  # WP41
     "link_business_entity_contact", "sat_business_entity_contact_details",  # WP41
-    "link_bill_of_materials", "sat_bill_of_materials_details",  # WP41
+    "link_bom", "sat_bill_of_materials_details",  # WP41; WP42: not named after its table
 }
 EXPECTED_STAGING = {
     "stg_product", "stg_unit_measure", "stg_vendor", "stg_shopping_cart_item",
@@ -47,7 +47,7 @@ EXPECTED_STAGING = {
     "stg_location_capacity_history", "stg_location_capacity_history_via_location",  # WP40
     "stg_business_entity", "stg_person", "stg_contact_type",  # WP41
     "stg_business_entity_contact", "stg_business_entity_contact_details",  # WP41
-    "stg_bill_of_materials", "stg_bill_of_materials_via_product_and_product",  # WP41
+    "stg_bom", "stg_bom_via_product_and_product",  # WP41; WP42: staged from its offer
     "stg_bill_of_materials_details", "stg_bill_of_materials_details_via_product_and_product",
 }
 
@@ -74,7 +74,9 @@ async def test_role_columns_come_from_declared_keys() -> None:
     contact = state.artifacts.staging_models["stg_business_entity_contact"]
     assert "ORGANISATION_BUSINESSENTITYID: 'BUSINESSENTITYID'" in contact
     assert "BUSINESSENTITYID: 'PERSONID'" in contact
-    via = state.artifacts.staging_models["stg_bill_of_materials_via_product_and_product"]
+    via = state.artifacts.staging_models["stg_bom_via_product_and_product"]
+    # WP42: `link_bom` is not named after its table; its stage reads the relation its offer binds.
+    assert "from {{ ref('BillOfMaterials') }} t" in via
     assert "r1.PRODUCTNUMBER as ASSEMBLY_PRODUCTNUMBER" in via
     assert "r2.PRODUCTNUMBER as COMPONENT_PRODUCTNUMBER" in via
 
@@ -91,7 +93,7 @@ async def test_the_translation_views_ship_parseable_data_time_gates() -> None:
         "models/staging/stg_product_inventory_via_product_and_location.yml",  # WP40
         "models/staging/stg_product_inventory_details_via_product_and_location.yml",  # WP40
         "models/staging/stg_location_capacity_history_via_location.yml",  # WP40
-        "models/staging/stg_bill_of_materials_via_product_and_product.yml",  # WP41
+        "models/staging/stg_bom_via_product_and_product.yml",  # WP41, renamed for WP42
         "models/staging/stg_bill_of_materials_details_via_product_and_product.yml",  # WP41
     }
     for content in ymls.values():

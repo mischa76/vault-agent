@@ -4,7 +4,7 @@
 version: 2
 
 models:
-  - name: stg_bill_of_materials_via_product_and_product
+  - name: stg_bom_via_product_and_product
     description: "BillOfMaterials joined to Product on PRODUCTASSEMBLYID = PRODUCTID, projecting PRODUCTNUMBER; BillOfMaterials joined to Product on COMPONENTID = PRODUCTID, projecting PRODUCTNUMBER for the link's hash (ADR-0013)."
     columns:
       - name: ASSEMBLY_PRODUCTNUMBER

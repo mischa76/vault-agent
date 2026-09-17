@@ -912,13 +912,36 @@ def _relationship_link_name(table: str) -> str:
 
 
 def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
-    """Staging bindings an FK-derived link already knows (§3.5).
+    """Staging bindings an FK-derived link already knows (§3.5), and a renamed link's (WP42).
 
     A link's staging relation is otherwise INFERRED as ``raw_<base>`` and flagged, because no
     declared table is named like a link. The proposal knows it: the referencing table. Keyed
     the way ``source_mapper.source_overrides`` keys its own entries, so the existing
     ``bind_sources`` override path consumes them unchanged and raises no flag."""
     overrides: dict[str, str] = {}
+    # WP42: a link the modeler named freely stages from the relation its offer resolved — the one
+    # the key repair and both link gates already bound it to. The offer tier only: a name-bound
+    # link is bound by staging's own rule, and an override for it would make the re-bind fire
+    # where it was a no-op. Links of the vault being extended keep their staging, as the gates
+    # skip them. A link whose stage a hub shares (`link_vendor_business_entity` beside
+    # `hub_vendor_business_entity`) keeps it too: this override would replace the hub's mapped
+    # binding, and a stage serving two constructs is not the link's to repoint. Ratified bindings
+    # below are decisions and overwrite these.
+    declared = {normalize_identifier(t.table): t for t in state.source_schemas}
+    pre_existing = (
+        {link.name for link in state.existing_model.links} if state.existing_model else set()
+    )
+    hub_bases = {normalize_identifier(construct_base_name(hub.name)) for hub in state.dv_model.hubs}
+    for link in state.dv_model.links:
+        base = normalize_identifier(construct_base_name(link.name))
+        if link.name in pre_existing or base in hub_bases:
+            continue
+        relation, grund = resolve_link_relation(
+            link, state.dv_model, state.source_schemas,
+            lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
+        )
+        if grund == "offer":
+            overrides[base] = relation.table
     for rel in state.link_proposals.ratified_relationships():
         name = _relationship_link_name(rel.source_table)
         if any(link.name == name for link in state.dv_model.links):

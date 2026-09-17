@@ -1,7 +1,7 @@
 {{ config(materialized='incremental') }}
 
-{%- set source_model = "stg_bill_of_materials" -%}
-{%- set src_pk = "LINK_BILL_OF_MATERIALS_HK" -%}
+{%- set source_model = "stg_bom" -%}
+{%- set src_pk = "LINK_BOM_HK" -%}
 {%- set src_fk = ["ASSEMBLY_PRODUCT_HK", "COMPONENT_PRODUCT_HK", "UNITMEASURE_HK"] -%}
 {%- set src_ldts = "LOAD_DATETIME" -%}
 {%- set src_source = "RECORD_SOURCE" -%}

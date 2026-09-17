@@ -5697,3 +5697,74 @@ deferred exactly this change because it alters generated SQL. Asked, the user ch
 first and do the staging binding as its own commit — guard first, then `link_source_overrides`
 through `resolve_link_relation`, then the demo and the build. So §5's Postgres acceptance is **not
 met by this commit**, deliberately and with the evidence above standing in its place.
+
+## [2026-09-17] WP42 — a renamed link stages from the relation its offer binds; built on PostgreSQL
+
+**Autor:** Claude Code
+
+**What changed** (user, asked whether to start the staging binding the WP42 entry of 2026-09-16
+deferred: „zuerst a dann b" — a being the push of `ef77fbd`, b this). `link_source_overrides` now
+also binds the stage of every link the modeler built whose relation `resolve_link_relation`
+resolved with reason `offer`, through the override path `bind_sources` already had — so no
+`raw_<name>` is inferred and no `SOURCE_BINDING` flag is raised for it. Only that reason: a
+`name`-bound link is bound by staging's own rule, and an override for it would make
+`rebind_staging` fire where it was a no-op. `ambiguous` and `none` keep the inferred binding and its
+flag. Ratified relationship and proposal bindings are applied after and still win. Guard first at
+`cd523e9`; 1048 passed, 2 skipped, ruff, bare mypy.
+
+**Why it was wrong before.** Since `ef77fbd` the vault side of `link_bom` bound `BillOfMaterials`
+— key repair and both link gates — while its stage still inferred `raw_bom`. Two parts of one
+artefact read two different relations, and the one staging read does not exist. A precision to
+the entry of 2026-09-16, which blamed `_relationship_link_name`: that function only names the
+links built from a ratified *relationship table*; a modeler's link was bound by `bind_sources`
+matching its construct name, and the override path knew nothing about it at all. The consequence
+it described (`raw_bom`, a build that cannot be green) was right.
+
+**Two cases keep their binding, deliberately.** A link of the vault being extended (the gates skip
+those too — additivity). And a link whose stage a hub shares by name: `collect_staging_specs` keys
+a stage by construct base, so `hub_vendor_business_entity` and `link_vendor_business_entity` are
+one `stg_vendor_business_entity`, and `source_overrides` lets a link override replace the hub's
+mapped binding. The replay found exactly 2 such links (`link_department_group` in
+`20260913T063515062284Z`, `link_vendor_business_entity` in `20260913T153801752650Z`); in both the
+hub's `source_entity` is the relation the offer names, so nothing would have gone wrong there —
+but a stage serving two constructs is not the link's to repoint. This pin
+(`test_a_stage_shared_with_a_hub_is_not_repointed`) was written WITH the change, not before it,
+because the case only surfaced in the replay; it passes at `cd523e9` and fails with the skip
+removed.
+
+**Überprüft — replay, zero cost.** The six persisted `adventureworks_incremental` chains
+(`20260913T063515062284Z`, `20260913T153801752650Z`, `20260913T230429748887Z`,
+`20260914T213855724138Z`, `20260915T013719090467Z`, `20260916T153832701383Z`), each step's persisted
+`dv_model.yml` against the previous step's as the existing vault, proposer and `--accept` rerun,
+`link_source_overrides` computed on the tree before and after. Same 348 new links as WP42 (84 name
+/ 219 offer / 24 ambiguous / 21 none). Link stages with no binding of their own: **185 → 47**
+(per chain 34→12, 31→6, 28→6, 31→8, 29→7, 32→8). The 47 are the 24 ambiguous, the 21 unbindable
+and the 2 hub-shared stages above. 138 overrides are new; **none changes an existing override
+from one table to another.** The other 79 offer-bound links already had a ratified override, and
+in all 79 it names the same table as the offer — two independent paths agreeing.
+
+**Überprüft — PostgreSQL** (`demo/fk_links_postgres`, PostgreSQL 16, dbt-core 1.9.10). The demo's
+bill-of-materials link renamed `link_bom`, as the paid chain `20260916T153832701383Z` named it.
+Before the rename, on the unchanged demo: `PASS=103 WARN=0 ERROR=0`, and `link_bill_of_materials`
+held 3 rows joining (assembly > component, unit) `BA-8327 > AR-5381 CS`, `CB-2903 > AR-5381 EA`,
+`CB-2903 > BA-8327 EA`. After, from a dropped schema on the committed tree: `PASS=103 WARN=0
+ERROR=0`; `stg_bom_via_product_and_product` selects `from {{ ref('BillOfMaterials') }}`; `link_bom`
+3 rows with exactly those three pairs; `sat_bill_of_materials_details` 3 of 3 joining `link_bom`;
+a second build `INSERT 0 0`; no `SOURCE_BINDING` flag. Apart from the names, the regenerated files
+differ from the pre-rename ones in nothing. WP42 §5's Postgres acceptance is met by this commit.
+`tests/test_demo_fk_links_postgres.py` was updated for the rename in the same commit; it now fails
+without the change (flag present, view reading `raw_bom`).
+
+**Nur angenommen.** That a live run shows the same drop: the replay rebinds the persisted final
+models, which carry the repairs of the code they ran on, not of WP42 — binding depends only on
+hubs and declared keys, so the count should transfer, but no live run has measured it. That the
+source mapper's hub mappings in those chains agree with the two hub-shared stages; the replay did
+not load the mappings. And one observation from reading, not checked: `rebind_staging` calls
+`build_staging` without `existing=`, while the code generator passes it — in a brownfield run a
+re-bind might drop the grandfathered staging names of legacy multi-source feeds (WP23 §2.6).
+
+**Bewusst nicht getan.** No live run. No binding for `ambiguous` links (a guess with wrong data as
+its failure mode, WP42 §2). No change to the two-hubs-on-one-source-entity defect or to
+`link_store_sales_representative`. The `existing=` observation above not pursued — it is outside
+this change and needs its own brownfield test first. No edit to the WP42 spec or to the entry of
+2026-09-16; this entry is the record.

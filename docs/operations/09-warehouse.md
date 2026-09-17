@@ -73,6 +73,16 @@ participation's key — through the same override path a ratified mapping uses, 
 `SOURCE_BINDING` flag is raised for it. Translated participations read their translation
 views as above. Built on PostgreSQL in the same demo since 2026-09-13.
 
+**Link bound by its offer** (WP42): a link the modeler named freely — `link_bom` from
+`BillOfMaterials` — matches no table by name. When exactly one declared relation offers all its
+participations (`rules.resolve_link_relation`, reason `offer`; see `E_LINK_KEY_WRONG_COLUMN` in
+chapter 8), its stage binds to that relation through the same override path, so no
+`SOURCE_BINDING` flag is raised. An ambiguous or unbindable link keeps the inferred `raw_<base>`
+and its flag. Two cases keep their binding on purpose: a link of the vault being extended, and a
+link whose stage a hub shares by name (`link_vendor_business_entity` beside
+`hub_vendor_business_entity`), where the hub's binding decides. Built on PostgreSQL in the same
+demo since 2026-09-17.
+
 **Subtype feed** (WP38): a satellite on a hub keyed on the natural key, read from a table keyed
 on the supertype's surrogate — `sat_sales_person_details` on `hub_employee` from `SalesPerson` —
 has its dedicated stage read `stg_<satellite>_via_<relation>`: the same translation view and the

@@ -14,6 +14,9 @@ validator, then `rebind_staging`.
 * ``test_an_ambiguous_link_stage_stays_inferred_and_flagged`` — never flipped.
 * ``test_a_link_stage_missing_a_participation_stays_inferred_and_flagged`` — never flipped.
 * ``test_a_name_bound_link_needs_no_override`` — never flipped.
+* ``test_a_stage_shared_with_a_hub_is_not_repointed`` — never flipped. Added with the change, not
+  before it: the replay over six chains found two links sharing a hub's stage base, and an offer
+  override there would replace the hub's mapped binding. It holds at cd523e9 as well.
 """
 from __future__ import annotations
 
@@ -38,16 +41,14 @@ def _binding_flags(state: VaultAgentState) -> set[str]:
     return {f.asset or "" for f in state.flags if f.kind == FlagKind.SOURCE_BINDING}
 
 
-def _inferred(state: VaultAgentState) -> None:
-    assert "from {{ ref('raw_bom') }} t" in state.artifacts.staging_models[_VIEW]
-    assert _binding_flags(state) == {"stg_bom"}
-
-
 async def test_a_renamed_link_stage_reads_its_resolved_relation() -> None:
-    """Pinned today: the stage is inferred as `raw_bom` and flagged, though the vault side binds
-    `BillOfMaterials`. To flip: the view reads `BillOfMaterials`, and no flag remains."""
+    """Flipped by the change (pinned at cd523e9 as: the view selects from `raw_bom`, and
+    `stg_bom` carries a SOURCE_BINDING flag). The stage now reads the relation the vault side
+    bound — `BillOfMaterials` — through the override path, which raises no flag."""
     state = await _bis_zum_rebind(bom_unter_falschem_namen(), bom_schema())
-    _inferred(state)
+    assert link_source_overrides(state) == {"BOM": "BillOfMaterials"}
+    assert "from {{ ref('BillOfMaterials') }} t" in state.artifacts.staging_models[_VIEW]
+    assert _binding_flags(state) == set()
 
 
 async def test_an_ambiguous_link_stage_stays_inferred_and_flagged() -> None:
@@ -90,3 +91,13 @@ async def test_a_name_bound_link_needs_no_override() -> None:
         state.artifacts.staging_models["stg_bill_of_materials_via_product_and_product"]
     )
     assert _binding_flags(state) == set()
+
+
+async def test_a_stage_shared_with_a_hub_is_not_repointed() -> None:
+    """`hub_bom` and `link_bom` stage into one `stg_bom`. The hub's binding is the source mapper's
+    to decide; the link's offer must not overwrite it."""
+    payload = bom_unter_falschem_namen()
+    payload["hubs"].append({"name": "hub_bom", "business_key": "BillOfMaterialsID",
+                            "source_entity": "BillOfMaterialsHeader", "description": "A BOM."})
+    state = await _bis_zum_rebind(payload, bom_schema())
+    assert "BOM" not in link_source_overrides(state)
