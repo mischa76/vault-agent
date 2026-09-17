@@ -36,9 +36,9 @@ is not the project's.
   over those chains: role warnings 18 → 5, repaired participations 103 → 199, and three links whose
   name never matched a table are now refused for hashing a hub from another entity's key
   (`link_store_sales_representative` from `Store.BusinessEntityID`). A link bound this way also
-  stages from that relation instead of an inferred `raw_<name>`: over the same chains the link stages
-  `SOURCE_BINDING` fell from 185 to 47 — 45 ambiguous or unbindable, 2 sharing a hub's
-  stage, which the hub's binding decides. Built on PostgreSQL (`demo/fk_links_postgres`,
+  stages from that relation instead of an inferred `raw_<name>`: over the same chains the number of
+  link stages left to an inferred binding fell from 185 to 47 — 45 ambiguous or unbindable, 2
+  sharing a hub's stage, which the hub's binding decides. Built on PostgreSQL (`demo/fk_links_postgres`,
   `link_bom`) and verified in a paid chain (2026-09-17): role warnings 4 → 0, no link stage left
   inferred while one declared relation offers it.
 - Role columns from declared keys (WP41): a role-qualified link participation takes its key from a
