@@ -922,19 +922,17 @@ def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
     # WP42: a link the modeler named freely stages from the relation its offer resolved — the one
     # the key repair and both link gates already bound it to. The offer tier only: a name-bound
     # link is bound by staging's own rule, and an override for it would make the re-bind fire
-    # where it was a no-op. Links of the vault being extended keep their staging, as the gates
-    # skip them. A link whose stage a hub shares (`link_vendor_business_entity` beside
-    # `hub_vendor_business_entity`) keeps it too: this override would replace the hub's mapped
-    # binding, and a stage serving two constructs is not the link's to repoint. Ratified bindings
-    # below are decisions and overwrite these.
+    # where it was a no-op. Links of the vault being extended are bound by the same rule: staging
+    # is re-derived from model and schema on every run, as the name rule is, so exempting them
+    # repointed the next run's `stg_bom` to `raw_bom` (dcb708b, fixed the same day). A link whose
+    # stage a hub shares (`link_vendor_business_entity` beside `hub_vendor_business_entity`) keeps
+    # it: this override would replace the hub's mapped binding, and a stage serving two constructs
+    # is not the link's to repoint. Ratified bindings below are decisions and overwrite these.
     declared = {normalize_identifier(t.table): t for t in state.source_schemas}
-    pre_existing = (
-        {link.name for link in state.existing_model.links} if state.existing_model else set()
-    )
     hub_bases = {normalize_identifier(construct_base_name(hub.name)) for hub in state.dv_model.hubs}
     for link in state.dv_model.links:
         base = normalize_identifier(construct_base_name(link.name))
-        if link.name in pre_existing or base in hub_bases:
+        if base in hub_bases:
             continue
         relation, grund = resolve_link_relation(
             link, state.dv_model, state.source_schemas,

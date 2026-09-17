@@ -5807,3 +5807,32 @@ introduced the re-bind without `existing=` was not traced.
 mapping, and building one is its own piece of work; the next paid `bank_extension` run is where the
 fix meets a live answer. No check whether `extension_diff` — computed by the code generator before
 the re-bind — still describes the staging files the re-bind rewrites.
+
+## [2026-09-17] WP42 correction — the extended vault's links are not exempt from the offer binding
+
+**Autor:** Claude Code
+
+**What changed.** `link_source_overrides` no longer skips links of the existing vault. Guard first at
+`da87176`, pinning the defect; flipped here. 1051 passed, 2 skipped, ruff, bare mypy.
+
+**Why the entry „WP42 — a renamed link stages from the relation its offer binds" (same day, commit
+`dcb708b`) was wrong on this point.** It exempted the extended vault's links, reasoning that the gates
+skip them too and calling that additivity. The analogy does not hold: the gates judge a link once, when
+it is new; staging is re-derived from model and schema on every run, and the name rule in
+`bind_sources` has never distinguished old links from new. So the exemption did the opposite of what
+it claimed — a run of `link_bom` bound to `BillOfMaterials`, followed by a brownfield run over the
+same vault with the same schema and nothing added, repointed `stg_bom` to `raw_bom` and flagged it.
+Found while writing the pre-registration for the paid run, before any money was spent on it.
+
+**Überprüft.** The pinned test: first run reads `BillOfMaterials`; the next run now reads the same,
+byte-identically, with no flag; without the fix it fails. The replay over the six chains
+(`20260913T063515062284Z` … `20260916T153832701383Z`) gives the same bindings for all 348 new links as
+at `dcb708b`. Both rebinding demos regenerate byte-identically.
+
+**Nur angenommen.** How many pre-existing links in the chains gain a binding: each step declares only
+its own tables, so an earlier step's link finds its relation only when the later step declares that
+table as well — expected rare, not counted.
+
+**Bewusst nicht getan.** No Postgres rebuild — the demo has no second run over its own output, and
+the keyless test covers exactly that shape. The hub-shared-stage skip stays: it depends on the model
+alone and is the same on every run.

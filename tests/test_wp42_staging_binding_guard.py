@@ -17,9 +17,10 @@ validator, then `rebind_staging`.
 * ``test_a_stage_shared_with_a_hub_is_not_repointed`` — never flipped. Added with the change, not
   before it: the replay over six chains found two links sharing a hub's stage base, and an offer
   override there would replace the hub's mapped binding. It holds at cd523e9 as well.
-* ``test_the_next_run_keeps_a_renamed_link_bound`` — pinned 2026-09-17 as a defect of dcb708b, which
-  exempted the extended vault's links: staging is re-derived from model and schema on every run, so
-  the exemption let a brownfield run over the SAME vault and schema repoint `stg_bom` to `raw_bom`.
+* ``test_the_next_run_keeps_a_renamed_link_bound`` — FLIPPED; pinned at da87176 as a defect of
+  dcb708b, which exempted the extended vault's links: staging is re-derived from model and schema on
+  every run, so the exemption let a brownfield run over the SAME vault and schema repoint `stg_bom`
+  to `raw_bom`.
 """
 from __future__ import annotations
 
@@ -117,6 +118,6 @@ async def test_the_next_run_keeps_a_renamed_link_bound() -> None:
     naechster = await CodeGeneratorAgent().run(naechster)
     rebind_staging(naechster)
     assert "from {{ ref('BillOfMaterials') }} t" in first.artifacts.staging_models[_VIEW]
-    # Pinned today — the defect: the next run reads what no seed provides, and flags it.
-    assert "from {{ ref('raw_bom') }} t" in naechster.artifacts.staging_models[_VIEW]
-    assert _binding_flags(naechster) == {"stg_bom"}
+    # Flipped by the fix (pinned at da87176 as: the next run reads `raw_bom` and flags `stg_bom`).
+    assert naechster.artifacts.staging_models[_VIEW] == first.artifacts.staging_models[_VIEW]
+    assert _binding_flags(naechster) == set()
