@@ -12,6 +12,7 @@ hardens every LLM call in the pipeline at once.
 """
 import asyncio
 import hashlib
+import json
 import logging
 import random
 from collections.abc import Awaitable, Callable
@@ -120,6 +121,52 @@ def emit_trace(event: TraceEvent, recorder: TraceRecorder | None = None) -> None
         sink(event)
     except Exception:  # noqa: BLE001 - observational channel, never fatal
         logger.warning("trace recorder failed for a %s event", event.kind, exc_info=True)
+
+
+def decoded_field(
+    payload: dict[str, Any],
+    name: str,
+    default: dict[str, Any] | list[Any],
+    *,
+    tool_name: str = "",
+    recorder: TraceRecorder | None = None,
+) -> Any:
+    """A tool payload's object- or list-valued field, repairing a double-encoded one.
+
+    The forced tool call gives the schema, and the model still occasionally answers with the
+    field's value as a JSON STRING instead of the value. On 2026-09-17 a paid `bank_extension`
+    repeat died on exactly that (`emit_mapping`, `mappings`): `AttributeError: 'str' object has
+    no attribute 'items'` left the agent, and five completed stages went with it. A transport
+    accident must not cost a run, so this decodes the string when it decodes to the expected
+    SHAPE, and counts the repair as a WP16 backstop (`stringified_payload_field`) so the fires
+    are measurable per model release.
+
+    Deliberately narrow: anything that is neither the expected type nor JSON of it yields the
+    empty default, i.e. an honest gap the agent's own handling already covers — never a guess."""
+    value = payload.get(name)
+    if isinstance(value, type(default)):
+        return value
+    if isinstance(value, str):
+        try:
+            decoded = json.loads(value)
+        except ValueError:
+            return default
+        if isinstance(decoded, type(default)):
+            emit_trace(
+                TraceEvent(
+                    kind="backstop",
+                    tool_name=tool_name,
+                    backstop_id="stringified_payload_field",
+                    detail={
+                        "tool": tool_name,
+                        "field": name,
+                        "as": "dict" if isinstance(default, dict) else "list",
+                    },
+                ),
+                recorder,
+            )
+            return decoded
+    return default
 
 
 def route_event(settings: Any | None) -> TraceEvent:

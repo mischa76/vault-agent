@@ -35,7 +35,7 @@ from langgraph.types import interrupt
 from vault_agent.agents.base import BaseAgent
 from vault_agent.agents.orchestrator import apply_link_decision, apply_resolution_decision
 from vault_agent.link_proposal import pending_link_decisions
-from vault_agent.llm import call_with_truncation_split
+from vault_agent.llm import call_with_truncation_split, decoded_field
 from vault_agent.rules.dv2_rules import normalize_identifier, resolution_category
 from vault_agent.state import (
     RESOLUTION_CLASSES,
@@ -115,7 +115,7 @@ class AnthropicResolutionProposer:
             user_content=user_content,
             max_tokens=_MAX_TOKENS,
         )
-        return cast(dict[str, Any], payload.get("resolutions", {}))
+        return cast(dict[str, Any], decoded_field(payload, "resolutions", {}, tool_name=_TOOL_NAME))
 
 
 class _Concept:
@@ -151,7 +151,11 @@ def merge_decisions(segments: list[dict[str, Any]]) -> dict[str, Any]:
     concept it was not asked for; keeping the first is deterministic and harmless."""
     merged: dict[str, Any] = {}
     for segment in segments:
-        for concept, decision in segment.items():
+        # A segment that arrived as a JSON STRING is repaired here as well: the extractor
+        # already does it for the API path, and this keeps any other producer of segments
+        # (a custom seam, a replay) from crashing the run on the same shape (2026-09-17).
+        decoded = decoded_field({"segment": segment}, "segment", {}, tool_name=_TOOL_NAME)
+        for concept, decision in decoded.items():
             merged.setdefault(concept, decision)
     return merged
 

@@ -19,7 +19,7 @@ from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import render_schema_prompt_section
-from vault_agent.llm import call_with_truncation_split
+from vault_agent.llm import call_with_truncation_split, decoded_field
 from vault_agent.rules.dv2_rules import BUSINESS_KEY_CRITERIA, normalize_identifier
 from vault_agent.state import (
     BusinessKeyCandidate,
@@ -123,7 +123,7 @@ class AnthropicBusinessKeyExtractor:
             user_content=requirements_json,
             max_tokens=_MAX_TOKENS,
         )
-        return list(payload.get("business_keys", []))
+        return list(decoded_field(payload, "business_keys", [], tool_name=_TOOL_NAME))
 
 
 class BusinessKeyIdentifierAgent(BaseAgent):

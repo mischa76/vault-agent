@@ -30,7 +30,12 @@ from typing import Any, Protocol, cast
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.link_proposal import link_source_overrides
-from vault_agent.llm import TraceEvent, call_with_truncation_split, emit_trace
+from vault_agent.llm import (
+    TraceEvent,
+    call_with_truncation_split,
+    decoded_field,
+    emit_trace,
+)
 from vault_agent.rules.dv2_rules import construct_base_name, normalize_identifier
 from vault_agent.state import (
     ColumnProfile,
@@ -106,7 +111,8 @@ class AnthropicMappingProposer:
             user_content=user_content,
             max_tokens=_MAX_TOKENS,
         )
-        return cast(dict[str, Any], payload.get("mappings", {}))
+        # A double-encoded field is a transport accident, not an answer (llm.decoded_field).
+        return cast(dict[str, Any], decoded_field(payload, "mappings", {}, tool_name=_TOOL_NAME))
 
 
 def _split_concepts(
@@ -129,7 +135,11 @@ def merge_decisions(segments: list[dict[str, Any]]) -> dict[str, Any]:
     harmless, since ``_post_validate`` looks decisions up per requested concept anyway."""
     merged: dict[str, Any] = {}
     for segment in segments:
-        for concept, decision in segment.items():
+        # A segment that arrived as a JSON STRING is repaired here as well: the extractor
+        # already does it for the API path, and this keeps any other producer of segments
+        # (a custom seam, a replay) from crashing the run on the same shape (2026-09-17).
+        decoded = decoded_field({"segment": segment}, "segment", {}, tool_name=_TOOL_NAME)
+        for concept, decision in decoded.items():
             merged.setdefault(concept, decision)
     return merged
 

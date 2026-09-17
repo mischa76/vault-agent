@@ -27,7 +27,7 @@ from typing import Any, Protocol, cast
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import render_schema_prompt_section
-from vault_agent.llm import call_with_truncation_split
+from vault_agent.llm import call_with_truncation_split, decoded_field
 from vault_agent.models.contract import (
     ContractField,
     ContractOwner,
@@ -155,7 +155,7 @@ class AnthropicContractEnricher:
             user_content=assets_json,
             max_tokens=_MAX_TOKENS,
         )
-        return cast(dict[str, Any], payload.get("assets", {}))
+        return cast(dict[str, Any], decoded_field(payload, "assets", {}, tool_name=_TOOL_NAME))
 
 
 class DataContractAgent(BaseAgent):

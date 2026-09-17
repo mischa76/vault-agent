@@ -5893,3 +5893,42 @@ so they prove modelling, not warehouse output — the staging binding's warehous
 PostgreSQL build of `link_bom` recorded earlier today. Nothing about cost per case. And nothing about
 `construct_f1` on `bank_extension` beyond its 0.5 floor; its golden deliberately omits two defensible
 constructs.
+
+## [2026-09-17] Backstop — a double-encoded tool field no longer kills a paid run
+
+**Autor:** Claude Code
+
+**What changed.** `llm.decoded_field(payload, name, default)`: the object- or list-valued field of a
+tool payload, decoding it when the model answered with the value as a JSON STRING and the string
+decodes to the expected SHAPE. Every fire emits a WP16 backstop event, `backstop_id`
+`stringified_payload_field`, with tool and field in `detail`. Five call sites — `emit_mapping`
+(`mappings`), `emit_resolution` (`resolutions`), `emit_contract_enrichment` (`assets`),
+`emit_requirements` (`requirements`), `emit_business_keys` (`business_keys`) — plus both
+`merge_decisions` functions, so a segment arriving as a string from any other producer is repaired
+too. Anything that is neither the expected type nor JSON of it yields the empty default, which is the
+gap handling each agent already has. Guard first at `5a26cdc`; 1061 passed, 2 skipped, ruff, bare
+mypy.
+
+**Why it was wrong before, and what it cost.** The third `bank_extension` repeat of today's paid run
+(stamp `20260917T193017831546Z`, at `859b839`) died with `AttributeError: 'str' object has no
+attribute 'items'`. Its trace holds the cause in full: `emit_mapping` returned
+`{"mappings": "{\n  \"crm_campaign::campaign_code\": {...}"}` — the object double-encoded as a
+string — and `merge_decisions` called `.items()` on it. The exception left the agent and the run was
+discarded: requirements, business keys, three contract enrichments, the resolution and three
+modelling attempts had already been paid for. A forced tool call constrains the schema but does not
+guarantee the model fills it in the declared shape, and the pipeline had no answer to that anywhere.
+
+**Überprüft.** The pinned crash flips: the mapper now proposes the mapping the string contained.
+`decoded_field` covers the four other fields, the telemetry field by field, and refuses two shapes it
+must not repair (text that is not JSON; JSON of the wrong type). The whole suite is green, so no
+agent's well-formed path changed.
+
+**Nur angenommen.** That this shape is rare: it appeared once in the 10 paid runs of today
+(101 + 9 + 9 + 14×5 ≈ 190 tool calls). The backstop counts its own fires from now on, so the next
+model release can be measured rather than guessed.
+
+**Bewusst nicht getan.** No row in `docs/architecture/steering-ledger.md`: its rows are prompt
+steering lines of `DV_MODELING_RULES`, and this repairs transport, not modelling — it has no steering
+line to ablate against. No retry of the malformed call (a retry costs a call and the answer is
+already there). No change to `ForcedToolCaller`: the shape is per-field, and a generic repair inside
+the caller would have to guess which field it is.

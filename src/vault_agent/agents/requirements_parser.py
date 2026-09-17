@@ -20,7 +20,7 @@ from typing import Any, Protocol
 from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.llm import call_with_truncation_split
+from vault_agent.llm import call_with_truncation_split, decoded_field
 from vault_agent.state import FlagKind, ParsedRequirement, VaultAgentState
 
 logger = logging.getLogger(__name__)
@@ -162,7 +162,7 @@ class AnthropicRequirementExtractor:
             user_content=document,
             max_tokens=_MAX_TOKENS,
         )
-        return list(payload.get("requirements", []))
+        return list(decoded_field(payload, "requirements", [], tool_name=_TOOL_NAME))
 
 
 class RequirementsParserAgent(BaseAgent):
