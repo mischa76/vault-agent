@@ -5836,3 +5836,60 @@ table as well — expected rare, not counted.
 **Bewusst nicht getan.** No Postgres rebuild — the demo has no second run over its own output, and
 the keyless test covers exactly that shape. The hub-shared-stage skip stays: it depends on the model
 alone and is the same on every run.
+
+## [2026-09-17] Pre-registration for the brownfield run — WP42, its staging binding and the re-bind fix, written before the run
+
+**Autor:** Claude Code
+
+**What this run measures** (user: „danach machen wir einen kompletten bezahlten lauf inkl brownfield
+dann haben wir ein aussagekräftiges ergebnis mit zahlen"; scope chosen from four offered options).
+Three cases on the committed state of this entry's commit, one invocation each:
+
+* `python -m eval.run --dataset adventureworks_incremental --repeat 1` — five steps, four of them
+  brownfield. First paid run with WP42 at all (`ef77fbd`) and with its staging binding (`dcb708b`,
+  corrected by `3a9910d`).
+* `python -m eval.run --dataset bank_extension --repeat 3` — the one case whose extension adds a
+  feed to an existing hub, i.e. the shape the re-bind fix (`5cf7986`) repairs.
+* `python -m eval.run --dataset brownfield_resolution --repeat 5` — WP29 §4's protocol, unchanged.
+
+Cost, extrapolated from the token counts of the last runs of each case against the $6.13–6.50 the
+chain has cost: ≈ $10. Abort and report if it passes $15. There is still no rate table in the repo;
+the figure is an extrapolation, and what gets recorded is the usage.
+
+**Predictions, falsifiable, in the order they will be checked.**
+
+* **P1 — the person step loses its inferred link bindings.** Step 1 of the chain carried 3
+  `SOURCE_BINDING` flags on 2026-09-16, exactly its 3 new links that no name bound; the replay binds
+  all 3 by offer. Expected: **0** `SOURCE_BINDING` flags in step 1, provided the modeler builds links
+  of the same shapes. A flag there must name a link that is ambiguous or that no relation offers.
+* **P2 — no link is left inferred while a declared relation uniquely offers it.** Checked by
+  replaying each step's persisted model through `rules.resolve_link_relation`: every link with reason
+  `offer` whose relation the step declares is bound, and every remaining `SOURCE_BINDING` on a link
+  stage carries reason `ambiguous`, `none`, or a hub sharing its stage. This is the sharp one — it
+  does not depend on what the modeler happens to build.
+* **P3 — role warnings stay low.** 2026-09-16 had `W_ROLE_BK_NOT_IN_SOURCE` twice in step 3 and twice
+  in step 5, at a time when WP42 was not yet in the tree; the replay left 5 of 18 over six chains.
+  Expected: **≤ 2 in the whole chain.** More than 4 means the repair reached fewer links live than in
+  the replay and the difference must be explained per link.
+* **P4 — the wrong-entity refusal is expected, not a regression.** If the modeler builds
+  `link_store_sales_representative` (or the same shape under another name) hashing a hub from
+  `Store.BusinessEntityID`, `E_LINK_KEY_WRONG_COLUMN` fires and the sales step is red. That counts as
+  the gate working. A red step for any OTHER new code is a finding against this change.
+* **P5 — §6's four clauses**, by the unmodified `eval.wp34_check`: cross-domain links ≥ 8,
+  zero-satellite hubs ≤ 2, 0 unsound aliases, 0 `E_LINK_KEY_NOT_IN_SOURCE`, no
+  `hub_sales_representative`.
+* **P6 — the grandfathered feed survives, live.** In every `bank_extension` repeat in which the
+  modeler makes `hub_customer` multi-source (3 of 3 on 2026-07-29), the generated staging contains
+  `stg_customer` AND `stg_customer_crm_contact`, and no `stg_customer_customer`; no raw-vault model
+  references a staging model that does not exist. Checked by replaying each repeat's recorded answers
+  — the run's own workdir is temporary. `existing_construct_preservation` = 1.0 in all three, as in
+  every recorded run of this case.
+* **P7 — entity-resolution safety holds.** `false_merge_rate` = 1.000 in all 5
+  `brownfield_resolution` repeats, as on 2026-08-08. `resolution_accuracy` and `new_hub_detection`
+  varied then (3 of 5 at 1.0) and are recorded, not predicted.
+
+**Not predicted, deliberately.** Anything about `dbt build`: none of these three cases ships seeds,
+so they prove modelling, not warehouse output — the staging binding's warehouse evidence is the
+PostgreSQL build of `link_bom` recorded earlier today. Nothing about cost per case. And nothing about
+`construct_f1` on `bank_extension` beyond its 0.5 floor; its golden deliberately omits two defensible
+constructs.
