@@ -50,6 +50,11 @@ class FlagKind:
     # or a referenced column several hubs share. Advisory: an unproposed link is an
     # incomplete model, which is what this pass exists to reduce, not a broken one.
     LINK_PROPOSAL_SKIPPED = "link_proposal_skipped"
+    # WP44: the re-model loop's repair memory. A construct the collision remedy retired came
+    # back in a later attempt and was refused (the backstop repaired it); a dependent of that
+    # construct lost its parent and its payload needs a home (a decision).
+    RETIRED_REEMITTED = "retired_reemitted"
+    RETIRED_ORPHAN = "retired_orphan"
     GENERIC = "generic"
 
 
@@ -822,6 +827,21 @@ with warnings.catch_warnings():
         # deterministically (2026-09-13: `rules.hub_collision_remedy`). Sent to the modeler
         # beside the diagnosis; presentation for the model, never parsed by code.
         remedy: str | None = None
+        # WP44: the constructs that remedy retires, by name — the typed half of ``remedy``.
+        # The validator turns these into ``state.retired_constructs``; nothing parses the text.
+        retires: list[str] = Field(default_factory=list)
+
+
+class RetiredConstruct(BaseModel):
+    """A construct a deterministic remedy removed from the model for the rest of the run (WP44).
+
+    Recorded by the validator from the remedy's typed ``drop``; the modeler refuses the
+    construct's return in every later attempt. ``code`` is the gate whose remedy retired it."""
+
+    name: str
+    kind: Literal["hub", "link", "satellite"]
+    code: str
+    attempt: int = 0
 
 
 class ValidationReport(BaseModel):
@@ -890,6 +910,8 @@ class VaultAgentState(BaseModel):
     # Loop control: how many times the modeler has run. The validation retry guard reads
     # this directly so control flow is decoupled from the audit log (decisions).
     modeling_attempts: int = 0
+    # WP44: what a remedy retired in an earlier attempt; the modeler keeps it retired.
+    retired_constructs: list[RetiredConstruct] = Field(default_factory=list)
     # Audit
     decisions: list[dict[str, Any]] = Field(default_factory=list)
     # Typed advisory/error flags raised by the agents (dropped records, generation gaps,

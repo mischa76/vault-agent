@@ -53,6 +53,7 @@ from vault_agent.state import (
     Hub,
     IssueSeverity,
     Link,
+    RetiredConstruct,
     ValidationIssue,
     ValidationReport,
     VaultAgentState,
@@ -112,10 +113,11 @@ def _shares_payload_namespace(
 
 def _issue(
     severity: IssueSeverity, code: str, construct: str, message: str,
-    remedy: str | None = None,
+    remedy: str | None = None, retires: list[str] | None = None,
 ) -> ValidationIssue:
     return ValidationIssue(
-        severity=severity, code=code, construct=construct, message=message, remedy=remedy
+        severity=severity, code=code, construct=construct, message=message, remedy=remedy,
+        retires=list(retires or []),
     )
 
 
@@ -391,6 +393,20 @@ class ValidatorAgent(BaseAgent):
 
         errors = [issue for issue in issues if issue.severity == "error"]
         state.validation_report = ValidationReport(passed=not errors, issues=issues)
+        # WP44: what a remedy retired stays retired for the run. Recorded from the typed
+        # `retires` of the issue, once per name; the modeler refuses the construct's return.
+        already = {r.name for r in state.retired_constructs}
+        for issue in issues:
+            for name in issue.retires:
+                if name in already:
+                    continue
+                already.add(name)
+                state.retired_constructs.append(
+                    RetiredConstruct(
+                        name=name, kind="hub", code=issue.code,
+                        attempt=state.modeling_attempts,
+                    )
+                )
         # The validator closes every modelling attempt, so this is the one place that sees the
         # flags of every re-run: a flag the loop re-emitted is one review item, not one per
         # attempt (`tests/test_flag_dedup_guard.py`, 2026-09-13).
@@ -527,6 +543,12 @@ class ValidatorAgent(BaseAgent):
             bks = {normalize_identifier(hub.business_key) for hub in hubs}
             if len(bks) > 1:
                 joined = ", ".join(sorted(hub.name for hub in hubs))
+                # 2026-09-13: the diagnosis alone did not converge in three paid attempts;
+                # the rule says which hub stays and why. WP44: its typed `drop` is recorded
+                # as a retirement, so a later attempt cannot bring the hub back.
+                remedy = hub_collision_remedy(
+                    hubs, state.business_keys, state.existing_model, model_hubs=model.hubs,
+                )
                 issues.append(
                     _issue(
                         "error", "E_HUB_HK_COLLISION", joined,
@@ -535,12 +557,8 @@ class ValidatorAgent(BaseAgent):
                         f"they would derive the same {source_norm}_HK hash-key column "
                         f"and staging model, silently binding one hub's hash key to "
                         f"the other's business key",
-                        # 2026-09-13: the diagnosis alone did not converge in three paid
-                        # attempts; the rule now says which hub stays and why.
-                        remedy=hub_collision_remedy(
-                            hubs, state.business_keys, state.existing_model,
-                            model_hubs=model.hubs,
-                        ).text,
+                        remedy=remedy.text,
+                        retires=remedy.drop,
                     )
                 )
 

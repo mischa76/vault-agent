@@ -130,6 +130,74 @@ def _tool_schema() -> dict[str, Any]:
     }
 
 
+def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
+    """WP44: refuse the return of a construct an earlier attempt's remedy retired.
+
+    The re-model loop re-asks for the whole model, and on 2026-09-17 (step 5, attempts 2 → 3)
+    a hub dropped as told came back because the repair lived only in the previous answer.
+    Deterministic and inert when nothing is retired: every retired hub goes, with every link
+    that names it and every satellite whose parent is such a hub or link. The construct itself
+    is a ``retired_reemitted`` flag (the backstop repaired it); a dependent is a
+    ``retired_orphan`` flag, because the payload it carried still needs a home — a modelling
+    decision this rule does not take. One ``backstop`` trace event per fire (WP16)."""
+    retired = {r.name for r in state.retired_constructs}
+    if not retired:
+        return model
+    hubs = [hub for hub in model.hubs if hub.name not in retired]
+    reemitted = [hub.name for hub in model.hubs if hub.name in retired]
+    if not reemitted:
+        return model
+    codes = {r.name: r.code for r in state.retired_constructs}
+    for name in reemitted:
+        state.flag(
+            "dv2_modeler",
+            f"hub {name!r} was retired by the {codes[name]} remedy in an earlier attempt and "
+            f"re-emitted; dropped again — a retired construct does not come back",
+            kind=FlagKind.RETIRED_REEMITTED,
+            asset=name,
+        )
+    orphaned: list[str] = []
+    kept_links: list[Link] = []
+    for link in model.links:
+        named = [ref.hub for ref in link.hub_refs if ref.hub in retired]
+        if named:
+            orphaned.append(link.name)
+            state.flag(
+                "dv2_modeler",
+                f"link {link.name!r} named retired hub(s) {', '.join(named)} and was dropped "
+                f"with them; if the relationship is real, it is a link to the hub keyed on "
+                f"the retired key",
+                kind=FlagKind.RETIRED_ORPHAN,
+                asset=link.name,
+            )
+            continue
+        kept_links.append(link)
+    gone = retired | set(orphaned)
+    kept_sats: list[Satellite] = []
+    for sat in model.satellites:
+        if sat.parent in gone:
+            orphaned.append(sat.name)
+            state.flag(
+                "dv2_modeler",
+                f"satellite {sat.name!r} lost its parent {sat.parent!r} to a retirement; its "
+                f"payload ({', '.join(sat.attributes)}) needs a home — decide where it hangs "
+                f"(on this shape, typically the link between the kept hub and the referenced "
+                f"one, with the retired key as dependent child key)",
+                kind=FlagKind.RETIRED_ORPHAN,
+                asset=sat.name,
+            )
+            continue
+        kept_sats.append(sat)
+    emit_trace(
+        TraceEvent(
+            kind="backstop",
+            backstop_id="retired_reemitted",
+            detail={"retired": reemitted, "orphaned": orphaned},
+        )
+    )
+    return DVModel(hubs=hubs, links=kept_links, satellites=kept_sats)
+
+
 class DVModelExtractor(Protocol):
     """Turns requirements + business keys into a raw DV model payload.
 
@@ -229,12 +297,21 @@ class Dv2ModelerAgent(BaseAgent):
                 | ({"remedy": issue.remedy} if issue.remedy else {})
                 for issue in errors
             ]
+        if state.retired_constructs:
+            # WP44: the modeler is told what an earlier attempt's remedy retired — data in the
+            # channel the remedy already travels in. The deterministic refusal below is the
+            # guarantee; this is the shortcut.
+            payload["retired_constructs"] = [
+                {"name": r.name, "kind": r.kind, "code": r.code}
+                for r in state.retired_constructs
+            ]
         payload_json = json.dumps(payload, indent=2)
         logger.debug("modeling payload: %d chars", len(payload_json))
         extractor = self._get_extractor()
         raw = await extractor.model(system_prompt=system_prompt, payload_json=payload_json)
 
         model = self._validate_model(raw, state)
+        model = drop_retired(model, state)
         delta_counts = (len(model.hubs), len(model.links), len(model.satellites))
         if state.existing_model is not None:
             # WP23 §2.9: brownfield mode. The model just produced is a DELTA against the
