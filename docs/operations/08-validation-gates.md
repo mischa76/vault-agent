@@ -14,8 +14,10 @@ If that list and this page disagree, the list wins — and the page is the thing
 
 An **`E_` error** blocks: inside the run it feeds the re-model loop (the modeler
 retries with errors as feedback), and one that survives the loop blocks finalization
-at the checkpoint. A **`W_` warning** advises: it appears in the review queue and the
-report, never blocks, and is *not* fed back to the modeler. The dividing philosophy:
+at the checkpoint. A **`W_` warning** advises: it appears in the review queue (as a
+*disclosure*, chapter 7.3) and the report, never blocks, and is *not* fed back to the
+modeler. An **`I_` info** record (WP43) is neither: it stays in the validation report and the
+scorers count it, but the review queue derives no item from it. The dividing philosophy:
 a gate fails only what is **provable** from the model or artifacts alone; heuristic
 suspicions — however strong — warn. Codes are stable identifiers: scripts and humans
 match on the code, never on message text.
@@ -112,7 +114,7 @@ backfill against tables that hold history.
 | `E_EXISTING_BK_CHANGED` | An existing hub's business key **or source entity** changed (compared normalised). The key is what every stored hash was derived from, so changing it is a migration, not an extension. |
 | `E_EXISTING_GRAIN_CHANGED` | An existing link's grain — the multiset of its participations, roles included — or its driving key changed. Those define the hash key of every stored row. |
 | `E_EXISTING_SAT_RESHAPED` | An existing satellite changed parent, type, child dependent key, source table or attribute set. **Growth counts too:** a new attribute on a satellite with history is a backfill, so new attributes belong in a NEW satellite on the same parent. |
-| `W_EXISTING_EXTENDED` | Advisory inventory, not a problem: an existing hub gained source feeds (named in the message), or this run added a new construct. It is the extension's summary in the review queue. |
+| `I_EXISTING_EXTENDED` | Information, not a problem (severity `info`; was the warning `W_EXISTING_EXTENDED` until WP43, 2026-10-03): an existing hub gained source feeds (named in the message), or this run added a new construct. It is the extension's inventory in the validation report; the review queue does not list it — read the Extension section or `extension-diff.md`, which show the same delta as a table. |
 
 The delta is also reported outside the gates: `extension-diff.md` and the report's
 Extension section attribute which generated files a pre-existing construct's SQL

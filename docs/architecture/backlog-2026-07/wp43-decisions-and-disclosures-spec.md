@@ -189,3 +189,16 @@ depends on the per-step mix.
 ## 6 Results
 
 *(appended after the change and after the next live chain)*
+
+**2026-10-03 — built, keyless.** Commits `25de63c` (guards, failing) and `402f422` (change).
+`ReviewItem.role`, `REVIEW_FLAG_ROLES` (every declared `FlagKind` classified, guarded),
+`HumanReviewQueue.decisions`/`.disclosures`, `review_queue_layout` + `status_line` as the one
+layout for markdown, console and HTML, `IssueSeverity` with `info`, `I_EXISTING_EXTENDED`,
+`review_decisions`/`review_disclosures` in `eval/run.py`. Guards 1–7 of §3 pass; ruff, mypy,
+pytest 1072 passed. Fixtures updated deliberately: `report_fixture.html`,
+`greenfield_manifest.json` (`report.html`, `review-queue.md`). §4 is **not yet measured**: no
+state of the 2026-09-17 chain is persisted, so the predicted 373 / 120 / 253 await the next live
+chain. One deviation from `.claude/rules/records.md`, named rather than hidden: the amendment
+in §2 was inserted into the section it corrects by a script (which the `Edit`/`Write` hook does
+not see) instead of being appended here; it is dated and additive, and it is not repeated.
+

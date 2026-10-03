@@ -6045,3 +6045,65 @@ not built, as before.
 
 **Bewusst nicht getan.** No `dbt build`; no GitHub dismissal of 25/26; no bump of
 `databricks-sql-connector` beyond what `dbt-databricks` 1.12.5 resolves on its own.
+
+## [2026-10-03] WP43 — the review queue counts answers, not signals: decisions and disclosures, built keyless
+
+**Autor:** Claude Code
+
+**Why.** The user, on reading the 2026-09-17 result: „die hohe Zahl an Review-Fällen … man könnte
+schnell zum Schluss kommen, dass man es dann gleich komplett selbst erledigen könnte." The 532
+review items of that chain decompose, from the saved per-step `flag_kinds` and
+`validation_codes`, into 187 inferred staging bindings, 159 `W_EXISTING_EXTENDED` inventory
+warnings, 68 placeholder owners, 42 translations and 76 others. Three classes make 78 %, and none
+is a modelling decision. The count measured emitted signals, summed over five checkpoints; the
+aggregation of WP5 collapsed lines, never counts. Spec, with the pre-registration, in
+`wp43-decisions-and-disclosures-spec.md` (`48ff900`); the user approved the three-lever analysis
+(„sehr gut, mach es so") and asked for autonomous execution with a commit per milestone.
+
+**What changed** (`25de63c` guards first, failing; `402f422` the change).
+- `ReviewItem.role` ∈ {`decision`, `disclosure`}, derived from typed fields only: severity
+  `error` and contract owners are decisions; validation warnings are disclosures, grouped by
+  their code; advisory flags by `REVIEW_FLAG_ROLES`, keyed by `FlagKind`, every declared kind
+  classified (a guard fails when a new kind is added unclassified), unknown kinds default to
+  decision. `HumanReviewQueue.decisions` / `.disclosures`; `requires_signoff` unchanged.
+- One layout for three renderers: `review_queue_layout` and `status_line` in the orchestrator;
+  markdown, console and HTML list every decision before every disclosure, kinds in `KIND_ORDER`
+  within a role, WP5 aggregation on both roles. Translations stay individual (ADR-0013 §3).
+- `IssueSeverity` gains `info`. The additive-extension inventory is emitted as
+  `I_EXISTING_EXTENDED`, severity `info` — renamed because a `W_` prefix on an item whose own
+  doc says „not a problem" was a lie in the identifier. It stays in `validation_report.issues`
+  (scorers, `validation_codes`), the queue derives no item from it; its home is the Extension
+  section and `extension-diff.md` (WP23 §2.7). Charter Q5 and WP23 §2.5 placed the inventory in
+  the queue; this entry supersedes that placement, their text is untouched.
+- `eval/run.py`: `review_decisions`, `review_disclosures` per step and summed, beside the total.
+- Docs in the same commit: operations 06, 07 §7.3, 08 §8.1 + the extension row, 11, 12;
+  CHANGELOG; the `bank_extension` dataset comment.
+
+**Pre-registered, not measured.** On the 2026-09-17 chain the rule predicts 373 items (26, 32, 77,
+79, 159 per step), 120 decisions, 253 disclosures — arithmetic over saved counts, because no
+state of that chain is persisted and nothing was replayed. P1–P4 of spec §4 stand until the next
+live chain. P2 is a warning to the reader: `review_items_total` will fall below the WP34 §6
+baseline of 619 by construction, and that fall says nothing about the model; re-basing the clause
+on `review_decisions` is the owner's decision, recorded as a recommendation.
+
+**Überprüft, keyless.** `uv run pytest` 1072 passed, 2 skipped; `uv run ruff check .` clean; bare
+`uv run mypy` clean (50 files). Guards 1–7 of spec §3 went red at `25de63c` (import error, the
+re-pointed brownfield test, the additivity key set) and green at `402f422`.
+
+**Fixtures updated deliberately.** `report_fixture.html` (status line, role headings);
+`greenfield_manifest.json` for `report.html` and `review-queue.md` — the regeneration also pinned
+`metadata/dv_model.yml`, which the manifest had only tolerated as expected-new. Two pre-WP43
+assertions flipped with a comment: the 39 undetermined types are decisions and now precede the
+warning.
+
+**Nur angenommen.** That the role table is right for `source_binding` as a whole: the ambiguous
+subset (more than one relation offers the participations) is a decision in substance and a
+disclosure under this table, because the flag carries no typed reason yet (spec §5). That the
+next chain's modeler builds a vault of the same shape; the translation count moves with it.
+
+**Bewusst nicht getan.** No live run and no `dbt build` — a presentation and classification
+change touches neither the model nor the warehouse output. The WP34 clause not re-based. Levers
+3–5 of the analysis (bindings re-disclosed per step, owners as a registry, review by exception)
+are in spec §5 with their price; each needs an owner decision. One deviation from
+`.claude/rules/records.md`: the dated amendment to spec §2 was inserted by a script into the
+section it corrects rather than appended to §6; named in §6, not repeated.

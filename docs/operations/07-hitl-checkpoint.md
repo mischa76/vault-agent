@@ -34,17 +34,25 @@ except successful finalization.
 ## 7.3 Reading the review queue
 
 The queue appears in three places, always with identical content: the console at pause
-time, `review-queue.md`, and the report's review section. It is ordered
-**blocking-first** — validation errors and unassigned owners at the top, then
-validation warnings, then advisory flags. Repetitive advisories (more than 3 of the
-same kind, e.g. 38 undetermined contract-field types) collapse into one summarised
-line with samples; the displayed item *count* still reflects the underlying items, so
-a count higher than the visible lines is aggregation, not loss.
+time, `review-queue.md`, and the report's review section. Every item carries a **role**
+(WP43): a **decision** needs an answer from you before the model is agreed — assign an
+owner, accept or discard, ratify a mapping, a resolution, a license or a translation, fix
+the model; a **disclosure** states what the pipeline assumed, inferred, dropped or
+declined — reading it is review, there is nothing to answer. The status line counts both
+(`3 decision(s), 40 disclosure(s)`); the first number is the one to plan with.
 
-Judge the queue top-down: blocking items need a decision, warnings deserve a look
-(chapter 8 explains each code), and the collapsed advisory block at the bottom is
-usually confirmation of known input gaps (no declared schema, placeholder owners)
-rather than news.
+The queue lists **every decision before every disclosure**; within a role, blocking-first
+— validation errors and unassigned owners, then validation warnings, then advisory flags.
+Repetitive items of one shape (more than 3 of the same kind, e.g. 38 undetermined
+contract-field types; validation warnings of one code) collapse into one summarised line
+with samples; the counts still reflect the underlying items, so a count higher than the
+visible lines is aggregation, not loss. Translations never collapse: each is a join
+through another relation and a decision in its own right (ADR-0013).
+
+The role comes from typed fields only — the item's kind, the issue's severity, the flag's
+`FlagKind` — never from message text; a flag kind the table does not know is a decision,
+so nothing unclassified is ever folded away. An `info` record of the validator (the
+extension inventory, `I_EXISTING_EXTENDED`) is not a queue item at all; chapter 8.
 
 ## 7.4 Answering interactively
 

@@ -56,9 +56,10 @@ expectations:
   #    genuine modelling smell the gate correctly catches; hub_employee is not golden here,
   #    and chasing it was explicitly out of WP28's scope.
   validation_passed: true
-  # Extension runs are noisier by construction: every legitimate addition raises one
-  # advisory W_EXISTING_EXTENDED, which is the inventory the review queue wants. Measured:
-  # 9 warnings (8x W_EXISTING_EXTENDED + 1x W_HUB_NO_SAT).
+  # Extension runs used to be noisier by construction: every legitimate addition raised one
+  # advisory W_EXISTING_EXTENDED. Measured then: 9 warnings (8x W_EXISTING_EXTENDED + 1x
+  # W_HUB_NO_SAT). Since WP43 (2026-10-03) the inventory is I_EXISTING_EXTENDED with severity
+  # info, which this tolerance does not count; the number is left as it was.
   max_validation_warnings: 15
   min_scores:
     # The promise brownfield mode makes. Anything below 1.0 means the run disturbed a vault

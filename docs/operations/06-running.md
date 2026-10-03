@@ -188,8 +188,10 @@ Attribute *growth* counts as a reshape because a satellite that already holds hi
 need every past row backfilled. New attributes for an existing parent belong in a **new
 satellite** on it — which is what the modeler is steered to produce.
 
-Every legitimate addition also raises an advisory `W_EXISTING_EXTENDED`, so the review queue
-(chapter 7) inventories the increment rather than staying silent about it.
+Every legitimate addition also raises an `I_EXISTING_EXTENDED` record (severity `info`), so
+the validation report inventories the increment rather than staying silent about it. Since WP43
+that inventory is *not* a review item — the review queue (chapter 7) lists decisions and
+disclosures only; read the increment in `extension-diff.md` or the report's Extension section.
 
 **Why regenerating everything is safe.** The generator is deterministic: an untouched
 construct renders byte-identically, so rebuilding it changes no table. That promise is made

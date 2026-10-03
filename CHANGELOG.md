@@ -75,6 +75,15 @@ is not the project's.
   (2026-09-15): no `hub_sales_representative`, two translated satellites on `hub_employee`.
 
 ### Changed
+- The review queue tells decisions from disclosures (WP43). Every item carries a typed role: a
+  *decision* needs an answer (assign, accept/discard, ratify, fix); a *disclosure* states what was
+  assumed, inferred, dropped or declined. All three renderers list every decision before every
+  disclosure, the status line counts both, and the WP5 aggregation now also collapses validation
+  warnings of one code. The extension inventory is emitted as `I_EXISTING_EXTENDED` with the new
+  severity `info` (was the warning `W_EXISTING_EXTENDED`) and is no longer a review item — read
+  it in `extension-diff.md` or the report's Extension section. Eval results gain
+  `review_decisions` and `review_disclosures`. On the saved 2026-09-17 chain this is 532 → 373
+  items, of which 120 decisions (pre-registered from the saved counts, not re-run).
 - `E_SAT_KEY_NOT_IN_SOURCE` now refuses every satellite with a declared `source_table` whose
   relation lacks its parent's key column(s), not only translated ones. Such a stage could never
   build; the refusal moves the failure from `dbt build` into the re-model loop. Expect runs that

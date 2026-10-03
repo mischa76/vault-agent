@@ -55,7 +55,8 @@ calibration) and `column` for the scale cases, where naming diverges by construc
 `false_friend_hits`; concept-coupled scorers are reported but not gateable there).
 
 Every result JSON also carries a `metrics` block — token usage, wall clock,
-review-queue size, construct/flag counts, `backstop_fires`, `trace_path` — and the
+review-queue size (`review_items_total`, and since WP43 `review_decisions` /
+`review_disclosures`, which sum to it), construct/flag counts, `backstop_fires`, `trace_path` — and the
 full mapping proposal dump, so a regression can be read concept-by-concept from the
 artifacts without re-running.
 
