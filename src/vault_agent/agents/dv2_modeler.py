@@ -26,7 +26,11 @@ from vault_agent.agents.entity_resolver import render_resolution_prompt_section
 from vault_agent.existing_model import render_extension_prompt_section
 from vault_agent.grounding import render_schema_prompt_section
 from vault_agent.llm import TraceEvent, emit_trace
-from vault_agent.rules.dv2_rules import active_modeling_rules, attributes_without_cdk
+from vault_agent.rules.dv2_rules import (
+    active_modeling_rules,
+    attributes_without_cdk,
+    normalize_identifier,
+)
 from vault_agent.state import DVModel, FlagKind, Hub, Link, Satellite, VaultAgentState
 
 logger = logging.getLogger(__name__)
@@ -128,6 +132,46 @@ def _tool_schema() -> dict[str, Any]:
         },
         "required": ["hubs", "links", "satellites"],
     }
+
+
+COMPOSITE_KEY_JOINER = " + "
+
+
+def split_composite_key(hub: Hub, state: VaultAgentState) -> bool:
+    """WP45 backstop ``composite_key_split``: the modeler's own notation for a composite key.
+
+    On 2026-09-17 the modeler wrote ``SalesOrderID + SalesOrderDetailID`` and
+    ``CurrencyRateDate + FromCurrencyCode + ToCurrencyCode`` as one ``business_key`` with no
+    ``business_key_columns``. When every ``+``-joined part is a declared column of the hub's own
+    relation (the declared table named like ``source_entity``), the parts become the typed
+    columns and the label stays — a format repair, like ``decoded_field``, never an
+    interpretation: no schema, an undeclared part, or columns already set, and nothing happens.
+    Gates behind it: ``E_SAT_KEY_NOT_IN_SOURCE`` / ``W_BK_NOT_IN_SOURCE``. Returns True when
+    it repaired; one ``backstop`` trace event per repair (WP16)."""
+    if hub.business_key_columns or COMPOSITE_KEY_JOINER not in hub.business_key:
+        return False
+    if not state.source_schemas:
+        return False
+    relation = next(
+        (t for t in state.source_schemas
+         if normalize_identifier(t.table) == normalize_identifier(hub.source_entity)),
+        None,
+    )
+    if relation is None:
+        return False
+    parts = [part.strip() for part in hub.business_key.split(COMPOSITE_KEY_JOINER)]
+    declared = {normalize_identifier(c) for c in relation.column_names}
+    if len(parts) < 2 or not all(part and normalize_identifier(part) in declared for part in parts):
+        return False
+    hub.business_key_columns = parts
+    emit_trace(
+        TraceEvent(
+            kind="backstop",
+            backstop_id="composite_key_split",
+            detail={"hub": hub.name, "columns": parts, "relation": relation.table},
+        )
+    )
+    return True
 
 
 def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
@@ -373,6 +417,8 @@ class Dv2ModelerAgent(BaseAgent):
     def _validate_model(self, raw: dict[str, Any], state: VaultAgentState) -> DVModel:
         """Validate the raw payload into typed constructs and drop dangling ones."""
         hubs = self._validate_items(raw.get("hubs", []), Hub, "hub", state)
+        for hub in hubs:
+            split_composite_key(hub, state)
         links = self._validate_items(raw.get("links", []), Link, "link", state)
         satellites = self._validate_items(raw.get("satellites", []), Satellite, "satellite", state)
 

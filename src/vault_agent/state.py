@@ -625,6 +625,16 @@ class Hub(BaseModel):
     business_key: str  # the natural key field this hub is built on
     source_entity: str  # the business object, e.g. "customer"
     description: str
+    # WP45: a composite key names its source columns; the hash is taken over all of them, in
+    # this order. Empty = single-column key, where business_key names the column (today's
+    # behaviour, byte-identical). One entry is treated as empty.
+    business_key_columns: list[str] = Field(
+        default_factory=list,
+        description="When the business key is composite, the two or more source columns it "
+        "is made of, in order (e.g. [\"SalesOrderID\", \"SalesOrderDetailID\"]); then "
+        "business_key is the key's business label. Leave empty for a single-column key, "
+        "where business_key names the column itself.",
+    )
     # WP10: when a business key lives in several sources, one HubSource per feed (the physical
     # key column in each). Empty = single-source, today's behaviour (byte-identity guard). The
     # canonical staging key name is computed once in rules.canonical_hub_key_column().

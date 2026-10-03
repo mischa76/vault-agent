@@ -402,6 +402,22 @@ def canonical_hub_key_column(hub: Any) -> str:
     return normalize_identifier(hub.business_key)  # disagree — harmonise to the business term
 
 
+def is_composite_key(hub: Any) -> bool:
+    """WP45: two or more declared key columns make the key composite; one is no composite."""
+    return len(getattr(hub, "business_key_columns", None) or []) >= 2
+
+
+def hub_key_columns(hub: Any) -> list[str]:
+    """The staging column(s) a hub's hash key is computed from, in hashing order (WP45).
+
+    The normalised ``business_key_columns`` for a composite key; otherwise exactly
+    ``[canonical_hub_key_column(hub)]``, so every single-key path is unchanged. The staging
+    generator, the hub renderer and the key gates all read this — never the label."""
+    if is_composite_key(hub):
+        return [normalize_identifier(c) for c in hub.business_key_columns]
+    return [canonical_hub_key_column(hub)]
+
+
 def satellite_participation_column(satellite: Any, ref: Any, hub: Any) -> str:
     """The source column a link satellite's stage reads one participation's key from (WP40/41).
 

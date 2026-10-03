@@ -34,6 +34,8 @@ EXPECTED_RAW_VAULT = {
     "hub_business_entity", "hub_person", "hub_contact_type", "sat_person_details",  # WP41
     "link_business_entity_contact", "sat_business_entity_contact_details",  # WP41
     "link_bom", "sat_bill_of_materials_details",  # WP41; WP42: not named after its table
+    "hub_currency", "hub_currency_rate", "link_currency_rate_currencies",  # WP45
+    "sat_currency_rate_detail",  # WP45: a satellite on the composite-keyed hub
 }
 EXPECTED_STAGING = {
     "stg_product", "stg_unit_measure", "stg_vendor", "stg_shopping_cart_item",
@@ -49,6 +51,8 @@ EXPECTED_STAGING = {
     "stg_business_entity_contact", "stg_business_entity_contact_details",  # WP41
     "stg_bom", "stg_bom_via_product_and_product",  # WP41; WP42: staged from its offer
     "stg_bill_of_materials_details", "stg_bill_of_materials_details_via_product_and_product",
+    "stg_currency", "stg_currency_rate", "stg_currency_rate_currencies",  # WP45
+    "stg_currency_rate_detail",  # WP45
 }
 
 

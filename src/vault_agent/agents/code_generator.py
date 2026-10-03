@@ -25,6 +25,8 @@ from vault_agent.rules.dv2_rules import (
     RECORD_SOURCE_COLUMN,
     STAGING_PREFIX,
     canonical_hub_key_column,
+    hub_key_columns,
+    is_composite_key,
     normalize_identifier,
     role_fk_column,
     satellite_feed,
@@ -147,12 +149,20 @@ def _render_hub(
             multi_source_staging_name(hub, source, legacy) for source in hub.sources
         ]
         source_model: str | list[str] = source_models
-        src_nk = canonical_hub_key_column(hub)
+        src_nk: str | list[str] = canonical_hub_key_column(hub)
         source_model_literal = _sql_list(source_models)
+    elif is_composite_key(hub):
+        # WP45: AutomateDV's hub takes src_nk as a list (expand_column_list); the stage hashes
+        # the same list, in the same order, so the key columns and the hash agree by construction.
+        source_model = _staging_model(hub.name)
+        src_nk_list = hub_key_columns(hub)
+        src_nk = src_nk_list
+        source_model_literal = f'"{source_model}"'
     else:
         source_model = _staging_model(hub.name)
         src_nk = _to_column(hub.business_key)
         source_model_literal = f'"{source_model}"'
+    src_nk_literal = _sql_list(src_nk) if isinstance(src_nk, list) else f'"{src_nk}"'
     meta: dict[str, Any] = {
         "source_model": source_model,
         "src_pk": _hub_hashkey(hub),
@@ -166,7 +176,7 @@ def _render_hub(
             [
                 ("source_model", source_model_literal),
                 ("src_pk", f'"{meta["src_pk"]}"'),
-                ("src_nk", f'"{src_nk}"'),
+                ("src_nk", src_nk_literal),
                 ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
                 ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
             ]

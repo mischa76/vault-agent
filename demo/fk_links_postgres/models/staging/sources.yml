@@ -32,6 +32,10 @@ sources:
         # expected columns: BUSINESSENTITYID, FIRSTNAME, LOAD_DATETIME, RECORD_SOURCE
       - name: ContactType
         # expected columns: CONTACTTYPEID, LOAD_DATETIME, RECORD_SOURCE
+      - name: Currency
+        # expected columns: CURRENCYCODE, LOAD_DATETIME, RECORD_SOURCE
+      - name: CurrencyRate
+        # expected columns: CURRENCYRATEDATE, FROMCURRENCYCODE, TOCURRENCYCODE, LOAD_DATETIME, RECORD_SOURCE, AVERAGERATE, ENDOFDAYRATE
       - name: ProductInventory
         # expected columns: PRODUCTID, LOCATIONID, LOAD_DATETIME, RECORD_SOURCE, QUANTITY, SHELF
       - name: BusinessEntityContact

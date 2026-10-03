@@ -30,6 +30,8 @@ from vault_agent.rules.dv2_rules import (
     canonical_hub_key_column,
     construct_base_name,
     construct_binds_to_source_table,
+    hub_key_columns,
+    is_composite_key,
     normalize_identifier,
     participation_key,
     role_bk_column,
@@ -247,6 +249,14 @@ def collect_staging_specs(
                     spec.derived[canonical] = src_col  # alias the source column -> canonical
                 spec.add_hashed(_hub_hashkey(hub), canonical)
                 spec.add_source_column(src_col)
+        elif is_composite_key(hub):
+            # WP45: the hash is taken over every key column, in order (AutomateDV's list
+            # form of hashed_columns); each column passes through.
+            spec = spec_for(hub.name)
+            cols = hub_key_columns(hub)
+            spec.add_hashed(_hub_hashkey(hub), cols)
+            for col in cols:
+                spec.add_source_column(col)
         else:
             spec = spec_for(hub.name)
             bk_col = _to_column(hub.business_key)
@@ -270,6 +280,19 @@ def collect_staging_specs(
             # cannot join the hub's own hash key when a multi-source hub's feeds agree on
             # a physical name differing from the business-key label.
             hub = hub_by_name[ref.hub]
+            if is_composite_key(hub) and ref.role is None and ref.key_translation is None and (
+                ref.source_key_column is None
+            ):
+                # WP45: an unqualified participation of a composite hub hashes over the
+                # hub's column list, exactly as the hub's own stage does; the link's hash
+                # key takes every column. Role, alias and translation shapes are refused
+                # by E_HUB_COMPOSITE_UNSUPPORTED before generation.
+                cols = hub_key_columns(hub)
+                bk_cols.extend(cols)
+                spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), cols)
+                for col in cols:
+                    spec.add_source_column(col)
+                continue
             bk_col = role_bk_column(canonical_hub_key_column(hub), ref.role)
             bk_cols.append(bk_col)
             spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), bk_col)
@@ -337,7 +360,15 @@ def collect_staging_specs(
             )
             spec.source_model = sat.source_table
             spec.bound = True
-            if sat.parent in hub_by_name:
+            if sat.parent in hub_by_name and is_composite_key(hub_by_name[sat.parent]):
+                # WP45: the satellite's own relation must carry every key column (gated by
+                # E_SAT_KEY_NOT_IN_SOURCE); the parent key hashes over the list.
+                parent_hub = hub_by_name[sat.parent]
+                cols = hub_key_columns(parent_hub)
+                spec.add_hashed(_hub_hashkey(parent_hub), cols)
+                for col in cols:
+                    spec.add_source_column(col)
+            elif sat.parent in hub_by_name:
                 parent_hub = hub_by_name[sat.parent]
                 bk_col = canonical_hub_key_column(parent_hub)
                 spec.add_hashed(_hub_hashkey(parent_hub), bk_col)
@@ -354,6 +385,13 @@ def collect_staging_specs(
                 bk_cols = []
                 for ref in parent_link.hub_refs:
                     ref_hub = hub_by_name[ref.hub]
+                    if is_composite_key(ref_hub) and ref.role is None:
+                        # WP45: as in the link's own stage — the list, unaliased.
+                        cols = hub_key_columns(ref_hub)
+                        bk_cols.extend(cols)
+                        for col in cols:
+                            spec.add_source_column(col)
+                        continue
                     bk_col = role_bk_column(canonical_hub_key_column(ref_hub), ref.role)
                     bk_cols.append(bk_col)
                     src_col = _to_column(satellite_participation_column(sat, ref, ref_hub))

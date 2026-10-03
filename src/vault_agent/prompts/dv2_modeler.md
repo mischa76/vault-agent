@@ -36,7 +36,8 @@ record-source columns (those are added downstream by the code generator).
 ### Fields
 
 - Hub: `name`, `business_key` (the natural-key field), `source_entity`, `description`,
-  `requirement_ids` (the requirements that justify it).
+  `requirement_ids` (the requirements that justify it); when the key is composite, list its
+  source columns in order in `business_key_columns` and use `business_key` as the key's label.
 - Link: `name`, `connected_hubs` (the hub participations it connects, two or more —
   usually a hub `name` string; when one hub takes part more than once in different roles,
   use `{"hub": "<hub name>", "role": "<role>"}` for each participation, e.g. a transfer

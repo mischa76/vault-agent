@@ -115,6 +115,21 @@ def declared_source_schema() -> list[SourceTable]:
         ),
         # WP40: this increment's own table, hubbed by the modeler in the same call (on Name).
         SourceTable(table="Location", columns=["LocationID", "Name"]),
+        # WP45: a composite natural key. CurrencyRate has a surrogate too (CurrencyRateID), but
+        # the modeler keyed the hub on the day and the pair, as the paid chain of 2026-09-17 did;
+        # the two keys into Currency are declared so the modeler's from/to roles are licensed.
+        SourceTable(table="Currency", columns=["CurrencyCode", "Name"]),
+        SourceTable(
+            table="CurrencyRate",
+            columns=["CurrencyRateID", "CurrencyRateDate", "FromCurrencyCode", "ToCurrencyCode",
+                     "AverageRate", "EndOfDayRate"],
+            foreign_keys=[
+                {"columns": ["FromCurrencyCode"], "references_table": "Currency",
+                 "references_columns": ["CurrencyCode"]},
+                {"columns": ["ToCurrencyCode"], "references_table": "Currency",
+                 "references_columns": ["CurrencyCode"]},
+            ],
+        ),
         # WP40: references Product (existing hub, WP36 proposal) and Location (no hub yet — a
         # key license); the modeler builds a link and a link satellite from it.
         SourceTable(
@@ -245,6 +260,13 @@ def modeler_delta() -> DVModel:
                 description="A person."),
             Hub(name="hub_contact_type", business_key="ContactTypeID",
                 source_entity="ContactType", description="A contact type."),
+            # WP45: a single-key hub and a composite-keyed one, typed as the modeler emits it.
+            Hub(name="hub_currency", business_key="CurrencyCode", source_entity="Currency",
+                description="A currency."),
+            Hub(name="hub_currency_rate", business_key="currency rate key",
+                business_key_columns=["CurrencyRateDate", "FromCurrencyCode", "ToCurrencyCode"],
+                source_entity="CurrencyRate",
+                description="An exchange rate for a day and a currency pair."),
         ],
         links=[
             # WP40: the modeler's own link, read by name from ProductInventory, which carries
@@ -263,6 +285,12 @@ def modeler_delta() -> DVModel:
                                  LinkHubRef(hub="hub_product", role="component"),
                                  "hub_unit_measure"],
                  description="A component of an assembly."),
+            # WP45: the composite hub takes part unqualified; the single-key hub twice, by role.
+            Link(name="link_currency_rate_currencies",
+                 connected_hubs=["hub_currency_rate",
+                                 LinkHubRef(hub="hub_currency", role="from"),
+                                 LinkHubRef(hub="hub_currency", role="to")],
+                 description="Which two currencies a rate converts between."),
         ],
         satellites=[
             Satellite(name="sat_vendor_details", parent="hub_vendor",
@@ -296,6 +324,10 @@ def modeler_delta() -> DVModel:
             Satellite(name="sat_bill_of_materials_details", parent="link_bom",
                       attributes=["PerAssemblyQty"], source_table="BillOfMaterials",
                       description="Quantity of a component per assembly."),
+            # WP45: a satellite on the composite hub, read from the hub's own relation.
+            Satellite(name="sat_currency_rate_detail", parent="hub_currency_rate",
+                      attributes=["AverageRate", "EndOfDayRate"], source_table="CurrencyRate",
+                      description="The rates of the day."),
         ],
     )
 

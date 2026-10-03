@@ -39,6 +39,8 @@ from vault_agent.rules.dv2_rules import (
     canonical_hub_key_column,
     effectivity_date_pair,
     hub_collision_remedy,
+    hub_key_columns,
+    is_composite_key,
     is_valid_construct_name,
     normalize_identifier,
     participation_key,
@@ -175,6 +177,40 @@ class ValidatorAgent(BaseAgent):
             if not hub.business_key.strip():
                 issues.append(
                     _issue("error", "E_HUB_NO_BK", hub.name, "hub has no business key")
+                )
+            if is_composite_key(hub) and hub.sources:
+                # WP45 §2.5: a HubSource carries one key column per feed; a composite key over
+                # several feeds needs a column list per feed, which does not exist yet. Refused
+                # here rather than staged from the first column (the WP24 defect class).
+                issues.append(
+                    _issue(
+                        "error", "E_HUB_COMPOSITE_UNSUPPORTED", hub.name,
+                        f"hub {hub.name!r} has a composite key "
+                        f"({', '.join(hub.business_key_columns)}) and is multi-source; a "
+                        f"composite key over several feeds is not generated yet — model it "
+                        f"single-source, or key the hub on one column",
+                    )
+                )
+        for link in model.links:
+            for ref in link.hub_refs:
+                ref_hub = next((h for h in model.hubs if h.name == ref.hub), None)
+                if ref_hub is None or not is_composite_key(ref_hub):
+                    continue
+                shape = (
+                    "a role" if ref.role is not None
+                    else "an alias (source_key_column)" if ref.source_key_column is not None
+                    else "a translation" if ref.key_translation is not None
+                    else None
+                )
+                if shape is None:
+                    continue
+                issues.append(
+                    _issue(
+                        "error", "E_HUB_COMPOSITE_UNSUPPORTED", link.name,
+                        f"link {link.name!r} takes the composite-keyed hub {ref_hub.name!r} "
+                        f"with {shape}; per-column roles, aliases and translations are not "
+                        f"generated yet — take it unqualified, or key the hub on one column",
+                    )
                 )
             if not any(sat.parent == hub.name for sat in model.satellites):
                 issues.append(
@@ -540,7 +576,11 @@ class ValidatorAgent(BaseAgent):
         for source_norm, hubs in sorted(hubs_by_source.items()):
             if len(hubs) < 2:
                 continue
-            bks = {normalize_identifier(hub.business_key) for hub in hubs}
+            bks = {
+                tuple(hub_key_columns(hub)) if is_composite_key(hub)
+                else (normalize_identifier(hub.business_key),)
+                for hub in hubs
+            }
             if len(bks) > 1:
                 joined = ", ".join(sorted(hub.name for hub in hubs))
                 # 2026-09-13: the diagnosis alone did not converge in three paid attempts;
@@ -798,7 +838,19 @@ class ValidatorAgent(BaseAgent):
         for hub in state.dv_model.hubs:
             if hub.name in pre_existing:
                 continue
-            if hub.business_key.strip() and not is_grounded(hub.business_key, columns):
+            if is_composite_key(hub):
+                # WP45: each column of a composite key is checked; the label is not a column.
+                missing_cols = [c for c in hub_key_columns(hub) if c not in columns]
+                if missing_cols:
+                    issues.append(
+                        _issue(
+                            "warning", "W_BK_NOT_IN_SOURCE", hub.name,
+                            f"composite business key column(s) {', '.join(missing_cols)} "
+                            f"match no column in the declared source schema; verify the "
+                            f"source or complete the schema",
+                        )
+                    )
+            elif hub.business_key.strip() and not is_grounded(hub.business_key, columns):
                 issues.append(
                     _issue(
                         "warning", "W_BK_NOT_IN_SOURCE", hub.name,
@@ -1136,7 +1188,7 @@ class ValidatorAgent(BaseAgent):
                     if satellite_feed(sat, parent_hub) is None and not (
                         source_table_on_multi_source_hub(sat, parent_hub)
                     ):
-                        parent_keys = [canonical_hub_key_column(parent_hub)]
+                        parent_keys = hub_key_columns(parent_hub)  # WP45: the list
                 elif sat.parent in links_by_name:
                     parent_keys = [
                         satellite_participation_column(sat, ref, hub_by_name[ref.hub])
