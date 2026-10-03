@@ -135,6 +135,7 @@ experiment precisely because its gate stays behind it.
 | `attributes_without_cdk` (modeler) | CDK also listed as payload | `E_SAT_DUP_ATTR` |
 | `fk_demotion` (source mapper) | A key's FK occurrence mistaken for a second source | — (mapping quality; honest `unresolved` is the fallback) |
 | `effsat_two_attributes` (code generator) | Effectivity satellite with ≠2 attributes reaching generation | `E_EFFSAT_DATES` |
+| `retired_reemitted` (modeler, WP44) | A later attempt re-emits a hub the collision remedy retired; it and its dependents are dropped again | `E_HUB_HK_COLLISION` |
 
 The full inventory with evidence and verdicts lives in
 `docs/architecture/steering-ledger.md`.

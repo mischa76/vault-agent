@@ -110,3 +110,11 @@ the next live chain, **if** the modeler behaves as on 2026-09-17:
 ## 6 Results
 
 *(appended after the change and after the next live chain)*
+
+**2026-10-04 — built, keyless.** Commits `d553739` (guards, failing) and the change commit that
+follows it. `ValidationIssue.retires`, `RetiredConstruct`, `state.retired_constructs`,
+`drop_retired` in the modeler, the two flag kinds classified in WP43's table, backstop
+`retired_reemitted`. Guards 1–5 pass; ruff, mypy, pytest 1078 passed. Replayed on the fixture cut
+from attempt 3: 1 hub, 2 links, 1 satellite dropped, no collision afterwards. §4 is **not yet
+measured live**.
+

@@ -85,11 +85,13 @@ change.
 
 ## 10.4 Backstop events
 
-Three deterministic pre-gate repairs announce themselves as `kind: backstop` events
+Four deterministic pre-gate repairs announce themselves as `kind: backstop` events
 *when and only when they actually repaired something*: `attributes_without_cdk` (a CDK
 was also listed as payload — dropped attrs in the detail), `fk_demotion` (a business
 key's FK occurrence was demoted to its anchor table), `effsat_two_attributes` (an
-effectivity satellite with ≠2 attributes was rejected into a generation-gap flag).
+effectivity satellite with ≠2 attributes was rejected into a generation-gap flag), and
+`retired_reemitted` (WP44: a later modelling attempt re-emitted a hub the collision
+remedy had retired — the detail names the hub and the links/satellites dropped with it).
 
 For the **operator** a fire is informational — the model needed a known crutch, the
 output is already correct; nothing to do. For the **maintainer** the fires are the

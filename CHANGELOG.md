@@ -74,6 +74,13 @@ is not the project's.
   `E_SAT_KEY_NOT_IN_SOURCE`. Built on PostgreSQL (`demo/fk_links_postgres`) and live once
   (2026-09-15): no `hub_sales_representative`, two translated satellites on `hub_employee`.
 
+### Fixed
+- The re-model loop no longer loses a repair it was given (WP44). A hub the `E_HUB_HK_COLLISION`
+  remedy retired is refused if a later attempt re-emits it, with the links and satellites that
+  named it; the construct is a `retired_reemitted` disclosure, an orphaned dependent a
+  `retired_orphan` decision, and each fire is a `backstop` trace event. On 2026-09-17 step 5 had
+  dropped `hub_shopping_cart_item` as told in attempt 2 and brought it back in attempt 3.
+
 ### Changed
 - The review queue tells decisions from disclosures (WP43). Every item carries a typed role: a
   *decision* needs an answer (assign, accept/discard, ratify, fix); a *disclosure* states what was

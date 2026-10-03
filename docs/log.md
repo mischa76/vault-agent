@@ -6120,3 +6120,57 @@ to read PDF input). **Changed:** `uv lock --upgrade-package pypdf`, 6.16.1 → 6
 untouched. **Verified, keyless:** `uv sync --extra dev --extra demo`, then ruff clean, bare mypy clean,
 `uv run pytest` 1072 passed, 2 skipped (the parser's PDF tests included). **Nur angenommen:** no
 behaviour change on real requirement PDFs — none was re-parsed. **Bewusst nicht getan:** no live run.
+
+## [2026-10-04] WP44 — repair memory: the re-model loop keeps what the collision remedy decided, built keyless
+
+**Autor:** Claude Code
+
+**Why.** Of the two classes that keep step 5 (sales) red, the user chose to look at solutions
+before paying for another chain. The collision `hub_shopping_cart` / `hub_shopping_cart_item`
+turned out not to be non-convergence but oscillation: in the 2026-09-17 chain the step's
+attempt 1 emitted both hubs, the remedy said „drop `hub_shopping_cart_item`" (identifier scores
+0.78 against 0.72), attempt 2 complied — hub, its two links and its satellite gone — and attempt
+3, triggered by the other class (`E_SAT_KEY_NOT_IN_SOURCE`), re-asked for the whole model and
+brought all four back. Read from llm_call indices 105–107 of the chain's trace. The rule already
+decided; nothing held the decision.
+
+**What changed** (`d553739` guards first, failing; the change in the following commit; spec
+`wp44-repair-memory-spec.md`, `4ab3e05`).
+- `ValidationIssue.retires: list[str]`, filled from `HubCollisionRemedy.drop` — the typed half of
+  the remedy; the validator records `state.retired_constructs` (`RetiredConstruct`: name, kind,
+  gate code, attempt), once per name; an inherited pair retires nothing.
+- `drop_retired` in the modeler, after `_validate_model` and before any applier or merge: every
+  retired hub goes, with every link naming it and every satellite parented on them.
+  `retired_reemitted` flag for the hub (disclosure — the backstop repaired it), `retired_orphan`
+  for each dependent naming its payload (decision — `Quantity`, `DateCreated` of the cart item
+  need a home; DV2.0's answer is the cart–product link with `ShoppingCartItemID` as dependent
+  child key, a modelling act the rule does not take). One `backstop` event `retired_reemitted`
+  per fire. The retry payload carries `retired_constructs` beside the issues — same channel, no
+  prompt change, no steering-registry line.
+- Both kinds classified in WP43's role table (its guard would have failed otherwise).
+- Docs: operations 06, 08 §8.3, 10.4, 12; CHANGELOG Unreleased/Fixed; spec §6; index.
+
+**Pre-registered, from the replay** (spec §4): `E_HUB_HK_COLLISION` 0 in every step of the next
+chain; step 5 still red on `E_SAT_KEY_NOT_IN_SOURCE` ×3 (composite keys, WP45); flags
+`retired_reemitted` 1 and `retired_orphan` 3, all in step 5, one backstop fire — or zero fires if
+the modeler never re-emits, which is the gate doing the work and not a failure of this WP.
+
+**Überprüft, keyless.** The fixture `tests/fixtures/wp44/attempt3_cart_slice.json` is cut
+verbatim from llm_call 107; with `hub_shopping_cart_item` retired the modeler run drops 1 hub, 2
+links, 1 satellite, raises 1 + 3 flags and one backstop event, the payload names the retirement,
+and the validator raises no collision afterwards; without a retirement the slice passes through
+unchanged and no event fires. `uv run pytest` 1078 passed, 2 skipped; ruff clean (one import
+order fixed by `--fix`); bare mypy clean.
+
+**Nur angenommen.** That the recording belongs to the collision gate alone: no other gate carries
+a typed `drop` today, so the field and the filter are general and the recording is not. That the
+modeler will not route around the refusal by renaming the hub — a renamed hub on the same entity
+collides again and the remedy retires it again, so the loop cannot be gamed into a wrong model,
+only into a second fire.
+
+**Bewusst nicht getan.** No live run, no `dbt build` — the change is upstream of generation and
+its evidence is the replay. The orphaned payload is not re-parented automatically (spec §5: one
+case is not a rule). The steering ledger (`docs/architecture/steering-ledger.md`) is an
+append-only record under the hook; the backstop row for `retired_reemitted` is proposed for the
+owner to add, with this entry as its evidence — the operations manual's inventory (08 §8.3, 10.4)
+carries it meanwhile.
