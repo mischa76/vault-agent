@@ -6004,3 +6004,44 @@ a step were given the earlier steps' schemas; the chain deliberately does not.
 binding's warehouse evidence remains the PostgreSQL build of `link_bom` earlier today. No repeat of
 the chain — one chain measures a shape, not a distribution, and a second costs as much as the other
 eight runs together. The `extension_conflict` finding was not chased.
+
+## [2026-10-03] Dependabot: nine of eleven alerts closed by a lock upgrade; `oauthlib` is capped by the Databricks connector
+
+**Autor:** Claude Code
+
+Follow-up to „Alert 16 (`sqlparse 0.5.5`) dismissed" (2026-09-12), the last entry on this subject.
+Since then GitHub raised alerts 23–33 on `uv.lock`: `anyio` 4.13.0 (24 critical, TLS host-name
+encoding; 23 moderate), `urllib3` 2.7.0 (27, 28 high; 29 moderate), `tornado` 6.5.8 (31, 32 high;
+33 moderate), `PyJWT` 2.14.0 (30 moderate) and `oauthlib` 3.3.1 (25, 26 moderate). None of the five
+is a direct dependency; `pyproject.toml` is untouched.
+
+**What changed.** `uv lock --upgrade-package anyio --upgrade-package tornado --upgrade-package
+urllib3 --upgrade-package pyjwt`: anyio 4.13.0 → 4.15.1, urllib3 2.7.0 → 2.8.0, tornado 6.5.8 →
+6.5.10, PyJWT 2.14.0 → 2.15.1, and typing-extensions 4.15.0 → 4.16.0 pulled along. 164 packages
+resolved; the `demo`/`demo-databricks` fork split of 2026-09-12 is unchanged.
+
+**Where each one sits** (`uv tree --invert --all-groups`): anyio in the core path via `anthropic`
+and `httpx`, so alert 24 was the one that mattered; urllib3 via `botocore` (extra `bedrock`) and
+`requests` under dbt (extras `demo`, `demo-databricks`); tornado only via `ipykernel` (extra `dev`);
+PyJWT and oauthlib only via `databricks-sql-connector` under `dbt-databricks` (extra
+`demo-databricks`).
+
+**Why oauthlib stays open.** The fix is oauthlib 4.0.0; `databricks-sql-connector` requires
+`oauthlib<4.0.0,>=3.1.0` in the locked 4.4.0 and still in 4.6.0, the newest on PyPI today. That is
+the resolution failure in the Dependabot run `36821879294` of 2026-10-01 (`No solution found when
+resolving dependencies for split`). The two advisories concern an OAuth *server's* revocation
+endpoint (JSONP callback) and the PKCE verifier comparison; vault-agent runs no OAuth server, and
+the Databricks line is keyless-only anyway (CLAUDE.md, open items). Alerts 25 and 26 were **not**
+dismissed on GitHub — that is the maintainer's call, as with alert 16.
+
+**Verified, keyless.** `uv sync --extra dev --extra demo` into `~/.venvs/vault-agent`, then `uv run
+ruff check .` clean, bare `uv run mypy` clean over 50 files, `uv run pytest -q` 1061 passed, 2
+skipped. PyJWT is not importable in that environment because its extra conflicts with `demo` — the
+lock carries the fix, the installed env never had the package.
+
+**Nur angenommen.** That `anyio` 4.15 does not change the SDK's behaviour on a paid run; no live run
+was made for a dependency bump. That the Databricks adapter line is unaffected — not synced,
+not built, as before.
+
+**Bewusst nicht getan.** No `dbt build`; no GitHub dismissal of 25/26; no bump of
+`databricks-sql-connector` beyond what `dbt-databricks` 1.12.5 resolves on its own.

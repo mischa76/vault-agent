@@ -150,6 +150,13 @@ is not the project's.
 - The route is reported: `llm route:` in the run summary, an `llm_route` header event in every
   trace segment, and a `client` field on every call event naming the SDK client that carried it.
 
+### Security
+- Dependabot alerts 23, 24 (`anyio`), 27–29 (`urllib3`), 30 (`PyJWT`) and 31–33 (`tornado`) closed
+  by a lock-only upgrade: anyio 4.15.1, urllib3 2.8.0, PyJWT 2.15.1, tornado 6.5.10 (`uv lock
+  --upgrade-package`, no change to `pyproject.toml`). Alerts 25 and 26 (`oauthlib` < 4.0.0) stay
+  open: `databricks-sql-connector` caps oauthlib below 4 up to its current 4.6.0, which is why the
+  Dependabot update of 2026-10-01 found no resolution (`docs/log.md`, 2026-10-03).
+
 ## [0.9.1] - 2026-09-12
 
 ### Changed
