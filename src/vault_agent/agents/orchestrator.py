@@ -38,6 +38,7 @@ from vault_agent.state import (
     HubSource,
     KeyLicense,
     LinkProposal,
+    PipelineFlag,
     Proposal,
     RelationshipLinkProposal,
     VaultAgentState,
@@ -52,6 +53,47 @@ logger = logging.getLogger(__name__)
 ReviewKind = Literal[
     "contract_owner", "validation_error", "validation_warning", "review_flag"
 ]
+
+# WP43: every review item is one of two things. A *decision* needs an answer from the human
+# before the model is agreed (assign, accept/discard, ratify, fix); a *disclosure* is
+# provenance — what the pipeline assumed, inferred, dropped or declined. Reading it is review;
+# there is nothing to answer at the checkpoint. The count the human cares about is decisions.
+ReviewRole = Literal["decision", "disclosure"]
+
+# The role of an advisory-flag item, by its typed ``kind`` (never by message text). A kind
+# missing here is a DECISION: an unclassified item must never be hidden behind the fold —
+# the conservative default costs a line, not a wrong model. The guard
+# ``test_role_table_classifies_every_declared_flag_kind`` forces every new FlagKind to be
+# classified here explicitly.
+REVIEW_FLAG_ROLES: dict[str, ReviewRole] = {
+    FlagKind.MISSING_INPUT: "disclosure",  # a stage ran without its upstream: operational
+    FlagKind.DROPPED_RECORD: "disclosure",  # an invalid record was dropped, not guessed at
+    FlagKind.COLUMN_COLLISION: "decision",  # two labels, one identifier: rename
+    FlagKind.GENERATION_GAP: "decision",  # could not be generated: do it by hand
+    FlagKind.UNDETERMINED_TYPE: "decision",  # the contract field needs a type
+    FlagKind.NO_SOURCE_SCHEMA: "disclosure",  # the contract was inferred from prose
+    FlagKind.SOURCE_BINDING: "disclosure",  # the staging relation was inferred (spec §5)
+    FlagKind.INPUT_TRUNCATED: "disclosure",  # size guard
+    FlagKind.INPUT_SEGMENTED: "disclosure",  # size guard
+    FlagKind.MAPPING_GAP: "disclosure",  # no in-scope source; belongs downstream (WP9)
+    FlagKind.MAPPING_UNRESOLVED: "decision",  # the human ratifies the mapping
+    FlagKind.EXTENSION_CONFLICT: "decision",  # the merger refused a re-statement
+    FlagKind.RESOLUTION_UNRESOLVED: "decision",  # existing construct or new? ratify
+    FlagKind.RESOLUTION_SAME_AS: "decision",  # asserted equivalent: ratify
+    FlagKind.LINK_TRANSLATION: "decision",  # one join through another relation (ADR-0013 §3)
+    FlagKind.SAT_TRANSLATION: "decision",  # likewise (WP38)
+    FlagKind.LINK_RELATIONSHIP_INCOMPLETE: "decision",
+    FlagKind.LINK_PROPOSAL_SKIPPED: "disclosure",  # the proposer declined; nothing to answer
+    FlagKind.GENERIC: "decision",  # untyped work, not provenance
+}
+_DEFAULT_ROLE: ReviewRole = "decision"
+
+
+def flag_role(flag: PipelineFlag) -> ReviewRole:
+    """The role of a flag's review item: typed severity first, then the kind table."""
+    if flag.severity == "error":
+        return "decision"
+    return REVIEW_FLAG_ROLES.get(flag.kind, _DEFAULT_ROLE)
 
 # Stable categories for routine, repetitive advisory ``review_flag`` items, keyed by the
 # flag's typed ``kind`` (never by message text). Used only to *aggregate* identical-shape
@@ -111,6 +153,8 @@ class ReviewItem(BaseModel):
     source: str = ""  # the agent / construct the item originates from
     group: str = _DEFAULT_GROUP  # advisory-flag category, for render-time aggregation
     asset: str | None = None  # the affected asset/construct, carried from the typed flag
+    # WP43. Defaults to the conservative role: an item built without one is never hidden.
+    role: ReviewRole = "decision"
 
 
 class HumanReviewQueue(BaseModel):
@@ -126,6 +170,16 @@ class HumanReviewQueue(BaseModel):
             item.kind in ("validation_error", "contract_owner") for item in self.items
         )
 
+    @property
+    def decisions(self) -> list[ReviewItem]:
+        """The items that need an answer (WP43) — the count a reviewer should plan with."""
+        return [item for item in self.items if item.role == "decision"]
+
+    @property
+    def disclosures(self) -> list[ReviewItem]:
+        """The items that state what was assumed, inferred, dropped or declined (WP43)."""
+        return [item for item in self.items if item.role == "disclosure"]
+
     def by_kind(self) -> dict[str, list[ReviewItem]]:
         grouped: dict[str, list[ReviewItem]] = {}
         for item in self.items:
@@ -137,19 +191,24 @@ def assemble_review_queue(state: VaultAgentState) -> HumanReviewQueue:
     """Build the human-review checkpoint from a finished run's state (deterministic)."""
     items: list[ReviewItem] = []
 
-    # Validation issues — severity maps to a blocking error vs an advisory warning.
+    # Validation issues — severity maps to a blocking error (a decision) vs an advisory
+    # warning (a disclosure, grouped by its code so repeats collapse at render time).
+    # Severity "info" is a record the validator keeps, never a review item (WP43).
     for issue in state.validation_report.issues:
-        kind: ReviewKind = (
-            "validation_error" if issue.severity == "error" else "validation_warning"
-        )
+        if issue.severity == "info":
+            continue
         code = issue.code or "issue"
         construct = issue.construct or "model"
+        is_error = issue.severity == "error"
         items.append(
             ReviewItem(
-                kind=kind,
+                kind="validation_error" if is_error else "validation_warning",
                 summary=f"{code} on {construct}",
                 detail=issue.message,
                 source="validator",
+                asset=construct,
+                group=_DEFAULT_GROUP if is_error else code,
+                role="decision" if is_error else "disclosure",
             )
         )
 
@@ -165,6 +224,7 @@ def assemble_review_queue(state: VaultAgentState) -> HumanReviewQueue:
                     detail="The agent never invents an owner; assign one before agreeing "
                     "the contract.",
                     source="data_contract",
+                    role="decision",
                 )
             )
 
@@ -181,6 +241,7 @@ def assemble_review_queue(state: VaultAgentState) -> HumanReviewQueue:
                 source=flag.agent,
                 group=REVIEW_FLAG_GROUPS.get(flag.kind, _DEFAULT_GROUP),
                 asset=flag.asset,
+                role=flag_role(flag),
             )
         )
 
@@ -203,6 +264,41 @@ KIND_ORDER: tuple[str, ...] = (
     "validation_warning",
     "review_flag",
 )
+# WP43: the roles partition the queue and order it — every decision before every disclosure;
+# within a role the kinds keep KIND_ORDER. The three renderers read this one layout.
+ROLE_HEADINGS: dict[str, str] = {
+    "decision": "Decisions",
+    "disclosure": "Disclosures (no answer needed)",
+}
+ROLE_ORDER: tuple[ReviewRole, ...] = ("decision", "disclosure")
+
+
+def review_queue_layout(
+    queue: HumanReviewQueue,
+) -> list[tuple[ReviewRole, str, list[ReviewItem]]]:
+    """The display order of a queue: ``(role, kind, items)`` per non-empty section, decisions
+    first, kinds in KIND_ORDER, each section already aggregated for display. The single owner
+    of the layout — markdown, console and HTML render exactly this list."""
+    layout: list[tuple[ReviewRole, str, list[ReviewItem]]] = []
+    for role in ROLE_ORDER:
+        grouped: dict[str, list[ReviewItem]] = {}
+        for item in queue.items:
+            if item.role == role:
+                grouped.setdefault(item.kind, []).append(item)
+        for kind in KIND_ORDER:
+            group = grouped.get(kind)
+            if group:
+                layout.append((role, kind, aggregate_review_flags(group)))
+    return layout
+
+
+def status_line(queue: HumanReviewQueue) -> str:
+    """``requires sign-off — 3 decision(s), 40 disclosure(s)``; one wording for three renderers."""
+    verdict = "requires sign-off" if queue.requires_signoff else "advisory only"
+    return (
+        f"{verdict} — {len(queue.decisions)} decision(s), "
+        f"{len(queue.disclosures)} disclosure(s)"
+    )
 
 
 def _collapsed_source(members: list[ReviewItem]) -> str:
@@ -213,12 +309,16 @@ def _collapsed_source(members: list[ReviewItem]) -> str:
 
 
 def aggregate_review_flags(flags: list[ReviewItem]) -> list[ReviewItem]:
-    """Collapse repetitive advisory flags for display (finding #3).
+    """Collapse repetitive items of one group for display (finding #3).
 
     A group with more than :data:`AGGREGATE_THRESHOLD` items becomes one summarised
     ``ReviewItem`` (count + a short sample); smaller groups and the catch-all ``"other"``
     pass through individually. Presentation only — no data is lost, the per-item detail still
-    lives in the artifacts (e.g. the contracts). Groups render in first-appearance order."""
+    lives in the artifacts (e.g. the contracts). Groups render in first-appearance order.
+
+    Since WP43 this applies to both roles and to validation warnings, whose group is their
+    code (the label is then the code itself); the collapsed item keeps the members' kind and
+    role, so it renders under the heading its members would have."""
     by_group: dict[str, list[ReviewItem]] = {}
     for item in flags:
         by_group.setdefault(item.group, []).append(item)
@@ -229,7 +329,7 @@ def aggregate_review_flags(flags: list[ReviewItem]) -> list[ReviewItem]:
             label = _GROUP_LABELS.get(group, group)
             collapsed.append(
                 ReviewItem(
-                    kind="review_flag",
+                    kind=members[0].kind,
                     summary=f"{len(members)}× {label}",
                     detail=f"e.g. {_sample_phrase(members)} — review before agreeing",
                     # Derived from the members, never hardcoded (WP21 §2.3): the collapsed
@@ -238,6 +338,7 @@ def aggregate_review_flags(flags: list[ReviewItem]) -> list[ReviewItem]:
                     # naming the wrong one sends a reviewer to the wrong artifact.
                     source=_collapsed_source(members),
                     group=group,
+                    role=members[0].role,
                 )
             )
         else:
@@ -252,17 +353,14 @@ def render_review_queue_md(queue: HumanReviewQueue) -> str:
         lines.append("No items require human review. ✅")
         return "\n".join(lines) + "\n"
 
-    verdict = "requires sign-off" if queue.requires_signoff else "advisory only"
-    lines.append(f"**Status:** {verdict} — {len(queue.items)} item(s).")
+    lines.append(f"**Status:** {status_line(queue)}.")
     lines.append("")
-    grouped = queue.by_kind()
-    for kind in KIND_ORDER:
-        group = grouped.get(kind)
-        if not group:
-            continue
-        if kind == "review_flag":
-            group = aggregate_review_flags(group)
-        lines.append(f"## {KIND_HEADINGS[kind]}")
+    current_role: str | None = None
+    for role, kind, group in review_queue_layout(queue):
+        if role != current_role:
+            lines.extend([f"## {ROLE_HEADINGS[role]}", ""])
+            current_role = role
+        lines.append(f"### {KIND_HEADINGS[kind]}")
         lines.append("")
         for item in group:
             line = f"- **{item.summary}**"

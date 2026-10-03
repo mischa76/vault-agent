@@ -679,7 +679,7 @@ class ValidatorAgent(BaseAgent):
             if gained > 0:
                 issues.append(
                     _issue(
-                        "warning", "W_EXISTING_EXTENDED", hub.name,
+                        "info", "I_EXISTING_EXTENDED", hub.name,
                         f"existing hub {hub.name!r} gained {gained} source feed(s): "
                         f"{', '.join(s.source_table for s in current.sources[len(hub.sources):])}",
                     )
@@ -724,9 +724,11 @@ class ValidatorAgent(BaseAgent):
                     )
                 )
 
-        # Advisory inventory of every legitimate extension — the review queue's extension
-        # category (charter Q5: validation warnings already flow into the queue, so no new
-        # ReviewKind is needed). Hubs that gained feeds are reported above.
+        # Inventory of every legitimate extension, severity "info" (WP43; until then
+        # W_EXISTING_EXTENDED, a warning, and the review queue's extension category per
+        # charter Q5). It stays in the report and the scorers see it; the queue derives no
+        # item from it — the delta's home is the Extension section and extension-diff.md
+        # (WP23 §2.7). Hubs that gained feeds are reported above.
         prior_names = (
             {hub.name for hub in prior.hubs}
             | {link.name for link in prior.links}
@@ -742,7 +744,7 @@ class ValidatorAgent(BaseAgent):
             attached = f" on {parent}" if parent and parent in prior_names else ""
             issues.append(
                 _issue(
-                    "warning", "W_EXISTING_EXTENDED", name,
+                    "info", "I_EXISTING_EXTENDED", name,
                     f"new {kind} {name!r}{attached} added by this extension run",
                 )
             )

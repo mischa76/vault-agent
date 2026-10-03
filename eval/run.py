@@ -299,6 +299,10 @@ def run_metrics(
         "wall_clock_seconds": round(wall_clock_seconds, 3),
         "usage": usage.as_dict(),
         "review_items_total": len(queue.items),
+        # WP43: the total counts signals; these say how many need an answer and how many
+        # are provenance. decisions + disclosures == total, always.
+        "review_decisions": len(queue.decisions),
+        "review_disclosures": len(queue.disclosures),
         "review_queue_lines": rendered.count("\n") + 1,
         "constructs": {
             "hubs": len(state.dv_model.hubs),
@@ -385,6 +389,8 @@ def chain_metrics(
         {
             "case": step_case.name,
             "review_items": len(assemble_review_queue(state).items),
+            "review_decisions": len(assemble_review_queue(state).decisions),
+            "review_disclosures": len(assemble_review_queue(state).disclosures),
             "review_queue_lines": render_review_queue_md(assemble_review_queue(state)).count(
                 "\n"
             )
@@ -403,6 +409,8 @@ def chain_metrics(
     ]
     metrics = run_metrics(chain[-1][1], wall_clock_seconds, usage, trace_path, backstops)
     metrics["review_items_total"] = sum(step["review_items"] for step in per_step)
+    metrics["review_decisions"] = sum(step["review_decisions"] for step in per_step)
+    metrics["review_disclosures"] = sum(step["review_disclosures"] for step in per_step)
     metrics["review_queue_lines"] = sum(
         step["review_queue_lines"] for step in per_step
     )

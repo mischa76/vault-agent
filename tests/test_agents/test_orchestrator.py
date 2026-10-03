@@ -189,14 +189,15 @@ def test_many_type_flags_collapse_to_one_line() -> None:
     assert len(flags) == 39
 
 
-def test_render_markdown_collapses_noise_but_keeps_warnings_first() -> None:
+def test_render_markdown_collapses_noise_and_puts_decisions_first() -> None:
     md = render_review_queue_md(assemble_review_queue(_noisy_state(39)))
 
     assert "39× undetermined field type" in md
-    # The substantive validation warning stays individual and is ordered before the
-    # aggregated advisory block.
+    # WP43: the 39 types are decisions (set the type) and sort before the validation warning,
+    # which is a disclosure; before WP43 the kind order put the warning first. The warning
+    # stays individual.
     assert "W_LINK_REDUNDANT_GRAIN" in md
-    assert md.index("W_LINK_REDUNDANT_GRAIN") < md.index("39× undetermined field type")
+    assert md.index("39× undetermined field type") < md.index("W_LINK_REDUNDANT_GRAIN")
     # The 39 individual lines are gone from the headline.
     assert "PARTN_NR_1 " not in md
 

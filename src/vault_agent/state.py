@@ -795,7 +795,9 @@ class Artifacts(BaseModel):
     scaffolding: dict[str, str] = Field(default_factory=dict)
 
 
-IssueSeverity = Literal["error", "warning"]
+# "info" (WP43): a record the validator keeps — the extension inventory — that is neither a
+# defect nor a risk. It stays in the report; the review queue derives no item from it.
+IssueSeverity = Literal["error", "warning", "info"]
 
 
 # The DV term of art is "construct" (hub/link/satellite); pydantic warns because it

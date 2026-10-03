@@ -28,9 +28,10 @@ import html
 
 from vault_agent.agents.orchestrator import (
     KIND_HEADINGS,
-    KIND_ORDER,
-    aggregate_review_flags,
+    ROLE_HEADINGS,
     assemble_review_queue,
+    review_queue_layout,
+    status_line,
 )
 from vault_agent.models.contract import ContractOwner
 from vault_agent.rules.dv2_rules import normalize_identifier
@@ -283,17 +284,14 @@ def _review_section(state: VaultAgentState) -> str:
     head = "<section><h2>Review queue</h2>"
     if not queue.items:
         return head + "<p>No items require human review. ✅</p></section>"
-    verdict = "requires sign-off" if queue.requires_signoff else "advisory only"
-    status = f"<p><strong>Status:</strong> {_esc(verdict)} — {len(queue.items)} item(s).</p>"
+    status = f"<p><strong>Status:</strong> {_esc(status_line(queue))}.</p>"
     blocks = [head, status]
-    grouped = queue.by_kind()
-    for kind in KIND_ORDER:
-        group = grouped.get(kind)
-        if not group:
-            continue
-        if kind == "review_flag":
-            group = aggregate_review_flags(group)
-        blocks.append(f"<h3>{_esc(KIND_HEADINGS[kind])}</h3><ul>")
+    current_role: str | None = None
+    for role, kind, group in review_queue_layout(queue):
+        if role != current_role:
+            blocks.append(f"<h3>{_esc(ROLE_HEADINGS[role])}</h3>")
+            current_role = role
+        blocks.append(f"<h4>{_esc(KIND_HEADINGS[kind])}</h4><ul>")
         for item in group:
             line = f"<strong>{_esc(item.summary)}</strong>"
             if item.detail:

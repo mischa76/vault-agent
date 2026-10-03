@@ -279,7 +279,8 @@ def test_cli_checkpoint_collapses_noise_like_the_md() -> None:
 
     assert "39× undetermined field type" in text  # collapsed, not 39 lines
     assert "W_LINK_REDUNDANT_GRAIN" in text  # substantive warning still shown
-    assert text.index("W_LINK_REDUNDANT_GRAIN") < text.index("39× undetermined field type")
+    # WP43: decisions (the 39 types) before disclosures (the warning); was the reverse.
+    assert text.index("39× undetermined field type") < text.index("W_LINK_REDUNDANT_GRAIN")
 
 
 def test_checkpoint_renderers_share_one_presentation_source() -> None:

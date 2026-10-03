@@ -33,11 +33,12 @@ from vault_agent import state as _state_module
 from vault_agent.agents.entity_resolver import pending_resolution_decisions
 from vault_agent.agents.orchestrator import (
     KIND_HEADINGS,
-    KIND_ORDER,
+    ROLE_HEADINGS,
     HumanReviewQueue,
-    aggregate_review_flags,
     assemble_review_queue,
     render_review_queue_md,
+    review_queue_layout,
+    status_line,
 )
 from vault_agent.existing_model import DV_MODEL_FILENAME, load_existing_model
 from vault_agent.extension_diff import DIFF_FILENAME, ExtensionDiff, render_extension_diff_md
@@ -1209,26 +1210,20 @@ def _print_checkpoint(console: Console, queue: HumanReviewQueue) -> None:
     """Render the human-in-the-loop checkpoint, grouped blocking-first."""
     if not queue.items:
         return
-    verdict = (
-        "[bold red]requires sign-off[/bold red]"
-        if queue.requires_signoff
-        else "[bold yellow]advisory only[/bold yellow]"
-    )
+    colour = "red" if queue.requires_signoff else "yellow"
     console.print(
-        f"\n[bold]Human-in-the-loop checkpoint[/bold] — {verdict} "
-        f"({len(queue.items)} item(s)):"
+        f"\n[bold]Human-in-the-loop checkpoint[/bold] — "
+        f"[bold {colour}]{status_line(queue)}[/bold {colour}]:"
     )
-    grouped = queue.by_kind()
-    for kind in KIND_ORDER:
-        group = grouped.get(kind)
-        if not group:
-            continue
-        if kind == "review_flag":
-            group = aggregate_review_flags(group)
-        console.print(f"  [bold]{KIND_HEADINGS[kind]}[/bold]")
+    current_role: str | None = None
+    for role, kind, group in review_queue_layout(queue):
+        if role != current_role:
+            console.print(f"  [bold]{ROLE_HEADINGS[role]}[/bold]")
+            current_role = role
+        console.print(f"    [bold]{KIND_HEADINGS[kind]}[/bold]")
         for item in group:
             detail = f" — {item.detail}" if item.detail else ""
-            console.print(f"    - {item.summary}{detail}")
+            console.print(f"      - {item.summary}{detail}")
 
 
 def _report_written(console: Console, counts: dict[str, int], out: Path) -> None:

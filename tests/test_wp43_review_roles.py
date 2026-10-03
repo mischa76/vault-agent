@@ -47,7 +47,7 @@ def _issue(severity: str, code: str, construct: str = "x") -> ValidationIssue:
         severity=severity,  # type: ignore[arg-type]
         code=code,
         construct=construct,
-        message=f"{code} on {construct}",
+        message=f"{construct} needs a look",
     )
 
 
@@ -97,8 +97,8 @@ def test_assemble_assigns_roles_from_typed_fields() -> None:
     queue = assemble_review_queue(_mixed_state())
     by_asset = {item.asset or item.summary: item for item in queue.items}
 
-    assert by_asset["E_NO_HUBS on dv_model"].role == "decision"
-    assert by_asset["W_HUB_NO_SAT on hub_a"].role == "disclosure"
+    assert by_asset["dv_model"].role == "decision"  # E_NO_HUBS
+    assert by_asset["hub_a"].role == "disclosure"  # W_HUB_NO_SAT
     assert next(i for i in queue.items if i.kind == "contract_owner").role == "decision"
     assert by_asset["customer.status"].role == "decision"  # undetermined_type
     assert by_asset["stg_customer"].role == "disclosure"  # source_binding
@@ -175,7 +175,7 @@ def test_markdown_puts_every_decision_before_every_disclosure() -> None:
     md = render_review_queue_md(queue)
 
     assert "Disclosures" in md
-    decision_positions = [md.index(s) for s in ("link_t1", "link_t2")]
+    decision_positions = [md.index(s) for s in ("join through person", "join through address")]
     disclosure_positions = [md.index(s) for s in ("W_BK_COLLISION_RISK", "W_SAT_ATTR_OVERLAP")]
     assert max(decision_positions) < md.index("Disclosures") < min(disclosure_positions)
     # Status line counts both roles.
@@ -213,7 +213,11 @@ def test_console_and_html_follow_the_markdown_order() -> None:
                   for s in _summaries(html_section, r"<li><strong>(.+?)</strong>")]
     assert md_items == html_items == cli_items
     for text in (md, cli_text, html_section):
-        assert text.index("link_t1") < text.index("Disclosures") < text.index("W_BK_COLLISION")
+        assert (
+            text.index("join through person")
+            < text.index("Disclosures")
+            < text.index("W_BK_COLLISION")
+        )
 
 
 # --- Guard 7: the eval carries both numbers ---------------------------------------------
