@@ -29,6 +29,9 @@ METRICS_KEYS = {
     "usage",
     "review_items_total",
     "review_queue_lines",
+    # WP43: the total is signals; these two say how many are answers and how many provenance.
+    "review_decisions",
+    "review_disclosures",
     "constructs",
     "model",
     "flags",

@@ -281,8 +281,9 @@ async def test_reshaping_an_existing_satellite_is_an_error(mutate) -> None:  # t
     assert "E_EXISTING_SAT_RESHAPED" in await _codes(existing, merged)
 
 
-async def test_legitimate_extensions_are_inventoried_as_warnings() -> None:
-    """W_EXISTING_EXTENDED is the review queue's extension category (charter Q5)."""
+async def test_legitimate_extensions_are_inventoried_as_info() -> None:
+    """I_EXISTING_EXTENDED (severity info) inventories the increment in the validation report
+    and the Extension section; since WP43 it is information, not a review item."""
     existing = _vault()
     merged = existing.model_copy(deep=True)
     merged.hubs[0].sources = [
@@ -295,9 +296,14 @@ async def test_legitimate_extensions_are_inventoried_as_warnings() -> None:
     )
     state = await ValidatorAgent().run(_state(existing, merged))
 
-    extended = [i for i in state.validation_report.issues if i.code == "W_EXISTING_EXTENDED"]
+    extended = [i for i in state.validation_report.issues if i.code == "I_EXISTING_EXTENDED"]
     assert {i.construct for i in extended} == {"hub_customer", "sat_customer_marketing"}
-    assert state.validation_report.passed  # advisory only: an extension is not a failure
+    assert {i.severity for i in extended} == {"info"}
+    assert not any(i.code == "W_EXISTING_EXTENDED" for i in state.validation_report.issues)
+    assert state.validation_report.passed  # information only: an extension is not a failure
+    from vault_agent.agents.orchestrator import assemble_review_queue
+    queue = assemble_review_queue(state)
+    assert not any("I_EXISTING_EXTENDED" in item.summary for item in queue.items)
 
 
 # ── §2.6 grandfathering ───────────────────────────────────────────────────────────────────

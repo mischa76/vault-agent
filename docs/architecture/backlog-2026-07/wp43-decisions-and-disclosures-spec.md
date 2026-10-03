@@ -100,6 +100,13 @@ decisions first, under the existing kind headings, every one individually; then 
 their group as today, validation warnings by their `code` — above `AGGREGATE_THRESHOLD`. The
 status line says `N decision(s), M disclosure(s)`. `requires_signoff` is unchanged.
 
+> **Amendment 2026-10-03, before the build.** „Every one individually" above is withdrawn for
+> grouped decisions: the WP5 aggregation stays keyed by `REVIEW_FLAG_GROUPS` and applies to
+> **both** roles, so 39 undetermined types still collapse to one line (finding #3 must not
+> regress) while translations — not in a group, ADR-0013 §3 — stay individual. The roles
+> partition and order; they do not change what collapses. Validation warnings, now
+> disclosures, additionally collapse by `code`.
+
 **Measurement.** `eval/run.py` adds `review_decisions` and `review_disclosures` beside
 `review_items_total`, per step and summed over a chain exactly as the total is. The total keeps
 its name and its sum-over-steps semantics; its *value* changes because info issues are no longer
