@@ -124,6 +124,12 @@ value produces an *identical* hash key in every feed's stage and in the hub, whi
 the property to spot-check after a first multi-source build (one row per key,
 satellites split by record source).
 
+A hub with a **composite key** (WP45, `business_key_columns`) hashes every key column, in
+the declared order, into one hash key — AutomateDV's list form of `hashed_columns` — and its
+`src_nk` is the same list; satellites on it and links it takes part in hash the same list from
+their own relations. Spot-check after a first build: one hub row per distinct column tuple,
+every satellite and link row joining it (`demo/fk_links_postgres`, `hub_currency_rate`).
+
 ## 9.5 The demos as reference runs
 
 All three demos build a real Postgres vault **without an API key** (deterministic build

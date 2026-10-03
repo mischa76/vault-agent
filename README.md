@@ -78,7 +78,7 @@ Ten specialized agents, orchestrated in LangGraph — **all ten built**:
 | **Business-Key Identifier** | Scores key candidates against DV2.0 heuristics; flags ambiguity for review | ✅ Built |
 | **DV2.0 Modeler** | Generates Hubs, Links (incl. role-qualified self-referencing links), and Satellites under DV2.0 rules | ✅ Built |
 | **Code Generator** | Emits AutomateDV dbt models — hubs, links, standard/multi-active/effectivity satellites, transactional links — plus the staging layer and dbt project scaffolding (a runnable project) | ✅ Built |
-| **Validator** | 32 independent E_/W_ gates checking the model and generated artifacts for DV2.0 compliance | ✅ Built |
+| **Validator** | 33 independent `E_` gates (plus advisory `W_` warnings) checking the model and generated artifacts for DV2.0 compliance — the code owns the count: `rg -o '"E_[A-Z_]+"' src/vault_agent/agents/validator.py \| sort -u` | ✅ Built |
 | **ADR Author** | Turns the agents' modeling decisions into an explicit, traceable ADR | ✅ Built |
 | **Data Contract Agent** | Drafts JSON-Schema source-to-staging contracts + dbt schema tests; flags gaps for human review | ✅ Built |
 | **Source Mapper** | Proposes which physical source column feeds each business concept (evidence trail, coverage gaps as first-class output); a human ratifies (ADR-0008) | ✅ Built |
@@ -287,7 +287,7 @@ Contracts         data contract agent + dbt schema tests                       �
 Orchestration     orchestrator entry node · live HITL (interrupt/resume)       ✅ done
 Hardening         typed pipeline flags · resilient LLM call path (retry/backoff/caching) ✅ done
 Runnable output   staging generator + dbt project scaffolding (verified on Postgres) ✅ done
-Validation depth  32 independent validator gates (incl. eff-sat order, HK collisions) ✅ done
+Validation depth  33 independent validator gates (incl. eff-sat order, HK collisions, composite keys) ✅ done
 Evals             eval harness: golden datasets · deterministic scorers · LangSmith layer ✅ done
 Multi-role links  role-qualified self-referencing links (ADR-0009, Postgres-verified) ✅ done
 Mapping (Phase 2) business↔source mapping — LLM-first, ratified, opacity-probed &

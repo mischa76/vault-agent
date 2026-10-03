@@ -41,6 +41,7 @@ match on the code, never on message text.
 | `E_DUP_HUB` | Same business key on the same source entity in ≥2 hubs — one concept modelled twice. Merge to exactly one hub per business key. |
 | `E_HUB_HK_COLLISION` | Hubs share a source entity but differ in business key: they would derive the same `X_HK` column and staging model, silently cross-binding keys (diagram in 2.4). Split the source entities or unify the key. |
 | `E_HUB_DUP_FEED` | A multi-source hub declares the same (table, column) feed twice. Each `HubSource` must be distinct. |
+| `E_HUB_COMPOSITE_UNSUPPORTED` | WP45: a hub with a composite key (`business_key_columns`, two or more) is multi-source, or takes part in a link with a role, an alias or a translation. Those shapes need per-column mechanisms that do not exist yet; the gate refuses rather than staging from the first column. Take the hub unqualified, model it single-source, or key it on one column. A plain composite hub — its stage, its satellites, an unqualified link participation — is generated and built (PostgreSQL, 2026-10-04). |
 | `W_HUB_NO_SAT` | Hub has no satellite — no descriptive data captured. Legitimate for pure reference hubs; otherwise attributes went missing. |
 | `W_BK_COLLISION_RISK` | Different source entities share one business-key name across hubs. Confirm whether a collision code (source differentiation) is needed before values from different systems merge. |
 
@@ -136,6 +137,7 @@ experiment precisely because its gate stays behind it.
 | `fk_demotion` (source mapper) | A key's FK occurrence mistaken for a second source | — (mapping quality; honest `unresolved` is the fallback) |
 | `effsat_two_attributes` (code generator) | Effectivity satellite with ≠2 attributes reaching generation | `E_EFFSAT_DATES` |
 | `retired_reemitted` (modeler, WP44) | A later attempt re-emits a hub the collision remedy retired; it and its dependents are dropped again | `E_HUB_HK_COLLISION` |
+| `composite_key_split` (modeler, WP45) | The modeler wrote a composite key as `A + B` with no `business_key_columns`; when every part is a declared column of the hub's relation, the parts become the typed columns | `E_SAT_KEY_NOT_IN_SOURCE`, `W_BK_NOT_IN_SOURCE` |
 
 The full inventory with evidence and verdicts lives in
 `docs/architecture/steering-ledger.md`.

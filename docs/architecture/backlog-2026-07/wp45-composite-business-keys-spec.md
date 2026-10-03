@@ -136,3 +136,15 @@ satellite rows and all 3 link rows join `hub_currency_rate`; the link's `from`/`
 ## 6 Results
 
 *(appended after the change, the Postgres build, and the next live chain)*
+
+**2026-10-04 — built keyless and on PostgreSQL.** Commits `2541f05` (guards, failing) and
+`7b6dd0f` (the change and the demo). Guards 1–6 of §3 pass; ruff, mypy, pytest 1090 passed. The
+Postgres half of §4 held exactly: `PASS=113 WARN=0 ERROR=0` from an empty `fk_links_demo` schema
+(was 103 before the four constructs); `hub_currency_rate` 3 rows, 3 distinct `CURRENCYRATE_HK`;
+3 of 3 `sat_currency_rate_detail` rows and 3 of 3 `link_currency_rate_currencies` rows join the
+rate hub; the link's `from`/`to` join `hub_currency` as seeded (CHF→EUR twice, EUR→CHF once); a
+second `dbt build` leaves 3/3/3 rows. One fixture updated deliberately: the greenfield manifest's
+`metadata/dv_model.yml`, which now carries the empty `business_key_columns` on every hub. The
+validator has 33 `E_` codes (was 32); README updated. P1–P4 of §4 (the chain) are **not yet
+measured live**.
+

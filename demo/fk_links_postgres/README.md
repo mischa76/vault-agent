@@ -48,6 +48,15 @@ on PostgreSQL. No API key.
 > the same assembly, component and unit as the 3 `link_bill_of_materials` rows of the build before
 > the rename; the satellite 3 of 3; a second build `INSERT 0 0`.
 >
+> **WP45 verified 2026-10-04** on the same stack: a **composite business key** — `hub_currency_rate`
+> on (`CurrencyRateDate`, `FromCurrencyCode`, `ToCurrencyCode`), typed as `business_key_columns`,
+> hashed as one list in its stage, its satellite's stage and the stage of
+> `link_currency_rate_currencies`, where it takes part unqualified beside `hub_currency` as `from`
+> and `to` (both licensed from the declared keys). `PASS=113 WARN=0 ERROR=0` from an empty
+> schema; 3 rate rows, 3 distinct hash keys; 3 of 3 satellite rows and 3 of 3 link rows join the
+> rate hub, and the link's from/to join `hub_currency` with the seeded pairs; a second build
+> leaves 3/3/3 rows.
+>
 > **The first build found two defects the keyless tests had not** (see [Findings](#findings)).
 
 ## What is fixed here, and what is computed

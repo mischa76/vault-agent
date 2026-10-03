@@ -6174,3 +6174,68 @@ case is not a rule). The steering ledger (`docs/architecture/steering-ledger.md`
 append-only record under the hook; the backstop row for `retired_reemitted` is proposed for the
 owner to add, with this entry as its evidence — the operations manual's inventory (08 §8.3, 10.4)
 carries it meanwhile.
+
+## [2026-10-04] WP45 — composite business keys, typed from the modeler to the hash; built on PostgreSQL
+
+**Autor:** Claude Code
+
+**Why.** The second of the two classes keeping step 5 (sales) red: `E_SAT_KEY_NOT_IN_SOURCE` ×3
+on satellites whose parents the modeler keyed on composite keys written as one string —
+`hub_order_line` on `SalesOrderID + SalesOrderDetailID`, `hub_currency_rate` on
+`CurrencyRateDate + FromCurrencyCode + ToCurrencyCode`. Nothing typed or parsed that;
+`canonical_hub_key_column` normalised it into one identifier no relation declares, and the gate
+refused, correctly. AutomateDV 0.11.4 hashes a list of columns under one key and takes `src_nk` as
+a list (read in the installed package: `macros/staging/hash_columns.sql`, the not-a-mapping
+branch; `macros/tables/postgres/hub.sql`, `expand_column_list`) — the project's own link hash keys
+already use that branch. Spec `wp45-composite-business-keys-spec.md` (`0e84f55`).
+
+**What changed** (`2541f05` guards first, failing; `7b6dd0f` the change and the demo).
+- `Hub.business_key_columns: list[str]` (two or more = composite; `business_key` stays the
+  label; exposed in the modeler's tool schema and named in the prompt's field list);
+  `rules.is_composite_key`, `rules.hub_key_columns` — the one helper every key path reads.
+- Staging: a composite hub's stage hashes `X_HK` over the list and passes each column through;
+  a satellite's own stage on it, an unqualified link participation and a link satellite do the
+  same. The hub renders `src_nk = ["A", "B", …]`; the metadata carries the list.
+- Gates: `E_SAT_KEY_NOT_IN_SOURCE` demands every parent key column and names the missing;
+  `W_BK_NOT_IN_SOURCE` checks each column of a composite key; `E_HUB_HK_COLLISION` compares key
+  tuples. New gate `E_HUB_COMPOSITE_UNSUPPORTED` (33 `E_` codes now; README count updated and
+  given the command that owns it): a composite hub that is multi-source, or in a link with a
+  role, an alias or a translation, is refused — the per-column mechanisms do not exist yet and
+  staging from the first column would be the WP24 class of defect.
+- Backstop `composite_key_split` (modeler): `A + B` with no columns, every part a declared column
+  of the hub's own relation → typed columns, label kept, one `backstop` event; inert without a
+  schema, with an undeclared part, or with columns already set. A format repair like
+  `decoded_field`, not an interpretation.
+- Demo `fk_links_postgres`: `Currency`, `CurrencyRate` (two keys into `Currency`),
+  `hub_currency`, the composite `hub_currency_rate`, `sat_currency_rate_detail`,
+  `link_currency_rate_currencies` (composite hub unqualified; `hub_currency` as `from`/`to`,
+  licensed from the declared keys by the real proposer and applier); seeds with 3 rates.
+- Docs: operations 08 (gate row, backstop row), 09 (composite paragraph), 10.4, 12; demo README;
+  CHANGELOG Unreleased/Added; spec §6; index; README gate count.
+
+**Überprüft.** *Keyless:* `uv run pytest` 1090 passed, 2 skipped; ruff clean (two import blocks
+re-sorted by `--fix`); bare mypy clean. Single-key output unchanged: the staging baseline holds
+and the greenfield manifest changed only in `metadata/dv_model.yml` (the empty field on every
+hub) — regenerated deliberately. *Warehouse, keyless:* `dbt build --full-refresh` on local
+PostgreSQL 16 from an empty `fk_links_demo` schema (`drop schema … cascade` first, the README's
+own „from an empty schema"): `PASS=113 WARN=0 ERROR=0` (103 before). `hub_currency_rate` 3 rows,
+3 distinct `CURRENCYRATE_HK`; 3 of 3 satellite rows join it; 3 of 3 link rows join the rate hub
+and their `from`/`to` currencies as seeded (CHF→EUR on two days, EUR→CHF on one); a second
+`dbt build` `PASS=113`, rows 3/3/3 unchanged. Not a paid run.
+
+**Pre-registered, not measured** (spec §4): on the next chain the backstop fires twice in step 5
+(or zero times if the modeler fills the field itself), `E_SAT_KEY_NOT_IN_SOURCE` 3 → 0 and
+`W_BK_NOT_IN_SOURCE` 2 → 0 there; with WP44 holding the collision at 0, step 5's gate is green for
+the first time unless a class not seen on 2026-09-17 appears. The composite-key license skip
+stays 1.
+
+**Nur angenommen.** That the two `W_BK_NOT_IN_SOURCE` of 2026-09-17's step 5 are these two hubs —
+only the code count is persisted, not the constructs. That the backstop's `+` joiner is the
+modeler's stable notation; a different joiner leaves the gate to refuse as today. That no live
+AdventureWorks table needs the refused shapes before the chain runs.
+
+**Bewusst nicht getan.** No paid run. Composite foreign keys in the proposer (`is_single_column`
+still skips them); composite with role/alias/translation/multi-source (the gate names them);
+the dependent-child-key alternative as steering (spec §5). The steering ledger's backstop row
+for `composite_key_split` is, like WP44's, proposed for the owner to add — the operations manual
+carries the inventory meanwhile.

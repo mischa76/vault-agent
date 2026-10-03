@@ -74,6 +74,15 @@ is not the project's.
   `E_SAT_KEY_NOT_IN_SOURCE`. Built on PostgreSQL (`demo/fk_links_postgres`) and live once
   (2026-09-15): no `hub_sales_representative`, two translated satellites on `hub_employee`.
 
+### Added
+- Composite business keys (WP45). A hub names its key columns in `business_key_columns`; the
+  stage hashes the list, the hub's `src_nk` is the list, satellites and unqualified link
+  participations hash the same list from their relations, and the key gates read it. The
+  multi-source, role, alias and translation shapes are refused by the new gate
+  `E_HUB_COMPOSITE_UNSUPPORTED` rather than staged from one column. The modeler's `A + B`
+  notation is typed by the backstop `composite_key_split` when every part is declared. Built
+  on PostgreSQL in `demo/fk_links_postgres` (`hub_currency_rate`, `PASS=113`).
+
 ### Fixed
 - The re-model loop no longer loses a repair it was given (WP44). A hub the `E_HUB_HK_COLLISION`
   remedy retired is refused if a later attempt re-emits it, with the links and satellites that
