@@ -160,6 +160,8 @@ is not the project's.
   trace segment, and a `client` field on every call event naming the SDK client that carried it.
 
 ### Security
+- Dependabot alerts 34–41 (`pypdf` < 6.19.0, eight high: long runtimes or large memory on crafted
+  PDFs) closed by a lock-only upgrade to 6.19.0; `pyproject.toml` (`pypdf>=6.15.0`) unchanged.
 - Dependabot alerts 23, 24 (`anyio`), 27–29 (`urllib3`), 30 (`PyJWT`) and 31–33 (`tornado`) closed
   by a lock-only upgrade: anyio 4.15.1, urllib3 2.8.0, PyJWT 2.15.1, tornado 6.5.10 (`uv lock
   --upgrade-package`, no change to `pyproject.toml`). Alerts 25 and 26 (`oauthlib` < 4.0.0) stay

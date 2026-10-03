@@ -6107,3 +6107,16 @@ change touches neither the model nor the warehouse output. The WP34 clause not r
 are in spec §5 with their price; each needs an owner decision. One deviation from
 `.claude/rules/records.md`: the dated amendment to spec §2 was inserted by a script into the
 section it corrects rather than appended to §6; named in §6, not repeated.
+
+## [2026-10-03] Dependabot: eight `pypdf` alerts closed by a lock upgrade to 6.19.0
+
+**Autor:** Claude Code
+
+Follow-up to today's lock-upgrade entry. The graph update after `89a3376` raised alerts 34–41 on
+`pypdf` 6.16.1 — eight, all high, all of one class: long runtimes or large memory on crafted PDFs
+(page labels, font data, `/ToUnicode` streams, FlateDecode, indirect objects, appearance streams,
+embedded files). `pypdf` is a direct dependency (`pypdf>=6.15.0`, used by the requirements parser
+to read PDF input). **Changed:** `uv lock --upgrade-package pypdf`, 6.16.1 → 6.19.0; `pyproject.toml`
+untouched. **Verified, keyless:** `uv sync --extra dev --extra demo`, then ruff clean, bare mypy clean,
+`uv run pytest` 1072 passed, 2 skipped (the parser's PDF tests included). **Nur angenommen:** no
+behaviour change on real requirement PDFs — none was re-parsed. **Bewusst nicht getan:** no live run.
