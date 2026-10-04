@@ -168,7 +168,10 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   **Still red: steps 3 and 5**, one `E_SAT_KEY_NOT_IN_SOURCE` each, a *new* class — a link satellite
   (`WorkOrderRouting`, `SalesOrderDetail`) whose `hub_product` participation has no declared
   single-column key to license a translation through `Product`. Review 378 items, 148 decisions
-  (WP43). The two-hubs-on-one-entity defect did not occur this run; it is not fixed.
+  (WP43). The two-hubs-on-one-entity defect did not occur this run; it is not fixed. **WP46
+  (2026-10-05) addresses the new class keyless**: composite foreign keys are read per component
+  (`SalesOrderDetail` → `Product`, built on Postgres), and the satellite key gate names a parent
+  and retires the refused shape (`WorkOrderRouting`); **unmeasured live**.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`
