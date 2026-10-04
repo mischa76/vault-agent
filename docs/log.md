@@ -6337,3 +6337,49 @@ machine that paid for the run; the log carries what a reader needs.
 
 **Bewusst nicht getan.** No backfill for earlier runs (no state is persisted for them); no change
 to the CLI's own `review-queue.md`; no paid run.
+
+## [2026-10-04] Pre-registration for the chain run — WP43, WP44, WP45 and the queue persistence, written before the run
+
+**Autor:** Claude Code
+
+The user, after topping up: „du hast mein go!". One repeat of `adventureworks_incremental`
+(five steps, person → sales), at this commit, with the default models (Sonnet 4.6 primary, Opus
+4.8 heavy). Expected cost and time from the 2026-09-17 chain: about 100 calls, ≈ 6 USD, ≈ 40 min.
+The predictions below are those of the three specs, gathered so the result is read against
+them and not after them.
+
+**P1 — WP44, the collision.** `E_HUB_HK_COLLISION` is 0 in every step. If the modeler re-emits a
+retired hub, the backstop `retired_reemitted` fires (predicted ≤ 1, in step 5) and the flags
+`retired_reemitted` / `retired_orphan` appear (1 / 3 if the 2026-09-17 shape repeats); if it
+never re-emits, zero fires and P1 still holds — the gate did the work.
+
+**P2 — WP45, composite keys.** `E_SAT_KEY_NOT_IN_SOURCE` 3 → 0 and `W_BK_NOT_IN_SOURCE` 2 → 0 in
+step 5. The backstop `composite_key_split` fires twice there (`hub_order_line`,
+`hub_currency_rate`), or zero times if the modeler fills `business_key_columns` itself. The
+composite-key license skip stays 1. `E_HUB_COMPOSITE_UNSUPPORTED` fires 0 times — the known
+composite hubs take part in links unqualified; a fire names a shape not seen on 2026-09-17.
+
+**P3 — step 5 green.** With P1 and P2, `validation_gate` is 1.0 in all five steps for the first
+time — unless a class not seen on 2026-09-17 appears, which the run will name. Steps 1–4 stay
+green. `link_store_sales_representative` was refused in 3 steps on 2026-09-17 by
+`E_LINK_KEY_WRONG_COLUMN`; nothing since touches it, so it is expected to be refused again
+(that gate is right; the defect under it is the two-hubs-on-one-entity shape).
+
+**P4 — WP43, the queue.** `review_items_total` falls well below 619 by construction (the 159
+inventory items are gone; 373 on the saved chain) — this says nothing about the model.
+`review_decisions` is within ±15 % of 120 if the modeler builds a vault of the 2026-09-17 shape
+(45 hubs, 62 links, 84 satellites at the end); `review_disclosures` is dominated by
+`source_binding` (187 on the saved chain), which is the chain design, not the model. The WP34 §6
+clause reads `review_items_total` and will report HELD on review; that is not evidence.
+
+**P5 — WP34 §6 otherwise.** The link and invention clauses hold as on 2026-09-17 (≥ 16 cross-domain
+links against arm A's 16; zero-satellite hubs not above 2; `hub_sales_representative` not
+returned). Not a prediction of this work — a check that it moved nothing else.
+
+**P6 — persistence.** Every step leaves `…review-queue.md` and `…review.json` beside its result,
+and so does the chain's final result; the per-step `review.json` decisions sum to the chain's
+`review_decisions`.
+
+**Not predicted.** Dollar cost (no rate table in the repo); the exact number of `source_binding`
+flags; whether the modeler's cart hubs collide at all this time (variance: on 2026-09-13 step 5
+dropped the hub in attempt 2 and stayed green on that class).
