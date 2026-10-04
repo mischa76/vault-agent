@@ -6291,3 +6291,16 @@ every AutomateDV platform, and that no Fabric dialect exists in AutomateDV 0.11.
 the node list against `graph.py`, the dialects against `rules/platforms.py`, today. **Bewusst nicht
 getan:** no code change; CLAUDE.md's „Strategic targets Snowflake + MS Fabric" stands as it was,
 because it says strategic.
+
+## [2026-10-04] Decision — AutomateDV stays the one backend until it runs clean; datavault4dbt is deferred
+
+**Autor:** Claude Code
+
+The user, after the Fabric question: „jetzt machen wir eines nach dem anderen, zuerst schauen wir
+mal dass wir es mit AutomateDV sauber zum laufen kriegen, dann können wir uns immer noch überlegen
+datavault4dbt einzubinden". Recorded so it is not re-opened by accident: ADR-0003 stands; no spike,
+no second backend, no Fabric dialect until the AutomateDV line is clean end to end. „Clean" today
+means the open items in CLAUDE.md — the first green sales step (WP44/WP45, unmeasured live),
+`link_store_sales_representative`, scale above ~30 tables. The datavault4dbt comparison of
+2026-09-22 and the two routes to Fabric (today's „Finding" entry and its README follow-up) remain
+on record for when that day comes. **Bewusst nicht getan:** nothing in code or ADRs.
