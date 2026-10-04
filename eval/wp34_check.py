@@ -189,12 +189,12 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
          + (f"; named hub present, reported not failing since 2026-09-14 "
             f"(WP29 same-as outcome): {named}" if named else "")),
         (decisions is not None and decisions <= BASELINE_REVIEW_DECISIONS,
-         (f"review:     {decisions} decision(s) (must not exceed {BASELINE_REVIEW_DECISIONS}, the "
-          f"2026-10-04 chain) · {review} items reported, not judged (the pre-2026-10-05 clause read "
-          f"them against {BASELINE_REVIEW_ITEMS})")
+         (f"review:     {decisions} decision(s) (must not exceed {BASELINE_REVIEW_DECISIONS}, "
+          f"the 2026-10-04 chain) · {review} items reported, not judged (the pre-2026-10-05 "
+          f"clause read them against {BASELINE_REVIEW_ITEMS})")
          if decisions is not None else
-         (f"review:     no review_decisions in this result (pre-WP43, signals only: {review} items) "
-          f"— the clause cannot be judged on it")),
+         (f"review:     no review_decisions in this result (pre-WP43, signals only: {review} "
+          f"items) — the clause cannot be judged on it")),
         (not aliases and gate_fires == 0,
          f"joins:      {len(aliases)} unsound alias(es), "
          f"{gate_fires} E_LINK_KEY_NOT_IN_SOURCE fire(s) — both must be 0"),
