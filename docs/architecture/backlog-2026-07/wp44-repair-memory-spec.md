@@ -123,3 +123,8 @@ measured live**.
 (P4):** the backstop fired zero times — the modeler built one cart hub and the item as a link to
 `hub_product`, so nothing was retired. **P3 held.** The mechanism's evidence remains the replay
 of §3; this run shows the gate and the modeler agreeing without it.
+
+**2026-10-05 — second live chain** (`20261004T140130528908Z`): the collision class appeared in
+step 2 and step 4 attempt 1 (`hub_employee_business_entity`, `hub_vendor_business_entity`), the
+remedies were followed in attempt 2, the retirements were sent, the backstop fired 0 times. P4
+again: the gate and the modeler agreeing, the memory in reserve.

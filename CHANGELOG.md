@@ -178,6 +178,11 @@ is not the project's.
   Re-derived; one pre-registered step-order edge (Person↔Sales) is now a recorded cycle.
 
 ### Measured
+- Chain `20261004T140130528908Z` (2026-10-05, one repeat, ≈ $6.62): **the first all-green chain** —
+  `validation_gate` 1.0 in all five steps, WP34 §6 all four clauses (22 cross-domain links), review
+  353 items / 135 decisions. Three steps went to a second attempt and the modeler followed every
+  remedy (two collisions dropped, the `WorkOrderRouting` satellite re-parented onto
+  `hub_work_order`); the WP44 memory and the WP45 backstop were never needed. `docs/log.md` 2026-10-05.
 - Chain `20261004T013339024833Z` (2026-10-04, one repeat, ≈ $6.44): WP43/44/45 live. No hash-key
   collision in any step (the modeler built the cart item as a link); the modeler filled
   `business_key_columns` for `hub_currency_rate` itself; the composite-key errors are gone;

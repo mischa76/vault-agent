@@ -133,7 +133,8 @@ The pipeline runs end-to-end: orchestrator → requirements parser → business 
 (bounded re-model loop) → source mapper → HITL checkpoint → ADR author. Output is a runnable dbt project (staging + raw vault + scaffolding), data
 contracts, a review queue, an HTML report, and a proposed ADR. Brownfield mode (`run --existing`)
 extends an existing vault instead of modelling into an empty one. Verified on real PostgreSQL
-several times, most recently for brownfield additivity. WP29 §4 (entity-resolution safety) is
+several times, most recently for composite keys (2026-10-05). The five-step AdventureWorks chain
+(person → sales) ran all-green for the first time on 2026-10-05. WP29 §4 (entity-resolution safety) is
 met: `false_merge_rate` 1.000 over 5 clean repeats, zero blinded merges (2026-08-08; trap 5 is
 blinded-untestable by design). Details and dates: `docs/log.md`.
 
@@ -144,34 +145,18 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   with table count, so the upper cases measure width and repetition tolerance rather than semantic
   scale (`scale-test-findings.md`, candidate #5). `scale_300` has not been run; `emit_dv_model` is
   the one agent that cannot split its output, so its budget is the only lever there.
-- **WP34 §6 holds as written on the last two chains** (2026-09-15: 21, then 23 cross-domain links
-  against arm A's 16; zero-satellite hubs 2, then 1; review 547, then 512). The second ran WP39 and
-  WP40 live: 27 and 16 key licenses, all resolved, and the widened `E_SAT_KEY_NOT_IN_SOURCE`
-  refused only what WP40 cannot repair (a composite key; a role column the table lacks) — so its
-  person and sales gates were red, honestly. **WP41 verified live on 2026-09-16** (chain
-  `20260916T153832701383Z`): the person step is green for the first time, 13 greenfield key licenses
-  accepted and all resolved (13/5/27/4/16 over the chain), §6's four clauses held, review 516. Sales
-  is red for causes outside WP41 (`E_HUB_HK_COLLISION`; a composite key under
-  `E_SAT_KEY_NOT_IN_SOURCE`). **WP42 (2026-09-16) repaired the name-bound gap:** a link's relation is
-  resolved by name, else by the one declared relation whose offer covers its participations, so
-  `link_bom` and `link_currency_rate_currencies` are repaired; replayed, role warnings fell 18 → 5.
-  Since 2026-09-17 such a link also stages from that relation (replayed: link stages left to
-  `raw_<name>` 185 → 47), built on Postgres as `link_bom`. **Verified live on 2026-09-17**
-  (`20260917T181755061438Z`): role warnings 4 → 0, no link stage inferred while one relation offers
-  it, §6's four clauses held, review 532; steps 1–4 green. **Still open:**
-  `link_store_sales_representative` is newly refused in 3 steps for hashing `hub_sales_representative`
-  from `Store.BusinessEntityID` while the table declares `SalesPersonID` — a real wrong-entity join,
-  sitting on the two-hubs-on-one-source-entity defect. `docs/log.md` 2026-09-16 and 2026-09-17.
-  **Measured live 2026-10-04** (`20261004T013339024833Z`): no collision in any step (WP44's backstop
-  not needed — the modeler built the cart item as a link), the modeler typed `hub_currency_rate`'s
-  composite key itself (WP45), `link_store_sales_representative` joined correctly through `Employee`.
-  **Still red: steps 3 and 5**, one `E_SAT_KEY_NOT_IN_SOURCE` each, a *new* class — a link satellite
-  (`WorkOrderRouting`, `SalesOrderDetail`) whose `hub_product` participation has no declared
-  single-column key to license a translation through `Product`. Review 378 items, 148 decisions
-  (WP43). The two-hubs-on-one-entity defect did not occur this run; it is not fixed. **WP46
-  (2026-10-05) addresses the new class keyless**: composite foreign keys are read per component
-  (`SalesOrderDetail` → `Product`, built on Postgres), and the satellite key gate names a parent
-  and retires the refused shape (`WorkOrderRouting`); **unmeasured live**.
+- **The chain is all-green once** (2026-10-05, `20261004T140130528908Z`): all five steps
+  `validation_gate` 1.0, WP34 §6's four clauses held (22 cross-domain links against arm A's 16),
+  review 353 items / 135 decisions. What made sales and production red on 2026-09-17 and
+  2026-10-04 is closed keyless and confirmed live by the loop itself: hash-key collisions (WP44 —
+  the remedy's drop was followed in attempt 2, twice), composite business keys (WP45 — the modeler
+  typed three hubs), a composite foreign key read per component and the satellite key gate's remedy
+  (WP46 — followed on `WorkOrderRouting`, re-parented onto `hub_work_order`). Per-chain numbers and
+  history: `docs/log.md` 2026-09-15 → 2026-10-05. **One chain is a shape, not a distribution:** the
+  modeler's choices varied across the three chains (cart item as hub or as link; a
+  `SalesOrderDetail` satellite built or not), so a class absent in one run is not gone — the
+  two-hubs-on-one-source-entity defect appeared inside attempts and was remedied, not fixed; WP46's
+  component translation has Postgres evidence but no live case yet.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

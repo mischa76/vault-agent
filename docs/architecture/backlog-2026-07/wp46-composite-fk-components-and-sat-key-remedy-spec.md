@@ -130,3 +130,10 @@ Postgres half of §4 held exactly: `PASS=130` from an empty schema (113 the day 
 line rows join order and product as seeded, 3 of 3 satellite rows join the link, second build
 unchanged, no `composite_key` skip. The chain half (P1–P4) is **not yet measured live**.
 
+**2026-10-05 — measured live** (chain `20261004T140130528908Z`, `docs/log.md` „Second paid chain
+run"). **P1** held on its codes (`E_SAT_KEY_NOT_IN_SOURCE` 0 in step 5, `composite_key` skip 0) but
+the modeler built no `SalesOrderDetail` satellite, so the component's translation was not
+exercised live; evidence stays the Postgres build. **P2 held, re-parent branch:** the gate fired
+in step 3 attempt 1, the remedy named `hub_work_order`, attempt 2 hung the satellite there; no
+orphan, no backstop fire. **P3:** `validation_gate` 1.0 in all five steps — the first all-green
+chain. **P4 held** (review 135 decisions, band 118–178).

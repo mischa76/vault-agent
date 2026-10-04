@@ -6552,3 +6552,60 @@ this time the band is wider because the previous one was missed on the translati
 chain's.
 **Not predicted.** Whether the modeler builds the same satellites at all (step 3 was green on
 2026-09-17 because it did not); the dollar figure.
+
+## [2026-10-05] Second paid chain run — the first all-green chain; WP44 and WP46 confirmed live by the loop's own behaviour
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261004T140130528908Z` (UTC; the
+run started at 16:01 local on 2026-10-04 and ended after midnight), at `7c8a8e3` — the
+pre-registration's own commit (the entry above it). 107 calls, 403k uncached input, 282k output,
+45.5 min, ≈ **6.62 USD** at the 2026-08-13 rates. Eight modeler calls: three steps went to a
+second attempt. Final vault 42 hubs, 56 links, 102 satellites. **`validation_gate` 1.0 in all five
+steps** — the first chain with no surviving error since the incremental track began on
+2026-07-29. `pipeline_health` 1.0, `existing_construct_preservation` 1.0. WP34 §6, unmodified:
+all four clauses held — 22 cross-domain links (arm A 16), 1 zero-satellite hub
+(`hub_shopping_cart`), review 353 < 619, 0 unsound aliases, 0 `E_LINK_KEY_NOT_IN_SOURCE`.
+
+**P1 held on its codes, half of its mechanism untested.** Step 5: `E_SAT_KEY_NOT_IN_SOURCE` 0, the
+`composite_key` skip 1 → **0** — the component path read `SalesOrderDetail.(SpecialOfferID,
+ProductID)` per component (17 licences accepted, 16 before). But the modeler built **no satellite
+from `SalesOrderDetail`** this time, so the translation the component licenses was never needed
+live; its evidence stays the Postgres build of `cec2f9f`. Variance in the model, again.
+
+**P2 held — the re-parent branch, exactly as the remedy named it.** Step 3, attempt 1 (llm_call
+64) emitted `sat_work_order_operation_details` on `link_work_order_operation` from
+`WorkOrderRouting`; the gate fired with the remedy „re-parent … to a parent whose key
+WorkOrderRouting carries — hub_work_order"; attempt 2 (llm_call 68) emitted it **on
+`hub_work_order`**. No `retired_orphan`, no backstop fire: the modeler followed the remedy, the
+memory was not needed, the gate was green. The same attempt also re-parented
+`sat_bill_of_materials_details` on the same remedy.
+
+**P3 held — the first all-green chain.** Named as a hope; it happened. Read with P4's caveat.
+
+**P4 held.** `E_HUB_HK_COLLISION`: 0 in every final report — but the trace shows the class is
+alive: step 2 attempt 1 built `hub_employee_business_entity` beside `hub_employee`, step 4 attempt
+1 `hub_vendor_business_entity` beside `hub_vendor`; both remedies („drop …; keep …") were followed
+in attempt 2, the retirements travelled in the payload (`retired_constructs` sent 3×), the
+backstop `retired_reemitted` fired **0** times. WP44's memory has now been in the loop live twice
+and was never needed — which is P4 of its spec: the gate and the modeler agreeing. Composite
+keys: the modeler typed **three** hubs itself (`hub_email_address`, `hub_currency_rate`,
+`hub_sales_tax_rate`); `composite_key_split` 0. `W_HUB_NO_SAT` 1, once, for the one hub without a
+satellite (the 2026-10-04 defect fixed). `review_decisions` **135** (band 118–178 around 148:
+inside), `review_disclosures` 218 (`source_binding` 154), items 353; translations 60.
+
+**P5 held.** 12 review siblings; per-step decisions 13 + 15 + 52 + 21 + 34 = 135.
+
+**Seen, left alone.** One `generation_gap` (an effectivity satellite without a driving key, step 2),
+one `extension_conflict` (the delta re-stated `link_vendor_business_entity`, refused by the merger,
+step 4), both advisory and both known classes. `link_store_sales_representative` joined through
+`Employee` again; the two-hubs-on-one-entity defect appeared only inside attempts and was
+remedied — not fixed.
+
+**Überprüft.** All numbers from the run's result files, the `review.json` siblings, the trace and
+`eval.wp34_check`. **Nur angenommen.** That one green chain means the classes are closed rather
+than absent: the modeler's choices varied across the three chains (cart item as hub vs link; a
+`SalesOrderDetail` satellite built or not), and a second repeat would cost as much again.
+**Bewusst nicht getan.** No repeat; no `dbt build` of this vault (no seeds for the case; the
+mechanisms have their Postgres builds in the demo); the WP34 review clause not re-based; the
+steering ledger rows still proposed, not written.
