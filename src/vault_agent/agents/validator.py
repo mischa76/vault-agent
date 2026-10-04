@@ -178,6 +178,13 @@ class ValidatorAgent(BaseAgent):
                 issues.append(
                     _issue("error", "E_HUB_NO_BK", hub.name, "hub has no business key")
                 )
+            if not any(sat.parent == hub.name for sat in model.satellites):
+                issues.append(
+                    _issue(
+                        "warning", "W_HUB_NO_SAT", hub.name,
+                        "hub has no satellite; no descriptive data is captured for it",
+                    )
+                )
             if is_composite_key(hub) and hub.sources:
                 # WP45 §2.5: a HubSource carries one key column per feed; a composite key over
                 # several feeds needs a column list per feed, which does not exist yet. Refused
@@ -210,13 +217,6 @@ class ValidatorAgent(BaseAgent):
                         f"link {link.name!r} takes the composite-keyed hub {ref_hub.name!r} "
                         f"with {shape}; per-column roles, aliases and translations are not "
                         f"generated yet — take it unqualified, or key the hub on one column",
-                    )
-                )
-            if not any(sat.parent == hub.name for sat in model.satellites):
-                issues.append(
-                    _issue(
-                        "warning", "W_HUB_NO_SAT", hub.name,
-                        "hub has no satellite; no descriptive data is captured for it",
                     )
                 )
 
