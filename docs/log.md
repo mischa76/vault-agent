@@ -6276,3 +6276,18 @@ the project's rule says it belongs.
 datavault4dbt still has its Fabric adapter at HEAD (read on 2026-09-22, not re-cloned).
 **Bewusst nicht getan:** README wording for 2 and 3 — meaning changes are the owner's call
 (`.claude/skills/project-docs/SKILL.md`, the lint pass).
+
+## [2026-10-04] README — the two open deviations of the re-check applied, on the owner's word
+
+**Autor:** Claude Code
+
+Follow-up to today's „Finding — the README deviations of 2026-09-22 re-checked"; the user: „setz
+die beiden README-Formulierungen so um". **Changed, README only:** (1) „Ten specialized agents"
+→ 13 graph nodes, six model-calling agents and seven deterministic stages, with the three missing
+rows (Entity Resolver, Link Proposer, Resolution Checkpoint) and `graph.py` named as the owner of
+the list; (2) the targets banner and the warehouse bullet now say strategic targets Snowflake and
+MS Fabric, seed dialects today for Postgres (verified) and Databricks (keyless), unchanged build on
+every AutomateDV platform, and that no Fabric dialect exists in AutomateDV 0.11.4. **Überprüft:**
+the node list against `graph.py`, the dialects against `rules/platforms.py`, today. **Bewusst nicht
+getan:** no code change; CLAUDE.md's „Strategic targets Snowflake + MS Fabric" stands as it was,
+because it says strategic.

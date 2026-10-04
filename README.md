@@ -63,14 +63,18 @@ every modeling decision the agents make is captured as an Architecture Decision 
    Reviewed dbt project in git  ·  AutomateDV YAML  ·  Data contracts  ·  ADRs
                           │
                           ▼
-        Targets:  Snowflake & MS Fabric (focus) · runs on any AutomateDV platform
-                  (Snowflake · BigQuery · Databricks · SQL Server · Postgres demo)
+        Targets:  strategic — Snowflake & MS Fabric · seed dialects today: Postgres (verified),
+                  Databricks (keyless) · builds unchanged on every AutomateDV platform
                  Observability:  LangSmith traces + evals
 ```
 
 ## The agents
 
-Ten specialized agents, orchestrated in LangGraph — **all ten built**:
+**13 graph nodes**, orchestrated in LangGraph — six model-calling agents (Requirements Parser,
+Business-Key Identifier, Data Contract Agent, Entity Resolver, DV2.0 Modeler, Source Mapper's
+proposal) and seven deterministic stages (Orchestrator, Link Proposer, Resolution Checkpoint, Code
+Generator, Validator, Human Checkpoint, ADR Author; the Source Mapper's re-bind is deterministic
+too). All built; the list is `graph.py`'s, which owns it:
 
 | Agent | Responsibility | Status |
 |---|---|---|
@@ -81,6 +85,9 @@ Ten specialized agents, orchestrated in LangGraph — **all ten built**:
 | **Validator** | 33 independent `E_` gates (plus advisory `W_` warnings) checking the model and generated artifacts for DV2.0 compliance — the code owns the count: `rg -o '"E_[A-Z_]+"' src/vault_agent/agents/validator.py \| sort -u` | ✅ Built |
 | **ADR Author** | Turns the agents' modeling decisions into an explicit, traceable ADR | ✅ Built |
 | **Data Contract Agent** | Drafts JSON-Schema source-to-staging contracts + dbt schema tests; flags gaps for human review | ✅ Built |
+| **Entity Resolver** | In brownfield runs, proposes whether a new concept is an existing hub (merge / same-as / new), with evidence and a confidence category; nothing merges unratified (WP29) | ✅ Built |
+| **Link Proposer** | Deterministic: derives link proposals and key licenses from the source catalogue's declared foreign keys, surrogate→natural-key translations included (WP34–WP42) | ✅ Built |
+| **Resolution Checkpoint** | Deterministic: pauses before modelling so a human ratifies the resolver's and proposer's proposals where they can still steer the model (WP29 §2.5) | ✅ Built |
 | **Source Mapper** | Proposes which physical source column feeds each business concept (evidence trail, coverage gaps as first-class output); a human ratifies (ADR-0008) | ✅ Built |
 | **Orchestrator** | Plans the run (entry node), validates inputs, and assembles the categorized human-review queue | ✅ Built |
 | **Human Checkpoint** | Pauses the run at the sign-off gate (LangGraph `interrupt()`) and applies the human's decisions on resume | ✅ Built |
@@ -97,7 +104,7 @@ one-off overrides).
 
 - **Speed without sacrificing rigor** — collapse initial DV2.0 modeling from weeks toward hours
 - **Reproducible outputs** — reviewed dbt projects in git, never a no-code black box
-- **Warehouse-agnostic** — focus on Snowflake & MS Fabric (DACH), but runs on any AutomateDV-supported platform (Snowflake, BigQuery, Databricks, MS SQL Server, PostgreSQL); PostgreSQL for the local demo. Databricks is a selectable target (`--target-platform databricks`: native seed types, adapter hint) — keyless-only so far, no workspace build recorded
+- **Warehouse-agnostic** — strategic targets Snowflake and MS Fabric (DACH). Today's generator has seed dialects for PostgreSQL (verified, the local demos) and Databricks (`--target-platform databricks`: native seed types, adapter hint — keyless-only so far, no workspace build recorded), and the generated project builds unchanged on every AutomateDV-supported platform (Snowflake, BigQuery, Databricks, MS SQL Server, PostgreSQL). No Fabric-specific dialect exists yet; AutomateDV 0.11.4 ships none
 - **Knowledge capture** — every modeling decision documented as an ADR
 - **Human-in-the-loop sign-off** — the run pauses for owner assignment and approval, then resumes from a checkpoint
 - **A force multiplier, not a replacement** — the architect keeps judgment; the agents do the toil
