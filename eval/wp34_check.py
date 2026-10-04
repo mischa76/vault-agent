@@ -35,6 +35,13 @@ DATASETS = Path("eval") / "datasets"
 BASELINE_CROSS_DOMAIN = 2
 BASELINE_REVIEW_ITEMS = 619
 BASELINE_ZERO_SAT_HUBS = 2
+# 2026-10-05 (user's decision, `docs/log.md` of that day): the review clause reads
+# `review_decisions` — the items a human must answer (WP43) — not the signal count. WP43 took
+# the extension inventory (159 items on the 2026-09-17 chain) out of the queue, so the signal
+# count fell below 619 by construction and judged nothing. The baseline is the first chain that
+# carried decisions, `20261004T013339024833Z`: 148. The clause is a regression guard for the
+# chain, not yet an arm comparison — arm A has no decision count until it is run again.
+BASELINE_REVIEW_DECISIONS = 148
 ARM_A_CROSS_DOMAIN = 16
 
 
@@ -166,6 +173,7 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
     zero_sat = zero_satellite_hubs(final)
     named = named_hubs(final)
     review = metrics["review_items_total"]
+    decisions = metrics.get("review_decisions")
     aliases = unsound_aliases(steps)
     # The chain's validation_codes come from the FINAL state, whose report covers the whole
     # merged model — so any surviving unsound link shows here. Steps are still checked
@@ -180,8 +188,13 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
          f"(must not exceed {BASELINE_ZERO_SAT_HUBS}): {zero_sat}"
          + (f"; named hub present, reported not failing since 2026-09-14 "
             f"(WP29 same-as outcome): {named}" if named else "")),
-        (review < BASELINE_REVIEW_ITEMS,
-         f"review:     {review} items (must FALL below {BASELINE_REVIEW_ITEMS})"),
+        (decisions is not None and decisions <= BASELINE_REVIEW_DECISIONS,
+         (f"review:     {decisions} decision(s) (must not exceed {BASELINE_REVIEW_DECISIONS}, the "
+          f"2026-10-04 chain) · {review} items reported, not judged (the pre-2026-10-05 clause read "
+          f"them against {BASELINE_REVIEW_ITEMS})")
+         if decisions is not None else
+         (f"review:     no review_decisions in this result (pre-WP43, signals only: {review} items) "
+          f"— the clause cannot be judged on it")),
         (not aliases and gate_fires == 0,
          f"joins:      {len(aliases)} unsound alias(es), "
          f"{gate_fires} E_LINK_KEY_NOT_IN_SOURCE fire(s) — both must be 0"),
