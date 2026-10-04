@@ -40,7 +40,10 @@ on disk under that stamp is reused, the rest is run and paid for; the result rec
 Each repeat auto-resumes the checkpoint (like `resume --accept`), is scored, and is
 written to `eval/results/<case>/<timestamp>-run<N>.json` **immediately** — a crash or
 credit exhaustion mid-batch keeps every completed repeat on disk, prints an incomplete
-banner, and exits non-zero. The summary reports mean/min/max per scorer across
+banner, and exits non-zero. Beside each result (and each chain step's) the runner leaves
+`…review-queue.md` (what the human would have read) and `…review.json` (the typed flags,
+issues, retirements and the queue with its decision/disclosure roles), so a paid run can be
+re-analysed from disk. The summary reports mean/min/max per scorer across
 repeats; a mean below a case's `min_scores` exits 1. This is a **manual pre-release
 gate** — deliberately not CI (live runs cost tokens and need a key).
 

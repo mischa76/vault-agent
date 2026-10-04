@@ -205,6 +205,11 @@ uv run python -m eval.run --dataset bank --out eval/results
 - Per run, one JSON result is written to
   `eval/results/<case>/<UTC-timestamp>-run<i>.json` (scores, per-scorer diff details,
   model ids from `get_settings()`, git SHA). `eval/results/` is git-ignored.
+- Beside every result (and every chain step's result) sit its **review material**
+  (2026-10-04): `<stem>.review-queue.md`, byte-identical to the CLI's `review-queue.md`, and
+  `<stem>.review.json` — the typed flags, the validation issues (the `info` inventory
+  included), the WP44 retirements, and the queue with each item's WP43 role. A question about a
+  paid run is answered from these files, never by paying again.
 - The console table shows mean/min/max per scorer across the repeats — repeat runs are
   how LLM variance becomes visible.
 - Exit code 1 when any scorer's **mean** falls below the case's `expectations.min_scores`

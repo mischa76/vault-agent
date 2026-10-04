@@ -274,11 +274,15 @@ def test_a_dying_chain_leaves_its_completed_steps_on_disk(
 
     assert failure is not None and "credit balance" in failure[1]
     assert runs == [] and metrics == []  # the repeat itself produced no aggregate result
-    # …but the two completed steps are on disk, named so they are attributable.
-    steps = sorted(p.name for p in (tmp_path / case.name).glob("*step*.json"))
+    # …but the two completed steps are on disk, named so they are attributable. Since
+    # 2026-10-04 each result has a `.review.json` sibling (the typed flags and queue), so the
+    # result files are the ones ending in `-run1.json`.
+    steps = sorted(p.name for p in (tmp_path / case.name).glob("*step*-run1.json"))
     assert len(steps) == 2
     assert "step1-adventureworks_person" in steps[0]
     assert "step2-adventureworks_humanresources" in steps[1]
+    reviews = sorted(p.name for p in (tmp_path / case.name).glob("*step*.review.json"))
+    assert len(reviews) == 2  # each completed step left its review material too
 
 
 def test_step_vault_round_trips_through_the_real_wp23_path(tmp_path: Path) -> None:

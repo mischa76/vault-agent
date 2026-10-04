@@ -6304,3 +6304,36 @@ means the open items in CLAUDE.md — the first green sales step (WP44/WP45, unm
 `link_store_sales_representative`, scale above ~30 tables. The datavault4dbt comparison of
 2026-09-22 and the two routes to Fabric (today's „Finding" entry and its README follow-up) remain
 on record for when that day comes. **Bewusst nicht getan:** nothing in code or ADRs.
+
+## [2026-10-04] Eval — the review queue and the typed flags are persisted beside every result
+
+**Autor:** Claude Code
+
+**Why.** Twice the material a question needed was gone: on 2026-09-13 a chain's queue vanished
+with its tempdir, and on 2026-10-03 WP43's pre-registration had to be arithmetic over the saved
+`flag_kinds` / `validation_codes` because no run's flags were on disk. The user chose this as the
+step before the next paid chain („leg los mit der Queue-Persistenz"), so that run is re-analysable
+for levers 3–5 of the review analysis without paying again.
+
+**What changed** (`9d62b63` guards first, failing; the change in the following commit).
+`eval/run.py`: `review_artifact_paths` and `write_review_artifacts`; `_write_one_result` takes
+the state and writes, beside the result JSON and with its stem, `<stem>.review-queue.md`
+(byte-identical to the CLI's, one renderer) and `<stem>.review.json` — every `PipelineFlag`,
+every validation issue including the `info` inventory the queue does not list, the WP44
+retirements, and the queue with `requires_signoff`, the decision/disclosure counts and every
+item with its role. Both callers pass the state: the per-step `persist_step` of a chain and the
+per-repeat write. Docs: `eval/README.md`, operations 11, CHANGELOG.
+
+**Überprüft, keyless.** `tests/test_eval_review_persistence.py`: paths, round-trip of flags /
+issues / retirements through their models, queue counts and roles, both artefacts beside each
+of two repeats through `_run_score_write`. Two pre-existing persistence tests faked the state
+as a namespace with only `.mappings`; they now use an empty `VaultAgentState`, because the loop
+reads flags and issues off it. The dying-chain test counted `*step*.json` and now sees the
+`.review.json` siblings; it counts `*-run1.json` results and asserts the siblings too. `uv run
+pytest` 1093 passed, 2 skipped; ruff clean; bare mypy clean.
+
+**Nur angenommen.** That `eval/results/` stays git-ignored and local — the material is for the
+machine that paid for the run; the log carries what a reader needs.
+
+**Bewusst nicht getan.** No backfill for earlier runs (no state is persisted for them); no change
+to the CLI's own `review-queue.md`; no paid run.

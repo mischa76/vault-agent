@@ -75,6 +75,9 @@ is not the project's.
   (2026-09-15): no `hub_sales_representative`, two translated satellites on `hub_employee`.
 
 ### Added
+- The eval persists each run's and each chain step's review queue (`…review-queue.md`) and its
+  typed flags, issues, retirements and roled queue items (`…review.json`) beside the result JSON,
+  so a paid run is re-analysable from disk.
 - Composite business keys (WP45). A hub names its key columns in `business_key_columns`; the
   stage hashes the list, the hub's `src_nk` is the list, satellites and unqualified link
   participations hash the same list from their relations, and the key gates read it. The

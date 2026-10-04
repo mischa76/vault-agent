@@ -887,6 +887,7 @@ async def _run_score_write(
                         metrics=run_metrics(step_state, 0.0, repeat_usage, repeat_trace, {}),
                         mappings=step_state.mappings.model_dump(mode="json"),
                         timestamp=f"{repeat_stamp}-step{step_index}-{step_case.name}",
+                        state=step_state,
                     )
                     # The model itself, beside the result, in the CLI's artifact form — so a
                     # chain that dies later can be resumed here instead of bought again
@@ -921,12 +922,46 @@ async def _run_score_write(
         written.append(
             _write_one_result(
                 case, index + 1, results, out_root, models, git_sha, run_meta, mapping_dump,
-                timestamp,
+                timestamp, state=state,
             )
         )
         runs.append(results)
         metrics.append(run_meta)
     return runs, metrics, written, None
+
+
+def review_artifact_paths(case_dir: Path, stem: str) -> tuple[Path, Path]:
+    """Where a result's review queue and typed flags live: beside its JSON, same stem
+    (``<stem>.review-queue.md``, ``<stem>.review.json``)."""
+    return case_dir / f"{stem}.review-queue.md", case_dir / f"{stem}.review.json"
+
+
+def write_review_artifacts(state: VaultAgentState, case_dir: Path, stem: str) -> tuple[Path, Path]:
+    """Persist what a human would have reviewed, beside the result (2026-10-04).
+
+    The markdown is byte-identical to the CLI's ``review-queue.md`` (one renderer, WP5 §5.1).
+    The JSON is the typed material behind it — every ``PipelineFlag``, every validation issue
+    (the ``info`` inventory included, which the queue does not list), the retirements (WP44)
+    and the queue with each item's role (WP43) — so a later question about a paid run is
+    answered from disk. On 2026-09-13 a chain's queue vanished with its tempdir; on 2026-10-03
+    the WP43 pre-registration had to be arithmetic over saved counts."""
+    case_dir.mkdir(parents=True, exist_ok=True)
+    md_path, json_path = review_artifact_paths(case_dir, stem)
+    queue = assemble_review_queue(state)
+    md_path.write_text(render_review_queue_md(queue), encoding="utf-8")
+    payload = {
+        "flags": [flag.model_dump(mode="json") for flag in state.flags],
+        "issues": [issue.model_dump(mode="json") for issue in state.validation_report.issues],
+        "retired_constructs": [r.model_dump(mode="json") for r in state.retired_constructs],
+        "queue": {
+            "requires_signoff": queue.requires_signoff,
+            "decisions": len(queue.decisions),
+            "disclosures": len(queue.disclosures),
+            "items": [item.model_dump(mode="json") for item in queue.items],
+        },
+    }
+    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    return md_path, json_path
 
 
 def _write_one_result(
@@ -939,12 +974,14 @@ def _write_one_result(
     metrics: dict[str, Any],
     mappings: dict[str, Any],
     timestamp: str | None = None,
+    state: VaultAgentState | None = None,
 ) -> Path:
     """Persist one repeat's result JSON immediately (WP14.1). Same filename scheme and payload
     as before — one timestamped JSON per repeat — only written sooner (inside the loop).
 
     ``timestamp`` is stamped by the caller (WP15: shared with the run's trace file); omitted,
-    it is taken now, keeping the pre-WP15 behaviour for any other caller."""
+    it is taken now, keeping the pre-WP15 behaviour for any other caller. With ``state`` the
+    review queue and its typed flags are written beside the JSON (``write_review_artifacts``)."""
     case_dir = out_root / case.name
     case_dir.mkdir(parents=True, exist_ok=True)
     timestamp = timestamp or datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
@@ -954,6 +991,8 @@ def _write_one_result(
     )
     path = case_dir / f"{timestamp}-run{run_index}.json"
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    if state is not None:
+        write_review_artifacts(state, case_dir, f"{timestamp}-run{run_index}")
     return path
 
 

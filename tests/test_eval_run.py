@@ -12,7 +12,6 @@ import pytest
 
 from eval import run as run_mod
 from eval.datasets import EvalCase, Expectations, GoldenModel
-from eval.mapping import ProposedMapping
 from eval.run import (
     ScoreStats,
     aggregate,
@@ -24,6 +23,7 @@ from eval.run import (
     vacuous_scorers,
 )
 from eval.scorers import ScorerResult
+from vault_agent.state import VaultAgentState
 
 
 def _result(name: str, score: float, details: str = "d") -> ScorerResult:
@@ -221,7 +221,7 @@ def test_run_score_write_persists_completed_repeats_before_a_mid_batch_failure(
         attempts["n"] += 1
         if attempts["n"] == 2:
             raise RuntimeError("credit balance too low")  # non-retryable 4xx analog
-        return SimpleNamespace(mappings=ProposedMapping())
+        return VaultAgentState()  # 2026-10-04: the loop now persists the state's review queue
 
     monkeypatch.setattr(run_mod, "run_case_once", fake_run_case_once)
     _stub_runner(monkeypatch, _result("mapping_coverage", 1.0))
@@ -244,8 +244,8 @@ def test_run_score_write_persists_completed_repeats_before_a_mid_batch_failure(
 def test_run_score_write_success_persists_every_repeat(
     tmp_path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
-    async def fake_run_case_once(case: EvalCase) -> SimpleNamespace:
-        return SimpleNamespace(mappings=ProposedMapping())
+    async def fake_run_case_once(case: EvalCase) -> VaultAgentState:
+        return VaultAgentState()  # 2026-10-04: the loop now persists the state's review queue
 
     monkeypatch.setattr(run_mod, "run_case_once", fake_run_case_once)
     _stub_runner(monkeypatch, _result("construct_f1", 0.5))
