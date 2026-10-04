@@ -6239,3 +6239,40 @@ still skips them); composite with role/alias/translation/multi-source (the gate 
 the dependent-child-key alternative as steering (spec §5). The steering ledger's backstop row
 for `composite_key_split` is, like WP44's, proposed for the owner to add — the operations manual
 carries the inventory meanwhile.
+
+## [2026-10-04] Finding — the README deviations of 2026-09-22 re-checked: one fixed, two still open
+
+**Autor:** Claude Code
+
+The datavault4dbt comparison of 2026-09-22 (recorded in the wiki chronicle only; its entry says
+„bewusst nicht getan: kein Eintrag in `vault-agent/docs/log.md`") named three places where the
+README disagrees with the code. Re-checked today against README, `rules/platforms.py`,
+`graph.py`, `agents/validator.py` and the installed AutomateDV; this entry puts the finding where
+the project's rule says it belongs.
+
+1. **Gate count — fixed 2026-10-04** (WP45 commit `3c3dea9`): README said „32 independent E_/W_
+   gates"; the validator has **33 `E_` codes and 12 `W_` codes** (`rg -o '"E_[A-Z_]+"'
+   src/vault_agent/agents/validator.py | sort -u`; the inventory `W_EXISTING_EXTENDED` became
+   `I_EXISTING_EXTENDED`, WP43). README now says 33 `E_` gates plus advisory `W_` warnings and
+   carries the command that owns the count.
+2. **Agents — still open.** README: „Ten specialized agents … all ten built", table of ten.
+   `graph.py` wires **13 nodes**: the ten listed plus `entity_resolver` (WP29), `link_proposer`
+   (WP34) and `resolution_checkpoint` (WP29 §2.5), none of which the table names. Six nodes call
+   the model (`requirements_parser`, `business_key_identifier`, `data_contract`,
+   `entity_resolver`, `dv2_modeler`, `source_mapper`); the rest are deterministic. Proposed
+   wording, for the owner: „13 graph nodes — six model-calling agents, seven deterministic
+   stages (proposer, generator, validator, mapper's re-bind, two checkpoints, orchestrator)",
+   with the three missing rows added. Not applied: it changes what the README claims.
+3. **MS Fabric — still open.** README line 66 and line 100 name „Snowflake & MS Fabric (focus)".
+   `--target-platform` accepts exactly `postgres | databricks` (`rules/platforms.py`,
+   `TargetPlatform`); the installed AutomateDV 0.11.4 ships no Fabric adapter (no file under
+   `macros/` mentions it; datavault4dbt does). What is true: the generated project runs on any
+   AutomateDV-supported platform without a target-specific seed dialect, and Fabric is the
+   *strategic* target per CLAUDE.md. Proposed wording, for the owner: „strategic targets Snowflake
+   and MS Fabric; today's generator has seed dialects for Postgres (verified) and Databricks
+   (keyless), and builds unchanged on every AutomateDV-supported platform". Not applied.
+
+**Überprüft:** the counts and lists above from the files named, today. **Nur angenommen:** that
+datavault4dbt still has its Fabric adapter at HEAD (read on 2026-09-22, not re-cloned).
+**Bewusst nicht getan:** README wording for 2 and 3 — meaning changes are the owner's call
+(`.claude/skills/project-docs/SKILL.md`, the lint pass).
