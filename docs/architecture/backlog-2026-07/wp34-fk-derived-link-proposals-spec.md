@@ -398,3 +398,15 @@ charter claim needs. Arm A (one pass over the whole landscape) has only a signal
 2026-08; measuring it in decisions costs one more paid run, and only then is „arm B costs fewer
 decisions than arm A" a sentence with a number in it.
 
+## 12. Addendum 2026-10-05 — arm A measured in decisions: 134 against arm B's 135 and 148
+
+The re-based review clause (§11) got its other number the same day: one arm A pass over the 68
+tables (`20261004T171256542998Z`, ≈ 7.10 USD) asks **134** decisions; arm B's two October chains
+asked 148 and 135. By the pre-registration (`docs/log.md` 2026-10-05, „Pre-registration for the
+arm A run") the claim that Domäne für Domäne costs fewer human answers is **false as measured**
+— by one decision, a tie. Disclosures: arm A 21, arm B 218–230 (bindings re-disclosed per step,
+WP43 §5). Links by one rule over both final models (cross-schema, hubs bound by name): arm A 13,
+arm B 15; by step provenance arm B 22, a measure arm A cannot have. The arms are not separated
+on §6's axes by this landscape; arm B's value is the brownfield additivity arm A cannot offer.
+Full table and reading: `docs/log.md` 2026-10-05, „Arm A run".
+

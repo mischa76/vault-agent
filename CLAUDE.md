@@ -156,7 +156,10 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   modeler's choices varied across the three chains (cart item as hub or as link; a
   `SalesOrderDetail` satellite built or not), so a class absent in one run is not gone — the
   two-hubs-on-one-source-entity defect appeared inside attempts and was remedied, not fixed; WP46's
-  component translation has Postgres evidence but no live case yet.
+  component translation has Postgres evidence but no live case yet. **The arm comparison is a tie
+  on decisions** (2026-10-05: arm A 134, arm B 135/148) and arm A is far cheaper to read (21
+  disclosures against 218–230); arm B's distinguishing value is brownfield additivity, not less
+  attention — do not claim the latter (`docs/log.md` 2026-10-05, WP34 §12).
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

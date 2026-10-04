@@ -6661,3 +6661,60 @@ the modeler where the key is composite (`hub_currency_rate` or its like).
 **P5 — persistence.** The result carries `…review-queue.md` and `…review.json`.
 **Not predicted.** Which classes a single 68-table pass produces that five increments did not;
 the dollar figure.
+
+## [2026-10-05] Arm A run — one pass over 68 tables, measured in decisions: 134 against arm B's 135; the review axis of the charter claim is a tie
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_full`, one repeat, stamp `20261004T171256542998Z` (UTC), at `9130920`,
+the pre-registration's commit. 95 calls, 585k uncached input, 293k output, 51 min, ≈ **7.10 USD**.
+Gate green (`validation_gate` 1.0), every scorer 1.0, no backstop fired. 42 hubs, 53 links, 60
+satellites; 91 greenfield key licences accepted, 0 skips. The result carries its review
+material (P5 held).
+
+**P1 — the comparison.** Arm A `review_decisions` = **134**: 68 owners, 41 link translations, 21
+satellite translations, 3 unresolved mappings, 1 generation gap. Inside the predicted 90–140 and
+**≤ 135**, so by the pre-registration the charter claim on the review axis is **false as
+measured** — by the margin of one decision against arm B's second chain (135) and fourteen
+against its first (148). Honestly: a tie. One pass asks as many human answers as five
+increments; both arms pay the 68 owners once, and the ≈ 60 translation decisions arm B
+accumulates over four extension steps arm A asks in one go under its greenfield licences.
+Where the arms differ sharply is the **disclosures**: arm A 21 (7 inferred bindings — one full
+schema binds nearly everything), arm B 218 and 230 (154–191 bindings re-disclosed per step, the
+chain design, WP43 §5). That is a cost of the increment *presentation*, not of the increment.
+
+| | arm A (one pass) | arm B chain, 2026-10-04 | arm B chain, 2026-10-05 |
+|---|---|---|---|
+| decisions | 134 | 148 | 135 |
+| disclosures | 21 | 230 | 218 |
+| cross-schema links, same name rule | 13 | — | 15 |
+| cross-domain links, step provenance (`wp34_check`) | n/a | 22 | 22 |
+| zero-satellite hubs | 1 | 1 | 1 |
+| gate | green | red (2 steps) | green |
+| cost | 7.10 USD | 6.44 USD | 6.62 USD |
+
+The link axis, read like for like: `wp34_check` counts arm B's cross-domain links by which step
+introduced each hub (22), a measure arm A cannot have. Counting both final models by one rule —
+a link whose hubs bind tables of different catalogue schemas, hubs by name binding, 4–5 hubs
+unbound either way — gives arm A **13** and arm B **15**. The August „arm A 16" was a hand
+count. So on links arm B is ahead by two under one rule and by six under another; on
+decisions the arms are equal; on disclosures arm A is far cheaper to *read*.
+
+**P2 held** (gate green; neither WP45 nor WP46 refused anything). **P3 held** (155 items, 165
+lines; inventory 0). **P4 held** (42/53/60; the modeler typed composite keys). **P5 held.**
+
+**What this means for the demo narrative, as data.** This landscape does not separate the arms
+on the axes WP34 §6 chose. Arm B's distinguishing value is the one arm A cannot have by
+construction: it **extends a live vault without migrating it** (WP23's additivity gates,
+`existing_construct_preservation` 1.0 on every chain) — the brownfield case, which is the
+customer's case. „Domäne für Domäne costs less attention" is not supported here; „Domäne für
+Domäne is possible at all, with the vault untouched and every join licensed" is what the three
+October runs show. The owner decides the sentence; this entry records the numbers.
+
+**Überprüft.** All figures from the result files, the `review.json` siblings and the two models
+(arm A from `metrics.model`, arm B from the persisted step-5 model). **Nur angenommen.** That one
+arm A run is representative (August gave 160 and 152 items; today 155 — stable in shape). That
+the name-binding count undercounts both arms alike (4 unbound hubs on A, 5 on B).
+**Bewusst nicht getan.** No repeat; no `dbt build`; the charter document and the August checkpoint
+review are records and were not edited — WP34 spec §12 (appended) and this entry carry the
+measurement.

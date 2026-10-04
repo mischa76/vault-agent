@@ -182,6 +182,10 @@ is not the project's.
   Re-derived; one pre-registered step-order edge (Person↔Sales) is now a recorded cycle.
 
 ### Measured
+- Arm A (`adventureworks_full`, one pass over 68 tables, `20261004T171256542998Z`, ≈ $7.10): 134
+  review decisions against arm B's 135 and 148 — the charter claim's review axis is a tie as measured;
+  disclosures 21 against 218–230; cross-schema links by one rule 13 against 15; gate green. WP34 spec §12,
+  `docs/log.md` 2026-10-05.
 - Chain `20261004T140130528908Z` (2026-10-05, one repeat, ≈ $6.62): **the first all-green chain** —
   `validation_gate` 1.0 in all five steps, WP34 §6 all four clauses (22 cross-domain links), review
   353 items / 135 decisions. Three steps went to a second attempt and the modeler followed every
