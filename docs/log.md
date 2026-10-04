@@ -6525,3 +6525,30 @@ remedy's candidates are what a modeler wants; on `WorkOrderRouting` it names `hu
 case proper) — the ratified WP the user set aside. The steering ledger's backstop rows (WP44,
 WP45, WP46 all share `retired_reemitted` / add `composite_key_split`) remain proposed for the
 owner.
+
+## [2026-10-05] Pre-registration for the second chain run — WP46 live, written before the run
+
+**Autor:** Claude Code
+
+The user: „Go!". One repeat of `adventureworks_incremental` at this commit, default models.
+Expected from the two previous chains: ≈ 100 calls, ≈ 6.5 USD, ≈ 42 min. Read against:
+
+**P1 — step 5 green on the composite class.** `E_SAT_KEY_NOT_IN_SOURCE` in step 5: 1 → 0, the
+line satellite's product participation translated through `Product` from the composite key's
+component; the `composite_key` skip 1 → 0. `validation_gate` 1.0 in step 5 unless a class not
+yet seen appears.
+**P2 — step 3 resolved one way or the other.** The gate fires once in attempt 1 for the
+`WorkOrderRouting` satellite with a remedy naming `hub_work_order`; then either the modeler
+re-parents (no `retired_orphan`) or re-emits (1 `retired_orphan`, 1 backstop fire
+`retired_reemitted`). Either way step 3's gate is 1.0 on that class.
+**P3 — the first all-green chain**, if P1 and P2 hold and nothing new appears: `validation_gate`
+mean 1.0. Named as the hope, not the prediction: two of three chains showed a shape not seen
+before.
+**P4 — unchanged elsewhere.** `E_HUB_HK_COLLISION` 0 (WP44), composite hubs typed by the modeler
+(WP45), WP34 §6 all four clauses, `W_HUB_NO_SAT` once per satellite-less hub (the fix of
+2026-10-04). `review_decisions` within ±20 % of 148 if the modeler builds the 2026-10-04 shape;
+this time the band is wider because the previous one was missed on the translation count.
+**P5 — persistence.** Every step leaves its review material; the per-step decisions sum to the
+chain's.
+**Not predicted.** Whether the modeler builds the same satellites at all (step 3 was green on
+2026-09-17 because it did not); the dollar figure.
