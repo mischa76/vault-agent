@@ -602,7 +602,9 @@ def construct_binds_to_source_table(construct_name: str, table_name: str) -> boo
     return _separator_insensitive(table_name) in candidates
 
 
-def link_relation_offer(relation: Any, model: Any, resolve: Any) -> dict[str, int]:
+def link_relation_offer(
+    relation: Any, model: Any, resolve: Any, expand: Any | None = None
+) -> dict[str, int]:
     """Which hubs a relation offers, and how often (WP42 §2).
 
     A relation offers every hub built FROM it (``hub_binds_to_source_table`` — by name or by
@@ -614,18 +616,27 @@ def link_relation_offer(relation: Any, model: Any, resolve: Any) -> dict[str, in
     model and the declared tables) — passed in so ``rules/`` stays free of that module."""
     angebot: dict[str, int] = {}
     for fk in getattr(relation, "foreign_keys", None) or []:
-        if not getattr(fk, "is_single_column", False):
+        if getattr(fk, "is_single_column", False):
+            keys = [fk]
+        elif expand is not None:
+            # WP46: a composite key offers what its components resolve to one table further
+            # (``link_proposal.component_keys``); without an expansion it offers nothing, as before.
+            keys = list(expand(fk))
+        else:
             continue
-        hub = resolve(fk)
-        if hub is not None:
-            angebot[hub.name] = angebot.get(hub.name, 0) + 1
+        for key in keys:
+            hub = resolve(key)
+            if hub is not None:
+                angebot[hub.name] = angebot.get(hub.name, 0) + 1
     for hub in getattr(model, "hubs", None) or []:
         if hub_binds_to_source_table(hub, relation.table):
             angebot[hub.name] = max(angebot.get(hub.name, 0), 1)
     return angebot
 
 
-def resolve_link_relation(link: Any, model: Any, schemas: Any, resolve: Any) -> tuple[Any, str]:
+def resolve_link_relation(
+    link: Any, model: Any, schemas: Any, resolve: Any, expand: Any | None = None
+) -> tuple[Any, str]:
     """The declared relation a link reads — ``(relation, grund)``; relation is None when unknown.
 
     Two tiers, and deliberately no third (WP42 §2):
@@ -651,7 +662,7 @@ def resolve_link_relation(link: Any, model: Any, schemas: Any, resolve: Any) -> 
     passend = []
     for relation in schemas:
         angebot = link_relation_offer(
-            relation, model, lambda fk, _relation=relation: resolve(_relation, fk)
+            relation, model, lambda fk, _relation=relation: resolve(_relation, fk), expand
         )
         if angebot and all(angebot.get(hub, 0) >= n for hub, n in gewollt.items()):
             passend.append(relation)
@@ -762,6 +773,64 @@ def _references(key: str, other: Any) -> bool:
         if ent and bare in (ent, ent + "ID", ent + "KEY", ent + "CODE", ent + "NUMBER"):
             return True
     return False
+
+
+@dataclass(frozen=True)
+class SatelliteKeyRemedy:
+    """What the re-model loop should do with a satellite whose relation lacks its parent's key
+    (WP46): the parents whose key the relation DOES carry, and the sentence sent to the modeler."""
+
+    candidates: list[str]
+    text: str
+
+
+def satellite_key_remedy(
+    satellite: Any, relation_columns: set[str], model: Any, missing: list[str],
+) -> SatelliteKeyRemedy:
+    """Name the parents the relation can feed, deterministically, else say „drop it".
+
+    A hub qualifies when every column of its key (``hub_key_columns``) is declared on the
+    relation; a link when every participation's column is — unqualified participations only,
+    on the hubs' canonical columns, because a role, alias or translation is exactly what the
+    relation would have needed and does not have. The current parent is never a candidate.
+    The remedy also says that an unchanged copy of the satellite will be dropped (WP44 memory),
+    so the modeler knows the choice is re-parent, re-source, or lose the payload."""
+    present = {normalize_identifier(c) for c in relation_columns}
+    candidates: list[str] = []
+    for hub in model.hubs:
+        if hub.name != satellite.parent and all(c in present for c in hub_key_columns(hub)):
+            candidates.append(hub.name)
+    hubs = {hub.name: hub for hub in model.hubs}
+    for link in model.links:
+        if link.name == satellite.parent:
+            continue
+        refs = link.hub_refs
+        if not refs or any(
+            ref.hub not in hubs or ref.role is not None or ref.key_translation is not None
+            or ref.source_key_column is not None
+            for ref in refs
+        ):
+            continue
+        if all(
+            c in present for ref in refs for c in hub_key_columns(hubs[ref.hub])
+        ):
+            candidates.append(link.name)
+    where = ", ".join(sorted(candidates))
+    lost = ", ".join(missing)
+    if candidates:
+        text = (
+            f"re-parent {satellite.name} to a parent whose key {satellite.source_table} carries "
+            f"— {where} — or read it from a relation that carries {lost}; an unchanged copy "
+            f"(same parent, same relation) is dropped and its payload becomes a review decision"
+        )
+    else:
+        text = (
+            f"no hub or link of this model is keyed on columns {satellite.source_table} carries; "
+            f"read {satellite.name} from a relation that carries {lost}, or drop it — an "
+            f"unchanged copy (same parent, same relation) is dropped and its payload becomes a "
+            f"review decision"
+        )
+    return SatelliteKeyRemedy(candidates=sorted(candidates), text=text)
 
 
 def hub_collision_remedy(

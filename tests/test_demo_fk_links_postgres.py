@@ -36,6 +36,7 @@ EXPECTED_RAW_VAULT = {
     "link_bom", "sat_bill_of_materials_details",  # WP41; WP42: not named after its table
     "hub_currency", "hub_currency_rate", "link_currency_rate_currencies",  # WP45
     "sat_currency_rate_detail",  # WP45: a satellite on the composite-keyed hub
+    "link_sales_order_line", "sat_sales_order_line_detail",  # WP46: through a composite FK
 }
 EXPECTED_STAGING = {
     "stg_product", "stg_unit_measure", "stg_vendor", "stg_shopping_cart_item",
@@ -53,6 +54,9 @@ EXPECTED_STAGING = {
     "stg_bill_of_materials_details", "stg_bill_of_materials_details_via_product_and_product",
     "stg_currency", "stg_currency_rate", "stg_currency_rate_currencies",  # WP45
     "stg_currency_rate_detail",  # WP45
+    "stg_sales_order_line", "stg_sales_order_line_via_salesorderheader_and_product",  # WP46
+    "stg_sales_order_line_detail",  # WP46
+    "stg_sales_order_line_detail_via_salesorderheader_and_product",  # WP46
 }
 
 
@@ -99,6 +103,8 @@ async def test_the_translation_views_ship_parseable_data_time_gates() -> None:
         "models/staging/stg_location_capacity_history_via_location.yml",  # WP40
         "models/staging/stg_bom_via_product_and_product.yml",  # WP41, renamed for WP42
         "models/staging/stg_bill_of_materials_details_via_product_and_product.yml",  # WP41
+        "models/staging/stg_sales_order_line_via_salesorderheader_and_product.yml",  # WP46
+        "models/staging/stg_sales_order_line_detail_via_salesorderheader_and_product.yml",  # WP46
     }
     for content in ymls.values():
         [model] = yaml.safe_load(content)["models"]  # the 2026-09-13 finding: must parse

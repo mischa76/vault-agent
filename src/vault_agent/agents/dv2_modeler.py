@@ -184,12 +184,22 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
     is a ``retired_reemitted`` flag (the backstop repaired it); a dependent is a
     ``retired_orphan`` flag, because the payload it carried still needs a home — a modelling
     decision this rule does not take. One ``backstop`` trace event per fire (WP16)."""
-    retired = {r.name for r in state.retired_constructs}
-    if not retired:
+    retired = {r.name for r in state.retired_constructs if r.kind == "hub"}
+    # WP46: a satellite is retired by shape — (name, parent, relation), compared normalised.
+    retired_sat_shapes = {
+        (r.name, r.parent, normalize_identifier(r.source_table or ""))
+        for r in state.retired_constructs if r.kind == "satellite"
+    }
+    if not retired and not retired_sat_shapes:
         return model
     hubs = [hub for hub in model.hubs if hub.name not in retired]
     reemitted = [hub.name for hub in model.hubs if hub.name in retired]
-    if not reemitted:
+    same_shape = [
+        sat for sat in model.satellites
+        if (sat.name, sat.parent, normalize_identifier(sat.source_table or ""))
+        in retired_sat_shapes
+    ]
+    if not reemitted and not same_shape:
         return model
     codes = {r.name: r.code for r in state.retired_constructs}
     for name in reemitted:
@@ -219,6 +229,18 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
     gone = retired | set(orphaned)
     kept_sats: list[Satellite] = []
     for sat in model.satellites:
+        if sat in same_shape:
+            orphaned.append(sat.name)
+            state.flag(
+                "dv2_modeler",
+                f"satellite {sat.name!r} was re-emitted in the shape the {codes[sat.name]} gate "
+                f"refused (parent {sat.parent!r}, relation {sat.source_table!r}) and dropped; its "
+                f"payload ({', '.join(sat.attributes)}) needs a home — a parent whose key the "
+                f"relation carries, or a relation that carries the parent's key",
+                kind=FlagKind.RETIRED_ORPHAN,
+                asset=sat.name,
+            )
+            continue
         if sat.parent in gone:
             orphaned.append(sat.name)
             state.flag(
@@ -236,7 +258,8 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
         TraceEvent(
             kind="backstop",
             backstop_id="retired_reemitted",
-            detail={"retired": reemitted, "orphaned": orphaned},
+            detail={"retired": reemitted + [sat.name for sat in same_shape],
+                    "orphaned": orphaned},
         )
     )
     return DVModel(hubs=hubs, links=kept_links, satellites=kept_sats)

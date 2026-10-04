@@ -122,6 +122,38 @@ def _onward_key(fk: ForeignKeyRef, declared: dict[str, SourceTable]) -> ForeignK
     )
 
 
+def composite_components(
+    fk: ForeignKeyRef, declared: dict[str, SourceTable]
+) -> tuple[list[tuple[str, str, ForeignKeyRef]], list[str]]:
+    """WP46: the components of a composite key that read one table further, and the ones that
+    do not. ``R.(c1 … cn) → T.(r1 … rn)`` projects onto every component — every ``R.ci`` is a
+    ``T.ri`` — so a component whose ``T.ri`` is exactly one declared single-column key onward
+    (``_onward_key``) is the derived key ``R.ci → U.u``. Returns ``([(ci, ri, derived)…],
+    [unresolved columns])``; everything unresolved when ``T`` is not declared."""
+    if fk.is_single_column:
+        return [], []
+    if normalize_identifier(fk.references_table) not in declared:
+        return [], list(fk.columns)
+    resolved: list[tuple[str, str, ForeignKeyRef]] = []
+    unresolved: list[str] = []
+    for column, referenced in zip(fk.columns, fk.references_columns, strict=True):
+        component = ForeignKeyRef(
+            columns=[column], references_table=fk.references_table,
+            references_columns=[referenced], references_schema=fk.references_schema,
+        )
+        onward = _onward_key(component, declared)
+        if onward is None:
+            unresolved.append(column)
+        else:
+            resolved.append((column, referenced, onward))
+    return resolved, unresolved
+
+
+def component_keys(fk: ForeignKeyRef, declared: dict[str, SourceTable]) -> list[ForeignKeyRef]:
+    """The derived single-column keys of a composite key (WP46); empty for a single key."""
+    return [derived for _, _, derived in composite_components(fk, declared)[0]]
+
+
 def _translation_target(
     existing: DVModel,
     fk: ForeignKeyRef,
@@ -300,19 +332,65 @@ def propose_links(
         for fk in table.foreign_keys:
             asset = f"{table.table}.{','.join(fk.columns)}"
             if not fk.is_single_column:
-                # §3.2 condition 2. Which column pairs with which hub key is a modelling
+                # §3.2 condition 2: which column pairs with which hub key is a modelling
                 # decision, and a composite link built from the wrong pairing is wrong data.
-                skipped.append(
-                    LinkSkip(
-                        asset=asset,
-                        reason="composite_key",
-                        message=(
-                            f"composite foreign key ({len(fk.columns)} columns) — not guessed at"
-                        ),
+                # WP46: but a composite inclusion dependency projects onto its components —
+                # every R.ci is a T.ri — so a component whose T.ri is itself exactly one
+                # declared single-column key onward (T.ri → U.u, the WP39 argument) is read
+                # as R.ci → U.u and runs the ordinary per-key path. The rest stays the skip.
+                resolved, unresolved = composite_components(fk, declared)
+                for column, referenced, onward in resolved:
+                    before = (len(proposals), len(licenses))
+                    _propose_for_key(
+                        existing, declared, table, onward, f"{table.table}.{column}",
+                        proposals, skipped, licenses,
                     )
-                )
+                    via = (
+                        f"{column} is component of the composite key "
+                        f"({', '.join(fk.columns)}) into {fk.references_table}, read one table "
+                        f"further through {fk.references_table}.{referenced} → "
+                        f"{onward.references_table}.{onward.references_columns[0]} (WP46)"
+                    )
+                    for proposal in proposals[before[0]:]:
+                        proposal.evidence.append(via)
+                    for licence in licenses[before[1]:]:
+                        licence.evidence.append(via)
+                if unresolved:
+                    skipped.append(
+                        LinkSkip(
+                            asset=f"{table.table}.{','.join(unresolved)}",
+                            reason="composite_key",
+                            message=(
+                                f"composite foreign key ({len(fk.columns)} columns) — "
+                                f"{len(unresolved)} component(s) with no onward key, not guessed at"
+                            ),
+                        )
+                    )
                 continue
+            _propose_for_key(existing, declared, table, fk, asset, proposals, skipped, licenses)
+    return (
+        LinkProposals(
+            proposals=proposals, skipped=skipped, relationships=relationships, licenses=licenses
+        ),
+        skipped,
+    )
 
+
+def _propose_for_key(
+    existing: DVModel,
+    declared: dict[str, SourceTable],
+    table: SourceTable,
+    fk: ForeignKeyRef,
+    asset: str,
+    proposals: list[LinkProposal],
+    skipped: list[LinkSkip],
+    licenses: list[KeyLicense],
+) -> None:
+    """The per-key path of :func:`propose_links` for one single-column key: target hub, else
+    translation (WP36/WP39), else licence (WP40), else a typed skip. Lifted unchanged out of the
+    loop for WP46, which runs it on the components of a composite key as well."""
+    if True:  # the body keeps the indentation of the loop it was lifted from (two levels)
+        if True:
             hub, reason_code, reason = _target_hub(existing, fk)
             if hub is None:
                 # WP36: the vault may be keyed on the natural key while the source references
@@ -359,7 +437,7 @@ def propose_links(
                             ],
                         )
                     )
-                    continue
+                    return
                 if t_reason is not None:
                     reason_code, reason = t_reason, t_message
             if hub is None:
@@ -370,9 +448,9 @@ def propose_links(
                     # WP40: the referenced table is this increment's own and has no hub yet —
                     # the hub, if the modeler builds one, is known only after modelling.
                     licenses.append(_license(table, fk))
-                    continue
+                    return
                 skipped.append(LinkSkip(asset=asset, reason=reason_code, message=reason))
-                continue
+                return
 
             canonical = canonical_hub_key_column(hub)
             same_name = normalize_identifier(fk.columns[0]) == normalize_identifier(canonical)
@@ -401,13 +479,6 @@ def propose_links(
                     ),
                 )
             )
-
-    return (
-        LinkProposals(
-            proposals=proposals, skipped=skipped, relationships=relationships, licenses=licenses
-        ),
-        skipped,
-    )
 
 
 def _licensable(
@@ -817,6 +888,7 @@ def apply_key_licenses(
             gelesen, _ = resolve_link_relation(
                 link, merged, state.source_schemas,
                 lambda _relation, fk: resolve_fk_target(merged, fk, declared)[0],
+                expand=lambda fk: component_keys(fk, declared),
             )
             reads = (
                 gelesen is not None
@@ -937,6 +1009,7 @@ def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
         relation, grund = resolve_link_relation(
             link, state.dv_model, state.source_schemas,
             lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
+            expand=lambda fk: component_keys(fk, declared),
         )
         if grund == "offer":
             overrides[base] = relation.table

@@ -29,7 +29,7 @@ from typing import Any
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.grounding import is_grounded, known_columns
-from vault_agent.link_proposal import resolve_fk_target
+from vault_agent.link_proposal import component_keys, resolve_fk_target
 from vault_agent.rules.dv2_rules import (
     CONSTRUCT_NAME_PATTERN,
     REQUIRED_HUB_COLUMNS,
@@ -47,6 +47,7 @@ from vault_agent.rules.dv2_rules import (
     resolve_link_relation,
     role_bk_column,
     satellite_feed,
+    satellite_key_remedy,
     satellite_participation_column,
     satellite_payload_relations,
     source_table_on_multi_source_hub,
@@ -432,15 +433,29 @@ class ValidatorAgent(BaseAgent):
         # WP44: what a remedy retired stays retired for the run. Recorded from the typed
         # `retires` of the issue, once per name; the modeler refuses the construct's return.
         already = {r.name for r in state.retired_constructs}
+        sats_by_name = {sat.name: sat for sat in model.satellites}
+        link_names_now = {link.name for link in model.links}
         for issue in issues:
             for name in issue.retires:
                 if name in already:
                     continue
                 already.add(name)
+                if name in sats_by_name:
+                    # WP46: a satellite is retired by shape — parent and relation — so a
+                    # re-parented or re-sourced satellite of the same name is not dropped.
+                    sat = sats_by_name[name]
+                    state.retired_constructs.append(
+                        RetiredConstruct(
+                            name=name, kind="satellite", code=issue.code,
+                            attempt=state.modeling_attempts, parent=sat.parent,
+                            source_table=sat.source_table,
+                        )
+                    )
+                    continue
                 state.retired_constructs.append(
                     RetiredConstruct(
-                        name=name, kind="hub", code=issue.code,
-                        attempt=state.modeling_attempts,
+                        name=name, kind="link" if name in link_names_now else "hub",
+                        code=issue.code, attempt=state.modeling_attempts,
                     )
                 )
         # The validator closes every modelling attempt, so this is the one place that sees the
@@ -937,6 +952,7 @@ class ValidatorAgent(BaseAgent):
             gelesen, _ = resolve_link_relation(
                 link, state.dv_model, state.source_schemas,
                 lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared_tables)[0],
+                expand=lambda fk: component_keys(fk, declared_tables),
             )
             bound = [gelesen] if gelesen is not None else []
             in_scope = (
@@ -1028,12 +1044,17 @@ class ValidatorAgent(BaseAgent):
             gelesen, _ = resolve_link_relation(
                 link, state.dv_model, state.source_schemas,
                 lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
+                expand=lambda fk: component_keys(fk, declared),
             )
             if gelesen is None or not gelesen.foreign_keys:
                 continue
             link_relation = gelesen
             present = {normalize_identifier(c) for c in link_relation.column_names}
-            single_keys = [fk for fk in link_relation.foreign_keys if fk.is_single_column]
+            single_keys = [fk for fk in link_relation.foreign_keys if fk.is_single_column] + [
+                key  # WP46: a composite key's components, one table further
+                for fk in link_relation.foreign_keys if not fk.is_single_column
+                for key in component_keys(fk, declared)
+            ]
             resolved = [
                 (fk, *resolve_fk_target(state.dv_model, fk, declared)[:2]) for fk in single_keys
             ]
@@ -1199,6 +1220,12 @@ class ValidatorAgent(BaseAgent):
                     present = {normalize_identifier(c) for c in relation.column_names}
                     missing = [c for c in parent_keys if normalize_identifier(c) not in present]
                     if missing:
+                        # WP46: the remedy names the parents the relation can feed, and the
+                        # satellite's refused shape is retired (WP44) — an unchanged copy in a
+                        # later attempt is dropped into a review decision, not a red gate.
+                        remedy = satellite_key_remedy(
+                            sat, set(relation.column_names), state.dv_model, missing,
+                        )
                         issues.append(
                             _issue(
                                 "error", "E_SAT_KEY_NOT_IN_SOURCE", sat.name,
@@ -1207,6 +1234,8 @@ class ValidatorAgent(BaseAgent):
                                 f"hash key is computed from; the stage would fail at dbt build. "
                                 f"Hang it on a parent whose key {relation.table} carries, or read "
                                 f"it from a table that carries {', '.join(missing)}",
+                                remedy=remedy.text,
+                                retires=[sat.name],
                             )
                         )
             for attr in sat.attributes:

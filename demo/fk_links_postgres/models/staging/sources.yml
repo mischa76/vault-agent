@@ -42,6 +42,8 @@ sources:
         # expected columns: BUSINESSENTITYID, PERSONID, CONTACTTYPEID, LOAD_DATETIME, RECORD_SOURCE, MODIFIEDDATE
       - name: BillOfMaterials
         # expected columns: PRODUCTASSEMBLYID, COMPONENTID, UNITMEASURECODE, LOAD_DATETIME, RECORD_SOURCE, PERASSEMBLYQTY
+      - name: SalesOrderDetail
+        # expected columns: SALESORDERID, PRODUCTID, LOAD_DATETIME, RECORD_SOURCE, ORDERQTY
       - name: ProductVendor
         # expected columns: PRODUCTID, UNITMEASURECODE, BUSINESSENTITYID, LOAD_DATETIME, RECORD_SOURCE
       - name: SalesPerson

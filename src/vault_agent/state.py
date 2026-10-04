@@ -852,6 +852,11 @@ class RetiredConstruct(BaseModel):
     kind: Literal["hub", "link", "satellite"]
     code: str
     attempt: int = 0
+    # WP46: a satellite is retired by the SHAPE the gate refused — its parent and relation —
+    # so a re-parented satellite of the same name passes and faces the gate again, while an
+    # unchanged copy is dropped. None for hubs, whose identity is their key.
+    parent: str | None = None
+    source_table: str | None = None
 
 
 class ValidationReport(BaseModel):

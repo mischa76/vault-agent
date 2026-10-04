@@ -115,6 +115,33 @@ def declared_source_schema() -> list[SourceTable]:
         ),
         # WP40: this increment's own table, hubbed by the modeler in the same call (on Name).
         SourceTable(table="Location", columns=["LocationID", "Name"]),
+        # WP46: a composite FOREIGN key whose components read one table further —
+        # SalesOrderDetail.(SpecialOfferID, ProductID) → SpecialOfferProduct, which declares a
+        # single key per component onward (→ SpecialOffer, → Product). The product component is
+        # how the modeler's line satellite reaches hub_product's natural key.
+        SourceTable(table="SpecialOffer", columns=["SpecialOfferID", "Description"]),
+        SourceTable(
+            table="SpecialOfferProduct",
+            columns=["SpecialOfferID", "ProductID", "ModifiedDate"],
+            foreign_keys=[
+                {"columns": ["ProductID"], "references_table": "Product",
+                 "references_columns": ["ProductID"]},
+                {"columns": ["SpecialOfferID"], "references_table": "SpecialOffer",
+                 "references_columns": ["SpecialOfferID"]},
+            ],
+        ),
+        SourceTable(
+            table="SalesOrderDetail",
+            columns=["SalesOrderID", "SalesOrderDetailID", "ProductID", "SpecialOfferID",
+                     "OrderQty"],
+            foreign_keys=[
+                {"columns": ["SalesOrderID"], "references_table": "SalesOrderHeader",
+                 "references_columns": ["SalesOrderID"]},
+                {"columns": ["SpecialOfferID", "ProductID"],
+                 "references_table": "SpecialOfferProduct",
+                 "references_columns": ["SpecialOfferID", "ProductID"]},
+            ],
+        ),
         # WP45: a composite natural key. CurrencyRate has a surrogate too (CurrencyRateID), but
         # the modeler keyed the hub on the day and the pair, as the paid chain of 2026-09-17 did;
         # the two keys into Currency are declared so the modeler's from/to roles are licensed.
@@ -285,6 +312,10 @@ def modeler_delta() -> DVModel:
                                  LinkHubRef(hub="hub_product", role="component"),
                                  "hub_unit_measure"],
                  description="A component of an assembly."),
+            # WP46: the modeler's own line link, read from SalesOrderDetail — the product
+            # participation is reached only through the composite key's component.
+            Link(name="link_sales_order_line", connected_hubs=["hub_sales_order", "hub_product"],
+                 description="A line of a sales order."),
             # WP45: the composite hub takes part unqualified; the single-key hub twice, by role.
             Link(name="link_currency_rate_currencies",
                  connected_hubs=["hub_currency_rate",
@@ -324,6 +355,10 @@ def modeler_delta() -> DVModel:
             Satellite(name="sat_bill_of_materials_details", parent="link_bom",
                       attributes=["PerAssemblyQty"], source_table="BillOfMaterials",
                       description="Quantity of a component per assembly."),
+            # WP46: the line satellite from the line table.
+            Satellite(name="sat_sales_order_line_detail", parent="link_sales_order_line",
+                      attributes=["OrderQty"], source_table="SalesOrderDetail",
+                      description="Quantity on the line."),
             # WP45: a satellite on the composite hub, read from the hub's own relation.
             Satellite(name="sat_currency_rate_detail", parent="hub_currency_rate",
                       attributes=["AverageRate", "EndOfDayRate"], source_table="CurrencyRate",

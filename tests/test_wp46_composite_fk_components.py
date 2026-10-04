@@ -18,16 +18,14 @@ from vault_agent.agents.code_generator import CodeGeneratorAgent
 from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
 from vault_agent.agents.orchestrator import apply_link_decision
 from vault_agent.agents.validator import ValidatorAgent
-from vault_agent.link_proposal import collect_link_proposals, propose_links, proposal_key
+from vault_agent.link_proposal import collect_link_proposals, proposal_key, propose_links
 from vault_agent.state import (
     BusinessKeyCandidate,
     DVModel,
     FlagKind,
     Hub,
-    Link,
     ParsedRequirement,
     RetiredConstruct,
-    Satellite,
     SourceTable,
     VaultAgentState,
 )
@@ -83,8 +81,9 @@ def _sales_schema(*, onward: tuple[str, ...] = ("ProductID", "SpecialOfferID"),
 def test_both_components_resolve_one_table_further_and_nothing_is_skipped() -> None:
     proposals, skipped = propose_links(_vault(), _sales_schema())
 
-    [product] = [p for p in proposals.proposals if p.source_table == "SalesOrderDetail"]
-    assert product.source_column == "ProductID" and product.target_hub == "hub_product"
+    [product] = [p for p in proposals.proposals
+                 if p.source_table == "SalesOrderDetail" and p.source_column == "ProductID"]
+    assert product.target_hub == "hub_product"
     assert product.category == "declared_fk_translated"
     assert product.translation is not None
     assert product.translation.through_table == "Product"
@@ -98,9 +97,9 @@ def test_both_components_resolve_one_table_further_and_nothing_is_skipped() -> N
 def test_a_component_without_an_onward_key_stays_a_typed_skip_naming_it() -> None:
     proposals, skipped = propose_links(_vault(), _sales_schema(onward=("ProductID",)))
 
-    assert [p.source_column for p in proposals.proposals if p.source_table == "SalesOrderDetail"] == [
-        "ProductID"
-    ]
+    assert sorted(
+        p.source_column for p in proposals.proposals if p.source_table == "SalesOrderDetail"
+    ) == ["ProductID", "SalesOrderID"]  # the single key into the header was always proposed
     [skip] = [s for s in skipped if s.reason == "composite_key"]
     assert skip.asset == "SalesOrderDetail.SpecialOfferID"
     assert "ProductID" not in skip.asset
@@ -108,7 +107,9 @@ def test_a_component_without_an_onward_key_stays_a_typed_skip_naming_it() -> Non
 
 def test_an_undeclared_middle_table_keeps_the_whole_key_a_skip() -> None:
     proposals, skipped = propose_links(_vault(), _sales_schema(declare_middle=False))
-    assert not [p for p in proposals.proposals if p.source_table == "SalesOrderDetail"]
+    line_keys = [p.source_column for p in proposals.proposals
+                 if p.source_table == "SalesOrderDetail"]
+    assert line_keys == ["SalesOrderID"]
     [skip] = [s for s in skipped if s.reason == "composite_key"]
     assert skip.asset == "SalesOrderDetail.SpecialOfferID,ProductID"
 
@@ -148,7 +149,7 @@ async def test_the_derived_key_translates_the_line_satellites_product_participat
     state = await CodeGeneratorAgent().run(state)
     state = await ValidatorAgent().run(state)
 
-    [link] = [l for l in state.dv_model.links if l.name == "link_sales_order_line"]
+    [link] = [lk for lk in state.dv_model.links if lk.name == "link_sales_order_line"]
     product_ref = next(r for r in link.hub_refs if r.hub == "hub_product")
     assert product_ref.key_translation is not None
     assert product_ref.key_translation.through_table == "Product"
@@ -202,7 +203,7 @@ def _routing_state() -> VaultAgentState:
     )
 
 
-async def test_the_gate_names_the_parent_whose_key_the_relation_carries_and_retires_the_shape() -> None:
+async def test_the_gate_names_the_parent_whose_key_the_relation_carries_and_retires() -> None:
     state = _routing_state()
     state = await Dv2ModelerAgent(extractor=StubExtractor(_routing_model())).run(state)
     state = await ValidatorAgent().run(state)
@@ -230,7 +231,7 @@ async def test_a_satellite_re_emitted_in_the_refused_shape_is_dropped_as_a_decis
         llm.set_trace_recorder(None)
 
     assert state.dv_model.satellites == []
-    assert [l.name for l in state.dv_model.links] == ["link_work_order_operation"]  # kept
+    assert [lk.name for lk in state.dv_model.links] == ["link_work_order_operation"]  # kept
     [flag] = [f for f in state.flags if f.kind == FlagKind.RETIRED_ORPHAN]
     assert flag.asset == "sat_work_order_operation_detail" and "ActualResourceHrs" in flag.message
     assert [e.backstop_id for e in events if e.kind == "backstop"] == ["retired_reemitted"]
