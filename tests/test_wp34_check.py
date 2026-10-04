@@ -40,6 +40,7 @@ def _chain(**overrides: Any) -> dict[str, Any]:
     metrics: dict[str, Any] = {
         "chain_steps": [person, sales],
         "review_items_total": 400,
+        "review_decisions": 140,  # 2026-10-05: the clause reads decisions (WP43), baseline 148
         "validation_codes": {},
     }
     metrics.update(overrides)
@@ -125,13 +126,32 @@ def test_too_few_cross_domain_links_fails_even_when_everything_else_is_perfect()
     assert any("FAILED" in line and "links:" in line for line in lines)
 
 
-def test_a_rise_in_review_load_fails_the_run_even_with_the_links(  ) -> None:
+def test_a_rise_in_review_decisions_fails_the_run_even_with_the_links() -> None:
     """The specific shape of the WP30.3 failure repeating with a new mechanism: the thing it
-    was built for works, and the axis the arm comparison binds on moves the wrong way."""
-    held, lines = check(_chain(review_items_total=700))
+    was built for works, and the axis the arm comparison binds on moves the wrong way. Since
+    2026-10-05 that axis is `review_decisions` (WP43): the signal count fell by construction when
+    the extension inventory left the queue, so it judges nothing any more."""
+    held, lines = check(_chain(review_decisions=160))
 
     assert not held
-    assert any("FAILED" in line and "review:" in line for line in lines)
+    assert any("FAILED" in line and "review:" in line and "160 decision" in line for line in lines)
+
+
+def test_the_signal_count_is_reported_but_no_longer_a_clause() -> None:
+    held, lines = check(_chain(review_items_total=700, review_decisions=140))
+    assert held
+    [line] = [line for line in lines if "review:" in line]
+    assert "HELD" in line and "140 decision" in line and "700 items" in line
+
+
+def test_a_result_without_decisions_cannot_satisfy_the_review_clause() -> None:
+    """A pre-WP43 result carries only the signal count; the clause says so instead of guessing."""
+    chain = _chain()
+    del chain["metrics"]["review_decisions"]
+    held, lines = check(chain)
+    assert not held
+    assert any("FAILED" in line and "review:" in line and "no review_decisions" in line
+               for line in lines)
 
 
 def test_a_zero_satellite_hub_regress_fails_the_run() -> None:
