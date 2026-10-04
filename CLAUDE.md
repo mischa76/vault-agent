@@ -162,9 +162,13 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   `link_store_sales_representative` is newly refused in 3 steps for hashing `hub_sales_representative`
   from `Store.BusinessEntityID` while the table declares `SalesPersonID` — a real wrong-entity join,
   sitting on the two-hubs-on-one-source-entity defect. `docs/log.md` 2026-09-16 and 2026-09-17.
-  **Both sales causes are addressed keyless since 2026-10-04** — WP44 keeps the collision remedy's
-  drop across attempts, WP45 types composite keys (built on Postgres) — and **unmeasured live**;
-  WP43 re-counts the queue as decisions/disclosures. The next chain measures all three.
+  **Measured live 2026-10-04** (`20261004T013339024833Z`): no collision in any step (WP44's backstop
+  not needed — the modeler built the cart item as a link), the modeler typed `hub_currency_rate`'s
+  composite key itself (WP45), `link_store_sales_representative` joined correctly through `Employee`.
+  **Still red: steps 3 and 5**, one `E_SAT_KEY_NOT_IN_SOURCE` each, a *new* class — a link satellite
+  (`WorkOrderRouting`, `SalesOrderDetail`) whose `hub_product` participation has no declared
+  single-column key to license a translation through `Product`. Review 378 items, 148 decisions
+  (WP43). The two-hubs-on-one-entity defect did not occur this run; it is not fixed.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

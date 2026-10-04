@@ -87,6 +87,9 @@ is not the project's.
   on PostgreSQL in `demo/fk_links_postgres` (`hub_currency_rate`, `PASS=113`).
 
 ### Fixed
+- `W_HUB_NO_SAT` fired once per link for the last hub instead of once per satellite-less hub —
+  WP45's link loop had captured the per-hub check (55 warnings for one hub on the paid chain of
+  2026-10-04); back in the hub loop, guarded by `tests/test_validator_hub_no_sat_once.py`.
 - The re-model loop no longer loses a repair it was given (WP44). A hub the `E_HUB_HK_COLLISION`
   remedy retired is refused if a later attempt re-emits it, with the links and satellites that
   named it; the construct is a `retired_reemitted` disclosure, an orphaned dependent a
@@ -168,6 +171,12 @@ is not the project's.
   Re-derived; one pre-registered step-order edge (Person↔Sales) is now a recorded cycle.
 
 ### Measured
+- Chain `20261004T013339024833Z` (2026-10-04, one repeat, ≈ $6.44): WP43/44/45 live. No hash-key
+  collision in any step (the modeler built the cart item as a link); the modeler filled
+  `business_key_columns` for `hub_currency_rate` itself; the composite-key errors are gone;
+  steps 3 and 5 red on a different class (a link satellite whose product participation has no
+  declared key to translate through); WP34 §6 all four clauses held (22 cross-domain links);
+  review 378 items corrected, 148 decisions. `docs/log.md` 2026-10-04.
 - WP30 arm-B rerun (2026-09-12, one repeat, ~$17): 7 cross-domain links (was 2), review load 519
   (< 619), all gates green; WP34 §6 not met (7 < 8, `hub_sales_representative` returned). One
   translated link built live; three of four blocked by the applier's near-hub rule.

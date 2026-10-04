@@ -202,3 +202,9 @@ chain. One deviation from `.claude/rules/records.md`, named rather than hidden: 
 in §2 was inserted into the section it corrects by a script (which the `Edit`/`Write` hook does
 not see) instead of being appended here; it is dated and additive, and it is not repeated.
 
+**2026-10-04 — measured live** (chain `20261004T013339024833Z`, `docs/log.md` „Paid chain run",
+2026-10-04). `review_items_total` 432 → corrected 378 after the run exposed a validator defect
+(55 duplicate `W_HUB_NO_SAT`); `review_decisions` **148** (P1 predicted 120 ± 15 %: **outside**,
+the model built 67 translations against 42); `review_disclosures` 230 corrected, 191 of them
+`source_binding` (the chain design, §5). P2 as warned: the WP34 clause reads 432 < 619 and says
+HELD, which is construction, not evidence. P3: `review_queue_lines` 284 (< 409). P4 held.

@@ -118,3 +118,8 @@ follows it. `ValidationIssue.retires`, `RetiredConstruct`, `state.retired_constr
 from attempt 3: 1 hub, 2 links, 1 satellite dropped, no collision afterwards. §4 is **not yet
 measured live**.
 
+**2026-10-04 — measured live** (chain `20261004T013339024833Z`, `docs/log.md` „Paid chain run",
+2026-10-04). **P1 held:** `E_HUB_HK_COLLISION` 0 in every step. **P2 held by the escape clause
+(P4):** the backstop fired zero times — the modeler built one cart hub and the item as a link to
+`hub_product`, so nothing was retired. **P3 held.** The mechanism's evidence remains the replay
+of §3; this run shows the gate and the modeler agreeing without it.

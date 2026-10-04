@@ -6383,3 +6383,88 @@ and so does the chain's final result; the per-step `review.json` decisions sum t
 **Not predicted.** Dollar cost (no rate table in the repo); the exact number of `source_binding`
 flags; whether the modeler's cart hubs collide at all this time (variance: on 2026-09-13 step 5
 dropped the hub in attempt 2 and stayed green on that class).
+
+## [2026-10-04] Paid chain run — WP43, WP44, WP45 and the queue persistence live; five of six predictions held, one defect found by the run itself
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261004T013339024833Z`, at
+`14edacb` — the pre-registration's own commit (today's entry „Pre-registration for the chain
+run"). 101 calls, 367k uncached input, 256k output, 172k cache reads, 65k cache writes, 42.4 min
+wall clock; at the rates of 2026-08-13 **≈ 6.44 USD** (Opus 2.99, Sonnet 3.45). Ten modeler calls
+over five steps. Final vault 41 hubs, 55 links, 80 satellites. The eval: `pipeline_health` 1.0,
+`existing_construct_preservation` 1.0, `validation_gate` 0.0 — steps 1, 2, 4 green, **steps 3
+and 5 red**, each on one `E_SAT_KEY_NOT_IN_SOURCE`. WP34 §6, unmodified: **all four clauses
+held** — 22 cross-domain links (arm A: 16; 2026-09-17: 18), 1 zero-satellite hub
+(`hub_shopping_cart`), review 432 < 619, 0 unsound aliases, 0 `E_LINK_KEY_NOT_IN_SOURCE`.
+
+**P1 held — WP44, the collision.** `E_HUB_HK_COLLISION` is 0 in every step. The backstop
+`retired_reemitted` fired **zero** times: the modeler built one hub on `ShoppingCartItem` this
+time (`hub_shopping_cart`) and the item as `link_shopping_cart_item` cart–product with a
+translation through `Product` — the DV2.0 shape WP44 §5 named as the right home. P1's own
+escape clause: a non-fire is the gate doing the work, and on 2026-09-13 this step had behaved
+the same way. WP44's mechanism is verified by the replay (`d553739`), not by this run.
+
+**P2 held on what it predicted, and the composite class is gone — differently than predicted.**
+`W_BK_NOT_IN_SOURCE` 2 → **0**. The two composite hubs of 2026-09-17 did not recur as strings:
+the modeler **filled `business_key_columns` itself** for `hub_currency_rate`
+(`CurrencyRateDate`, `FromCurrencyCode`, `ToCurrencyCode`, label `CurrencyRateNaturalKey`) —
+the typed field works live, the backstop `composite_key_split` fired zero times — and modelled
+the order line as `link_sales_order_line` (order, product) instead of a composite hub.
+`E_HUB_COMPOSITE_UNSUPPORTED` 0. The composite-key license skip stayed 1 (`SalesOrderDetail`'s
+key pair into `SpecialOfferProduct`).
+
+**P3 failed — step 5 is red, and so is step 3, on a class the pre-registration did not name.**
+`E_SAT_KEY_NOT_IN_SOURCE` ×1 each: `sat_work_order_operation_detail` on `link_work_order_operation`
+read from `WorkOrderRouting`, and `sat_sales_order_line_detail` on `link_sales_order_line` read
+from `SalesOrderDetail`. Both links connect `hub_product` (key `PRODUCTNUMBER`); both relations
+carry `ProductID` and **declare no single-column key into `Product`** — `WorkOrderRouting`'s
+declared keys go to `Location` and `WorkOrder` (as in AdventureWorks itself), and
+`SalesOrderDetail`'s `ProductID` is half of a composite key into `SpecialOfferProduct`. So no
+license, no translation for the product participation (the satellites did get one for their
+other participation: `Location`, `SalesOrderHeader`), and the gate refused, correctly — the
+stage would hash a column that is not there. This is the one-hop satellite class the 2026-09-15
+entry counted eight of („the satellite form of WP36's link translation … needs a HITL design"),
+now with a sharper edge: the relation references the hub's surrogate **without a declared key**
+to pair it with. Step 3 was green on 2026-09-17 because the modeler did not build that satellite
+then — model variance, not a regression. `link_store_sales_representative`, predicted to be
+refused again, was **not**: the modeler built no `hub_sales_representative` this time, and the
+link reads `hub_employee` through the `Employee` translation from `SalesPersonID` — the correct
+join. Variance in the modeler's favour; the two-hubs-on-one-entity defect is not fixed, it did
+not occur.
+
+**P4 held on the direction, not on the number.** `review_items_total` 432 (< 619, by construction),
+`review_decisions` **148** against the predicted 120 ± 15 % (102–138): outside. The difference is
+the model, as the prediction said it would be: translations 67 (`link_translation` 38,
+`sat_translation` 29) against 42 on the saved chain; owners 68, unchanged; `generation_gap` 2
+(two effectivity satellites without a driving key). `review_disclosures` 284, of which
+`source_binding` 191 — the chain design. **Corrected below for the defect the run found.**
+
+**P5 held.** All four WP34 clauses, numbers above.
+
+**P6 held.** Every step and the chain left `…review-queue.md` and `…review.json` (12 siblings
+for 6 results); the per-step `review.json` decisions (13, 13, 55, 19, 48) sum to 148. This entry's
+analysis of the two red steps was read from those files — the first time a paid run's queue was
+analysed without re-deriving anything.
+
+**The defect the run found: `W_HUB_NO_SAT` ×55 for one hub.** Step 5 reported the warning 55
+times, all for `hub_shopping_cart`; 55 is the number of links. WP45 (`7b6dd0f`) inserted the
+composite-key link loop into `ValidatorAgent.run` directly after the per-hub `E_HUB_NO_BK`
+check, and the per-hub satellite check that followed slid into that loop — once per link, for
+the hub the hub loop had ended on. Guard `tests/test_validator_hub_no_sat_once.py` written
+first (`c1c7e99`, failing with zero warnings, which is the same mechanism from the other side),
+fix `ee75ebe`. The 1094 keyless tests had not caught it because every fixture's last hub had a
+satellite or no links. **Corrected numbers for this run:** `review_items_total` 378 (432 − 54
+duplicates), `review_disclosures` 230; `review_queue_lines` is unaffected within one line (the
+55 collapsed to one). The eval scores are unaffected: the gate counts errors, not warnings.
+
+**Überprüft.** Everything above from the run's result files, its `review.json` siblings, its
+trace and `eval.wp34_check`; the fix by the new guard and the full suite (1094 passed, ruff,
+mypy clean). **Nur angenommen.** That the two red satellites are the eight-of-2026-09-15 class
+and not a third — one run, one shape each. That the cart modelling and the store link stay as
+they are on a repeat; both have flipped between runs before. **Bewusst nicht getan.** No `dbt
+build` of this vault (no seeds for the case; the composite shape was built on Postgres
+yesterday); no repeat; no re-basing of the WP34 review clause (owner's call, WP43 §4 P2); the
+new class not chased — its cost is a WP: a translation for a link-satellite participation
+whose relation references the hub's surrogate without a declared key, which needs the HITL
+design the 2026-09-15 entry asked for.

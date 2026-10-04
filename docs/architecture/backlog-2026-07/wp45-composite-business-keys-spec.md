@@ -148,3 +148,13 @@ second `dbt build` leaves 3/3/3 rows. One fixture updated deliberately: the gree
 validator has 33 `E_` codes (was 32); README updated. P1–P4 of §4 (the chain) are **not yet
 measured live**.
 
+**2026-10-04 — measured live** (chain `20261004T013339024833Z`, `docs/log.md` „Paid chain run",
+2026-10-04). **P1:** zero backstop fires — the modeler **filled `business_key_columns` itself**
+for `hub_currency_rate` (three columns) and modelled the order line as a link, so the typed field
+worked live and the backstop was not needed. **P2 held on its two codes:** `E_SAT_KEY_NOT_IN_SOURCE`
+of the composite class 3 → 0, `W_BK_NOT_IN_SOURCE` 2 → 0. **Step 5 is not green:** one
+`E_SAT_KEY_NOT_IN_SOURCE` of a different class (a link satellite from `SalesOrderDetail` whose
+product participation has no declared single-column key to license a translation), and step 3
+has the same shape from `WorkOrderRouting`. **P3 held** (composite-key license skip 1). **P4 held.**
+The run also exposed a defect of this WP's change commit: the per-hub `W_HUB_NO_SAT` check had
+slid into the new link loop (55 warnings for one hub); guard `c1c7e99`, fix `ee75ebe`.
