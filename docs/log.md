@@ -6629,3 +6629,35 @@ chain „no review_decisions — cannot be judged", NOT MET as a conjunction —
 reading of a pre-WP43 result. **Nur angenommen:** that 148 is a fair baseline rather than a lucky
 one — one chain, one shape. **Bewusst nicht getan:** arm A not re-run; the clause is a regression
 guard for the chain, not yet the arm comparison the charter claim needs (spec §11 says so).
+
+## [2026-10-05] Pre-registration for the arm A run — one pass over 68 tables, measured in decisions, written before the run
+
+**Autor:** Claude Code
+
+The user: „go". One repeat of `adventureworks_full` (WP30 arm A: the whole landscape in one pass,
+68 tables, ≈ 131 KB of requirements) at this commit, default models. The two previous arm A runs
+(2026-08-01, 2026-08-09) took 93–96 calls, 46–49 min, 576–671k uncached input, and reported 160
+and 152 review items at their one checkpoint, gate green. Expected: ≈ 7–8 USD, ≈ 50 min.
+
+**What this run is for.** Since 2026-10-05 the WP34 review clause reads `review_decisions`, and arm
+B has two values (148, 135). Arm A has none — only the signal counts of August. This run gives
+the charter claim its other number: does Domäne für Domäne (arm B) cost **fewer** human answers
+than one pass (arm A)?
+
+**P1 — the comparison, predicted against the claim.** Arm A `review_decisions` lands between **90
+and 140**: the 68 contract owners are asked once either way; arm A asks no resolution questions
+(no existing vault) and fewer translation questions (greenfield licenses only, WP41), while arm
+B's 135–148 carry ≈ 60 translation decisions accumulated over four extension steps. If arm A ≤
+135, the charter claim **on the review axis is false as measured** and is recorded as false, as
+WP34 §6 demanded of the signal count; the claim then rests on the link and invention axes alone
+(arm A 16 cross-domain links, arm B 22). If arm A > 148, the claim holds on decisions too.
+**P2 — gate.** `validation_gate` 1.0, as on both August runs — unless WP45's or WP46's stricter
+gates (`E_HUB_COMPOSITE_UNSUPPORTED`, the widened satellite key gate) refuse something the
+August runs let through; the run will name it.
+**P3 — the queue.** `review_items_total` between 130 and 220; disclosures dominated by
+`source_binding` as in August; the extension inventory is 0 by construction (greenfield).
+**P4 — shape.** 40–45 hubs, 45–60 links, 55–70 satellites, as in August; composite hubs typed by
+the modeler where the key is composite (`hub_currency_rate` or its like).
+**P5 — persistence.** The result carries `…review-queue.md` and `…review.json`.
+**Not predicted.** Which classes a single 68-table pass produces that five increments did not;
+the dollar figure.
