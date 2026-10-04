@@ -118,3 +118,15 @@ and its product through the view; a second build inserts nothing.
 ## 6 Results
 
 *(appended after the change, the Postgres build, and the next live chain)*
+
+**2026-10-05 — built keyless and on PostgreSQL.** Commits `5a9c8b5` (guards, failing) and
+`cec2f9f` (the change and the demo). §2.1: `composite_components` / `component_keys`, the per-key
+path lifted into `_propose_for_key`, the relation offer and resolution taking an `expand` of
+composite keys through all four callers and the wrong-column gate — without the last, the
+modeler's link reading the relation was not recognised as reading it and stayed unrepaired
+(found by guard 2). §2.2: `satellite_key_remedy`, `RetiredConstruct.parent/source_table`,
+`drop_retired` on the satellite shape. Guards 1–5 pass; pytest 1102, ruff, mypy clean. The
+Postgres half of §4 held exactly: `PASS=130` from an empty schema (113 the day before), 3 of 3
+line rows join order and product as seeded, 3 of 3 satellite rows join the link, second build
+unchanged, no `composite_key` skip. The chain half (P1–P4) is **not yet measured live**.
+

@@ -75,6 +75,13 @@ is not the project's.
   (2026-09-15): no `hub_sales_representative`, two translated satellites on `hub_employee`.
 
 ### Added
+- Composite foreign keys are read per component (WP46): a component whose referenced column is
+  itself one declared single-column key onward is a key into that table and licenses the same
+  translations a declared single key would; components without an onward key stay a typed
+  `composite_key` skip naming them. `E_SAT_KEY_NOT_IN_SOURCE` now carries a remedy naming the
+  parents whose key the relation carries, and retires the satellite's shape: an unchanged copy in
+  a later attempt is dropped into a `retired_orphan` decision. Built on PostgreSQL in
+  `demo/fk_links_postgres` (`link_sales_order_line`, `PASS=130`).
 - The eval persists each run's and each chain step's review queue (`…review-queue.md`) and its
   typed flags, issues, retirements and roled queue items (`…review.json`) beside the result JSON,
   so a paid run is re-analysable from disk.

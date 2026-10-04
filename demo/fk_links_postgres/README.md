@@ -57,6 +57,15 @@ on PostgreSQL. No API key.
 > rate hub, and the link's from/to join `hub_currency` with the seeded pairs; a second build
 > leaves 3/3/3 rows.
 >
+> **WP46 verified 2026-10-05** on the same stack: a **composite foreign key read per component** —
+> `SalesOrderDetail.(SpecialOfferID, ProductID) → SpecialOfferProduct`, whose components each have
+> one declared key onward (`→ Product`, `→ SpecialOffer`). The modeler's `link_sales_order_line`
+> (`hub_sales_order`, `hub_product`) and its satellite `sat_sales_order_line_detail` from
+> `SalesOrderDetail` are both translated through `SalesOrderHeader` and `Product`, the product
+> participation from the component. `PASS=130 WARN=0 ERROR=0` from an empty schema; 3 of 3 line
+> rows join order and product with the seeded pairs; 3 of 3 satellite rows join the link; a
+> second build leaves 3/3 rows; no `composite_key` skip remains.
+>
 > **The first build found two defects the keyless tests had not** (see [Findings](#findings)).
 
 ## What is fixed here, and what is computed

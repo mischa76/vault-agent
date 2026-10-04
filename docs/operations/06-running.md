@@ -155,7 +155,9 @@ that all fail validation end at the human-in-the-loop checkpoint, not silently: 
 Across the attempts the loop keeps what a deterministic remedy decided (WP44): a hub the
 `E_HUB_HK_COLLISION` remedy retired is refused if a later attempt re-emits it, together with
 the links and satellites that named it; the refusal shows up as a `retired_reemitted`
-disclosure, an orphaned dependent as a `retired_orphan` decision in the review queue.
+disclosure, an orphaned dependent as a `retired_orphan` decision in the review queue. Likewise
+(WP46) a satellite the key gate refused is retired by its shape — re-emitted unchanged, it is
+dropped into a `retired_orphan` decision; re-parented, it is judged afresh.
 
 Failures print a one-line summary by default; global `--debug` re-raises with the full
 traceback. Nothing is ever deleted on failure — a paused or crashed run keeps its

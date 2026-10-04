@@ -130,6 +130,14 @@ the declared order, into one hash key — AutomateDV's list form of `hashed_colu
 their own relations. Spot-check after a first build: one hub row per distinct column tuple,
 every satellite and link row joining it (`demo/fk_links_postgres`, `hub_currency_rate`).
 
+A **composite foreign key** (WP46) is read per component, one table further: when the
+referenced table declares a single-column key on a component onward (`SalesOrderDetail.
+(SpecialOfferID, ProductID) → SpecialOfferProduct`, whose `ProductID → Product`), the component
+is a key into that table and licenses the same translations a declared single key would —
+the line satellite reaches `hub_product`'s natural key through `Product`. A component with no
+onward key stays a typed `composite_key` skip naming it (`demo/fk_links_postgres`,
+`link_sales_order_line`).
+
 ## 9.5 The demos as reference runs
 
 All three demos build a real Postgres vault **without an API key** (deterministic build
