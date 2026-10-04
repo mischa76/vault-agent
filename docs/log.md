@@ -6468,3 +6468,60 @@ yesterday); no repeat; no re-basing of the WP34 review clause (owner's call, WP4
 new class not chased — its cost is a WP: a translation for a link-satellite participation
 whose relation references the hub's surrogate without a declared key, which needs the HITL
 design the 2026-09-15 entry asked for.
+
+## [2026-10-05] WP46 — composite foreign keys per component, and a remedy with memory for the satellite key gate; built on PostgreSQL
+
+**Autor:** Claude Code
+
+**Why.** The chain of 2026-10-04 left two steps red on one class: a link satellite whose relation
+carries `hub_product`'s surrogate but declares no single-column key to license a translation
+from. The user chose, from four alternatives, the two deterministic ones („mach 2 und 3"):
+read composite keys per component, and give the gate a remedy the loop remembers. Spec
+`wp46-composite-fk-components-and-sat-key-remedy-spec.md` (`9f94b44`).
+
+**What changed** (`5a9c8b5` guards first, failing; `cec2f9f` the change and the demo).
+- Proposer: `composite_components` and `component_keys` — for `R.(c1 … cn) → T.(r1 … rn)` with `T`
+  declared, a component whose `T.ri` is exactly one declared single-column key onward is the
+  derived key `R.ci → U.u` (the WP39 argument per component: inclusion dependencies project) and
+  runs the ordinary per-key path, lifted unchanged into `_propose_for_key`; components without
+  an onward key stay a typed `composite_key` skip naming them; `T` undeclared keeps the skip whole.
+- The relation offer and resolution (`rules.link_relation_offer`, `resolve_link_relation`) take an
+  `expand` of composite keys, threaded through all four callers and the wrong-column gate's key
+  list. Guard 2 found this necessary: without it the modeler's `link_sales_order_line` was not
+  recognised as reading `SalesOrderDetail` and its product participation stayed unrepaired while
+  the satellite's was.
+- `E_SAT_KEY_NOT_IN_SOURCE` carries `rules.satellite_key_remedy` — the hubs and links whose key
+  columns the relation declares, as re-parent candidates, else „drop it" — and retires the
+  satellite's shape: `RetiredConstruct.parent/source_table`, `drop_retired` dropping only an
+  unchanged copy (one `retired_orphan` decision naming the payload, one backstop event); a
+  re-parented satellite of the same name passes and is judged afresh.
+- Demo `fk_links_postgres`: `SpecialOffer`, `SpecialOfferProduct` (keys → `Product`,
+  → `SpecialOffer`), `SalesOrderDetail` (composite key into `SpecialOfferProduct`, key into
+  `SalesOrderHeader`), `link_sales_order_line`, `sat_sales_order_line_detail`; seeds for 3 lines.
+- Docs: operations 06, 08 (gate row, backstop row), 09; demo README; CHANGELOG; spec §6; index.
+
+**Überprüft.** *Keyless:* guards 1–5 of spec §3; `uv run pytest` 1102 passed, 2 skipped; ruff and
+bare mypy clean. The WP40 and `test_link_proposal` pins on the composite skip still pass: their
+middle tables are undeclared, so the skip stays whole, as the rule says. *Warehouse, keyless:*
+`dbt build --full-refresh` on local PostgreSQL 16 from an empty `fk_links_demo` schema `PASS=130
+WARN=0 ERROR=0` (113 the day before); 3 of 3 `link_sales_order_line` rows join `hub_sales_order`
+(through `SalesOrderHeader`) and `hub_product` (through `Product`, from the component) with the
+seeded pairs (SO43659/AR-5381 ×3, SO43659/BA-8327 ×1, SO43660/AR-5381 ×2); 3 of 3 satellite rows
+join the link; a second `dbt build` `PASS=130`, rows unchanged; no `composite_key` skip.
+
+**Pre-registered, not measured** (spec §4): step 5's `E_SAT_KEY_NOT_IN_SOURCE` 1 → 0 and the
+`composite_key` skip 1 → 0; step 3's satellite from `WorkOrderRouting` — no key into `Product` at
+all — either re-parented onto `hub_work_order` by the modeler on the remedy or dropped into one
+`retired_orphan` decision; both steps' gates green on these classes.
+
+**Nur angenommen.** That the projection argument holds for every composite key a catalogue
+declares — it is sound for inclusion dependencies, and a composite key *is* one; a catalogue
+that declares a composite key whose components are not individually constrained would still be
+read per component, which is exactly what the declared onward key then asserts. That the
+remedy's candidates are what a modeler wants; on `WorkOrderRouting` it names `hub_work_order`.
+
+**Bewusst nicht getan.** No paid run. Pairing a component with a hub built from the middle table
+(WP45 §5). Inferring a key from a column name without any declaration (the `WorkOrderRouting`
+case proper) — the ratified WP the user set aside. The steering ledger's backstop rows (WP44,
+WP45, WP46 all share `retired_reemitted` / add `composite_key_split`) remain proposed for the
+owner.
