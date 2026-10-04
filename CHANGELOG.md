@@ -104,6 +104,10 @@ is not the project's.
   dropped `hub_shopping_cart_item` as told in attempt 2 and brought it back in attempt 3.
 
 ### Changed
+- `eval.wp34_check`'s review clause reads `review_decisions` against 148 (the 2026-10-04 chain)
+  instead of the signal count against 619, which had fallen by construction when WP43 took the
+  extension inventory out of the queue; the signal count is reported beside it, unjudged, and a
+  pre-WP43 result without a decision count cannot satisfy the clause. WP34 spec §11.
 - The review queue tells decisions from disclosures (WP43). Every item carries a typed role: a
   *decision* needs an answer (assign, accept/discard, ratify, fix); a *disclosure* states what was
   assumed, inferred, dropped or declined. All three renderers list every decision before every

@@ -6609,3 +6609,23 @@ than absent: the modeler's choices varied across the three chains (cart item as 
 **Bewusst nicht getan.** No repeat; no `dbt build` of this vault (no seeds for the case; the
 mechanisms have their Postgres builds in the demo); the WP34 review clause not re-based; the
 steering ledger rows still proposed, not written.
+
+## [2026-10-05] WP34 §6 — the review clause re-based on decisions (148), on the owner's word
+
+**Autor:** Claude Code
+
+The user, after the explanation of what the clause measured and what re-basing means: „ok, go!".
+**Why.** The clause read `review_items_total` against 619; since WP43 (2026-10-03) that count
+falls by construction — the extension inventory left the queue — and the clause reported HELD on
+both October chains while saying nothing about the model (warned in WP43 §4 P2 and both chain
+entries). **Changed** (`1e25c04` guards first, failing; `615346b` the change): `eval/wp34_check.py`
+reads `review_decisions` — the items a human must answer — against `BASELINE_REVIEW_DECISIONS =
+148`, the first chain that carried the number (`20261004T013339024833Z`); the signal count is
+reported beside it, not judged; a result without a decision count fails the clause with a line
+saying so instead of passing by omission. WP34 spec §11 (appended, dated; §6's text untouched);
+CHANGELOG. **Überprüft, keyless:** 14 checker tests; `uv run pytest` green, ruff, mypy clean. Run
+over the archive: the 2026-10-04 chain 148 HELD, the 2026-10-05 chain 135 HELD, the 2026-09-17
+chain „no review_decisions — cannot be judged", NOT MET as a conjunction — which is the honest
+reading of a pre-WP43 result. **Nur angenommen:** that 148 is a fair baseline rather than a lucky
+one — one chain, one shape. **Bewusst nicht getan:** arm A not re-run; the clause is a regression
+guard for the chain, not yet the arm comparison the charter claim needs (spec §11 says so).

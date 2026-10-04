@@ -375,3 +375,26 @@ remedy); `docs/log.md` 2026-09-15.
 
 `20260915T013719090467Z`: links 23, zero-satellite hubs 1, review 512, joins 0/0 — all four clauses
 as written. Two step gates red on refusals outside WP40's scope (wp40 §7). `docs/log.md` 2026-09-15.
+
+## 11. Addendum 2026-10-05 — the review clause reads decisions, not signals
+
+The §6 clause „review load must fall, not rise — against the WP30.2 baseline of 619" read
+`review_items_total`, the count of every flag and validation issue over the five checkpoints.
+WP43 (2026-10-03) made that count fall by construction: the extension inventory (159 of the 532
+items on the 2026-09-17 chain) is information, not a review item, and left the queue. From then
+on the clause reported HELD on every chain and judged nothing — named as P2 in WP43 §4 and as a
+warning in the two chain entries of `docs/log.md` (2026-10-04, 2026-10-05).
+
+On the user's decision of 2026-10-05 the clause now reads **`review_decisions`** — the items a
+human must answer (owners, licenses, translations, unresolved resolutions, errors; WP43 §2) —
+against the first chain that carried the number: **148** (`20261004T013339024833Z`). The second
+chain measured 135. `eval/wp34_check.py` reports the signal count beside it, unjudged, and
+refuses to judge a pre-WP43 result that carries no decision count. The old text of §6 stands;
+this section says what changed and why.
+
+**What the re-based clause is:** a regression guard for the chain — Domäne für Domäne must not
+cost more answers than it did on 2026-10-04. **What it is not yet:** the arm comparison the
+charter claim needs. Arm A (one pass over the whole landscape) has only a signal count from
+2026-08; measuring it in decisions costs one more paid run, and only then is „arm B costs fewer
+decisions than arm A" a sentence with a number in it.
+
