@@ -51,8 +51,11 @@ through another relation and a decision in its own right (ADR-0013).
 
 The role comes from typed fields only — the item's kind, the issue's severity, the flag's
 `FlagKind` — never from message text; a flag kind the table does not know is a decision,
-so nothing unclassified is ever folded away. An `info` record of the validator (the
-extension inventory, `I_EXISTING_EXTENDED`) is not a queue item at all; chapter 8.
+so nothing unclassified is ever folded away. A flag's typed *reason* can override its kind's
+role (WP47): an inferred staging binding with reason `ambiguous` — two or more declared
+relations offer the link's participations — is a decision; with reason `none` (nothing declares
+the relation) or `shared` (the stage is a hub's) it stays a disclosure. An `info` record of the
+validator (the extension inventory, `I_EXISTING_EXTENDED`) is not a queue item at all; chapter 8.
 
 ## 7.4 Answering interactively
 

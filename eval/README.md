@@ -202,6 +202,11 @@ uv run python -m eval.run --dataset bank --out eval/results
 - Runs the real graph per repeat (in-memory checkpointer). The human-in-the-loop
   checkpoint is auto-resumed like `vault-agent resume --accept` with no owners assigned,
   so runs complete unattended; the unassigned owners still surface as flags.
+- `adventureworks_incremental_cumulative` (WP47) is the same chain with `cumulative_schema:
+  true`: step N also receives the declared schemas of steps 1 … N−1 — the catalogue a
+  customer's brownfield run has — so the stages of earlier constructs bind to declared
+  relations instead of being inferred and disclosed again at every checkpoint. The sibling
+  case is unchanged; the two are compared, not merged.
 - Per run, one JSON result is written to
   `eval/results/<case>/<UTC-timestamp>-run<i>.json` (scores, per-scorer diff details,
   model ids from `get_settings()`, git SHA). `eval/results/` is git-ignored.

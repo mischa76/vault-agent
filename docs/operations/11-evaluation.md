@@ -59,7 +59,9 @@ calibration) and `column` for the scale cases, where naming diverges by construc
 
 Every result JSON also carries a `metrics` block — token usage, wall clock,
 review-queue size (`review_items_total`, and since WP43 `review_decisions` /
-`review_disclosures`, which sum to it), construct/flag counts, `backstop_fires`, `trace_path` — and the
+`review_disclosures`, which sum to it), construct/flag counts (and since WP47 `flag_reasons`, the
+typed reasons behind the kinds that carry one, e.g. `source_binding` by `none` / `ambiguous` /
+`shared`), `backstop_fires`, `trace_path` — and the
 full mapping proposal dump, so a regression can be read concept-by-concept from the
 artifacts without re-running.
 

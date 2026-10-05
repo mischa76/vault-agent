@@ -75,6 +75,11 @@ is not the project's.
   (2026-09-15): no `hub_sales_representative`, two translated satellites on `hub_employee`.
 
 ### Added
+- Every inferred staging binding carries a typed reason (WP47): `none` (nothing declares the
+  relation), `ambiguous` (two or more declared relations offer the link's participations — a
+  review decision), `shared` (the stage is a hub's). `PipelineFlag.reason`, part of the flag's
+  identity; `flag_reasons` in eval results. A chain variant `adventureworks_incremental_cumulative`
+  hands each step the catalogue of the steps before it (`chain.cumulative_schema`).
 - Composite foreign keys are read per component (WP46): a component whose referenced column is
   itself one declared single-column key onward is a key into that table and licenses the same
   translations a declared single key would; components without an onward key stay a typed
