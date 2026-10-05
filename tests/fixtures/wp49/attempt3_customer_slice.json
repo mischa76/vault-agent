@@ -1,0 +1,132 @@
+{
+  "hubs": [
+    {
+      "name": "hub_customer",
+      "business_key": "AccountNumber",
+      "source_entity": "Customer",
+      "description": "A customer identified by the customer account number assigned by the accounting system; uniquely identifies the customer.",
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-161"
+      ]
+    },
+    {
+      "name": "hub_store",
+      "business_key": "BusinessEntityID",
+      "source_entity": "Store",
+      "description": "A reseller store identified by its business entity reference. Asserted equivalent to hub_business_entity but keyed differently; modelled as its own hub per ratified decision.",
+      "requirement_ids": [
+        "REQ-009",
+        "REQ-004",
+        "REQ-113"
+      ]
+    },
+    {
+      "name": "hub_person_customer",
+      "business_key": "PersonID",
+      "source_entity": "Customer",
+      "description": "A person who is an individual customer, identified by PersonID. Asserted equivalent to hub_person but keyed differently; modelled as its own hub per ratified decision.",
+      "requirement_ids": [
+        "REQ-003",
+        "REQ-112"
+      ]
+    },
+    {
+      "name": "hub_sales_order",
+      "business_key": "SalesOrderNumber",
+      "source_entity": "SalesOrderHeader",
+      "description": "A sales order identified by its sales order number, which uniquely identifies the order.",
+      "requirement_ids": [
+        "REQ-013",
+        "REQ-161"
+      ]
+    },
+    {
+      "name": "hub_sales_territory",
+      "business_key": "TerritoryID",
+      "source_entity": "SalesTerritory",
+      "description": "A sales territory identified by its operational territory id; the consistent reference used to relate territories to all other sales entities.",
+      "requirement_ids": [
+        "REQ-069",
+        "REQ-103",
+        "REQ-111",
+        "REQ-115"
+      ]
+    }
+  ],
+  "links": [
+    {
+      "name": "link_customer_person",
+      "connected_hubs": [
+        "hub_customer",
+        "hub_person_customer"
+      ],
+      "description": "For an individual customer, the reference to the person who is the customer.",
+      "requirement_ids": [
+        "REQ-003",
+        "REQ-112"
+      ]
+    },
+    {
+      "name": "link_customer_store",
+      "connected_hubs": [
+        "hub_customer",
+        "hub_store"
+      ],
+      "description": "For a store customer, the reference to the store.",
+      "requirement_ids": [
+        "REQ-004",
+        "REQ-112"
+      ]
+    },
+    {
+      "name": "link_customer_territory",
+      "connected_hubs": [
+        "hub_customer",
+        "hub_sales_territory"
+      ],
+      "description": "The sales territory in which each customer is located; a customer is in exactly one territory at a time, a territory contains many customers.",
+      "requirement_ids": [
+        "REQ-005",
+        "REQ-007",
+        "REQ-111"
+      ]
+    },
+    {
+      "name": "link_sales_order_customer",
+      "connected_hubs": [
+        "hub_sales_order",
+        "hub_customer"
+      ],
+      "description": "The customer who placed each order; an order is placed by exactly one customer, a customer places many orders.",
+      "requirement_ids": [
+        "REQ-014",
+        "REQ-032",
+        "REQ-101"
+      ]
+    }
+  ],
+  "satellites": [
+    {
+      "name": "sat_customer_details",
+      "parent": "hub_customer",
+      "attributes": [
+        "StoreID",
+        "TerritoryID",
+        "rowguid",
+        "ModifiedDate"
+      ],
+      "description": "Descriptive attributes of the customer record from the operational system, including the kind-determining references and the last-modified date for change detection and reconciliation.",
+      "requirement_ids": [
+        "REQ-002",
+        "REQ-006",
+        "REQ-008",
+        "REQ-136",
+        "REQ-160"
+      ],
+      "split_rationale": "Single operational source row (Customer); last-modified date lives here as the sole change signal for the customer."
+    }
+  ],
+  "_source": "eval/results/adventureworks_incremental/20261005T160357535338Z-run1.trace.jsonl, llm_call 110 (step 5, attempt 3): the Customer hubs, the links naming them and their satellites"
+}
