@@ -165,9 +165,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   re-proposes every earlier key (193 owners, 227 calls, 9.36 USD) — a binding-only catalogue needs a
   typed split first. **A red step skips the mapper**, and the mapper's re-bind is where freely named
   links bind by offer; an inherited error therefore also inflates `source_binding`. **The repair memory
-  keys hubs by name and must key them by shape** (2026-10-05, third chain: the modeler re-emitted a
-  retired duplicate under a new name on the last attempt — step 5 red). Three normal chains, three
-  outcomes: a step's colour is whether three attempts suffice for the remedies the modeler needs.
+  keyed hubs by name** until WP49 (2026-10-06) keyed them by shape too — the third chain's step 5 had
+  gone red on a retired duplicate re-emitted under a new name; unmeasured live. Three normal chains,
+  three outcomes: a step's colour is whether three attempts suffice for the remedies the modeler needs.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

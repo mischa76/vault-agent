@@ -6929,3 +6929,37 @@ would have lost `hub_person_customer` and its links, the overlaps were already r
 report would have carried no error — unless the dropped links' absence had fired something else.
 **Bewusst nicht getan.** No repeat; no change yet — the shape-keyed retirement is proposed to the
 owner as the next small WP; the `extension_conflict` severity not revisited.
+
+## [2026-10-06] WP49 — the repair memory retires a hub by its shape, built keyless
+
+**Autor:** Claude Code
+
+**Why.** Third chain, step 5 (`docs/log.md` 2026-10-05): the collision remedy retired
+`hub_person_sales` (Customer, PersonID) by name, attempt 2 complied, attempt 3 re-emitted the same
+hub as `hub_person_customer`; the name-keyed memory — instruction and refusal alike — did not
+recognise it, the gate fired on the last attempt, the step ended red. The user, after the
+explanation that a hub's identity is its entity and key and that the modeler had followed every
+precise remedy: „ok, bau die Form-Retirierung für Hubs". Spec `wp49-hub-shape-retirement-spec.md`
+(`2ce5e08`).
+
+**What changed** (`65cace3` guards first, failing; `e1d46d4` the change; this commit the docs).
+`RetiredConstruct` of kind `hub` carries `source_entity` and `key_columns` (the normalised
+`hub_key_columns`, a composite key as a tuple); the validator records both. `drop_retired` drops a
+hub whose normalised entity and key columns match a retired hub's as well as one whose name does,
+with the links naming it and the satellites on them, and its flag names the rename („`X` is `Y`
+under another name — the same source entity and key"). The retry payload's `retired_constructs`
+carry the shape and a note that the retirement is a shape, not a name. A record without shape
+(pre-WP49) still retires by name. Docs: operations 06, 08 (backstop row); CHANGELOG; spec §6;
+index; CLAUDE.md.
+
+**Überprüft, keyless.** Guards 1–4 of spec §3 on a fixture cut verbatim from llm_call 110 (step 5
+attempt 3): with the shape retired, `hub_person_customer` is dropped, `link_customer_person` with
+it, `hub_customer` and its other three links stay, one `retired_reemitted` flag names
+`hub_person_sales` and `Customer`, one backstop event, and the validator raises no collision
+afterwards; a hub on `Customer` with another key passes. `uv run pytest` 1124 passed, 2 skipped;
+ruff and bare mypy clean (a clashing variable name renamed after mypy caught it).
+
+**Nur angenommen.** That the replay's outcome is the live one: on the real attempt 3 the dropped
+hub's link would have gone too and the two overlap remedies were already followed, so step 5 would
+have ended green — unless the missing link had fired something else. **Bewusst nicht getan.** No
+live run; retirements still live within one step's run, not across the chain (WP29 persistence).

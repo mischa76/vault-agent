@@ -64,3 +64,10 @@ severity; more attempts per step.
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-06 — built, keyless.** Commits `65cace3` (guards, failing) and the change commit after
+it. `RetiredConstruct.source_entity` / `key_columns`, recorded by the validator; `drop_retired`
+matches the shape and names the rename in its flag; the payload carries the shape. Guards 1–4
+pass; replayed on step 5 attempt 3 of the third chain: `hub_person_customer` dropped as
+`hub_person_sales` renamed, `link_customer_person` with it, `hub_customer` kept, no collision
+afterwards. 1124 tests, ruff, mypy. §4's chain half is **not yet measured live**.

@@ -136,7 +136,7 @@ experiment precisely because its gate stays behind it.
 | `attributes_without_cdk` (modeler) | CDK also listed as payload | `E_SAT_DUP_ATTR` |
 | `fk_demotion` (source mapper) | A key's FK occurrence mistaken for a second source | — (mapping quality; honest `unresolved` is the fallback) |
 | `effsat_two_attributes` (code generator) | Effectivity satellite with ≠2 attributes reaching generation | `E_EFFSAT_DATES` |
-| `retired_reemitted` (modeler, WP44/WP46/WP48) | A later attempt re-emits a hub the collision remedy retired (with its dependents), a satellite in the shape the key gate refused (same parent, same relation), or an attribute the overlap remedy retired on a satellite; dropped again — a dependent's payload is a decision, a dropped attribute a disclosure | `E_HUB_HK_COLLISION`, `E_SAT_KEY_NOT_IN_SOURCE`, `E_SAT_ATTR_OVERLAP` |
+| `retired_reemitted` (modeler, WP44/WP46/WP48/WP49) | A later attempt re-emits a hub the collision remedy retired — by name **or by shape** (same source entity, same key, any name; WP49) — with its dependents, a satellite in the shape the key gate refused (same parent, same relation), or an attribute the overlap remedy retired on a satellite; dropped again — a dependent's payload is a decision, a dropped attribute a disclosure | `E_HUB_HK_COLLISION`, `E_SAT_KEY_NOT_IN_SOURCE`, `E_SAT_ATTR_OVERLAP` |
 | `composite_key_split` (modeler, WP45) | The modeler wrote a composite key as `A + B` with no `business_key_columns`; when every part is a declared column of the hub's relation, the parts become the typed columns | `E_SAT_KEY_NOT_IN_SOURCE`, `W_BK_NOT_IN_SOURCE` |
 
 The full inventory with evidence and verdicts lives in

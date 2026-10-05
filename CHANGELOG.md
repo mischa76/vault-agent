@@ -99,6 +99,10 @@ is not the project's.
   on PostgreSQL in `demo/fk_links_postgres` (`hub_currency_rate`, `PASS=113`).
 
 ### Fixed
+- The repair memory retires a hub by its shape — source entity and key — beside its name (WP49):
+  on the third chain of 2026-10-05 the modeler re-emitted a retired duplicate under a new name on
+  the last attempt and the name-keyed memory let it through. The retry payload now forbids the
+  shape, and `drop_retired` drops a renamed copy with the links naming it.
 - `E_SAT_ATTR_OVERLAP` carries a remedy with memory (WP48): the rule names the satellite that keeps
   the attribute (an existing one, else the first by name) and retires it on the others; a
   re-emitted copy loses it again. On the cumulative chain of 2026-10-05 one such overlap, left
