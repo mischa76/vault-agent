@@ -1031,6 +1031,32 @@ def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
     return overrides
 
 
+def link_binding_reasons(state: VaultAgentState) -> dict[str, str]:
+    """WP47: why a link's staging binding is inferred, keyed like ``link_source_overrides``.
+
+    The same resolution, read for its *decline*: ``shared`` for a link whose stage base a hub
+    owns (the stage is not the link's to repoint, WP42), else the resolution's ``grund`` where
+    it is ``ambiguous`` or ``none``. A link bound by name or by one offer has no entry — it is
+    not inferred. Hubs are not links: a hub stage with no declared table is ``none`` by
+    default in ``bind_sources``."""
+    declared = {normalize_identifier(t.table): t for t in state.source_schemas}
+    hub_bases = {normalize_identifier(construct_base_name(hub.name)) for hub in state.dv_model.hubs}
+    reasons: dict[str, str] = {}
+    for link in state.dv_model.links:
+        base = normalize_identifier(construct_base_name(link.name))
+        if base in hub_bases:
+            reasons[base] = "shared"
+            continue
+        _, grund = resolve_link_relation(
+            link, state.dv_model, state.source_schemas,
+            lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
+            expand=lambda fk: component_keys(fk, declared),
+        )
+        if grund in ("ambiguous", "none"):
+            reasons[base] = grund
+    return reasons
+
+
 def is_grounded_extension(state: VaultAgentState) -> bool:
     """The gate WP29 uses, applied here: an existing model AND a declared schema.
 

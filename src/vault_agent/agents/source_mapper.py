@@ -29,7 +29,7 @@ import re
 from typing import Any, Protocol, cast
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.link_proposal import link_source_overrides
+from vault_agent.link_proposal import link_binding_reasons, link_source_overrides
 from vault_agent.llm import (
     TraceEvent,
     call_with_truncation_split,
@@ -546,6 +546,7 @@ def rebind_staging(state: VaultAgentState) -> None:
         # grandfathered `stg_<entity>` the raw-vault hub still reads (found 2026-09-17).
         existing=state.existing_model,
         target_platform=state.target_platform,
+        binding_reasons=link_binding_reasons(state),  # WP47
     )
     # Apply the FULL result (WP9.1 F2) — mirror code_generator so metadata and scaffolding
     # don't keep the pre-rebind bindings. models + scaffolding + the staging metadata block.

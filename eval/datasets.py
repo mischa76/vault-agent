@@ -109,6 +109,9 @@ class ChainSpec(BaseModel):
     without the earlier ones that built the vault they extend."""
 
     steps: list[str] = Field(min_length=2)
+    # WP47: when true, step N also receives the declared schemas of steps 1 … N−1 — the
+    # catalogue a customer's brownfield run has. False keeps WP30 §2.7's measurement as it is.
+    cumulative_schema: bool = False
 
 
 class EvalCase(BaseModel):
@@ -125,6 +128,8 @@ class EvalCase(BaseModel):
     # WP23 brownfield: the logical model of the vault this case EXTENDS (a dv_model.yml).
     # Unset = greenfield, which is every pre-WP23 case.
     existing: Path | None = None
+    # WP47: earlier chain steps' declared schemas, set by the chain runner, never by a file.
+    extra_source_schemas: list[Path] = Field(default_factory=list)
     generate: GenerateSpec | None = None
     # WP30 §2.7: an ordered chain of other cases, each extending the previous one's output.
     chain: ChainSpec | None = None

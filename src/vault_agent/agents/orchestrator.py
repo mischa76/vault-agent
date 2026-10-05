@@ -89,12 +89,19 @@ REVIEW_FLAG_ROLES: dict[str, ReviewRole] = {
     FlagKind.GENERIC: "decision",  # untyped work, not provenance
 }
 _DEFAULT_ROLE: ReviewRole = "decision"
+# WP47: a typed reason can override the kind's role. An ambiguous binding — several declared
+# relations offer the link's participations — is a question only a human can answer.
+REVIEW_FLAG_REASON_ROLES: dict[tuple[str, str], ReviewRole] = {
+    (FlagKind.SOURCE_BINDING, "ambiguous"): "decision",
+}
 
 
 def flag_role(flag: PipelineFlag) -> ReviewRole:
-    """The role of a flag's review item: typed severity first, then the kind table."""
+    """The role of a flag's review item: typed severity first, then (kind, reason), then kind."""
     if flag.severity == "error":
         return "decision"
+    if flag.reason is not None and (flag.kind, flag.reason) in REVIEW_FLAG_REASON_ROLES:
+        return REVIEW_FLAG_REASON_ROLES[(flag.kind, flag.reason)]
     return REVIEW_FLAG_ROLES.get(flag.kind, _DEFAULT_ROLE)
 
 # Stable categories for routine, repetitive advisory ``review_flag`` items, keyed by the

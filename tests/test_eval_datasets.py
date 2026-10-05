@@ -158,6 +158,7 @@ def test_shipped_cases_load_with_unique_names() -> None:
         "adventureworks_full",
         "adventureworks_humanresources",
         "adventureworks_incremental",
+        "adventureworks_incremental_cumulative",  # WP47
         "adventureworks_person",
         "adventureworks_production",
         "adventureworks_purchasing",

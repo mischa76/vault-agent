@@ -581,12 +581,14 @@ class CodeGeneratorAgent(BaseAgent):
         # plus the dbt project scaffolding that makes the output runnable. Imported lazily
         # to keep the module dependency one-directional (staging imports our helpers).
         from vault_agent.agents.staging_generator import build_staging
+        from vault_agent.link_proposal import link_binding_reasons
 
         # Contracts (drafted upstream by the data-contract agent) pin seed column
         # types for matching staging sources (WP7 §7.3).
         staging = build_staging(
             model, state.source_schemas, contracts=state.artifacts.contracts,
             existing=state.existing_model, target_platform=state.target_platform,
+            binding_reasons=link_binding_reasons(state),  # WP47
         )
         state.artifacts.staging_models = staging.models
         state.artifacts.scaffolding = staging.scaffolding

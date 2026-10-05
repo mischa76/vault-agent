@@ -445,6 +445,7 @@ def bind_sources(
     specs: dict[str, StagingSpec],
     source_schemas: list[SourceTable],
     source_overrides: dict[str, str] | None = None,
+    binding_reasons: dict[str, str] | None = None,
 ) -> list[PipelineFlag]:
     """Bind each staging model to its raw relation; flag every *inferred* binding.
 
@@ -456,6 +457,9 @@ def bind_sources(
     ratified/proposed business↔source mapping resolved it to; an override binds the spec
     verbatim and raises no flag (the mapping *is* the human-reviewable evidence)."""
     overrides = source_overrides or {}
+    # WP47: why a binding is inferred, from the same resolution the overrides come from
+    # (``link_proposal.link_binding_reasons``); a base with no entry is ``none``.
+    reasons = binding_reasons or {}
     flags: list[PipelineFlag] = []
     for spec in specs.values():
         if spec.bound:
@@ -485,6 +489,7 @@ def bind_sources(
                     ),
                     kind=FlagKind.SOURCE_BINDING,
                     asset=spec.name,
+                    reason=reasons.get(normalize_identifier(spec.base), "none"),
                 )
             )
     return flags
@@ -1050,6 +1055,7 @@ def build_staging(
     source_overrides: dict[str, str] | None = None,
     existing: DVModel | None = None,
     target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
+    binding_reasons: dict[str, str] | None = None,
 ) -> StagingResult:
     """The full staging pass: specs -> bindings -> rendered models + scaffolding.
 
@@ -1069,7 +1075,7 @@ def build_staging(
     hint; the rendered models are identical across platforms. The default is the
     byte-identity baseline."""
     specs = collect_staging_specs(model, legacy_feeds(existing))
-    flags = bind_sources(specs, source_schemas, source_overrides)
+    flags = bind_sources(specs, source_schemas, source_overrides, binding_reasons)
     # Grounded runs only (ungrounded: no blocks, no source_name — byte-identical output).
     blocks = group_sources(specs, source_schemas)
     profile = platform_profile(target_platform)

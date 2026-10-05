@@ -41,7 +41,7 @@ def test_bind_sources_stamps_none_by_default_and_the_given_reason_otherwise() ->
     specs = collect_staging_specs(model)
     flags = bind_sources(
         specs, [SourceTable(table="Customer", columns=["Id"])],
-        binding_reasons={"customer_product": "ambiguous"},
+        binding_reasons={"CUSTOMER_PRODUCT": "ambiguous"},  # keyed like the overrides
     )
     by_asset = {f.asset: f for f in flags}
     assert by_asset["stg_product"].reason == "none"  # nothing declares Product
@@ -82,18 +82,18 @@ def _two_offers() -> VaultAgentState:
 
 def test_link_binding_reasons_name_shared_ambiguous_and_none() -> None:
     reasons = link_binding_reasons(_two_offers())
-    assert reasons["shared"] == "shared"  # link_shared's base is hub_shared's
-    assert reasons["a_b"] == "ambiguous"  # R1 and R2 both offer (hub_a, hub_b)
-    assert reasons["a_lonely"] == "ambiguous"  # same participations, same two offers
-    assert "a" not in reasons and "b" not in reasons  # hubs are not links
+    assert reasons["SHARED"] == "shared"  # link_shared's base is hub_shared's
+    assert reasons["A_B"] == "ambiguous"  # R1 and R2 both offer (hub_a, hub_b)
+    assert reasons["A_LONELY"] == "ambiguous"  # same participations, same two offers
+    assert "A" not in reasons and "B" not in reasons  # hubs are not links
 
 
 def test_a_link_bound_by_one_offer_or_by_name_has_no_reason_entry() -> None:
     state = _two_offers()
     state.source_schemas = [t for t in state.source_schemas if t.table != "R2"]
     reasons = link_binding_reasons(state)
-    assert "a_b" not in reasons  # exactly one offer now: bound by the override, not flagged
-    assert reasons.get("shared") == "shared"
+    assert "A_B" not in reasons  # exactly one offer now: bound by the override, not flagged
+    assert reasons.get("SHARED") == "shared"
 
 
 # --- Guard 3: the role follows the reason -------------------------------------------------

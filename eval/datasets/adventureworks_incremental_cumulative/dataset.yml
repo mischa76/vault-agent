@@ -1,0 +1,28 @@
+# WP47 -- ARM B with the cumulative catalogue: the same chain as adventureworks_incremental,
+# but step N also receives the declared schemas of steps 1 .. N-1 (cumulative_schema).
+#
+# What it simulates: a customer's brownfield run, where the catalogue of the vault already
+# built -- the earlier domains' tables and foreign keys -- is available to every increment.
+# What it changes against the sibling case: the stages of earlier constructs bind to declared
+# relations instead of being inferred as raw_<base> and disclosed again at every checkpoint
+# (WP43 section 5, lever 3), and the proposer sees the earlier domains' keys into the current
+# domain's tables. The sibling case is unchanged: WP30 section 2.7's measurement keeps its
+# meaning, and the comparison between the two is the point (WP47 section 4).
+#
+# Same steps, same gates: existing_construct_preservation at exactly 1.0 as the MINIMUM over
+# the extending steps; every step auto-resumes unattended.
+name: adventureworks_incremental_cumulative
+chain:
+  cumulative_schema: true
+  steps:
+    - adventureworks_person
+    - adventureworks_humanresources
+    - adventureworks_production
+    - adventureworks_purchasing
+    - adventureworks_sales
+golden: {}
+mapping_match: column
+expectations:
+  min_scores:
+    existing_construct_preservation: 1.0
+    pipeline_health: 1.0

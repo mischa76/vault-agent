@@ -32,6 +32,7 @@ METRICS_KEYS = {
     # WP43: the total is signals; these two say how many are answers and how many provenance.
     "review_decisions",
     "review_disclosures",
+    "flag_reasons",  # WP47
     "constructs",
     "model",
     "flags",

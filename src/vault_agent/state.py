@@ -9,6 +9,13 @@ from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 
 FlagSeverity = Literal["error", "advisory"]
 
+# WP47: why a staging binding was inferred rather than declared (``FlagKind.SOURCE_BINDING``).
+# ``none`` — no declared relation is named like the construct and no offer binds it;
+# ``ambiguous`` — two or more declared relations offer the link's participations (WP42 binds
+# nothing); ``shared`` — the link's stage base is a hub's, so the stage is not the link's to
+# repoint. Only ``ambiguous`` is a decision (WP43); the others are provenance.
+SourceBindingReason = Literal["none", "ambiguous", "shared"]
+
 
 class FlagKind:
     """Stable, machine-readable categories for :class:`PipelineFlag`.
@@ -72,13 +79,16 @@ class PipelineFlag(BaseModel):
     # The affected asset/construct (contract name, satellite name, "contract.field", …).
     # Exact-match key for consumers, e.g. pruning resolved owner flags on resume.
     asset: str | None = None
+    # WP47: a typed reason code where the kind has a vocabulary (``SourceBindingReason`` for
+    # source bindings). Consumers branch on it; the message never carries it alone.
+    reason: str | None = None
 
     def __str__(self) -> str:
         return f"{self.agent}: {self.message}"
 
-    def identity(self) -> tuple[str, str, str, str | None, str]:
+    def identity(self) -> tuple[str, str, str, str | None, str, str | None]:
         """What makes two flags the same review item: everything but list position."""
-        return (self.agent, self.kind, self.severity, self.asset, self.message)
+        return (self.agent, self.kind, self.severity, self.asset, self.message, self.reason)
 
 
 def dedupe_flags(flags: list[PipelineFlag]) -> list[PipelineFlag]:
@@ -89,7 +99,7 @@ def dedupe_flags(flags: list[PipelineFlag]) -> list[PipelineFlag]:
     same way. Three exhausted attempts once left three copies of every generator flag
     (`source_binding` 182 against 50, 2026-09-13) and the review-load measurement read the
     accumulation instead of the model. An identical flag twice says nothing the first did not."""
-    seen: set[tuple[str, str, str, str | None, str]] = set()
+    seen: set[tuple[str, str, str, str | None, str, str | None]] = set()
     kept: list[PipelineFlag] = []
     for flag in flags:
         key = flag.identity()

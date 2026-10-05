@@ -199,6 +199,7 @@ def test_all_adventureworks_cases_load_with_their_gates() -> None:
         "adventureworks_full",
         "adventureworks_humanresources",
         "adventureworks_incremental",
+        "adventureworks_incremental_cumulative",  # WP47: the chain with the cumulative catalogue
         "adventureworks_person",
         "adventureworks_production",
         "adventureworks_purchasing",

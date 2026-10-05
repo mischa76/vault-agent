@@ -65,9 +65,9 @@ from vault_agent.existing_model import DV_MODEL_FILENAME, load_existing_model
 from vault_agent.graph import build_graph
 from vault_agent.llm import TraceEvent
 from vault_agent.profiling import load_profiling
-from vault_agent.rules.dv2_rules import canonical_hub_key_column
+from vault_agent.rules.dv2_rules import canonical_hub_key_column, normalize_identifier
 from vault_agent.source_schema import load_source_schemas
-from vault_agent.state import DVModel, VaultAgentState
+from vault_agent.state import DVModel, SourceTable, VaultAgentState
 from vault_agent.trace import JsonlTraceWriter
 
 DEFAULT_REPEAT = 3
@@ -316,6 +316,13 @@ def run_metrics(
         # every archived file and an int cannot be compared against a dict. Keyed by
         # `FlagKind`, which is what consumers branch on; the message text is never counted.
         "flag_kinds": dict(sorted(Counter(f.kind for f in state.flags).items())),
+        # WP47: the typed reasons behind the kinds that carry one ({kind: {reason: n}}).
+        "flag_reasons": {
+            kind: dict(sorted(Counter(
+                str(f.reason) for f in state.flags if f.kind == kind and f.reason is not None
+            ).items()))
+            for kind in sorted({f.kind for f in state.flags if f.reason is not None})
+        },
         # WP34 (2026-08-12): the link proposer's own bookkeeping. The 2026-08-12 run built 2
         # cross-domain links where 16 declared foreign keys crossed a schema and 11 had their
         # target hub already in the vault — and nothing in the result said whether the other
@@ -418,12 +425,33 @@ def chain_metrics(
     return metrics
 
 
+def merged_source_schemas(own: Path | None, extras: list[Path]) -> list[SourceTable]:
+    """WP47: a step's own declared schema first, then the earlier steps' (``extras``, in chain
+    order); a table declared twice keeps its first declaration — the step's own view of a
+    table it shares wins over an earlier increment's."""
+    merged: list[SourceTable] = []
+    seen: set[str] = set()
+    for path in [own, *extras]:
+        if path is None:
+            continue
+        for table in load_source_schemas(path):
+            key = normalize_identifier(table.table)
+            if key in seen:
+                continue
+            seen.add(key)
+            merged.append(table)
+    return merged
+
+
 async def run_case_once(case: EvalCase) -> VaultAgentState:
     """One real pipeline run for ``case``; auto-resumes the HITL checkpoint.
 
     Feeds the declared source schema (ADR-0004 grounding) and profiling (WP9 mapper) when the
     case carries them — the WP13 scale cases always do."""
-    source_schemas = load_source_schemas(case.source_schema) if case.source_schema else []
+    source_schemas = (
+        merged_source_schemas(case.source_schema, case.extra_source_schemas)
+        if case.source_schema or case.extra_source_schemas else []
+    )
     profiling = load_profiling(case.profiling) if case.profiling else {}
     # WP23: an extension case runs brownfield mode — the same input the CLI's --existing
     # provides. None for every greenfield case, which is all the pre-WP23 ones.
@@ -696,11 +724,18 @@ async def run_chain_once(
     assert case.chain is not None
     runs: list[tuple[EvalCase, VaultAgentState]] = []
     previous: Path | None = None
+    earlier_schemas: list[Path] = []  # WP47: the catalogue the chain has seen so far
 
     for index, step_name in enumerate(case.chain.steps, start=1):
         step_case = load_eval_case(DATASETS_ROOT / step_name / DATASET_FILENAME)
         if previous is not None:
             step_case = step_case.model_copy(update={"existing": previous})
+        if case.chain.cumulative_schema and earlier_schemas:
+            step_case = step_case.model_copy(
+                update={"extra_source_schemas": list(earlier_schemas)}
+            )
+        if step_case.source_schema is not None:
+            earlier_schemas.append(step_case.source_schema)
         persisted = (resume or {}).get(index)
         if persisted is not None:
             print(
