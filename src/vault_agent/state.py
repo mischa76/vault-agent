@@ -867,6 +867,11 @@ class RetiredConstruct(BaseModel):
     # WP48: kind ``attribute`` — ``name`` is the satellite, ``attribute`` the label it must not
     # carry again; the satellite itself stays, the column lives in the keeping satellite.
     attribute: str | None = None
+    # WP49: a hub's identity is its source entity and key, not its name — the third chain
+    # re-emitted a retired hub under another name. Normalised key columns (``hub_key_columns``),
+    # so a composite key compares as a tuple. Empty on records written before WP49: name only.
+    source_entity: str | None = None
+    key_columns: list[str] = Field(default_factory=list)
     # WP46: a satellite is retired by the SHAPE the gate refused — its parent and relation —
     # so a re-parented satellite of the same name passes and faces the gate again, while an
     # unchanged copy is dropped. None for hubs, whose identity is their key.

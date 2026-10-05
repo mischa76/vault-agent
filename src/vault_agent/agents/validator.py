@@ -454,10 +454,16 @@ class ValidatorAgent(BaseAgent):
                         )
                     )
                     continue
+                retired_hub = next((h for h in model.hubs if h.name == name), None)
                 state.retired_constructs.append(
                     RetiredConstruct(
                         name=name, kind="link" if name in link_names_now else "hub",
                         code=issue.code, attempt=state.modeling_attempts,
+                        # WP49: the shape, so a renamed copy is caught too.
+                        source_entity=(
+                            retired_hub.source_entity if retired_hub is not None else None
+                        ),
+                        key_columns=hub_key_columns(retired_hub) if retired_hub is not None else [],
                     )
                 )
         # WP48: attribute retirements, once per (satellite, attribute).

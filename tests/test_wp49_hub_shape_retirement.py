@@ -61,13 +61,15 @@ async def test_a_retired_hub_re_emitted_under_another_name_is_dropped() -> None:
 
     names = {h.name for h in state.dv_model.hubs}
     assert "hub_person_customer" not in names and "hub_customer" in names
-    assert "link_customer_person" not in {l.name for l in state.dv_model.links}
-    assert {l.name for l in state.dv_model.links} >= {"link_customer_store", "link_customer_territory"}
+    link_names = {lk.name for lk in state.dv_model.links}
+    assert "link_customer_person" not in link_names
+    assert link_names >= {"link_customer_store", "link_customer_territory"}
     [flag] = [f for f in state.flags if f.kind == FlagKind.RETIRED_REEMITTED]
     assert flag.asset == "hub_person_customer"
     assert "hub_person_sales" in flag.message and "Customer" in flag.message
     [event] = [e for e in events if e.kind == "backstop"]
-    assert event.backstop_id == "retired_reemitted" and "hub_person_customer" in event.detail["retired"]
+    assert event.backstop_id == "retired_reemitted"
+    assert "hub_person_customer" in event.detail["retired"]
 
     await ValidatorAgent().run(state)
     assert not [i for i in state.validation_report.issues if i.code == "E_HUB_HK_COLLISION"]
@@ -90,7 +92,7 @@ async def test_the_retry_payload_forbids_the_shape_not_only_the_name() -> None:
 # --- Guard 4: shape means shape ---------------------------------------------------------------
 
 
-async def test_another_key_on_the_same_entity_passes_and_an_old_record_still_drops_by_name() -> None:
+async def test_another_key_passes_and_an_old_record_still_drops_by_name() -> None:
     state = _state()
     state.retired_constructs = [_retired_by_shape()]
     payload = _payload()

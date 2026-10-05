@@ -29,6 +29,7 @@ from vault_agent.llm import TraceEvent, emit_trace
 from vault_agent.rules.dv2_rules import (
     active_modeling_rules,
     attributes_without_cdk,
+    hub_key_columns,
     normalize_identifier,
 )
 from vault_agent.state import DVModel, FlagKind, Hub, Link, Satellite, VaultAgentState
@@ -190,6 +191,24 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
     ``retired_orphan`` flag, because the payload it carried still needs a home — a modelling
     decision this rule does not take. One ``backstop`` trace event per fire (WP16)."""
     retired = {r.name for r in state.retired_constructs if r.kind == "hub"}
+    # WP49: a hub is also retired by its shape — a renamed copy on the same entity with the
+    # same key is the same hub (the third chain, step 5 attempt 3: `hub_person_sales` came back
+    # as `hub_person_customer`). ``retired_shapes`` maps the shape to the name it was retired as.
+    retired_shapes = {
+        (normalize_identifier(r.source_entity), tuple(r.key_columns)): r.name
+        for r in state.retired_constructs
+        if r.kind == "hub" and r.source_entity and r.key_columns
+    }
+    renamed: dict[str, str] = {}
+    entity_of: dict[str, str] = {}
+    for hub in model.hubs:
+        if hub.name in retired:
+            continue
+        shape = (normalize_identifier(hub.source_entity), tuple(hub_key_columns(hub)))
+        if shape in retired_shapes:
+            renamed[hub.name] = retired_shapes[shape]
+            entity_of[hub.name] = hub.source_entity
+    retired = retired | set(renamed)
     # WP46: a satellite is retired by shape — (name, parent, relation), compared normalised.
     retired_sat_shapes = {
         (r.name, r.parent, normalize_identifier(r.source_table or ""))
@@ -231,6 +250,18 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
         return model
     codes = {r.name: r.code for r in state.retired_constructs}
     for name in reemitted:
+        if name in renamed:
+            original = renamed[name]
+            state.flag(
+                "dv2_modeler",
+                f"hub {name!r} is {original!r} under another name — the same source entity "
+                f"{entity_of[name]!r} and key, retired by the "
+                f"{codes.get(original, 'E_HUB_HK_COLLISION')} remedy in an earlier attempt; "
+                f"dropped again — a retired hub does not come back renamed",
+                kind=FlagKind.RETIRED_REEMITTED,
+                asset=name,
+            )
+            continue
         state.flag(
             "dv2_modeler",
             f"hub {name!r} was retired by the {codes[name]} remedy in an earlier attempt and "
@@ -398,6 +429,10 @@ class Dv2ModelerAgent(BaseAgent):
             # guarantee; this is the shortcut.
             payload["retired_constructs"] = [
                 {"name": r.name, "kind": r.kind, "code": r.code}
+                | ({"source_entity": r.source_entity, "key_columns": list(r.key_columns),
+                    "note": "retired as a shape: no hub on this source entity with this key, "
+                            "under any name"}
+                   if r.kind == "hub" and r.source_entity else {})
                 for r in state.retired_constructs
             ]
         payload_json = json.dumps(payload, indent=2)
