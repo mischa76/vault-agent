@@ -78,7 +78,11 @@ views as above. Built on PostgreSQL in the same demo since 2026-09-13.
 participations (`rules.resolve_link_relation`, reason `offer`; see `E_LINK_KEY_WRONG_COLUMN` in
 chapter 8), its stage binds to that relation through the same override path, so no
 `SOURCE_BINDING` flag is raised. An ambiguous or unbindable link keeps the inferred `raw_<base>`
-and its flag. Like the name rule, it applies on every run, to the links of a vault being extended
+and its flag, which since WP47 carries the typed reason: `ambiguous` (two or more relations offer
+the participations — a review decision), `none` (nothing declares the relation), `shared` (the
+stage is a hub's). A chain step that receives the catalogue of the steps before it (the
+`adventureworks_incremental_cumulative` eval case) binds most of what the per-domain chain can
+only infer. Like the name rule, it applies on every run, to the links of a vault being extended
 as well — staging is re-derived each time, so a brownfield run over the same vault and schema
 stages them as the run that built them did. One case keeps its binding on purpose: a link whose
 stage a hub shares by name (`link_vendor_business_entity` beside `hub_vendor_business_entity`),
