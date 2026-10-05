@@ -850,6 +850,8 @@ with warnings.catch_warnings():
         # WP44: the constructs that remedy retires, by name — the typed half of ``remedy``.
         # The validator turns these into ``state.retired_constructs``; nothing parses the text.
         retires: list[str] = Field(default_factory=list)
+        # WP48: attributes the remedy retires on a satellite — ``[satellite, attribute]`` pairs.
+        retires_attributes: list[list[str]] = Field(default_factory=list)
 
 
 class RetiredConstruct(BaseModel):
@@ -859,9 +861,12 @@ class RetiredConstruct(BaseModel):
     construct's return in every later attempt. ``code`` is the gate whose remedy retired it."""
 
     name: str
-    kind: Literal["hub", "link", "satellite"]
+    kind: Literal["hub", "link", "satellite", "attribute"]
     code: str
     attempt: int = 0
+    # WP48: kind ``attribute`` — ``name`` is the satellite, ``attribute`` the label it must not
+    # carry again; the satellite itself stays, the column lives in the keeping satellite.
+    attribute: str | None = None
     # WP46: a satellite is retired by the SHAPE the gate refused — its parent and relation —
     # so a re-parented satellite of the same name passes and faces the gate again, while an
     # unchanged copy is dropped. None for hubs, whose identity is their key.

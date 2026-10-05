@@ -174,6 +174,11 @@ def split_composite_key(hub: Hub, state: VaultAgentState) -> bool:
     return True
 
 
+def codes_of(state: VaultAgentState, name: str) -> str:
+    """The gate code(s) whose remedy retired something on ``name`` (presentation only)."""
+    return ", ".join(sorted({r.code for r in state.retired_constructs if r.name == name}))
+
+
 def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
     """WP44: refuse the return of a construct an earlier attempt's remedy retired.
 
@@ -190,7 +195,12 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
         (r.name, r.parent, normalize_identifier(r.source_table or ""))
         for r in state.retired_constructs if r.kind == "satellite"
     }
-    if not retired and not retired_sat_shapes:
+    # WP48: an attribute retired on a satellite — the satellite stays, the column goes.
+    retired_attrs: dict[str, set[str]] = {}
+    for r in state.retired_constructs:
+        if r.kind == "attribute" and r.attribute:
+            retired_attrs.setdefault(r.name, set()).add(normalize_identifier(r.attribute))
+    if not retired and not retired_sat_shapes and not retired_attrs:
         return model
     hubs = [hub for hub in model.hubs if hub.name not in retired]
     reemitted = [hub.name for hub in model.hubs if hub.name in retired]
@@ -199,7 +209,25 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
         if (sat.name, sat.parent, normalize_identifier(sat.source_table or ""))
         in retired_sat_shapes
     ]
-    if not reemitted and not same_shape:
+    attributes_dropped: list[list[str]] = []
+    for sat in model.satellites:
+        banned = retired_attrs.get(sat.name)
+        if not banned or sat in same_shape:
+            continue
+        gone = [a for a in sat.attributes if normalize_identifier(a) in banned]
+        if not gone:
+            continue
+        sat.attributes = [a for a in sat.attributes if normalize_identifier(a) not in banned]
+        attributes_dropped.extend([sat.name, a] for a in gone)
+        state.flag(
+            "dv2_modeler",
+            f"satellite {sat.name!r} re-emitted attribute(s) {', '.join(gone)} that the "
+            f"{codes_of(state, sat.name)} remedy retired on it; dropped again — the attribute "
+            f"lives in the satellite the remedy kept",
+            kind=FlagKind.RETIRED_REEMITTED,
+            asset=sat.name,
+        )
+    if not reemitted and not same_shape and not attributes_dropped:
         return model
     codes = {r.name: r.code for r in state.retired_constructs}
     for name in reemitted:
@@ -259,7 +287,7 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
             kind="backstop",
             backstop_id="retired_reemitted",
             detail={"retired": reemitted + [sat.name for sat in same_shape],
-                    "orphaned": orphaned},
+                    "orphaned": orphaned, "attributes_dropped": attributes_dropped},
         )
     )
     return DVModel(hubs=hubs, links=kept_links, satellites=kept_sats)

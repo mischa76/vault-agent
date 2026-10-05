@@ -46,6 +46,7 @@ from vault_agent.rules.dv2_rules import (
     participation_key,
     resolve_link_relation,
     role_bk_column,
+    satellite_attribute_remedy,
     satellite_feed,
     satellite_key_remedy,
     satellite_participation_column,
@@ -117,10 +118,11 @@ def _shares_payload_namespace(
 def _issue(
     severity: IssueSeverity, code: str, construct: str, message: str,
     remedy: str | None = None, retires: list[str] | None = None,
+    retires_attributes: list[list[str]] | None = None,
 ) -> ValidationIssue:
     return ValidationIssue(
         severity=severity, code=code, construct=construct, message=message, remedy=remedy,
-        retires=list(retires or []),
+        retires=list(retires or []), retires_attributes=list(retires_attributes or []),
     )
 
 
@@ -458,6 +460,23 @@ class ValidatorAgent(BaseAgent):
                         code=issue.code, attempt=state.modeling_attempts,
                     )
                 )
+        # WP48: attribute retirements, once per (satellite, attribute).
+        retired_attrs = {
+            (r.name, normalize_identifier(r.attribute or ""))
+            for r in state.retired_constructs if r.kind == "attribute"
+        }
+        for issue in issues:
+            for sat_name, attribute in issue.retires_attributes:
+                key = (sat_name, normalize_identifier(attribute))
+                if key in retired_attrs:
+                    continue
+                retired_attrs.add(key)
+                state.retired_constructs.append(
+                    RetiredConstruct(
+                        name=sat_name, kind="attribute", code=issue.code,
+                        attempt=state.modeling_attempts, attribute=attribute,
+                    )
+                )
         # The validator closes every modelling attempt, so this is the one place that sees the
         # flags of every re-run: a flag the loop re-emitted is one review item, not one per
         # attempt (`tests/test_flag_dedup_guard.py`, 2026-09-13).
@@ -537,11 +556,19 @@ class ValidatorAgent(BaseAgent):
                     joined = ", ".join(sorted(owners))
                     rendered = " / ".join(repr(label) for label in sorted(labels))
                     if _shares_payload_namespace(owners, relations):
+                        # WP48: the rule says which satellite keeps it; the others retire it.
+                        label = sorted(labels)[0]
+                        remedy = satellite_attribute_remedy(
+                            [sat for sat in model.satellites if sat.name in owners],
+                            label, state.existing_model,
+                        )
                         issues.append(
                             _issue(
                                 "error", "E_SAT_ATTR_OVERLAP", parent,
                                 f"attribute {rendered} appears in multiple satellites of "
                                 f"{parent!r}: {joined}",
+                                remedy=remedy.text,
+                                retires_attributes=[[name, label] for name in remedy.drop],
                             )
                         )
                     else:

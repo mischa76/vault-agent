@@ -833,6 +833,62 @@ def satellite_key_remedy(
     return SatelliteKeyRemedy(candidates=sorted(candidates), text=text)
 
 
+@dataclass(frozen=True)
+class SatelliteAttributeRemedy:
+    """Which satellite keeps an attribute two satellites of one parent carry (WP48)."""
+
+    keep: str | None
+    drop: list[str]
+    inherited: bool
+    text: str
+
+
+def satellite_attribute_remedy(
+    satellites: list[Any], attribute: str, existing: Any | None,
+) -> SatelliteAttributeRemedy:
+    """Decide which satellite keeps a duplicated attribute, deterministically, and say why.
+
+    The E_SAT_ATTR_OVERLAP diagnosis alone went unrepaired for three attempts on 2026-10-05
+    (`MaritalStatus` on two satellites of `hub_employee`) and poisoned every later step of the
+    chain. The rule, in order: (1) every owner is in the existing vault — INHERITED, nothing
+    this increment emits can remove it, retire nothing; (2) exactly one owner is existing — it
+    keeps the attribute, an existing satellite is immutable; (3) among new owners the first by
+    name keeps it, and the text says the choice was arbitrary. A declared relation breaks no
+    tie: the error fires only when all owners draw from one relation (ADR-0012)."""
+    names = sorted(sat.name for sat in satellites)
+    existing_names = {s.name for s in existing.satellites} if existing is not None else set()
+    inherited = [n for n in names if n in existing_names]
+    if names and len(inherited) == len(names):
+        return SatelliteAttributeRemedy(
+            keep=None, drop=[], inherited=True,
+            text=(
+                f"{attribute!r} is carried by {', '.join(names)}, all in the existing vault; "
+                f"nothing this increment emits can remove it — do not re-emit either "
+                f"satellite; the duplicate is a review item for the vault's owner"
+            ),
+        )
+    if len(inherited) == 1:
+        keep = inherited[0]
+        drop = [n for n in names if n != keep]
+        return SatelliteAttributeRemedy(
+            keep=keep, drop=drop, inherited=False,
+            text=(
+                f"keep {attribute!r} on {keep}, which is in the existing vault (an existing "
+                f"satellite is immutable); drop it from {', '.join(drop)}"
+            ),
+        )
+    keep = names[0] if names else None
+    drop = [n for n in names if n != keep]
+    return SatelliteAttributeRemedy(
+        keep=keep, drop=drop, inherited=False,
+        text=(
+            f"keep {attribute!r} on {keep} and drop it from {', '.join(drop)} — an attribute "
+            f"lives in one satellite per parent; the choice of {keep} is arbitrary (first by "
+            f"name) and a human may move it at the checkpoint; a re-emitted copy is dropped"
+        ),
+    )
+
+
 def hub_collision_remedy(
     hubs: list[Any],
     business_keys: list[Any],
