@@ -6846,3 +6846,27 @@ the attribute raises nothing. `uv run pytest` 1120 passed, 2 skipped; ruff and b
 text says it is arbitrary; on the real case it put `MaritalStatus` in `demographics`, which is
 where a human would put it. **Bewusst nicht getan.** No live run; reporting inherited errors as
 inherited (spec §5); the mapper's deterministic re-bind on the failed path (same).
+
+## [2026-10-05] Pre-registration for the third chain run — the normal chain on the WP47/WP48 stand, written before the run
+
+**Autor:** Claude Code
+
+The user: „go". One repeat of `adventureworks_incremental` (the normal chain, each step its own
+schema) at this commit — the first live run since WP47 (the binding reason, `f73817f`) and WP48
+(the overlap remedy, `d792d46`). It answers two questions: does the chain still run green after
+the two changes, and does the modeler follow the overlap remedy if it produces the shape again.
+Against the chain of 2026-10-05 (`20261004T140130528908Z`: all green, 353 items / 135 decisions /
+218 disclosures, `source_binding` 154, 22 cross-domain links, 6.62 USD).
+
+**P1 — no regression.** `validation_gate` 1.0 in every step, unless a class not yet seen appears;
+WP34 §6's four clauses hold (decisions ≤ 148); `existing_construct_preservation` 1.0.
+**P2 — WP47 live.** `flag_reasons.source_binding` names the split; `ambiguous` ≤ 10 over the chain
+and those are decisions; `none` the bulk, as in the replay (149 of 158). `review_decisions` within
+110–170 (135 ± the ambiguous bindings and the modeler's translation count).
+**P3 — WP48 live, conditional.** If any step's modeler duplicates an attribute within one relation,
+the gate fires once with the remedy, and the step is green on that class on the next attempt —
+by the modeler following it (no backstop fire) or by the memory (one `retired_reemitted`, one
+backstop fire). If the shape does not occur, P3 is untestable, not failed.
+**P4 — the rest as on 2026-10-05.** No collision in any final report; composite hubs typed by the
+modeler; `W_HUB_NO_SAT` once per satellite-less hub; cost ≈ 6.5–7 USD, ≈ 45 min.
+**Not predicted.** Which shapes the modeler builds — three chains, three variants of the cart item.
