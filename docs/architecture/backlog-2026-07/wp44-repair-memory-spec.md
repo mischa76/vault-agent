@@ -128,3 +128,11 @@ of §3; this run shows the gate and the modeler agreeing without it.
 step 2 and step 4 attempt 1 (`hub_employee_business_entity`, `hub_vendor_business_entity`), the
 remedies were followed in attempt 2, the retirements were sent, the backstop fired 0 times. P4
 again: the gate and the modeler agreeing, the memory in reserve.
+
+**2026-10-05 — third live chain** (`20261005T160357535338Z`): the gap named under „Nur angenommen"
+on 2026-10-04 was observed. Step 5 attempt 1 built `hub_person_sales` (Customer, PersonID), the
+remedy retired it by name, attempt 2 complied, attempt 3 re-emitted the same hub as
+`hub_person_customer` — same entity, same key, new name — and the name-keyed memory let it
+through; the gate fired again on the last attempt and the step ended red. **The memory must key a
+hub by its shape (source entity, business key) beside its name**, as WP46 keys a satellite by
+parent and relation. Proposed as the next change; replayable from llm_call 110's payload.

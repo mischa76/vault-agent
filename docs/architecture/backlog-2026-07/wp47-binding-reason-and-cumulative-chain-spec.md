@@ -120,3 +120,7 @@ is unmeasured by this run; the offline replay (154 → 21 on the 2026-10-05 mode
 estimate. P5 held. Full reading: `docs/log.md` 2026-10-05, „Cumulative-catalogue chain". **What
 would make §2.2 measurable:** a typed split of the declared schema into increment tables and
 binding-only context (a design decision), and a remedy with memory for `E_SAT_ATTR_OVERLAP`.
+
+**2026-10-05 — §2.1 measured live** on the normal chain `20261005T160357535338Z`: `source_binding`
+189 — `none` 175, `shared` 8, `ambiguous` 6 (decisions); `review_decisions` 142, disclosures 245.
+The reason split is in every result and the `ambiguous` subset is small, as the replay said.

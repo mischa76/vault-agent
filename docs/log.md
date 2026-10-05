@@ -6870,3 +6870,62 @@ backstop fire). If the shape does not occur, P3 is untestable, not failed.
 **P4 — the rest as on 2026-10-05.** No collision in any final report; composite hubs typed by the
 modeler; `W_HUB_NO_SAT` once per satellite-less hub; cost ≈ 6.5–7 USD, ≈ 45 min.
 **Not predicted.** Which shapes the modeler builds — three chains, three variants of the cart item.
+
+## [2026-10-05] Third chain run — steps 1–4 green, step 5 red on a renamed duplicate hub; WP47 and WP48 live
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261005T160357535338Z`, at `5fc5f86`
+(the pre-registration's commit). 104 calls, 393k uncached input, 264k output, 45.6 min, ≈ **6.50
+USD**. Eleven modeler calls (steps 1, 2 and 5 went to further attempts). Final vault 43 hubs, 58
+links, 70 satellites. **Steps 1–4 green; step 5 red** on one `E_HUB_HK_COLLISION`;
+`pipeline_health` 0.0 on an error-severity `extension_conflict` (the delta re-stated
+`link_customer_person`, refused by the merger — a known class). WP34 §6 **NOT MET**: links held
+(21 cross-domain), review held (142 decisions ≤ 148), joins held, **invention failed** — 3
+zero-satellite hubs (`hub_person_customer`, `hub_shopping_cart`, `hub_transaction`) against the
+bound of 2.
+
+**P1 failed — and the failure is a gap WP44 named and did not close.** Step 5, attempt 1 (llm_call
+107) built `hub_person_sales` on `Customer` keyed `PersonID` beside `hub_customer` on
+`AccountNumber`, and `hub_shopping_cart_item` beside `hub_shopping_cart`; both remedies said drop,
+both were retired. Attempt 2 (108) complied on both. Attempt 3 (110), asked again for two
+attribute overlaps, re-emitted the Customer duplicate **under a new name**, `hub_person_customer`,
+same entity, same key `PersonID`. The memory is keyed by *name* (WP44 §2.1), so `drop_retired`
+let it through; the gate fired again with the same remedy — on the last attempt, so the step
+ended red, and the renamed hub is one of the three zero-satellite hubs. The WP44 entry of
+2026-10-04 had this under „Nur angenommen": „a renamed hub on the same entity collides again
+and the remedy retires it again, so the loop cannot be gamed into a wrong model, only into a
+second fire." True, and the second fire landed on attempt 3 of 3. **The fix is the one WP46 made
+for satellites:** retire a hub by its *shape* — source entity and business key — beside its name,
+so a rename does not escape the memory. Replayable from llm_call 110's payload; a small change.
+The second zero-satellite hub, `hub_transaction` on `TransactionHistory`, is model variance (a
+new hub with no satellite); `hub_shopping_cart` is the standing one.
+
+**P2 held — WP47 live.** `flag_reasons.source_binding` over the chain: `none` 175, `shared` 8,
+`ambiguous` 6 — the 6 are decisions, the rest disclosures; `review_decisions` 142 (band
+110–170), disclosures 245, items 387; `source_binding` 189 (the chain design, as before).
+
+**P3 held — WP48 live, and testable after all.** `E_SAT_ATTR_OVERLAP` fired in four steps' attempts
+(`EmailPromotion` on two person satellites in step 1; `ModifiedDate` three times in steps 2, 4 and
+5), each with the remedy naming the keeping satellite; **every final report has 0** and the
+backstop fired 0 times — the modeler followed the remedy every time, as it did WP44's and WP46's.
+The attribute retirements were recorded (five over the chain) and never needed.
+
+**P4 partly held.** Composite hubs typed by the modeler; `W_HUB_NO_SAT` once per hub (5 for 5);
+cost and time as predicted; but a collision survived (P1) and the error-severity
+`extension_conflict` made `pipeline_health` 0.
+
+**Three normal chains since 2026-10-04, three outcomes** — red on two classes, all green, red on a
+renamed duplicate — and in every one the modeler built the cart item differently and named the
+Customer duplicate differently. The gates caught every wrong shape; what decides a step's colour
+is whether the loop's three attempts suffice to apply the remedies, and that depends on how many
+distinct mistakes the modeler makes per step. Two remedies in one attempt plus a rename cost step 5
+its budget.
+
+**Überprüft.** All figures from the result files, the `review.json` siblings (the persisted
+`retired_constructs` list shows the five retirements) and the trace (attempts 107, 108, 110).
+**Nur angenommen.** That shape-keyed hub retirement would have kept step 5 green: attempt 3
+would have lost `hub_person_customer` and its links, the overlaps were already remedied, so the
+report would have carried no error — unless the dropped links' absence had fired something else.
+**Bewusst nicht getan.** No repeat; no change yet — the shape-keyed retirement is proposed to the
+owner as the next small WP; the `extension_conflict` severity not revisited.

@@ -191,6 +191,10 @@ is not the project's.
   Re-derived; one pre-registered step-order edge (Person↔Sales) is now a recorded cycle.
 
 ### Measured
+- Third normal chain (`20261005T160357535338Z`, ≈ $6.50): steps 1–4 green, step 5 red on a duplicate
+  hub the modeler re-emitted under a new name after the remedy had retired the old one — the WP44
+  memory keys hubs by name; it must key them by shape. WP47's reasons live (`ambiguous` 6 of 189),
+  WP48's remedy followed in four steps with no backstop fire. `docs/log.md` 2026-10-05.
 - Cumulative-catalogue chain (`adventureworks_incremental_cumulative`, `20261005T092147230544Z`,
   ≈ $9.36): three of five predictions failed — 227 calls, 193 contract owners, four red steps on an
   inherited `E_SAT_ATTR_OVERLAP` — because the pipeline reads a declared schema as this increment's

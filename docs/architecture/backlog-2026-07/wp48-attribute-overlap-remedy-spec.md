@@ -82,3 +82,8 @@ after it. `satellite_attribute_remedy`, `ValidationIssue.retires_attributes`,
 `RetiredConstruct` kind `attribute`, `drop_retired` on attributes. Guards 1–4 pass; replayed on
 the cumulative run's step-2 shape: `MaritalStatus` stays on `sat_employee_demographics`, leaves
 `sat_employee_profile`, no overlap afterwards. §4's chain half is **not yet measured live**.
+
+**2026-10-05 — measured live** (`20261005T160357535338Z`): the shape occurred in four steps'
+attempts (`EmailPromotion`, `ModifiedDate` ×3), the remedy named the keeping satellite each time,
+the modeler followed it each time, every final report has 0 `E_SAT_ATTR_OVERLAP`, the memory was
+recorded five times and never needed. §4 held on the branch it predicted.
