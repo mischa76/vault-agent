@@ -6751,3 +6751,65 @@ cumulative catalogue **21** (`none` 13, `ambiguous` 8). Per step, own → cumula
   existing dataset; the keyless suites and the greenfield manifest held unchanged (1112 tests).
 **Not predicted.** Whether the modeler builds the same shapes (three chains, three variants of
 the cart item); the dollar figure (≈ 6.5–7 USD expected, more declared tables per step).
+
+## [2026-10-05] Cumulative-catalogue chain — three of five predictions failed, and the failure is the finding: the pipeline reads a declared schema as „this increment's tables"
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental_cumulative`, one repeat, stamp `20261005T092147230544Z`,
+at `b4df0f3` (the pre-registration's commit). **227 calls** (the plain chain: 107), 491k uncached
+input, 396k output, 54 min, ≈ **9.36 USD**. Gates: step 1 green, **steps 2–5 red**;
+`pipeline_health` 0.0 (an error-severity `extension_conflict`); WP34 §6 **NOT MET** on the
+re-based review clause (278 decisions > 148), the other three clauses held (23 cross-domain
+links, 1 zero-satellite hub, 0 unsound joins). Review 516 items, 278 decisions, 238 disclosures.
+
+**P1 failed.** `source_binding` 109 (predicted ≤ 40; the replay said 21): `none` 100, `ambiguous`
+8, `shared` 1. `review_disclosures` 238 (predicted < 110). **P2 failed.** `review_decisions` 278
+(predicted 110–175). **P3 failed.** Four red steps on `E_SAT_ATTR_OVERLAP` (`MaritalStatus` in two
+satellites of `hub_employee`, built in step 2, not repaired in three attempts) and, in step 5,
+`E_LINK_KEY_WRONG_COLUMN` ×2 on `hub_sales_representative` — the two-hubs defect, back.
+**P4 held.** `flag_reasons.source_binding` names the split; the 8 `ambiguous` are decisions.
+**P5 held.** The sibling case and the keyless suites are unchanged.
+
+**Why — two effects, neither of them the catalogue as a source of bindings.**
+1. **Contracts are drafted per declared table, every step.** `emit_contract_enrichment` was called
+   **193** times (13 + 19 + 44 + 49 + 68: each step's own tables plus every earlier one), against
+   68 in the plain chain, and every contract asks for an owner: `owner_placeholder` **193** —
+   that is 125 of the 143 extra decisions and most of the 120 extra calls and ≈ 2.7 USD. The
+   data-contract agent, the proposer (`link_proposal_skipped` 99 against 10: it re-proposed and
+   re-declined every earlier table's keys each step) and the modeler's grounding section all read
+   `state.source_schemas` as *the tables of this increment*. Handing them the whole catalogue
+   makes every step re-do the earlier increments' contract and proposal work. That is not a
+   customer's brownfield run, where the earlier contracts exist and the catalogue is context.
+2. **An inherited error skips the mapper, and the mapper is where links bind.** Step 2's
+   `E_SAT_ATTR_OVERLAP` was not repaired in three attempts (the diagnosis carries no typed remedy;
+   ADR-0012's gate only), and every later step inherits the two satellites and the error — the
+   2026-09-13 inheritance finding, on a new code. The failing path deliberately skips the source
+   mapper (WP25), and the mapper's re-bind is where `link_source_overrides` binds a freely named
+   link to the relation its offer resolves. So steps 2–5 kept the generator's first-pass flags:
+   `none` ×100, nearly all of them links like `link_person_email_address` that the replay — and
+   this run's own models, replayed through `resolve_link_relation` with the cumulative catalogue —
+   bind by offer. One `emit_mapping` call in the whole trace, in step 1. The plain chain of
+   2026-10-05 was all green, so its mapper ran in every step and its 154 bindings are hub stages
+   and genuinely unbindable links; this run's 109 are mostly the mapper not having run.
+
+**What the comparison says, then.** Nothing about lever 3 as a catalogue effect: that effect is
+confounded by effect 2, and the only estimate of it is the offline replay (154 → 21 on the
+2026-10-05 models). It says two things about the pipeline instead: (a) `source_schemas` conflates
+„bind against this" with „model, contract and propose this", and a brownfield run with a catalogue
+needs the two typed apart — a declared table either belongs to the increment or is context for
+binding and key resolution only; (b) an inherited error poisons every later increment twice
+over, red gates and no mapper, which the WP44 remedy pattern (typed remedy, memory) does not yet
+cover for `E_SAT_ATTR_OVERLAP`. Also seen: WP44's memory **fired live for the first time**
+(`retired_reemitted` 2: `hub_vendor_business_entity` re-emitted in step 4 and dropped with two
+links; `sat_sales_quota_history` re-emitted in the refused shape in step 5 and dropped into a
+decision, WP46) — the mechanisms did what the replays said.
+
+**Überprüft.** All numbers from the result files, the `review.json` siblings and the trace; the
+offer resolution of `link_person_email_address` replayed on this run's own step-2 model with the
+cumulative catalogue (binds by offer to `EmailAddress`); `emit_mapping` count from the trace.
+**Nur angenommen.** That effect 2 explains the whole `none` 100 — the mapper never ran in steps
+2–5, so no run-time number says what it would have bound; the replay says most of it.
+**Bewusst nicht getan.** No repeat (9.36 USD for a confounded measurement is enough); the dataset
+stays, documented as what it measures; no change to how agents read `source_schemas` — the
+typed split is a design decision for the owner, like the remedy for `E_SAT_ATTR_OVERLAP`.
