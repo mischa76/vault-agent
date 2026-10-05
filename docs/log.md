@@ -6718,3 +6718,36 @@ the name-binding count undercounts both arms alike (4 unbound hubs on A, 5 on B)
 **Bewusst nicht getan.** No repeat; no `dbt build`; the charter document and the August checkpoint
 review are records and were not edited — WP34 spec §12 (appended) and this entry carry the
 measurement.
+
+## [2026-10-05] Pre-registration for the cumulative-catalogue chain — WP47's comparison, written before the run
+
+**Autor:** Claude Code
+
+The user: „alright, so machen wir es: typisierte Begründung gefolgt von Option 2 als Eval-Variante
+und Vergleich". WP47 is built (`ec30d9a` guards first, failing; `f73817f` the change; spec
+`c6a51da`). One repeat of `adventureworks_incremental_cumulative` at this commit — the 2026-10-05
+chain's steps with the catalogue of steps 1 … N−1 handed to step N — against that chain
+(`20261004T140130528908Z`: 353 items, 135 decisions, 218 disclosures, `source_binding` 154, 22
+cross-domain links, all gates green, ≈ 6.62 USD).
+
+**The offline replay first** (the five persisted step models of that chain, re-bound by name and
+offer with the new reasons; mapper and ratified overrides are not persisted, so this is the
+generator's first pass): own schema **158** inferred bindings (`none` 149, `shared` 6,
+`ambiguous` 3; live the chain reported 154 — the replay reproduces it to within the overrides);
+cumulative catalogue **21** (`none` 13, `ambiguous` 8). Per step, own → cumulative: 1 → 1,
+17 → 2, 25 → 3, 52 → 5, 63 → 10. Spec §4 P4 holds on the replay: `ambiguous` 3 ≤ 20, `shared`
+6 ≤ 10, `none` the rest.
+
+**Predictions for the paid run**, sharpened by the replay:
+- **P1.** `source_binding` over the chain **≤ 40** (replay: 21; the live run adds the modeler's
+  choices and the mapper's re-bind); `review_disclosures` **< 110** (218 before).
+- **P2.** `review_decisions` within **110–175**: the ≈ 8 `ambiguous` bindings join the decisions;
+  translations may rise as the proposer sees earlier domains' keys.
+- **P3.** `validation_gate` 1.0 in every step unless a class not yet seen appears; WP34's link,
+  invention and join clauses hold; cross-domain links ≥ 22; `existing_construct_preservation` 1.0.
+- **P4.** `flag_reasons.source_binding` in the result names the split; the `ambiguous` ones are
+  decisions in the queue (role), the rest disclosures.
+- **P5.** The sibling case is untouched: nothing in this run changes the 2026-10-05 result or the
+  existing dataset; the keyless suites and the greenfield manifest held unchanged (1112 tests).
+**Not predicted.** Whether the modeler builds the same shapes (three chains, three variants of
+the cart item); the dollar figure (≈ 6.5–7 USD expected, more declared tables per step).
