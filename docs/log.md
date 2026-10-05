@@ -6963,3 +6963,25 @@ ruff and bare mypy clean (a clashing variable name renamed after mypy caught it)
 hub's link would have gone too and the two overlap remedies were already followed, so step 5 would
 have ended green — unless the missing link had fired something else. **Bewusst nicht getan.** No
 live run; retirements still live within one step's run, not across the chain (WP29 persistence).
+
+## [2026-10-06] Pre-registration for the fourth chain run — the normal chain on the WP49 stand, written before the run
+
+**Autor:** Claude Code
+
+The user: „ok, go!". One repeat of `adventureworks_incremental` at this commit — the first live run
+since WP49 (hubs retired by shape, `e1d46d4`). Against the third chain (`20261005T160357535338Z`:
+steps 1–4 green, step 5 red on a renamed duplicate hub; 387 items / 142 decisions; 21 cross-domain
+links; 6.50 USD) and the second (`20261004T140130528908Z`: all green).
+
+**P1 — WP49, conditional.** If a step's modeler re-emits a retired hub under another name, the
+shape-keyed memory drops it (one `retired_reemitted` flag naming the rename, one backstop fire)
+and the step is green on that class. If no rename occurs, P1 is untestable, not failed.
+**P2 — no regression.** `validation_gate` 1.0 in every step unless a class not yet seen appears;
+WP34 §6's link, review (≤ 148 decisions) and join clauses hold; the invention clause holds unless
+the modeler builds a third satellite-less hub by its own choice (`hub_shopping_cart` is the
+standing one). `existing_construct_preservation` 1.0.
+**P3 — the memories stay in reserve or fire once.** `retired_reemitted` ≤ 2 over the chain;
+every remedy followed or enforced; `E_SAT_ATTR_OVERLAP`, `E_SAT_KEY_NOT_IN_SOURCE`,
+`E_HUB_HK_COLLISION` 0 in every final report.
+**P4 — shape as before.** Decisions 110–170, bindings' reasons mostly `none`, cost ≈ 6.5 USD.
+**Not predicted.** Which shapes the modeler builds; four normal chains have varied every time.
