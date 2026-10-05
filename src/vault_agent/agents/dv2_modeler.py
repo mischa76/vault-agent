@@ -214,14 +214,14 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
         banned = retired_attrs.get(sat.name)
         if not banned or sat in same_shape:
             continue
-        gone = [a for a in sat.attributes if normalize_identifier(a) in banned]
-        if not gone:
+        dropped_here = [a for a in sat.attributes if normalize_identifier(a) in banned]
+        if not dropped_here:
             continue
         sat.attributes = [a for a in sat.attributes if normalize_identifier(a) not in banned]
-        attributes_dropped.extend([sat.name, a] for a in gone)
+        attributes_dropped.extend([sat.name, a] for a in dropped_here)
         state.flag(
             "dv2_modeler",
-            f"satellite {sat.name!r} re-emitted attribute(s) {', '.join(gone)} that the "
+            f"satellite {sat.name!r} re-emitted attribute(s) {', '.join(dropped_here)} that the "
             f"{codes_of(state, sat.name)} remedy retired on it; dropped again — the attribute "
             f"lives in the satellite the remedy kept",
             kind=FlagKind.RETIRED_REEMITTED,

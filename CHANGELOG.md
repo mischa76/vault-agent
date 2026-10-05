@@ -99,6 +99,10 @@ is not the project's.
   on PostgreSQL in `demo/fk_links_postgres` (`hub_currency_rate`, `PASS=113`).
 
 ### Fixed
+- `E_SAT_ATTR_OVERLAP` carries a remedy with memory (WP48): the rule names the satellite that keeps
+  the attribute (an existing one, else the first by name) and retires it on the others; a
+  re-emitted copy loses it again. On the cumulative chain of 2026-10-05 one such overlap, left
+  unrepaired by the loop, had made four steps red by inheritance.
 - `W_HUB_NO_SAT` fired once per link for the last hub instead of once per satellite-less hub —
   WP45's link loop had captured the per-hub check (55 warnings for one hub on the paid chain of
   2026-10-04); back in the hub loop, guarded by `tests/test_validator_hub_no_sat_once.py`.

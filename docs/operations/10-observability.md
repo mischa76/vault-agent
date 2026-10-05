@@ -90,8 +90,9 @@ Five deterministic pre-gate repairs announce themselves as `kind: backstop` even
 was also listed as payload — dropped attrs in the detail), `fk_demotion` (a business
 key's FK occurrence was demoted to its anchor table), `effsat_two_attributes` (an
 effectivity satellite with ≠2 attributes was rejected into a generation-gap flag), and
-`retired_reemitted` (WP44: a later modelling attempt re-emitted a hub the collision
-remedy had retired — the detail names the hub and the links/satellites dropped with it),
+`retired_reemitted` (WP44/WP46/WP48: a later modelling attempt re-emitted a hub the collision
+remedy had retired, a satellite in a refused shape, or an attribute retired on a satellite — the
+detail names what was dropped, `attributes_dropped` included),
 and `composite_key_split` (WP45: the modeler's `A + B` key notation was typed into
 `business_key_columns` because every part is a declared column of the hub's relation).
 

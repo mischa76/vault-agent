@@ -76,3 +76,9 @@ modeler produces the shape at all (two of four October chains did not).
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-05 — built, keyless.** Commits `7552935` (guards, failing) and the change commit
+after it. `satellite_attribute_remedy`, `ValidationIssue.retires_attributes`,
+`RetiredConstruct` kind `attribute`, `drop_retired` on attributes. Guards 1–4 pass; replayed on
+the cumulative run's step-2 shape: `MaritalStatus` stays on `sat_employee_demographics`, leaves
+`sat_employee_profile`, no overlap afterwards. §4's chain half is **not yet measured live**.

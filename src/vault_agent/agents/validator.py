@@ -558,7 +558,7 @@ class ValidatorAgent(BaseAgent):
                     if _shares_payload_namespace(owners, relations):
                         # WP48: the rule says which satellite keeps it; the others retire it.
                         label = sorted(labels)[0]
-                        remedy = satellite_attribute_remedy(
+                        attr_remedy = satellite_attribute_remedy(
                             [sat for sat in model.satellites if sat.name in owners],
                             label, state.existing_model,
                         )
@@ -567,8 +567,8 @@ class ValidatorAgent(BaseAgent):
                                 "error", "E_SAT_ATTR_OVERLAP", parent,
                                 f"attribute {rendered} appears in multiple satellites of "
                                 f"{parent!r}: {joined}",
-                                remedy=remedy.text,
-                                retires_attributes=[[name, label] for name in remedy.drop],
+                                remedy=attr_remedy.text,
+                                retires_attributes=[[n, label] for n in attr_remedy.drop],
                             )
                         )
                     else:

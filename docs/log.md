@@ -6813,3 +6813,36 @@ cumulative catalogue (binds by offer to `EmailAddress`); `emit_mapping` count fr
 **Bewusst nicht getan.** No repeat (9.36 USD for a confounded measurement is enough); the dataset
 stays, documented as what it measures; no change to how agents read `source_schemas` — the
 typed split is a design decision for the owner, like the remedy for `E_SAT_ATTR_OVERLAP`.
+
+## [2026-10-05] WP48 — a remedy with memory for `E_SAT_ATTR_OVERLAP`, built keyless
+
+**Autor:** Claude Code
+
+**Why.** On the cumulative chain of today one duplicated attribute (`MaritalStatus` on two
+satellites of `hub_employee`, both from `Employee`) went unrepaired for three attempts — the
+diagnosis carried no typed remedy — and, accepted unattended, was inherited by every later
+step, which the additivity rule forbade to change: four red steps, no mapper in any of them.
+The user, after the explanation of what an inherited error is: „ok, dann bau die Remedy mit
+Gedächtnis für E_SAT_ATTR_OVERLAP". Spec `wp48-attribute-overlap-remedy-spec.md` (`ca5c826`).
+
+**What changed** (`7552935` guards first, failing; `d792d46` the change; this commit the mypy
+renames and docs). `rules.satellite_attribute_remedy`: an inherited pair retires nothing and
+says so; an existing owner keeps the attribute; among new owners the first by name keeps it and
+the text says the choice was arbitrary. The gate carries the remedy and `retires_attributes`;
+the validator records a `RetiredConstruct` of kind `attribute` once per (satellite, attribute);
+the modeler's `drop_retired` removes a retired attribute from a re-emitted satellite — the
+satellite stays — with one `retired_reemitted` disclosure (nothing is lost; the column lives in
+the keeping satellite) and one backstop event carrying `attributes_dropped`. Docs: operations
+06, 08 (gate row, backstop row), 10.4; CHANGELOG; spec §6; index.
+
+**Überprüft, keyless.** Guards 1–4 of spec §3, the fixture cut verbatim from the run's persisted
+step-2 model: the remedy keeps `MaritalStatus` on `sat_employee_demographics` and retires it on
+`sat_employee_profile`; with that retirement the re-emitted shape comes back repaired and the
+validator raises no overlap; an inherited pair records nothing; a satellite re-emitted without
+the attribute raises nothing. `uv run pytest` 1120 passed, 2 skipped; ruff and bare mypy clean
+(two variable names reused in one scope renamed after mypy caught them).
+
+**Nur angenommen.** That „first by name" is an acceptable tie-break — it is deterministic and the
+text says it is arbitrary; on the real case it put `MaritalStatus` in `demographics`, which is
+where a human would put it. **Bewusst nicht getan.** No live run; reporting inherited errors as
+inherited (spec §5); the mapper's deterministic re-bind on the failed path (same).

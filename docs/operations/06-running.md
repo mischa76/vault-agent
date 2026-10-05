@@ -157,7 +157,9 @@ Across the attempts the loop keeps what a deterministic remedy decided (WP44): a
 the links and satellites that named it; the refusal shows up as a `retired_reemitted`
 disclosure, an orphaned dependent as a `retired_orphan` decision in the review queue. Likewise
 (WP46) a satellite the key gate refused is retired by its shape — re-emitted unchanged, it is
-dropped into a `retired_orphan` decision; re-parented, it is judged afresh.
+dropped into a `retired_orphan` decision; re-parented, it is judged afresh. And (WP48) an attribute
+two satellites of one relation both carry is kept on one of them by the overlap remedy and retired
+on the others — re-emitted there, it is dropped again, a disclosure.
 
 Failures print a one-line summary by default; global `--debug` re-raises with the full
 traceback. Nothing is ever deleted on failure — a paused or crashed run keeps its
