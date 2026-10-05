@@ -159,7 +159,12 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   component translation has Postgres evidence but no live case yet. **The arm comparison is a tie
   on decisions** (2026-10-05: arm A 134, arm B 135/148) and arm A is far cheaper to read (21
   disclosures against 218–230); arm B's distinguishing value is brownfield additivity, not less
-  attention — do not claim the latter (`docs/log.md` 2026-10-05, WP34 §12).
+  attention — do not claim the latter (`docs/log.md` 2026-10-05, WP34 §12). **`source_schemas` means
+  „this increment's tables"** to the contract agent, the proposer and the modeler's grounding: handing
+  a step the whole catalogue (the `_cumulative` eval case) re-drafts every earlier contract and
+  re-proposes every earlier key (193 owners, 227 calls, 9.36 USD) — a binding-only catalogue needs a
+  typed split first. **A red step skips the mapper**, and the mapper's re-bind is where freely named
+  links bind by offer; an inherited error therefore also inflates `source_binding`.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

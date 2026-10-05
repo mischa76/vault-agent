@@ -206,7 +206,10 @@ uv run python -m eval.run --dataset bank --out eval/results
   true`: step N also receives the declared schemas of steps 1 … N−1 — the catalogue a
   customer's brownfield run has — so the stages of earlier constructs bind to declared
   relations instead of being inferred and disclosed again at every checkpoint. The sibling
-  case is unchanged; the two are compared, not merged.
+  case is unchanged; the two are compared, not merged. **Measured once (2026-10-05): not a
+  customer's brownfield run** — the data-contract agent, the proposer and the modeler's grounding
+  read every declared table as this increment's (193 contracts, 227 calls), so the case measures
+  that conflation, not the catalogue's binding effect; `docs/log.md` of that day.
 - Per run, one JSON result is written to
   `eval/results/<case>/<UTC-timestamp>-run<i>.json` (scores, per-scorer diff details,
   model ids from `get_settings()`, git SHA). `eval/results/` is git-ignored.

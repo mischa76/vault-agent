@@ -106,3 +106,17 @@ earlier constructs bind to declared relations instead of `raw_<base>`.
 ## 6 Results
 
 *(appended after the change and after the comparison run)*
+
+**2026-10-05 — built keyless; the comparison run failed three of five predictions, and the
+failure is the finding.** Commits `ec30d9a` (guards, failing), `f73817f` (the change),
+`9a3bb0f` (docs). §2.1 is in: every inferred binding carries `none` / `ambiguous` / `shared`,
+`ambiguous` is a decision, `flag_reasons` is in every result (P4 held on the run). §2.2 ran once
+(`20261005T092147230544Z`, 9.36 USD): P1, P2, P3 **failed** — 109 bindings, 278 decisions, four red
+steps — because the data-contract agent, the proposer and the modeler's grounding read
+`source_schemas` as *this increment's tables* (193 contracts and owners instead of 68, 227 calls
+instead of 107), and because an inherited `E_SAT_ATTR_OVERLAP` kept steps 2–5 red and therefore
+without the mapper, whose re-bind is where links bind by offer. The catalogue effect on bindings
+is unmeasured by this run; the offline replay (154 → 21 on the 2026-10-05 models) stands as the
+estimate. P5 held. Full reading: `docs/log.md` 2026-10-05, „Cumulative-catalogue chain". **What
+would make §2.2 measurable:** a typed split of the declared schema into increment tables and
+binding-only context (a design decision), and a remedy with memory for `E_SAT_ATTR_OVERLAP`.

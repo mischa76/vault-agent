@@ -187,6 +187,11 @@ is not the project's.
   Re-derived; one pre-registered step-order edge (Person↔Sales) is now a recorded cycle.
 
 ### Measured
+- Cumulative-catalogue chain (`adventureworks_incremental_cumulative`, `20261005T092147230544Z`,
+  ≈ $9.36): three of five predictions failed — 227 calls, 193 contract owners, four red steps on an
+  inherited `E_SAT_ATTR_OVERLAP` — because the pipeline reads a declared schema as this increment's
+  tables (contracts, proposals, grounding) and a red step skips the mapper where links bind. The
+  catalogue's binding effect stays estimated by the offline replay (154 → 21). `docs/log.md` 2026-10-05.
 - Arm A (`adventureworks_full`, one pass over 68 tables, `20261004T171256542998Z`, ≈ $7.10): 134
   review decisions against arm B's 135 and 148 — the charter claim's review axis is a tie as measured;
   disclosures 21 against 218–230; cross-schema links by one rule 13 against 15; gate green. WP34 spec §12,
