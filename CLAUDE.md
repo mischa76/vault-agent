@@ -174,8 +174,8 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   gate a remedy with memory** on the ratified key's evidence (the second hub is retired by shape);
   unmeasured live. **The fifth chain (2026-10-06) is the second all-green one, and the first the memory
   made green:** step 2's third attempt re-emitted two retired hubs, dropped with their links and
-  satellites (seven orphan decisions); the kept twin ended satellite-less — moving a dropped hub's
-  payload to its kept twin is the next deterministic step, proposed. Five normal chains,
+  satellites (seven orphan decisions); the kept twin ended satellite-less — **WP51 (2026-10-06) moves
+  a dropped hub's payload to its kept twin**, unmeasured live. Five normal chains,
   red/green/red/red/green: a step's colour is whether three attempts suffice for the remedies the
   modeler needs, and the memory now covers the case where they do not.
 - **WP18 acceptance #1 is unverified** (it costs a live run).

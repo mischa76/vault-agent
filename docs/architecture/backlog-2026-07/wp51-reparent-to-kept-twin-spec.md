@@ -76,3 +76,10 @@ twin relation is the only one the rule reads).
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-06 — built, keyless.** Commits `ce0c16b` (guards, failing) and `d7bb1d1` (the change).
+`ValidationIssue.retires_into`, `RetiredConstruct.kept_twin` (recorded for collisions and WP50
+second hubs), `drop_retired` re-parenting satellites and re-pointing link participations to the
+twin, `retired_reparented` as a disclosure. Guards 1–4 pass on the fifth chain's step-2 attempt-1
+shape: two satellites move, one link re-points, the self-link is dropped, the twin keeps `Resume`,
+no collision afterwards. 1133 tests, ruff, mypy. §4's chain half is **not yet measured live**.

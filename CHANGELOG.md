@@ -99,6 +99,10 @@ is not the project's.
   on PostgreSQL in `demo/fk_links_postgres` (`hub_currency_rate`, `PASS=113`).
 
 ### Fixed
+- A dropped hub's payload moves to its kept twin (WP51): the retirement records the hub the remedy
+  kept, and the memory re-parents the dropped hub's satellites and re-points its link participations
+  there instead of orphaning them; a link the twin already takes part in is dropped. On the fifth
+  chain of 2026-10-06 the kept twin had ended without a satellite and seven payloads as decisions.
 - `E_LINK_KEY_WRONG_COLUMN` carries a remedy with memory against the second hub of one person (WP50):
   when the relation's declared key for the hub is a ratified key resolving to another hub and the
   modeler's hub is built from the table that key references, the remedy names the ratified hub and

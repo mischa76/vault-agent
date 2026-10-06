@@ -95,7 +95,7 @@ async def test_dependents_of_a_dropped_hub_move_to_its_kept_twin() -> None:
     assert kinds[FlagKind.RETIRED_REEMITTED] == [
         "hub_employee_business_entity", "hub_job_candidate"
     ]
-    # The fixture's pay-rate satellite also trips the CDK backstop; the memory's event is the one named.
+    # The pay-rate satellite also trips the CDK backstop; the memory's event is the named one.
     [event] = [e for e in events if e.kind == "backstop" and e.backstop_id == "retired_reemitted"]
     assert sorted(event.detail["reparented"]) == kinds[FlagKind.RETIRED_REPARENTED]
 

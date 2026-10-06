@@ -7170,3 +7170,41 @@ clause met: the dropped satellite had `source_table` `JobCandidate`, the kept hu
 **Bewusst nicht getan.** No change; no repeat. Five normal chains since 2026-10-04:
 red / green / red / red / **green**, the last one with the memory, not the modeler, resolving the
 re-emission.
+
+## [2026-10-06] WP51 — a dropped hub's payload moves to its kept twin, built keyless
+
+**Autor:** Claude Code
+
+**Why.** The fifth chain's step 2 (today's entry above): the memory dropped two re-emitted hubs and
+sent seven payloads to decisions; the kept twin `hub_candidate_business_entity` ended without a
+satellite and the invention clause counted it. WP44 §5 had deferred re-parenting as „one case is
+not a rule"; this was the second. The user: „ok, bau das Umhängen der Payload an den Zwilling".
+Spec `wp51-reparent-to-kept-twin-spec.md` (`1bcd52d`).
+
+**What changed** (`ce0c16b` guards first, failing; `d7bb1d1` the change; this commit the docs).
+`ValidationIssue.retires_into` carries the hub the remedy kept — `HubCollisionRemedy.keep`,
+`SecondHubRemedy.parent` (WP50) — and the validator records it as `RetiredConstruct.kept_twin`
+(a renamed copy inherits its original's twin). `drop_retired`: a satellite parented on a dropped
+hub whose twin is a live hub moves to the twin; a link naming the dropped hub has that
+participation re-pointed to the twin, role, alias and translation kept — unless the twin already
+takes part, which makes the link an entity's link to itself, dropped as before. Each move is a
+`retired_reparented` flag, a disclosure (WP43: the payload kept its meaning and found its home
+deterministically); the backstop event lists `reparented`. Without a twin WP44's orphans stand.
+The key gates judge the moved satellites as any other: `sat_employee_pay_rate` from
+`EmployeePayHistory` now on `hub_employee` (`NationalIDNumber`) needs the WP40 licence
+translation, which the step's proposer grants, or is refused with WP46's remedy. Docs: operations
+06, 08; CHANGELOG; spec §6; index; CLAUDE.md.
+
+**Überprüft, keyless.** Guards 1–4 on the fixture cut from llm_call 30 (step 2 attempt 1): with the
+two retirements carrying their twins, `sat_job_candidate_details` moves to
+`hub_candidate_business_entity`, `sat_employee_pay_rate` (multi-active, its child key intact) to
+`hub_employee`, `link_employee_assignment` re-points to `hub_employee`, `link_candidate_employee`
+(twin already a participant) is dropped as an orphan; three `retired_reparented`, one
+`retired_orphan`, two `retired_reemitted`; the validator raises no collision and the twin holds
+its satellite; without twins everything is dropped as before. `uv run pytest` 1133 passed, 2
+skipped; ruff and bare mypy clean.
+
+**Nur angenommen.** That on the fifth chain's step 2 this would have left the invention clause
+met (two zero-satellite hubs) — the kept twin's payload was exactly the orphaned `Resume`.
+**Bewusst nicht getan.** No live run; links where the twin already takes part stay dropped (a
+self-relationship); retirements still live within one step's run.

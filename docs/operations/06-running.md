@@ -163,6 +163,9 @@ two satellites of one relation both carry is kept on one of them by the overlap 
 on the others — re-emitted there, it is dropped again, a disclosure. And (WP50) a hub the
 wrong-column gate recognises as the second hub of an entity the checkpoint already resolved a key
 to is retired by shape; re-emitted, it goes with its links and satellites, the payload a decision.
+When the remedy kept a twin of the dropped hub (WP51), its satellites and link participations move
+to the twin instead — a `retired_reparented` disclosure; only a link the twin already takes part in
+is dropped.
 
 Failures print a one-line summary by default; global `--debug` re-raises with the full
 traceback. Nothing is ever deleted on failure — a paused or crashed run keeps its
