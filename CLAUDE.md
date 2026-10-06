@@ -166,8 +166,13 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   typed split first. **A red step skips the mapper**, and the mapper's re-bind is where freely named
   links bind by offer; an inherited error therefore also inflates `source_binding`. **The repair memory
   keyed hubs by name** until WP49 (2026-10-06) keyed them by shape too — the third chain's step 5 had
-  gone red on a retired duplicate re-emitted under a new name; unmeasured live. Three normal chains,
-  three outcomes: a step's colour is whether three attempts suffice for the remedies the modeler needs.
+  gone red on a retired duplicate re-emitted under a new name; the fourth chain produced no rename.
+  **The two-hubs-on-one-person defect is the standing red class** (fourth chain, 2026-10-06, step 5):
+  the modeler builds `hub_sales_person` on `SalesPerson` beside `hub_employee`, and the key the
+  proposer ratified for `Store.SalesPersonID` targets `hub_employee`, so the new hub's participation
+  gets no alias and `E_LINK_KEY_WRONG_COLUMN` refuses — correctly. Two answers proposed in
+  `docs/log.md` 2026-10-06; not built. Four normal chains, red/green/red/red: a step's colour is
+  whether three attempts suffice for the remedies the modeler needs.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

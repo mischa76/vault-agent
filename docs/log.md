@@ -6985,3 +6985,65 @@ every remedy followed or enforced; `E_SAT_ATTR_OVERLAP`, `E_SAT_KEY_NOT_IN_SOURC
 `E_HUB_HK_COLLISION` 0 in every final report.
 **P4 — shape as before.** Decisions 110–170, bindings' reasons mostly `none`, cost ≈ 6.5 USD.
 **Not predicted.** Which shapes the modeler builds; four normal chains have varied every time.
+
+## [2026-10-06] Fourth chain run — steps 1–4 green, WP34 §6 held in full, step 5 red on the Store class: a ratified key that targets the hub the modeler did not use
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261005T234048650821Z` (UTC; local
+2026-10-06 early morning), at `cfe0968`, the pre-registration's commit. 102 calls, 371k uncached
+input, 259k output, 42.5 min, ≈ **6.24 USD**. Eight modeler calls (step 5 went to three attempts).
+Final vault 44 hubs, 64 links, 92 satellites. **Steps 1–4 green; step 5 red** on one
+`E_LINK_KEY_WRONG_COLUMN`. `pipeline_health` 1.0 (no error-severity flag this time). **WP34 §6: all
+four clauses held** — 23 cross-domain links, 2 zero-satellite hubs (`hub_inventory_transaction`,
+`hub_shopping_cart`), 138 decisions ≤ 148, 0 unsound joins — the first chain in which the §6
+conjunction holds while a step is red on a gate §6 does not read.
+
+**P1 untestable.** No retired hub was re-emitted under another name; the shape-keyed memory
+(WP49) had nothing to do. **P2 failed on the gate**, held on everything else: §6 in full,
+`existing_construct_preservation` 1.0. **P3 held.** `retired_reemitted` 0; the collision fired in
+step 5's attempts (3 mentions) and was remedied by the modeler, as was one overlap and one
+satellite key; every final report has 0 of all three. **P4 held.** 138 decisions, bindings `none`
+181 / `shared` 8 / `ambiguous` 4 of 193, 6.24 USD.
+
+**The red class, read to the root.** `link_store_sales_person` connects `hub_store` and the
+modeler's `hub_sales_person` (built this step on `SalesPerson`, keyed `BusinessEntityID`) and reads
+`Store` by offer. `Store` declares two keys: `BusinessEntityID → BusinessEntity` (the store's own
+identity) and `SalesPersonID → SalesPerson.BusinessEntityID`. The link hashed `hub_sales_person`
+from `Store.BUSINESSENTITYID` — the store's key, not the sales person's — and the gate said so,
+exactly: „which Store declares as a key into BusinessEntity, but Store declares hub_sales_person's
+key as SalesPersonID … an alias to SalesPersonID is decided at the link checkpoint, never by the
+modeler". Three attempts could not repair it: the modeler is told not to invent the alias.
+
+Why the checkpoint did not supply it, replayed on the persisted step-4 vault and the sales schema:
+the proposer, running **before** the modeler against the existing vault, resolved
+`Store.SalesPersonID` as a WP39 two-hop **translation to `hub_employee`** (`SalesPerson.
+BusinessEntityID → Employee.BusinessEntityID → hub_employee` on `NationalIDNumber`) — the right
+answer for the vault as it stood, and it was ratified as such. Then the modeler built
+`hub_sales_person` on `SalesPerson` and connected the link to **that** hub. The ratified
+proposal's grant repairs participations of `hub_employee`; the link has none; no licence exists
+for `Store.SalesPersonID` because the proposer had resolved it. So the modeler's hub got no alias,
+and the gate refused the wrong-column hash. This is the two-hubs-on-one-person defect
+(`hub_employee` and `hub_sales_person` are one person, `SalesPerson` a subtype of `Employee` —
+WP38 built the subtype feed for exactly this) seen from the key side: on 2026-10-05's second chain
+the modeler did not build the second hub and the link went through `Employee`; here it did.
+
+**Two deterministic answers, both the owner's call.** (a) Re-resolve a ratified proposal's key
+against the *merged* model when its grant finds no participation — `Store.SalesPersonID` then
+resolves to `hub_sales_person` (which binds `SalesPerson` by provenance) and the alias applies;
+honest only if the record says the human ratified the key, not the hub. (b) The remedy the
+project's stance implies: a hub built on a table keyed on another hub's surrogate, where the vault
+already has that hub (`SalesPerson.BusinessEntityID → Employee`, `hub_employee` present), is the
+two-hubs defect — the `E_LINK_KEY_WRONG_COLUMN` remedy could say „take the participation from
+`hub_employee` through the ratified translation; do not build `hub_sales_person`" and retire
+`hub_sales_person` by shape (`SalesPerson`, `BUSINESSENTITYID`). (b) keeps one entity one hub;
+(a) accepts the second hub. Not built; the gate stays right either way.
+
+**Überprüft.** Figures from the result files and `review.json`; the root cause by replaying
+`collect_link_proposals` on the persisted step-4 model with the sales schema (licences for
+`Store`: none; proposals: `BusinessEntityID → hub_business_entity`, `SalesPersonID → hub_employee`
+translated) and `apply_key_licenses` on the final model's delta (no repair, as live).
+**Nur angenommen.** That (b) would have ended step 5 green — the collision and overlap remedies
+were followed, so one less class is the difference. **Bewusst nicht getan.** No change; no repeat.
+Four normal chains: red / green / red / red — in three of four the modeler built a shape the
+loop could not finish within three attempts, each time a different one.

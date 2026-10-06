@@ -195,6 +195,11 @@ is not the project's.
   Re-derived; one pre-registered step-order edge (Person↔Sales) is now a recorded cycle.
 
 ### Measured
+- Fourth normal chain (`20261005T234048650821Z`, ≈ $6.24): steps 1–4 green, WP34 §6 all four clauses
+  held, step 5 red on `E_LINK_KEY_WRONG_COLUMN` — the modeler built `hub_sales_person` beside
+  `hub_employee` and the ratified key for `Store.SalesPersonID`, resolved to `hub_employee` before
+  modelling, repaired nothing on the new hub. The two-hubs-on-one-person defect from the key side;
+  two deterministic answers proposed. `docs/log.md` 2026-10-06.
 - Third normal chain (`20261005T160357535338Z`, ≈ $6.50): steps 1–4 green, step 5 red on a duplicate
   hub the modeler re-emitted under a new name after the remedy had retired the old one — the WP44
   memory keys hubs by name; it must key them by shape. WP47's reasons live (`ambiguous` 6 of 189),

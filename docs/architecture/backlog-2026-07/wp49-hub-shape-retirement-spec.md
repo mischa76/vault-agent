@@ -71,3 +71,7 @@ matches the shape and names the rename in its flag; the payload carries the shap
 pass; replayed on step 5 attempt 3 of the third chain: `hub_person_customer` dropped as
 `hub_person_sales` renamed, `link_customer_person` with it, `hub_customer` kept, no collision
 afterwards. 1124 tests, ruff, mypy. §4's chain half is **not yet measured live**.
+
+**2026-10-06 — fourth live chain** (`20261005T234048650821Z`): no retired hub was re-emitted
+under another name, so §4's conditional did not arise — untestable, not failed. Step 5 ended red
+on a different class (`E_LINK_KEY_WRONG_COLUMN`, the Store link; `docs/log.md` 2026-10-06).
