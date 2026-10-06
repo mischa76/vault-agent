@@ -7091,3 +7091,26 @@ skipped; ruff and bare mypy clean. Docs: operations 06, 08; CHANGELOG; spec §6;
 the satellites as subtype feeds rather than lose them to the memory — on 2026-10-05's second chain
 it did so unprompted. **Bewusst nicht getan.** No live run; variant 1 (re-resolving a ratified key
 against the merged model) not built; retirements still live within one step's run.
+
+## [2026-10-06] Pre-registration for the fifth chain run — the normal chain with all four remedies with memory, written before the run
+
+**Autor:** Claude Code
+
+The user: „ok, lets go!". One repeat of `adventureworks_incremental` at this commit — the first live
+run since WP50 (the second-hub remedy, `0d5e0b9`). Every class that has made a step red since
+2026-09-17 now carries a deterministic remedy the loop remembers: collision (WP44, by name;
+WP49, by shape), satellite key (WP46), attribute overlap (WP48), second hub (WP50). Against the
+fourth chain (`20261005T234048650821Z`: steps 1–4 green, step 5 red on the Store class, WP34 §6
+held in full, 138 decisions, 6.24 USD).
+
+**P1 — all five steps green**, unless a class not yet seen appears, which the run will name. The
+hope of every pre-registration since 2026-10-04; this time with the standing red class covered.
+**P2 — WP50, conditional.** If the modeler builds a second person hub and hashes it from the
+wrong column, the gate fires once with the remedy naming the ratified hub, and the step is green
+on that class on the next attempt — by the modeler following it (no backstop fire) or by the
+memory (hub, links and satellites dropped; ≤ 3 `retired_orphan`). If the shape does not occur, P2
+is untestable, not failed.
+**P3 — WP34 §6 holds** in full, as on the fourth chain; `existing_construct_preservation` 1.0.
+**P4 — the memories in reserve or firing once each**; every remedy followed or enforced; the
+four classes 0 in every final report. Decisions 110–170, cost ≈ 6.5 USD.
+**Not predicted.** Which shapes the modeler builds; five normal chains have varied every time.
