@@ -77,3 +77,15 @@ modelling (WP29/WP38 already can, when the resolver sees it).
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-06 — built, keyless; the rule's evidence narrowed by its own guard.** Commits `09685c7`
+(guards, failing) and `0d5e0b9` (the change). The first cut read „second hub" from the onward key
+alone and would have named `hub_store` the second hub of `hub_business_entity` — a legitimate
+subtype hub in the party model; guard 1 caught it. The rule now needs the checkpoint's evidence: a
+**ratified** key of the link's relation, for the very column the gate names, resolving to
+another hub, with the modeler's hub built from the table that key references
+(`Store.SalesPersonID → SalesPerson`, ratified to `hub_employee`). Guards 1–3 pass on the fourth
+chain's step-5 shape: remedy names `hub_employee` and the three satellites' new home, retires
+`hub_sales_person` by shape; with the retirement the re-emitted shape loses the hub,
+`link_store_sales_person` and the three satellites (decisions), keeps `link_store_employee`, and
+passes the gate. 1129 tests, ruff, mypy. §4's chain half is **not yet measured live**.

@@ -99,6 +99,11 @@ is not the project's.
   on PostgreSQL in `demo/fk_links_postgres` (`hub_currency_rate`, `PASS=113`).
 
 ### Fixed
+- `E_LINK_KEY_WRONG_COLUMN` carries a remedy with memory against the second hub of one person (WP50):
+  when the relation's declared key for the hub is a ratified key resolving to another hub and the
+  modeler's hub is built from the table that key references, the remedy names the ratified hub and
+  retires the second one by shape. On the fourth chain of 2026-10-06 `hub_sales_person` beside
+  `hub_employee` had kept step 5 red for three attempts.
 - The repair memory retires a hub by its shape — source entity and key — beside its name (WP49):
   on the third chain of 2026-10-05 the modeler re-emitted a retired duplicate under a new name on
   the last attempt and the name-keyed memory let it through. The retry payload now forbids the

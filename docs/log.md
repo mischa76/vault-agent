@@ -7047,3 +7047,47 @@ translated) and `apply_key_licenses` on the final model's delta (no repair, as l
 were followed, so one less class is the difference. **Bewusst nicht getan.** No change; no repeat.
 Four normal chains: red / green / red / red — in three of four the modeler built a shape the
 loop could not finish within three attempts, each time a different one.
+
+## [2026-10-06] WP50 — a remedy with memory against the second hub of one person, built keyless
+
+**Autor:** Claude Code
+
+**Why.** The fourth chain's step 5 (today's entry above): `hub_sales_person` on `SalesPerson` beside
+`hub_employee`, `link_store_sales_person` hashing it from the wrong column, the ratified key for
+`Store.SalesPersonID` targeting `hub_employee` and repairing nothing on the new hub; three
+attempts red. The user chose variant 2 of the two deterministic answers: „ok, bau Variante 2, die
+Remedy gegen den zweiten Hub". Spec `wp50-second-hub-remedy-spec.md` (`3154826`).
+
+**What changed** (`09685c7` guards first, failing; `0d5e0b9` the change; this commit the docs).
+`rules.second_hub_remedy(hub, model, ratified_target, key_table)`: the hub is the second hub of
+`ratified_target`'s entity when the link's relation declares the hub's key on a column whose
+**ratified** key resolves (translated) to `ratified_target` and the hub is built from the table
+that key references. `E_LINK_KEY_WRONG_COLUMN` then carries the remedy — take the participation
+from the ratified hub through the translation, hang the hub's satellites there as a subtype feed
+(WP38), do not build the hub, a re-emitted copy under any name is dropped — and retires the hub by
+shape (WP49); `drop_retired` removes it with its links and satellites, the payload as decisions.
+Without a ratified key the gate's message stands alone and nothing is retired.
+
+**The first cut over-reached, and its own guard caught it.** Read from the declared onward key
+alone („a hub keyed on another hub's surrogate, that hub present"), the rule named `hub_store` the
+second hub of `hub_business_entity` — `Store.BusinessEntityID → BusinessEntity`, a legitimate
+subtype hub in AdventureWorks' party model, as `hub_person` and `hub_vendor` are. The guard „the
+rule is silent without the evidence" failed on exactly that hub. Narrowed to the checkpoint's
+evidence: a key the human ratified to another hub. A second detail the guard found: the ratified
+translation names `Employee` as its through-table (the last hop), so the modeler's table comes
+from the declared key itself (`Store.SalesPersonID → SalesPerson`), not from the translation.
+
+**Überprüft, keyless.** Guards 1–3 on the fixture cut from the fourth chain's step-5 model, with
+the proposer run against a vault like step 4's (hub_employee, hub_business_entity, hub_person — the
+third makes the plain key match ambiguous, which is what sends the real proposer down the
+translation): the issue carries the remedy naming `hub_employee`, `SalesPerson` and the three
+satellites, retires `hub_sales_person` as (`SalesPerson`, `BUSINESSENTITYID`); re-emitted, the hub,
+`link_store_sales_person` and the satellites go (three `retired_orphan` decisions naming the
+payload), `link_store_employee` stays, the validator raises no `E_LINK_KEY_WRONG_COLUMN`; without a
+ratified key the gate refuses as before and retires nothing. `uv run pytest` 1129 passed, 2
+skipped; ruff and bare mypy clean. Docs: operations 06, 08; CHANGELOG; spec §6; index; CLAUDE.md.
+
+**Nur angenommen.** That the modeler, told the ratified hub, will connect the link there and hang
+the satellites as subtype feeds rather than lose them to the memory — on 2026-10-05's second chain
+it did so unprompted. **Bewusst nicht getan.** No live run; variant 1 (re-resolving a ratified key
+against the merged model) not built; retirements still live within one step's run.

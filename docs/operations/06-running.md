@@ -160,7 +160,9 @@ disclosure, an orphaned dependent as a `retired_orphan` decision in the review q
 (WP46) a satellite the key gate refused is retired by its shape — re-emitted unchanged, it is
 dropped into a `retired_orphan` decision; re-parented, it is judged afresh. And (WP48) an attribute
 two satellites of one relation both carry is kept on one of them by the overlap remedy and retired
-on the others — re-emitted there, it is dropped again, a disclosure.
+on the others — re-emitted there, it is dropped again, a disclosure. And (WP50) a hub the
+wrong-column gate recognises as the second hub of an entity the checkpoint already resolved a key
+to is retired by shape; re-emitted, it goes with its links and satellites, the payload a decision.
 
 Failures print a one-line summary by default; global `--debug` re-raises with the full
 traceback. Nothing is ever deleted on failure — a paused or crashed run keeps its
