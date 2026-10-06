@@ -7208,3 +7208,61 @@ skipped; ruff and bare mypy clean.
 met (two zero-satellite hubs) — the kept twin's payload was exactly the orphaned `Resume`.
 **Bewusst nicht getan.** No live run; links where the twin already takes part stay dropped (a
 self-relationship); retirements still live within one step's run.
+
+## [2026-10-06] WP52 — three small corrections before the sixth chain: honest chain metrics, the refused satellite's home, a conflict that is a decision
+
+**Autor:** Claude Code
+
+The user, on the quick wins offered after WP51: „1 + 2 + 3 umsetzen“, and on the third:
+„wenn es keinen Fehler für das generierte Model erzeugt, aber eine Entscheidung benötigt um zu
+vermeiden dass etwas verlorengeht dann ist es kein Fehler sondern eine Entscheidung“. Spec
+`29dac22`, guards red `063b96e` (four of five), change `ed3f4df`, docs in the commit carrying this
+entry. Spec: `docs/architecture/backlog-2026-07/wp52-three-quick-wins-spec.md`.
+
+**What changed, and why it was wrong before.**
+1. `score_chain` scored `validation_gate` and `pipeline_health` on the final state only; the fifth
+   chain reported chain health 1.0 while step 4 scored 0.0. Both are now the minimum over all
+   steps, as preservation has been since 2026-07-30, with every step named in the details.
+2. A satellite refused by `E_SAT_KEY_NOT_IN_SOURCE` and re-emitted unchanged was orphaned although
+   WP46's remedy had already computed the parents whose key the relation carries. With exactly one
+   candidate the issue carries it as `retires_into`, the retirement as `kept_twin`, and
+   `drop_retired` moves the satellite there (`retired_reparented`, a disclosure) — WP51's twin rule
+   applied to satellites. With none or several the orphan decision stands.
+3. The merger's two `extension_conflict` flags were error-severity, so three of five chains scored
+   step 4 `pipeline_health` 0.0 on a re-stated link while the vault stood unchanged. They are
+   advisory now; the flag stays a review decision (WP43), the refusal stays.
+
+**Überprüft.** Guards on WP46's routing fixture (`sat_work_order_operation_detail` lands on
+`hub_work_order`; without a candidate it is orphaned as before), a three-step synthetic chain with
+a red middle step, and a merged delta re-stating a link; 1138 tests, ruff, bare mypy. **Nur
+angenommen.** That one candidate is always the right home — the gate judges the moved satellite
+afresh on the next attempt, as WP51 §2.3 says. **Bewusst nicht getan.** The September and October
+result files are not re-scored (spec §4); the attempt budget and the mapper's re-bind on the red
+path stay open.
+
+## [2026-10-06] Pre-registration for the sixth chain run — the normal chain after WP51 and WP52, written before the run
+
+**Autor:** Claude Code
+
+The user, leaving: „kannst du dann bitte nach dem Umbau gleich noch einen live run über die
+gesamten Kette machen?“. One repeat of `adventureworks_incremental` at the commit carrying this
+entry — the first live run since WP51 (`d7bb1d1`) and WP52 (`ed3f4df`). Against the fifth chain
+(`20261006T032619166848Z`: all five steps green, WP34 §6 not met on the invention clause with 3
+zero-satellite hubs, 139 decisions, 6.79 USD).
+
+**P1 — all five steps green**, unless a class not yet seen appears, which the run will name.
+**P2 — the chain's `validation_gate` and `pipeline_health` are the minimum over steps**; a step
+with an error flag anywhere is a red chain. No step scores `pipeline_health` 0.0 on an
+`extension_conflict` alone (it is advisory now); if the merger refuses a re-statement it is one
+decision item, not a red step.
+**P3 — WP51, conditional.** If the memory drops a re-emitted hub whose remedy kept a twin, the
+dropped hub's satellites and link participations move to the twin (`retired_reparented`
+disclosures), `retired_orphan` decisions appear only for self-links and satellites of dropped
+links, and the kept twin keeps its payload. If no hub is re-emitted, P3 is untestable, not failed.
+**P4 — WP52, conditional.** A satellite re-emitted in the shape the key gate refused lands on its
+single candidate parent; no `retired_orphan` for a satellite whose remedy named one parent.
+**P5 — WP34 §6 holds** in full, including the invention clause (≤ 2 zero-satellite hubs), and
+`existing_construct_preservation` 1.0.
+**P6 — the four remedies in reserve or firing once each**; collision, satellite key, attribute
+overlap and second hub 0 in every final report. Decisions 110–170, cost ≈ 6.5 USD.
+**Not predicted.** Which shapes the modeler builds; five normal chains have varied every time.

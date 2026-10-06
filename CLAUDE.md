@@ -175,7 +175,8 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   unmeasured live. **The fifth chain (2026-10-06) is the second all-green one, and the first the memory
   made green:** step 2's third attempt re-emitted two retired hubs, dropped with their links and
   satellites (seven orphan decisions); the kept twin ended satellite-less — **WP51 (2026-10-06) moves
-  a dropped hub's payload to its kept twin**, unmeasured live. Five normal chains,
+  a dropped hub's payload to its kept twin**, unmeasured live; WP52 (2026-10-06) makes the chain's
+  gate and health the minimum over steps and `extension_conflict` advisory. Five normal chains,
   red/green/red/red/green: a step's colour is whether three attempts suffice for the remedies the
   modeler needs, and the memory now covers the case where they do not.
 - **WP18 acceptance #1 is unverified** (it costs a live run).

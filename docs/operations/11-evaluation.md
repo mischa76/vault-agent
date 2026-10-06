@@ -51,7 +51,10 @@ gate** — deliberately not CI (live runs cost tokens and need a key).
 
 Model-quality scorers: `construct_f1` (structural hub/link/sat match against the
 golden model), `driving_key_accuracy`, `validation_gate` (the run's own gates pass),
-`pipeline_health`. Mapping scorers come in two per-case modes: `concept` (name-aligned
+`pipeline_health` (no error-severity flag). On a **chain** case the general scorers read the final
+step's state, while `existing_construct_preservation`, `validation_gate` and `pipeline_health`
+are the **minimum over the steps** (WP52 for the latter two; preservation since WP30): a red step
+anywhere is a red chain, and the details name every step and the worst. Mapping scorers come in two per-case modes: `concept` (name-aligned
 goldens — precision/recall on concept-keyed mappings, gap detection, confidence
 calibration) and `column` for the scale cases, where naming diverges by construction
 (`mapping_coverage` — recall over golden column pairs — plus the gateable

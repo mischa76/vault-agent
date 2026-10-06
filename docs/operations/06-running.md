@@ -165,7 +165,9 @@ wrong-column gate recognises as the second hub of an entity the checkpoint alrea
 to is retired by shape; re-emitted, it goes with its links and satellites, the payload a decision.
 When the remedy kept a twin of the dropped hub (WP51), its satellites and link participations move
 to the twin instead — a `retired_reparented` disclosure; only a link the twin already takes part in
-is dropped.
+is dropped. And (WP52) a satellite the key gate refused whose remedy named **exactly one** parent
+carrying the relation's key moves to that parent when re-emitted unchanged — the same disclosure;
+with no or several candidates the `retired_orphan` decision stands.
 
 Failures print a one-line summary by default; global `--debug` re-raises with the full
 traceback. Nothing is ever deleted on failure — a paused or crashed run keeps its
@@ -201,6 +203,12 @@ merely encouraged:
 Attribute *growth* counts as a reshape because a satellite that already holds history would
 need every past row backfilled. New attributes for an existing parent belong in a **new
 satellite** on it — which is what the modeler is steered to produce.
+
+When the modeler's delta *re-states* an existing hub with a different key, or an existing link or
+satellite under its own name, the merger keeps the vault unchanged and raises an
+`extension_conflict` flag — a review **decision** (chapter 7): did you mean a new satellite, and
+what of the re-stated payload is lost? Since WP52 that flag is `advisory`, not `error`: nothing
+is wrong with the generated vault, and `pipeline_health` no longer scores the run 0.0 on it.
 
 Every legitimate addition also raises an `I_EXISTING_EXTENDED` record (severity `info`), so
 the validation report inventories the increment rather than staying silent about it. Since WP43

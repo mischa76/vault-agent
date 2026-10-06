@@ -67,3 +67,12 @@ Re-scoring archived results; the attempt budget; the mapper's re-bind on the fai
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-06 — built, keyless.** Commits `063b96e` (guards, failing: four of five) and `ed3f4df`
+(the change). `score_chain` aggregates `validation_gate` and `pipeline_health` as the minimum over
+all steps, details „min over N step(s), worst <step>“; `E_SAT_KEY_NOT_IN_SOURCE` carries its
+single candidate as `retires_into`, the retirement as `kept_twin`, and `drop_retired` re-parents
+the re-emitted satellite there (`retired_reparented`) — on WP46's routing fixture
+`sat_work_order_operation_detail` lands on `hub_work_order`; the merger's two `extension_conflict`
+flags are advisory, the brownfield tests' two severity assertions updated in the same commit.
+Guards 1–3 pass; 1138 tests, ruff, mypy. §4 is **not yet measured live**.

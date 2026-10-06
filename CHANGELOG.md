@@ -25,6 +25,18 @@ is not the project's.
   known, although the extension prompt asks for links to existing hubs by name. The defect
   dates from the brownfield merge (2026-07-29). Existing hubs and links now count; a reference
   to a hub in neither the delta nor the vault is still dropped.
+- A chain's `validation_gate` and `pipeline_health` read the final step only, so a red step under
+  a green last step scored a healthy chain (WP52). Both are now the minimum over all steps, as
+  preservation already was; the details name every step and the worst.
+- A satellite the key gate refused and the modeler re-emitted unchanged was always dropped into a
+  review decision, although its remedy had named the parent whose key the relation carries. With
+  exactly one such parent it now moves there (`retired_reparented`, a disclosure; WP52).
+
+### Changed
+- `extension_conflict` — the merger refusing a delta that re-states an existing hub's key, an
+  existing link or an existing satellite — is an advisory flag, not an error (WP52). The vault is
+  kept unchanged as before and the flag stays a review decision; a run no longer fails
+  `pipeline_health` on it, because nothing in the generated vault is wrong.
 
 ### Added
 - A link's relation resolved by more than its name (WP42): a link used to be tied to its source
