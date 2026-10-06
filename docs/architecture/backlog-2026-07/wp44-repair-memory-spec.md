@@ -136,3 +136,11 @@ remedy retired it by name, attempt 2 complied, attempt 3 re-emitted the same hub
 through; the gate fired again on the last attempt and the step ended red. **The memory must key a
 hub by its shape (source entity, business key) beside its name**, as WP46 keys a satellite by
 parent and relation. Proposed as the next change; replayable from llm_call 110's payload.
+
+**2026-10-06 — fifth live chain** (`20261006T032619166848Z`): the memory fired in a normal chain for
+the first time and the step is green. Step 2 attempt 3 re-emitted both hubs the collision remedies
+had retired; `drop_retired` dropped them with three links and four satellites (seven
+`retired_orphan` decisions), one backstop event, and the final report has no error. P2 held by the
+mechanism this time, not by the modeler. The cost: the kept twin `hub_candidate_business_entity`
+ended satellite-less because the dropped hub's payload went to a decision — §5's deferred
+re-parenting now has its second case.

@@ -200,6 +200,11 @@ is not the project's.
   Re-derived; one pre-registered step-order edge (Person↔Sales) is now a recorded cycle.
 
 ### Measured
+- Fifth normal chain (`20261006T032619166848Z`, ≈ $6.79): **the second all-green chain**, and the first
+  the repair memory made green — step 2's third attempt re-emitted two retired hubs, which were
+  dropped with three links and four satellites (seven orphan decisions). WP34 §6 failed only on the
+  invention clause, one of the three satellite-less hubs being the kept twin whose payload went to a
+  decision. `docs/log.md` 2026-10-06.
 - Fourth normal chain (`20261005T234048650821Z`, ≈ $6.24): steps 1–4 green, WP34 §6 all four clauses
   held, step 5 red on `E_LINK_KEY_WRONG_COLUMN` — the modeler built `hub_sales_person` beside
   `hub_employee` and the ratified key for `Store.SalesPersonID`, resolved to `hub_employee` before

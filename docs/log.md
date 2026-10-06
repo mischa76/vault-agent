@@ -7114,3 +7114,59 @@ is untestable, not failed.
 **P4 — the memories in reserve or firing once each**; every remedy followed or enforced; the
 four classes 0 in every final report. Decisions 110–170, cost ≈ 6.5 USD.
 **Not predicted.** Which shapes the modeler builds; five normal chains have varied every time.
+
+## [2026-10-06] Fifth chain run — the second all-green chain, and the first the memory made green
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261006T032619166848Z`, at `f667709`,
+the pre-registration's commit. 107 calls, 420k uncached input, 281k output, 48 min, ≈ **6.79 USD**.
+Ten modeler calls (step 2 took three attempts, two more steps a second). Final vault 44 hubs, 56
+links, 80 satellites. **`validation_gate` 1.0 in all five steps** — the second all-green chain
+(the first: 2026-10-05, `20261004T140130528908Z`). Chain `pipeline_health` 1.0 (it reads the final
+state; step 4's own score is 0.0 on an error-severity `extension_conflict`, the merger refusing a
+re-stated link — a known class). WP34 §6 **NOT MET on the invention clause**: 3 zero-satellite hubs
+(`hub_candidate_business_entity`, `hub_product_description`, `hub_shopping_cart`); links (21),
+review (139 decisions) and joins held.
+
+**P1 held — all five steps green.** **P2 untestable** — no second person hub was built, so WP50's
+remedy had no case (`E_LINK_KEY_WRONG_COLUMN` appears in no attempt). **P3 failed on invention**,
+and the third zero-satellite hub is a consequence of P4 (below). **P4 held, and this is the run's
+finding: the memory fired live for the first time in a normal chain, and the step it fired in is
+green.**
+
+**Step 2, read from the trace.** Attempt 1 (llm_call 30) built `hub_employee_business_entity`
+(Employee, BusinessEntityID) beside `hub_employee`, and `hub_job_candidate` (JobCandidateID)
+beside `hub_candidate_business_entity` (BusinessEntityID), both on `JobCandidate`. Two collisions,
+two remedies: drop `hub_employee_business_entity`; drop `hub_job_candidate`, keep
+`hub_candidate_business_entity` (the identifier's higher-ranked key). Attempt 2 (32) complied on
+both and was asked again for an attribute overlap and a satellite key. Attempt 3 **re-emitted both
+retired hubs**; `drop_retired` dropped them with three links (`link_employee_business_entity`,
+`link_employee_assignment`, `link_candidate_employee`) and four satellites (`sat_job_candidate_
+details`, `sat_employee_assignment_eff`, `sat_employee_assignment_details`, `sat_employee_pay_rate`)
+— one `backstop` event, two `retired_reemitted` disclosures, seven `retired_orphan` decisions
+naming the payload (`Resume`, `Rate`, `PayFrequency`, `StartDate`, `EndDate`, …). The step's final
+report has no error. On the third chain the same class of re-emission — under a new name — had
+ended a step red; here the memory (by name this time) held the line, as WP44 §2 said it would.
+
+**The cost of enforcement, honestly.** The kept hub `hub_candidate_business_entity` ends without a
+satellite, because the candidate's payload (`Resume`) sat on the dropped `hub_job_candidate` and
+went to a decision item instead of moving to the kept hub. That is the item WP44 §5 deferred as
+„one case is not a rule" — now a second case: *a dependent of a retired hub whose kept twin is on
+the same source entity moves to the kept hub*. Deterministic (same entity, same relation, the key
+is what changed), replayable from llm_call 30's payload. Proposed, not built. `hub_product_
+description` (step 3, `ProductDescriptionID`, no satellite) is the modeler's own choice;
+`hub_shopping_cart` the standing one.
+
+**Everything else.** 139 decisions (band 110–170), 213 disclosures, `source_binding` 143; the
+attribute overlap and the satellite key remedies followed by the modeler in their attempts
+(`E_SAT_ATTR_OVERLAP` ×2, `E_SAT_KEY_NOT_IN_SOURCE` ×1 in requests, 0 in every final report);
+`E_HUB_HK_COLLISION` 0 in every final report; cost 6.79 USD.
+
+**Überprüft.** Figures from the result files, the `review.json` siblings (the persisted retirements
+of step 2: two hubs with shape, one attribute, one satellite) and the trace. **Nur angenommen.**
+That moving the orphaned payload to the kept twin would have left step 2 green and the invention
+clause met: the dropped satellite had `source_table` `JobCandidate`, the kept hub binds it. 
+**Bewusst nicht getan.** No change; no repeat. Five normal chains since 2026-10-04:
+red / green / red / red / **green**, the last one with the memory, not the modeler, resolving the
+re-emission.

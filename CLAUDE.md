@@ -134,7 +134,7 @@ The pipeline runs end-to-end: orchestrator → requirements parser → business 
 contracts, a review queue, an HTML report, and a proposed ADR. Brownfield mode (`run --existing`)
 extends an existing vault instead of modelling into an empty one. Verified on real PostgreSQL
 several times, most recently for composite keys (2026-10-05). The five-step AdventureWorks chain
-(person → sales) ran all-green for the first time on 2026-10-05. WP29 §4 (entity-resolution safety) is
+(person → sales) ran all-green on 2026-10-05 and again on 2026-10-06. WP29 §4 (entity-resolution safety) is
 met: `false_merge_rate` 1.000 over 5 clean repeats, zero blinded merges (2026-08-08; trap 5 is
 blinded-untestable by design). Details and dates: `docs/log.md`.
 
@@ -172,8 +172,12 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   proposer ratified for `Store.SalesPersonID` targets `hub_employee`, so the new hub's participation
   gets no alias and `E_LINK_KEY_WRONG_COLUMN` refuses — correctly. **WP50 (2026-10-06) gives that
   gate a remedy with memory** on the ratified key's evidence (the second hub is retired by shape);
-  unmeasured live. Four normal chains, red/green/red/red: a step's colour is whether three attempts
-  suffice for the remedies the modeler needs.
+  unmeasured live. **The fifth chain (2026-10-06) is the second all-green one, and the first the memory
+  made green:** step 2's third attempt re-emitted two retired hubs, dropped with their links and
+  satellites (seven orphan decisions); the kept twin ended satellite-less — moving a dropped hub's
+  payload to its kept twin is the next deterministic step, proposed. Five normal chains,
+  red/green/red/red/green: a step's colour is whether three attempts suffice for the remedies the
+  modeler needs, and the memory now covers the case where they do not.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

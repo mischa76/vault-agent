@@ -89,3 +89,7 @@ chain's step-5 shape: remedy names `hub_employee` and the three satellites' new 
 `hub_sales_person` by shape; with the retirement the re-emitted shape loses the hub,
 `link_store_sales_person` and the three satellites (decisions), keeps `link_store_employee`, and
 passes the gate. 1129 tests, ruff, mypy. §4's chain half is **not yet measured live**.
+
+**2026-10-06 — fifth live chain** (`20261006T032619166848Z`): no second person hub was built and
+`E_LINK_KEY_WRONG_COLUMN` fired in no attempt — §4's conditional did not arise; untestable, not
+failed. The chain was all green.
