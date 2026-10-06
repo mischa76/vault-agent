@@ -62,6 +62,9 @@ class FlagKind:
     # construct lost its parent and its payload needs a home (a decision).
     RETIRED_REEMITTED = "retired_reemitted"
     RETIRED_ORPHAN = "retired_orphan"
+    # WP51: a dependent of a dropped hub moved to the hub's kept twin — the payload kept its
+    # meaning and found its home deterministically (a disclosure).
+    RETIRED_REPARENTED = "retired_reparented"
     GENERIC = "generic"
 
 
@@ -852,6 +855,10 @@ with warnings.catch_warnings():
         retires: list[str] = Field(default_factory=list)
         # WP48: attributes the remedy retires on a satellite — ``[satellite, attribute]`` pairs.
         retires_attributes: list[list[str]] = Field(default_factory=list)
+        # WP51: the hub the remedy KEPT when it retired the ones in ``retires`` — the twin a
+        # dropped hub's dependents move to (``HubCollisionRemedy.keep``,
+        # ``SecondHubRemedy.parent``).
+        retires_into: str | None = None
 
 
 class RetiredConstruct(BaseModel):
@@ -872,6 +879,9 @@ class RetiredConstruct(BaseModel):
     # so a composite key compares as a tuple. Empty on records written before WP49: name only.
     source_entity: str | None = None
     key_columns: list[str] = Field(default_factory=list)
+    # WP51: the hub the remedy kept in this hub's place; the dropped hub's satellites and link
+    # participations move there instead of becoming orphans. None: no twin, WP44's behaviour.
+    kept_twin: str | None = None
     # WP46: a satellite is retired by the SHAPE the gate refused — its parent and relation —
     # so a re-parented satellite of the same name passes and faces the gate again, while an
     # unchanged copy is dropped. None for hubs, whose identity is their key.

@@ -119,11 +119,12 @@ def _shares_payload_namespace(
 def _issue(
     severity: IssueSeverity, code: str, construct: str, message: str,
     remedy: str | None = None, retires: list[str] | None = None,
-    retires_attributes: list[list[str]] | None = None,
+    retires_attributes: list[list[str]] | None = None, retires_into: str | None = None,
 ) -> ValidationIssue:
     return ValidationIssue(
         severity=severity, code=code, construct=construct, message=message, remedy=remedy,
         retires=list(retires or []), retires_attributes=list(retires_attributes or []),
+        retires_into=retires_into,
     )
 
 
@@ -465,6 +466,7 @@ class ValidatorAgent(BaseAgent):
                             retired_hub.source_entity if retired_hub is not None else None
                         ),
                         key_columns=hub_key_columns(retired_hub) if retired_hub is not None else [],
+                        kept_twin=issue.retires_into,  # WP51
                     )
                 )
         # WP48: attribute retirements, once per (satellite, attribute).
@@ -648,6 +650,7 @@ class ValidatorAgent(BaseAgent):
                         f"the other's business key",
                         remedy=remedy.text,
                         retires=remedy.drop,
+                        retires_into=remedy.keep,  # WP51: where the dropped hubs' payload goes
                     )
                 )
 
@@ -1162,6 +1165,7 @@ class ValidatorAgent(BaseAgent):
                         f"modeler",
                         remedy=second.text if second is not None else None,
                         retires=[second.second] if second is not None else None,
+                        retires_into=second.parent if second is not None else None,  # WP51
                     )
                 )
         feeds = {

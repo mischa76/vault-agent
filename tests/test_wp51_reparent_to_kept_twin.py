@@ -86,14 +86,17 @@ async def test_dependents_of_a_dropped_hub_move_to_its_kept_twin() -> None:
     ]
     assert "link_candidate_employee" not in links  # the twin already took part: a self-link
 
-    kinds = {k: sorted(f.asset for f in state.flags if f.kind == k)
-             for k in (FlagKind.RETIRED_REPARENTED, FlagKind.RETIRED_ORPHAN, FlagKind.RETIRED_REEMITTED)}
+    watched = (FlagKind.RETIRED_REPARENTED, FlagKind.RETIRED_ORPHAN, FlagKind.RETIRED_REEMITTED)
+    kinds = {k: sorted(f.asset for f in state.flags if f.kind == k) for k in watched}
     assert kinds[FlagKind.RETIRED_REPARENTED] == [
         "link_employee_assignment", "sat_employee_pay_rate", "sat_job_candidate_details"
     ]
     assert kinds[FlagKind.RETIRED_ORPHAN] == ["link_candidate_employee"]
-    assert kinds[FlagKind.RETIRED_REEMITTED] == ["hub_employee_business_entity", "hub_job_candidate"]
-    [event] = [e for e in events if e.kind == "backstop"]
+    assert kinds[FlagKind.RETIRED_REEMITTED] == [
+        "hub_employee_business_entity", "hub_job_candidate"
+    ]
+    # The fixture's pay-rate satellite also trips the CDK backstop; the memory's event is the one named.
+    [event] = [e for e in events if e.kind == "backstop" and e.backstop_id == "retired_reemitted"]
     assert sorted(event.detail["reparented"]) == kinds[FlagKind.RETIRED_REPARENTED]
 
 

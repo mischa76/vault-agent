@@ -209,6 +209,14 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
             renamed[hub.name] = retired_shapes[shape]
             entity_of[hub.name] = hub.source_entity
     retired = retired | set(renamed)
+    # WP51: the hub the remedy kept in a dropped hub's place; a renamed copy inherits its twin.
+    twin_of: dict[str, str] = {
+        r.name: r.kept_twin for r in state.retired_constructs
+        if r.kind == "hub" and r.kept_twin
+    }
+    for new_name, original in renamed.items():
+        if original in twin_of:
+            twin_of[new_name] = twin_of[original]
     # WP46: a satellite is retired by shape — (name, parent, relation), compared normalised.
     retired_sat_shapes = {
         (r.name, r.parent, normalize_identifier(r.source_table or ""))
@@ -270,10 +278,39 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
             asset=name,
         )
     orphaned: list[str] = []
+    reparented: list[str] = []
+    live_hubs = {hub.name for hub in hubs}
+
+    def twin_for(name: str) -> str | None:
+        twin = twin_of.get(name)
+        return twin if twin is not None and twin in live_hubs else None
+
     kept_links: list[Link] = []
     for link in model.links:
         named = [ref.hub for ref in link.hub_refs if ref.hub in retired]
         if named:
+            # WP51: the participation is the twin's — unless the twin already takes part,
+            # which makes the link an entity's link to itself.
+            twins = {name: twin_for(name) for name in named}
+            present = {ref.hub for ref in link.hub_refs if ref.hub not in retired}
+            if all(t is not None and t not in present for t in twins.values()) and len(
+                set(twins.values())
+            ) == len(twins):
+                for ref in link.hub_refs:
+                    if ref.hub in twins:
+                        ref.hub = str(twins[ref.hub])
+                reparented.append(link.name)
+                state.flag(
+                    "dv2_modeler",
+                    f"link {link.name!r} named retired hub(s) {', '.join(named)}; the "
+                    f"participation now reads the kept twin(s) "
+                    f"{', '.join(str(t) for t in twins.values())} — the same entity under the "
+                    f"key the remedy kept",
+                    kind=FlagKind.RETIRED_REPARENTED,
+                    asset=link.name,
+                )
+                kept_links.append(link)
+                continue
             orphaned.append(link.name)
             state.flag(
                 "dv2_modeler",
@@ -300,6 +337,23 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
                 asset=sat.name,
             )
             continue
+        if sat.parent in retired and twin_for(sat.parent) is not None:
+            # WP51: the satellite describes the entity the twin stands for; it moves there.
+            twin = twin_for(sat.parent)
+            assert twin is not None
+            former = sat.parent
+            sat.parent = twin
+            reparented.append(sat.name)
+            state.flag(
+                "dv2_modeler",
+                f"satellite {sat.name!r} moved from the retired hub {former!r} to its kept twin "
+                f"{twin!r} — the same entity under the key the remedy kept; its payload "
+                f"({', '.join(sat.attributes)}) stays",
+                kind=FlagKind.RETIRED_REPARENTED,
+                asset=sat.name,
+            )
+            kept_sats.append(sat)
+            continue
         if sat.parent in gone:
             orphaned.append(sat.name)
             state.flag(
@@ -318,7 +372,8 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
             kind="backstop",
             backstop_id="retired_reemitted",
             detail={"retired": reemitted + [sat.name for sat in same_shape],
-                    "orphaned": orphaned, "attributes_dropped": attributes_dropped},
+                    "orphaned": orphaned, "reparented": reparented,
+                    "attributes_dropped": attributes_dropped},
         )
     )
     return DVModel(hubs=hubs, links=kept_links, satellites=kept_sats)
