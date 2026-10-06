@@ -40,7 +40,7 @@ def _chain(**overrides: Any) -> dict[str, Any]:
     metrics: dict[str, Any] = {
         "chain_steps": [person, sales],
         "review_items_total": 400,
-        "review_decisions": 140,  # 2026-10-05: the clause reads decisions (WP43), baseline 148
+        "review_decisions": 140,  # 2026-10-05: decisions (WP43); WP53: ceiling ~159.9 over 6
         "validation_codes": {},
     }
     metrics.update(overrides)
@@ -131,10 +131,10 @@ def test_a_rise_in_review_decisions_fails_the_run_even_with_the_links() -> None:
     was built for works, and the axis the arm comparison binds on moves the wrong way. Since
     2026-10-05 that axis is `review_decisions` (WP43): the signal count fell by construction when
     the extension inventory left the queue, so it judges nothing any more."""
-    held, lines = check(_chain(review_decisions=160))
+    held, lines = check(_chain(review_decisions=175))  # WP53: the six-chain ceiling is ~159.9
 
     assert not held
-    assert any("FAILED" in line and "review:" in line and "160 decision" in line for line in lines)
+    assert any("FAILED" in line and "review:" in line and "175 decision" in line for line in lines)
 
 
 def test_the_signal_count_is_reported_but_no_longer_a_clause() -> None:

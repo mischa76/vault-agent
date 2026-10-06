@@ -13,6 +13,8 @@ Usage::
 Keyless and pure; it reads a result file and the checked-in case assets, and calls nothing.
 """
 import json
+import math
+import statistics
 import sys
 from pathlib import Path
 from typing import Any
@@ -38,10 +40,45 @@ BASELINE_ZERO_SAT_HUBS = 2
 # 2026-10-05 (user's decision, `docs/log.md` of that day): the review clause reads
 # `review_decisions` — the items a human must answer (WP43) — not the signal count. WP43 took
 # the extension inventory (159 items on the 2026-09-17 chain) out of the queue, so the signal
-# count fell below 619 by construction and judged nothing. The baseline is the first chain that
-# carried decisions, `20261004T013339024833Z`: 148. The clause is a regression guard for the
-# chain, not yet an arm comparison — arm A has no decision count until it is run again.
-BASELINE_REVIEW_DECISIONS = 148
+# count fell below 619 by construction and judged nothing.
+#
+# 2026-10-07 (WP53, user's decision): the ceiling is no longer one chain's number (148, the
+# first chain that carried decisions) but a distribution — every completed normal chain of
+# `adventureworks_incremental` that carries `review_decisions`, as (stamp, decisions), read from
+# the result files. A chain is judged against the chains BEFORE it (its own stamp is excluded),
+# by the one-sided 95 % prediction bound of the next observation. A chain enters this record in
+# the docs commit of its run whether or not it met the clause: the record measures the modeler's
+# spread, not the chains the clause liked. The clause is a regression guard for the chain, not
+# yet an arm comparison — arm A has one decision count (134) and no distribution.
+REVIEW_DECISION_SAMPLES: tuple[tuple[str, int], ...] = (
+    ("20261004T013339024833Z", 148),  # first chain, 2026-10-04 (red)
+    ("20261004T140130528908Z", 135),  # second, 2026-10-05 — the first all-green chain
+    ("20261005T160357535338Z", 142),  # third, 2026-10-05 (red)
+    ("20261005T234048650821Z", 138),  # fourth, 2026-10-06 (red)
+    ("20261006T032619166848Z", 139),  # fifth, 2026-10-06 (green)
+    ("20261006T172859787765Z", 156),  # sixth, 2026-10-06 (green; failed the 148 ceiling)
+)
+MIN_REVIEW_SAMPLES = 3
+# One-sided 95 % Student-t quantiles by degrees of freedom (df 1..30; above that, normal).
+_T95 = {
+    1: 6.314, 2: 2.920, 3: 2.353, 4: 2.132, 5: 2.015, 6: 1.943, 7: 1.895, 8: 1.860, 9: 1.833,
+    10: 1.812, 11: 1.796, 12: 1.782, 13: 1.771, 14: 1.761, 15: 1.753, 16: 1.746, 17: 1.740,
+    18: 1.734, 19: 1.729, 20: 1.725, 21: 1.721, 22: 1.717, 23: 1.714, 24: 1.711, 25: 1.708,
+    26: 1.706, 27: 1.703, 28: 1.701, 29: 1.699, 30: 1.697,
+}
+
+
+def review_ceiling(samples: list[int]) -> float:
+    """The one-sided 95 % prediction bound for the next chain's decisions over `samples`:
+    mean + t(0.95, n-1) * sd * sqrt(1 + 1/n), with the sample standard deviation. Needs at
+    least MIN_REVIEW_SAMPLES samples; the caller decides what fewer means."""
+    n = len(samples)
+    if n < MIN_REVIEW_SAMPLES:
+        raise ValueError(f"need at least {MIN_REVIEW_SAMPLES} samples, got {n}")
+    mean = statistics.mean(samples)
+    sd = statistics.stdev(samples)
+    t = _T95.get(n - 1, 1.645)
+    return mean + t * sd * math.sqrt(1 + 1 / n)
 ARM_A_CROSS_DOMAIN = 16
 
 
@@ -163,6 +200,30 @@ def unsound_aliases(steps: list[dict[str, Any]]) -> list[str]:
     return problems
 
 
+def _review_clause(
+    decisions: int | None, used: list[tuple[str, int]], excluded: bool, review: int
+) -> tuple[bool, str]:
+    """The review clause (WP53): decisions against the prediction bound of the recorded chains."""
+    samples = [count for _, count in used]
+    reported = (f" · {review} items reported, not judged (the pre-2026-10-05 clause read them "
+                f"against {BASELINE_REVIEW_ITEMS})")
+    if decisions is None:
+        return False, (f"review:     no review_decisions in this result (pre-WP43, signals only: "
+                       f"{review} items) — the clause cannot be judged on it")
+    if len(samples) < MIN_REVIEW_SAMPLES:
+        return False, (f"review:     {decisions} decision(s) — cannot be judged: "
+                       f"{len(samples)} recorded chain(s), need {MIN_REVIEW_SAMPLES}")
+    ceiling = review_ceiling(samples)
+    stamps = [stamp for stamp, _ in used]
+    return decisions <= ceiling, (
+        f"review:     {decisions} decision(s) (ceiling {ceiling:.1f} — the one-sided 95 % "
+        f"prediction bound of {len(samples)} recorded chain(s), mean "
+        f"{statistics.mean(samples):.1f}, sd {statistics.stdev(samples):.1f}, "
+        f"{stamps[0][:8]} → {stamps[-1][:8]}"
+        f"{'; this run and later ones excluded' if excluded else ''})" + reported
+    )
+
+
 def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
     """Evaluate all four clauses. Returns (all held, one report line per clause)."""
     metrics = result.get("metrics", result)
@@ -174,6 +235,13 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
     named = named_hubs(final)
     review = metrics["review_items_total"]
     decisions = metrics.get("review_decisions")
+    # WP53: judged against the chains BEFORE it — stamps sort chronologically, so an archived
+    # chain re-checked later is still judged by its predecessors only, never by itself or by
+    # what came after it. A result without a stamp (a chain not yet recorded) sees them all.
+    own_stamp = result.get("timestamp")
+    used = [(stamp, count) for stamp, count in REVIEW_DECISION_SAMPLES
+            if own_stamp is None or stamp < own_stamp]
+    excluded = len(used) < len(REVIEW_DECISION_SAMPLES)
     aliases = unsound_aliases(steps)
     # The chain's validation_codes come from the FINAL state, whose report covers the whole
     # merged model — so any surviving unsound link shows here. Steps are still checked
@@ -188,13 +256,7 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
          f"(must not exceed {BASELINE_ZERO_SAT_HUBS}): {zero_sat}"
          + (f"; named hub present, reported not failing since 2026-09-14 "
             f"(WP29 same-as outcome): {named}" if named else "")),
-        (decisions is not None and decisions <= BASELINE_REVIEW_DECISIONS,
-         (f"review:     {decisions} decision(s) (must not exceed {BASELINE_REVIEW_DECISIONS}, "
-          f"the 2026-10-04 chain) · {review} items reported, not judged (the pre-2026-10-05 "
-          f"clause read them against {BASELINE_REVIEW_ITEMS})")
-         if decisions is not None else
-         (f"review:     no review_decisions in this result (pre-WP43, signals only: {review} "
-          f"items) — the clause cannot be judged on it")),
+        _review_clause(decisions, used, excluded, review),
         (not aliases and gate_fires == 0,
          f"joins:      {len(aliases)} unsound alias(es), "
          f"{gate_fires} E_LINK_KEY_NOT_IN_SOURCE fire(s) — both must be 0"),
