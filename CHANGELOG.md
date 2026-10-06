@@ -33,6 +33,10 @@ is not the project's.
   exactly one such parent it now moves there (`retired_reparented`, a disclosure; WP52).
 
 ### Changed
+- The WP34 §6 review clause judges a chain's decisions against a distribution (WP53): the
+  one-sided 95 % prediction bound over the recorded normal chains before it, the run itself and
+  later ones excluded, instead of one chain's number (148). Six chains are recorded; fewer than
+  three cannot judge. The sixth chain (156) still fails against its five predecessors (151.9).
 - `extension_conflict` — the merger refusing a delta that re-states an existing hub's key, an
   existing link or an existing satellite — is an advisory flag, not an error (WP52). The vault is
   kept unchanged as before and the flag stays a review decision; a run no longer fails

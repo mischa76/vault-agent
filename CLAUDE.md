@@ -176,9 +176,10 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   retirement firing live for the first time. **WP51 (2026-10-06) moves a dropped hub's payload to its
   kept twin** (live only on the self-link branch); WP52 (2026-10-06) makes the chain's gate and
   health the minimum over steps and `extension_conflict` advisory (both live). Six normal chains,
-  red/green/red/red/green/green; **WP34 §6's review clause (≤ 148 decisions) failed on the sixth
-  with 156**, on modeler volume (a larger production model), not on a gate — the ceiling is one
-  chain's number, and whether to re-base it on a distribution is the owner's call.
+  red/green/red/red/green/green; **WP34 §6's review clause is a distribution since WP53
+  (2026-10-07)**: the one-sided 95 % prediction bound over the recorded chains before the judged one
+  (`eval/wp34_check.py`); the sixth chain's 156 still fails it (151.9 over five), the seventh is
+  judged against 159.9. A completed chain is added to the record in its docs commit.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

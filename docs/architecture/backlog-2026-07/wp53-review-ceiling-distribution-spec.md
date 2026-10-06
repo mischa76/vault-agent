@@ -66,3 +66,10 @@ The other three clauses; the arm comparison's own review axis (arm A has one dec
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-07 — built.** Commits `a8fd638` (guards, failing on import) and `40b18ab` (the change).
+`REVIEW_DECISION_SAMPLES` (six chains, 148/135/142/138/139/156), `review_ceiling`, the clause
+judged against the chains before the run's stamp. Re-run on the archive: sixth chain 156 against
+151.9 (5 predecessors) — **still NOT MET**, as §2 said; fifth 139 against 155.5 (4) — held; the
+second chain (one predecessor) cannot be judged. Guards 1–4 pass (guard 4 against the result
+files on this machine); 1142 tests, ruff, mypy. The seventh chain's ceiling: 159.9.

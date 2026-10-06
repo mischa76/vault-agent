@@ -410,3 +410,10 @@ arm B 15; by step provenance arm B 22, a measure arm A cannot have. The arms are
 on §6's axes by this landscape; arm B's value is the brownfield additivity arm A cannot offer.
 Full table and reading: `docs/log.md` 2026-10-05, „Arm A run".
 
+## 14 The review clause as a distribution (2026-10-07, WP53)
+
+Owner's decision, 2026-10-07: the review clause's ceiling is no longer one chain's number (148,
+§6 as re-based on decisions on 2026-10-05) but the one-sided 95 % prediction bound over the
+recorded normal chains before the judged one (`eval/wp34_check.py`, `REVIEW_DECISION_SAMPLES`,
+`review_ceiling`). Rule, guards and the re-run over the archive:
+`wp53-review-ceiling-distribution-spec.md`. The other three clauses are unchanged.

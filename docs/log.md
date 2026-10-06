@@ -7315,3 +7315,35 @@ systematic source — one chain is a shape, not a distribution; the next chain t
 nicht getan.** No second repeat; no change to the 148 ceiling (a decision for the owner: re-base on
 a distribution, or keep a single chain's number); no re-scoring of earlier results. Six normal
 chains since 2026-10-04: red / green / red / red / green / **green**.
+
+## [2026-10-07] WP53 — the review ceiling becomes a distribution
+
+**Autor:** Claude Code
+
+The user, on the sixth chain's failed review clause: „ok, stell die Review-Decke auf eine
+Verteilung um“. Spec `1a6dba0`, guards red `a8fd638`, change `40b18ab`, docs in the commit
+carrying this entry. Spec: `docs/architecture/backlog-2026-07/wp53-review-ceiling-distribution-spec.md`;
+WP34 spec §14 points to it.
+
+**What changed, and why it was wrong before.** The WP34 §6 review clause was a ceiling of 148 —
+the first chain's number (2026-10-05 re-basing). Six normal chains since: 148, 135, 142, 138,
+139, 156; one number cannot tell a rise from the modeler's spread. Now `eval/wp34_check.py`
+records every completed normal chain's decisions as `REVIEW_DECISION_SAMPLES` (recomputed from the
+result files; guard 4 checks them against the files on disk) and judges a chain against the
+**one-sided 95 % prediction bound** of the chains before its stamp: mean + t(0.95, n−1) · sd ·
+√(1 + 1/n). Fewer than three predecessors cannot judge. A chain enters the record in the docs
+commit of its run whether or not it met the clause — the record measures the modeler's spread.
+The checker's own note („a conjunction that fails is a finding to record, not a bar to move“)
+stands; this bar was moved by the owner, and its new form is a rule, not a number.
+
+**Re-run over the archive.** Sixth chain: 156 against 151.9 (five predecessors, mean 140.4, sd
+4.9) — **still not met**; 156 is the highest count recorded and outside the predecessors' spread,
+which is the honest reading of that run. Fifth: 139 against 155.5 (four) — held. Second: one
+predecessor, cannot be judged. The seventh chain is judged against 159.9 (six, mean 143.0, sd 7.7).
+
+**Überprüft.** Guards 1–4 (the ceiling's two values, the exclusion by stamp, the minimum sample,
+the samples against the result files); 1142 tests, ruff, bare mypy; the checker re-run on three
+archived chains. **Nur angenommen.** That the modeler's decision counts are roughly symmetric
+around their mean, which a t-bound assumes; with six samples the bound is wide either way.
+**Bewusst nicht getan.** The other three clauses, the arm comparison's review axis (arm A: one
+count, 134), and any re-telling of the sixth chain's verdict — it failed then and fails now.
