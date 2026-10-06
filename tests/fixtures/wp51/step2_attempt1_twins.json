@@ -1,0 +1,205 @@
+{
+  "hubs": [
+    {
+      "name": "hub_employee",
+      "business_key": "NationalIDNumber",
+      "source_entity": "Employee",
+      "description": "An employee of the business, identified uniquely and consistently across all HR reporting by their national identification number \u2014 the strongest natural business identifier for the person, unique across all employees. Keyed differently from the company-wide business-entity register (hub_business_entity), which is linked separately by a human-ratified decision.",
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002"
+      ]
+    },
+    {
+      "name": "hub_employee_business_entity",
+      "business_key": "BusinessEntityID",
+      "source_entity": "Employee",
+      "description": "The company-wide business-entity number under which an employee is registered, shared with the broader business-entity register. Asserted equivalent to hub_business_entity but keyed differently, so modelled as its own hub per the ratified decision; a human decides what links the two. Serves as the HR integration key across Employee, EmployeeDepartmentHistory, EmployeePayHistory and JobCandidate.",
+      "requirement_ids": [
+        "REQ-003"
+      ]
+    },
+    {
+      "name": "hub_department",
+      "business_key": "Name",
+      "source_entity": "Department",
+      "description": "A department: an organisational unit in which people work, identified by its name, which is how the business refers to it.",
+      "requirement_ids": [
+        "REQ-024",
+        "REQ-025"
+      ]
+    },
+    {
+      "name": "hub_shift",
+      "business_key": "Name",
+      "source_entity": "Shift",
+      "description": "A working shift representing an eight-hour working period, identified by its name (shift description), which is how the business refers to it.",
+      "requirement_ids": [
+        "REQ-029",
+        "REQ-030"
+      ]
+    },
+    {
+      "name": "hub_job_candidate",
+      "business_key": "JobCandidateID",
+      "source_entity": "JobCandidate",
+      "description": "A job candidate: a person who applied for a position and whose application is held by HR, identified by the system-assigned JobCandidateID (the only identifier available in the source). A candidate may or may not be linked to an employee.",
+      "requirement_ids": [
+        "REQ-054",
+        "REQ-055"
+      ]
+    },
+    {
+      "name": "hub_candidate_business_entity",
+      "business_key": "BusinessEntityID",
+      "source_entity": "JobCandidate",
+      "description": "The company-wide business-entity number optionally carried on a job-candidate record, where present meaning the applicant was hired. Asserted equivalent to hub_business_entity but keyed differently, so modelled as its own hub per the ratified decision; a human decides what links the two.",
+      "requirement_ids": [
+        "REQ-056",
+        "REQ-058"
+      ]
+    }
+  ],
+  "links": [
+    {
+      "name": "link_employee_assignment",
+      "connected_hubs": [
+        "hub_employee_business_entity",
+        "hub_department",
+        "hub_shift"
+      ],
+      "description": "An employee's assignment to a department on a given shift over time. The business key of an individual assignment is the combination of employee (BusinessEntityID), department, shift and start date (REQ-043); each repeated assignment to the same department at a different time is a separate record (REQ-042). Supports point-in-time department/shift, headcount, mobility and assignment-duration reporting.",
+      "requirement_ids": [
+        "REQ-034",
+        "REQ-037",
+        "REQ-038",
+        "REQ-039",
+        "REQ-040",
+        "REQ-041",
+        "REQ-042",
+        "REQ-043",
+        "REQ-069"
+      ],
+      "unit_of_work": "BusinessEntityID + DepartmentID + ShiftID + StartDate \u2014 one employee department/shift assignment"
+    },
+    {
+      "name": "link_candidate_employee",
+      "connected_hubs": [
+        "hub_job_candidate",
+        "hub_candidate_business_entity"
+      ],
+      "description": "Links a job candidate to the business-entity identity of the employee they became. Its presence means the applicant was hired; its absence means not hired or not yet hired. Enables tracing an employed person back to their candidate record and reporting recruitment conversion.",
+      "requirement_ids": [
+        "REQ-056",
+        "REQ-057",
+        "REQ-058",
+        "REQ-072"
+      ]
+    }
+  ],
+  "satellites": [
+    {
+      "name": "sat_employee_profile",
+      "parent": "hub_employee",
+      "attributes": [
+        "JobTitle",
+        "HireDate",
+        "SalariedFlag",
+        "CurrentFlag",
+        "OrganizationNode",
+        "OrganizationLevel",
+        "ModifiedDate"
+      ],
+      "description": "Overwritten descriptive attributes of an employee whose succession of values the warehouse must preserve: job title, salaried/hourly classification, active/inactive status, and position and level in the corporate hierarchy. Hire date is immutable but shares the Employee source and attribute grain. Supports tenure, headcount, joiners/leavers, span-of-control and as-was reporting.",
+      "requirement_ids": [
+        "REQ-006",
+        "REQ-007",
+        "REQ-008",
+        "REQ-009",
+        "REQ-010",
+        "REQ-011",
+        "REQ-020",
+        "REQ-021",
+        "REQ-022",
+        "REQ-023",
+        "REQ-061",
+        "REQ-062",
+        "REQ-063"
+      ],
+      "split_rationale": "Non-sensitive, source-overwritten employee descriptors from the Employee table, grouped together as they share source and classification; split from PII (sat_employee_sensitive) by data classification and from leave balances by rate of change."
+    },
+    {
+      "name": "sat_job_candidate_details",
+      "parent": "hub_job_candidate",
+      "attributes": [
+        "Resume",
+        "ModifiedDate"
+      ],
+      "description": "The candidate's r\u00e9sum\u00e9 as a structured document (at minimum the warehouse records that a r\u00e9sum\u00e9 exists and enables its retrieval), plus the last-modified timestamp.",
+      "requirement_ids": [
+        "REQ-055",
+        "REQ-061"
+      ]
+    },
+    {
+      "name": "sat_employee_assignment_eff",
+      "parent": "link_employee_assignment",
+      "attributes": [
+        "StartDate",
+        "EndDate"
+      ],
+      "description": "The active period of an employee's department/shift assignment: the date the employee started work in the department and the date they left; where no end date is recorded the assignment is current. Enables point-in-time department/shift, headcount, movement and assignment-duration reporting.",
+      "requirement_ids": [
+        "REQ-035",
+        "REQ-036",
+        "REQ-037",
+        "REQ-041",
+        "REQ-067",
+        "REQ-069"
+      ],
+      "sat_type": "effectivity"
+    },
+    {
+      "name": "sat_employee_assignment_details",
+      "parent": "link_employee_assignment",
+      "attributes": [
+        "ModifiedDate"
+      ],
+      "description": "The last-updated timestamp of an employee department/shift assignment record, so the business can assess how current the assignment information is.",
+      "requirement_ids": [
+        "REQ-061"
+      ],
+      "split_rationale": "Technical audit timestamp kept on the link's standard satellite, separate from the effectivity dates which carry business meaning as the assignment's active period."
+    },
+    {
+      "name": "sat_employee_pay_rate",
+      "parent": "hub_employee_business_entity",
+      "attributes": [
+        "RateChangeDate",
+        "Rate",
+        "PayFrequency",
+        "ModifiedDate"
+      ],
+      "description": "An employee's pay-rate history, keyed in the source by BusinessEntityID + RateChangeDate. Each historical rate change is retained: the effective date on which the change becomes effective, the hourly rate in money terms, and the pay frequency (monthly or biweekly). Multiple concurrent rows per employee are distinguished by the effective date. Supports point-in-time pay, progression and distribution reporting.",
+      "requirement_ids": [
+        "REQ-044",
+        "REQ-045",
+        "REQ-046",
+        "REQ-047",
+        "REQ-048",
+        "REQ-049",
+        "REQ-050",
+        "REQ-051",
+        "REQ-061",
+        "REQ-070"
+      ],
+      "sat_type": "multi_active",
+      "child_dependent_key": [
+        "RateChangeDate"
+      ],
+      "source_table": "EmployeePayHistory",
+      "split_rationale": "Pay-rate history lives in its own EmployeePayHistory relation at finer grain than the employee-business-entity hub (one row per rate change), so it is a multi-active satellite keyed by RateChangeDate on the BusinessEntityID-keyed hub."
+    }
+  ],
+  "_source": "eval/results/adventureworks_incremental/20261006T032619166848Z-run1.trace.jsonl, llm_call 30 (step 2, attempt 1): the two collisions, their twins, their satellites and links"
+}
