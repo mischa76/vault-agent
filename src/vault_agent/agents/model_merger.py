@@ -78,7 +78,10 @@ def _extend_hub(prior: Hub, delta_hub: Hub, state: VaultAgentState) -> None:
             f"{delta_hub.business_key!r} instead of {prior.business_key!r}; an existing hub's "
             f"key is immutable (changing it re-hashes every row), so the existing key is "
             f"kept and this change is flagged for human review, never applied",
-            severity="error",
+            # WP52 (2026-10-06): advisory — the vault is unchanged and nothing is wrong with
+            # the generated model; what is needed is a human's answer (a decision, WP43),
+            # not a failed pipeline_health. Error-severity before this.
+            severity="advisory",
             kind=FlagKind.EXTENSION_CONFLICT,
             asset=prior.name,
         )
@@ -131,7 +134,10 @@ def _append_or_conflict[C: (Link, Satellite)](
             f"extended in place — additional attributes belong in a NEW satellite on the "
             f"same parent. The existing {kind} is kept unchanged and this is flagged for "
             f"human review",
-            severity="error",
+            # WP52 (2026-10-06): advisory — the vault is unchanged and nothing is wrong with
+            # the generated model; what is needed is a human's answer (a decision, WP43),
+            # not a failed pipeline_health. Error-severity before this.
+            severity="advisory",
             kind=FlagKind.EXTENSION_CONFLICT,
             asset=construct.name,
         )

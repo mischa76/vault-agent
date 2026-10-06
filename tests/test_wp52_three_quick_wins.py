@@ -3,11 +3,11 @@
 """
 from __future__ import annotations
 
-from tests.test_agents.test_dv2_modeler import StubExtractor, _state
-from tests.test_wp46_composite_fk_components import _routing_model, _routing_schema
 from eval.datasets import DATASETS_ROOT, load_eval_case
 from eval.run import score_chain
 from eval.scorers import pipeline_health
+from tests.test_agents.test_dv2_modeler import StubExtractor, _state
+from tests.test_wp46_composite_fk_components import _routing_model, _routing_schema
 from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
 from vault_agent.agents.model_merger import merge_models
 from vault_agent.agents.validator import ValidatorAgent

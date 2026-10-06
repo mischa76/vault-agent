@@ -195,7 +195,7 @@ def test_changing_an_existing_hubs_business_key_is_a_flagged_conflict() -> None:
 
     assert merged.hubs[0].business_key == "customer_id"  # unchanged, never applied
     [flag] = [f for f in state.flags if f.kind == FlagKind.EXTENSION_CONFLICT]
-    assert flag.severity == "error" and flag.asset == "hub_customer"
+    assert flag.severity == "advisory" and flag.asset == "hub_customer"  # WP52
 
 
 @pytest.mark.parametrize("kind", ["link", "satellite"])
@@ -215,7 +215,7 @@ def test_restating_an_existing_link_or_satellite_is_a_flagged_conflict(kind: str
     merged = merge_models(existing, delta, state)
 
     [flag] = [f for f in state.flags if f.kind == FlagKind.EXTENSION_CONFLICT]
-    assert flag.severity == "error"
+    assert flag.severity == "advisory"  # WP52
     # The existing construct survives untouched — the conflicting delta is dropped.
     assert merged.satellites[0].attributes == ["full_name"]
     assert len(merged.links) == 1

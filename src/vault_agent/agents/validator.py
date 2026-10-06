@@ -453,6 +453,7 @@ class ValidatorAgent(BaseAgent):
                             name=name, kind="satellite", code=issue.code,
                             attempt=state.modeling_attempts, parent=sat.parent,
                             source_table=sat.source_table,
+                            kept_twin=issue.retires_into,  # WP52: the single candidate parent
                         )
                     )
                     continue
@@ -1305,6 +1306,11 @@ class ValidatorAgent(BaseAgent):
                                 f"it from a table that carries {', '.join(missing)}",
                                 remedy=remedy.text,
                                 retires=[sat.name],
+                                # WP52: exactly one candidate parent is the satellite's home
+                                # if it is re-emitted unchanged (WP51's twin rule).
+                                retires_into=(
+                                    remedy.candidates[0] if len(remedy.candidates) == 1 else None
+                                ),
                             )
                         )
             for attr in sat.attributes:

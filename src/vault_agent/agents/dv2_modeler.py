@@ -222,6 +222,11 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
         (r.name, r.parent, normalize_identifier(r.source_table or ""))
         for r in state.retired_constructs if r.kind == "satellite"
     }
+    # WP52: the one candidate parent the key remedy named, if any — the satellite's home.
+    sat_home = {
+        (r.name, r.parent, normalize_identifier(r.source_table or "")): r.kept_twin
+        for r in state.retired_constructs if r.kind == "satellite" and r.kept_twin
+    }
     # WP48: an attribute retired on a satellite — the satellite stays, the column goes.
     retired_attrs: dict[str, set[str]] = {}
     for r in state.retired_constructs:
@@ -326,6 +331,26 @@ def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
     kept_sats: list[Satellite] = []
     for sat in model.satellites:
         if sat in same_shape:
+            home = sat_home.get(
+                (sat.name, sat.parent, normalize_identifier(sat.source_table or ""))
+            )
+            if home is not None and home in live_hubs:
+                # WP52: the remedy named exactly one parent whose key the relation carries;
+                # the payload moves there instead of into a decision.
+                former = sat.parent
+                sat.parent = home
+                reparented.append(sat.name)
+                state.flag(
+                    "dv2_modeler",
+                    f"satellite {sat.name!r} was re-emitted in the shape the {codes[sat.name]} "
+                    f"gate refused (parent {former!r}, relation {sat.source_table!r}) and "
+                    f"moved to {home!r}, the one parent whose key the relation carries; its "
+                    f"payload ({', '.join(sat.attributes)}) stays",
+                    kind=FlagKind.RETIRED_REPARENTED,
+                    asset=sat.name,
+                )
+                kept_sats.append(sat)
+                continue
             orphaned.append(sat.name)
             state.flag(
                 "dv2_modeler",

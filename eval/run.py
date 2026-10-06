@@ -52,10 +52,12 @@ from eval.scorers import (
     existing_construct_preservation,
     false_merge_rate,
     new_hub_detection,
+    pipeline_health,
     resolution_accuracy,
     resolution_calibration,
     score_mapping,
     score_state,
+    validation_gate,
 )
 from vault_agent import llm
 from vault_agent.agents.orchestrator import assemble_review_queue, render_review_queue_md
@@ -766,12 +768,32 @@ async def run_chain_once(
 def score_chain(
     case: EvalCase, runs: list[tuple[EvalCase, VaultAgentState]], golden_path: Path | None
 ) -> list[ScorerResult]:
-    """Score a chain: the general scorers on the FINAL state, preservation PER STEP.
+    """Score a chain: the general scorers on the FINAL state; preservation, the validation
+    gate and pipeline health PER STEP.
 
     Preservation aggregates as the **minimum** across the extending steps, never the mean:
     it is a promise, and a promise that held four times out of five was broken. The details
     name every step so a failure is attributable without re-running."""
     results = _score_run(case, runs[-1][1], golden_path)
+
+    # WP52 (2026-10-06): the gate and the health are promises too — a red step anywhere is a
+    # red chain. Until then both read the FINAL state only, so a step-4 error flag under a
+    # clean step 5 scored a healthy chain (the fifth chain, 2026-10-06).
+    for scorer in (validation_gate, pipeline_health):
+        per_step_all = [(step_case.name, scorer(state, step_case)) for step_case, state in runs]
+        worst_name, worst = min(per_step_all, key=lambda item: item[1].score)
+        detail = "; ".join(f"{name}: {result.score:.3f}" for name, result in per_step_all)
+        results = [r for r in results if r.name != worst.name]
+        results.append(
+            ScorerResult(
+                name=worst.name,
+                score=worst.score,
+                details=(
+                    f"min over {len(per_step_all)} step(s), worst {worst_name} "
+                    f"({worst.details}) — {detail}"
+                ),
+            )
+        )
 
     per_step = [
         (step_case.name, existing_construct_preservation(state, step_case))
