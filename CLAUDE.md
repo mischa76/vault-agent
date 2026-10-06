@@ -134,7 +134,7 @@ The pipeline runs end-to-end: orchestrator → requirements parser → business 
 contracts, a review queue, an HTML report, and a proposed ADR. Brownfield mode (`run --existing`)
 extends an existing vault instead of modelling into an empty one. Verified on real PostgreSQL
 several times, most recently for composite keys (2026-10-05). The five-step AdventureWorks chain
-(person → sales) ran all-green on 2026-10-05 and again on 2026-10-06. WP29 §4 (entity-resolution safety) is
+(person → sales) ran all-green on 2026-10-05 and twice on 2026-10-06. WP29 §4 (entity-resolution safety) is
 met: `false_merge_rate` 1.000 over 5 clean repeats, zero blinded merges (2026-08-08; trap 5 is
 blinded-untestable by design). Details and dates: `docs/log.md`.
 
@@ -167,18 +167,18 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   links bind by offer; an inherited error therefore also inflates `source_binding`. **The repair memory
   keyed hubs by name** until WP49 (2026-10-06) keyed them by shape too — the third chain's step 5 had
   gone red on a retired duplicate re-emitted under a new name; the fourth chain produced no rename.
-  **The two-hubs-on-one-person defect is the standing red class** (fourth chain, 2026-10-06, step 5):
-  the modeler builds `hub_sales_person` on `SalesPerson` beside `hub_employee`, and the key the
-  proposer ratified for `Store.SalesPersonID` targets `hub_employee`, so the new hub's participation
-  gets no alias and `E_LINK_KEY_WRONG_COLUMN` refuses — correctly. **WP50 (2026-10-06) gives that
-  gate a remedy with memory** on the ratified key's evidence (the second hub is retired by shape);
-  unmeasured live. **The fifth chain (2026-10-06) is the second all-green one, and the first the memory
-  made green:** step 2's third attempt re-emitted two retired hubs, dropped with their links and
-  satellites (seven orphan decisions); the kept twin ended satellite-less — **WP51 (2026-10-06) moves
-  a dropped hub's payload to its kept twin**, unmeasured live; WP52 (2026-10-06) makes the chain's
-  gate and health the minimum over steps and `extension_conflict` advisory. Five normal chains,
-  red/green/red/red/green: a step's colour is whether three attempts suffice for the remedies the
-  modeler needs, and the memory now covers the case where they do not.
+  **The two-hubs-on-one-person defect was the standing red class** (fourth chain, 2026-10-06, step 5:
+  `hub_sales_person` beside `hub_employee`, the ratified key for `Store.SalesPersonID` targeting
+  `hub_employee`, `E_LINK_KEY_WRONG_COLUMN` refusing correctly). **WP50 (2026-10-06) gives that gate
+  a remedy with memory** on the ratified key's evidence; the shape has not recurred since (two chains),
+  so WP50 is unmeasured live. **The fifth and sixth chains (2026-10-06) are all green, and the memory
+  made them so:** re-emitted retired hubs were dropped — on the sixth under a new name, WP49's shape
+  retirement firing live for the first time. **WP51 (2026-10-06) moves a dropped hub's payload to its
+  kept twin** (live only on the self-link branch); WP52 (2026-10-06) makes the chain's gate and
+  health the minimum over steps and `extension_conflict` advisory (both live). Six normal chains,
+  red/green/red/red/green/green; **WP34 §6's review clause (≤ 148 decisions) failed on the sixth
+  with 156**, on modeler volume (a larger production model), not on a gate — the ceiling is one
+  chain's number, and whether to re-base it on a distribution is the owner's call.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

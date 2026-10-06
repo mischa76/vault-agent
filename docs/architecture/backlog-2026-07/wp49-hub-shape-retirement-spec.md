@@ -75,3 +75,9 @@ afterwards. 1124 tests, ruff, mypy. §4's chain half is **not yet measured live*
 **2026-10-06 — fourth live chain** (`20261005T234048650821Z`): no retired hub was re-emitted
 under another name, so §4's conditional did not arise — untestable, not failed. Step 5 ended red
 on a different class (`E_LINK_KEY_WRONG_COLUMN`, the Store link; `docs/log.md` 2026-10-06).
+
+**2026-10-06 — sixth live chain** (`20261006T172859787765Z`, `docs/log.md` 2026-10-06): the shape retirement's
+**first live fire.** Step 5 attempt 1 built `hub_customer_person` (Customer, PersonID) beside
+`hub_customer`; the collision remedy retired it by shape. Attempt 2 re-emitted the same shape as
+`hub_person_customer`; `drop_retired` recognised it („is `hub_customer_person` under another
+name“), dropped it, and the step was green. The third chain's step 5 had gone red on exactly this.

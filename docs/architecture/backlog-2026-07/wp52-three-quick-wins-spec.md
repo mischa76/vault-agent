@@ -76,3 +76,10 @@ the re-emitted satellite there (`retired_reparented`) — on WP46's routing fixt
 `sat_work_order_operation_detail` lands on `hub_work_order`; the merger's two `extension_conflict`
 flags are advisory, the brownfield tests' two severity assertions updated in the same commit.
 Guards 1–3 pass; 1138 tests, ruff, mypy. §4 is **not yet measured live**.
+
+**2026-10-06 — sixth live chain** (`20261006T172859787765Z`, `docs/log.md` 2026-10-06): rule 1 live — chain
+`validation_gate` and `pipeline_health` reported as „min over 5 step(s)“, all 1.0; rule 3 live —
+step 5's `extension_conflict` on `link_customer_person` is advisory and the step scored health 1.0;
+rule 2 half live — the validator recorded `kept_twin = hub_work_order` on step 3's refused
+satellite, the modeler then followed the remedy, so the re-parenting had no case (untestable, not
+failed). §4 met on everything that arose.

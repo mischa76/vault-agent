@@ -83,3 +83,10 @@ second hubs), `drop_retired` re-parenting satellites and re-pointing link partic
 twin, `retired_reparented` as a disclosure. Guards 1–4 pass on the fifth chain's step-2 attempt-1
 shape: two satellites move, one link re-points, the self-link is dropped, the twin keeps `Resume`,
 no collision afterwards. 1133 tests, ruff, mypy. §4's chain half is **not yet measured live**.
+
+**2026-10-06 — sixth live chain** (`20261006T172859787765Z`): the first live case is the self-link branch of
+§2.2 — step 5 attempt 2 re-emitted the retired customer duplicate (as `hub_person_customer`,
+caught by shape, WP49); its one dependent `link_customer_person` joined it to its twin
+`hub_customer`, so it was dropped as the step's single `retired_orphan`; no satellite hung on the
+dropped hub, so the re-parenting branch is still unmeasured live. §4's „orphans only for self-links
+and satellites of dropped links“ held.

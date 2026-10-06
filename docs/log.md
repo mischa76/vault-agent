@@ -7266,3 +7266,52 @@ single candidate parent; no `retired_orphan` for a satellite whose remedy named 
 **P6 — the four remedies in reserve or firing once each**; collision, satellite key, attribute
 overlap and second hub 0 in every final report. Decisions 110–170, cost ≈ 6.5 USD.
 **Not predicted.** Which shapes the modeler builds; five normal chains have varied every time.
+
+## [2026-10-06] Sixth chain run — the third all-green chain, the first with honest chain metrics, and the shape retirement's first live fire
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261006T172859787765Z`, at `8b6e9e4`, the
+pre-registration's commit. 104 calls (7 modeler, Opus; 97 Sonnet), 391k uncached input, 274k
+output, 44.7 min, ≈ **6.46 USD** (documented rates, 2026-08-13). Steps 1, 2 and 4 modelled in one
+attempt, steps 3 and 5 in two. Final vault 44 hubs, 61 links, 82 satellites. **`validation_gate`
+1.0 and `pipeline_health` 1.0 in all five steps — and for the first time the chain's own values
+are the minimum over the steps** (WP52): the details name every step. The third all-green chain
+(2026-10-05, 2026-10-06 ×2). WP34 §6 **NOT MET on the review clause alone**: links 21 (≥ 8),
+invention 1 zero-satellite hub (`hub_shopping_cart`, ≤ 2), joins 0/0 — all held; **156 decisions
+against the 148 ceiling.**
+
+**P1 held — all five steps green.** **P2 held, live:** chain gate and health are
+„min over 5 step(s)“; step 5's `extension_conflict` (the delta re-stated `link_customer_person`,
+the link the proposer had already built) is an **advisory** flag, one decision item, and the step
+scored health 1.0 — three of five earlier chains had scored 0.0 on exactly this. **P3 held on the
+self-link half of WP51:** step 5 attempt 1 built `hub_customer_person` (Customer, PersonID) beside
+`hub_customer` and `hub_shopping_cart_item` beside `hub_shopping_cart`; two collisions, both
+retired by shape with their twins. Attempt 2 complied on the cart item but re-emitted the customer
+duplicate **under a new name, `hub_person_customer`** — the WP49 shape retirement fired live for the
+first time (`retired_reemitted`: „is `hub_customer_person` under another name“), the hub was
+dropped, and its only dependent, the delta's `link_customer_person` (hub_customer ↔
+hub_person_customer), is a link of the customer to itself: the twin already takes part, so it fell
+as the one `retired_orphan` — WP51 §2.2's self-link rule, not a lost payload; no satellite hung on
+the dropped hub. On the third chain this re-emission under a new name had ended the step red.
+**P4 half held:** step 3 attempt 1's `E_SAT_KEY_NOT_IN_SOURCE` on `sat_work_order_operation_details`
+(WorkOrderRouting on the operation link) carried exactly one candidate and the retirement records
+`kept_twin = hub_work_order` — WP52's recording half, live; the modeler followed the remedy in
+attempt 2 (the satellite sits on `hub_work_order` in the final model), so the re-parenting half had
+no case: untestable, not failed. **P5 failed on review only** (156 > 148): step 3 carries 65
+decisions against the fifth chain's 42 — the modeler built a larger production model (27 links, 56
+satellites against 22/47), with 14 translated satellites (2 before) and 8 unresolved concepts (0
+before), each a decision; no flag and no queue item is duplicated (checked by identity across all
+five steps of both chains). Modeler variance on a clause measured as a ceiling, not a defect in
+the gates; the second time since 2026-10-04 the clause fails on volume alone. **P6 held:** the
+collision remedy fired once (step 5), the satellite key remedy once (step 3), attribute overlap and
+second hub not at all; all four classes 0 in every final report. Backstops: `retired_reemitted` 1,
+`attributes_without_cdk` 4; five truncation splits (`input_segmented`), all recovered.
+
+**Überprüft.** Figures from `20261006T172859787765Z-run1.json`, the five `review.json` siblings and the trace
+(llm_call 107/108 are step 5's two modeler answers; 66 is step 3's retry carrying the satellite key
+remedy). **Nur angenommen.** That step 3's extra decisions are modeler variance and not a new
+systematic source — one chain is a shape, not a distribution; the next chain tells. **Bewusst
+nicht getan.** No second repeat; no change to the 148 ceiling (a decision for the owner: re-base on
+a distribution, or keep a single chain's number); no re-scoring of earlier results. Six normal
+chains since 2026-10-04: red / green / red / red / green / **green**.
