@@ -51,6 +51,7 @@ from vault_agent.rules.dv2_rules import (
     satellite_key_remedy,
     satellite_participation_column,
     satellite_payload_relations,
+    second_hub_remedy,
     source_table_on_multi_source_hub,
 )
 from vault_agent.state import (
@@ -1120,6 +1121,35 @@ class ValidatorAgent(BaseAgent):
                     if elsewhere
                     else ""
                 )
+                # WP50: when the hashed-wrong hub is the second hub of one entity — keyed on
+                # another hub's surrogate, that hub present — the remedy names the hub to use
+                # instead and retires this one (by shape, WP49). Declared evidence only; else the
+                # message stands alone, as before.
+                into_cols = {normalize_identifier(c) for c in into_hub}
+                ratified_key = next(
+                    (
+                        p for p in state.link_proposals.ratified()
+                        if normalize_identifier(p.source_table)
+                        == normalize_identifier(link_relation.table)
+                        and normalize_identifier(p.source_column) in into_cols
+                        and p.translation is not None
+                    ),
+                    None,
+                )
+                # The table the declared key references is the modeler's hub's own table
+                # (`Store.SalesPersonID → SalesPerson`); the ratified key resolves past it.
+                key_table = next(
+                    (fk.references_table for fk, _t, _tr in resolved
+                     if normalize_identifier(fk.columns[0]) in into_cols),
+                    None,
+                )
+                second = (
+                    second_hub_remedy(
+                        ref_hub, state.dv_model, ratified_key.target_hub, key_table,
+                    )
+                    if ratified_key is not None and key_table is not None
+                    else None
+                )
                 issues.append(
                     _issue(
                         "error", "E_LINK_KEY_WRONG_COLUMN", link.name,
@@ -1130,6 +1160,8 @@ class ValidatorAgent(BaseAgent):
                         f"under its own name, or leave this participation out — an alias to "
                         f"{', '.join(into_hub)} is decided at the link checkpoint, never by the "
                         f"modeler",
+                        remedy=second.text if second is not None else None,
+                        retires=[second.second] if second is not None else None,
                     )
                 )
         feeds = {

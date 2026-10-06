@@ -889,6 +889,54 @@ def satellite_attribute_remedy(
     )
 
 
+@dataclass(frozen=True)
+class SecondHubRemedy:
+    """A hub that is the second hub of one entity (WP50): keyed on another hub's surrogate, in a
+    vault that has that hub. ``parent`` is the hub to use instead, ``through`` the hub's own
+    table (the translation's middle), ``text`` the sentence sent to the modeler."""
+
+    second: str
+    parent: str
+    through: str
+    text: str
+
+
+def second_hub_remedy(
+    hub: Any, model: Any, ratified_target: str, ratified_through: str,
+) -> SecondHubRemedy | None:
+    """Is ``hub`` the second hub of one entity? Decided on a RATIFIED key, never on a hunch (WP50).
+
+    The evidence is the checkpoint's: a ratified key of the relation the link reads — the very
+    column the gate names as the hub's declared key, a key into ``ratified_through`` — resolves
+    (translated, WP36/WP39) to ``ratified_target``, another hub. When ``hub`` is built from
+    ``ratified_through`` and ``ratified_target`` is another hub of the model, the modeler has
+    built, under its own key, the hub the human already resolved that key to:
+    `hub_sales_person` on `SalesPerson` beside `hub_employee`, `Store.SalesPersonID → SalesPerson
+    → Employee` ratified. One entity, one hub (CLAUDE.md); WP38 hangs `SalesPerson`'s satellites on
+    `hub_employee` as a subtype feed. A subtype hub nobody ratified away (`hub_store` on
+    `Store.BusinessEntityID → BusinessEntity`) is not touched: no ratified key says so."""
+    if ratified_target == hub.name or not hub_binds_to_source_table(hub, ratified_through):
+        return None
+    parent = next((h for h in model.hubs if h.name == ratified_target), None)
+    if parent is None:
+        return None
+    sats = [s.name for s in getattr(model, "satellites", []) if s.parent == hub.name]
+    hung = (
+        f"; hang {', '.join(sats)} on {parent.name}, read from {ratified_through} (a subtype feed)"
+        if sats else ""
+    )
+    return SecondHubRemedy(
+        second=hub.name, parent=parent.name, through=ratified_through,
+        text=(
+            f"{hub.name} is {ratified_through} keyed on the surrogate the ratified key resolves "
+            f"through to {parent.name} — the same entity, which the vault has; take the "
+            f"participation from {parent.name} through {ratified_through} (the ratified "
+            f"translation){hung}; do not build {hub.name} — a re-emitted copy under any name is "
+            f"dropped"
+        ),
+    )
+
+
 def hub_collision_remedy(
     hubs: list[Any],
     business_keys: list[Any],

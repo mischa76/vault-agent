@@ -48,9 +48,10 @@ def _schema(*, onward: bool = True) -> list[SourceTable]:
                                                  "Bonus", "CommissionPct", "SalesYTD",
                                                  "SalesLastYear", "ModifiedDate"],
                     foreign_keys=sales_person_keys),
-        SourceTable(table="SalesPersonQuotaHistory", columns=["BusinessEntityID", "QuotaDate",
-                                                             "SalesQuota"],
-                    foreign_keys=[{"columns": ["BusinessEntityID"], "references_table": "SalesPerson",
+        SourceTable(table="SalesPersonQuotaHistory",
+                    columns=["BusinessEntityID", "QuotaDate", "SalesQuota"],
+                    foreign_keys=[{"columns": ["BusinessEntityID"],
+                                   "references_table": "SalesPerson",
                                    "references_columns": ["BusinessEntityID"]}]),
         SourceTable(
             table="Store",
@@ -73,30 +74,63 @@ def _declared(schema: list[SourceTable]) -> dict[str, SourceTable]:
 # --- Guard 1: the rule ------------------------------------------------------------------------
 
 
-def test_the_rule_names_the_parent_hub_through_the_onward_key() -> None:
+def test_the_rule_names_the_parent_hub_the_ratified_key_resolves_to() -> None:
     model = _model()
     sales_person = next(h for h in model.hubs if h.name == "hub_sales_person")
-    remedy = second_hub_remedy(sales_person, model, _declared(_schema()))
+    remedy = second_hub_remedy(sales_person, model, "hub_employee", "SalesPerson")
     assert remedy is not None
     assert remedy.parent == "hub_employee" and remedy.through == "SalesPerson"
     assert "hub_employee" in remedy.text and "do not build" in remedy.text
+    assert "sat_sales_person_remuneration" in remedy.text  # the payload's new home is named
 
 
 def test_the_rule_is_silent_without_the_evidence() -> None:
     model = _model()
     sales_person = next(h for h in model.hubs if h.name == "hub_sales_person")
-    assert second_hub_remedy(sales_person, model, _declared(_schema(onward=False))) is None
+    # the ratified key resolves to this very hub: nothing is second
+    assert second_hub_remedy(sales_person, model, "hub_sales_person", "SalesPerson") is None
+    # the ratified translation does not pass through this hub's table
+    assert second_hub_remedy(sales_person, model, "hub_employee", "Employee") is None
+    # the target hub is not in the model
     without_employee = DVModel(hubs=[h for h in model.hubs if h.name != "hub_employee"])
-    assert second_hub_remedy(sales_person, without_employee, _declared(_schema())) is None
+    assert second_hub_remedy(sales_person, without_employee, "hub_employee", "SalesPerson") is None
+    # a subtype hub nobody ratified away stays: hub_store is not second to anything
     store = next(h for h in model.hubs if h.name == "hub_store")
-    assert second_hub_remedy(store, model, _declared(_schema())) is None  # BusinessEntity → no hub onward
+    assert second_hub_remedy(store, model, "hub_business_entity", "SalesPerson") is None
 
 
 # --- Guard 2: the gate carries it and retires the hub by shape ------------------------------
 
 
+def _existing() -> DVModel:
+    """The vault before step 5: the person hubs the proposer resolves Store's keys against."""
+    model = _model()
+    hubs = [h for h in model.hubs if h.name in ("hub_employee", "hub_business_entity")]
+    # hub_person, as the real step-4 vault had it: a second hub keyed BusinessEntityID makes
+    # the plain key match ambiguous, which is what sends the proposer down the translation.
+    from vault_agent.state import Hub
+    hubs.append(Hub(name="hub_person", business_key="BusinessEntityID", source_entity="Person",
+                    description="A person."))
+    return DVModel(hubs=hubs)
+
+
+def _ratified_state(schema: list[SourceTable]) -> VaultAgentState:
+    """The real order: the proposer resolves Store.SalesPersonID against the existing vault
+    (→ hub_employee through SalesPerson), the checkpoint ratifies, then the modeler's model."""
+    from vault_agent.agents.orchestrator import apply_link_decision
+    from vault_agent.link_proposal import collect_link_proposals
+
+    state = VaultAgentState(existing_model=_existing(), source_schemas=schema, modeling_attempts=1)
+    collect_link_proposals(state)
+    apply_link_decision(state, {"accept": True})
+    state.dv_model = _model()
+    return state
+
+
 async def test_the_wrong_column_gate_carries_the_remedy_and_retires_the_second_hub() -> None:
-    state = VaultAgentState(dv_model=_model(), source_schemas=_schema(), modeling_attempts=1)
+    state = _ratified_state(_schema())
+    assert any(p.source_column == "SalesPersonID" and p.target_hub == "hub_employee"
+               for p in state.link_proposals.ratified())  # the evidence the rule needs
     await ValidatorAgent().run(state)
     [issue] = [i for i in state.validation_report.issues if i.code == WRONG]
     assert issue.remedy is not None
@@ -109,8 +143,8 @@ async def test_the_wrong_column_gate_carries_the_remedy_and_retires_the_second_h
 
 
 async def test_without_the_evidence_the_gate_keeps_todays_message_and_retires_nothing() -> None:
-    state = VaultAgentState(dv_model=_model(), source_schemas=_schema(onward=False),
-                            modeling_attempts=1)
+    # No ratified key at all: the gate refuses as before and names no second hub.
+    state = VaultAgentState(dv_model=_model(), source_schemas=_schema(), modeling_attempts=1)
     await ValidatorAgent().run(state)
     [issue] = [i for i in state.validation_report.issues if i.code == WRONG]
     assert issue.remedy is None and issue.retires == []
@@ -123,6 +157,7 @@ async def test_without_the_evidence_the_gate_keeps_todays_message_and_retires_no
 async def test_the_re_emitted_second_hub_is_dropped_and_the_model_passes_the_gate() -> None:
     state = _state()
     state.source_schemas = _schema()
+    state.existing_model = _existing()
     state.retired_constructs = [RetiredConstruct(
         name="hub_sales_person", kind="hub", code=WRONG, attempt=1,
         source_entity="SalesPerson", key_columns=["BUSINESSENTITYID"],
