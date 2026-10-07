@@ -12,7 +12,7 @@ from typing import Any
 from eval.datasets import DATASETS_ROOT, load_eval_case
 from eval.run import UsageTotals, chain_metrics, score_chain
 from tests.test_wp52_three_quick_wins import _clean
-from vault_agent.state import DVModel, VaultAgentState
+from vault_agent.state import VaultAgentState
 
 
 def _resumed(hubs: list[str]) -> VaultAgentState:

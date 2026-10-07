@@ -385,6 +385,7 @@ def chain_metrics(
     usage: UsageTotals,
     trace_path: Path | None = None,
     backstops: dict[str, int] | None = None,
+    persisted: dict[int, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Metrics for a chained run (WP30 §2.7), aggregated the way the ARM COMPARISON needs.
 
@@ -394,7 +395,12 @@ def chain_metrics(
     hypothesis is about. Construct counts and flags come from the final state, which is the
     vault that actually exists at the end; per-step review load is kept alongside so a
     growing or shrinking per-increment burden is visible rather than averaged away."""
+    # A resumed step's state carries only its model (2026-09-13); its review load and shape
+    # come from the persisted step result (2026-10-07: a resumed chain once reported 42 of
+    # its 127 decisions, and WP53's clause judged the 42).
     per_step = [
+        _persisted_step(step_case.name, persisted[index])
+        if persisted and index in persisted else
         {
             "case": step_case.name,
             "review_items": len(assemble_review_queue(state).items),
@@ -414,7 +420,7 @@ def chain_metrics(
             # second one has arrived, and only per-step shapes can show that.
             "model": model_shape(state.dv_model),
         }
-        for step_case, state in chain
+        for index, (step_case, state) in enumerate(chain, start=1)
     ]
     metrics = run_metrics(chain[-1][1], wall_clock_seconds, usage, trace_path, backstops)
     metrics["review_items_total"] = sum(step["review_items"] for step in per_step)
@@ -425,6 +431,35 @@ def chain_metrics(
     )
     metrics["chain_steps"] = per_step
     return metrics
+
+
+def _persisted_step(name: str, result: dict[str, Any]) -> dict[str, Any]:
+    """A chain step's per-step metrics read from its persisted result file."""
+    m = result["metrics"]
+    return {
+        "case": name,
+        "review_items": m["review_items_total"],
+        "review_decisions": m["review_decisions"],
+        "review_disclosures": m["review_disclosures"],
+        "review_queue_lines": m["review_queue_lines"],
+        "constructs": m["constructs"],
+        "model": m["model"],
+        "persisted": True,
+    }
+
+
+def persisted_step_results(
+    case_dir: Path, stamp: str, steps: list[str], resume: dict[int, Path], run: int = 1
+) -> dict[int, dict[str, Any]]:
+    """The persisted result files of the resumed steps, by step index."""
+    return {
+        index: json.loads(
+            (case_dir / f"{stamp}-step{index}-{steps[index - 1]}-run{run}.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        for index in resume
+    }
 
 
 def merged_source_schemas(own: Path | None, extras: list[Path]) -> list[SourceTable]:
@@ -766,7 +801,10 @@ async def run_chain_once(
 
 
 def score_chain(
-    case: EvalCase, runs: list[tuple[EvalCase, VaultAgentState]], golden_path: Path | None
+    case: EvalCase,
+    runs: list[tuple[EvalCase, VaultAgentState]],
+    golden_path: Path | None,
+    persisted: dict[int, dict[str, Any]] | None = None,
 ) -> list[ScorerResult]:
     """Score a chain: the general scorers on the FINAL state; preservation, the validation
     gate and pipeline health PER STEP.
@@ -779,8 +817,24 @@ def score_chain(
     # WP52 (2026-10-06): the gate and the health are promises too — a red step anywhere is a
     # red chain. Until then both read the FINAL state only, so a step-4 error flag under a
     # clean step 5 scored a healthy chain (the fifth chain, 2026-10-06).
+    def step_score(
+        index: int, step_case: EvalCase, state: VaultAgentState,
+        scorer: Callable[[VaultAgentState, EvalCase], ScorerResult],
+    ) -> ScorerResult:
+        # A resumed step's state is its model alone; its score is the one its run recorded.
+        if persisted and index in persisted:
+            name = scorer.__name__
+            return ScorerResult(
+                name=name, score=float(persisted[index]["scores"][name]),
+                details="from the persisted step result (resumed)",
+            )
+        return scorer(state, step_case)
+
     for scorer in (validation_gate, pipeline_health):
-        per_step_all = [(step_case.name, scorer(state, step_case)) for step_case, state in runs]
+        per_step_all = [
+            (step_case.name, step_score(index, step_case, state, scorer))
+            for index, (step_case, state) in enumerate(runs, start=1)
+        ]
         worst_name, worst = min(per_step_all, key=lambda item: item[1].score)
         detail = "; ".join(f"{name}: {result.score:.3f}" for name, result in per_step_all)
         results = [r for r in results if r.name != worst.name]
@@ -796,8 +850,9 @@ def score_chain(
         )
 
     per_step = [
-        (step_case.name, existing_construct_preservation(state, step_case))
-        for step_case, state in runs[1:]  # step 1 is greenfield — nothing to preserve yet
+        (step_case.name, step_score(index, step_case, state, existing_construct_preservation))
+        for index, (step_case, state) in enumerate(runs, start=1)
+        if index > 1  # step 1 is greenfield — nothing to preserve yet
     ]
     if per_step:
         worst_name, worst = min(per_step, key=lambda item: item[1].score)
@@ -968,8 +1023,17 @@ async def _run_score_write(
             llm.set_trace_recorder(None)
         elapsed = time.perf_counter() - started
         if chain:
-            results = score_chain(case, chain, golden_path)
-            run_meta = chain_metrics(chain, elapsed, usage, trace_path, backstops.fires)
+            assert case.chain is not None
+            persisted = (
+                persisted_step_results(
+                    out_root / case.name, str(resume_chain), case.chain.steps, resume
+                )
+                if resume else None
+            )
+            results = score_chain(case, chain, golden_path, persisted=persisted)
+            run_meta = chain_metrics(
+                chain, elapsed, usage, trace_path, backstops.fires, persisted=persisted
+            )
             if resume:
                 run_meta["resumed_from"] = {"stamp": resume_chain, "steps": sorted(resume)}
         else:
