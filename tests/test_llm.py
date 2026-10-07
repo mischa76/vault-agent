@@ -13,6 +13,7 @@ import httpx
 import pytest
 
 from vault_agent.llm import (
+    _MAX_RETRIES,
     _MAX_RETRY_DELAY_SECONDS,
     ForcedToolCaller,
     LLMCallError,
@@ -50,12 +51,22 @@ class _Message:
     usage: _Usage | None = None
 
 
+class _MidStream:
+    """An outcome that fails while the body is being read — raised from `get_final_message`,
+    where the real SDK surfaces a transport error mid-stream (2026-10-07: a raw
+    `httpx.ReadError` ended the seventh chain's step 5 there, unretried)."""
+
+    def __init__(self, exc: Exception) -> None:
+        self.exc = exc
+
+
 class _StubStream:
     """The streaming context manager (WP22): `messages.stream(...)` is a plain method
     returning an async CM whose `get_final_message()` awaits the accumulated message.
 
     The outcome is raised from `__aenter__` when it stands for an initial-request failure —
-    which is where the real SDK raises it, since `__aenter__` awaits the request."""
+    which is where the real SDK raises it, since `__aenter__` awaits the request; a
+    `_MidStream` outcome is raised from `get_final_message` instead."""
 
     def __init__(self, outcome: Any) -> None:
         self._outcome = outcome
@@ -69,6 +80,8 @@ class _StubStream:
         return None
 
     async def get_final_message(self) -> "_Message":
+        if isinstance(self._outcome, _MidStream):
+            raise self._outcome.exc
         return self._outcome  # type: ignore[no-any-return]
 
 
@@ -631,6 +644,39 @@ async def test_error_raised_while_opening_the_stream_is_retried() -> None:
     assert await _call(caller) == {}
     assert len(client.messages.calls) == 2
     assert _SLEEPS == [2.0]
+
+
+async def test_a_transport_error_while_reading_the_stream_is_retried() -> None:
+    """Verified on anthropic 0.107.0: `_base_client` wraps transport errors into
+    `APIConnectionError` around the initial request only; `_streaming.py` iterates the body
+    with no wrapping, so a mid-stream `httpx.ReadError` escapes raw. It is as transient as
+    the wrapped kind and is retried the same way (2026-10-07, the seventh chain)."""
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    caller, client = _caller(
+        [_MidStream(httpx.ReadError("", request=request)), _Message(content=[_tool_block()])]
+    )
+
+    assert await _call(caller) == {}
+    assert len(client.messages.calls) == 2
+    assert _SLEEPS == [2.0]
+
+
+async def test_a_transport_error_on_every_read_exhausts_the_budget_and_is_traced() -> None:
+    request = httpx.Request("POST", "https://api.anthropic.com/v1/messages")
+    events: list[TraceEvent] = []
+    client = _StubClient(
+        [_MidStream(httpx.ReadError("", request=request)) for _ in range(_MAX_RETRIES + 1)]
+    )
+    _SLEEPS.clear()
+    caller = ForcedToolCaller(
+        "test-model", client=client, sleep=_no_sleep, rng=lambda: 1.0,
+        trace_recorder=events.append,
+    )
+
+    with pytest.raises(LLMCallError):
+        await _call(caller)
+    assert len(client.messages.calls) == _MAX_RETRIES + 1
+    assert [event.kind for event in events] == ["llm_error"]
 
 
 async def test_non_retryable_error_while_opening_the_stream_propagates_traced() -> None:
