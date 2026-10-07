@@ -7458,3 +7458,23 @@ real result's shape; the seventh chain enters `REVIEW_DECISION_SAMPLES` as 127, 
 That no earlier resumed chain's chain-level counts were cited anywhere as a measurement — the
 2026-09-13 resume entry reports steps. **Bewusst nicht getan.** The seventh chain's chain file
 is not rewritten; it stays as the run wrote it, with this entry as its correction.
+
+## [2026-10-07] Pre-registration for the eighth chain run — written before the run
+
+**Autor:** Claude Code
+
+The user: „go“, after the seventh chain's report, read as the next chain. One repeat of
+`adventureworks_incremental` at the commit carrying this entry; the pipeline is unchanged since the
+sixth chain except for the transport retry (`9c06005`) and the resume scoring (`93a6f23`), neither
+of which touches modelling. Against the seventh chain (127 decisions, all green, WP34 §6 met).
+
+**P1 — all five steps green**, unless a class not yet seen appears, which the run will name.
+**P2 — the review clause is judged against 160.6**, the one-sided 95 % prediction bound over the
+seven recorded chains (mean 140.7, sd 9.6). Decisions within 125–160 is the expectation.
+**P3 — the other three clauses hold** (links ≥ 8, zero-satellite hubs ≤ 2, joins 0/0),
+`existing_construct_preservation` 1.0, chain gate and health the minimum over steps.
+**P4 — conditionals, untestable if their shape does not occur:** WP49 (a retired hub re-emitted
+under a new name), WP50 (second person hub), WP51's re-parenting branch, WP52's re-parenting.
+**P5 — the four remedies in reserve or firing once each**; all four classes 0 in every final
+report. **P6 — a dropped connection, if any, is retried, not fatal** (`9c06005`, Ethernet again).
+Cost ≈ 6.5 USD, ≈ 45 min. **Not predicted.** Which shapes the modeler builds.
