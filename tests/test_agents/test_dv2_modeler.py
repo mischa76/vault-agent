@@ -110,7 +110,10 @@ async def test_dangling_link_is_dropped() -> None:
     assert any("dropped link 'link_account_ghost'" in e.message for e in result.flags)
 
 
-async def test_link_with_single_hub_is_dropped() -> None:
+async def test_link_with_single_known_hub_collapses_into_it() -> None:
+    """Until WP55 (2026-10-07) a one-hub link was a dropped_record; now it is that hub's feed:
+    the link goes, its satellites with a relation move to the hub (none here), and nothing is
+    flagged as dropped — the trace carries the backstop event."""
     payload = _valid_payload()
     payload["links"].append(
         {"name": "link_lonely", "connected_hubs": ["hub_customer"],
@@ -120,7 +123,7 @@ async def test_link_with_single_hub_is_dropped() -> None:
     result = await Dv2ModelerAgent(extractor=stub).run(_state())
 
     assert "link_lonely" not in [lk.name for lk in result.dv_model.links]
-    assert any("link_lonely" in e.message for e in result.flags)
+    assert not any("link_lonely" in e.message for e in result.flags)
 
 
 async def test_dangling_satellite_is_dropped() -> None:
