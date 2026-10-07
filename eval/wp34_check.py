@@ -57,6 +57,9 @@ REVIEW_DECISION_SAMPLES: tuple[tuple[str, int], ...] = (
     ("20261005T234048650821Z", 138),  # fourth, 2026-10-06 (red)
     ("20261006T032619166848Z", 139),  # fifth, 2026-10-06 (green)
     ("20261006T172859787765Z", 156),  # sixth, 2026-10-06 (green; failed the 148 ceiling)
+    ("20261007T010229861435Z", 127),  # seventh, 2026-10-07 (green; resumed at step 5 from
+    #                                   20261007T001520705532Z — the count is the sum over
+    #                                   both stamps' step files, see tests/test_wp53)
 )
 MIN_REVIEW_SAMPLES = 3
 # One-sided 95 % Student-t quantiles by degrees of freedom (df 1..30; above that, normal).

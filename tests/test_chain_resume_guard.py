@@ -19,6 +19,7 @@ import pytest
 
 from eval import run as run_mod
 from eval.datasets import DATASETS_ROOT, EvalCase, load_eval_case
+from eval.scorers import ScorerResult
 from vault_agent.existing_model import load_existing_model
 from vault_agent.state import DVModel, Hub, VaultAgentState
 
@@ -30,8 +31,18 @@ def _hub(name: str) -> Hub:
 
 
 def _stub_scoring(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(run_mod, "_score_run", lambda case, state, golden: [])
-    monkeypatch.setattr(run_mod, "run_metrics", lambda *a, **k: {"wall_clock_seconds": 1.0})
+    """Stubs with the shape of a real result: since 2026-10-07 a resumed step's scores and
+    review counts are read back from its persisted result file."""
+    monkeypatch.setattr(run_mod, "_score_run", lambda case, state, golden: [
+        ScorerResult(name=n, score=1.0, details="stub")
+        for n in ("validation_gate", "pipeline_health", "existing_construct_preservation")
+    ])
+    monkeypatch.setattr(run_mod, "run_metrics", lambda *a, **k: {
+        "wall_clock_seconds": 1.0, "review_items_total": 0, "review_decisions": 0,
+        "review_disclosures": 0, "review_queue_lines": 1,
+        "constructs": {"hubs": 0, "links": 0, "satellites": 0},
+        "model": {"hubs": [], "links": [], "satellites": []},
+    })
 
 
 def _die_at(step: int, monkeypatch: pytest.MonkeyPatch) -> dict[str, int]:

@@ -42,6 +42,19 @@ def test_fewer_than_three_samples_cannot_judge(monkeypatch: pytest.MonkeyPatch) 
     assert not held and "FAILED" in line and "cannot be judged" in line
 
 
+def _decisions_on_disk(root: Path, result: dict[str, Any]) -> int:
+    """A chain's decisions: the sum over its step files. A chain resumed from an earlier
+    stamp (`metrics.resumed_from`) has its leading steps under that stamp — and, before
+    2026-10-07's fix, a chain-level count that summed only the steps it ran itself."""
+    resumed = result["metrics"].get("resumed_from")
+    per_step: dict[int, int] = {}
+    for stamp in ([resumed["stamp"]] if resumed else []) + [result["timestamp"]]:
+        for path in root.glob(f"{stamp}-step*-run1.json"):
+            index = int(path.name.split("-step")[1].split("-")[0])
+            per_step.setdefault(index, json.loads(path.read_text())["metrics"]["review_decisions"])
+    return sum(per_step.values())
+
+
 def test_the_recorded_samples_match_the_result_files_on_disk() -> None:
     root = Path("eval/results/adventureworks_incremental")
     seen = 0
@@ -50,6 +63,6 @@ def test_the_recorded_samples_match_the_result_files_on_disk() -> None:
         if not path.exists():
             continue
         seen += 1
-        assert json.loads(path.read_text())["metrics"]["review_decisions"] == decisions, stamp
+        assert _decisions_on_disk(root, json.loads(path.read_text())) == decisions, stamp
     if seen == 0:
         pytest.skip("no archived chain results on this machine")
