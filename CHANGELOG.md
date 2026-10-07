@@ -32,6 +32,11 @@ is not the project's.
   review decision, although its remedy had named the parent whose key the relation carries. With
   exactly one such parent it now moves there (`retired_reparented`, a disclosure; WP52).
 
+- A chain resumed with `--resume-chain` scored its resumed steps from reconstructed states that
+  carry only the model, so the chain's `validation_gate` read 0.0 (WP52's minimum over steps)
+  and its review counts summed only the steps actually run (42 of 127 on the seventh chain).
+  Resumed steps now take their scores and counts from their persisted result files
+  (2026-10-07).
 - A connection dropped while an answer was streaming surfaced as a raw `httpx.ReadError` and
   ended the run unretried: the SDK wraps transport errors only around the initial request. The
   retry loop now catches `httpx.TransportError` beside `APIConnectionError` (2026-10-07, the

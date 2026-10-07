@@ -7394,3 +7394,67 @@ as a dependency (it was the SDK's transitive one); troubleshooting row and chang
 it wraps. **Nur angenommen.** That the dropped connection was the network's, not the API's — the
 raw error carried no message. **Bewusst nicht getan.** No trace event for a retried transport
 error (WP15: a retried attempt is not an event); no change to the retry budget.
+
+## [2026-10-07] Seventh chain run — the fourth all-green chain, the lowest review load recorded, WP34 §6 met in full; resumed after a network drop
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, at `54cf8e8` (the pre-registration's
+commit). The first attempt (`20261007T001520705532Z`, 00:17–00:49) completed steps 1–4 and died at
+the start of step 5 on a raw `httpx.ReadError` — the owner later found ZEUS had silently switched
+to Wi-Fi (adapter now disabled, Ethernet again), which turns the „network, not API“ assumption
+of the retry entry into a verified cause. Resumed with `--resume-chain` as
+`20261007T010229861435Z` (01:02–01:15): steps 1–4 reused from disk, step 5 run. Together 107 calls
+(8 modeler: steps 2 and 4 took two and three attempts), ≈ 45 min, ≈ **6.39 USD** (4.65 + 1.74).
+Final vault 42 hubs, 58 links, 73 satellites.
+
+**Numbers, from the step files, not the chain file.** The chain-level result carries a resume
+artefact (gate 0.0, 42 decisions): a resumed step's state holds only its model, so WP52's minimum
+over steps read an empty validation report and the review sum counted step 5 alone. Fixed the same
+day (guards `060bfb2`, fix `93a6f23`, stubs and record `60a2841`): resumed steps are scored and
+counted from their persisted results. The true chain: **`validation_gate` 1.0 and `pipeline_health`
+1.0 in all five steps**; decisions 14 + 15 + 39 + 17 + 42 = **127**, disclosures 211. **WP34 §6 ALL
+FOUR CLAUSES HELD:** links 23, invention 1 (`hub_shopping_cart`), **review 127 against the
+distribution's 159.9** (six predecessors), joins 0/0. The fourth all-green chain; seven normal
+chains since 2026-10-04: red / green / red / red / green / green / **green**.
+
+**P1 held. P2 held** — the first clause judged by the distribution, and the lowest count yet
+(the sixth chain's 65-decision production step was 39 here: the modeler's spread, as WP53 §1
+read it). **P3 held. P4 untestable** on all three conditionals: step 2 retired
+`hub_employee_business_entity` (twin `hub_employee`) and `sat_employee_pay_rate` (no single
+candidate) in attempt 1, step 4 retired `hub_vendor_business_entity` (twin `hub_vendor`) and two
+overlapping attributes; the modeler complied on every hub and satellite — no re-emission by name or
+shape, so neither WP49/WP51 nor WP52's re-parenting had a case; no second person hub (WP50). The one
+`retired_reemitted` is an attribute (`ModifiedDate` on `sat_vendor_product_supply_terms`, WP48,
+dropped again — a disclosure). Step 4's `extension_conflict` (`link_vendor_business_entity`
+re-stated) is advisory — one decision, health 1.0 (WP52, live a second time). **P5 held:** the
+collision remedy fired twice (steps 2, 4), the satellite key remedy once, the attribute overlap
+remedy in step 4 across two attempts (`E_SAT_ATTR_OVERLAP` in two requests), second hub never; all
+four classes 0 in every final report.
+
+**Überprüft.** The five step files, their `review.json` siblings, both traces (modeler requests
+and their gate codes), `wp34_check` on the chain file (42 — the artefact; the record carries 127
+and guard 4 sums the steps). **Nur angenommen.** The chain's wall clock, from the two runs' spans.
+**Bewusst nicht getan.** No re-scoring of the chain file by hand; no repeat.
+
+## [2026-10-07] A resumed chain is scored and counted from its persisted steps — the seventh chain's chain file was wrong
+
+**Autor:** Claude Code
+
+Found on the seventh chain's resumed result: `validation_gate` 0.0 and 42 decisions where the
+steps say 1.0 and 127. **Cause.** `run_chain_once` builds a resumed step's state from its model
+alone (2026-09-13: „the step's own result file holds those“); WP52 (2026-10-06) then made the
+chain's gate and health the minimum over step *states*, and `chain_metrics` had always summed
+review counts over states — both read the empty reconstruction. Before WP52 the gate read the
+final state only, so this never showed; the review sum was wrong on any resumed chain since
+2026-09-13 and nobody had checked WP34's clause on one. **Change.** Guards `060bfb2`, fix
+`93a6f23`: `persisted_step_results` loads the resumed steps' result files; `score_chain` and
+`chain_metrics` take `persisted` and use the stored scores (details „from the persisted step
+result (resumed)“) and counts for those steps. `60a2841`: the resume guard's stubs carry a
+real result's shape; the seventh chain enters `REVIEW_DECISION_SAMPLES` as 127, and WP53's guard
+4 sums a resumed chain's decisions over both stamps' step files.
+
+**Überprüft.** The two guards, the resume guard, 1146 tests, ruff, bare mypy. **Nur angenommen.**
+That no earlier resumed chain's chain-level counts were cited anywhere as a measurement — the
+2026-09-13 resume entry reports steps. **Bewusst nicht getan.** The seventh chain's chain file
+is not rewritten; it stays as the run wrote it, with this entry as its correction.

@@ -73,3 +73,10 @@ judged against the chains before the run's stamp. Re-run on the archive: sixth c
 151.9 (5 predecessors) — **still NOT MET**, as §2 said; fifth 139 against 155.5 (4) — held; the
 second chain (one predecessor) cannot be judged. Guards 1–4 pass (guard 4 against the result
 files on this machine); 1142 tests, ruff, mypy. The seventh chain's ceiling: 159.9.
+
+**2026-10-07 — seventh chain** (`20261007T010229861435Z`, resumed at step 5 from
+`20261007T001520705532Z`): 127 decisions against 159.9 — held, the lowest count recorded. The
+chain-level result file carries 42 (the resume artefact, fixed the same day: resumed steps are
+now scored and counted from their persisted results); the record carries 127, the sum over both
+stamps' step files, and guard 4 reads a resumed chain that way. Seven chains recorded; the
+eighth is judged against ≈ 160.6 (mean 140.7, sd 9.6).

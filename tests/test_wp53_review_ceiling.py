@@ -29,10 +29,11 @@ def test_a_judged_run_is_excluded_from_its_own_distribution() -> None:
     assert not held and "FAILED" in line
     assert "5 recorded chain(s)" in line and "excluded" in line
 
-    seventh = _chain(review_decisions=156)  # no stamp — a chain not yet recorded
-    held, lines = check(seventh)
+    unrecorded = _chain(review_decisions=156)  # no stamp — a chain not yet recorded
+    held, lines = check(unrecorded)
     [line] = [ln for ln in lines if "review:" in ln]
-    assert held and "HELD" in line and "6 recorded chain(s)" in line
+    assert held and "HELD" in line
+    assert f"{len(REVIEW_DECISION_SAMPLES)} recorded chain(s)" in line
 
 
 def test_fewer_than_three_samples_cannot_judge(monkeypatch: pytest.MonkeyPatch) -> None:
