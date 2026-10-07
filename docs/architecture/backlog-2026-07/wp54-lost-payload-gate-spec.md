@@ -74,3 +74,20 @@ a judgement of partial payload coverage; brownfield hubs of earlier increments.
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-07 — refinement before the change landed (§2.1).** A column that another declared
+table's foreign key *references* is an identifier, not payload — found on `demo/fk_links_postgres`,
+where `hub_sales_order` on `SalesOrderNumber` would have been refused for `SalesOrderID`, the
+surrogate `SalesOrderDetail` points at (likewise `hub_location` for `LocationID`). `unread_payload`
+takes the declared tables and excludes those columns; a sixth guard pins it.
+
+**2026-10-07 — built; keyless and on PostgreSQL.** Commits `6c93cb6` (guards, failing on import)
+and `1a7bddc` (the change; a mypy name clash fixed in the docs commit). `rules.unread_payload`,
+`rules.satellite_reads_table`, `rules.hub_payload_remedy`; the validator raises
+`E_HUB_PAYLOAD_UNREAD` in the grounded block for hubs of the increment. Guards 1–5 and the
+refinement guard pass; 1152 tests, ruff, mypy. The gate refused four hubs of the fk_links demo
+(`ShoppingCartItem`: ShoppingCartID, Quantity; `BusinessEntity`: ModifiedDate; `ContactType` and
+`Currency`: Name) — a capture of link proposals that had never carried their payload. Four
+satellites added to the demo (reading the hub's own relation, so no new stage), the project
+regenerated and **built on local PostgreSQL 16: `PASS=134 WARN=0 ERROR=0` (130 before)**. §4's
+chain half is **not yet measured live**.

@@ -7562,3 +7562,40 @@ not because a gate removed one — no retirement names either table, and the ste
 no refusal of them. **Bewusst nicht getan.** No gate built for the unmodelled payload; no remedy for
 the one-hub link; no repeat. The eighth chain enters the record as 126; the ninth is judged
 against 159.1 (eight chains, mean 138.9, sd 10.1).
+
+## [2026-10-07] WP54 — a gate for the lost payload, built keyless and on PostgreSQL
+
+**Autor:** Claude Code
+
+The user, on the eighth chain's finding: „bau das Gate für die verlorene Payload“. Spec
+`0ad3250`, guards red `6c93cb6`, change `1a7bddc`, docs (and a mypy name clash) in the commit
+carrying this entry. Spec: `docs/architecture/backlog-2026-07/wp54-lost-payload-gate-spec.md`.
+
+**What changed.** `E_HUB_PAYLOAD_UNREAD`: a hub of the increment built from a declared table whose
+payload columns no satellite of the model reads is refused, the issue naming the table, the
+columns and a parent (`rules.hub_payload_remedy`: the hub, or for a relationship table the link
+that reads it). Payload is computed in `rules.unread_payload`: the table's columns minus the hub's
+key, the table's own foreign-key columns, the columns other tables' foreign keys reference, and
+every attribute a satellite reads from the table — on any parent, a link satellite included. A
+table some satellite reads is never refused here. No memory: the remedy asks for an addition, and
+a model that adds it passes.
+
+**Why it was wrong before.** The eighth chain dropped `TransactionHistory`'s and
+`PurchaseOrderDetail`'s descriptive columns in one-attempt steps with only `W_HUB_NO_SAT` — a
+warning, a disclosure — to show for it; the modeler never saw a refusal, and a reviewer cannot see
+from a model what has no construct.
+
+**The refinement the demo taught.** The first cut counted a column other tables' foreign keys
+reference as payload: `hub_sales_order` on `SalesOrderNumber` would have been refused for
+`SalesOrderID`. Identifiers are keys whoever holds them; a sixth guard pins it. The gate then still
+refused four demo hubs that had carried no payload at all (`ShoppingCartItem`'s Quantity among
+them) — the capture of link proposals was, as a vault, lossy. Four satellites added
+(`sat_shopping_cart_item_details`, `sat_business_entity_details`, `sat_contact_type_details`,
+`sat_currency_details`), the demo regenerated and **built on local PostgreSQL 16:
+`PASS=134 WARN=0 ERROR=0`** (130 on 2026-10-05).
+
+**Überprüft.** Six guards, 1152 tests, ruff, bare mypy; the Postgres build. **Nur angenommen.**
+That the modeler answers the remedy within the attempt budget — the gate makes a lost payload a
+red step where three attempts do not suffice, by design (spec §4). **Bewusst nicht getan.** No
+remedy for a link with one hub (the quota-history shape); no judgement of partial payload
+coverage; no live run.

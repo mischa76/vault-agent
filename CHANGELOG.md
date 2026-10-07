@@ -53,6 +53,11 @@ is not the project's.
   `pipeline_health` on it, because nothing in the generated vault is wrong.
 
 ### Added
+- A gate for the lost payload (WP54): `E_HUB_PAYLOAD_UNREAD` refuses a hub built from a declared
+  table of the increment whose payload columns no satellite reads, naming the columns and the
+  parent to hang them on. Until now a hub without any satellite on its table raised only the
+  `W_HUB_NO_SAT` warning, and two tables' descriptive columns vanished from a live chain unseen.
+  Verified keyless and on PostgreSQL (`demo/fk_links_postgres`, four satellites added: PASS=134).
 - A link's relation resolved by more than its name (WP42): a link used to be tied to its source
   relation by its construct name, and the modeler names links freely — over six recorded chains the
   name bound 84 of 348 links, leaving the rest invisible to every key repair and every link gate.

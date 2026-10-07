@@ -1341,14 +1341,14 @@ class ValidatorAgent(BaseAgent):
                 lost = unread_payload(hub, table, state.dv_model, state.source_schemas)
                 if not lost:
                     continue
-                remedy = hub_payload_remedy(hub, table, state.dv_model, lost)
+                payload_remedy = hub_payload_remedy(hub, table, state.dv_model, lost)
                 issues.append(
                     _issue(
                         "error", "E_HUB_PAYLOAD_UNREAD", hub.name,
                         f"hub is built from {table.table}, whose columns "
                         f"{', '.join(lost)} no satellite of the model reads — the payload "
                         f"would be lost",
-                        remedy=remedy.text,
+                        remedy=payload_remedy.text,
                     )
                 )
         return issues

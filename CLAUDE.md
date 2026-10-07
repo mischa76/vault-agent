@@ -183,8 +183,8 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   160.0; the ninth is judged against 159.1. A completed chain enters the record in its docs commit.
   **A resumed chain's chain-level file is wrong before 2026-10-07** (model-only states); read the
   step files. **The eighth chain failed WP34 §6 on invention alone:** two hubs (`TransactionHistory`,
-  `PurchaseOrderDetail`) whose payload no satellite reads — no gate fires on a lost payload,
-  `W_HUB_NO_SAT` is a disclosure; a gate with remedy is proposed, not built (owner's call).
+  `PurchaseOrderDetail`) whose payload no satellite reads — **WP54 (2026-10-07) refuses that**
+  (`E_HUB_PAYLOAD_UNREAD`, with the columns and a parent); keyless and on Postgres, unmeasured live.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`
