@@ -7347,3 +7347,26 @@ archived chains. **Nur angenommen.** That the modeler's decision counts are roug
 around their mean, which a t-bound assumes; with six samples the bound is wide either way.
 **Bewusst nicht getan.** The other three clauses, the arm comparison's review axis (arm A: one
 count, 134), and any re-telling of the sixth chain's verdict — it failed then and fails now.
+
+## [2026-10-07] Pre-registration for the seventh chain run — the first judged by the distribution, written before the run
+
+**Autor:** Claude Code
+
+The user: „go, starte die siebte Kette“. One repeat of `adventureworks_incremental` at the commit
+carrying this entry — the first live run since WP53 (`40b18ab`); the pipeline itself is unchanged
+since the sixth chain (`8b6e9e4`, WP52). Against the sixth (`20261006T172859787765Z`: all five steps
+green, 156 decisions, 6.46 USD).
+
+**P1 — all five steps green**, unless a class not yet seen appears, which the run will name.
+**P2 — the review clause is judged against 159.9**, the one-sided 95 % prediction bound over the
+six recorded chains (mean 143.0, sd 7.7); the checker's line names six chains and no exclusion
+(the run is not yet recorded). Decisions within 130–160 is the expectation; above 159.9 is a rise
+outside six chains' spread, to be recorded as a finding, not answered by moving the bar (WP53 §4).
+**P3 — the other three clauses hold** (links ≥ 8, zero-satellite hubs ≤ 2, joins 0/0) and
+`existing_construct_preservation` 1.0; chain gate and health are the minimum over steps.
+**P4 — conditionals, each untestable if its shape does not occur:** WP50 (second person hub),
+WP51's re-parenting branch (a satellite on a dropped hub with a twin), WP52's re-parenting (a
+refused satellite re-emitted unchanged with one candidate).
+**P5 — the four remedies in reserve or firing once each**; all four classes 0 in every final
+report. Cost ≈ 6.5 USD, ≈ 45 min.
+**Not predicted.** Which shapes the modeler builds; six normal chains have varied every time.
