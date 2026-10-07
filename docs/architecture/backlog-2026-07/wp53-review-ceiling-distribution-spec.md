@@ -84,3 +84,7 @@ eighth is judged against ≈ 160.6 (mean 140.7, sd 9.6).
 **2026-10-07 — correction.** The eighth chain's ceiling is **160.0** (sd 9.3), computed by
 `review_ceiling` over the seven recorded chains; the ≈ 160.6 above was a by-hand estimate with the
 sd rounded up. The checker's number is the one that judges.
+
+**2026-10-07 — eighth chain** (`20261007T041647752430Z`, resumed at step 5 after an exhausted
+credit): 126 decisions against 160.0 — held. Eight chains recorded; the ninth is judged against
+159.1 (mean 138.9, sd 10.1).

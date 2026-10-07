@@ -7506,3 +7506,59 @@ of today stands for the resumed run.
 
 **Überprüft:** the four step files, the trace's last event. **Nur angenommen:** nothing.
 **Bewusst nicht getan:** no resume attempt before the credit is back.
+
+## [2026-10-07] Eighth chain run — the fifth all-green chain; WP34 §6 not met on invention alone: two hubs whose payload was never modelled
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat. First attempt `20261007T032723285872Z` at
+`1af1f33` (03:27–04:05, steps 1–4, credit exhausted in step 5's resolver — entry above); resumed
+after the top-up as `20261007T041647752430Z` at `a9b0447` (04:16–04:33, step 5). Together 128
+calls (8 modeler: step 2 three attempts, step 5 two), ≈ 55 min, ≈ **7.38 USD** (5.19 + 2.19; the
+first attempt's lost start of step 5 included). Final vault 44 hubs, 57 links, 84 satellites.
+**The resume scoring of today works live:** the chain file reads „from the persisted step result
+(resumed)“ for steps 1–4 and reports gate 1.0, health 1.0, 126 decisions — the step files agree
+(15 / 12 / 39 / 13 / 47).
+
+**`validation_gate` 1.0 and `pipeline_health` 1.0 in all five steps** — the fifth all-green chain;
+eight normal chains since 2026-10-04: red / green / red / red / green / green / green / **green**.
+WP34 §6 **NOT MET on the invention clause alone:** links 23, **review 126 against 160.0** (held,
+the second-lowest count), joins 0/0 — but **4 zero-satellite hubs** against ≤ 2:
+`hub_email_address` (step 1), `hub_transaction` (step 3), `hub_purchase_order_line` (step 4),
+`hub_shopping_cart` (step 5). Two of the four are a modelling choice the clause counts but the
+vault does not lose: the e-mail's and the cart item's payload sit on link satellites
+(`sat_email_address_details` on `link_person_email_address`; `sat_shopping_cart_item_details` on
+`link_shopping_cart_product` — the standing shape after the cart-item collision remedy, followed
+by the modeler in attempt 2). **Two are omissions:** no satellite anywhere reads
+`TransactionHistory` (Quantity, ActualCost, TransactionDate, …) or `PurchaseOrderDetail`
+(OrderQty, UnitPrice, ReceivedQty, …). Both steps modelled in one attempt; no gate fires on a hub
+without payload — `W_HUB_NO_SAT` is a warning, a disclosure in the queue, and the modeler never saw
+a refusal. That is the finding of this run: **a hub bound to a table with non-key, non-foreign-key
+columns and no satellite reading that table anywhere is a lost payload the pipeline only
+whispers about.** A deterministic gate with a remedy (the column list, the hub as parent) would
+make it a refusal the loop can answer; proposed, not built — the owner's call, because it would
+also fire on hubs whose payload legitimately lives on a link satellite (two of today's four)
+unless the rule reads „no satellite reads the table“, which it can.
+
+**P1 held. P2 held** (126 ≤ 160.0; the clause's first judgement over seven predecessors).
+**P3 failed on invention** as above; preservation 1.0. **P4 untestable** on all four conditionals:
+step 5 attempt 1 built `hub_shopping_cart_item` beside `hub_shopping_cart` (collision, retired by
+shape with its twin), two `SalesOrderDetail` satellites on a link that does not carry the order
+line's key (`E_SAT_KEY_NOT_IN_SOURCE`, several candidates, retired by shape) and two overlapping
+attributes; attempt 2 followed every remedy — the satellites moved to `hub_order_line`, no hub
+re-emitted under any name. Attempt 1 had also emitted `link_sales_representative_quota_history`
+with **one** hub (`hub_employee`) and a satellite on it; the parser dropped both (`dropped_record`,
+two disclosures) and attempt 2 re-modelled the quota history as `sat_sales_representative_quota_history`
+on `hub_employee` — right, but by the modeler's own correction, not by a remedy: a link with one
+hub is that hub's satellite feed, and the drop could say so. **P5 held:** collision once (step 5),
+satellite key once (step 5), attribute overlap three times (steps 2 ×2 on `E_EFFSAT_NO_DRIVING_KEY`'s
+attempt and `E_SAT_ATTR_OVERLAP`, step 5), second hub never; all four classes 0 in every final
+report. **P6 untestable:** no connection dropped (Ethernet).
+
+**Überprüft.** The chain file, the five step files and their `review.json` siblings, both traces
+(modeler requests and payloads of step 5's two attempts), `wp34_check`. **Nur angenommen.** That
+`TransactionHistory` and `PurchaseOrderDetail` have no satellite because the modeler omitted them,
+not because a gate removed one — no retirement names either table, and the steps' traces carry
+no refusal of them. **Bewusst nicht getan.** No gate built for the unmodelled payload; no remedy for
+the one-hub link; no repeat. The eighth chain enters the record as 126; the ninth is judged
+against 159.1 (eight chains, mean 138.9, sd 10.1).
