@@ -7599,3 +7599,30 @@ That the modeler answers the remedy within the attempt budget — the gate makes
 red step where three attempts do not suffice, by design (spec §4). **Bewusst nicht getan.** No
 remedy for a link with one hub (the quota-history shape); no judgement of partial payload
 coverage; no live run.
+
+## [2026-10-07] WP55 — a link with one hub is that hub's satellite feed, built keyless
+
+**Autor:** Claude Code
+
+The user: „Remedy für Links mit nur einem Hub“. Spec `2c82af7`, guards red `e18d114`, change
+`ffd848c`, the old single-hub guard re-based `c4561c5`, docs in the commit carrying this entry.
+Spec: `docs/architecture/backlog-2026-07/wp55-one-hub-link-collapse-spec.md`.
+
+**What changed, and why it was wrong before.** The parser dropped a link with one hub and then
+every satellite on it — two `dropped_record` disclosures and a payload gone from the attempt (the
+eighth chain's `link_sales_representative_quota_history` on `hub_employee`, with the quota
+history's satellite). A link with one hub is not a relationship but a feed of that hub, and its
+satellites' home is known. Now the parser collapses it: satellites that declare a `source_table`
+move to the hub unchanged (`FlagKind.LINK_COLLAPSED`, a disclosure, group `link-collapsed`;
+backstop event `one_hub_link_collapsed` naming link, hub and satellites); a satellite without a
+relation is dropped as before, because its relation would otherwise be guessed; the link goes
+without a `dropped_record`. A backstop, not a gate: the shape never reached the validator, and the
+repair is deterministic. The key gates judge the moved satellite afresh on the hub — the demo's
+`sat_sales_person_quota_history` on `hub_employee` is that shape, built on Postgres (WP39).
+
+**Überprüft.** Four guards on the eighth chain's attempt-1 records; the modeler's old guard
+(`test_link_with_single_known_hub_collapses_into_it`, deliberately re-based: no flag names a bare
+one-hub link any more, the trace does); 1156 tests, ruff, bare mypy. **Nur angenommen.** That the
+moved satellite's grain is right as declared — a dated history on a hub is typically multi-active
+with the date as dependent child key, which the backstop does not infer (spec §5). **Bewusst
+nicht getan.** No grain inference; no steering line; no live run.

@@ -72,3 +72,11 @@ does not read words); links with two refs to the same hub; a steering line for t
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-07 — built, keyless.** Commits `e18d114` (guards, failing), `ffd848c` (the change) and
+`c4561c5` (the modeler's old single-hub guard re-based on this rule; two long lines in the docs
+commit). `FlagKind.LINK_COLLAPSED` (disclosure, group `link-collapsed`), the parser's collapse
+with the `one_hub_link_collapsed` backstop event. Guards 1–4 pass on the eighth chain's step-5
+attempt-1 shape: the quota satellite sits on `hub_employee` with its relation, one disclosure,
+no dropped record. Guard 4 was corrected with the change (`flag_role` takes a flag). 1156 tests,
+ruff, mypy. §4 is **not yet measured live**.

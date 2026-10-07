@@ -53,6 +53,10 @@ is not the project's.
   `pipeline_health` on it, because nothing in the generated vault is wrong.
 
 ### Added
+- A link with one known hub is collapsed into that hub (WP55): its satellites that declare a
+  relation move to the hub (`link_collapsed`, a disclosure; backstop `one_hub_link_collapsed`)
+  instead of the link and its satellites being dropped as two `dropped_record`s and the payload
+  lost for the attempt.
 - A gate for the lost payload (WP54): `E_HUB_PAYLOAD_UNREAD` refuses a hub built from a declared
   table of the increment whose payload columns no satellite reads, naming the columns and the
   parent to hang them on. Until now a hub without any satellite on its table raised only the

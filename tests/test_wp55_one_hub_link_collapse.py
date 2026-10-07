@@ -51,7 +51,9 @@ async def test_a_one_hub_link_collapses_into_the_hub_and_its_satellite_moves_the
     [flag] = [f for f in state.flags if f.kind == FlagKind.LINK_COLLAPSED]
     assert flag.asset == SAT and LINK in flag.message and "hub_employee" in flag.message
     assert not [f for f in state.flags if f.kind == FlagKind.DROPPED_RECORD]
-    [event] = [e for e in events if e.kind == "backstop" and e.backstop_id == "one_hub_link_collapsed"]
+    [event] = [
+        e for e in events if e.kind == "backstop" and e.backstop_id == "one_hub_link_collapsed"
+    ]
     assert event.detail == {"link": LINK, "hub": "hub_employee", "satellites": [SAT]}
 
 
@@ -69,7 +71,8 @@ async def test_a_satellite_without_a_relation_is_dropped_while_its_sibling_moves
             "description": "No relation declared."}
     state, _ = await _run(_payload(extra_sats=[bare]))
     assert [s.name for s in state.dv_model.satellites] == [SAT]
-    assert [f.asset for f in state.flags if f.kind == FlagKind.DROPPED_RECORD] == ["sat_quota_notes"]
+    dropped = [f.asset for f in state.flags if f.kind == FlagKind.DROPPED_RECORD]
+    assert dropped == ["sat_quota_notes"]
     assert [f.asset for f in state.flags if f.kind == FlagKind.LINK_COLLAPSED] == [SAT]
 
 
