@@ -6,6 +6,11 @@
 source_model: 'ShoppingCartItem'
 hashed_columns:
   SHOPPINGCARTITEM_HK: 'SHOPPINGCARTITEMID'
+  SHOPPING_CART_ITEM_DETAILS_HASHDIFF:
+    is_hashdiff: true
+    columns:
+      - 'SHOPPINGCARTID'
+      - 'QUANTITY'
 {%- endset -%}
 {% set metadata_dict = fromyaml(yaml_metadata) %}
 

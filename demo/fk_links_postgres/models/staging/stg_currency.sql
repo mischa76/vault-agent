@@ -6,6 +6,10 @@
 source_model: 'Currency'
 hashed_columns:
   CURRENCY_HK: 'CURRENCYCODE'
+  CURRENCY_DETAILS_HASHDIFF:
+    is_hashdiff: true
+    columns:
+      - 'NAME'
 {%- endset -%}
 {% set metadata_dict = fromyaml(yaml_metadata) %}
 

@@ -38,8 +38,10 @@ from vault_agent.rules.dv2_rules import (
     SAT_WIDE_ATTRIBUTE_THRESHOLD,
     canonical_hub_key_column,
     effectivity_date_pair,
+    hub_binds_to_source_table,
     hub_collision_remedy,
     hub_key_columns,
+    hub_payload_remedy,
     is_composite_key,
     is_valid_construct_name,
     normalize_identifier,
@@ -51,8 +53,10 @@ from vault_agent.rules.dv2_rules import (
     satellite_key_remedy,
     satellite_participation_column,
     satellite_payload_relations,
+    satellite_reads_table,
     second_hub_remedy,
     source_table_on_multi_source_hub,
+    unread_payload,
 )
 from vault_agent.state import (
     Hub,
@@ -1322,6 +1326,31 @@ class ValidatorAgent(BaseAgent):
                             f"schema; verify the source or complete the schema",
                         )
                     )
+        # WP54 (2026-10-07): a hub of this increment bound to a declared table whose payload
+        # columns no satellite reads — the eighth chain lost TransactionHistory's and
+        # PurchaseOrderDetail's descriptive columns in one-attempt steps, with only
+        # W_HUB_NO_SAT (a disclosure) to show for it. A gate, so the loop can answer it.
+        for hub in state.dv_model.hubs:
+            if hub.name in pre_existing:
+                continue
+            for table in state.source_schemas:
+                if not hub_binds_to_source_table(hub, table.table):
+                    continue
+                if satellite_reads_table(state.dv_model, table.table):
+                    continue
+                lost = unread_payload(hub, table, state.dv_model, state.source_schemas)
+                if not lost:
+                    continue
+                remedy = hub_payload_remedy(hub, table, state.dv_model, lost)
+                issues.append(
+                    _issue(
+                        "error", "E_HUB_PAYLOAD_UNREAD", hub.name,
+                        f"hub is built from {table.table}, whose columns "
+                        f"{', '.join(lost)} no satellite of the model reads — the payload "
+                        f"would be lost",
+                        remedy=remedy.text,
+                    )
+                )
         return issues
 
     @staticmethod

@@ -87,11 +87,36 @@ async def test_a_hub_of_an_undeclared_table_is_not_judged() -> None:
 def test_unread_payload_lists_the_table_columns_in_declared_order() -> None:
     model = _model()
     hub = next(h for h in model.hubs if h.name == "hub_transaction")
-    assert unread_payload(hub, _schema()[1], model) == PAYLOAD
+    assert unread_payload(hub, _schema()[1], model, _schema()) == PAYLOAD
     with_sat = _model([{"name": "sat_transaction_details", "parent": "hub_transaction",
                         "attributes": ["Quantity"], "source_table": "TransactionHistory",
                         "description": "d"}])
     hub = next(h for h in with_sat.hubs if h.name == "hub_transaction")
-    assert unread_payload(hub, _schema()[1], with_sat) == [
+    assert unread_payload(hub, _schema()[1], with_sat, _schema()) == [
         "ReferenceOrderID", "TransactionDate", "ActualCost", "ModifiedDate"
     ]
+
+
+async def test_a_column_other_tables_foreign_keys_reference_is_an_identifier_not_payload() -> None:
+    """Refinement found on the fk_links demo before the change landed: `hub_sales_order` on
+    `SalesOrderNumber` left `SalesOrderID` — the surrogate `SalesOrderDetail` points at —
+    looking like lost payload. A referenced column is a key, whoever holds it."""
+    schema = [
+        SourceTable(table="SalesOrderHeader",
+                    columns=["SalesOrderID", "SalesOrderNumber", "SalesPersonID"]),
+        SourceTable(table="SalesOrderDetail", columns=["SalesOrderID", "SalesOrderDetailID"],
+                    foreign_keys=[{"columns": ["SalesOrderID"],
+                                   "references_table": "SalesOrderHeader",
+                                   "references_columns": ["SalesOrderID"]}]),
+        SourceTable(table="Employee", columns=["BusinessEntityID"]),
+    ]
+    schema[0] = SourceTable(table="SalesOrderHeader", columns=schema[0].column_names,
+                            foreign_keys=[{"columns": ["SalesPersonID"],
+                                           "references_table": "Employee",
+                                           "references_columns": ["BusinessEntityID"]}])
+    model = DVModel.model_validate({
+        "hubs": [{"name": "hub_sales_order", "business_key": "SalesOrderNumber",
+                  "source_entity": "SalesOrderHeader", "description": "An order."}],
+        "links": [], "satellites": [],
+    })
+    assert await _issues(model, schema) == []

@@ -775,6 +775,76 @@ def _references(key: str, other: Any) -> bool:
     return False
 
 
+def unread_payload(hub: Any, table: Any, model: Any, tables: Any = ()) -> list[str]:
+    """The declared columns of ``table`` that nothing in ``model`` reads (WP54).
+
+    The table's columns in declared order, minus the hub's key columns (``hub_key_columns``),
+    minus every column of a declared foreign key of the table, minus every column a declared
+    foreign key of any table in ``tables`` REFERENCES on it (an identifier other tables point
+    at — a surrogate such as ``SalesOrderID`` beside the natural key the hub is on — is not
+    payload), minus every attribute of a satellite that reads the table — a satellite reads it
+    when ``satellite_payload_relations`` of the satellite and its parent names the table,
+    whatever the parent (a link satellite counts). Normalised comparison; ``Any``-typed like
+    its neighbours."""
+    wanted = normalize_identifier(table.table)
+    parents = {h.name: h for h in model.hubs} | {lk.name: lk for lk in model.links}
+    read: set[str] = set()
+    for sat in model.satellites:
+        if wanted in satellite_payload_relations(sat, parents.get(sat.parent)):
+            read |= {normalize_identifier(a) for a in sat.attributes}
+    keys = {normalize_identifier(c) for c in hub_key_columns(hub)}
+    for fk in getattr(table, "foreign_keys", None) or []:
+        keys |= {normalize_identifier(c) for c in fk.columns}
+    for other in tables:
+        for fk in getattr(other, "foreign_keys", None) or []:
+            if normalize_identifier(fk.references_table) == wanted:
+                keys |= {normalize_identifier(c) for c in fk.references_columns}
+    return [
+        c for c in table.column_names
+        if normalize_identifier(c) not in keys and normalize_identifier(c) not in read
+    ]
+
+
+def satellite_reads_table(model: Any, table_name: str) -> bool:
+    """Does any satellite of ``model`` read ``table_name`` (WP54)? Same reading rule as
+    ``unread_payload``: the satellite's payload relations, whatever its parent."""
+    wanted = normalize_identifier(table_name)
+    parents = {h.name: h for h in model.hubs} | {lk.name: lk for lk in model.links}
+    return any(
+        wanted in satellite_payload_relations(sat, parents.get(sat.parent))
+        for sat in model.satellites
+    )
+
+
+@dataclass(frozen=True)
+class HubPayloadRemedy:
+    """What the re-model loop should do with a hub whose table no satellite reads (WP54): the
+    parent to hang the payload on and the sentence sent to the modeler."""
+
+    parent: str
+    columns: list[str]
+    text: str
+
+
+def hub_payload_remedy(hub: Any, table: Any, model: Any, columns: list[str]) -> HubPayloadRemedy:
+    """Name the parent for the lost payload: the hub — or, for a relationship table (two or more
+    declared foreign keys), the link of this model that reads it, if one does."""
+    parent = hub.name
+    fks = getattr(table, "foreign_keys", None) or []
+    if len(fks) >= 2:
+        for link in model.links:
+            if construct_binds_to_source_table(link.name, table.table):
+                parent = link.name
+                break
+    listed = ", ".join(columns)
+    text = (
+        f"{table.table} declares {listed}, which no satellite of this model reads — the vault "
+        f"would drop them; add a satellite on {parent} read from {table.table} carrying them "
+        f"(or hang them on another parent whose key {table.table} carries)"
+    )
+    return HubPayloadRemedy(parent=parent, columns=list(columns), text=text)
+
+
 @dataclass(frozen=True)
 class SatelliteKeyRemedy:
     """What the re-model loop should do with a satellite whose relation lacks its parent's key

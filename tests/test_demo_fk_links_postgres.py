@@ -37,6 +37,8 @@ EXPECTED_RAW_VAULT = {
     "hub_currency", "hub_currency_rate", "link_currency_rate_currencies",  # WP45
     "sat_currency_rate_detail",  # WP45: a satellite on the composite-keyed hub
     "link_sales_order_line", "sat_sales_order_line_detail",  # WP46: through a composite FK
+    "sat_shopping_cart_item_details", "sat_business_entity_details",  # WP54: the lost-payload
+    "sat_contact_type_details", "sat_currency_details",  # gate wants every table read
 }
 EXPECTED_STAGING = {
     "stg_product", "stg_unit_measure", "stg_vendor", "stg_shopping_cart_item",

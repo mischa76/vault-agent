@@ -6,6 +6,10 @@
 source_model: 'BusinessEntity'
 hashed_columns:
   BUSINESSENTITY_HK: 'BUSINESSENTITYID'
+  BUSINESS_ENTITY_DETAILS_HASHDIFF:
+    is_hashdiff: true
+    columns:
+      - 'MODIFIEDDATE'
 {%- endset -%}
 {% set metadata_dict = fromyaml(yaml_metadata) %}
 

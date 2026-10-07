@@ -21,19 +21,19 @@ sources:
       - name: Vendor
         # expected columns: ACCOUNTNUMBER, NAME, CREDITRATING, LOAD_DATETIME, RECORD_SOURCE
       - name: ShoppingCartItem
-        # expected columns: SHOPPINGCARTITEMID, LOAD_DATETIME, RECORD_SOURCE, PRODUCTID
+        # expected columns: SHOPPINGCARTITEMID, SHOPPINGCARTID, QUANTITY, LOAD_DATETIME, RECORD_SOURCE, PRODUCTID
       - name: SalesOrderHeader
         # expected columns: SALESORDERNUMBER, LOAD_DATETIME, RECORD_SOURCE, SALESPERSONID
       - name: Location
         # expected columns: NAME, LOAD_DATETIME, RECORD_SOURCE
       - name: BusinessEntity
-        # expected columns: BUSINESSENTITYID, LOAD_DATETIME, RECORD_SOURCE
+        # expected columns: BUSINESSENTITYID, MODIFIEDDATE, LOAD_DATETIME, RECORD_SOURCE
       - name: Person
         # expected columns: BUSINESSENTITYID, FIRSTNAME, LOAD_DATETIME, RECORD_SOURCE
       - name: ContactType
-        # expected columns: CONTACTTYPEID, LOAD_DATETIME, RECORD_SOURCE
+        # expected columns: CONTACTTYPEID, NAME, LOAD_DATETIME, RECORD_SOURCE
       - name: Currency
-        # expected columns: CURRENCYCODE, LOAD_DATETIME, RECORD_SOURCE
+        # expected columns: CURRENCYCODE, NAME, LOAD_DATETIME, RECORD_SOURCE
       - name: CurrencyRate
         # expected columns: CURRENCYRATEDATE, FROMCURRENCYCODE, TOCURRENCYCODE, LOAD_DATETIME, RECORD_SOURCE, AVERAGERATE, ENDOFDAYRATE
       - name: ProductInventory

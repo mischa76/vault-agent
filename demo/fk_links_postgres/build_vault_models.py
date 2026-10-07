@@ -363,6 +363,19 @@ def modeler_delta() -> DVModel:
             Satellite(name="sat_currency_rate_detail", parent="hub_currency_rate",
                       attributes=["AverageRate", "EndOfDayRate"], source_table="CurrencyRate",
                       description="The rates of the day."),
+            # WP54 (2026-10-07): the lost-payload gate refuses a hub whose table no satellite
+            # reads. The four hubs below had carried none — fine for a capture of link
+            # proposals, but a vault that drops ShoppingCartItem's Quantity. Read from the
+            # hub's own relation, so they share its stage and add no staging model.
+            Satellite(name="sat_shopping_cart_item_details", parent="hub_shopping_cart_item",
+                      attributes=["ShoppingCartID", "Quantity"],
+                      description="The cart and quantity of a cart line."),
+            Satellite(name="sat_business_entity_details", parent="hub_business_entity",
+                      attributes=["ModifiedDate"], description="When the party record changed."),
+            Satellite(name="sat_contact_type_details", parent="hub_contact_type",
+                      attributes=["Name"], description="The contact type's name."),
+            Satellite(name="sat_currency_details", parent="hub_currency",
+                      attributes=["Name"], description="The currency's name."),
         ],
     )
 
