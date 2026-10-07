@@ -7489,3 +7489,20 @@ to 9.6). `review_ceiling` over the seven recorded chains gives **160.0** (mean 1
 and that is the number the checker judges by. CLAUDE.md corrected; the earlier entries stand.
 **Überprüft:** `uv run python -c` over `REVIEW_DECISION_SAMPLES`. **Nur angenommen:** nothing.
 **Bewusst nicht getan:** no re-wording of the committed entries.
+
+## [2026-10-07] Eighth chain run — stopped in step 5 on an exhausted credit balance; steps 1–4 green and persisted, resume pending
+
+**Autor:** Claude Code
+
+`adventureworks_incremental`, one repeat, at `1af1f33`, stamp `20261007T032723285872Z`, 03:27–04:05.
+Steps 1–4 completed and persisted: `validation_gate` 1.0 and `pipeline_health` 1.0 in each,
+decisions 15 / 12 / 39 / 13 (79 so far; the seventh chain had 85 at this point). Step 5 died in
+the entity resolver (`emit_resolution`, trace event 108, 04:05:41) on a 400
+`invalid_request_error`: „Your credit balance is too low“ — a terminal 4xx, traced as
+`llm_error` and not retried, as WP27 intends. 99 calls so far. The owner was notified; after the
+top-up the chain continues with `--resume-chain 20261007T032723285872Z` (steps 1–4 reused, step 5
+paid again), scored and counted from the persisted steps (2026-10-07 fix). The pre-registration
+of today stands for the resumed run.
+
+**Überprüft:** the four step files, the trace's last event. **Nur angenommen:** nothing.
+**Bewusst nicht getan:** no resume attempt before the credit is back.
