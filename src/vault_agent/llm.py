@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal, cast
 
 import anthropic
+import httpx
 
 logger = logging.getLogger(__name__)
 
@@ -401,7 +402,13 @@ class ForcedToolCaller:
                     messages=[{"role": "user", "content": user_content}],
                 ) as stream:
                     message = await stream.get_final_message()
-            except anthropic.APIConnectionError as exc:  # includes APITimeoutError
+            except (anthropic.APIConnectionError, httpx.TransportError) as exc:
+                # APIConnectionError (incl. APITimeoutError) is what the SDK raises around the
+                # initial request. Verified on anthropic 0.107.0: `_base_client` wraps
+                # transport errors there only; `_streaming.py` iterates the body unwrapped,
+                # so a mid-stream failure reaches get_final_message() as a raw
+                # `httpx.TransportError` (a ReadError ended the seventh chain's step 5,
+                # 2026-10-07, after one unretried attempt). Both are the same transient class.
                 last_exc = exc
                 continue
             except anthropic.APIStatusError as exc:

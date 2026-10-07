@@ -12,7 +12,7 @@
 | `INPUT_TRUNCATED` advisory flag | Document longer than 400k chars; pipeline continued on the head. | Usually fine for prose docs; for inventory-style docs, split or slim the input. |
 | `Could not load an input file: …` | Malformed `--source-schema`/`--profiling` (the loaders name file and problem). | Fix the named entry; the error is attributable by design — no LLM tokens were spent. |
 | `could not read <doc>: …` error flag | The document exists but is unreadable (non-UTF-8 text, corrupt PDF/`.docx`). | The file was skipped, not fatal: re-save it as UTF-8 / repair the document. A single-document run then has nothing to parse and fails attributably. |
-| Rate-limit / 5xx noise in `--debug` logs | Transient API failures. | Nothing — retried 3× automatically; only exhaustion surfaces as `LLMCallError`. Each wait is logged at INFO with its length and where it came from: a server `Retry-After` header wins (capped at 60 s), otherwise exponential backoff with equal jitter so parallel runs stop colliding. |
+| Rate-limit / 5xx / connection noise in `--debug` logs | Transient API failures, including a connection dropped while the answer streams (`httpx.ReadError`). | Nothing — retried 3× automatically; only exhaustion surfaces as `LLMCallError`. Each wait is logged at INFO with its length and where it came from: a server `Retry-After` header wins (capped at 60 s), otherwise exponential backoff with equal jitter so parallel runs stop colliding. |
 
 ## 12.2 Checkpoint & resume issues
 

@@ -10,6 +10,7 @@ keywords = ["data-vault", "agentic-ai", "langgraph", "dbt", "automatedv"]
 
 dependencies = [
     "anthropic>=0.39",
+    "httpx>=0.28",  # the SDK's transport; its TransportError is caught in llm.py
     "langgraph>=0.2",
     "langchain-anthropic>=0.2",
     "pydantic>=2.8",

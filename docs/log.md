@@ -7370,3 +7370,27 @@ refused satellite re-emitted unchanged with one candidate).
 **P5 — the four remedies in reserve or firing once each**; all four classes 0 in every final
 report. Cost ≈ 6.5 USD, ≈ 45 min.
 **Not predicted.** Which shapes the modeler builds; six normal chains have varied every time.
+
+## [2026-10-07] A transport error mid-stream is retried — the seventh chain's step 5 died unretried
+
+**Autor:** Claude Code
+
+The seventh chain (`20261007T001520705532Z`) ended in step 5 with `BATCH INCOMPLETE … (ReadError: )`
+after the requirements parser's answer (trace: last event 00:49:47, no `llm_error` for the
+failure — it escaped the client untraced). Steps 1–4 were persisted; the chain was resumed with
+`--resume-chain` (only step 5 paid again). The user: „ja, bau den ReadError-Retry gleich noch
+ein“.
+
+**Cause, verified on the installed SDK (anthropic 0.107.0).** `_base_client` wraps transport errors
+into `APIConnectionError` around the initial request only; `_streaming.py` iterates the body with
+no wrapping, so a connection dropped while the answer streams reaches `get_final_message()` as a raw
+`httpx.ReadError`, which the retry loop's `except anthropic.APIConnectionError` did not catch.
+**Change.** Guards `ef943bf` (a mid-stream `ReadError` is retried and succeeds; one on every read
+exhausts the budget as `LLMCallError` with one traced `llm_error`), fix in the commit carrying this
+entry: the loop catches `httpx.TransportError` beside `APIConnectionError`; `httpx` is declared
+as a dependency (it was the SDK's transitive one); troubleshooting row and changelog updated.
+
+**Überprüft.** The two guards and the full suite, ruff, bare mypy; the SDK's source for where
+it wraps. **Nur angenommen.** That the dropped connection was the network's, not the API's — the
+raw error carried no message. **Bewusst nicht getan.** No trace event for a retried transport
+error (WP15: a retried attempt is not an event); no change to the retry budget.

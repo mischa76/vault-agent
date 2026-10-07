@@ -32,6 +32,11 @@ is not the project's.
   review decision, although its remedy had named the parent whose key the relation carries. With
   exactly one such parent it now moves there (`retired_reparented`, a disclosure; WP52).
 
+- A connection dropped while an answer was streaming surfaced as a raw `httpx.ReadError` and
+  ended the run unretried: the SDK wraps transport errors only around the initial request. The
+  retry loop now catches `httpx.TransportError` beside `APIConnectionError` (2026-10-07, the
+  seventh chain's step 5).
+
 ### Changed
 - The WP34 §6 review clause judges a chain's decisions against a distribution (WP53): the
   one-sided 95 % prediction bound over the recorded normal chains before it, the run itself and

@@ -3195,6 +3195,7 @@ version = "0.9.1"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
+    { name = "httpx" },
     { name = "langchain-anthropic" },
     { name = "langgraph" },
     { name = "langgraph-checkpoint-sqlite" },
@@ -3246,6 +3247,7 @@ requires-dist = [
     { name = "dbt-core", marker = "extra == 'demo-databricks'", specifier = "~=1.11.0" },
     { name = "dbt-databricks", marker = "extra == 'demo-databricks'", specifier = "~=1.12.0" },
     { name = "dbt-postgres", marker = "extra == 'demo'", specifier = "~=1.9.0" },
+    { name = "httpx", specifier = ">=0.28" },
     { name = "ipykernel", marker = "extra == 'dev'", specifier = ">=6.29" },
     { name = "langchain-anthropic", specifier = ">=0.2" },
     { name = "langgraph", specifier = ">=0.2" },
