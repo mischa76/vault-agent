@@ -601,8 +601,15 @@ class Dv2ModelerAgent(BaseAgent):
             existing_links = {link.name for link in state.existing_model.links}
 
         kept_links: list[Link] = []
+        # WP55: a link with exactly one KNOWN hub is not a relationship but a feed of that hub;
+        # its satellites' home is known. Collapsed here, where the drop used to happen (the
+        # eighth chain, 2026-10-07: a quota-history link on hub_employee, two dropped records).
+        collapsed: dict[str, str] = {}
         for link in links:
             missing = [ref.hub for ref in link.hub_refs if ref.hub not in hub_names]
+            if len(link.hub_refs) == 1 and not missing:
+                collapsed[link.name] = link.hub_refs[0].hub
+                continue
             if len(link.hub_refs) < 2 or missing:
                 state.flag(
                     "dv2_modeler",
@@ -615,6 +622,30 @@ class Dv2ModelerAgent(BaseAgent):
             kept_links.append(link)
 
         valid_parents = hub_names | {link.name for link in kept_links} | existing_links
+        moved: dict[str, list[str]] = {name: [] for name in collapsed}
+        for sat in satellites:
+            hub_name = collapsed.get(sat.parent)
+            if hub_name is None or not sat.source_table:
+                continue  # no relation declared: the hub's own would be guessed — dropped below
+            former = sat.parent
+            sat.parent = hub_name
+            moved[former].append(sat.name)
+            state.flag(
+                "dv2_modeler",
+                f"satellite {sat.name!r} sat on {former!r}, a link with the single hub "
+                f"{hub_name!r} — a feed of that hub, not a relationship; moved to {hub_name!r}, "
+                f"read from {sat.source_table!r} as declared",
+                kind=FlagKind.LINK_COLLAPSED,
+                asset=sat.name,
+            )
+        for link_name, hub_name in collapsed.items():
+            emit_trace(
+                TraceEvent(
+                    kind="backstop",
+                    backstop_id="one_hub_link_collapsed",
+                    detail={"link": link_name, "hub": hub_name, "satellites": moved[link_name]},
+                )
+            )
         kept_satellites: list[Satellite] = []
         for sat in satellites:
             if sat.parent not in valid_parents:

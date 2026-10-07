@@ -8,7 +8,7 @@ from tests.test_agents.test_dv2_modeler import StubExtractor, _state
 from vault_agent import llm
 from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
 from vault_agent.agents.orchestrator import flag_role
-from vault_agent.state import FlagKind, VaultAgentState
+from vault_agent.state import FlagKind, PipelineFlag, VaultAgentState
 
 LINK = "link_sales_representative_quota_history"
 SAT = "sat_sales_representative_quota_details"
@@ -74,4 +74,5 @@ async def test_a_satellite_without_a_relation_is_dropped_while_its_sibling_moves
 
 
 def test_link_collapsed_is_a_disclosure() -> None:
-    assert flag_role(FlagKind.LINK_COLLAPSED) == "disclosure"
+    flag = PipelineFlag(agent="dv2_modeler", message="m", kind=FlagKind.LINK_COLLAPSED, asset="s")
+    assert flag_role(flag) == "disclosure"

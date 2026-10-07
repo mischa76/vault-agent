@@ -65,6 +65,9 @@ class FlagKind:
     # WP51: a dependent of a dropped hub moved to the hub's kept twin — the payload kept its
     # meaning and found its home deterministically (a disclosure).
     RETIRED_REPARENTED = "retired_reparented"
+    # WP55: a link with one hub is that hub's satellite feed — the parser collapsed it and
+    # moved its satellites to the hub (a disclosure: the payload found its home).
+    LINK_COLLAPSED = "link_collapsed"
     GENERIC = "generic"
 
 
