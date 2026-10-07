@@ -180,7 +180,7 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   (2026-10-07)**: the one-sided 95 % prediction bound over the recorded chains before the judged one
   (`eval/wp34_check.py`); the sixth chain's 156 still fails it (151.9 over five), the seventh
   (2026-10-07, all green, 127 decisions, WP34 §6 met in full) held against 159.9; the eighth is
-  judged against ≈ 160.6. A completed chain is added to the record in its docs commit. **A resumed
+  judged against 160.0. A completed chain is added to the record in its docs commit. **A resumed
   chain's chain-level result file is wrong before 2026-10-07** (resumed steps scored from model-only
   states); read the step files.
 - **WP18 acceptance #1 is unverified** (it costs a live run).

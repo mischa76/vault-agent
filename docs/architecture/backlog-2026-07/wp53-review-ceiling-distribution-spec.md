@@ -80,3 +80,7 @@ chain-level result file carries 42 (the resume artefact, fixed the same day: res
 now scored and counted from their persisted results); the record carries 127, the sum over both
 stamps' step files, and guard 4 reads a resumed chain that way. Seven chains recorded; the
 eighth is judged against ≈ 160.6 (mean 140.7, sd 9.6).
+
+**2026-10-07 — correction.** The eighth chain's ceiling is **160.0** (sd 9.3), computed by
+`review_ceiling` over the seven recorded chains; the ≈ 160.6 above was a by-hand estimate with the
+sd rounded up. The checker's number is the one that judges.

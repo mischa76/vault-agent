@@ -7478,3 +7478,14 @@ under a new name), WP50 (second person hub), WP51's re-parenting branch, WP52's 
 **P5 — the four remedies in reserve or firing once each**; all four classes 0 in every final
 report. **P6 — a dropped connection, if any, is retried, not fatal** (`9c06005`, Ethernet again).
 Cost ≈ 6.5 USD, ≈ 45 min. **Not predicted.** Which shapes the modeler builds.
+
+## [2026-10-07] Correction — the eighth chain's ceiling is 160.0, not ≈ 160.6
+
+**Autor:** Claude Code
+
+The entries „Seventh chain run“ and „Pre-registration for the eighth chain run“ (both today),
+WP53 §6 and CLAUDE.md gave the eighth chain's ceiling as ≈ 160.6 — a by-hand estimate (sd rounded
+to 9.6). `review_ceiling` over the seven recorded chains gives **160.0** (mean 140.7, sd 9.3),
+and that is the number the checker judges by. CLAUDE.md corrected; the earlier entries stand.
+**Überprüft:** `uv run python -c` over `REVIEW_DECISION_SAMPLES`. **Nur angenommen:** nothing.
+**Bewusst nicht getan:** no re-wording of the committed entries.
