@@ -68,6 +68,9 @@ class FlagKind:
     # WP55: a link with one hub is that hub's satellite feed — the parser collapsed it and
     # moved its satellites to the hub (a disclosure: the payload found its home).
     LINK_COLLAPSED = "link_collapsed"
+    # WP56: a relation-less satellite's attributes are all columns of exactly one declared
+    # table — the schema, not a guess, named its relation (a disclosure).
+    RELATION_INFERRED = "relation_inferred"
     GENERIC = "generic"
 
 

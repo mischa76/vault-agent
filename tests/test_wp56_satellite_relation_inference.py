@@ -58,8 +58,10 @@ async def _run(payload: dict[str, Any]) -> tuple[VaultAgentState, list[llm.Trace
 def test_the_relation_is_the_one_table_that_carries_every_attribute() -> None:
     def sat(attrs: list[str], cdk: str | None = None) -> Satellite:
         return Satellite(name="sat_x", parent="hub_person", attributes=attrs, description="x",
-                         child_dependent_key=cdk)
-    assert infer_satellite_relation(sat(["EmailAddress", "ModifiedDate"]), _schema()) == "EmailAddress"
+                         child_dependent_key=[cdk] if cdk else [])
+    assert infer_satellite_relation(sat(["EmailAddress", "ModifiedDate"]), _schema()) == (
+        "EmailAddress"
+    )
     assert infer_satellite_relation(sat(["ModifiedDate"]), _schema()) is None  # every table
     assert infer_satellite_relation(sat(["EmailAddress", "PasswordHash"]), _schema()) is None
     assert infer_satellite_relation(sat([]), _schema()) is None
@@ -84,8 +86,8 @@ async def test_a_collapsed_links_satellite_moves_with_its_inferred_relation() ->
     [sat] = state.dv_model.satellites
     assert sat.name == "sat_email_address_detail" and sat.parent == "hub_person"
     assert sat.source_table == "EmailAddress"
-    kinds = {k: [f.asset for f in state.flags if f.kind == k]
-             for k in (FlagKind.LINK_COLLAPSED, FlagKind.RELATION_INFERRED, FlagKind.DROPPED_RECORD)}
+    watched = (FlagKind.LINK_COLLAPSED, FlagKind.RELATION_INFERRED, FlagKind.DROPPED_RECORD)
+    kinds = {k: [f.asset for f in state.flags if f.kind == k] for k in watched}
     assert kinds[FlagKind.LINK_COLLAPSED] == ["sat_email_address_detail"]
     assert kinds[FlagKind.RELATION_INFERRED] == ["sat_email_address_detail"]
     assert kinds[FlagKind.DROPPED_RECORD] == ["sat_credential_status"]

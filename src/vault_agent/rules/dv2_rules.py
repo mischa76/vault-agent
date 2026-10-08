@@ -805,6 +805,25 @@ def unread_payload(hub: Any, table: Any, model: Any, tables: Any = ()) -> list[s
     ]
 
 
+def infer_satellite_relation(satellite: Any, tables: Any) -> str | None:
+    """The one declared table that carries every attribute (and every dependent child key) of
+    a satellite without a ``source_table`` — its relation, read from the schema (WP56).
+
+    None when no table or more than one qualifies, or when there is nothing to match: a lone
+    ``ModifiedDate`` qualifies every table and infers nothing. Returns the table's name as
+    declared. ``Any``-typed like its neighbours."""
+    wanted = {normalize_identifier(a) for a in satellite.attributes}
+    cdk = getattr(satellite, "child_dependent_key", None) or []
+    wanted |= {normalize_identifier(c) for c in cdk}
+    if not wanted:
+        return None
+    matches = [
+        t.table for t in tables
+        if wanted <= {normalize_identifier(c) for c in t.column_names}
+    ]
+    return matches[0] if len(matches) == 1 else None
+
+
 def satellite_reads_table(model: Any, table_name: str) -> bool:
     """Does any satellite of ``model`` read ``table_name`` (WP54)? Same reading rule as
     ``unread_payload``: the satellite's payload relations, whatever its parent."""

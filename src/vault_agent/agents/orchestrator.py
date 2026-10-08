@@ -88,6 +88,7 @@ REVIEW_FLAG_ROLES: dict[str, ReviewRole] = {
     FlagKind.RETIRED_ORPHAN: "decision",  # WP44: a dependent's payload needs a home
     FlagKind.RETIRED_REPARENTED: "disclosure",  # WP51: the payload found its home, the twin
     FlagKind.LINK_COLLAPSED: "disclosure",  # WP55: a one-hub link's satellite moved to the hub
+    FlagKind.RELATION_INFERRED: "disclosure",  # WP56: the schema named a satellite's relation
     FlagKind.GENERIC: "decision",  # untyped work, not provenance
 }
 _DEFAULT_ROLE: ReviewRole = "decision"
@@ -126,6 +127,7 @@ REVIEW_FLAG_GROUPS: dict[str, str] = {
     FlagKind.RETIRED_REEMITTED: "retired-reemitted",  # WP44: repetitive by nature
     FlagKind.RETIRED_REPARENTED: "retired-reparented",  # WP51
     FlagKind.LINK_COLLAPSED: "link-collapsed",  # WP55
+    FlagKind.RELATION_INFERRED: "relation-inferred",  # WP56
     # WP36: deliberately NOT aggregated — a translation is a join through another relation
     # and each one is a review item in its own right (ADR-0013 §3). Listed here only as a
     # comment so the omission reads as a decision, not an oversight.
@@ -148,6 +150,7 @@ _GROUP_LABELS: dict[str, str] = {
     "retired-reemitted": "retired construct(s) re-emitted and dropped again",
     "retired-reparented": "dependent(s) of a retired hub moved to its kept twin",
     "link-collapsed": "satellite(s) of a link with one hub moved to that hub",
+    "relation-inferred": "satellite relation(s) read from the one table carrying every attribute",
 }
 
 
