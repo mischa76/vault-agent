@@ -76,3 +76,11 @@ links; the grain of the moved satellite (WP55 §5).
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-09 — built, keyless.** Commits `b4a40b4` (guards, failing on import) and `58f4fad` (the
+change). `rules.infer_satellite_relation`, `FlagKind.RELATION_INFERRED` (disclosure, group
+`relation-inferred`), the parser's two paths with the `satellite_relation_inferred` backstop
+event. Guards 1–4 pass on the ninth chain's step-1 attempt-1 records: `sat_email_address_detail`
+moves to `hub_person` reading `EmailAddress`, `sat_credential_status` (a lone `ModifiedDate`) is
+dropped as before; on a hub only a foreign relation is set. Guard 1's dependent-child-key argument
+corrected to the field's list type. 1160 tests, ruff, mypy. §4 is **not yet measured live**.

@@ -85,7 +85,7 @@ change.
 
 ## 10.4 Backstop events
 
-Six deterministic pre-gate repairs announce themselves as `kind: backstop` events
+Seven deterministic pre-gate repairs announce themselves as `kind: backstop` events
 *when and only when they actually repaired something*: `attributes_without_cdk` (a CDK
 was also listed as payload — dropped attrs in the detail), `fk_demotion` (a business
 key's FK occurrence was demoted to its anchor table), `effsat_two_attributes` (an
@@ -94,7 +94,7 @@ effectivity satellite with ≠2 attributes was rejected into a generation-gap fl
 remedy had retired, a satellite in a refused shape, or an attribute retired on a satellite — the
 detail names what was dropped, `attributes_dropped` included),
 and `composite_key_split` (WP45: the modeler's `A + B` key notation was typed into
-`business_key_columns` because every part is a declared column of the hub's relation). `one_hub_link_collapsed` (WP55: a link with one known hub was collapsed into the hub and its satellites with a relation moved there — link, hub and satellites in the detail).
+`business_key_columns` because every part is a declared column of the hub's relation). `one_hub_link_collapsed` (WP55: a link with one known hub was collapsed into the hub and its satellites with a relation moved there — link, hub and satellites in the detail), `satellite_relation_inferred` (WP56: a relation-less satellite's attributes named exactly one declared table — satellite, table and path `collapse`/`hub` in the detail).
 
 For the **operator** a fire is informational — the model needed a known crutch, the
 output is already correct; nothing to do. For the **maintainer** the fires are the

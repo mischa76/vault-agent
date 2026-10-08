@@ -7713,3 +7713,31 @@ matching tables or none, drop as today. Where it would apply: the WP55 collapse 
 inferred relation) and perhaps the parser's general drop of a relation-less satellite on a valid
 parent (today it stays and reads the parent's table — which may be wrong, and the attribute
 grounding then warns). Proposed for the owner; not built.
+
+## [2026-10-09] WP56 — a relation-less satellite whose attributes name exactly one declared table reads that table, built keyless
+
+**Autor:** Claude Code
+
+The user, after the ninth chain's finding was explained: „Dann bauen wir doch zunächst die
+Relationsableitung und lassen im Anschluss die zehnte Kette laufen“. Spec `c9b9e77`, guards red
+`b4a40b4`, change `58f4fad`, docs in the commit carrying this entry. Spec:
+`docs/architecture/backlog-2026-07/wp56-satellite-relation-inference-spec.md`.
+
+**What changed, and why it was wrong before.** WP55's collapse dropped a relation-less satellite
+rather than guess its table — right, but on the ninth chain one of the two dropped satellites was
+not a guess: `EmailAddress` is a column of exactly one declared table. `rules.infer_satellite_relation`
+names the declared table that carries every attribute and dependent child key of a satellite, or
+None when none or several do (a lone `ModifiedDate` qualifies every table). The parser uses it
+twice: a relation-less satellite on a collapsed one-hub link moves with the inferred relation; a
+relation-less satellite on a hub whose inferred relation is **not** the hub's own gets that
+`source_table` — the hub's own stays implicit, so every existing model renders byte-identically (the
+suite's fixtures proved it: nothing changed). Link satellites are untouched. Each inference is a
+`relation_inferred` disclosure and a `satellite_relation_inferred` backstop event.
+
+**Überprüft.** Four guards on the ninth chain's attempt-1 records (the e-mail satellite moves
+reading `EmailAddress`; the credential satellite, a lone timestamp, is dropped as before); 1160
+tests, ruff, bare mypy. **Nur angenommen.** That a table carrying every attribute is the
+satellite's relation and not a coincidence of column names — with the full attribute set and a
+single match the coincidence would need a second table with the same columns, which the rule then
+refuses. **Bewusst nicht getan.** No inference from a partial match; no link satellites; no live
+run — that is the tenth chain, next.

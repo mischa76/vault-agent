@@ -53,6 +53,11 @@ is not the project's.
   `pipeline_health` on it, because nothing in the generated vault is wrong.
 
 ### Added
+- A satellite without a `source_table` whose attributes are all columns of exactly one declared
+  table reads that table (WP56): on a collapsed one-hub link it moves with the inferred relation
+  instead of being dropped; on a hub a relation other than the hub's own is set
+  (`relation_inferred`, a disclosure; backstop `satellite_relation_inferred`). A lone timestamp
+  infers nothing.
 - A link with one known hub is collapsed into that hub (WP55): its satellites that declare a
   relation move to the hub (`link_collapsed`, a disclosure; backstop `one_hub_link_collapsed`)
   instead of the link and its satellites being dropped as two `dropped_record`s and the payload
