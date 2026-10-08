@@ -96,3 +96,11 @@ chain half is **not yet measured live**.
 step 3 attempt 1, a hub on `TransactionHistoryArchive` with no satellite reading it; the modeler
 added the satellite in attempt 2. **Zero satellite-less hubs in every final report**, the
 invention clause held for the first time at 0 (it had never been below 1). §4 met.
+
+**2026-10-09 — tenth live chain** (`20261008T223946700186Z`, `docs/log.md` 2026-10-09): fired in two steps. Step 5:
+`ShoppingCartItem` unread in attempt 1, satisfied in attempt 2. Step 3: `TransactionHistoryArchive`
+unread in attempt 1; attempt 2 read both transaction tables; attempt 3 regressed to a relation-less
+link satellite reading neither — **two fires in the final report, the step red.** §4's „a step
+whose three attempts cannot satisfy it is red on this class, and that is the design“ occurred;
+the alternative was the eighth chain's silently lost payload. The retry-is-a-new-draft finding
+(`docs/log.md` 2026-10-09) is the mechanism.

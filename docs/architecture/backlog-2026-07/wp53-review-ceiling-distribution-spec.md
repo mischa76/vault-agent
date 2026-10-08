@@ -91,3 +91,6 @@ credit): 126 decisions against 160.0 — held. Eight chains recorded; the ninth 
 
 **2026-10-08 — ninth chain** (`20261008T005807208141Z`): 143 decisions against 159.1 — held. Nine chains recorded;
 the tenth is judged against 158.0 (mean 139.3, sd 9.5).
+
+**2026-10-09 — tenth chain** (`20261008T223946700186Z`): 137 decisions against 158.0 — held. Ten chains recorded;
+the eleventh is judged against 156.4 (mean 139.1, sd 9.0).

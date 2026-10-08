@@ -84,3 +84,7 @@ event. Guards 1–4 pass on the ninth chain's step-1 attempt-1 records: `sat_ema
 moves to `hub_person` reading `EmailAddress`, `sat_credential_status` (a lone `ModifiedDate`) is
 dropped as before; on a hub only a foreign relation is set. Guard 1's dependent-child-key argument
 corrected to the field's list type. 1160 tests, ruff, mypy. §4 is **not yet measured live**.
+
+**2026-10-09 — tenth live chain** (`20261008T223946700186Z`): no relation-less satellite whose attributes determined
+a table occurred (the one relation-less satellite, step 3 attempt 3's `sat_transaction_detail` on
+a link, is out of scope — §2.3 leaves link satellites untouched). §4 untestable, not failed.

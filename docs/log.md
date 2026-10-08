@@ -7759,3 +7759,67 @@ invention at 0 or 1 (WP54 live again where the modeler omits a payload), review 
 (nine recorded chains, mean 139.3, sd 9.5), links ≥ 8, joins 0/0, preservation 1.0.
 **P4 — the other remedies in reserve or firing once each**; all classes 0 in every final report.
 Cost ≈ 7 USD, ≈ 50 min. **Not predicted.** Which shapes the modeler builds.
+
+## [2026-10-09] Tenth chain run — step 3 red on the payload gate, by design; WP34 §6 held in full; two findings
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261008T223946700186Z`, at `d2b0980`, the
+pre-registration's commit. 103 calls (9 modeler: step 3 three attempts, step 5 two), 395k uncached
+input, 270k output, 45 min, ≈ **6.63 USD**. Final vault 44 hubs, 60 links, 74 satellites. Steps 1, 2,
+4 and 5 green; **step 3 red** — `validation_gate` 0.0 as the minimum over steps, `pipeline_health`
+1.0 (no error flag). Ten normal chains since 2026-10-04: red / green / red / red / green ×5 /
+**red**. **WP34 §6 ALL FOUR CLAUSES HELD** regardless: links 22, invention 2 (`hub_shopping_cart`,
+`hub_transaction`), review **137 against 158.0** (ten recorded chains now; the eleventh is judged
+against 156.4, mean 139.1, sd 9.0), joins 0/0. Preservation 1.0.
+
+**P1 failed on step 3, and the gate that failed it is WP54, doing what its spec says.** Read from
+the trace: attempt 1 built `hub_transaction` as a **multi-source hub** over `TransactionHistory`
+and `TransactionHistoryArchive` with one satellite on `link_transaction_product` reading the live
+table; the Archive was unread — `E_HUB_PAYLOAD_UNREAD` fired, beside two `E_SAT_KEY_NOT_IN_SOURCE`
+(satellites on `link_bill_of_materials` and `link_work_order_operation`, retired by shape). Attempt 2
+answered everything on this axis: a single-source `hub_transaction` with `sat_transaction_details`
+(TransactionHistory) and `sat_transaction_details_archive` (TransactionHistoryArchive), both on the
+hub; one `E_SAT_ATTR_OVERLAP` remained (`ModifiedDate` on `hub_unit_measure`'s satellites). **Attempt 3
+regressed without being asked:** back to the multi-source hub of attempt 1, both transaction
+satellites gone, a relation-less `sat_transaction_detail` on the link — nothing reads either table,
+two `E_HUB_PAYLOAD_UNREAD`, the step red, the mapper skipped. Without WP54 this step would have been
+green with the transaction payload lost, as the eighth chain's step 3 was.
+
+**Finding 1 — the retry is a new draft, not a repair.** The modeler's retry payload carries the
+requirements, the business keys, the previous validation issues and the retired constructs — **not
+the previous model** (`dv2_modeler.py`, the payload built before `extractor.model`). Every attempt
+is drawn from scratch; what attempt 2 got right survives into attempt 3 only by chance. That is
+the mechanism behind „a step's colour is whether three attempts suffice“, and behind every
+oscillation recorded since 2026-09-17. Proposed: the retry carries the previous attempt's model and
+asks for a repair — keep what no issue names, change what the issues name. Prompt and payload
+change (WP16 registry), ≈ 0.1–0.2 USD more input per retry, measurable as attempts per step and as
+the share of passing constructs that survive a retry. Not built.
+
+**Finding 2 — a role written as `hub:role` in `connected_hubs` is an unknown hub.** Step 5 attempt
+1 emitted `link_sales_order_address` with `hub_address:ship_to` and `link_currency_rate_currency`
+with `hub_currency:from` / `hub_currency:to`; the parser read each as a hub name, found no such
+hub and dropped both links (`dropped_record` ×2) — two real relationships lost for the step. The
+prompt teaches the colon form for `driving_key` (`"hub_account:counterparty"`) and the dict form
+for participations; the modeler used the colon form for both. `Link._normalise_hub_refs` could
+read `name:role` into `LinkHubRef(hub, role)` deterministically — the notation is the project's own.
+Proposed; not built.
+
+**P2 untestable** — no relation-less satellite determined a table (WP56 had no case). **WP55 moved
+payload live for the first time:** step 3 collapsed `link_product_cost_history` and
+`link_product_list_price_history` (each on `hub_product` alone) and moved `sat_product_cost_history`
+and `sat_product_list_price_history` to `hub_product` with their declared relations, two
+disclosures, no dropped record. **WP54 live twice:** step 3 as above (not satisfied in three
+attempts) and step 5 attempt 1 (`ShoppingCartItem`: ShoppingCartItemID, Quantity, DateCreated,
+ModifiedDate unread — satisfied in attempt 2, beside the cart-item collision). **P3 held** (all four
+clauses; invention 2 ≤ 2, the transaction hub being the red step's). **P4 held:** collision once
+(step 5, `hub_shopping_cart_item` retired for `hub_shopping_cart`), attribute overlap in step 3,
+satellite key twice in step 3; the memory did not fire; all classes 0 in the four green steps'
+final reports.
+
+**Überprüft.** The chain file, the five step files and their `review.json` siblings, the trace
+(all nine modeler requests and payloads; step 3's three attempts construct by construct),
+`wp34_check`, the retry payload code. **Nur angenommen.** That attempt 3's regression had no
+cause in the request — the request named one overlap and two retirements, none about the
+transaction constructs; the modeler's reason, if any, is not in the transcript. **Bewusst nicht
+getan.** Neither proposal built; no repeat; the tenth chain enters the record as 137.

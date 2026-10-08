@@ -89,3 +89,8 @@ and `hub_person` from `EmailAddress` and `Password`. §4's „its satellite appe
 same attempt“ therefore **did not hold** on this shape; the rule did what it says. The inference
 that would have made it hold — a relation-less satellite whose attributes belong to exactly one
 declared table reads that table — is a finding in `docs/log.md` 2026-10-08, proposed, not built.
+
+**2026-10-09 — tenth live chain** (`20261008T223946700186Z`): the first live moves — step 3 collapsed
+`link_product_cost_history` and `link_product_list_price_history` (each on `hub_product` alone)
+and moved their satellites to `hub_product` with the declared relations `ProductCostHistory` and
+`ProductListPriceHistory`; two `link_collapsed` disclosures, no `dropped_record`. §4 held.
