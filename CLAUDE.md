@@ -134,7 +134,7 @@ The pipeline runs end-to-end: orchestrator → requirements parser → business 
 contracts, a review queue, an HTML report, and a proposed ADR. Brownfield mode (`run --existing`)
 extends an existing vault instead of modelling into an empty one. Verified on real PostgreSQL
 several times, most recently for composite keys (2026-10-05). The five-step AdventureWorks chain
-(person → sales) ran all-green on 2026-10-05, twice on 2026-10-06 and twice on 2026-10-07. WP29 §4 (entity-resolution safety) is
+(person → sales) ran all-green on 2026-10-05, twice on 2026-10-06, twice on 2026-10-07 and on 2026-10-08. WP29 §4 (entity-resolution safety) is
 met: `false_merge_rate` 1.000 over 5 clean repeats, zero blinded merges (2026-08-08; trap 5 is
 blinded-untestable by design). Details and dates: `docs/log.md`.
 
@@ -176,15 +176,16 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   retirement firing live for the first time. **WP51 (2026-10-06) moves a dropped hub's payload to its
   kept twin** (live only on the self-link branch); WP52 (2026-10-06) makes the chain's gate and
   health the minimum over steps and `extension_conflict` advisory (both live). Six normal chains,
-  red/green/red/red/green/green/green/green; **WP34 §6's review clause is a distribution since WP53
+  red/green/red/red/green/green/green/green/green; **WP34 §6's review clause is a distribution since WP53
   (2026-10-07)**: the one-sided 95 % prediction bound over the recorded chains before the judged one
   (`eval/wp34_check.py`); the sixth chain's 156 still fails it (151.9 over five), the seventh
-  (2026-10-07, 127, WP34 §6 met in full) held against 159.9, the eighth (2026-10-07, 126) against
-  160.0; the ninth is judged against 159.1. A completed chain enters the record in its docs commit.
+  (2026-10-07, 127, WP34 §6 met in full) held against 159.9, the eighth (126) against 160.0, the
+  ninth (2026-10-08, 143, **WP34 §6 met with 0 satellite-less hubs**, WP54 and WP55 live) against
+  159.1; the tenth is judged against 158.0. A completed chain enters the record in its docs commit.
   **A resumed chain's chain-level file is wrong before 2026-10-07** (model-only states); read the
   step files. **The eighth chain failed WP34 §6 on invention alone:** two hubs (`TransactionHistory`,
   `PurchaseOrderDetail`) whose payload no satellite reads — **WP54 (2026-10-07) refuses that**
-  (`E_HUB_PAYLOAD_UNREAD`, with the columns and a parent); keyless and on Postgres, unmeasured live.
+  (`E_HUB_PAYLOAD_UNREAD`); live once on the ninth chain, followed in attempt 2.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`

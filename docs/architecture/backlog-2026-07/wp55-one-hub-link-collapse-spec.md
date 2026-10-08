@@ -80,3 +80,12 @@ with the `one_hub_link_collapsed` backstop event. Guards 1–4 pass on the eight
 attempt-1 shape: the quota satellite sits on `hub_employee` with its relation, one disclosure,
 no dropped record. Guard 4 was corrected with the change (`flag_role` takes a flag). 1156 tests,
 ruff, mypy. §4 is **not yet measured live**.
+
+**2026-10-08 — ninth live chain** (`20261008T005807208141Z`): fired twice in step 1 attempt 1
+(`link_person_email_address`, `link_person_credential`, both on `hub_person`) — and moved nothing,
+because both satellites declared no `source_table` (§2.1's conservative half dropped them as
+before). Attempt 2, forced by an attribute overlap, re-modelled the payload on `hub_email_address`
+and `hub_person` from `EmailAddress` and `Password`. §4's „its satellite appears on the hub in the
+same attempt“ therefore **did not hold** on this shape; the rule did what it says. The inference
+that would have made it hold — a relation-less satellite whose attributes belong to exactly one
+declared table reads that table — is a finding in `docs/log.md` 2026-10-08, proposed, not built.

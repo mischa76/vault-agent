@@ -88,3 +88,6 @@ sd rounded up. The checker's number is the one that judges.
 **2026-10-07 — eighth chain** (`20261007T041647752430Z`, resumed at step 5 after an exhausted
 credit): 126 decisions against 160.0 — held. Eight chains recorded; the ninth is judged against
 159.1 (mean 138.9, sd 10.1).
+
+**2026-10-08 — ninth chain** (`20261008T005807208141Z`): 143 decisions against 159.1 — held. Nine chains recorded;
+the tenth is judged against 158.0 (mean 139.3, sd 9.5).

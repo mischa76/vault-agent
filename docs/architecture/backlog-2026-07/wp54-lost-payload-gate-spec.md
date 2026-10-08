@@ -91,3 +91,8 @@ refinement guard pass; 1152 tests, ruff, mypy. The gate refused four hubs of the
 satellites added to the demo (reading the hub's own relation, so no new stage), the project
 regenerated and **built on local PostgreSQL 16: `PASS=134 WARN=0 ERROR=0` (130 before)**. §4's
 chain half is **not yet measured live**.
+
+**2026-10-08 — ninth live chain** (`20261008T005807208141Z`, `docs/log.md` 2026-10-08): the gate's first live fire —
+step 3 attempt 1, a hub on `TransactionHistoryArchive` with no satellite reading it; the modeler
+added the satellite in attempt 2. **Zero satellite-less hubs in every final report**, the
+invention clause held for the first time at 0 (it had never been below 1). §4 met.

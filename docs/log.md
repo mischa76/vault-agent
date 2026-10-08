@@ -7650,3 +7650,66 @@ decisions within 120–160 expected. **P5 — links ≥ 8, joins 0/0, preservati
 health the minimum over steps. **P6 — the other remedies in reserve or firing once each**; all
 classes 0 in every final report. Cost ≈ 6.5–7 USD (an extra attempt where the gate fires), ≈ 45 min.
 **Not predicted.** Which shapes the modeler builds.
+
+## [2026-10-08] Ninth chain run — the sixth all-green chain, WP34 §6 held in full with zero satellite-less hubs for the first time; the payload gate and the link backstop live
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261008T005807208141Z`, at `3f753f0`, the
+pre-registration's commit. 107 calls (10 modeler: steps 1, 3 and 5 two attempts, step 4 three),
+430k uncached input, 286k output, 49 min, ≈ **6.96 USD**. Final vault 44 hubs, 63 links, 86
+satellites. **`validation_gate` 1.0 and `pipeline_health` 1.0 in all five steps** — the sixth
+all-green chain; nine normal chains since 2026-10-04: red / green / red / red / green / green /
+green / green / **green**. **WP34 §6 ALL FOUR CLAUSES HELD:** links 22, **invention 0 zero-satellite
+hubs** (never below 1 before — `hub_shopping_cart` had been satellite-less on every chain since
+WP30.2), review **143 against 159.1** (nine recorded chains now; the tenth is judged against 158.0,
+mean 139.3, sd 9.5), joins 0/0. Preservation 1.0.
+
+**P1 held. P2 held, live — the payload gate's first fire:** step 3 attempt 1 built a hub on
+`TransactionHistoryArchive` with no satellite reading it; `E_HUB_PAYLOAD_UNREAD` named the
+columns (ProductID, ReferenceOrderID, ReferenceOrderLineID, TransactionDate, TransactionType, …),
+attempt 2 carried the satellite, the step was green; no step's final report names a
+`W_HUB_NO_SAT` at all. The eighth chain's two unread tables have no successor. **P3 half held,
+and this is the run's finding:** WP55 fired twice in step 1 attempt 1 — `link_person_email_address`
+and `link_person_credential`, each with the single hub `hub_person` — and collapsed both; but their
+satellites (`sat_email_address_detail`, `sat_credential_status`) declared **no `source_table`**, so
+the rule's conservative half dropped them as `dropped_record`s (two disclosures), the collapse
+moving nothing. Attempt 2, requested for an attribute overlap, re-modelled both: an own
+`hub_email_address` with `sat_email_address_detail` read from `EmailAddress`, and
+`sat_person_credential` on `hub_person` read from `Password` — the payload survived, but by the
+accident of another gate's retry, not by the backstop. The conservative half was right not to
+guess (`hub_person`'s own table is `Person`, which carries neither e-mail nor password columns). What
+it could have done deterministically: a satellite without a relation whose attributes all belong to
+**exactly one** declared table reads that table — proposed, not built. **P4 held** (143 ≤ 159.1).
+**P5 held.** **P6 held:** the collision remedy fired in steps 4 and 5 (step 4 retired
+`hub_vendor_business_entity` for `hub_vendor_account`; step 5 retired `hub_customer_person` for
+`hub_customer` and — for the first time this way round — `hub_shopping_cart` for
+`hub_shopping_cart_item`), the attribute-overlap remedy in steps 1, 4 and 5; **the memory fired
+once by name:** step 5 attempt 2 re-emitted `hub_customer_person`, dropped with no dependents
+(`retired_reemitted`, one disclosure, zero orphans — WP44 as specified). `extension_conflict`
+advisory in steps 4 and 5 (health 1.0). Second hub, WP49 by shape, WP51/WP52 re-parenting: no case.
+`W_SAT_ATTR_OVERLAP_CROSS_SOURCE` 15 in the final reports (7 and 5 on the two chains before) —
+warnings, within tolerance, noted.
+
+**Überprüft.** The chain file, the five step files and their `review.json` siblings, the trace
+(modeler requests and the two attempt-1 payloads of step 1; the backstop events' details),
+`wp34_check`. **Nur angenommen.** That the e-mail and credential payload would have been lost
+without attempt 2 — attempt 1's final model, had it passed, carried neither (its validator report
+would have raised `E_HUB_PAYLOAD_UNREAD` for `EmailAddress` only if a hub bound it; none did, the
+link did). **Bewusst nicht getan.** No change to WP55's conservative half; no repeat. The ninth
+chain enters the record as 143.
+
+## [2026-10-08] Finding — a satellite without a relation whose attributes name exactly one declared table
+
+**Autor:** Claude Code
+
+From the ninth chain (entry above): WP55's collapse moved nothing because the two satellites on
+the one-hub links declared no `source_table`, and the rule refuses to guess. The payload came back
+only because another gate forced a second attempt. A deterministic inference is available: when
+every attribute of a relation-less satellite is a declared column of **exactly one** table of
+this increment's `source_schemas`, that table is its relation (`EmailAddress` for
+`EmailAddress`, `ModifiedDate`; `Password` for `PasswordHash`, `PasswordSalt`). With two or more
+matching tables or none, drop as today. Where it would apply: the WP55 collapse (move with the
+inferred relation) and perhaps the parser's general drop of a relation-less satellite on a valid
+parent (today it stays and reads the parent's table — which may be wrong, and the attribute
+grounding then warns). Proposed for the owner; not built.
