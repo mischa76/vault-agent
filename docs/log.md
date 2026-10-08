@@ -7626,3 +7626,27 @@ one-hub link any more, the trace does); 1156 tests, ruff, bare mypy. **Nur angen
 moved satellite's grain is right as declared — a dated history on a hub is typically multi-active
 with the date as dependent child key, which the backstop does not infer (spec §5). **Bewusst
 nicht getan.** No grain inference; no steering line; no live run.
+
+## [2026-10-08] Pre-registration for the ninth chain run — the first with the lost-payload gate and the one-hub-link backstop, written before the run
+
+**Autor:** Claude Code
+
+The user: „go“. One repeat of `adventureworks_incremental` at the commit carrying this entry — the
+first live run since WP54 (`E_HUB_PAYLOAD_UNREAD`, `1a7bddc`) and WP55 (`one_hub_link_collapsed`,
+`ffd848c`). Against the eighth chain (126 decisions, all green, WP34 §6 failed on invention with 4
+zero-satellite hubs, two of them unread tables).
+
+**P1 — all five steps green.** The new gate can make a step red where three attempts do not
+satisfy it; that is the design (WP54 §4), and the run will say which hub.
+**P2 — WP54 live:** no hub without any satellite reading its table survives a step's final report;
+if the modeler omits a table's payload in attempt 1, the gate fires once with the columns and the
+modeler adds the satellite in attempt 2. `W_HUB_NO_SAT` may still name hubs whose payload sits on
+a link satellite. **The invention clause (≤ 2 zero-satellite hubs) is expected to hold again** —
+the eighth chain's two omissions were exactly the gate's class.
+**P3 — WP55, conditional:** a one-hub link, if emitted, leaves no `dropped_record`; its satellite
+appears on the hub in the same attempt (`link_collapsed`, one disclosure). Untestable if absent.
+**P4 — the review clause is judged against 159.1** (eight recorded chains, mean 138.9, sd 10.1);
+decisions within 120–160 expected. **P5 — links ≥ 8, joins 0/0, preservation 1.0**, chain gate and
+health the minimum over steps. **P6 — the other remedies in reserve or firing once each**; all
+classes 0 in every final report. Cost ≈ 6.5–7 USD (an extra attempt where the gate fires), ≈ 45 min.
+**Not predicted.** Which shapes the modeler builds.
