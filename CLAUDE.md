@@ -175,15 +175,14 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   made them so:** re-emitted retired hubs were dropped — on the sixth under a new name, WP49's shape
   retirement firing live for the first time. **WP51 (2026-10-06) moves a dropped hub's payload to its
   kept twin** (live only on the self-link branch); WP52 (2026-10-06) makes the chain's gate and
-  health the minimum over steps and `extension_conflict` advisory (both live). Six normal chains,
-  red/green/red/red/green/green/green/green/green; **WP34 §6's review clause is a distribution since WP53
+  health the minimum over steps and `extension_conflict` advisory (both live). Nine normal chains:
+  red/green/red/red, then five green. **WP34 §6's review clause is a distribution since WP53
   (2026-10-07)**: the one-sided 95 % prediction bound over the recorded chains before the judged one
-  (`eval/wp34_check.py`); the sixth chain's 156 still fails it (151.9 over five), the seventh
-  (127, WP34 §6 met) held against 159.9, the eighth (126) against 160.0, the ninth (2026-10-08, 143,
-  **§6 met with 0 satellite-less hubs**, WP54/WP55 live) against 159.1; the tenth is judged against
-  158.0. A completed chain enters the record in its docs commit.
-  **A resumed chain's chain-level file is wrong before 2026-10-07** (model-only states); read the
-  step files. **The eighth chain failed WP34 §6 on invention alone:** two hubs (`TransactionHistory`,
+  (`eval/wp34_check.py`); the sixth chain's 156 still fails it (151.9 over five), the seventh (127)
+  held against 159.9, the eighth (126) against 160.0, the ninth (2026-10-08, 143, **§6 met with 0
+  satellite-less hubs**, WP54/WP55 live) against 159.1; the tenth is judged against 158.0. A completed
+  chain enters the record in its docs commit. **A resumed chain's chain-level file is wrong before
+  2026-10-07** (model-only states); read the step files. **The eighth chain failed WP34 §6 on invention alone:** two hubs (`TransactionHistory`,
   `PurchaseOrderDetail`) whose payload no satellite reads — **WP54 (2026-10-07) refuses that**
   (`E_HUB_PAYLOAD_UNREAD`); live once on the ninth chain, followed in attempt 2.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
