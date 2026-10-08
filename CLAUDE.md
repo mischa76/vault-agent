@@ -179,9 +179,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   red/green/red/red/green/green/green/green/green; **WP34 §6's review clause is a distribution since WP53
   (2026-10-07)**: the one-sided 95 % prediction bound over the recorded chains before the judged one
   (`eval/wp34_check.py`); the sixth chain's 156 still fails it (151.9 over five), the seventh
-  (2026-10-07, 127, WP34 §6 met in full) held against 159.9, the eighth (126) against 160.0, the
-  ninth (2026-10-08, 143, **WP34 §6 met with 0 satellite-less hubs**, WP54 and WP55 live) against
-  159.1; the tenth is judged against 158.0. A completed chain enters the record in its docs commit.
+  (127, WP34 §6 met) held against 159.9, the eighth (126) against 160.0, the ninth (2026-10-08, 143,
+  **§6 met with 0 satellite-less hubs**, WP54/WP55 live) against 159.1; the tenth is judged against
+  158.0. A completed chain enters the record in its docs commit.
   **A resumed chain's chain-level file is wrong before 2026-10-07** (model-only states); read the
   step files. **The eighth chain failed WP34 §6 on invention alone:** two hubs (`TransactionHistory`,
   `PurchaseOrderDetail`) whose payload no satellite reads — **WP54 (2026-10-07) refuses that**
