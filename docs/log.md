@@ -7741,3 +7741,21 @@ satellite's relation and not a coincidence of column names — with the full att
 single match the coincidence would need a second table with the same columns, which the rule then
 refuses. **Bewusst nicht getan.** No inference from a partial match; no link satellites; no live
 run — that is the tenth chain, next.
+
+## [2026-10-09] Pre-registration for the tenth chain run — the first with the relation inference, written before the run
+
+**Autor:** Claude Code
+
+The user, with WP56: „… und lassen im Anschluss die zehnte Kette laufen“. One repeat of
+`adventureworks_incremental` at the commit carrying this entry — the first live run since WP56
+(`58f4fad`). Against the ninth chain (143 decisions, all green, WP34 §6 met with 0 zero-satellite
+hubs, 6.96 USD).
+
+**P1 — all five steps green.** **P2 — WP56, conditional:** a relation-less satellite whose
+attributes determine one declared table carries that table in the same attempt (`relation_inferred`,
+a disclosure); on a collapsed one-hub link it moves instead of being dropped; a lone timestamp
+still drops. Untestable if no relation-less satellite occurs. **P3 — WP34 §6 holds in full**,
+invention at 0 or 1 (WP54 live again where the modeler omits a payload), review against **158.0**
+(nine recorded chains, mean 139.3, sd 9.5), links ≥ 8, joins 0/0, preservation 1.0.
+**P4 — the other remedies in reserve or firing once each**; all classes 0 in every final report.
+Cost ≈ 7 USD, ≈ 50 min. **Not predicted.** Which shapes the modeler builds.
