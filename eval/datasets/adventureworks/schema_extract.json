@@ -5312,5 +5312,31 @@
       "primary_key": [],
       "schema": "Sales"
     }
-  ]
+  ],
+  "user_defined_types": {
+    "AccountNumber": {
+      "base_type": "nvarchar(15)",
+      "nullable": true
+    },
+    "Flag": {
+      "base_type": "bit",
+      "nullable": false
+    },
+    "Name": {
+      "base_type": "nvarchar(50)",
+      "nullable": true
+    },
+    "NameStyle": {
+      "base_type": "bit",
+      "nullable": false
+    },
+    "OrderNumber": {
+      "base_type": "nvarchar(25)",
+      "nullable": true
+    },
+    "Phone": {
+      "base_type": "nvarchar(25)",
+      "nullable": true
+    }
+  }
 }

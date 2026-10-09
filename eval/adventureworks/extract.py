@@ -53,6 +53,14 @@ _COLUMN_RE = re.compile(
     r"^\s*\[(?P<name>\w+)\]\s+(?P<type>(?:\[[\w\]\[.]+\]|\w+)(?:\(\s*[\w,\s\[\].]+\s*\))?)"
     r"(?P<rest>.*)?$"
 )
+# WP64 (2026-10-10): the script's own alias types — `CREATE TYPE [Name] FROM nvarchar(50) NULL;`
+# — six of them, which 42 columns are declared with. Transcribed so the derivation can resolve
+# a column's alias to the base type the same script defines; the column keeps the alias here.
+_TYPE_RE = re.compile(
+    r"^\s*CREATE TYPE \[(?P<name>\w+)\] FROM (?P<base>\w+(?:\(\s*\d+\s*\))?)"
+    r"\s+(?P<null>NOT NULL|NULL)\s*;",
+    re.M,
+)
 # Positional form: N'MS_Description', N'<text>', N'SCHEMA', [s], N'TABLE', [t] [, N'COLUMN', [c]]
 _DESC_RE = re.compile(
     r"sp_addextendedproperty\] N'MS_Description', N'(?P<desc>(?:[^']|'')*)', "
@@ -192,6 +200,14 @@ def parse(sql: str) -> list[Table]:
     return list(tables.values())
 
 
+def parse_user_defined_types(sql: str) -> dict[str, dict[str, Any]]:
+    """The script's alias types, by name: base type and nullability (WP64)."""
+    return {
+        m.group("name"): {"base_type": m.group("base"), "nullable": m.group("null") == "NULL"}
+        for m in sorted(_TYPE_RE.finditer(sql), key=lambda m: m.group("name"))
+    }
+
+
 def build_extract(sql: str) -> dict[str, Any]:
     """The checked-in artifact: deterministic, sorted, no timestamps."""
     tables = parse(sql)
@@ -204,6 +220,7 @@ def build_extract(sql: str) -> dict[str, Any]:
         "tables": [
             asdict(t) for t in sorted(tables, key=lambda t: (t.schema, t.name))
         ],
+        "user_defined_types": parse_user_defined_types(sql),
     }
 
 

@@ -48,7 +48,7 @@ source_schemas:
     type: int
     comment: Primary key for AddressType records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Address type description. For example, Billing, Home, or Shipping.
   - name: rowguid
     type: uniqueidentifier
@@ -153,7 +153,7 @@ source_schemas:
     type: int
     comment: Primary key for ContactType records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Contact type description.
   - name: ModifiedDate
     type: datetime
@@ -165,7 +165,7 @@ source_schemas:
     type: nvarchar(3)
     comment: ISO standard code for countries and regions.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Country or region name.
   - name: ModifiedDate
     type: datetime
@@ -235,20 +235,20 @@ source_schemas:
       customer, SP = Sales person, EM = Employee (non-sales), VC = Vendor contact,
       GC = General contact'
   - name: NameStyle
-    type: NameStyle
+    type: bit
     comment: 0 = The data in FirstName and LastName are stored in western style (first
       name, last name) order.  1 = Eastern style (last name, first name) order.
   - name: Title
     type: nvarchar(8)
     comment: A courtesy title. For example, Mr. or Ms.
   - name: FirstName
-    type: Name
+    type: nvarchar(50)
     comment: First name of the person.
   - name: MiddleName
-    type: Name
+    type: nvarchar(50)
     comment: Middle name or middle initial of the person.
   - name: LastName
-    type: Name
+    type: nvarchar(50)
     comment: Last name of the person.
   - name: Suffix
     type: nvarchar(10)
@@ -286,7 +286,7 @@ source_schemas:
     type: int
     comment: Business entity identification number. Foreign key to Person.BusinessEntityID.
   - name: PhoneNumber
-    type: Phone
+    type: nvarchar(25)
     comment: Telephone number identification number.
   - name: PhoneNumberTypeID
     type: int
@@ -314,7 +314,7 @@ source_schemas:
     type: int
     comment: Primary key for telephone number type records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Name of the telephone number type
   - name: ModifiedDate
     type: datetime
@@ -332,11 +332,11 @@ source_schemas:
     type: nvarchar(3)
     comment: ISO standard country or region code. Foreign key to CountryRegion.CountryRegionCode.
   - name: IsOnlyStateProvinceFlag
-    type: Flag
+    type: bit
     comment: 0 = StateProvinceCode exists. 1 = StateProvinceCode unavailable, using
       CountryRegionCode.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: State or province description.
   - name: TerritoryID
     type: int
@@ -369,10 +369,10 @@ source_schemas:
     type: smallint
     comment: Primary key for Department records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Name of the department.
   - name: GroupName
-    type: Name
+    type: nvarchar(50)
     comment: Name of the group to which the department belongs.
   - name: ModifiedDate
     type: datetime
@@ -411,7 +411,7 @@ source_schemas:
     type: date
     comment: Employee hired on this date.
   - name: SalariedFlag
-    type: Flag
+    type: bit
     comment: Job classification. 0 = Hourly, not exempt from collective bargaining.
       1 = Salaried, exempt from collective bargaining.
   - name: VacationHours
@@ -421,7 +421,7 @@ source_schemas:
     type: smallint
     comment: Number of available sick leave hours.
   - name: CurrentFlag
-    type: Flag
+    type: bit
     comment: 0 = Inactive, 1 = Active
   - name: rowguid
     type: uniqueidentifier
@@ -533,7 +533,7 @@ source_schemas:
     type: tinyint
     comment: Primary key for Shift records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Shift description.
   - name: StartTime
     type: time
@@ -600,7 +600,7 @@ source_schemas:
     type: nchar(6)
     comment: Primary key for Culture records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Culture description.
   - name: ModifiedDate
     type: datetime
@@ -676,7 +676,7 @@ source_schemas:
     type: smallint
     comment: Primary key for Location records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Location description.
   - name: CostRate
     type: smallmoney
@@ -694,16 +694,16 @@ source_schemas:
     type: int
     comment: Primary key for Product records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Name of the product.
   - name: ProductNumber
     type: nvarchar(25)
     comment: Unique product identification number.
   - name: MakeFlag
-    type: Flag
+    type: bit
     comment: 0 = Product is purchased, 1 = Product is manufactured in-house.
   - name: FinishedGoodsFlag
-    type: Flag
+    type: bit
     comment: 0 = Product is not a salable item. 1 = Product is salable.
   - name: Color
     type: nvarchar(15)
@@ -798,7 +798,7 @@ source_schemas:
     type: int
     comment: Primary key for ProductCategory records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Category description.
   - name: rowguid
     type: uniqueidentifier
@@ -943,7 +943,7 @@ source_schemas:
     type: int
     comment: Primary key for ProductModel records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Product model description.
   - name: CatalogDescription
     type: XML(Production.ProductDescriptionSchemaCollection)
@@ -1048,7 +1048,7 @@ source_schemas:
     type: int
     comment: Product photo identification number. Foreign key to ProductPhoto.ProductPhotoID.
   - name: Primary
-    type: Flag
+    type: bit
     comment: 0 = Photo is not the principal image. 1 = Photo is the principal image.
   - name: ModifiedDate
     type: datetime
@@ -1076,7 +1076,7 @@ source_schemas:
     type: int
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: ReviewerName
-    type: Name
+    type: nvarchar(50)
     comment: Name of the reviewer.
   - name: ReviewDate
     type: datetime
@@ -1111,7 +1111,7 @@ source_schemas:
     type: int
     comment: Product category identification number. Foreign key to ProductCategory.ProductCategoryID.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Subcategory description.
   - name: rowguid
     type: uniqueidentifier
@@ -1134,7 +1134,7 @@ source_schemas:
     type: smallint
     comment: Primary key for ScrapReason records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Failure description.
   - name: ModifiedDate
     type: datetime
@@ -1215,7 +1215,7 @@ source_schemas:
     type: nchar(3)
     comment: Primary key.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Unit of measure description.
   - name: ModifiedDate
     type: datetime
@@ -1470,7 +1470,7 @@ source_schemas:
     type: int
     comment: Primary key for ShipMethod records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Shipping company name.
   - name: ShipBase
     type: money
@@ -1492,21 +1492,21 @@ source_schemas:
     type: int
     comment: Primary key for Vendor records.  Foreign key to BusinessEntity.BusinessEntityID
   - name: AccountNumber
-    type: AccountNumber
+    type: nvarchar(15)
     comment: Vendor account (identification) number.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Company name.
   - name: CreditRating
     type: tinyint
     comment: 1 = Superior, 2 = Excellent, 3 = Above average, 4 = Average, 5 = Below
       average
   - name: PreferredVendorStatus
-    type: Flag
+    type: bit
     comment: 0 = Do not use if another vendor is available. 1 = Preferred over other
       vendors supplying the same product.
   - name: ActiveFlag
-    type: Flag
+    type: bit
     comment: 0 = Vendor no longer used. 1 = Vendor is actively used.
   - name: PurchasingWebServiceURL
     type: nvarchar(1024)
@@ -1572,7 +1572,7 @@ source_schemas:
     type: nchar(3)
     comment: The ISO code for the Currency.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Currency name.
   - name: ModifiedDate
     type: datetime
@@ -1760,16 +1760,16 @@ source_schemas:
     comment: Order current status. 1 = In process; 2 = Approved; 3 = Backordered;
       4 = Rejected; 5 = Shipped; 6 = Cancelled
   - name: OnlineOrderFlag
-    type: Flag
+    type: bit
     comment: 0 = Order placed by sales person. 1 = Order placed online by customer.
   - name: SalesOrderNumber
     type: AS
     comment: Unique sales order identification number.
   - name: PurchaseOrderNumber
-    type: OrderNumber
+    type: nvarchar(25)
     comment: Customer purchase order number reference.
   - name: AccountNumber
-    type: AccountNumber
+    type: nvarchar(15)
     comment: Financial accounting number reference.
   - name: CustomerID
     type: int
@@ -1972,10 +1972,10 @@ source_schemas:
     type: int
     comment: Primary key for SalesReason records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Sales reason description.
   - name: ReasonType
-    type: Name
+    type: nvarchar(50)
     comment: Category the sales reason belongs to.
   - name: ModifiedDate
     type: datetime
@@ -1997,7 +1997,7 @@ source_schemas:
     type: smallmoney
     comment: Tax rate amount.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Tax rate description.
   - name: rowguid
     type: uniqueidentifier
@@ -2020,7 +2020,7 @@ source_schemas:
     type: int
     comment: Primary key for SalesTerritory records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Sales territory description
   - name: CountryRegionCode
     type: nvarchar(3)
@@ -2190,7 +2190,7 @@ source_schemas:
     type: int
     comment: Primary key. Foreign key to Customer.BusinessEntityID.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Name of the store.
   - name: SalesPersonID
     type: int

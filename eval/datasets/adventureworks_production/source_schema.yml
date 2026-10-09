@@ -58,7 +58,7 @@ source_schemas:
     type: nchar(6)
     comment: Primary key for Culture records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Culture description.
   - name: ModifiedDate
     type: datetime
@@ -134,7 +134,7 @@ source_schemas:
     type: smallint
     comment: Primary key for Location records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Location description.
   - name: CostRate
     type: smallmoney
@@ -152,16 +152,16 @@ source_schemas:
     type: int
     comment: Primary key for Product records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Name of the product.
   - name: ProductNumber
     type: nvarchar(25)
     comment: Unique product identification number.
   - name: MakeFlag
-    type: Flag
+    type: bit
     comment: 0 = Product is purchased, 1 = Product is manufactured in-house.
   - name: FinishedGoodsFlag
-    type: Flag
+    type: bit
     comment: 0 = Product is not a salable item. 1 = Product is salable.
   - name: Color
     type: nvarchar(15)
@@ -256,7 +256,7 @@ source_schemas:
     type: int
     comment: Primary key for ProductCategory records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Category description.
   - name: rowguid
     type: uniqueidentifier
@@ -401,7 +401,7 @@ source_schemas:
     type: int
     comment: Primary key for ProductModel records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Product model description.
   - name: CatalogDescription
     type: XML(Production.ProductDescriptionSchemaCollection)
@@ -506,7 +506,7 @@ source_schemas:
     type: int
     comment: Product photo identification number. Foreign key to ProductPhoto.ProductPhotoID.
   - name: Primary
-    type: Flag
+    type: bit
     comment: 0 = Photo is not the principal image. 1 = Photo is the principal image.
   - name: ModifiedDate
     type: datetime
@@ -534,7 +534,7 @@ source_schemas:
     type: int
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: ReviewerName
-    type: Name
+    type: nvarchar(50)
     comment: Name of the reviewer.
   - name: ReviewDate
     type: datetime
@@ -569,7 +569,7 @@ source_schemas:
     type: int
     comment: Product category identification number. Foreign key to ProductCategory.ProductCategoryID.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Subcategory description.
   - name: rowguid
     type: uniqueidentifier
@@ -592,7 +592,7 @@ source_schemas:
     type: smallint
     comment: Primary key for ScrapReason records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Failure description.
   - name: ModifiedDate
     type: datetime
@@ -673,7 +673,7 @@ source_schemas:
     type: nchar(3)
     comment: Primary key.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Unit of measure description.
   - name: ModifiedDate
     type: datetime

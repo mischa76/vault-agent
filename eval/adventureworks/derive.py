@@ -72,11 +72,18 @@ def _natural_keys(table: dict[str, Any]) -> list[str]:
 
 def build_source_schema(extract: dict[str, Any], schema: str) -> dict[str, Any]:
     """One declared source table per table of the subject area (ADR-0004 / WP9 §3.1 shape)."""
+    # WP64: an alias type the script defines (`CREATE TYPE [Name] FROM nvarchar(50)`) resolves
+    # to its base type here — the declaration a contract can read; the extract keeps the alias.
+    aliases = extract.get("user_defined_types", {})
     tables = []
     for table in tables_of(extract, schema):
         columns = []
         for col in table["columns"]:
-            entry: dict[str, Any] = {"name": col["name"], "type": col["type"]}
+            declared_type = col["type"]
+            alias = aliases.get(declared_type.removeprefix("dbo."))
+            entry: dict[str, Any] = {
+                "name": col["name"], "type": alias["base_type"] if alias else declared_type,
+            }
             if col["description"]:
                 entry["comment"] = col["description"]
             columns.append(entry)

@@ -49,7 +49,7 @@ def test_the_derivation_resolves_an_alias_and_leaves_everything_else() -> None:
             ],
         }],
     }
-    [table] = build_source_schema(extract, "HumanResources")["tables"]
+    [table] = build_source_schema(extract, "HumanResources")["source_schemas"]
     assert [c["type"] for c in table["columns"]] == ["smallint", "nvarchar(50)", "nvarchar(50)"]
     assert table["columns"][1]["comment"] == "Name of the department."
 
@@ -62,7 +62,7 @@ def test_the_checked_in_extract_and_schemas_carry_no_alias_types() -> None:
     aliases = set(extract["user_defined_types"])
     for path in Path("eval/datasets").glob("adventureworks_*/source_schema.yml"):
         doc = yaml.safe_load(path.read_text())
-        tables = doc if isinstance(doc, list) else doc.get("tables", [])
+        tables = doc if isinstance(doc, list) else doc.get("source_schemas", doc.get("tables", []))
         for table in tables:
             for col in table.get("columns", []):
                 if isinstance(col, dict):

@@ -176,7 +176,7 @@ source_schemas:
     type: int
     comment: Primary key for ShipMethod records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Shipping company name.
   - name: ShipBase
     type: money
@@ -198,21 +198,21 @@ source_schemas:
     type: int
     comment: Primary key for Vendor records.  Foreign key to BusinessEntity.BusinessEntityID
   - name: AccountNumber
-    type: AccountNumber
+    type: nvarchar(15)
     comment: Vendor account (identification) number.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Company name.
   - name: CreditRating
     type: tinyint
     comment: 1 = Superior, 2 = Excellent, 3 = Above average, 4 = Average, 5 = Below
       average
   - name: PreferredVendorStatus
-    type: Flag
+    type: bit
     comment: 0 = Do not use if another vendor is available. 1 = Preferred over other
       vendors supplying the same product.
   - name: ActiveFlag
-    type: Flag
+    type: bit
     comment: 0 = Vendor no longer used. 1 = Vendor is actively used.
   - name: PurchasingWebServiceURL
     type: nvarchar(1024)

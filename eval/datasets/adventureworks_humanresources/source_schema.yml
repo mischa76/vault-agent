@@ -9,10 +9,10 @@ source_schemas:
     type: smallint
     comment: Primary key for Department records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Name of the department.
   - name: GroupName
-    type: Name
+    type: nvarchar(50)
     comment: Name of the group to which the department belongs.
   - name: ModifiedDate
     type: datetime
@@ -51,7 +51,7 @@ source_schemas:
     type: date
     comment: Employee hired on this date.
   - name: SalariedFlag
-    type: Flag
+    type: bit
     comment: Job classification. 0 = Hourly, not exempt from collective bargaining.
       1 = Salaried, exempt from collective bargaining.
   - name: VacationHours
@@ -61,7 +61,7 @@ source_schemas:
     type: smallint
     comment: Number of available sick leave hours.
   - name: CurrentFlag
-    type: Flag
+    type: bit
     comment: 0 = Inactive, 1 = Active
   - name: rowguid
     type: uniqueidentifier
@@ -173,7 +173,7 @@ source_schemas:
     type: tinyint
     comment: Primary key for Shift records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Shift description.
   - name: StartTime
     type: time

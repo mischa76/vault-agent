@@ -48,7 +48,7 @@ source_schemas:
     type: int
     comment: Primary key for AddressType records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Address type description. For example, Billing, Home, or Shipping.
   - name: rowguid
     type: uniqueidentifier
@@ -153,7 +153,7 @@ source_schemas:
     type: int
     comment: Primary key for ContactType records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Contact type description.
   - name: ModifiedDate
     type: datetime
@@ -165,7 +165,7 @@ source_schemas:
     type: nvarchar(3)
     comment: ISO standard code for countries and regions.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Country or region name.
   - name: ModifiedDate
     type: datetime
@@ -235,20 +235,20 @@ source_schemas:
       customer, SP = Sales person, EM = Employee (non-sales), VC = Vendor contact,
       GC = General contact'
   - name: NameStyle
-    type: NameStyle
+    type: bit
     comment: 0 = The data in FirstName and LastName are stored in western style (first
       name, last name) order.  1 = Eastern style (last name, first name) order.
   - name: Title
     type: nvarchar(8)
     comment: A courtesy title. For example, Mr. or Ms.
   - name: FirstName
-    type: Name
+    type: nvarchar(50)
     comment: First name of the person.
   - name: MiddleName
-    type: Name
+    type: nvarchar(50)
     comment: Middle name or middle initial of the person.
   - name: LastName
-    type: Name
+    type: nvarchar(50)
     comment: Last name of the person.
   - name: Suffix
     type: nvarchar(10)
@@ -286,7 +286,7 @@ source_schemas:
     type: int
     comment: Business entity identification number. Foreign key to Person.BusinessEntityID.
   - name: PhoneNumber
-    type: Phone
+    type: nvarchar(25)
     comment: Telephone number identification number.
   - name: PhoneNumberTypeID
     type: int
@@ -314,7 +314,7 @@ source_schemas:
     type: int
     comment: Primary key for telephone number type records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Name of the telephone number type
   - name: ModifiedDate
     type: datetime
@@ -332,11 +332,11 @@ source_schemas:
     type: nvarchar(3)
     comment: ISO standard country or region code. Foreign key to CountryRegion.CountryRegionCode.
   - name: IsOnlyStateProvinceFlag
-    type: Flag
+    type: bit
     comment: 0 = StateProvinceCode exists. 1 = StateProvinceCode unavailable, using
       CountryRegionCode.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: State or province description.
   - name: TerritoryID
     type: int

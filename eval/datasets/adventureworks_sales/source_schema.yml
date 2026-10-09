@@ -55,7 +55,7 @@ source_schemas:
     type: nchar(3)
     comment: The ISO code for the Currency.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Currency name.
   - name: ModifiedDate
     type: datetime
@@ -243,16 +243,16 @@ source_schemas:
     comment: Order current status. 1 = In process; 2 = Approved; 3 = Backordered;
       4 = Rejected; 5 = Shipped; 6 = Cancelled
   - name: OnlineOrderFlag
-    type: Flag
+    type: bit
     comment: 0 = Order placed by sales person. 1 = Order placed online by customer.
   - name: SalesOrderNumber
     type: AS
     comment: Unique sales order identification number.
   - name: PurchaseOrderNumber
-    type: OrderNumber
+    type: nvarchar(25)
     comment: Customer purchase order number reference.
   - name: AccountNumber
-    type: AccountNumber
+    type: nvarchar(15)
     comment: Financial accounting number reference.
   - name: CustomerID
     type: int
@@ -455,10 +455,10 @@ source_schemas:
     type: int
     comment: Primary key for SalesReason records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Sales reason description.
   - name: ReasonType
-    type: Name
+    type: nvarchar(50)
     comment: Category the sales reason belongs to.
   - name: ModifiedDate
     type: datetime
@@ -480,7 +480,7 @@ source_schemas:
     type: smallmoney
     comment: Tax rate amount.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Tax rate description.
   - name: rowguid
     type: uniqueidentifier
@@ -503,7 +503,7 @@ source_schemas:
     type: int
     comment: Primary key for SalesTerritory records.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Sales territory description
   - name: CountryRegionCode
     type: nvarchar(3)
@@ -673,7 +673,7 @@ source_schemas:
     type: int
     comment: Primary key. Foreign key to Customer.BusinessEntityID.
   - name: Name
-    type: Name
+    type: nvarchar(50)
     comment: Name of the store.
   - name: SalesPersonID
     type: int
