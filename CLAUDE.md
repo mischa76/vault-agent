@@ -194,7 +194,7 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
 ## How this file is maintained
 
 This file is loaded in full on every request; everything below the always-needed layer belongs in
-`docs/`. Budget: **200 lines**. A new entry earns a place here only if an agent did the wrong
+`docs/`. Budget: **250 lines** (200 until 2026-10-09; raised by the owner so that condensing stops costing knowledge). A new entry earns a place here only if an agent did the wrong
 thing without it — otherwise it is a log entry. At budget, adding one means evicting one.
 Procedure, checklists and the lint pass: `.claude/skills/project-docs/SKILL.md`. Rationale and the
 verified loading semantics behind this split: `docs/methodology/llm-wiki-mapping.md`.

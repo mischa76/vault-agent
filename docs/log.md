@@ -7951,3 +7951,15 @@ as dropped here, which understates it. **Bewusst nicht getan.** No repeat; the e
 enters the record as 136. The WP53 guard that judged an unrecorded chain of 156 against the whole
 record now uses the record's mean: 156 stopped holding as the record tightened (155.1 for the
 twelfth), which is the clause working, not the guard failing.
+
+## [2026-10-09] Decision — CLAUDE.md's budget is 250 lines
+
+**Autor:** Claude Code
+
+The user: „in CLAUDE.md erlauben wir neu 250; ich glaube dass sonst essentielles wissen verloren
+geht wenn wir jetzt anfangen zu streichen und 50 mehr machen den kohl auch nicht mehr fett“. The
+file had been condensed back to 200 four times in three days (2026-10-06 → 2026-10-09), each time
+by compressing the chain paragraph. Budget raised to 250 in `CLAUDE.md` and the project-docs
+skill; the eviction rule stands at the new limit. **Überprüft:** the two files; no lint carries
+the number. **Nur angenommen:** nothing. **Bewusst nicht getan:** no re-expansion of what was
+condensed — the log holds it.

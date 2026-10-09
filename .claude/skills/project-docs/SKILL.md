@@ -36,7 +36,7 @@ Ask in this order and stop at the first yes.
 
 ## The admission rule for CLAUDE.md
 
-Budget: **200 lines**, and it is a real limit, not an aspiration — the file is loaded in full on
+Budget: **250 lines** (200 until 2026-10-09, raised by the owner: condensing at 200 had started to cost knowledge), and it is a real limit, not an aspiration — the file is loaded in full on
 every request, and the documented guidance is that longer files reduce adherence.
 
 An entry is admitted only if **both** hold:
