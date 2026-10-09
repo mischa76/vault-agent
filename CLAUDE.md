@@ -177,7 +177,11 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   red/green/red/red, five green, red, green — the tenth's step 3 on WP54's gate after attempt 3
   regressed: a retry was a new draft — **WP57 (2026-10-09) carries the previous model** with a
   repair line; on the eleventh chain every retry kept 100 % of what no issue named. WP58 reads
-  `hub:role` participations (no live case yet). **WP34 §6's review clause is a distribution since
+  `hub:role` participations (no live case yet). **The 5.5 generation (WP59, 2026-10-09):** one chain
+  on Sonnet 5.5 / Opus 5.5 — all green, half the time, 29 % cheaper, zero backstop fires, but 158
+  contract fields lost their types to a stringified `assets` (WP61 repairs it); the 5.5 models
+  **refuse forced tool use** — `FORCED_TOOL_CHOICE=false` (WP60) asks instead; defaults unchanged
+  until a second 5.5 chain. **WP34 §6's review clause is a distribution since
   WP53 (2026-10-07)**: the one-sided 95 % prediction bound over the recorded chains before the judged
   one (`eval/wp34_check.py`); the sixth chain's 156 still fails it, the seventh to eleventh held
   (127, 126, 143, 137, 136), the twelfth is judged against 155.1; a completed chain enters the record

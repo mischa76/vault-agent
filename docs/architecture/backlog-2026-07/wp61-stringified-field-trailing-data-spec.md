@@ -48,3 +48,9 @@ that cannot be decoded at all.
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-09 — built, keyless.** Guards in `tests/test_wp61_stringified_trailing_data.py`
+(guard 1 failing before the change; 2 and 3 pinned the unchanged behaviour), change `95b0ae8`:
+`json.JSONDecoder.raw_decode` on the stripped string, the tail in the backstop event's
+`trailing`. The ten answers of the twelfth chain decode under it (verified by hand on three). 1174
+tests, ruff, mypy. §4 is **not yet measured live**.

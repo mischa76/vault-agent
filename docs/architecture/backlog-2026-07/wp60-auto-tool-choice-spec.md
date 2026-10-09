@@ -78,3 +78,8 @@ the structured-outputs subset, which the agents' hand-written schemas do not mee
 dropped; the auto mode is `tool_choice: auto` plus the instruction line, and schema conformance
 stays with pydantic parsing exactly as in forced mode (which never had a grammar guarantee
 either). A strict-compatible schema transform is a separate, optional WP. Guard 2 amended.
+
+**2026-10-09 — twelfth live chain** (`20261009T161212987101Z`, Sonnet 5.5 / Opus 5.5): **0 of 114 calls without a
+tool block**, no text-only retry — `auto` plus the instruction line held on every agent. §4 met.
+What `auto` without `strict` does not guarantee is schema conformance: ten contract answers
+carried `assets` as a string (WP61).

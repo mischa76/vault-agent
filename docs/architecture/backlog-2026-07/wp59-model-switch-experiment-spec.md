@@ -74,3 +74,13 @@ chain before any default change.
 ## 6 Results
 
 *(appended after the runs)*
+
+**2026-10-09 — the chain (§2.1), after two false starts the client could not make (WP60).**
+`20261009T161212987101Z`: all five steps green, 22.6 min, 4.91 USD at the 5.5 prices (6.89 at 4.x for the same
+tokens), invention 0, links 21, joins 0/0, **review 238 against 155.1 — failed on one defect**:
+Sonnet 5.5 stringified the contract tool's `assets` in 10 of 68 answers (one brace too many), the
+old backstop dropped them, 158 fields lost their types. WP61 widens the backstop. Zero backstop
+fires on the whole chain; WP57 carry-over 100 % on retries; WP60's auto mode 0 of 114 without a
+tool block. P1, P5, P6 held; P2 failed (step 1 took three attempts); P3 failed on review only; P4
+reported. §2.2 (the matrix) is running. §5's decision rule: a second 5.5 chain with WP61 before
+any default change.

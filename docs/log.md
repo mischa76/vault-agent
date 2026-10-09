@@ -8007,3 +8007,45 @@ defaults to forced, so the suite stays keyless. Docs: `05-configuration.md`, cha
 nearly every call — the trace's „no tool_use block“ errors will count the exceptions.
 **Bewusst nicht getan.** No structured-outputs route; no model-id heuristic. The twelfth chain is
 restarted with `FORCED_TOOL_CHOICE=false`; the pre-registration of today stands.
+
+## [2026-10-09] Twelfth chain run — the first on Sonnet 5.5 / Opus 5.5 (WP59): all green, half the time, 29 % cheaper, zero backstop fires — and the review clause failed on a model output defect
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261009T161212987101Z`, at `d560ad0`,
+`PRIMARY_MODEL=claude-sonnet-5-5 HEAVY_MODEL=claude-opus-5-5 FORCED_TOOL_CHOICE=false` (WP60, no
+`strict`). Two earlier starts of this chain failed at the first call before a token was billed
+(the forced-tool 400, then the strict-schema 400 — entries above). 114 calls (9 modeler: steps 1
+and 2 three and two attempts, step 3 one, step 4 one, step 5 two), 490k uncached input, 271k
+output, **22.6 min** (the 4.x chains: 45–55), ≈ **4.91 USD at the 5.5 prices** — the same tokens
+at the 4.x prices would be 6.89, so the generation is ≈ 29 % cheaper on this workload and twice
+as fast. Final vault 39 hubs, 49 links, 91 satellites (4.x: 42–44 / 57–63 / 73–91).
+
+**P1 held — all five steps green**, `validation_gate` and `pipeline_health` 1.0. **P2 failed on
+step 1** (three attempts: collisions, satellite keys, a multi-source-hub satellite, an unread
+payload); steps 3 and 4 in one attempt. **P3 failed on the review clause alone:** links 21,
+**invention 0** (the second chain ever at 0), joins 0/0 — but **238 decisions against 155.1**.
+**The source is one defect, not the vault:** 158 of the 238 are `undetermined_type` decisions
+(27 / 21 / 51 / 16 / 43 per step; the eleventh chain had 0). Sonnet 5.5 returned the contract
+tool's `assets` field as a **string** in 10 of 68 answers — each a complete JSON object with one
+closing brace too many; `decoded_field` (the 2026-09-17 backstop) accepted only what `json.loads`
+accepts and fell back to the empty default, silently, so every field of those ten tables' chunks
+got the type `unknown`. Without them: 80 decisions, below every 4.x chain (the review load's
+other sources — 68 contract owners, a few unresolved concepts — are at the 4.x level or lower:
+`source_binding` 42 against 62–67, `link_translation` 1 against 9–11). **WP61** (`95b0ae8`) widens
+the backstop to the first complete JSON value and counts the tail; built after the run, not yet
+measured on 5.5. **P4: zero backstop fires** — `attributes_without_cdk` 0 (4.x: 4–10 per chain),
+no collapse, no retirement re-emitted, no relation inferred; the ledger matrix (cells running
+as this is written) says whether the CDK steering line is still needed on Opus 5.5. **P5 held:**
+4.91 ≤ 6 USD; token volume within range (input +20 %, output −0 %; Sonnet 5.5 made 68 contract
+calls against 24 — more truncation splits, seven `emit_requirements` truncations against three).
+**P6 held:** WP57 carry-over 100 % on every retry except step 1's first (7/8 hubs, 3/6 links,
+13/15 satellites — what the collision and key issues named). **WP60 live: 0 of 114 calls without
+a tool block** — `auto` plus the instruction line is as reliable as forcing was.
+
+**Not entered into the review record** (a different population; WP59 §2.1). **Überprüft.** The
+chain file, the five step files and `review.json` siblings, the trace (all 114 calls; the ten
+stringified answers decoded by hand — one trailing brace each), `wp34_check`, the cost at both
+price lists from the trace's tokens. **Nur angenommen.** That the step-1 three attempts are the
+new model's spread and not a systematic difference — one chain is a shape. **Bewusst nicht
+getan.** No default switch (WP59 §5: a second 5.5 chain first, with WP61 in place); no re-run.
