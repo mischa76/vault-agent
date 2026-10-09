@@ -7904,3 +7904,50 @@ pre-registration of today stands for the resumed run.
 
 **Überprüft:** the three step files, the trace (the five modeler requests and payloads). **Nur
 angenommen:** nothing. **Bewusst nicht getan:** no resume before the credit is back.
+
+## [2026-10-09] Eleventh chain run — the seventh all-green chain, WP34 §6 held in full; the repair retry live on every retry
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat. First attempt `20261009T124133681291Z` at `09e3c01`
+(12:41–13:12, steps 1–3, credit exhausted in step 4's resolver — entry above); resumed after the
+top-up as `20261009T133146634551Z` at `7e0b190` (13:31–13:53, steps 4–5). Together 115 calls (9 modeler: steps 1 and 2
+one attempt, step 3 three, steps 4 and 5 two), ≈ 53 min, ≈ **7.65 USD** (4.38 + 3.27, the previous
+model in each retry's payload; the pre-registration said 7–7.5). Final vault 44 hubs, 62 links, 87
+satellites. **`validation_gate` 1.0 and `pipeline_health` 1.0 in all five steps** — the seventh
+all-green chain; eleven normal chains since 2026-10-04: red / green / red / red / green ×5 / red /
+**green**. **WP34 §6 ALL FOUR CLAUSES HELD:** links 21, invention 1 (`hub_shopping_cart`), review
+**136 against 156.4** (eleven recorded chains now; the twelfth is judged against 155.1, mean 138.8,
+sd 8.6), joins 0/0. Preservation 1.0. The resumed chain file reads its first three steps from the
+persisted results (2026-10-07 fix), and the step files agree (14 / 16 / 45 / 17 / 44).
+
+**P1 held. P2 held — WP57 live on all four retries, and this is the run's result.** Every retry
+carried `previous_model`; the construct carry-over, by name, from the trace: step 3 attempt 1 → 2
+**15/15 hubs, 17/17 links, 23/23 satellites**, attempt 2 → 3 15/15, 17/17, 22/23 (one satellite
+renamed by the overlap remedy's answer; the Archive satellite added — the payload gate satisfied);
+step 4 attempt 1 → 2 4/5 hubs, 6/7 links, 10/10 satellites — the missing hub is
+`hub_vendor_business_entity`, which the collision remedy retired, and the missing link named it;
+step 5 attempt 1 → 2 12/13, 24/26, 28/29 — the missing ones are `hub_shopping_cart_item` and its
+two links and satellite, again the remedy's drop. **Nothing passed was lost in any retry; every
+drop was one an issue named.** Step 3 — red on the tenth chain after attempt 3 regressed — went
+green in three monotonic attempts. No step went red on a class an earlier attempt had satisfied.
+**P3 untestable:** the modeler wrote every role in the dict form this time (`bill_to`, `ship_to`,
+`from`, `to`, `assembly`, `component`, `manager`, `organisation`); no colon-form participation
+occurred, so WP58 had no case — and the two links the tenth chain lost (`link_sales_order_*_address`,
+`link_currency_rate_*_currency`) are in the vault, as four links. **P4 held. P5 held:** WP54 fired
+in step 3 (both transaction tables in attempt 1, the Archive after attempt 2, nothing after
+attempt 3); WP55 collapsed `link_sign_in_credential_person` (on `hub_person` alone) whose only
+satellite carried a lone `ModifiedDate` and no relation — WP56 inferred nothing, as its spec says
+it must, and the satellite was dropped (the one `dropped_record` of the chain; a timestamp alone is
+no payload). The attribute-overlap remedy fired in step 3 (two attributes dropped again by the
+memory, `retired_reemitted`), the collision remedy in steps 4 and 5; all classes 0 in every final
+report. **P6:** cost 7.65 USD against 7–7.5 predicted — the previous model costs ≈ 11k input tokens
+per retry on Opus.
+
+**Überprüft.** The chain file, the five step files and their `review.json` siblings, both traces
+(all nine modeler requests and payloads, carry-over computed by construct name), `wp34_check`.
+**Nur angenommen.** That carry-over by name is carry-over in substance — a renamed satellite counts
+as dropped here, which understates it. **Bewusst nicht getan.** No repeat; the eleventh chain
+enters the record as 136. The WP53 guard that judged an unrecorded chain of 156 against the whole
+record now uses the record's mean: 156 stopped holding as the record tightened (155.1 for the
+twelfth), which is the clause working, not the guard failing.

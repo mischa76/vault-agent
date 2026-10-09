@@ -53,3 +53,7 @@ Teaching the prompt one form (both are now read); roles in `driving_key` (alread
 `Link._ref_from_string` in the before-validator and `hub_refs`. Guards 1–2 pass: the tenth chain's
 `["hub_currency:from", "hub_currency:to"]` link survives parsing with its two roles, no
 `dropped_record`. 1166 tests, ruff, mypy. §4 is **not yet measured live**.
+
+**2026-10-09 — eleventh live chain** (`20261009T133146634551Z`): no colon-form participation occurred — the modeler
+wrote all eight roles in the dict form, and the two links the tenth chain lost are in the vault.
+§4 untestable, not failed.

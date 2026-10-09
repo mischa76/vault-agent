@@ -80,3 +80,11 @@ collision remedy's steering did not); the attempt budget.
 added line as its pin demands). Guards 1–3 pass; guard 2 corrected with the change (the delta's
 satellites are objects). 1166 tests, ruff, mypy. §4 is **not yet measured live** — the eleventh
 chain, next.
+
+**2026-10-09 — eleventh live chain** (`20261009T124133681291Z` resumed as `20261009T133146634551Z`, `docs/log.md` 2026-10-09): live on
+all four retries. Carry-over by construct name: step 3 15/15 hubs, 17/17 links, 23/23 → 22/23
+satellites across two retries (one renamed by a remedy, one added for the payload gate); steps 4
+and 5 lost exactly the constructs the collision remedies retired and their dependents, nothing
+else. Step 3, red on the tenth chain, green in three monotonic attempts. §4 met: carry-over ≥ 90 %
+on every retry, no regression on a satisfied class, attempts per step unchanged; cost 7.65 USD
+(≈ 11k input tokens per retry for the previous model).

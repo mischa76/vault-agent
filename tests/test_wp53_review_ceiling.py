@@ -29,7 +29,10 @@ def test_a_judged_run_is_excluded_from_its_own_distribution() -> None:
     assert not held and "FAILED" in line
     assert "5 recorded chain(s)" in line and "excluded" in line
 
-    unrecorded = _chain(review_decisions=156)  # no stamp — a chain not yet recorded
+    # No stamp — a chain not yet recorded — judged against the whole record; the record's own
+    # mean always holds (the 156 used until 2026-10-09 stopped holding as the record tightened).
+    mean = int(sum(c for _, c in REVIEW_DECISION_SAMPLES) / len(REVIEW_DECISION_SAMPLES))
+    unrecorded = _chain(review_decisions=mean)
     held, lines = check(unrecorded)
     [line] = [ln for ln in lines if "review:" in ln]
     assert held and "HELD" in line

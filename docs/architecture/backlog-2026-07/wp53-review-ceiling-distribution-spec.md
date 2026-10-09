@@ -94,3 +94,7 @@ the tenth is judged against 158.0 (mean 139.3, sd 9.5).
 
 **2026-10-09 — tenth chain** (`20261008T223946700186Z`): 137 decisions against 158.0 — held. Ten chains recorded;
 the eleventh is judged against 156.4 (mean 139.1, sd 9.0).
+
+**2026-10-09 — eleventh chain** (`20261009T133146634551Z`): 136 decisions against 156.4 — held. Eleven chains
+recorded; the twelfth is judged against 155.1 (mean 138.8, sd 8.6). The guard for an unrecorded
+chain now judges the record's mean; its 156 stopped holding as the record tightened.

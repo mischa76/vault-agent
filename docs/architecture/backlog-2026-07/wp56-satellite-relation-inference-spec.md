@@ -88,3 +88,7 @@ corrected to the field's list type. 1160 tests, ruff, mypy. §4 is **not yet mea
 **2026-10-09 — tenth live chain** (`20261008T223946700186Z`): no relation-less satellite whose attributes determined
 a table occurred (the one relation-less satellite, step 3 attempt 3's `sat_transaction_detail` on
 a link, is out of scope — §2.3 leaves link satellites untouched). §4 untestable, not failed.
+
+**2026-10-09 — eleventh live chain** (`20261009T124133681291Z`): one relation-less satellite on a collapsed one-hub
+link, carrying a lone `ModifiedDate` — no table determined, dropped as §2.1 says. Untestable on the
+positive case; the negative case behaved.

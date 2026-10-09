@@ -64,6 +64,8 @@ REVIEW_DECISION_SAMPLES: tuple[tuple[str, int], ...] = (
     #                                   20261007T032723285872Z after an exhausted credit)
     ("20261008T005807208141Z", 143),  # ninth, 2026-10-08 (green; WP34 §6 held, 0 zero-sat hubs)
     ("20261008T223946700186Z", 137),  # tenth, 2026-10-09 (step 3 red on E_HUB_PAYLOAD_UNREAD)
+    ("20261009T133146634551Z", 136),  # eleventh, 2026-10-09 (green; resumed at step 4 from
+    #                                   20261009T124133681291Z; WP34 §6 held; WP57 live)
 )
 MIN_REVIEW_SAMPLES = 3
 # One-sided 95 % Student-t quantiles by degrees of freedom (df 1..30; above that, normal).
