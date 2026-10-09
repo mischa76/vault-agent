@@ -84,3 +84,12 @@ fires on the whole chain; WP57 carry-over 100 % on retries; WP60's auto mode 0 o
 tool block. P1, P5, P6 held; P2 failed (step 1 took three attempts); P3 failed on review only; P4
 reported. §2.2 (the matrix) is running. §5's decision rule: a second 5.5 chain with WP61 before
 any default change.
+
+**2026-10-09 — the matrix (§2.2), Opus 5.5 as the modeler, Sonnet 4.6 primary, auto tool choice,
+3 repeats per arm.** `cdk_not_payload` on `health_insurance`: dropped arm 3 backstop fires
+(`attributes_without_cdk` every repeat), construct_f1 0.774 → 0.714 — **keep**, as §4 predicted.
+`effsat_two_dates` on `bank`: 0 fires in both arms, every run emitting the effectivity satellite
+with exactly two attributes; construct_f1 0.722 → 0.667 above the 0.5 gate, mapping 1.0 —
+**candidate-delete by the protocol, a human decides** (§4 predicted `keep`; the prediction was
+wrong for this rule on this model). Ledger rows updated; comparison files under
+`eval/results/ablation/`, git-ignored. Both gates held in every one of the twelve runs.

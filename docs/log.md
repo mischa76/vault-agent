@@ -8049,3 +8049,37 @@ stringified answers decoded by hand — one trailing brace each), `wp34_check`, 
 price lists from the trace's tokens. **Nur angenommen.** That the step-1 three attempts are the
 new model's spread and not a systematic difference — one chain is a shape. **Bewusst nicht
 getan.** No default switch (WP59 §5: a second 5.5 chain first, with WP61 in place); no re-run.
+
+## [2026-10-09] The steering ledger's matrix on Opus 5.5 (WP59 §2.2): the CDK line still earns its place, the effectivity line is a candidate-delete for the owner
+
+**Autor:** Claude Code
+
+Run by the ledger's release protocol with `FORCED_TOOL_CHOICE=false`, `--model claude-opus-5-5`
+(the modeler; the primary stays Sonnet 4.6, so the modeler is measured alone), 3 repeats per arm,
+after the twelfth chain. Comparison files under `eval/results/ablation/` (git-ignored), traces
+beside them.
+
+| cell | arm | backstop fires | construct_f1 | gates |
+|---|---|---|---|---|
+| `health_insurance` × `cdk_not_payload` | baseline | 0 | 0.774 | all held |
+| | dropped | **3** (`attributes_without_cdk` ×3) | 0.714 | all held |
+| `bank` × `effsat_two_dates` | baseline | 0 | 0.722 | all held |
+| | dropped | 0 | 0.667 | all held |
+
+**Verdicts, recorded in `docs/architecture/steering-ledger.md`.** `cdk_not_payload`: **keep** —
+without the line Opus 5.5 lists the dependent child key as payload in every repeat, exactly as
+the sonnet-tier models did in July; the backstop caught it each time. `effsat_two_dates`:
+**candidate-delete** by the protocol's letter (zero fires in the dropped arm, the gated minimums
+held — construct_f1 0.5, mapping 0.95) — every one of the six runs emitted
+`sat_account_customer_effectivity` with exactly two attributes, so the shape occurred and Opus
+5.5 got it right unprompted. The protocol hands that to a human: the owner decides whether the
+line goes (prompt text, cheap to revert); the generator's rejection behind it stays regardless.
+construct_f1's drop in both dropped arms (−0.06, −0.055) is noted as the „anything in
+between“ the protocol mentions — above the gate, but not nothing; on three repeats it is not
+distinguishable from noise.
+
+**Überprüft.** The two comparison JSONs and the twelve traces (the effectivity satellites counted
+per run). **Nur angenommen.** That `bank` is the right case for the effectivity line — it is the
+one gated case with an effectivity shape. **Bewusst nicht getan.** No line deleted; no matrix on
+Opus 4.8 (the rows say „not yet ablated“ there); the wider matrix (rules without a backstop)
+not run.
