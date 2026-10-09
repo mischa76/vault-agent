@@ -73,3 +73,10 @@ collision remedy's steering did not); the attempt budget.
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-09 — built, keyless.** Commits `5b64d32` (guards, failing) and `64b2143` (the change).
+`VaultAgentState.previous_delta`, `previous_model` in the retry payload, steering rule
+`repair_not_redraft` (registry, ledger row, the steering fixture regenerated deliberately for the
+added line as its pin demands). Guards 1–3 pass; guard 2 corrected with the change (the delta's
+satellites are objects). 1166 tests, ruff, mypy. §4 is **not yet measured live** — the eleventh
+chain, next.

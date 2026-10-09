@@ -48,3 +48,8 @@ Teaching the prompt one form (both are now read); roles in `driving_key` (alread
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-09 — built, keyless.** Commits `5b64d32` (guards, failing) and `64b2143` (the change).
+`Link._ref_from_string` in the before-validator and `hub_refs`. Guards 1–2 pass: the tenth chain's
+`["hub_currency:from", "hub_currency:to"]` link survives parsing with its two roles, no
+`dropped_record`. 1166 tests, ruff, mypy. §4 is **not yet measured live**.

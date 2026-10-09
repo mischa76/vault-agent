@@ -53,6 +53,12 @@ is not the project's.
   `pipeline_health` on it, because nothing in the generated vault is wrong.
 
 ### Added
+- The modeler's retry is a repair, not a new draft (WP57): the payload carries the previous
+  attempt's model (`previous_model`, the delta) beside the validation issues, and a steering line
+  (`repair_not_redraft`) asks for exactly the changes the issues name. Until now every attempt was
+  drawn afresh and a fix could vanish in the next attempt.
+- `hub:role` in a link's `connected_hubs` is read as a role-qualified participation (WP58), the
+  notation `driving_key` already used; two links written that way had been dropped as unknown hubs.
 - A satellite without a `source_table` whose attributes are all columns of exactly one declared
   table reads that table (WP56): on a collapsed one-hub link it moves with the inferred relation
   instead of being dropped; on a hub a relation other than the hub's own is set

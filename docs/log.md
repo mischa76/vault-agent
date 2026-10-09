@@ -7823,3 +7823,63 @@ final reports.
 cause in the request — the request named one overlap and two retirements, none about the
 transaction constructs; the modeler's reason, if any, is not in the transcript. **Bewusst nicht
 getan.** Neither proposal built; no repeat; the tenth chain enters the record as 137.
+
+## [2026-10-09] WP57 and WP58 — the retry carries the previous model; `hub:role` in `connected_hubs` is a role, built keyless
+
+**Autor:** Claude Code
+
+The user, on the tenth chain's two findings: „super, machen wir 1,2 und lassen die 11. kette
+drüber rattern“. Specs `1aee040`, guards red `5b64d32`, change `64b2143`, docs in the commit
+carrying this entry. Specs: `wp57-repair-not-redraft-spec.md`, `wp58-colon-role-notation-spec.md`.
+
+**WP57.** The retry payload carried requirements, business keys, `previous_validation_issues`
+and `retired_constructs` — never the previous model — so every attempt was a new draft and a fix
+survived into the next attempt only by chance (the tenth chain's step 3). Now the modeler records
+its last emitted delta (`VaultAgentState.previous_delta`: after parsing and the memory's drops,
+before the brownfield merge) and a retry carries it as `previous_model`; the steering line
+`repair_not_redraft` (WP16 registry, ledger row) asks for exactly the changes the issues name,
+keeping every construct no issue names. The steering fixture that pins the modeler prompt was
+regenerated deliberately for the added line, as its own comment demands. Nothing deterministic
+enforces the preservation; the measure is the construct carry-over between consecutive modeler
+payloads in the trace (tenth chain, step 3: 0 of 2 fixed satellites carried).
+
+**WP58.** `link_sales_order_address` and `link_currency_rate_currency` were dropped on the tenth
+chain because the modeler wrote `hub_address:ship_to` and `hub_currency:from` / `:to` in
+`connected_hubs` and the parser read them as hub names. `Link._ref_from_string` now reads
+`name:role` as `LinkHubRef(hub, role)` — the notation `driving_key` has always used — in the
+before-validator and in `hub_refs`; a string without a colon, an empty name or role, and the dict
+form are unchanged.
+
+**Model versions, asked by the owner today.** vault-agent runs `claude-sonnet-4-6` (primary,
+2026-02-17) and `claude-opus-4-8` (heavy, the modeler, 2026-05-28), per `config.py`. The API's
+model list (`models.list`, 2026-10-09) offers `claude-opus-5-5` (2026-09-21), `claude-sonnet-5-5`
+(2026-09-28) and `claude-haiku-5-5` (2026-10-07), with Opus 5 and Sonnet 5 before them. The eleventh
+chain stays on 4.6/4.8 for comparability with the ten recorded chains; a model change is a
+pre-registered experiment of its own (the steering ledger re-tests every line and backstop per
+model release; the 5.5 prices are not in the cost records yet).
+
+**Überprüft.** Seven guards across both WPs, 1166 tests, ruff, bare mypy; the model list from the
+API. **Nur angenommen.** That the previous model fits the modeler's input budget on the largest
+step (≈ 10–40k tokens more input; the cap is the system's, not measured here). **Bewusst nicht
+getan.** No deterministic preservation backstop (WP57 §5); no prompt change for the colon form;
+no model change.
+
+## [2026-10-09] Pre-registration for the eleventh chain run — the first with the repair retry and the colon notation, written before the run
+
+**Autor:** Claude Code
+
+The user: „… und lassen die 11. kette drüber rattern“. One repeat of `adventureworks_incremental`
+at the commit carrying this entry — the first live run since WP57 and WP58 (`64b2143`), models
+unchanged (Sonnet 4.6, Opus 4.8). Against the tenth chain (step 3 red on the payload gate, 137
+decisions, 6.63 USD).
+
+**P1 — all five steps green.** **P2 — WP57 live:** on every retry the modeler's model carries over
+≥ 90 % of the previous attempt's constructs by name (tenth chain's step 3: 0 of 2 on the constructs
+that mattered); no step goes red on a class an earlier attempt had already satisfied; attempts per
+step do not rise. **P3 — WP58, conditional:** a link written with `name:role` participations
+reaches the validator with its roles, no `dropped_record` for it. **P4 — WP34 §6 holds in full**,
+review against **156.4** (ten recorded chains, mean 139.1, sd 9.0), links ≥ 8, invention ≤ 2, joins
+0/0, preservation 1.0. **P5 — WP54/WP55/WP56 as before:** a payload gate fire is answered in the
+next attempt and not undone after; a one-hub link's satellites move; a relation-less satellite
+determined by its attributes carries its table. **P6 — cost ≈ 7–7.5 USD** (the previous model in
+each retry's payload), ≈ 50 min. **Not predicted.** Which shapes the modeler builds.

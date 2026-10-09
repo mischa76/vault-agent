@@ -83,7 +83,9 @@ business event, never several relationships merged or one event split.
 transfer's paying account and its counterparty are both accounts), the repeated
 participation carries a role — the other may stay unqualified — and the role-qualified
 column is prefixed accordingly (`COUNTERPARTY_ACCOUNT_HK` next to `ACCOUNT_HK`). A
-driving key may name a role as `hub_account:counterparty`.
+driving key may name a role as `hub_account:counterparty`, and since WP58 (2026-10-09) a
+participation in `connected_hubs` may be written the same way — the parser reads `name:role` as
+the role-qualified reference the dict form `{"hub": …, "role": …}` denotes.
 
 **Multi-source hub.** One business key living in several source systems (the WP10
 integration case: a partner in the legacy system *and* the CRM) becomes ONE hub fed by

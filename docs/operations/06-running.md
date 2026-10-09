@@ -169,6 +169,13 @@ is dropped. And (WP52) a satellite the key gate refused whose remedy named **exa
 carrying the relation's key moves to that parent when re-emitted unchanged — the same disclosure;
 with no or several candidates the `retired_orphan` decision stands.
 
+Since WP57 (2026-10-09) a retry is a **repair, not a new draft**: the payload carries the modeler's
+own previous model (`previous_model` — the delta, never the vault) beside the issues, and a
+steering line asks for exactly the changes the issues name, keeping every construct no issue
+names. Until then every attempt was drawn afresh from the same inputs, and what one attempt got
+right survived into the next only by chance (the tenth chain's step 3). The system prompt is
+unchanged across retries, so the prompt cache still hits; the payload grows by the model.
+
 Failures print a one-line summary by default; global `--debug` re-raises with the full
 traceback. Nothing is ever deleted on failure — a paused or crashed run keeps its
 checkpoint and trace for diagnosis (chapter 10) or a later resume.
