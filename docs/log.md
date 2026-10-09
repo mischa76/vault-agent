@@ -8083,3 +8083,16 @@ per run). **Nur angenommen.** That `bank` is the right case for the effectivity 
 one gated case with an effectivity shape. **Bewusst nicht getan.** No line deleted; no matrix on
 Opus 4.8 (the rows say „not yet ablated“ there); the wider matrix (rules without a backstop)
 not run.
+
+## [2026-10-09] Decision — the `effsat_two_dates` steering line stays, for now
+
+**Autor:** Claude Code
+
+The user, on the matrix's candidate-delete: „ich denke die steuerzeile mal vorübergehend noch
+drin zu lassen schadet zumindest nicht und macht es vermutlich auch nicht viel teuerer oder?“
+Cost of the line, from the trace: it lives in the modeler's system prompt only — 9 of the twelfth
+chain's 114 calls — about 40 tokens, read from the prompt cache at 0.20 USD per million on Opus
+5.5: under 0.001 USD per chain. Verdict recorded in the ledger as **keep (owner's decision)** on
+the protocol's candidate-delete; the generator-side rejection stays regardless. **Überprüft:** the
+token count of the rule text, the call count per chain. **Nur angenommen:** nothing. **Bewusst
+nicht getan:** no deletion; the row keeps the ablation numbers so the decision can be revisited.
