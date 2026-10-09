@@ -8203,3 +8203,17 @@ as its first sample** in the docs commit; the clause stays „cannot be judged�
 **P5 — cost ≤ 5.5 USD, wall ≤ 30 min; WP57 carry-over ≥ 90 %.** **P6 — step 1: three attempts
 expected** (Opus 5.5's multi-source-hub shape, twice so far); reported, not predicted to change.
 **Not predicted:** the shapes.
+
+## [2026-10-09] An evaluator guide for an external reviewer with their own material
+
+**Autor:** Claude Code
+
+The user wants a long-time colleague to evaluate vault-agent on requirements documents and source
+models of his own and to judge handling and result. `docs/evaluator-guide.md`: prerequisites
+and cost (about 1 USD per 20-table increment on the 5.5 defaults), what goes to the API and what
+must not, the two input formats with the AdventureWorks examples, the run and resume commands,
+eight judgement questions (three on handling, five on the result), how to send feedback (trace
+beside the run), and the known limits from CLAUDE.md. Indexed. **Überprüft:** the commands against
+the README and chapters 4 and 6; the schema shape against `adventureworks_person`. **Nur
+angenommen:** the cost per increment, from the last chain's per-step tokens. **Bewusst nicht
+getan:** no feedback form in the repo — a plain list is asked for.
