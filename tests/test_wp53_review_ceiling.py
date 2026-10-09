@@ -9,7 +9,10 @@ from typing import Any
 import pytest
 
 from eval import wp34_check
-from eval.wp34_check import REVIEW_DECISION_SAMPLES, check, review_ceiling
+from eval.wp34_check import REVIEW_DECISION_SAMPLES as _RECORDS
+from eval.wp34_check import check, review_ceiling
+
+REVIEW_DECISION_SAMPLES = _RECORDS["claude-opus-4-8"]  # WP62: the record is per modeler model
 from tests.test_wp34_check import _chain
 
 FIRST_FIVE = [148, 135, 142, 138, 139]
@@ -40,7 +43,9 @@ def test_a_judged_run_is_excluded_from_its_own_distribution() -> None:
 
 
 def test_fewer_than_three_samples_cannot_judge(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(wp34_check, "REVIEW_DECISION_SAMPLES", REVIEW_DECISION_SAMPLES[:2])
+    monkeypatch.setattr(
+        wp34_check, "REVIEW_DECISION_SAMPLES", {"claude-opus-4-8": REVIEW_DECISION_SAMPLES[:2]}
+    )
     held, lines = check(_chain(review_decisions=140))
     [line] = [ln for ln in lines if "review:" in ln]
     assert not held and "FAILED" in line and "cannot be judged" in line

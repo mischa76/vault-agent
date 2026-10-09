@@ -8096,3 +8096,37 @@ chain's 114 calls — about 40 tokens, read from the prompt cache at 0.20 USD pe
 the protocol's candidate-delete; the generator-side rejection stays regardless. **Überprüft:** the
 token count of the rule text, the call count per chain. **Nur angenommen:** nothing. **Bewusst
 nicht getan:** no deletion; the row keeps the ablation numbers so the decision can be revisited.
+
+## [2026-10-09] WP62 — the default models are Sonnet 5.5 and Opus 5.5
+
+**Autor:** Claude Code
+
+The user, after WP59: „ich sehe keinen grund wieso wir noch auf den alten Modellen bleiben
+sollten. Es ist schneller, zuverlässiger und unterm Strich sogar noch günstiger wenn wir auf die
+neueren Modelle umsteigen, oder siehst du einen Grund?“ — no reason against, two things to carry:
+one chain is a shape (the thirteenth measures WP61 and starts the 5.5 record), and the review
+record is per model generation. Spec `c054c7e`, guards red `f5b87ac`, change in the commit carrying
+this entry. **Changed:** `Settings` defaults `claude-sonnet-5-5` / `claude-opus-5-5` /
+`forced_tool_choice False`; `.env.example`; `REVIEW_DECISION_SAMPLES` is a mapping by modeler
+model — the 4.8 record keeps its eleven chains, the 5.5 record starts empty and the clause reports
+„cannot be judged“ until three 5.5 chains; the checker reads the result's `models.heavy_model`
+(absent → 4.8, every archived result). Configuration chapter, changelog, ledger header, CLAUDE.md.
+The twelfth chain (238, the WP61 defect) is deliberately not a 5.5 sample. Cost records: the 5.5
+rates of WP59 §1 apply from here. **Überprüft:** three guards, the full suite, ruff, bare mypy.
+**Nur angenommen:** that the owner's `.env` carries no model override (it carries none today).
+**Bewusst nicht getan:** no re-measurement of the steering rules without a backstop on 5.5; no
+Bedrock/Vertex check.
+
+## [2026-10-09] Pre-registration for the thirteenth chain run — the first under the 5.5 defaults, written before the run
+
+**Autor:** Claude Code
+
+One repeat of `adventureworks_incremental` at the commit carrying this entry, no environment
+overrides: Sonnet 5.5 / Opus 5.5, auto tool-call mode, WP61 in place. Against the twelfth chain.
+**P1 — all five steps green. P2 — WP61 live: `undetermined_type` decisions ≤ 3** (the twelfth: 158),
+no contract chunk lost to a stringified `assets`; `stringified_payload_field` fires reported with
+their `trailing`. **P3 — decisions reported, not judged** (the 5.5 record has one entry after this
+run); WP34 §6's other three clauses hold. **P4 — backstop fires near zero** (the twelfth: 0; the
+WP61 repair counts as one per repaired answer). **P5 — cost ≤ 5.5 USD, wall ≤ 30 min. P6 — WP57
+carry-over ≥ 90 % per retry; no step needs three attempts** (the twelfth's step 1 did).
+**Not predicted:** the shapes.

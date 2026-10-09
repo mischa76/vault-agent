@@ -11,7 +11,8 @@ Mischa Eismann (eismann.consulting) — CDVP² (Data Vault 2.0 Practitioner, 201
 ## Technology stack (locked unless an ADR says otherwise)
 - Python 3.12+, uv for dependency management
 - LangGraph for orchestration (state machine, subgraphs, persistence)
-- Anthropic Claude API (Sonnet primary, Opus for hard reasoning); MCP for tool integration
+- Anthropic Claude API (Sonnet 5.5 primary, Opus 5.5 for hard reasoning since WP62, 2026-10-09; the
+  5.5 models refuse forced tool use, so the client asks — `FORCED_TOOL_CHOICE`); MCP for tools
 - AutomateDV (OSS dbt package) as the code-gen backend; dbt Core for transformations
 - Strategic targets Snowflake + MS Fabric (DACH); any AutomateDV-supported platform works;
   PostgreSQL for the local demo (AutomateDV has no DuckDB support)
@@ -180,8 +181,8 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   `hub:role` participations (no live case yet). **The 5.5 generation (WP59, 2026-10-09):** one chain
   on Sonnet 5.5 / Opus 5.5 — all green, half the time, 29 % cheaper, zero backstop fires, but 158
   contract fields lost their types to a stringified `assets` (WP61 repairs it); the 5.5 models
-  **refuse forced tool use** — `FORCED_TOOL_CHOICE=false` (WP60) asks instead; defaults unchanged
-  until a second 5.5 chain. **WP34 §6's review clause is a distribution since
+  **refuse forced tool use** — `FORCED_TOOL_CHOICE=false` (WP60) asks instead; **defaults switched to
+  5.5 by the owner (WP62, 2026-10-09)**; the 5.5 review record starts empty and judges from its third chain. **WP34 §6's review clause is a distribution since
   WP53 (2026-10-07)**: the one-sided 95 % prediction bound over the recorded chains before the judged
   one (`eval/wp34_check.py`); the sixth chain's 156 still fails it, the seventh to eleventh held
   (127, 126, 143, 137, 136), the twelfth is judged against 155.1; a completed chain enters the record

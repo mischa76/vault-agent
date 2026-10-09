@@ -43,6 +43,11 @@ is not the project's.
   seventh chain's step 5).
 
 ### Changed
+- The default models are Claude Sonnet 5.5 (primary) and Claude Opus 5.5 (the modeler), in the
+  auto tool-call mode (WP62, 2026-10-09): on the first 5.5 chain the pipeline was twice as fast
+  and 29 % cheaper with zero backstop fires. `FORCED_TOOL_CHOICE=true` with the 4.x models remains
+  a valid configuration. The WP34 §6 review record is kept per modeler model; the 5.5 record
+  starts empty and judges from its third chain.
 - The WP34 §6 review clause judges a chain's decisions against a distribution (WP53): the
   one-sided 95 % prediction bound over the recorded normal chains before it, the run itself and
   later ones excluded, instead of one chain's number (148). Six chains are recorded; fewer than

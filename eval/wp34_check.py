@@ -50,23 +50,31 @@ BASELINE_ZERO_SAT_HUBS = 2
 # the docs commit of its run whether or not it met the clause: the record measures the modeler's
 # spread, not the chains the clause liked. The clause is a regression guard for the chain, not
 # yet an arm comparison — arm A has one decision count (134) and no distribution.
-REVIEW_DECISION_SAMPLES: tuple[tuple[str, int], ...] = (
-    ("20261004T013339024833Z", 148),  # first chain, 2026-10-04 (red)
-    ("20261004T140130528908Z", 135),  # second, 2026-10-05 — the first all-green chain
-    ("20261005T160357535338Z", 142),  # third, 2026-10-05 (red)
-    ("20261005T234048650821Z", 138),  # fourth, 2026-10-06 (red)
-    ("20261006T032619166848Z", 139),  # fifth, 2026-10-06 (green)
-    ("20261006T172859787765Z", 156),  # sixth, 2026-10-06 (green; failed the 148 ceiling)
-    ("20261007T010229861435Z", 127),  # seventh, 2026-10-07 (green; resumed at step 5 from
-    #                                   20261007T001520705532Z — the count is the sum over
-    #                                   both stamps' step files, see tests/test_wp53)
-    ("20261007T041647752430Z", 126),  # eighth, 2026-10-07 (green; resumed at step 5 from
-    #                                   20261007T032723285872Z after an exhausted credit)
-    ("20261008T005807208141Z", 143),  # ninth, 2026-10-08 (green; WP34 §6 held, 0 zero-sat hubs)
-    ("20261008T223946700186Z", 137),  # tenth, 2026-10-09 (step 3 red on E_HUB_PAYLOAD_UNREAD)
-    ("20261009T133146634551Z", 136),  # eleventh, 2026-10-09 (green; resumed at step 4 from
-    #                                   20261009T124133681291Z; WP34 §6 held; WP57 live)
-)
+# WP62 (2026-10-09): one record per MODELER model — a model generation is its own population.
+# The 4.8 record keeps the eleven chains of 2026-10-04 → 2026-10-09; the 5.5 record starts
+# empty (the twelfth chain, 238, carried the WP61 contract defect and is not a sample) and
+# the clause reports "cannot be judged" until MIN_REVIEW_SAMPLES chains are recorded.
+REVIEW_DECISION_SAMPLES: dict[str, tuple[tuple[str, int], ...]] = {
+    "claude-opus-4-8": (
+        ("20261004T013339024833Z", 148),  # first chain, 2026-10-04 (red)
+        ("20261004T140130528908Z", 135),  # second, 2026-10-05 — the first all-green chain
+        ("20261005T160357535338Z", 142),  # third, 2026-10-05 (red)
+        ("20261005T234048650821Z", 138),  # fourth, 2026-10-06 (red)
+        ("20261006T032619166848Z", 139),  # fifth, 2026-10-06 (green)
+        ("20261006T172859787765Z", 156),  # sixth, 2026-10-06 (green; failed the 148 ceiling)
+        ("20261007T010229861435Z", 127),  # seventh, 2026-10-07 (green; resumed at step 5 from
+        #                                   20261007T001520705532Z — the count is the sum over
+        #                                   both stamps' step files, see tests/test_wp53)
+        ("20261007T041647752430Z", 126),  # eighth, 2026-10-07 (green; resumed at step 5 from
+        #                                   20261007T032723285872Z after an exhausted credit)
+        ("20261008T005807208141Z", 143),  # ninth, 2026-10-08 (green; WP34 §6 held, 0 zero-sat hubs)
+        ("20261008T223946700186Z", 137),  # tenth, 2026-10-09 (step 3 red on E_HUB_PAYLOAD_UNREAD)
+        ("20261009T133146634551Z", 136),  # eleventh, 2026-10-09 (green; resumed at step 4 from
+        #                                   20261009T124133681291Z; WP34 §6 held; WP57 live)
+    ),
+    "claude-opus-5-5": (),
+}
+DEFAULT_RECORD_MODEL = "claude-opus-4-8"  # every archived result without `models`
 MIN_REVIEW_SAMPLES = 3
 # One-sided 95 % Student-t quantiles by degrees of freedom (df 1..30; above that, normal).
 _T95 = {
@@ -224,6 +232,7 @@ def _review_clause(
                        f"{len(samples)} recorded chain(s), need {MIN_REVIEW_SAMPLES}")
     ceiling = review_ceiling(samples)
     stamps = [stamp for stamp, _ in used]
+    # (the record is the judged model's own — WP62)
     return decisions <= ceiling, (
         f"review:     {decisions} decision(s) (ceiling {ceiling:.1f} — the one-sided 95 % "
         f"prediction bound of {len(samples)} recorded chain(s), mean "
@@ -248,9 +257,11 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
     # chain re-checked later is still judged by its predecessors only, never by itself or by
     # what came after it. A result without a stamp (a chain not yet recorded) sees them all.
     own_stamp = result.get("timestamp")
-    used = [(stamp, count) for stamp, count in REVIEW_DECISION_SAMPLES
+    record_model = (result.get("models") or {}).get("heavy_model") or DEFAULT_RECORD_MODEL
+    record = REVIEW_DECISION_SAMPLES.get(record_model, ())
+    used = [(stamp, count) for stamp, count in record
             if own_stamp is None or stamp < own_stamp]
-    excluded = len(used) < len(REVIEW_DECISION_SAMPLES)
+    excluded = len(used) < len(record)
     aliases = unsound_aliases(steps)
     # The chain's validation_codes come from the FINAL state, whose report covers the whole
     # merged model — so any surviving unsound link shows here. Steps are still checked

@@ -62,9 +62,10 @@ async def test_in_auto_mode_text_on_every_attempt_exhausts_the_budget() -> None:
         await _call(caller)
 
 
-def test_the_setting_defaults_to_forced(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_the_setting_defaults_to_auto_since_wp62(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")  # Settings validates the route
+    # WP62 (2026-10-09): the default flipped to the auto mode with the 5.5 defaults.
     monkeypatch.delenv("FORCED_TOOL_CHOICE", raising=False)
-    assert Settings(_env_file=None).forced_tool_choice is True  # type: ignore[call-arg]
-    monkeypatch.setenv("FORCED_TOOL_CHOICE", "false")
     assert Settings(_env_file=None).forced_tool_choice is False  # type: ignore[call-arg]
+    monkeypatch.setenv("FORCED_TOOL_CHOICE", "true")
+    assert Settings(_env_file=None).forced_tool_choice is True  # type: ignore[call-arg]

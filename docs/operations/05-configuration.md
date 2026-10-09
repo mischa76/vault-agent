@@ -12,8 +12,8 @@ upper-case forms of the fields:
 | `ANTHROPIC_API_KEY` | — (required for `anthropic`) | all LLM agents | Required only at the first LLM call, not at import; not needed on the other routes |
 | `AWS_REGION`, `AWS_PROFILE` | — (`AWS_REGION` required for `bedrock`) | client construction | Region of the Bedrock endpoint, e.g. `eu-central-2` (Zurich); credentials via the standard AWS chain |
 | `GCP_PROJECT_ID`, `GCP_REGION` | — (both required for `vertex`) | client construction | `europe-west1`, `eu` or `global`; auth via Application Default Credentials |
-| `PRIMARY_MODEL` | `claude-sonnet-4-6` | parser, key identifier, contracts, mapper | Sonnet tier. Passed to the provider **as written** — on `bedrock`/`vertex` set the ID the provider lists (5.5) |
-| `HEAVY_MODEL` | `claude-opus-4-8` | dv2_modeler | Opus tier for the hard reasoning step; same rule |
+| `PRIMARY_MODEL` | `claude-sonnet-5-5` (WP62, 2026-10-09; `claude-sonnet-4-6` before) | parser, key identifier, contracts, mapper | Sonnet tier. Passed to the provider **as written** — on `bedrock`/`vertex` set the ID the provider lists (5.5) |
+| `HEAVY_MODEL` | `claude-opus-5-5` (WP62, 2026-10-09; `claude-opus-4-8` before) | dv2_modeler | Opus tier for the hard reasoning step; same rule |
 | `LANGSMITH_API_KEY` | unset | eval upload only (11.5) | Pipeline never uses it |
 | `LANGSMITH_TRACING` | `false` | eval harness | |
 | `LANGSMITH_PROJECT` | `vault-agent-dev` | eval upload | Workspace name |
@@ -46,7 +46,7 @@ they explain behaviour you will observe:
 | Constant | Value | Where | Effect |
 |----------|-------|-------|--------|
 | `MAX_MODELING_ATTEMPTS` | 3 | `graph.py` | Re-model loop budget; at the cap the run ends as failed |
-| `FORCED_TOOL_CHOICE` | `true` | `.env` / env | WP60: `false` asks for the tool with `tool_choice: auto` and an instruction line instead of forcing it — required for Opus 5.5, Sonnet 5.5 and Fable 5.1, which return a 400 on forced tool use; a text-only answer is retried within the budget. The default request is byte-identical to before |
+| `FORCED_TOOL_CHOICE` | `false` (WP62; `true` until 2026-10-09) | `.env` / env | WP60: `false` asks for the tool with `tool_choice: auto` and an instruction line instead of forcing it — required for Opus 5.5, Sonnet 5.5 and Fable 5.1, which return a 400 on forced tool use; a text-only answer is retried within the budget. The default request is byte-identical to before |
 | `MAX_DOCUMENT_CHARS` | 400 000 | `requirements_parser.py` | Longer documents are cut to the head and flagged (never silently) |
 | `SAT_WIDE_ATTRIBUTE_THRESHOLD` | 30 | `rules/dv2_rules.py` | Wider satellites get an advisory split flag (`W_SAT_WIDE`) |
 | `AUTOMATE_DV_VERSION` | 0.11.4 | `rules/dv2_rules.py` | Pin written into generated `packages.yml`; bump deliberately and re-verify the demos |

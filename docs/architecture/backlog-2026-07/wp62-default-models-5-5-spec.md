@@ -58,3 +58,9 @@ Re-measuring the remaining steering rules (no backstop) on 5.5; the Bedrock/Vert
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-09 — built, keyless.** Guards `f5b87ac` (failing), the change in the commit carrying this
+line: the defaults, `.env.example`, the per-model review record (`REVIEW_DECISION_SAMPLES` keyed by
+`heavy_model`, `DEFAULT_RECORD_MODEL` for archived results), the WP53 and WP60 guards re-based
+deliberately, the configuration chapter, changelog, ledger header, CLAUDE.md. Full suite, ruff,
+mypy. §4 is **not yet measured** — the thirteenth chain, next.

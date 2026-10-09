@@ -1,6 +1,6 @@
 # Steering ledger — which prompt rules the harness still needs
 
-Status: living document · Owner: maintainer · Introduced by WP16 (2026-07-22)
+Status: living document · Owner: maintainer · Introduced by WP16 (2026-07-22) · Defaults since WP62 (2026-10-09): Sonnet 5.5 / Opus 5.5 in the auto tool-call mode; the rows' „model last tested“ stay as measured
 
 ## Why this file exists
 

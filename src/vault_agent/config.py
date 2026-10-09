@@ -51,11 +51,14 @@ class Settings(BaseSettings):
     gcp_project_id: str | None = None
     gcp_region: str | None = None
 
-    primary_model: str = "claude-sonnet-4-6"
-    heavy_model: str = "claude-opus-4-8"
+    # WP62 (2026-10-09): the 5.5 generation by default — faster, cheaper, fewer backstop fires
+    # on the twelfth chain (WP59). Until then claude-sonnet-4-6 / claude-opus-4-8.
+    primary_model: str = "claude-sonnet-5-5"
+    heavy_model: str = "claude-opus-5-5"
     # WP60 (2026-10-09): Opus 5.5 / Sonnet 5.5 / Fable 5.1 return a 400 for tool_choice `tool`
-    # and `any`. False asks with `auto`, a strict schema and an instruction line instead.
-    forced_tool_choice: bool = True
+    # and `any`, so the default is the auto mode (`auto` plus an instruction line). True forces
+    # the tool as before — the mode the 4.x models were measured in.
+    forced_tool_choice: bool = False
 
     # Tracing / evals (consumed by the WP6 eval harness: eval/run.py,
     # eval/langsmith_upload.py)
