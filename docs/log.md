@@ -7963,3 +7963,23 @@ by compressing the chain paragraph. Budget raised to 250 in `CLAUDE.md` and the 
 skill; the eviction rule stands at the new limit. **Überprüft:** the two files; no lint carries
 the number. **Nur angenommen:** nothing. **Bewusst nicht getan:** no re-expansion of what was
 condensed — the log holds it.
+
+## [2026-10-09] Pre-registration for the twelfth chain run — the first on Sonnet 5.5 and Opus 5.5 (WP59), written before the run
+
+**Autor:** Claude Code
+
+The user: „du hast mein go für 1.: das experiment mit modellwechsel mit Neumessung im vergleich“.
+WP59 (`docs/architecture/backlog-2026-07/wp59-model-switch-experiment-spec.md`): one repeat of
+`adventureworks_incremental` with `PRIMARY_MODEL=claude-sonnet-5-5 HEAVY_MODEL=claude-opus-5-5`,
+code at the commit carrying this entry (the eleventh chain's code plus the budget decision). Prices
+verified on the pricing page today: Opus 5.5 4 / 20 USD per million input / output (cache write 5,
+read 0.20), Sonnet 5.5 2 / 10 (2.50, 0.10) — against 5 / 25 and 3 / 15 today. Judged against the
+eleven 4.x chains; **not** entered into the review record.
+
+**P1 — all five steps green. P2 — no step needs three attempts. P3 — WP34 §6 holds in full**,
+decisions within 155.1, links ≥ 8, invention ≤ 2, joins 0/0. **P4 — `attributes_without_cdk` ≤ 10**;
+the other backstops reported. **P5 — cost ≤ 6 USD**, token volume within ± 20 % of the 4.x chains
+(≈ 110 calls, ≈ 400k uncached input, ≈ 270k output). **P6 — WP57 carry-over ≥ 90 % per retry.**
+**Not predicted:** the shapes; whether fewer gates fire. After the chain: the ledger's matrix
+(`cdk_not_payload` on `health_insurance`, `effsat_two_dates` on `bank`, Opus 5.5, 3 repeats per
+arm), pre-registered in the spec §4 as `keep` for both.
