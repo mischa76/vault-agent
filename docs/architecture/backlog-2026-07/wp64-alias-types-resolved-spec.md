@@ -71,3 +71,8 @@ extract, the new key the only difference; the five schemas re-derived, 42 column
 (person 11: 8 `Name` → `nvarchar(50)`, 2 `Flag`/`NameStyle` → `bit`, 1 `Phone` → `nvarchar(25)`).
 Guards 1–3 pass (2 and 3 adjusted to the deriver's `source_schemas` key); full suite, ruff, mypy.
 §4 is **not yet measured live**.
+
+**2026-10-10 — fifteenth live chain** (`20261009T223709264306Z`): **no alias column undetermined any more**; the two
+`undetermined_type` decisions left (`Document.DocumentLevel`, `Customer.AccountNumber`) are
+computed columns the script declares `AS`. §4 met on its class (≤ 1 predicted, 2 measured, both
+outside the class). Chain: all green, 83 decisions, 23.5 min, 4.66 USD.

@@ -75,3 +75,6 @@ shape on the person step, twice now). The 5.5 record starts with the fourteenth 
 **2026-10-09 — the fourteenth chain** (`20261009T213238859667Z`) seeds the 5.5 review record: 84 decisions, all
 green, 20.8 min, 4.38 USD; the third green 5.5 chain in a row. The clause judges from the
 sixteenth chain (three samples).
+
+**2026-10-10 — the fifteenth chain** (`20261009T223709264306Z`) is the 5.5 record's second sample: 83 decisions, all
+green, 23.5 min, 4.66 USD — four 5.5 chains green in a row. The clause judges from the sixteenth.

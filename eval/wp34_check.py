@@ -75,6 +75,7 @@ REVIEW_DECISION_SAMPLES: dict[str, tuple[tuple[str, int], ...]] = {
     "claude-opus-5-5": (
         ("20261009T213238859667Z", 84),  # fourteenth chain, 2026-10-09 — the first free of the
         #                                   WP61/WP63 review artefacts (green, 20.8 min, 4.38 USD)
+        ("20261009T223709264306Z", 83),  # fifteenth, 2026-10-10 (green; WP64 live, 4.66 USD)
     ),
 }
 DEFAULT_RECORD_MODEL = "claude-opus-4-8"  # every archived result without `models`

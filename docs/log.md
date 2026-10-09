@@ -8330,3 +8330,37 @@ after recording a measurement. **Überprüft:** the counts on both sides, the wr
 on tank (`id`, write test per directory). **Nur angenommen:** nothing. **Bewusst nicht getan:** no
 move to `/tank/backup` (needs an account that may write there — the owner's call); no automation
 beyond the documented command.
+
+## [2026-10-10] Fifteenth chain run — the first with WP64: all green, 83 decisions, the alias types gone; the second sample of the 5.5 review record
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261009T223709264306Z`, at `42d428c` (WP64 in
+place), the 5.5 defaults. 111 calls (8 modeler: steps 1, 2 and 5 two attempts, 3 and 4 one), 450k
+uncached input, 260k output, **23.5 min, ≈ 4.66 USD**. Final vault 40 hubs, 47 links, 92
+satellites. **`validation_gate` 1.0 and `pipeline_health` 1.0 in all five steps** — the fourth
+green 5.5 chain in a row. WP34 §6: links 22, invention 0, joins 0/0 — held; **review 83
+decisions** (16 / 9 / 27 / 5 / 26), „cannot be judged: 1 recorded chain(s)“ — this run is the
+second sample; the sixteenth will be judged.
+
+**Against the pre-registration.** **P1 held. P2 held on decisions (83 ≤ 90), missed by one on
+types:** `undetermined_type` 2, not ≤ 1 — `Document.DocumentLevel` and `Customer.AccountNumber`,
+**both computed columns** (`AS` in the script; `TotalDue`, the one predicted, did not appear this
+time), and **none an alias type any more**: WP64's class is closed (the fourteenth had 6 alias
+columns among its 7). **P3 held:** second sample (83). **P4 held:** no backstop but WP61 (11
+repairs, all a trailing brace). **P5 held:** 4.66 ≤ 5 USD, 23.5 ≤ 30 min; WP57 carry-over 100 %
+on steps 1 and 2 (7/7/17, 4/4/10) and on step 5 all but what the collision remedy retired
+(`hub_shopping_cart_item` and its link; 13/15 hubs, 15/16 links, 24/24 satellites). **P6 held:**
+step 1 in two attempts (the multi-source-hub satellite again, no collision). 0 of 111 calls
+without a tool block.
+
+**Four 5.5 chains in a row:** 22.6 / 23.3 / 20.8 / 23.5 min, 4.91 / 4.87 / 4.38 / 4.66 USD, all
+green, invention 0 every time; decisions 238 → 157 → 84 → 83 as the two review artefacts were
+removed (WP61, WP63) and the alias types resolved (WP64). The 4.x record: 45–55 min, 6.4–7.7
+USD, 126–156 decisions, invention 0–2.
+
+**Überprüft.** The chain file, the five step files and `review.json` siblings, the trace (all
+111 calls, carry-over by name, the 11 repairs), `wp34_check`, the cost from the trace's tokens at
+the 5.5 prices; the results mirrored to tank after this entry (skill step). **Nur angenommen.**
+That the two computed columns are the floor on this corpus — the script declares them `AS` and
+no base type exists to resolve. **Bewusst nicht getan.** No repeat; no map for computed columns.
