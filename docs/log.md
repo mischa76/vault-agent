@@ -8186,3 +8186,20 @@ the 5.5 prices. **Nur angenommen.** That the step-1 three-attempt shape is Opus 
 the person step's — two chains, both on 5.5, say the former; a 4.8 chain never needed three
 there. **Bewusst nicht getan.** No change to the modeler's steering for multi-source hubs (the
 gates handle it; a steering line would need the ledger's protocol); no repeat.
+
+## [2026-10-09] Pre-registration for the fourteenth chain run — the first with WP63, the first sample of the 5.5 review record, written before the run
+
+**Autor:** Claude Code
+
+The user: „go, starte die vierzehnte Kette“. One repeat of `adventureworks_incremental` at the
+commit carrying this entry (WP63 `c04607f` in place), the 5.5 defaults, auto tool-call mode.
+Against the thirteenth chain (157 decisions, 68 of them undetermined types; 4.87 USD; 23.3 min).
+
+**P1 — all five steps green. P2 — WP63 live: `undetermined_type` decisions ≤ 5 per chain** (only
+the AdventureWorks user-defined types the model does not resolve); **decisions ≤ 100** in total
+(the thirteenth without the two artefacts: 89). **P3 — the 5.5 review record takes this chain
+as its first sample** in the docs commit; the clause stays „cannot be judged“ until the third.
+**P4 — WP34 §6's other three clauses hold; WP61 repairs reported** (the thirteenth: 12).
+**P5 — cost ≤ 5.5 USD, wall ≤ 30 min; WP57 carry-over ≥ 90 %.** **P6 — step 1: three attempts
+expected** (Opus 5.5's multi-source-hub shape, twice so far); reported, not predicted to change.
+**Not predicted:** the shapes.
