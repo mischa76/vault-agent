@@ -294,14 +294,25 @@ class ForcedToolCaller:
         usage_recorder: UsageRecorder | None = None,
         trace_recorder: TraceRecorder | None = None,
         rng: Callable[[], float] | None = None,
+        forced: bool | None = None,
     ) -> None:
         if client is None:
-            # Imported here so module import never requires an API key.
+            # Imported here so module import never requires an API key. The mode is read
+            # here too: an injected client (the keyless suite) defaults to forced unless told.
             from vault_agent.config import get_settings
 
-            client = make_client(get_settings())
+            settings = get_settings()
+            client = make_client(settings)
+            if forced is None:
+                forced = settings.forced_tool_choice
+        if forced is None:
+            forced = True
         self._client = client
         self._model = model
+        # WP60: forced (`tool_choice: tool`, the request every pin and cache knows) or auto —
+        # for the models that return a 400 on forced tool use (Opus 5.5, Sonnet 5.5, Fable 5.1,
+        # per the tool-use docs read 2026-10-09): `auto`, `strict: true`, an instruction line.
+        self._forced = forced
         self._sleep = sleep or asyncio.sleep
         self._usage_recorder = usage_recorder
         self._trace_recorder = trace_recorder
@@ -397,9 +408,14 @@ class ForcedToolCaller:
                             "description": tool_description,
                             "input_schema": input_schema,
                         }
+                        | ({} if self._forced else {"strict": True})
                     ],
-                    tool_choice={"type": "tool", "name": tool_name},
-                    messages=[{"role": "user", "content": user_content}],
+                    tool_choice=(
+                        {"type": "tool", "name": tool_name} if self._forced else {"type": "auto"}
+                    ),
+                    messages=[{"role": "user", "content": self._user_content(
+                        user_content, tool_name
+                    )}],
                 ) as stream:
                     message = await stream.get_final_message()
             except (anthropic.APIConnectionError, httpx.TransportError) as exc:
@@ -454,6 +470,11 @@ class ForcedToolCaller:
                 f"(stop_reason={message.stop_reason!r})"
             )
             event("llm_error", attempt, error=error, stop_reason=message.stop_reason)
+            if not self._forced:
+                # WP60: under `auto` a text answer is the model declining the tool once;
+                # asked again within the budget, not a terminal outcome.
+                last_exc = LLMCallError(error)
+                continue
             raise LLMCallError(error)
 
         error = f"{tool_name}: API call failed after {_MAX_RETRIES + 1} attempts: {last_exc}"
@@ -505,6 +526,15 @@ class ForcedToolCaller:
         except (TypeError, ValueError, AttributeError):
             return None  # e.g. an HTTP-date Retry-After: fall back to the exponential path
         return None
+
+    def _user_content(self, user_content: str, tool_name: str) -> str:
+        """The user message: as given when forcing; with the WP60 instruction line under auto."""
+        if self._forced:
+            return user_content
+        return (
+            f"{user_content}\n\nAnswer only by calling the tool `{tool_name}` with the complete "
+            f"result; do not reply in text."
+        )
 
     @staticmethod
     def _tool_payload(message: Any, tool_name: str) -> dict[str, Any] | None:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from tests.test_llm import _SLEEPS, _StubClient, _Message, _no_sleep, _tool_block
+from tests.test_llm import _SLEEPS, _Message, _no_sleep, _StubClient, _tool_block
 from vault_agent.config import Settings
 from vault_agent.llm import ForcedToolCaller, LLMCallError
 
@@ -61,6 +61,7 @@ async def test_in_auto_mode_text_on_every_attempt_exhausts_the_budget() -> None:
 
 
 def test_the_setting_defaults_to_forced(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")  # Settings validates the route
     monkeypatch.delenv("FORCED_TOOL_CHOICE", raising=False)
     assert Settings(_env_file=None).forced_tool_choice is True  # type: ignore[call-arg]
     monkeypatch.setenv("FORCED_TOOL_CHOICE", "false")

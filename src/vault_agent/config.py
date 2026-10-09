@@ -53,6 +53,9 @@ class Settings(BaseSettings):
 
     primary_model: str = "claude-sonnet-4-6"
     heavy_model: str = "claude-opus-4-8"
+    # WP60 (2026-10-09): Opus 5.5 / Sonnet 5.5 / Fable 5.1 return a 400 for tool_choice `tool`
+    # and `any`. False asks with `auto`, a strict schema and an instruction line instead.
+    forced_tool_choice: bool = True
 
     # Tracing / evals (consumed by the WP6 eval harness: eval/run.py,
     # eval/langsmith_upload.py)

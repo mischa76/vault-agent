@@ -63,3 +63,10 @@ switch, not a name heuristic); the Bedrock/Vertex routes' behaviour under `auto`
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-09 — built, keyless.** Commits `3cc518e` (guards, failing) and the change in the commit
+carrying this line. `Settings.forced_tool_choice`, `ForcedToolCaller(..., forced=None)` reading the
+setting only on the production path (an injected client defaults to forced, so the suite stays
+keyless), `_user_content`, the auto-mode retry on a missing tool block. Guards 1–4 pass; guard 4
+sets a test key for the settings validator. The forced request is unchanged (the WP22 kwargs pin
+holds). §4 is **not yet measured live** — the twelfth chain, next.

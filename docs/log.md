@@ -7983,3 +7983,27 @@ the other backstops reported. **P5 — cost ≤ 6 USD**, token volume within ± 
 **Not predicted:** the shapes; whether fewer gates fire. After the chain: the ledger's matrix
 (`cdk_not_payload` on `health_insurance`, `effsat_two_dates` on `bank`, Opus 5.5, 3 repeats per
 arm), pre-registered in the spec §4 as `keep` for both.
+
+## [2026-10-09] WP60 — a tool-call mode for models that refuse forced tool use; the twelfth chain's first start failed before a token was billed
+
+**Autor:** Claude Code
+
+The twelfth chain (WP59, Sonnet 5.5 / Opus 5.5) stopped at its first call with
+`400 invalid_request_error: tool_choice: type "tool" and "any" are not supported for this model` —
+nothing persisted, nothing billed. Verified in the tool-use documentation (platform.claude.com,
+„Forcing tool use“, read today): Opus 5.5, Sonnet 5.5, Fable 5.1 and Mythos 5.1 reject `any` and
+`tool`; the documented alternative is `auto` with strict tool use and prompting. Every agent here
+forces its one tool (WP3), so the pipeline was closed to the current model generation.
+
+**Change (WP60).** Spec `8477c2a`, guards red `3cc518e`, change in the commit carrying this entry.
+`Settings.forced_tool_choice` (env `FORCED_TOOL_CHOICE`, default `true`); under `false`
+`ForcedToolCaller` sends `tool_choice: auto`, `strict: true` on the tool and one instruction line
+at the end of the user content, and treats a text-only answer as a retryable failure within the
+existing budget. The forced request is unchanged (the WP22 kwargs pin holds); an injected client
+defaults to forced, so the suite stays keyless. Docs: `05-configuration.md`, changelog.
+
+**Überprüft.** Five guards, the full suite, ruff, bare mypy; the docs page and the SDK's
+`ToolParam.strict`. **Nur angenommen.** That `auto` plus the instruction yields the tool block on
+nearly every call — the trace's „no tool_use block“ errors will count the exceptions.
+**Bewusst nicht getan.** No structured-outputs route; no model-id heuristic. The twelfth chain is
+restarted with `FORCED_TOOL_CHOICE=false`; the pre-registration of today stands.
