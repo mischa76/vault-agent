@@ -69,7 +69,7 @@ Run periodically, and after any batch of doc changes. It is a reading task, not 
   file no longer exists.
 - **Rules without a trigger** — entries in `CLAUDE.md` that read as memories rather than rules.
   They are eviction candidates.
-- **Budget** — `wc -l CLAUDE.md` against 200.
+- **Budget** — `wc -l CLAUDE.md` against 250 (200 until 2026-10-09).
 
 Report findings; apply only the mechanical ones (index, pointers) without asking. Anything that
 changes meaning is the human's call.
