@@ -177,9 +177,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   kept twin** (live only on the self-link branch); WP52 (2026-10-06) makes the chain's gate and
   health the minimum over steps and `extension_conflict` advisory (both live). Ten normal chains:
   red/green/red/red, five green, red, green — the tenth's step 3 on WP54's gate after attempt 3
-  regressed: a retry was a new draft, not a repair — **WP57 (2026-10-09) carries the previous
-  model** with a repair steering line: on the eleventh chain (all green, §6 met) every retry kept
-  100 % of what no issue named; WP58 reads `hub:role` participations (no live case yet). **WP34 §6's review clause is a distribution since WP53 (2026-10-07)**: the
+  regressed: a retry was a new draft — **WP57 (2026-10-09) carries the previous model** with a
+  repair line; on the eleventh chain every retry kept 100 % of what no issue named. WP58 reads
+  `hub:role` participations (no live case yet). **WP34 §6's review clause is a distribution since WP53 (2026-10-07)**: the
   one-sided 95 % prediction bound over the recorded chains before the judged one (`eval/wp34_check.py`);
   the sixth chain's 156 still fails it (151.9 over five); the seventh to eleventh held (127, 126, 143,
   137, 136); the twelfth is judged against 155.1. A completed chain enters the record in its docs commit. **A resumed chain's chain-level file is wrong before
