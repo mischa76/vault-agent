@@ -7883,3 +7883,24 @@ review against **156.4** (ten recorded chains, mean 139.1, sd 9.0), links ≥ 8,
 next attempt and not undone after; a one-hub link's satellites move; a relation-less satellite
 determined by its attributes carries its table. **P6 — cost ≈ 7–7.5 USD** (the previous model in
 each retry's payload), ≈ 50 min. **Not predicted.** Which shapes the modeler builds.
+
+## [2026-10-09] Eleventh chain run — stopped in step 4 on an exhausted credit balance; steps 1–3 green and persisted, resume pending
+
+**Autor:** Claude Code
+
+`adventureworks_incremental`, one repeat, at `09e3c01`, stamp `20261009T124133681291Z`, 12:41–13:12.
+Steps 1–3 completed and persisted, `validation_gate` 1.0 in each, decisions 14 / 16 / 45. Step 4
+died in the entity resolver (`emit_resolution`, trace event 83, 13:12:21) on the 400
+„credit balance is too low“ — terminal, traced, not retried, as on 2026-10-07. 82 calls so far.
+
+**WP57 live already, in step 3** — the step that was red on the tenth chain: three attempts with
+monotonic progress. Carry-over attempt 1 → 2: 15/15 hubs, 17/17 links, 23/23 satellites; attempt
+2 → 3: 15/15, 17/17, 22/23 (one satellite renamed by the overlap remedy's answer, the Archive
+satellite added). The payload gate fired for both transaction tables in attempt 1, for the Archive
+alone after attempt 2, for nothing after attempt 3 — green. `previous_model` was in both retry
+payloads, ≈ 11k input tokens more per retry. The owner was notified; after the top-up the chain
+continues with `--resume-chain 20261009T124133681291Z` (steps 1–3 reused, 4 and 5 paid), and the
+pre-registration of today stands for the resumed run.
+
+**Überprüft:** the three step files, the trace (the five modeler requests and payloads). **Nur
+angenommen:** nothing. **Bewusst nicht getan:** no resume before the credit is back.
