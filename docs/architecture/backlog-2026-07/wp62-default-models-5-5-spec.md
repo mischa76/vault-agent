@@ -71,3 +71,7 @@ class (declared types asked of the model), reported as "cannot be judged" by the
 record. §4: P1, P3, P4, P5 held; P2 half (WP61 live with 12 repairs, the type class remained
 until WP63); P6 half (carry-over held, step 1 took three attempts — Opus 5.5's multi-source-hub
 shape on the person step, twice now). The 5.5 record starts with the fourteenth chain.
+
+**2026-10-09 — the fourteenth chain** (`20261009T213238859667Z`) seeds the 5.5 review record: 84 decisions, all
+green, 20.8 min, 4.38 USD; the third green 5.5 chain in a row. The clause judges from the
+sixteenth chain (three samples).

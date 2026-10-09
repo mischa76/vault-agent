@@ -21,7 +21,8 @@ def test_the_defaults_are_the_5_5_models_in_auto_mode(monkeypatch: pytest.Monkey
 def test_the_review_record_is_per_modeler_model() -> None:
     assert set(REVIEW_DECISION_SAMPLES) >= {"claude-opus-4-8", "claude-opus-5-5"}
     assert len(REVIEW_DECISION_SAMPLES["claude-opus-4-8"]) == 11
-    assert REVIEW_DECISION_SAMPLES["claude-opus-5-5"] == ()
+    # The 5.5 record starts with the fourteenth chain (2026-10-09): nothing before WP63 is a sample.
+    assert all(stamp >= "20261009T213238859667Z" for stamp, _ in REVIEW_DECISION_SAMPLES["claude-opus-5-5"])
 
     old = _chain(review_decisions=140)
     old["models"] = {"heavy_model": "claude-opus-4-8", "primary_model": "claude-sonnet-4-6"}
@@ -33,7 +34,7 @@ def test_the_review_record_is_per_modeler_model() -> None:
     new["models"] = {"heavy_model": "claude-opus-5-5", "primary_model": "claude-sonnet-5-5"}
     held, lines = check(new)
     [line] = [ln for ln in lines if "review:" in ln]
-    assert not held and "cannot be judged" in line and "0 recorded chain(s)" in line
+    assert not held and "cannot be judged" in line  # fewer than three 5.5 chains recorded
 
     unnamed = _chain(review_decisions=140)  # an archived result without models: the 4.8 record
     held, lines = check(unnamed)

@@ -8217,3 +8217,39 @@ beside the run), and the known limits from CLAUDE.md. Indexed. **Überprüft:** 
 the README and chapters 4 and 6; the schema shape against `adventureworks_person`. **Nur
 angenommen:** the cost per increment, from the last chain's per-step tokens. **Bewusst nicht
 getan:** no feedback form in the repo — a plain list is asked for.
+
+## [2026-10-09] Fourteenth chain run — the first with WP63 and the first sample of the 5.5 review record: all green, 84 decisions, 21 min, 4.38 USD
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261009T213238859667Z`, at `51dcccb` (WP63 in
+place), the 5.5 defaults. 108 calls (7 modeler: steps 1 and 5 two attempts, the rest one), 422k
+uncached input, 245k output, **20.8 min, ≈ 4.38 USD**. Final vault 39 hubs, 45 links, 94
+satellites. **`validation_gate` 1.0 and `pipeline_health` 1.0 in all five steps** — the third
+green 5.5 chain in a row. WP34 §6: links 20, invention 0, joins 0/0 — held; **review 84
+decisions** (17 / 7 / 27 / 9 / 24), „cannot be judged“ until the third 5.5 sample. The eleven
+4.x chains ranged 126–156.
+
+**Against the pre-registration.** **P1 held. P2 held on decisions (84 ≤ 100), missed by two on
+types:** `undetermined_type` 7, not ≤ 5 — `Person.NameStyle`, `Document.DocumentLevel`,
+`ProductProductPhoto.Primary`, `PurchaseOrderHeader.TotalDue`, `Vendor.PreferredVendorStatus`,
+`Vendor.ActiveFlag`, `SalesOrderHeader.OnlineOrderFlag`: every one an AdventureWorks user-defined
+type (`Flag`, `NameStyle`) or a computed column the derivation declares as `AS` — nothing the
+base-type map covers, exactly WP63's boundary. The thirteenth had 68. **P3 held:** this chain is
+the 5.5 record's first sample (84). **P4 held:** no backstop but WP61 (13 repairs, all a trailing
+brace). **P5 held:** 4.38 ≤ 5.5 USD, 20.8 ≤ 30 min; WP57 carry-over 100 % on both retries
+(7/7/17, 12/15/27). **P6 better than predicted:** step 1 took two attempts, not three — one
+`E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` (the multi-source-hub shape again), no collision this
+time. 0 of 108 calls without a tool block.
+
+**Where the 84 come from:** 74 `other` — contract owners (19 placeholders) and the rest of the
+checkpoint's decisions — plus 7 types, 1 unresolved concept, 1 mapping, 1 binding. The
+`source_binding` disclosures (44) and the translations are at the 4.x level or below.
+
+**Überprüft.** The chain file, the five step files and `review.json` siblings, the trace (all
+108 calls, carry-over by name, the 13 repairs), `wp34_check`, the cost from the trace's tokens at
+the 5.5 prices. **Nur angenommen.** That the seven remaining types are the floor on this corpus
+without resolving user-defined types in the schema derivation (`derive.py` could map `Flag` and
+`NameStyle` to `bit` from the catalogue — a dataset-side improvement, proposed, not built).
+**Bewusst nicht getan.** No repeat; no change to WP63's map for AdventureWorks' UDTs (they are
+this corpus's, not the rule's).

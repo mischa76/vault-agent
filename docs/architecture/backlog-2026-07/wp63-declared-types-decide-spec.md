@@ -67,3 +67,8 @@ Server's base types.
 cast in the commit carrying this line). `rules.json_type_for_sql`, the declared-type precedence
 in `_build_contract`. Guards 1–2 pass; full suite, ruff, mypy. §4 is **not yet measured live** —
 the thirteenth chain runs on the code before this change; the fourteenth measures it.
+
+**2026-10-09 — fourteenth live chain** (`20261009T213238859667Z`): **7 `undetermined_type` decisions** (the
+thirteenth: 68), every one a user-defined type (`Flag`, `NameStyle`) or a computed column — the
+map's boundary as §2 draws it; §4 predicted ≤ 5, missed by two on exactly that boundary. Chain
+decisions 84, the lowest recorded on any model.
