@@ -62,3 +62,12 @@ here reads a script; the principle is the same and belongs to a source-catalogue
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-10 — built, keyless.** Guards `f5dc40f` (failing), change `f4c8315`. `_TYPE_RE` and
+`parse_user_defined_types` in the extractor, `user_defined_types` in the extract, the resolution
+in `build_source_schema`. The extract regenerated from the upstream `instawdb.sql` (329,368
+bytes, fetched 2026-10-10): `tables`, `schemas` and `source` byte-identical to the checked-in
+extract, the new key the only difference; the five schemas re-derived, 42 columns changed
+(person 11: 8 `Name` → `nvarchar(50)`, 2 `Flag`/`NameStyle` → `bit`, 1 `Phone` → `nvarchar(25)`).
+Guards 1–3 pass (2 and 3 adjusted to the deriver's `source_schemas` key); full suite, ruff, mypy.
+§4 is **not yet measured live**.

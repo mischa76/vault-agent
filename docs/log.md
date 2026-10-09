@@ -8277,3 +8277,24 @@ GitHub API, the dependency tree (`uv tree --invert`), the dry-run resolution, th
 upgraded lock. **Nur angenommen:** that no code path reaches oauthlib's endpoints — by absence of
 any OAuth use in `src/`, not by a scan of the connector. **Bewusst nicht getan:** no forced
 `oauthlib` override against the connector's pin.
+
+## [2026-10-10] WP64 — AdventureWorks' alias types resolved to their base types in the derivation, built keyless
+
+**Autor:** Claude Code
+
+The user, after the explanation that `Name`, `Flag` and the rest are SQL Server alias types of the
+sample database and no modelling-language construct: „ok, go, bau WP64“. Spec `12e4dcb`,
+guards red `f5dc40f`, change `f4c8315`, docs in the commit carrying this entry. **What changed.**
+The extractor transcribes the six `CREATE TYPE [X] FROM <base> [NOT] NULL` statements
+(`instawdb.sql` lines 331–336) into `user_defined_types`; the derivation resolves a column's alias
+(with or without `dbo.`) to its base type, comments verbatim (WP30 §2.3). The upstream script was
+fetched again (329,368 bytes) and the extract regenerated: tables, schemas and source
+byte-identical to the checked-in instrument, the new key the only difference — the script has not
+moved since the original extraction. The five derived schemas changed in 42 columns (`Name` 28,
+`Flag` 9, `AccountNumber` 2, `NameStyle`, `Phone`, `OrderNumber` 1 each); the ten `AS` computed
+columns stay as declared. **Why.** WP63 maps base types and leaves aliases to the model, rightly;
+the fourteenth chain's seven `undetermined_type` decisions were six alias columns and one computed
+column. **Überprüft:** three guards, 1181 tests, ruff, bare mypy; the extract comparison.
+**Nur angenommen:** that no dataset golden depends on the alias spelling (the goldens hold keys,
+not types; the suite agrees). **Bewusst nicht getan:** no catalogue-driven resolution for live
+sources (a connector's job, WP64 §5); the computed columns stay the model's.

@@ -43,6 +43,10 @@ is not the project's.
   seventh chain's step 5).
 
 ### Changed
+- The AdventureWorks eval datasets declare base types where the install script used one of its
+  six alias types (`Name`, `Flag`, `NameStyle`, `Phone`, `AccountNumber`, `OrderNumber`): the
+  extractor transcribes the `CREATE TYPE` definitions and the derivation resolves them (WP64).
+  42 columns change from an alias to `nvarchar(n)`/`bit`; comments are untouched.
 - A contract field's type is the declared column type where the source schema declares one
   (WP63): SQL Server base types map deterministically to JSON Schema types, the model's answer
   counts only for undeclared or user-defined types, and `undetermined_type` is raised only

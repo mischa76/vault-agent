@@ -72,3 +72,7 @@ the thirteenth chain runs on the code before this change; the fourteenth measure
 thirteenth: 68), every one a user-defined type (`Flag`, `NameStyle`) or a computed column — the
 map's boundary as §2 draws it; §4 predicted ≤ 5, missed by two on exactly that boundary. Chain
 decisions 84, the lowest recorded on any model.
+
+**2026-10-10 — WP64** resolves the alias types in the derivation, so the map now covers every
+AdventureWorks column but the computed ones (`AS`); the seven remaining `undetermined_type`
+decisions of the fourteenth chain fall to one or none on the next.
