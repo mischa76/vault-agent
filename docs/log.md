@@ -8253,3 +8253,27 @@ without resolving user-defined types in the schema derivation (`derive.py` could
 `NameStyle` to `bit` from the catalogue — a dataset-side improvement, proposed, not built).
 **Bewusst nicht getan.** No repeat; no change to WP63's map for AdventureWorks' UDTs (they are
 this corpus's, not the rule's).
+
+## [2026-10-10] Dependabot: langgraph-sdk 0.4.2 → 0.4.6 (alert #42 closed); the two oauthlib alerts stay open, pinned by the Databricks extra and not reachable here
+
+**Autor:** Claude Code
+
+The user: „ich sehe auf github 1 offenen pull request und 3 security issues, hast du dir die schon
+mal angesehen?“ Read today via `gh`: PR #34 (Dependabot, `langgraph-sdk` 0.4.2 → 0.4.4, CI green)
+and three open alerts. **#42 (high)** `langgraph-sdk` ≤ 0.4.3, „custom auth silently ignores
+`actions=` on resource decorators“ — a LangGraph Platform server feature this project never uses
+(`langgraph-sdk` is `langgraph`'s transitive dependency); taken anyway: `uv lock --upgrade-package
+langgraph-sdk` → **0.4.6** (newer than the PR's 0.4.4), the lock the only change; 1178 tests,
+ruff, bare mypy; Dependabot closes #34 itself once main carries ≥ 0.4.4. **#25 and #26 (medium)**
+`oauthlib` 3.3.1: a PKCE `code_verifier` timing comparison and a JSONP callback injection in the
+token-revocation endpoint — OAuth *server* code paths; vault-agent calls neither (no OAuth at
+all). The package is pulled in only by `databricks-sql-connector` in the `demo-databricks` extra,
+which is never installed with the default `demo` extra (`tool.uv.conflicts`, 2026-09-12) and whose
+target has never run; the connector pins `oauthlib` below 4.0.0, so the upgrade does not resolve.
+Left open, re-checked when the connector allows 4.x. **Aside:** a plain `uv sync` during this
+work dropped the `dev` extra (pytest, ruff, mypy vanished from the environment); the working
+invocation is `uv sync --extra dev --extra demo`. **Überprüft:** the alerts and the PR via the
+GitHub API, the dependency tree (`uv tree --invert`), the dry-run resolution, the suite on the
+upgraded lock. **Nur angenommen:** that no code path reaches oauthlib's endpoints — by absence of
+any OAuth use in `src/`, not by a scan of the connector. **Bewusst nicht getan:** no forced
+`oauthlib` override against the connector's pin.
