@@ -311,7 +311,7 @@ class ForcedToolCaller:
         self._model = model
         # WP60: forced (`tool_choice: tool`, the request every pin and cache knows) or auto —
         # for the models that return a 400 on forced tool use (Opus 5.5, Sonnet 5.5, Fable 5.1,
-        # per the tool-use docs read 2026-10-09): `auto`, `strict: true`, an instruction line.
+        # per the tool-use docs read 2026-10-09): `auto` plus an instruction line.
         self._forced = forced
         self._sleep = sleep or asyncio.sleep
         self._usage_recorder = usage_recorder
@@ -408,7 +408,11 @@ class ForcedToolCaller:
                             "description": tool_description,
                             "input_schema": input_schema,
                         }
-                        | ({} if self._forced else {"strict": True})
+                        # No `strict`: it needs the structured-outputs schema subset
+                        # (additionalProperties: false on every object), which the agents'
+                        # hand-written schemas do not meet — a 400 before the first token on
+                        # 2026-10-09. Schema conformance stays with pydantic parsing, as in
+                        # forced mode.
                     ],
                     tool_choice=(
                         {"type": "tool", "name": tool_name} if self._forced else {"type": "auto"}

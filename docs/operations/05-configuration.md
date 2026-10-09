@@ -46,7 +46,7 @@ they explain behaviour you will observe:
 | Constant | Value | Where | Effect |
 |----------|-------|-------|--------|
 | `MAX_MODELING_ATTEMPTS` | 3 | `graph.py` | Re-model loop budget; at the cap the run ends as failed |
-| `FORCED_TOOL_CHOICE` | `true` | `.env` / env | WP60: `false` asks for the tool with `tool_choice: auto`, a strict schema and an instruction line instead of forcing it — required for Opus 5.5, Sonnet 5.5 and Fable 5.1, which return a 400 on forced tool use; a text-only answer is retried within the budget. The default request is byte-identical to before |
+| `FORCED_TOOL_CHOICE` | `true` | `.env` / env | WP60: `false` asks for the tool with `tool_choice: auto` and an instruction line instead of forcing it — required for Opus 5.5, Sonnet 5.5 and Fable 5.1, which return a 400 on forced tool use; a text-only answer is retried within the budget. The default request is byte-identical to before |
 | `MAX_DOCUMENT_CHARS` | 400 000 | `requirements_parser.py` | Longer documents are cut to the head and flagged (never silently) |
 | `SAT_WIDE_ATTRIBUTE_THRESHOLD` | 30 | `rules/dv2_rules.py` | Wider satellites get an advisory split flag (`W_SAT_WIDE`) |
 | `AUTOMATE_DV_VERSION` | 0.11.4 | `rules/dv2_rules.py` | Pin written into generated `packages.yml`; bump deliberately and re-verify the demos |

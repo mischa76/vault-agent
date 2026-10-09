@@ -28,13 +28,15 @@ async def test_forced_mode_is_the_default_and_unchanged() -> None:
     assert kwargs["messages"] == [{"role": "user", "content": "user"}]
 
 
-async def test_auto_mode_asks_instead_of_forcing_with_a_strict_tool() -> None:
+async def test_auto_mode_asks_instead_of_forcing() -> None:
     client = _StubClient([_Message(content=[_tool_block({"ok": True})])])
     caller = ForcedToolCaller("test-model", client=client, sleep=_no_sleep, forced=False)
     assert await _call(caller) == {"ok": True}
     (kwargs,) = client.messages.calls
     assert kwargs["tool_choice"] == {"type": "auto"}
-    assert kwargs["tools"][0]["strict"] is True
+    # Amended with the change: `strict` needs the structured-outputs schema subset the agents'
+    # schemas do not meet (400 on 2026-10-09); the tool definition stays as in forced mode.
+    assert "strict" not in kwargs["tools"][0]
     content = kwargs["messages"][0]["content"]
     assert content.startswith("user") and content.rstrip().endswith("do not reply in text.")
     assert f"`{_TOOL}`" in content

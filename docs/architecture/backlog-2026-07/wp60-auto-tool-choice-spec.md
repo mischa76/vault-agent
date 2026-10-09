@@ -70,3 +70,11 @@ setting only on the production path (an injected client defaults to forced, so t
 keyless), `_user_content`, the auto-mode retry on a missing tool block. Guards 1–4 pass; guard 4
 sets a test key for the settings validator. The forced request is unchanged (the WP22 kwargs pin
 holds). §4 is **not yet measured live** — the twelfth chain, next.
+
+**2026-10-09 — amendment to §2.2 before the first live call: no `strict`.** The restarted chain
+failed at its first call, again before a token: `tools.0.custom: For 'object' type,
+'additionalProperties' must be explicitly set to false` — strict tool use compiles the schema with
+the structured-outputs subset, which the agents' hand-written schemas do not meet. `strict` is
+dropped; the auto mode is `tool_choice: auto` plus the instruction line, and schema conformance
+stays with pydantic parsing exactly as in forced mode (which never had a grammar guarantee
+either). A strict-compatible schema transform is a separate, optional WP. Guard 2 amended.

@@ -53,8 +53,8 @@ is not the project's.
   `pipeline_health` on it, because nothing in the generated vault is wrong.
 
 ### Added
-- `FORCED_TOOL_CHOICE=false` (WP60): the LLM client asks for its tool with `tool_choice: auto`, a
-  strict schema and an instruction line, retrying a text-only answer — the mode Opus 5.5,
+- `FORCED_TOOL_CHOICE=false` (WP60): the LLM client asks for its tool with `tool_choice: auto` and an
+  instruction line, retrying a text-only answer — the mode Opus 5.5,
   Sonnet 5.5 and Fable 5.1 need, which return a 400 on forced tool use. The default (forced)
   request is unchanged.
 - The modeler's retry is a repair, not a new draft (WP57): the payload carries the previous
