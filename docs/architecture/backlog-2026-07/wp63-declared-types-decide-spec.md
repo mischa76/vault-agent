@@ -62,3 +62,8 @@ Server's base types.
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-09 — built, keyless.** Guards `d4ef00a` (failing on import), change `c04607f` (a mypy
+cast in the commit carrying this line). `rules.json_type_for_sql`, the declared-type precedence
+in `_build_contract`. Guards 1–2 pass; full suite, ruff, mypy. §4 is **not yet measured live** —
+the thirteenth chain runs on the code before this change; the fourteenth measures it.

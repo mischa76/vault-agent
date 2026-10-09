@@ -43,6 +43,11 @@ is not the project's.
   seventh chain's step 5).
 
 ### Changed
+- A contract field's type is the declared column type where the source schema declares one
+  (WP63): SQL Server base types map deterministically to JSON Schema types, the model's answer
+  counts only for undeclared or user-defined types, and `undetermined_type` is raised only
+  then. The agent had asked the model for types it already held — Sonnet 4.6 guessed them from
+  the names, Sonnet 5.5 answered `unknown`.
 - The default models are Claude Sonnet 5.5 (primary) and Claude Opus 5.5 (the modeler), in the
   auto tool-call mode (WP62, 2026-10-09): on the first 5.5 chain the pipeline was twice as fast
   and 29 % cheaper with zero backstop fires. `FORCED_TOOL_CHOICE=true` with the 4.x models remains

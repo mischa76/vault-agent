@@ -8130,3 +8130,21 @@ run); WP34 §6's other three clauses hold. **P4 — backstop fires near zero** (
 WP61 repair counts as one per repaired answer). **P5 — cost ≤ 5.5 USD, wall ≤ 30 min. P6 — WP57
 carry-over ≥ 90 % per retry; no step needs three attempts** (the twelfth's step 1 did).
 **Not predicted:** the shapes.
+
+## [2026-10-09] WP63 — the declared column type decides a contract field's type, built keyless
+
+**Autor:** Claude Code
+
+Found on the thirteenth chain's step 1 (the first under the 5.5 defaults, running as this is
+written): 15 `undetermined_type` decisions, every one a column the declared schema types (`int`,
+`datetime`). The contract agent hands the model the column names only and asks for a `data_type`
+(„never guess“); Sonnet 4.6 guessed from the names, Sonnet 5.5 answers `unknown`. Both are the
+wrong kind of answer: the type is a declared fact the code holds. Spec `e5287d1`, guards red
+`d4ef00a`, change `c04607f`, the mypy cast and docs in the commit carrying this entry.
+**Changed:** `rules.json_type_for_sql` maps the SQL Server base types to JSON Schema types
+(suffixes ignored, user-defined types such as AdventureWorks' `Name`/`Flag`/`Phone` → None);
+`_build_contract` takes the declared type first, the model's answer second, `unknown` last, and
+flags only the last. **Überprüft:** two guards, 1178 tests, ruff, bare mypy. **Nur angenommen.**
+That the AdventureWorks user-defined types stay the model's to answer (≤ 5 per chain expected).
+**Bewusst nicht getan.** No change to what the model is shown; the thirteenth chain is measured
+on the code before this change.

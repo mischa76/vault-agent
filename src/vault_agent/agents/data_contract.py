@@ -407,9 +407,10 @@ class DataContractAgent(BaseAgent):
             norm = normalize_identifier(label)
             detail = field_enrichment.get(norm, {})
             is_pk = norm in bk_fields
-            data_type = (
+            data_type = cast(
+                Any,
                 json_type_for_sql(declared_types.get(norm, ""))
-                or detail.get("data_type", "unknown")
+                or detail.get("data_type", "unknown"),
             )
             constraints = FieldConstraints(
                 primaryKey=is_pk,
