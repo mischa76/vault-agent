@@ -790,6 +790,29 @@ def _references(key: str, other: Any) -> bool:
     return False
 
 
+_SQL_JSON_TYPES: dict[str, str] = {
+    **{t: "integer" for t in ("int", "bigint", "smallint", "tinyint")},
+    "bit": "boolean",
+    **{t: "number" for t in ("decimal", "numeric", "money", "smallmoney", "float", "real")},
+    **{t: "string" for t in (
+        "char", "nchar", "varchar", "nvarchar", "text", "ntext", "uniqueidentifier", "xml",
+        "date", "time", "datetime", "datetime2", "smalldatetime", "datetimeoffset", "binary",
+        "varbinary", "image", "hierarchyid", "geography", "geometry",
+    )},
+}
+
+
+def json_type_for_sql(declared: str) -> str | None:
+    """The JSON Schema type a declared SQL Server base type denotes, or None (WP63).
+
+    A length or precision suffix is ignored (``nvarchar(50)``, ``decimal(8,2)``); a user-defined
+    type (AdventureWorks' ``Name``, ``Flag``, ``Phone``) or an empty declaration is None — the
+    model may answer for those, the code must not guess. A declared fact is the code's to hold:
+    the contract agent used to ask the model for a type it already had (2026-10-09)."""
+    base = declared.split("(", 1)[0].strip().lower()
+    return _SQL_JSON_TYPES.get(base) if base else None
+
+
 def unread_payload(hub: Any, table: Any, model: Any, tables: Any = ()) -> list[str]:
     """The declared columns of ``table`` that nothing in ``model`` reads (WP54).
 

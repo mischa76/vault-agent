@@ -35,7 +35,7 @@ from vault_agent.models.contract import (
     FieldConstraints,
     SemanticConstraint,
 )
-from vault_agent.rules.dv2_rules import STAGING_PREFIX, normalize_identifier
+from vault_agent.rules.dv2_rules import STAGING_PREFIX, json_type_for_sql, normalize_identifier
 from vault_agent.state import FlagKind, VaultAgentState
 
 logger = logging.getLogger(__name__)
@@ -391,12 +391,26 @@ class DataContractAgent(BaseAgent):
             if isinstance(detail, dict)
         }
 
+        # WP63: the declared column type decides; the model's answer fills only the gaps (a
+        # user-defined or undeclared type). Sonnet 5.5 answered `unknown` for declared `int`
+        # columns the agent had never shown it; Sonnet 4.6 had guessed from the names.
+        declared_types: dict[str, str] = {}
+        for table in state.source_schemas:
+            if normalize_identifier(table.table) == normalize_identifier(name):
+                declared_types = {
+                    normalize_identifier(c.name): c.type for c in table.column_refs if c.type
+                }
+                break
+
         fields: list[ContractField] = []
         for label in cols:
             norm = normalize_identifier(label)
             detail = field_enrichment.get(norm, {})
             is_pk = norm in bk_fields
-            data_type = detail.get("data_type", "unknown")
+            data_type = (
+                json_type_for_sql(declared_types.get(norm, ""))
+                or detail.get("data_type", "unknown")
+            )
             constraints = FieldConstraints(
                 primaryKey=is_pk,
                 data_type=data_type,
