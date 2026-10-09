@@ -8298,3 +8298,18 @@ column. **Überprüft:** three guards, 1181 tests, ruff, bare mypy; the extract 
 **Nur angenommen:** that no dataset golden depends on the alias spelling (the goldens hold keys,
 not types; the suite agrees). **Bewusst nicht getan:** no catalogue-driven resolution for live
 sources (a connector's job, WP64 §5); the computed columns stay the model's.
+
+## [2026-10-10] Pre-registration for the fifteenth chain run — the first with WP64's resolved alias types, the second sample of the 5.5 review record, written before the run
+
+**Autor:** Claude Code
+
+The user: „go, starte die fünfzehnte Kette“. One repeat of `adventureworks_incremental` at the
+commit carrying this entry (WP64 `f4c8315` in place: the derived schemas carry base types for the
+42 alias columns), the 5.5 defaults, auto tool-call mode. Against the fourteenth chain (84
+decisions, 7 undetermined types, 20.8 min, 4.38 USD).
+
+**P1 — all five steps green. P2 — WP64 live: `undetermined_type` decisions ≤ 1** (the computed
+column `PurchaseOrderHeader.TotalDue` at most); **decisions ≤ 90**. **P3 — this chain is the 5.5
+record's second sample**; the clause judges from the third. **P4 — WP34 §6's other three clauses
+hold; WP61 repairs reported.** **P5 — cost ≤ 5 USD, wall ≤ 30 min; WP57 carry-over ≥ 90 %.**
+**P6 — step 1 in two attempts or fewer** (the fourteenth: two). **Not predicted:** the shapes.
