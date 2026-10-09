@@ -8364,3 +8364,18 @@ USD, 126–156 decisions, invention 0–2.
 the 5.5 prices; the results mirrored to tank after this entry (skill step). **Nur angenommen.**
 That the two computed columns are the floor on this corpus — the script declares them `AS` and
 no base type exists to resolve. **Bewusst nicht getan.** No repeat; no map for computed columns.
+
+## [2026-10-10] Pre-registration for the sixteenth chain run — the third sample of the 5.5 review record, written before the run
+
+**Autor:** Claude Code
+
+The user: „go, starte die sechzehnte Kette“. One repeat of `adventureworks_incremental` at the
+commit carrying this entry, the 5.5 defaults, no code change since the fifteenth chain. Against
+the fourteenth and fifteenth (84 and 83 decisions).
+
+**P1 — all five steps green. P2 — decisions 75–95**; this run is the 5.5 record's third sample,
+and the clause is judged against two predecessors only — a record of two cannot judge (WP53 §2.2,
+`MIN_REVIEW_SAMPLES` 3), so **this chain is still reported, not judged**; the seventeenth is the
+first judged against three. **P3 — `undetermined_type` ≤ 2** (the two computed columns at most).
+**P4 — WP34 §6's other three clauses hold; WP61 repairs reported.** **P5 — cost ≤ 5 USD, wall ≤ 30
+min; WP57 carry-over ≥ 90 %; step 1 in two attempts or fewer.** **Not predicted:** the shapes.
