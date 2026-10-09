@@ -11,9 +11,9 @@ import pytest
 from eval import wp34_check
 from eval.wp34_check import REVIEW_DECISION_SAMPLES as _RECORDS
 from eval.wp34_check import check, review_ceiling
+from tests.test_wp34_check import _chain
 
 REVIEW_DECISION_SAMPLES = _RECORDS["claude-opus-4-8"]  # WP62: the record is per modeler model
-from tests.test_wp34_check import _chain
 
 FIRST_FIVE = [148, 135, 142, 138, 139]
 SIXTH_STAMP = "20261006T172859787765Z"
