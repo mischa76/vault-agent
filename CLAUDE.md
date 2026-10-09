@@ -182,7 +182,11 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   on Sonnet 5.5 / Opus 5.5 — all green, half the time, 29 % cheaper, zero backstop fires, but 158
   contract fields lost their types to a stringified `assets` (WP61 repairs it); the 5.5 models
   **refuse forced tool use** — `FORCED_TOOL_CHOICE=false` (WP60) asks instead; **defaults switched to
-  5.5 by the owner (WP62, 2026-10-09)**; the 5.5 review record starts empty and judges from its third chain. **WP34 §6's review clause is a distribution since
+  5.5 by the owner (WP62, 2026-10-09)**; the thirteenth chain (first under the defaults) all green in 23
+  min for 4.87 USD; the 5.5 review record starts with the fourteenth (the twelfth and thirteenth carried
+  the WP61/WP63 review artefacts) and judges from its third chain. Opus 5.5 reaches for multi-source
+  hubs on the person step (three attempts, twice) — the gates answer it; WP63 makes declared types
+  the code's, not the model's. **WP34 §6's review clause is a distribution since
   WP53 (2026-10-07)**: the one-sided 95 % prediction bound over the recorded chains before the judged
   one (`eval/wp34_check.py`); the sixth chain's 156 still fails it, the seventh to eleventh held
   (127, 126, 143, 137, 136), the twelfth is judged against 155.1; a completed chain enters the record

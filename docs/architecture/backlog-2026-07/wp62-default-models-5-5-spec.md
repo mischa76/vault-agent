@@ -64,3 +64,10 @@ line: the defaults, `.env.example`, the per-model review record (`REVIEW_DECISIO
 `heavy_model`, `DEFAULT_RECORD_MODEL` for archived results), the WP53 and WP60 guards re-based
 deliberately, the configuration chapter, changelog, ledger header, CLAUDE.md. Full suite, ruff,
 mypy. §4 is **not yet measured** — the thirteenth chain, next.
+
+**2026-10-09 — the thirteenth chain** (`20261009T205307885768Z`), the first under the defaults: all five steps
+green, 23.3 min, 4.87 USD, invention 0, links 19, joins 0/0, 157 decisions — 68 of them the WP63
+class (declared types asked of the model), reported as "cannot be judged" by the empty 5.5
+record. §4: P1, P3, P4, P5 held; P2 half (WP61 live with 12 repairs, the type class remained
+until WP63); P6 half (carry-over held, step 1 took three attempts — Opus 5.5's multi-source-hub
+shape on the person step, twice now). The 5.5 record starts with the fourteenth chain.

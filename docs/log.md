@@ -8148,3 +8148,41 @@ flags only the last. **Überprüft:** two guards, 1178 tests, ruff, bare mypy. *
 That the AdventureWorks user-defined types stay the model's to answer (≤ 5 per chain expected).
 **Bewusst nicht getan.** No change to what the model is shown; the thirteenth chain is measured
 on the code before this change.
+
+## [2026-10-09] Thirteenth chain run — the first under the 5.5 defaults: all green, 23 min, 4.87 USD; WP61 repaired twelve answers; the review load's remaining excess is WP63's class
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261009T205307885768Z`, at `ff03340` (the code before
+WP63), no environment overrides: Sonnet 5.5 / Opus 5.5, auto tool-call mode. 114 calls (9 modeler:
+step 1 three attempts, steps 2 and 4 two, steps 3 and 5 one), 461k uncached input, 273k output,
+**23.3 min, ≈ 4.87 USD**. Final vault 39 hubs, 45 links, 93 satellites. **`validation_gate` 1.0
+and `pipeline_health` 1.0 in all five steps.** WP34 §6: links 19, **invention 0**, joins 0/0 —
+held; review **157 decisions, „cannot be judged: 0 recorded chain(s)“** (the 5.5 record, WP62).
+
+**Against the pre-registration.** **P1 held.** **P2 half:** WP61 live — **12 stringified
+`assets` answers repaired** (every one a trailing brace), none lost; but `undetermined_type`
+decisions were **68** (15 / 12 / 25 / 4 / 12), not ≤ 3 — every one a declared `int`/`datetime`
+column the agent never showed the model, the class WP63 (built during this run, `c04607f`)
+removes; the twelfth chain had 158 of them from the stringified answers alone. **P3 held** as
+written (reported, not judged; the other three clauses held). **P4 held:** no backstop fired but
+WP61's repairs. **P5 held:** 4.87 ≤ 5.5 USD, 23.3 ≤ 30 min. **P6 half:** WP57 carry-over 100 %
+of what no issue named on every retry (7/8 hubs, 3/6 links, 15/16 satellites after the step-1
+collision; 4/5 hubs after step 4's); but step 1 needed three attempts again — the same shape as
+on the twelfth chain: attempt 1 a multi-source hub with a satellite naming one feed
+(`E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB`) and a collision, attempt 2 a payload left unread,
+attempt 3 green. Two chains, one shape: Opus 5.5 reaches for multi-source hubs on the person step
+where Opus 4.8 did not; the gates answer it within the budget, with WP57 carrying the fixes.
+**Decisions without the two known artefacts:** 157 − 68 = 89 (`other` 76, mostly contract owners;
+resolution and mapping 13) — below every 4.x chain.
+
+**The 5.5 review record.** Not seeded with this chain either: its 157 carries the WP63 class,
+as the twelfth carried WP61's. The record starts with the fourteenth, the first chain whose
+review load is free of both — stated here so the omission is a decision, not a gap.
+
+**Überprüft.** The chain file, the five step files and `review.json` siblings, the trace (all
+114 calls; the twelve repairs' `trailing`), `wp34_check`, the cost from the trace's tokens at
+the 5.5 prices. **Nur angenommen.** That the step-1 three-attempt shape is Opus 5.5's and not
+the person step's — two chains, both on 5.5, say the former; a 4.8 chain never needed three
+there. **Bewusst nicht getan.** No change to the modeler's steering for multi-source hubs (the
+gates handle it; a steering line would need the ledger's protocol); no repeat.
