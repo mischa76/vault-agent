@@ -61,6 +61,7 @@ this table and the registry disagree, the registry wins.
 | --- | --- | --- | --- | --- |
 | `cdk_not_payload` | `attributes_without_cdk` | sonnet-tier, 2026-07-16 (pre-instrument) | not yet ablated; known: steering **alone** failed 4/4 on `health_insurance` (E_SAT_DUP_ATTR, unrecoverable within MAX_MODELING_ATTEMPTS) — both halves were needed | keep |
 | `effsat_two_dates` | `effsat_two_attributes` | — | not yet ablated | keep |
+| `repair_not_redraft` | — (measure: construct carry-over between attempts, from the trace) | opus-4-8, 2026-10-09 (pre-instrument) | not yet ablated; the tenth chain's step 3 carried 0 of 2 fixed satellites from attempt 2 into attempt 3 without it | keep, measure on the eleventh chain |
 | `one_hub_per_key` | — | — | not yet ablated | keep |
 | `hub_no_attributes` | — | — | not yet ablated | keep |
 | `link_per_relationship` | — | — | not yet ablated | keep |

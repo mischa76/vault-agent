@@ -721,16 +721,28 @@ class Link(BaseModel):
     event_timestamp: str | None = None
     requirement_ids: list[str] = Field(default_factory=list)
 
+    @staticmethod
+    def _ref_from_string(value: str) -> "LinkHubRef":
+        """A plain participation string as a reference (WP58): ``name:role`` is a role-qualified
+        participation — the notation ``driving_key`` has always used — and anything else an
+        unqualified one. The tenth chain (2026-10-09) lost two links whose participations the
+        modeler wrote as ``hub_address:ship_to`` and ``hub_currency:from`` / ``:to``: read as hub
+        names, they were unknown hubs. An empty name or role is left as written for the gates."""
+        name, sep, role = value.partition(":")
+        if sep and name and role:
+            return LinkHubRef(hub=name, role=role)
+        return LinkHubRef(hub=value)
+
     @field_validator("connected_hubs", mode="before")
     @classmethod
     def _normalise_hub_refs(cls, value: Any) -> Any:
         """Coerce every entry to a LinkHubRef so downstream code sees one shape (ADR-0009).
 
-        Plain strings become unqualified refs; dicts/LinkHubRefs pass through to pydantic.
-        Runs on construction/validation; direct field assignment bypasses it, which is why
-        :attr:`hub_refs` re-coerces defensively."""
+        Plain strings become refs (``name:role`` role-qualified, WP58); dicts/LinkHubRefs pass
+        through to pydantic. Runs on construction/validation; direct field assignment bypasses
+        it, which is why :attr:`hub_refs` re-coerces defensively."""
         if isinstance(value, list):
-            return [LinkHubRef(hub=v) if isinstance(v, str) else v for v in value]
+            return [cls._ref_from_string(v) if isinstance(v, str) else v for v in value]
         return value
 
     @property
@@ -740,7 +752,9 @@ class Link(BaseModel):
         The before-validator already normalises validated input; this re-coerces any plain
         string (e.g. from a post-construction field assignment that skips validation) so
         every consumer can rely on ``.hub`` / ``.role`` without a union check."""
-        return [LinkHubRef(hub=h) if isinstance(h, str) else h for h in self.connected_hubs]
+        return [
+            self._ref_from_string(h) if isinstance(h, str) else h for h in self.connected_hubs
+        ]
 
     def resolve_driving_refs(self) -> list["LinkHubRef"]:
         """Resolve ``driving_key`` entries to the connected refs they name (ADR-0009).
@@ -963,6 +977,10 @@ class VaultAgentState(BaseModel):
     modeling_attempts: int = 0
     # WP44: what a remedy retired in an earlier attempt; the modeler keeps it retired.
     retired_constructs: list[RetiredConstruct] = Field(default_factory=list)
+    # WP57: the model the modeler emitted in its last attempt — after parsing and the memory's
+    # drops, before the brownfield merge (the delta, never the vault). A retry carries it as
+    # `previous_model`, so the retry is a repair of this and not a new draft.
+    previous_delta: DVModel | None = None
     # Audit
     decisions: list[dict[str, Any]] = Field(default_factory=list)
     # Typed advisory/error flags raised by the agents (dropped records, generation gaps,

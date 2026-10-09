@@ -54,7 +54,8 @@ def test_rendered_rules_are_byte_identical_to_pre_wp16() -> None:
     # `no_source_table_on_multi_source_hub` and WP28 DELETED it again the same day, after
     # ADR-0011 blessed the shape it argued against (and after it measured 0/3 effective);
     # WP31 `attribute_one_satellite` (2026-07-30) added, for the E_SAT_ATTR_OVERLAP class
-    # ADR-0012 keeps as an error.
+    # ADR-0012 keeps as an error. WP57 `repair_not_redraft` (2026-10-09) added: the retry
+    # carries the previous model and the line tells the modeler to repair it, not redraw.
     # The pre-WP16 block remains a byte-identical prefix — a deletion of a rule ADDED
     # after WP16 cannot disturb it, which is exactly why the pin is written that way, and
     # each addition above was verified to preserve the prefix while regenerating.

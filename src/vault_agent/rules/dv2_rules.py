@@ -267,6 +267,21 @@ DV_MODELING_RULES = [
         "an error, so steering keeps a real defect from burning the re-model budget",
     ),
     SteeringRule(
+        id="repair_not_redraft",
+        text=(
+            "If the input contains `previous_model`, it is your own previous attempt: return it "
+            "as the complete model with exactly the changes `previous_validation_issues` and their "
+            "remedies require, and keep every construct no issue names — same name, same key, same "
+            "parent, same attributes. Do not reshape what passed."
+        ),
+        backstop=None,
+        origin=(
+            "WP57, 2026-10-09: the tenth chain's step 3 fixed the payload gate in attempt 2 and "
+            "lost the fix in attempt 3 — the retry carried no previous model, every attempt was a "
+            "new draft. Measured as carry-over of constructs between attempts (trace)."
+        ),
+    ),
+    SteeringRule(
         id="preserved_reference_is_a_link",
         text="A reference the requirements say is maintained elsewhere and must be PRESERVED "
         "so the areas can be joined later is a relationship, not a new concept: model it as a "

@@ -504,6 +504,13 @@ class Dv2ModelerAgent(BaseAgent):
                 | ({"remedy": issue.remedy} if issue.remedy else {})
                 for issue in errors
             ]
+            if state.previous_delta is not None:
+                # WP57: the retry is a repair of the modeler's own last attempt, not a new
+                # draft from the same inputs. The tenth chain's step 3 (2026-10-09) lost in
+                # attempt 3 what attempt 2 had fixed, because nothing carried it over.
+                payload["previous_model"] = state.previous_delta.model_dump(
+                    mode="json", exclude_none=True, exclude_defaults=True
+                )
         if state.retired_constructs:
             # WP44: the modeler is told what an earlier attempt's remedy retired — data in the
             # channel the remedy already travels in. The deterministic refusal below is the
@@ -523,6 +530,9 @@ class Dv2ModelerAgent(BaseAgent):
 
         model = self._validate_model(raw, state)
         model = drop_retired(model, state)
+        # WP57: remembered for the next attempt's payload — the delta as emitted and repaired
+        # by the memory, before any merge into an existing vault.
+        state.previous_delta = model.model_copy(deep=True)
         delta_counts = (len(model.hubs), len(model.links), len(model.satellites))
         if state.existing_model is not None:
             # WP23 §2.9: brownfield mode. The model just produced is a DELTA against the

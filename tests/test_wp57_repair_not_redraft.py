@@ -31,7 +31,7 @@ async def test_a_retry_carries_the_previous_delta_as_previous_model() -> None:
     previous = payload["previous_model"]
     assert [h["name"] for h in previous["hubs"]] == ["hub_customer", "hub_account"]
     assert [s["name"] for s in previous["satellites"]] == [
-        s["name"] for s in state.previous_delta.satellites
+        s.name for s in state.previous_delta.satellites
     ]
 
 
