@@ -168,24 +168,23 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   keyed hubs by name** until WP49 (2026-10-06) keyed them by shape too — the third chain's step 5 had
   gone red on a retired duplicate re-emitted under a new name; the fourth chain produced no rename.
   **The two-hubs-on-one-person defect was the standing red class** (fourth chain, 2026-10-06, step 5:
-  `hub_sales_person` beside `hub_employee`, the ratified key for `Store.SalesPersonID` targeting
-  `hub_employee`, `E_LINK_KEY_WRONG_COLUMN` refusing correctly). **WP50 (2026-10-06) gives that gate
-  a remedy with memory** on the ratified key's evidence; the shape has not recurred since (two chains),
-  so WP50 is unmeasured live. **The fifth and sixth chains (2026-10-06) are all green, and the memory
-  made them so:** re-emitted retired hubs were dropped — on the sixth under a new name, WP49's shape
-  retirement firing live for the first time. **WP51 (2026-10-06) moves a dropped hub's payload to its
-  kept twin** (live only on the self-link branch); WP52 (2026-10-06) makes the chain's gate and
-  health the minimum over steps and `extension_conflict` advisory (both live). Ten normal chains:
+  `hub_sales_person` beside `hub_employee`, `E_LINK_KEY_WRONG_COLUMN` refusing correctly). **WP50
+  (2026-10-06) gives that gate a remedy with memory** on the ratified key's evidence; the shape has
+  not recurred, so WP50 is unmeasured live. **The memory made chains green:** re-emitted retired hubs
+  were dropped — on the sixth chain under a new name (WP49's shape retirement, live). **WP51 moves a
+  dropped hub's payload to its kept twin** (live on the self-link branch); WP52 makes the chain's gate
+  and health the minimum over steps and `extension_conflict` advisory (live). Eleven normal chains:
   red/green/red/red, five green, red, green — the tenth's step 3 on WP54's gate after attempt 3
   regressed: a retry was a new draft — **WP57 (2026-10-09) carries the previous model** with a
   repair line; on the eleventh chain every retry kept 100 % of what no issue named. WP58 reads
-  `hub:role` participations (no live case yet). **WP34 §6's review clause is a distribution since WP53 (2026-10-07)**: the
-  one-sided 95 % prediction bound over the recorded chains before the judged one (`eval/wp34_check.py`);
-  the sixth chain's 156 still fails it (151.9 over five); the seventh to eleventh held (127, 126, 143,
-  137, 136); the twelfth is judged against 155.1. A completed chain enters the record in its docs commit. **A resumed chain's chain-level file is wrong before
-  2026-10-07** (model-only states); read the step files. **The eighth chain failed WP34 §6 on invention alone:** two hubs (`TransactionHistory`,
-  `PurchaseOrderDetail`) whose payload no satellite reads — **WP54 (2026-10-07) refuses that**
-  (`E_HUB_PAYLOAD_UNREAD`); live once on the ninth chain, followed in attempt 2.
+  `hub:role` participations (no live case yet). **WP34 §6's review clause is a distribution since
+  WP53 (2026-10-07)**: the one-sided 95 % prediction bound over the recorded chains before the judged
+  one (`eval/wp34_check.py`); the sixth chain's 156 still fails it, the seventh to eleventh held
+  (127, 126, 143, 137, 136), the twelfth is judged against 155.1; a completed chain enters the record
+  in its docs commit. **A resumed chain's chain-level file is wrong before 2026-10-07**; read the step
+  files. **The eighth chain lost two tables' payload** (`TransactionHistory`, `PurchaseOrderDetail`,
+  no satellite read them) — **WP54 (2026-10-07) refuses that** (`E_HUB_PAYLOAD_UNREAD`); live on the
+  ninth to eleventh chains, followed within the attempts except the tenth's step 3.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
   changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`
