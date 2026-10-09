@@ -22,7 +22,8 @@ def test_the_review_record_is_per_modeler_model() -> None:
     assert set(REVIEW_DECISION_SAMPLES) >= {"claude-opus-4-8", "claude-opus-5-5"}
     assert len(REVIEW_DECISION_SAMPLES["claude-opus-4-8"]) == 11
     # The 5.5 record starts with the fourteenth chain (2026-10-09): nothing before WP63 is a sample.
-    assert all(stamp >= "20261009T213238859667Z" for stamp, _ in REVIEW_DECISION_SAMPLES["claude-opus-5-5"])
+    record_55 = REVIEW_DECISION_SAMPLES["claude-opus-5-5"]
+    assert all(stamp >= "20261009T213238859667Z" for stamp, _ in record_55)
 
     old = _chain(review_decisions=140)
     old["models"] = {"heavy_model": "claude-opus-4-8", "primary_model": "claude-sonnet-4-6"}
