@@ -150,6 +150,7 @@ own overview.
 | [wp57](architecture/backlog-2026-07/wp57-repair-not-redraft-spec.md) | The retry is a repair, not a new draft: the modeler's previous delta travels with the issues as `previous_model`, with a steering line to change only what the issues name — **built keyless 2026-10-09; live measurement pending** |
 | [wp58](architecture/backlog-2026-07/wp58-colon-role-notation-spec.md) | `hub:role` in `connected_hubs` reads as a role-qualified participation, the notation `driving_key` already uses — **built keyless 2026-10-09; live measurement pending** |
 | [wp59](architecture/backlog-2026-07/wp59-model-switch-experiment-spec.md) | The model switch as a pre-registered experiment: one chain on Sonnet 5.5 / Opus 5.5 against the eleven-chain 4.x record, plus the steering ledger's release matrix on the candidate modeler — **pre-registered 2026-10-09; running** |
+| [wp60](architecture/backlog-2026-07/wp60-auto-tool-choice-spec.md) | A tool-call mode for models that refuse forced tool use (Opus 5.5, Sonnet 5.5): `FORCED_TOOL_CHOICE=false` asks with `auto`, a strict schema and an instruction line, retrying a text-only answer; the default request is byte-identical — **spec 2026-10-09; not yet built** |
 | [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — **closed 2026-09-12: 7 of 8; rerun 3 on 2026-09-13: 16 links, §6 not met on other clauses, $16.80 for all three attempts** |
 
 Earlier specs, before the backlog was numbered:
