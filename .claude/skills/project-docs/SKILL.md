@@ -34,6 +34,20 @@ Ask in this order and stop at the first yes.
    commit — or better, replace the value with a pointer to the code.
 5. Only then consider `CLAUDE.md` (next section). Most WPs change nothing there.
 
+## Securing the evidence of a paid run
+
+`eval/results/` (result JSON, step files, `review.json`, LLM transcripts, ablation comparisons)
+is git-ignored and exists only on this machine, yet every measurement entry in `docs/log.md`
+cites it by stamp. After recording a run — or at the latest in the same session — mirror it:
+
+```bash
+rsync -a eval/results/ tank:/tank/git/vault-agent-eval-results/
+```
+
+The SSH identity on `tank` is the `git` user, which may write under `/tank/git/` only (checked
+2026-10-10; `/tank/backup` is another account's). Verify with a file count on both sides. The
+mirror is the evidence's second copy, not a dataset: nothing reads it back.
+
 ## The admission rule for CLAUDE.md
 
 Budget: **250 lines** (200 until 2026-10-09, raised by the owner: condensing at 200 had started to cost knowledge), and it is a real limit, not an aspiration — the file is loaded in full on

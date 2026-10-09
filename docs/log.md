@@ -8313,3 +8313,20 @@ column `PurchaseOrderHeader.TotalDue` at most); **decisions ≤ 90**. **P3 — t
 record's second sample**; the clause judges from the third. **P4 — WP34 §6's other three clauses
 hold; WP61 repairs reported.** **P5 — cost ≤ 5 USD, wall ≤ 30 min; WP57 carry-over ≥ 90 %.**
 **P6 — step 1 in two attempts or fewer** (the fourteenth: two). **Not predicted:** the shapes.
+
+## [2026-10-10] The eval results are mirrored to tank; the project-docs skill carries the step
+
+**Autor:** Claude Code
+
+The user, on where the non-product artefacts live: „ja, sichere eval/results nach tank und
+ergänze den Skill“. `eval/results/` (695 files, 135 MB: every chain's result, step files,
+`review.json` siblings, transcripts, the ablation comparisons) is git-ignored and existed only on
+ZEUS while every measurement entry here cites it by stamp. Mirrored with `rsync -a` to
+`tank:/tank/git/vault-agent-eval-results/` — the SSH identity on tank is the `git` user, which may
+write under `/tank/git/` only; `/tank/backup` belongs to another account, so the mirror sits beside
+the git repositories (32 MB on disk, the pool compresses). File count 695 on both sides. The step
+is in `.claude/skills/project-docs/SKILL.md` as „Securing the evidence of a paid run“, to be run
+after recording a measurement. **Überprüft:** the counts on both sides, the writable directories
+on tank (`id`, write test per directory). **Nur angenommen:** nothing. **Bewusst nicht getan:** no
+move to `/tank/backup` (needs an account that may write there — the owner's call); no automation
+beyond the documented command.
