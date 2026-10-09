@@ -78,3 +78,8 @@ sixteenth chain (three samples).
 
 **2026-10-10 — the fifteenth chain** (`20261009T223709264306Z`) is the 5.5 record's second sample: 83 decisions, all
 green, 23.5 min, 4.66 USD — four 5.5 chains green in a row. The clause judges from the sixteenth.
+
+**2026-10-10 — the sixteenth chain** (`20261009T230452021687Z`) is the 5.5 record's third sample: 83 decisions, all
+green, 20.9 min, 4.19 USD, no undetermined type; five 5.5 chains green in a row. The record 84 /
+83 / 83 judges the seventeenth — against a ceiling near 85, a tight bar on three samples of one
+corpus (noted in `docs/log.md` 2026-10-10 for the owner).

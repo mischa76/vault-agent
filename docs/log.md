@@ -8379,3 +8379,35 @@ and the clause is judged against two predecessors only — a record of two canno
 first judged against three. **P3 — `undetermined_type` ≤ 2** (the two computed columns at most).
 **P4 — WP34 §6's other three clauses hold; WP61 repairs reported.** **P5 — cost ≤ 5 USD, wall ≤ 30
 min; WP57 carry-over ≥ 90 %; step 1 in two attempts or fewer.** **Not predicted:** the shapes.
+
+## [2026-10-10] Sixteenth chain run — all green, 83 decisions, no undetermined type at all; the 5.5 review record has its three samples
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261009T230452021687Z`, at `e9878f0`, the 5.5
+defaults, no code change since the fifteenth. 105 calls (8 modeler: steps 1, 2 and 4 two
+attempts, 3 and 5 one), 389k uncached input, 230k output, **20.9 min, ≈ 4.19 USD** — the cheapest
+chain recorded. Final vault 39 hubs, 46 links, 88 satellites. **`validation_gate` 1.0 and
+`pipeline_health` 1.0 in all five steps** — the fifth green 5.5 chain in a row. WP34 §6: links
+22, invention 0, joins 0/0 — held; **review 83 decisions** (16 / 10 / 25 / 9 / 23), „cannot be
+judged: 2 recorded chain(s)“ as pre-registered — this chain is the third sample, and the
+seventeenth is the first judged against three.
+
+**Against the pre-registration.** **P1 held. P2 held** (83, within 75–95). **P3 held and
+better:** `undetermined_type` 0 — the two computed columns got a type from the model this time.
+**P4 held:** the other three clauses; WP61 15 repairs (all a trailing brace). **P5 held:** 4.19 ≤
+5 USD, 20.9 ≤ 30 min; WP57 carry-over 100 % on steps 1 and 2 (7/7/17, 4/4/10) and 5/6 hubs,
+3/3 links, 10/10 satellites on step 4 — the one hub left out is the multi-source hub the gate
+named; step 1 in two attempts. 0 of 105 calls without a tool block.
+
+**The 5.5 record after three samples: 84, 83, 83** — mean 83.3, sd 0.6. That spread is too tight
+to be a distribution yet (three chains, one corpus, the same code); the seventeenth is judged
+against a ceiling near 85, and a chain with a few more unresolved concepts would fail it. That is
+the clause's letter on three samples; whether it is its spirit is the owner's call once the
+seventeenth has run — the 4.x record needed six chains before its ceiling stopped moving by
+more than a few decisions.
+
+**Überprüft.** The chain file, the five step files and `review.json` siblings, the trace (all 105
+calls, carry-over by name, the 15 repairs), `wp34_check`, the cost from the trace's tokens at the
+5.5 prices; the results mirrored to tank (skill step). **Nur angenommen.** Nothing. **Bewusst
+nicht getan.** No repeat; no change to `MIN_REVIEW_SAMPLES`.
