@@ -148,10 +148,15 @@ def decoded_field(
     if isinstance(value, type(default)):
         return value
     if isinstance(value, str):
+        # WP61 (2026-10-09): the first complete JSON value, whatever follows it. Sonnet 5.5
+        # wrote `assets` as a string with one closing brace too many in 10 of 68 answers;
+        # `json.loads` refused the lot and 158 contract fields lost their types to it.
+        stripped = value.strip()
         try:
-            decoded = json.loads(value)
+            decoded, end = json.JSONDecoder().raw_decode(stripped)
         except ValueError:
             return default
+        trailing = stripped[end:].strip()
         if isinstance(decoded, type(default)):
             emit_trace(
                 TraceEvent(
@@ -162,7 +167,8 @@ def decoded_field(
                         "tool": tool_name,
                         "field": name,
                         "as": "dict" if isinstance(default, dict) else "list",
-                    },
+                    }
+                    | ({"trailing": trailing[:40]} if trailing else {}),
                 ),
                 recorder,
             )
