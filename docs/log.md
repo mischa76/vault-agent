@@ -8411,3 +8411,19 @@ more than a few decisions.
 calls, carry-over by name, the 15 repairs), `wp34_check`, the cost from the trace's tokens at the
 5.5 prices; the results mirrored to tank (skill step). **Nur angenommen.** Nothing. **Bewusst
 nicht getan.** No repeat; no change to `MIN_REVIEW_SAMPLES`.
+
+## [2026-10-11] ADR-0014 proposed and WP65 kicked off — a workbench UI over the pipeline
+
+**Autor:** Claude Code
+
+The user: a GUI mixing Claude Desktop and the Proxmox console — navigation, visualisation and
+chat/log frames, perspectives, a workflow from new project through files, run, checkpoint,
+inspection and graphs. CLAUDE.md's precondition (end-to-end on two demo datasets) has held since
+September; a new framework needs an ADR. Written, nothing built: `ADR-0014-workbench-ui.md`
+(proposed: a local FastAPI web app in `vault_agent.ui` over the CLI's internals, three-pane
+shell, phased chat; frontend stack left open) and `wp65-workbench-ui-kickoff.md` (seven
+perspectives with their sources in today's code, the API, five phases, what the UI must not do,
+the owner's three decisions: browser-first or desktop, frontend A or B, chat as console or
+assistant). **Überprüft:** the CLI's resume flags, the checkpointer and `pending.json`, the
+report's renderer, as the surfaces the API would wrap. **Nur angenommen:** nothing. **Bewusst
+nicht getan:** no code, no dependency, no decision taken for the owner.

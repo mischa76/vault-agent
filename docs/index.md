@@ -68,6 +68,7 @@ Append-only. Status is the ADR's own header, not this table's opinion.
 | [0011](architecture/adrs/ADR-0011-satellite-source-binding-on-multi-source-hubs.md) | Satellite source binding on multi-source hubs | Accepted |
 | [0012](architecture/adrs/ADR-0012-attribute-overlap-across-satellites.md) | Attribute overlap across satellites of one parent | Accepted |
 | [0013](architecture/adrs/ADR-0013-surrogate-to-natural-key-translation.md) | Surrogate→natural-key translation for FK-derived link proposals | Accepted 2026-09-12 → WP36 |
+| [ADR-0014](architecture/adrs/ADR-0014-workbench-ui.md) | A workbench UI as a local web application over the pipeline's internals; frontend stack left to the owner — **Proposed 2026-10-11** |
 | [template](architecture/adrs/ADR-template.md) | The shape a new ADR takes | — |
 
 ## Charters and spikes
@@ -155,6 +156,7 @@ own overview.
 | [wp62](architecture/backlog-2026-07/wp62-default-models-5-5-spec.md) | The default models are Sonnet 5.5 and Opus 5.5 in the auto tool-call mode; the review record is kept per modeler model (the 4.8 record keeps its eleven chains, the 5.5 record starts empty) — **built 2026-10-09; thirteenth chain all green in 23 min for 4.87 USD; the 5.5 record starts with the fourteenth** |
 | [wp63](architecture/backlog-2026-07/wp63-declared-types-decide-spec.md) | A contract field's type is the declared column type where one is declared (SQL Server base types mapped deterministically); the model's answer counts only where none is — 15 `undetermined_type` decisions in one 5.5 step were declared `int`/`datetime` columns — **built and live 2026-10-09: the fourteenth chain had 7 undetermined types (all user-defined), 84 decisions in total** |
 | [wp64](architecture/backlog-2026-07/wp64-alias-types-resolved-spec.md) | AdventureWorks' six SQL Server alias types (`Name`, `Flag`, …) are transcribed from the install script and resolved to their base types in the derived schemas — **built and live 2026-10-10: no alias column undetermined on the fifteenth chain (two computed columns remain)** |
+| [wp65](architecture/backlog-2026-07/wp65-workbench-ui-kickoff.md) | Workbench UI kick-off: three-pane shell (navigation, perspectives, chat + log), the API over the CLI internals, five phases — **proposed 2026-10-11, awaiting the owner's three decisions (ADR-0014)** |
 | [evaluator-guide](evaluator-guide.md) | For an external evaluator with their own requirements and source model: what to prepare, how to run, what to judge (handling and result), how to send feedback, what goes to the API — written 2026-10-09 |
 | [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — **closed 2026-09-12: 7 of 8; rerun 3 on 2026-09-13: 16 links, §6 not met on other clauses, $16.80 for all three attempts** |
 
