@@ -67,6 +67,11 @@ is not the project's.
   `pipeline_health` on it, because nothing in the generated vault is wrong.
 
 ### Added
+- The workbench backend (WP66, ADR-0014): `vault-agent ui` serves the pipeline as a local API on
+  `127.0.0.1` — projects as folders, runs as background tasks over the CLI's own internals with
+  the equivalent CLI invocation recorded, the checkpoint read and decided through the CLI's
+  decision paths, events from the trace, the model as JSON and Mermaid, and the declared source
+  schema as an `erDiagram`. Extra `ui` (fastapi, uvicorn). Operations manual chapter 14.
 - `FORCED_TOOL_CHOICE=false` (WP60): the LLM client asks for its tool with `tool_choice: auto` and an
   instruction line, retrying a text-only answer — the mode Opus 5.5,
   Sonnet 5.5 and Fable 5.1 need, which return a 400 on forced tool use. The default (forced)

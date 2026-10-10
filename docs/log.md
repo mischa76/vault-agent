@@ -8438,3 +8438,34 @@ Accepted (a status move along the ADR's path, `VAULT_AGENT_ALLOW_RECORD_EDIT=1`)
 the decisions. Phase 1 — the backend API over the CLI's internals, keyless tests — begins as WP66.
 **Überprüft:** nothing to verify. **Nur angenommen:** nothing. **Bewusst nicht getan:** no frontend
 scaffolding before the API exists.
+
+## [2026-10-11] WP66 — the workbench backend built and verified: the pipeline as a local API over the CLI's internals
+
+**Autor:** Claude Code
+
+ADR-0014's phase 1. Spec `78c1c16`, guards red `8e2caec`, change `51dbb23`, chapter 14 `38d9f72`
+(a docs script broke twice on its changelog anchor; completed in the commit carrying this
+entry). **What exists now:** `vault_agent.ui` — a `ProjectStore` (projects as folders with
+`inputs/` and `runs/`; a schema upload goes through `load_source_schemas` and is refused with the
+loader's message), a `RunManager` (a run is an asyncio task over `cli._run_pipeline`, then
+`write_outputs` and `pending.json` exactly as the CLI does; the checkpoint is
+`assemble_review_queue` on `cli._paused_state`; a decision goes through `cli._build_decision` and
+`cli._resume_pipeline`, a discard through `cli._discard_pending`; every action's CLI equivalent
+is recorded in `run.json`; events are the trace file's lines), the FastAPI app (`create_app`,
+bound to localhost by `vault-agent ui`) and `build_source_mermaid`, the declared schema as an
+`erDiagram` — the input model the report never drew. Extra `ui`: fastapi 0.143, uvicorn 0.54. One
+active run per process (409 otherwise).
+
+**Verified with a real key (§4).** `health_insurance` through the API with the real agents:
+paused after 39 s, 9 decisions / 12 disclosures at the checkpoint, accepted via the API, finished
+— 39 artefacts (report, ADR, dbt models), 4 hubs / 3 links / 7 satellites, 7 calls, **0.13 USD**;
+`run.json` holds the two CLI equivalents. The case has no declared schema, so the input diagram
+was empty there (the keyless guard draws a two-table one). The client script's `TestClient`
+printed event-loop warnings at exit — the script's, not the server's.
+
+**Überprüft.** Six guards on the stub agents, 1186 tests, ruff, bare mypy; the real-key run's
+artefacts, model and trace (cost from its tokens). **Nur angenommen.** That the in-process state
+cache is enough for phase 1 — a finished run's state is not re-loadable after a restart (its
+artefacts and `run.json` are). **Bewusst nicht getan.** Cancellation, parallel runs, the
+frontend (WP67), the chat console; the `uvicorn` server was not exercised beyond its command —
+the API was driven in-process.

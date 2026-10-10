@@ -77,3 +77,14 @@ only); parallel runs.
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-11 — built, keyless and verified with a real key.** Guards `8e2caec` (failing on
+import), change `51dbb23`, chapter 14 `38d9f72`, the rest of the docs in the commit carrying this
+line. `vault_agent.ui` (`projects`, `runs`, `graphs`, `app`), the `ui` command, extra `ui`. Six
+guards pass on the CLI tests' stub agents. **§4 run:** `health_insurance` driven end-to-end
+through the API with the real agents (Sonnet 5.5 / Opus 5.5): paused after 39 s at the
+checkpoint with 9 decisions and 12 disclosures, accepted through `POST …/checkpoint`, finished;
+39 artefacts (the report, the ADR, the dbt models), 4 hubs / 3 links / 7 satellites, 7 calls,
+0.13 USD; `run.json` carries `vault-agent run … --out …` and `vault-agent resume --out … --accept`.
+The case declares no source schema, so the input `erDiagram` was empty there — the keyless guard
+covers it with a two-table schema.
