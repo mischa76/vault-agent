@@ -8469,3 +8469,18 @@ cache is enough for phase 1 — a finished run's state is not re-loadable after 
 artefacts and `run.json` are). **Bewusst nicht getan.** Cancellation, parallel runs, the
 frontend (WP67), the chat console; the `uvicorn` server was not exercised beyond its command —
 the API was driven in-process.
+
+## [2026-10-11] Korrektur — CI rot auf `38d9f72` und `d2d8d71`: der Workflow kannte das `ui`-Extra nicht
+
+**Autor:** Claude Code
+
+Beide Workflows synchronisierten `--extra dev` allein. Ohne FastAPI macht `ignore_missing_imports`
+jeden Routen-Dekorator in `ui/app.py` zu `Any`, und mypy strict meldet dreizehnmal
+`untyped-decorator`; der Testschritt lief gar nicht erst, und `test_wp66_workbench_api.py`
+importiert `fastapi.testclient` ohne Vorbehalt. Lokal war das Extra installiert, deshalb stand
+die bare `uv run mypy` grün — der WP66-Eintrag vom selben Tag nennt sie zu Recht als überprüft,
+aber auf einer anderen Umgebung als der CI. **Geändert:** `ci.yml` und `release.yml`
+synchronisieren `--extra dev --extra ui`. **Überprüft:** die fehlgeschlagene CI-Ausgabe
+(Lauf 38095911390), dann der grüne Lauf dieses Commits. **Nur angenommen:** nichts.
+**Bewusst nicht getan:** FastAPI zur Pflichtabhängigkeit machen — das Backend bleibt ein Extra
+(ADR-0014), die CI installiert es wie `dev`.

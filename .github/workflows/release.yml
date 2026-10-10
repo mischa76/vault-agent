@@ -26,7 +26,7 @@ jobs:
           echo "tag=$TAG project=$VERSION"
           test "$TAG" = "$VERSION" || { echo "::error::tag $TAG != pyproject version $VERSION — bump with 'uv version $TAG' first"; exit 1; }
       - name: Sync deps
-        run: uv sync --extra dev
+        run: uv sync --extra dev --extra ui
       - name: Definition of done
         run: |
           uv run ruff check .

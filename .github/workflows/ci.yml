@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
       - name: Sync deps
-        run: uv sync --extra dev
+        run: uv sync --extra dev --extra ui
       - name: Lint
         run: uv run ruff check .
       # Bare invocation ON PURPOSE (WP27 §2.1): an explicit path OVERRIDES pyproject's
