@@ -54,7 +54,7 @@ def _project_with_inputs(client: TestClient) -> str:
     return pid
 
 
-def test_projects_are_folders_and_a_bad_schema_is_refused_before_any_run(client: TestClient) -> None:
+def test_projects_are_folders_and_a_bad_schema_is_refused(client: TestClient) -> None:
     pid = client.post("/api/projects", json={"name": "Bank demo"}).json()["id"]
     assert [p["id"] for p in client.get("/api/projects").json()] == [pid]
     assert client.get(f"/api/projects/{pid}").json()["name"] == "Bank demo"
@@ -108,7 +108,7 @@ def test_events_come_from_the_trace_and_a_second_run_is_refused(client: TestClie
     run = client.post(f"/api/projects/{pid}/runs?wait=true",
                       json={"requirements": "req.md", "schema": "schema.yml"}).json()
     events = client.get(f"/api/runs/{run['id']}/events?after=0").json()
-    assert events["events"] and events["events"][0]["kind"] == "route"
+    assert events["events"] and events["events"][0]["kind"] == "llm_route"  # the CLI's route event
     assert client.get(f"/api/runs/{run['id']}/artefacts/../../project.json").status_code == 404
     trace = Path(run["out_dir"]) / ".vault-agent" / "traces"
     assert trace.exists() and list(trace.glob("*.jsonl"))

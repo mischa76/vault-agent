@@ -1638,6 +1638,21 @@ def _resume_paused(
 
 
 @app.command()
+def ui(
+    root: Annotated[
+        Path, typer.Option("--root", help="Folder holding the workbench's projects.")
+    ] = Path("workbench"),
+    port: Annotated[int, typer.Option("--port", help="Port on 127.0.0.1.")] = 8765,
+) -> None:
+    """Serve the workbench API locally (WP66, ADR-0014): projects, runs, checkpoint, graphs."""
+    import uvicorn
+
+    from vault_agent.ui.app import create_app
+
+    uvicorn.run(create_app(root), host="127.0.0.1", port=port)
+
+
+@app.command()
 def resume(
     out: Annotated[
         Path,
