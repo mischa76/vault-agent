@@ -63,3 +63,10 @@ models, the UI shows them); expose the server beyond localhost; render model tex
 1. Browser-first local web app (proposed) — or desktop-first?
 2. Frontend A (HTMX, no build step) or B (Vite/React/TypeScript/Tailwind)?
 3. Chat phase 1 as a state-driven console (proposed) — or an LLM assistant from the start?
+
+## 7 Decisions (2026-10-11)
+
+The owner, asked the three questions: **browser-first, local** (a desktop wrapper later);
+**frontend B** — Vite + React + TypeScript + Tailwind; **chat phase 1 as a state-driven console**,
+the LLM assistant a later phase with its own ADR. ADR-0014 moves to Accepted. Phase 1 (the
+backend API with keyless tests) starts as WP66.

@@ -8427,3 +8427,14 @@ the owner's three decisions: browser-first or desktop, frontend A or B, chat as 
 assistant). **Überprüft:** the CLI's resume flags, the checkpointer and `pending.json`, the
 report's renderer, as the surfaces the API would wrap. **Nur angenommen:** nothing. **Bewusst
 nicht getan:** no code, no dependency, no decision taken for the owner.
+
+## [2026-10-11] Decisions — ADR-0014 accepted: browser-first, frontend B, chat as a console
+
+**Autor:** Claude Code
+
+The user answered the kick-off's three questions: browser-first local web app, Vite + React +
+TypeScript + Tailwind, chat phase 1 as a state-driven console. ADR-0014 moved from Proposed to
+Accepted (a status move along the ADR's path, `VAULT_AGENT_ALLOW_RECORD_EDIT=1`); WP65 §7 records
+the decisions. Phase 1 — the backend API over the CLI's internals, keyless tests — begins as WP66.
+**Überprüft:** nothing to verify. **Nur angenommen:** nothing. **Bewusst nicht getan:** no frontend
+scaffolding before the API exists.

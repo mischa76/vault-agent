@@ -1,6 +1,6 @@
 # ADR-0014: A workbench UI for vault-agent — a local web application over the pipeline
 
-**Status:** Proposed
+**Status:** Accepted (2026-10-11 — the owner chose browser-first, frontend B, a state-driven console for chat phase 1)
 **Date:** 2026-10-11
 **Decision makers:** Mischa Eismann
 
@@ -35,10 +35,10 @@ decide what the agents decide — it presents, asks and records.
    and `build_model_mermaid`, the trace recorder as the event source. Progress and the log pane
    stream `TraceEvent`s and the structured log over server-sent events. Every endpoint has a
    keyless test through the injectable extractor seams the eval harness already uses.
-3. **The frontend is a three-pane workbench:** navigation (projects → runs → artefacts), a
+3. **The frontend is a three-pane workbench (decided: Vite + React + TypeScript + Tailwind, frontend B):** navigation (projects → runs → artefacts), a
    workspace with **perspectives** — Project, Run, Review, Model, Artefacts, Log — and a right
-   pane for the conversation with the agent and the syslog-style event stream. Frontend stack:
-   *to be decided* (see alternatives); the API contract is the same either way.
+   pane for the conversation with the agent and the syslog-style event stream. The API contract
+   is independent of the frontend.
 4. **Chat is phased.** Phase 1 is a command and explanation console (what each review item
    means, what a gate refused, what a command would do — all from the state, no model call).
    An LLM-backed assistant over the project state is a later phase with its own cost line.
