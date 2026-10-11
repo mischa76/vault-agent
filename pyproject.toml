@@ -87,6 +87,9 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/vault_agent"]
+# The frontend bundle is gitignored and built before `uv build` (WP67 §2.5); hatch would
+# otherwise honour the ignore file and leave it out of the wheel.
+artifacts = ["src/vault_agent/ui/static/**"]
 
 [tool.ruff]
 line-length = 100

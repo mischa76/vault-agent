@@ -8,6 +8,7 @@ hostile table or column name can never leave the label it is in.
 from __future__ import annotations
 
 import re
+import sys
 from collections.abc import Iterable
 from typing import Any
 
@@ -35,3 +36,22 @@ def build_source_mermaid(tables: Iterable[Any]) -> str:
                 f"  {_ident(table.table)} }}o--|| {_ident(fk.references_table)} : {label}"
             )
     return "\n".join(lines) + "\n"
+
+
+def node_catalogue() -> list[dict[str, Any]]:
+    """The graph's nodes in order with the tool name each agent emits (WP67 §2.1).
+
+    Read from the agents the graph constructs — the ``_TOOL_NAME`` constant of the module the
+    agent class lives in — so the frontend derives its status strip from the package's own
+    order and names, never from a list of its own. A deterministic node has ``None``.
+    """
+    from vault_agent.graph import NODES, default_agents
+
+    agents = default_agents()
+    return [
+        {
+            "id": node,
+            "tool_name": getattr(sys.modules[type(agents[node]).__module__], "_TOOL_NAME", None),
+        }
+        for node in NODES
+    ]

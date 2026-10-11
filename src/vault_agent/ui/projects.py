@@ -1,6 +1,7 @@
 """Projects are folders (WP66 §2.1): ``<root>/<id>/project.json``, ``inputs/``, ``runs/``."""
 from __future__ import annotations
 
+import builtins
 import json
 import re
 from datetime import UTC, datetime
@@ -73,6 +74,17 @@ class ProjectStore:
 
     def get(self, project_id: str) -> dict[str, Any]:
         return self._read(project_id)
+
+    def runs(self, project_id: str) -> "builtins.list[dict[str, Any]]":
+        """One summary per ``runs/<stamp>/run.json``, newest first (WP67 §3.2)."""
+        summaries: list[dict[str, Any]] = []
+        for meta in sorted(self._dir(project_id).glob("runs/*/run.json"), reverse=True):
+            data = json.loads(meta.read_text(encoding="utf-8"))
+            summaries.append({k: data.get(k) for k in (
+                "id", "status", "started", "finished", "requirements", "schema", "existing_run",
+                "error",
+            )})
+        return summaries
 
     def input_path(self, project_id: str, name: str) -> Path:
         path = (self._dir(project_id) / "inputs" / name).resolve()

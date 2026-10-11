@@ -75,3 +75,7 @@ eval/results/
 # requirements/source text. Belt-and-braces for output dirs outside the patterns above.
 .vault-agent/
 **/.vault-agent/
+
+# The workbench frontend bundle (WP67): built from frontend/, shipped in the wheel as an artifact
+src/vault_agent/ui/static/
+frontend/node_modules/

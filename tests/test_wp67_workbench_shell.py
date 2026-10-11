@@ -2,7 +2,7 @@
 failing. Keyless: the graph endpoint, the project's run history and the static serving."""
 from __future__ import annotations
 
-import importlib
+import sys
 from pathlib import Path
 
 import pytest
@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from tests.test_cli import _sqlite_stub_agents
 from tests.test_wp66_workbench_api import _project_with_inputs
 from vault_agent import cli
-from vault_agent.graph import NODES, build_graph
+from vault_agent.graph import NODES, build_graph, default_agents
 from vault_agent.ui.app import create_app
 
 
@@ -26,8 +26,9 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
 def test_the_graph_endpoint_names_the_nodes_and_their_tool_names(client: TestClient) -> None:
     nodes = client.get("/api/graph").json()["nodes"]
     assert [n["id"] for n in nodes] == NODES
+    agents = default_agents()
     for node in nodes:
-        module = importlib.import_module(f"vault_agent.agents.{node['id']}")
+        module = sys.modules[type(agents[node["id"]]).__module__]
         assert node["tool_name"] == getattr(module, "_TOOL_NAME", None)
     assert any(n["tool_name"] for n in nodes)  # the LLM agents are there
 

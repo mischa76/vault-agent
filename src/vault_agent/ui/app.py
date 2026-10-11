@@ -6,12 +6,22 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from vault_agent.report import build_model_mermaid, build_report
-from vault_agent.ui.graphs import build_source_mermaid
+from vault_agent.ui.graphs import build_source_mermaid, node_catalogue
 from vault_agent.ui.projects import FileKind, ProjectError, ProjectStore
 from vault_agent.ui.runs import RunConflictError, RunManager
+
+STATIC_DIR = Path(__file__).parent / "static"
+_NO_BUNDLE = """<!doctype html><meta charset="utf-8"><title>vault-agent workbench</title>
+<body style="font-family:system-ui;max-width:40em;margin:4em auto;line-height:1.5">
+<h1>vault-agent workbench</h1>
+<p>The API is up (<a href="/docs">/docs</a>), but the frontend bundle is not built.</p>
+<pre>cd frontend &amp;&amp; npm ci &amp;&amp; npm run build</pre>
+<p>then reload. The build lands in <code>src/vault_agent/ui/static/</code> (WP67 §2.5).</p>
+"""
 
 
 class NewProject(BaseModel):
@@ -39,7 +49,10 @@ class Decision(BaseModel):
     owners: dict[str, str] = Field(default_factory=dict)
 
 
-def create_app(root: Path) -> FastAPI:
+def create_app(root: Path, static: Path | None = None) -> FastAPI:
+    """The API over ``root``; the frontend bundle under ``static`` (default: the package's
+    ``static/``) is served at ``/`` with a client-route fallback when it exists (WP67 §2.5)."""
+    static = STATIC_DIR if static is None else static
     store = ProjectStore(root)
     runs = RunManager(store)
     app = FastAPI(title="vault-agent workbench", version="0.1")
@@ -51,6 +64,10 @@ def create_app(root: Path) -> FastAPI:
             code = 404 if str(exc).startswith("no ") or " has no " in str(exc) else 400
             return HTTPException(status_code=code, detail=str(exc))
         raise exc
+
+    @app.get("/api/graph")
+    def get_graph() -> dict[str, Any]:
+        return {"nodes": node_catalogue()}
 
     @app.get("/api/projects")
     def list_projects() -> list[dict[str, Any]]:
@@ -66,7 +83,7 @@ def create_app(root: Path) -> FastAPI:
     @app.get("/api/projects/{project_id}")
     def get_project(project_id: str) -> dict[str, Any]:
         try:
-            return store.get(project_id)
+            return {**store.get(project_id), "runs": store.runs(project_id)}
         except ProjectError as exc:
             raise _guard(exc) from exc
 
@@ -160,5 +177,19 @@ def create_app(root: Path) -> FastAPI:
         except ProjectError as exc:
             raise _guard(exc) from exc
         return build_report(state)
+
+    index = static / "index.html"
+    if (static / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=static / "assets"), name="assets")
+
+    @app.get("/{path:path}", response_class=HTMLResponse, include_in_schema=False)
+    def spa(path: str) -> Any:
+        if path.startswith("api/") or path == "api":
+            raise HTTPException(status_code=404)
+        if index.is_file():
+            if path and (static / path).is_file() and ".." not in path:
+                return FileResponse(static / path)
+            return FileResponse(index)
+        return HTMLResponse(_NO_BUNDLE)
 
     return app
