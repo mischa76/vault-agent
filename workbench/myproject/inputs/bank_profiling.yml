@@ -1,0 +1,75 @@
+# Profiling evidence for the bank toy domain (ADR-0008 #4 — a pre-step artifact).
+#
+# Column statistics the WP9 SourceMapperAgent may use as evidence, produced ahead of time
+# (a sanitised metadata/profile extract), never by the agent logging into a source. Loaded
+# by src/vault_agent/profiling.py:load_profiling into state.profiling.
+#
+# Plausible synthetic values (no real data). The bank is the high-floor case: the true
+# business keys (national_customer_id, account_number) profile as clean unique keys, so
+# profiling reinforces the name-based pick rather than fighting it.
+#   uniqueness_ratio = distinct_count / non_null_count.
+tables:
+  - table: customer
+    row_count: 3
+    columns:
+      - name: national_customer_id
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 3
+        example_values: ["756.1234.5678.90", "756.9876.5432.10", "756.5555.4444.33"]
+      - name: bank_customer_reference
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 3
+        example_values: ["CUSTREF-0001", "CUSTREF-0002", "CUSTREF-0003"]
+      - name: customer_name
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 3
+        example_values: ["Anna Meier", "Bruno Keller", "Clara Frei"]
+      - name: date_of_birth
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 3
+        example_values: ["1980-04-12", "1975-11-30", "1990-07-08"]
+  - table: account
+    row_count: 4
+    columns:
+      - name: account_number
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 4
+        example_values: ["CH93-0076-2011-6238-5295-7", "CH56-0483-5012-3456-7800-9", "CH12-0900-0000-1234-5678-0"]
+      - name: balance
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 4
+        example_values: ["1250.00", "89340.55", "0.00"]
+      - name: status
+        uniqueness_ratio: 0.5
+        null_ratio: 0.0
+        distinct_count: 2
+        example_values: ["OPEN", "DORMANT"]
+  - table: account_customer
+    row_count: 5
+    columns:
+      - name: account_number
+        uniqueness_ratio: 0.8
+        null_ratio: 0.0
+        distinct_count: 4
+        example_values: ["CH93-0076-2011-6238-5295-7", "CH56-0483-5012-3456-7800-9"]
+      - name: national_customer_id
+        uniqueness_ratio: 0.6
+        null_ratio: 0.0
+        distinct_count: 3
+        example_values: ["756.1234.5678.90", "756.9876.5432.10"]
+      - name: effective_from
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 5
+        example_values: ["2020-01-01 00:00:00", "2021-06-15 00:00:00"]
+      - name: effective_to
+        uniqueness_ratio: 0.4
+        null_ratio: 0.6
+        distinct_count: 2
+        example_values: ["2026-04-01 00:00:00"]

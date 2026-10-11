@@ -1,0 +1,16 @@
+{
+  "id": "myproject:20261011T024041517077Z",
+  "project": "myproject",
+  "status": "paused",
+  "thread_id": "84d64ecd127a4fd18f38f9b36329876f",
+  "out_dir": "workbench/myproject/runs/20261011T024041517077Z",
+  "requirements": "bank_account_requirements.md",
+  "schema": "bank_source_schema.yml",
+  "existing_run": null,
+  "started": "2026-10-11T02:40:41+00:00",
+  "finished": null,
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run /mnt/c/Users/misch/projects/vault-agent/workbench/myproject/inputs/bank_account_requirements.md --out workbench/myproject/runs/20261011T024041517077Z --source-schema /mnt/c/Users/misch/projects/vault-agent/workbench/myproject/inputs/bank_source_schema.yml"
+  ]
+}

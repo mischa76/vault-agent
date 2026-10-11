@@ -1,0 +1,27 @@
+{
+  "id": "myproject",
+  "name": "myProject",
+  "created": "2026-10-11T02:29:59+00:00",
+  "files": [
+    {
+      "kind": "requirements",
+      "name": "health_insurance_requirements.md",
+      "bytes": 1188
+    },
+    {
+      "kind": "requirements",
+      "name": "bank_account_requirements.md",
+      "bytes": 699
+    },
+    {
+      "kind": "schema",
+      "name": "bank_source_schema.yml",
+      "bytes": 1156
+    },
+    {
+      "kind": "profiling",
+      "name": "bank_profiling.yml",
+      "bytes": 2783
+    }
+  ]
+}

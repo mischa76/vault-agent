@@ -1,0 +1,99 @@
+# Business↔source mapping — review & ratify (WP9, ADR-0008).
+# Edit table/column below, then: vault-agent resume --mappings <this file>
+# Or override one concept:      vault-agent resume --map "concept=TABLE.COLUMN"
+# gaps have no in-scope source (Business Vault/marts); unresolved need your decision.
+proposals:
+- key: customer::national_customer_id
+  concept: national_customer_id
+  entity: customer
+  table: customer
+  column: national_customer_id
+  category: exact_name
+  confidence: 0.85
+  ratification_status: proposed
+  evidence:
+  - customer is the entity-anchor table
+  - account_customer.national_customer_id is only an FK occurrence
+- key: account::account_number
+  concept: account_number
+  entity: account
+  table: account
+  column: account_number
+  category: exact_name
+  confidence: 0.85
+  ratification_status: proposed
+  evidence:
+  - account is the entity-anchor table
+  - account_customer.account_number is only an FK occurrence
+- key: hub_customer::customer_name
+  concept: customer_name
+  entity: hub_customer
+  table: customer
+  column: customer_name
+  category: exact_name
+  confidence: 0.9
+  ratification_status: proposed
+  evidence:
+  - only customer_name column, in customer table
+- key: hub_customer::date_of_birth
+  concept: date_of_birth
+  entity: hub_customer
+  table: customer
+  column: date_of_birth
+  category: exact_name
+  confidence: 0.9
+  ratification_status: proposed
+  evidence:
+  - only date_of_birth column, in customer table
+- key: hub_customer::bank_customer_reference
+  concept: bank_customer_reference
+  entity: hub_customer
+  table: customer
+  column: bank_customer_reference
+  category: exact_name
+  confidence: 0.85
+  ratification_status: proposed
+  evidence:
+  - only bank_customer_reference column, in customer table
+- key: hub_account::balance
+  concept: balance
+  entity: hub_account
+  table: account
+  column: balance
+  category: exact_name
+  confidence: 0.9
+  ratification_status: proposed
+  evidence:
+  - only balance column, in account table
+- key: hub_account::status
+  concept: status
+  entity: hub_account
+  table: account
+  column: status
+  category: exact_name
+  confidence: 0.9
+  ratification_status: proposed
+  evidence:
+  - only status column, in account table
+- key: link_account_customer::effective_from
+  concept: effective_from
+  entity: link_account_customer
+  table: account_customer
+  column: effective_from
+  category: exact_name
+  confidence: 0.9
+  ratification_status: proposed
+  evidence:
+  - relationship table account_customer holds effective_from
+- key: link_account_customer::effective_to
+  concept: effective_to
+  entity: link_account_customer
+  table: account_customer
+  column: effective_to
+  category: exact_name
+  confidence: 0.9
+  ratification_status: proposed
+  evidence:
+  - relationship table account_customer holds effective_to
+gaps: []
+unresolved: []

@@ -1,0 +1,64 @@
+spec-version: 1.0.0
+name: customer
+namespace: source
+dataAssetResourceName: datastore://source/customer
+doc: Customer master records landed from the source system into staging. Each record
+  represents one bank customer, identified by a national customer identifier, with
+  a bank-internal reference, name and date of birth. The contract enforces the declared
+  schema, business-key uniqueness and not-null rules (handled by the deterministic
+  core); value-level constraints are not yet specified in the requirements and are
+  left for producer/consumer negotiation.
+owner:
+  name: 'TODO: assign'
+  email: null
+schema:
+- name: national_customer_id
+  description: National identifier assigned to the customer; used as a business key
+    for the customer.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: bank_customer_reference
+  description: The bank's internal reference for the customer.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: customer_name
+  description: Name of the customer.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: date_of_birth
+  description: Customer's date of birth. Format and optionality are not specified
+    and need human review.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: unknown
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

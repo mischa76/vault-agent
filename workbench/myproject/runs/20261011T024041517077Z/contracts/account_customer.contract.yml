@@ -1,0 +1,63 @@
+spec-version: 1.0.0
+name: account_customer
+namespace: source
+dataAssetResourceName: datastore://source/account_customer
+doc: Association between bank accounts and customers, recording which customer is
+  linked to which account and the period over which the link is effective. The contract
+  enforces the declared schema and business-key uniqueness/not-null rules; ownership
+  and agreement are to be confirmed at the human review checkpoint.
+owner:
+  name: 'TODO: assign'
+  email: null
+schema:
+- name: account_number
+  description: Identifier of the account participating in the account-customer relationship;
+    refers to the account asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: unknown
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: national_customer_id
+  description: National identifier of the customer participating in the account-customer
+    relationship; refers to the customer asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: unknown
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: effective_from
+  description: Date from which the account-customer relationship is effective.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: unknown
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: effective_to
+  description: Date until which the account-customer relationship is effective; may
+    be open-ended for a current relationship.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: unknown
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

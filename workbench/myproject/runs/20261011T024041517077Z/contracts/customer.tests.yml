@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_customer
+  columns:
+  - name: NATIONAL_CUSTOMER_ID
+    tests:
+    - unique
+    - not_null
+  - name: BANK_CUSTOMER_REFERENCE
+    tests:
+    - unique
+    - not_null

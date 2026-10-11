@@ -1,0 +1,162 @@
+hubs:
+  hub_account:
+    source_model: stg_account
+    src_ldts: LOAD_DATETIME
+    src_nk: ACCOUNT_NUMBER
+    src_pk: ACCOUNT_HK
+    src_source: RECORD_SOURCE
+  hub_customer:
+    source_model: stg_customer
+    src_ldts: LOAD_DATETIME
+    src_nk: NATIONAL_CUSTOMER_ID
+    src_pk: CUSTOMER_HK
+    src_source: RECORD_SOURCE
+links:
+  link_account_customer:
+    source_model: stg_account_customer
+    src_fk:
+    - ACCOUNT_HK
+    - CUSTOMER_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_ACCOUNT_CUSTOMER_HK
+    src_source: RECORD_SOURCE
+satellites:
+  sat_account_balance:
+    source_model: stg_account_balance
+    src_hashdiff: ACCOUNT_BALANCE_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - BALANCE
+    src_pk: ACCOUNT_HK
+    src_source: RECORD_SOURCE
+  sat_account_customer_effectivity:
+    source_model: stg_account_customer
+    src_dfk: ACCOUNT_HK
+    src_eff: APPLIED_DTS
+    src_end_date: EFFECTIVE_TO
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_ACCOUNT_CUSTOMER_HK
+    src_sfk:
+    - CUSTOMER_HK
+    src_source: RECORD_SOURCE
+    src_start_date: EFFECTIVE_FROM
+  sat_account_status:
+    source_model: stg_account_status
+    src_hashdiff: ACCOUNT_STATUS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - STATUS
+    src_pk: ACCOUNT_HK
+    src_source: RECORD_SOURCE
+  sat_customer_pii:
+    source_model: stg_customer_pii
+    src_hashdiff: CUSTOMER_PII_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - CUSTOMER_NAME
+    - DATE_OF_BIRTH
+    src_pk: CUSTOMER_HK
+    src_source: RECORD_SOURCE
+  sat_customer_reference:
+    source_model: stg_customer_reference
+    src_hashdiff: CUSTOMER_REFERENCE_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - BANK_CUSTOMER_REFERENCE
+    src_pk: CUSTOMER_HK
+    src_source: RECORD_SOURCE
+staging:
+  stg_account:
+    expected_source_columns:
+    - ACCOUNT_NUMBER
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ACCOUNT_HK: ACCOUNT_NUMBER
+    source_binding: declared
+    source_model: account
+  stg_account_balance:
+    expected_source_columns:
+    - ACCOUNT_NUMBER
+    - BALANCE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ACCOUNT_BALANCE_HASHDIFF:
+        columns:
+        - BALANCE
+        is_hashdiff: true
+      ACCOUNT_HK: ACCOUNT_NUMBER
+    source_binding: declared
+    source_model: account
+  stg_account_customer:
+    derived_columns:
+      APPLIED_DTS: EFFECTIVE_FROM
+    expected_source_columns:
+    - ACCOUNT_NUMBER
+    - NATIONAL_CUSTOMER_ID
+    - EFFECTIVE_FROM
+    - EFFECTIVE_TO
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ACCOUNT_HK: ACCOUNT_NUMBER
+      CUSTOMER_HK: NATIONAL_CUSTOMER_ID
+      LINK_ACCOUNT_CUSTOMER_HK:
+      - ACCOUNT_NUMBER
+      - NATIONAL_CUSTOMER_ID
+    source_binding: declared
+    source_model: account_customer
+  stg_account_status:
+    expected_source_columns:
+    - ACCOUNT_NUMBER
+    - STATUS
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ACCOUNT_HK: ACCOUNT_NUMBER
+      ACCOUNT_STATUS_HASHDIFF:
+        columns:
+        - STATUS
+        is_hashdiff: true
+    source_binding: declared
+    source_model: account
+  stg_customer:
+    expected_source_columns:
+    - NATIONAL_CUSTOMER_ID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CUSTOMER_HK: NATIONAL_CUSTOMER_ID
+    source_binding: declared
+    source_model: customer
+  stg_customer_pii:
+    expected_source_columns:
+    - NATIONAL_CUSTOMER_ID
+    - CUSTOMER_NAME
+    - DATE_OF_BIRTH
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CUSTOMER_HK: NATIONAL_CUSTOMER_ID
+      CUSTOMER_PII_HASHDIFF:
+        columns:
+        - CUSTOMER_NAME
+        - DATE_OF_BIRTH
+        is_hashdiff: true
+    source_binding: declared
+    source_model: customer
+  stg_customer_reference:
+    expected_source_columns:
+    - NATIONAL_CUSTOMER_ID
+    - BANK_CUSTOMER_REFERENCE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CUSTOMER_HK: NATIONAL_CUSTOMER_ID
+      CUSTOMER_REFERENCE_HASHDIFF:
+        columns:
+        - BANK_CUSTOMER_REFERENCE
+        is_hashdiff: true
+    source_binding: declared
+    source_model: customer

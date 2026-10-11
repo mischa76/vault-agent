@@ -1,0 +1,50 @@
+spec-version: 1.0.0
+name: account
+namespace: source
+dataAssetResourceName: datastore://source/account
+doc: Staging representation of a bank account as loaded from the source 'account'
+  table. Contract enforces the declared schema, the account_number business key, and
+  not-null rules; value-level semantics are left for producer/consumer negotiation
+  at human review.
+owner:
+  name: 'TODO: assign'
+  email: null
+schema:
+- name: account_number
+  description: Business key identifying the account in the source system.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: balance
+  description: Account balance as recorded in the source system. Currency and precision
+    are not specified in the requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: unknown
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: status
+  description: Status of the account in the source system. The allowed set of values
+    is not specified in the requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: unknown
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
