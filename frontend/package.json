@@ -1,0 +1,33 @@
+{
+  "name": "vault-agent-workbench",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "The vault-agent workbench frontend (WP67, ADR-0014) over the WP66 API.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "mermaid": "^11",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6",
+    "jsdom": "^30",
+    "playwright": "^1.64.0",
+    "tailwindcss": "^4",
+    "typescript": "^5.9",
+    "vite": "^8",
+    "vitest": "^5"
+  }
+}

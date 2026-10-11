@@ -64,3 +64,14 @@ def test_without_a_bundle_the_root_names_the_build_command(tmp_path: Path) -> No
     client = TestClient(create_app(tmp_path / "projects", static=tmp_path / "missing"))
     r = client.get("/")
     assert r.status_code == 200 and "npm run build" in r.text
+
+
+def test_the_contract_owner_decision_names_its_contract_as_the_asset(client: TestClient) -> None:
+    """The Review perspective offers an owner input per contract on `asset`, never on the text."""
+    pid = _project_with_inputs(client)
+    run = client.post(f"/api/projects/{pid}/runs?wait=true",
+                      json={"requirements": "req.md", "schema": "schema.yml"}).json()
+    items = client.get(f"/api/runs/{run['id']}/checkpoint").json()["items"]
+    owners = [i for i in items if i["kind"] == "contract_owner"]
+    assert owners and all(i["asset"] for i in owners)
+    assert owners[0]["asset"] == "customer"

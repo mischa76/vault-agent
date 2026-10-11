@@ -245,6 +245,9 @@ def assemble_review_queue(state: VaultAgentState) -> HumanReviewQueue:
                     detail="The agent never invents an owner; assign one before agreeing "
                     "the contract.",
                     source="data_contract",
+                    # WP67: the contract's name as the typed field, so a UI can offer the owner
+                    # input per contract without reading the summary text.
+                    asset=name,
                     role="decision",
                 )
             )
