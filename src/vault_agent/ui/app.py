@@ -10,6 +10,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from vault_agent.report import build_model_mermaid, build_report
+from vault_agent.ui.console import ConsoleAnswer, answer
 from vault_agent.ui.graphs import build_source_mermaid, node_catalogue
 from vault_agent.ui.projects import FileKind, ProjectError, ProjectStore
 from vault_agent.ui.runs import RunConflictError, RunManager
@@ -40,6 +41,10 @@ class StartRun(BaseModel):
     existing_run: str | None = None
 
     model_config = {"populate_by_name": True}
+
+
+class ConsoleQuestion(BaseModel):
+    text: str
 
 
 class Decision(BaseModel):
@@ -169,6 +174,21 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
                 state.existing_model.model_dump(mode="json") if state.existing_model else None
             ),
         }
+
+    @app.post("/api/runs/{run_id}/console")
+    async def console(run_id: str, body: ConsoleQuestion) -> dict[str, Any]:
+        """WP68: an explanation from the state; reads only, runs nothing."""
+        try:
+            meta = runs.read(run_id)
+            state = await runs.state(run_id)
+        except ProjectError as exc:
+            if str(exc).startswith("no "):
+                raise _guard(exc) from exc
+            return ConsoleAnswer(
+                f"This session holds no state for run {run_id} ({exc}); its artefacts remain "
+                "readable in the Artefacts tab.", kind="unavailable",
+            ).json()
+        return answer(state, meta, body.text).json()
 
     @app.get("/api/runs/{run_id}/report", response_class=HTMLResponse)
     async def get_report(run_id: str) -> str:

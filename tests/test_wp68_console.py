@@ -13,7 +13,13 @@ from vault_agent import cli
 from vault_agent.graph import build_graph
 from vault_agent.rules.catalogue import FLAGS, GATES
 from vault_agent.state import (
-    FlagKind, Hub, Link, PipelineFlag, Satellite, ValidationIssue, VaultAgentState,
+    FlagKind,
+    Hub,
+    Link,
+    PipelineFlag,
+    Satellite,
+    ValidationIssue,
+    VaultAgentState,
 )
 from vault_agent.ui.app import create_app
 from vault_agent.ui.console import answer
@@ -24,7 +30,8 @@ ROOT = Path(__file__).resolve().parents[1]
 def test_the_catalogues_match_the_code_and_the_manual() -> None:
     source = (ROOT / "src/vault_agent/agents/validator.py").read_text(encoding="utf-8")
     assert set(GATES) == set(re.findall(r'"([EW]_[A-Z_]+)"', source))
-    assert set(FLAGS) == {kind.value for kind in FlagKind}
+    kinds = {v for k, v in vars(FlagKind).items() if k.isupper() and isinstance(v, str)}
+    assert set(FLAGS) == kinds
     chapter = (ROOT / "docs/operations/08-validation-gates.md").read_text(encoding="utf-8")
     assert set(GATES) <= set(re.findall(r"^\| `([EW]_[A-Z_]+)`", chapter, re.M))
     assert all(GATES.values()) and all(FLAGS.values())
@@ -56,15 +63,18 @@ def test_the_console_explains_the_paused_run_and_changes_nothing(client: TestCli
     run = _paused_run(client)
     rid = str(run["id"])
     items = _ask(client, rid, "items")
-    assert items["kind"] == "answer" and "1." in str(items["text"]) and "customer" in str(items["text"])
+    assert items["kind"] == "answer"
+    assert "1." in str(items["text"]) and "customer" in str(items["text"])
     explained = _ask(client, rid, "explain 1")
     text = str(explained["text"])
-    assert "customer" in text and "contract_owner" in text and "decision" in text and "--owner" in text
+    assert "customer" in text and "contract_owner" in text
+    assert "decision" in text and "--owner" in text
     assert any(ref["perspective"] == "review" for ref in explained["refs"])
     status = _ask(client, rid, "status")
     assert "paused" in str(status["text"]) and "attempt" in str(status["text"])
     what_if = _ask(client, rid, "what if accept")
-    assert str(what_if["command"]).startswith("vault-agent resume --out ") and what_if["command"].endswith("--accept")
+    command = str(what_if["command"])
+    assert command.startswith("vault-agent resume --out ") and command.endswith("--accept")
     assert (Path(str(run["out_dir"])) / ".vault-agent" / "pending.json").exists()
     assert client.get(f"/api/runs/{rid}").json()["status"] == "paused"
     gate = _ask(client, rid, "gate E_DUP_HUB")
