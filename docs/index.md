@@ -68,7 +68,7 @@ Append-only. Status is the ADR's own header, not this table's opinion.
 | [0011](architecture/adrs/ADR-0011-satellite-source-binding-on-multi-source-hubs.md) | Satellite source binding on multi-source hubs | Accepted |
 | [0012](architecture/adrs/ADR-0012-attribute-overlap-across-satellites.md) | Attribute overlap across satellites of one parent | Accepted |
 | [0013](architecture/adrs/ADR-0013-surrogate-to-natural-key-translation.md) | Surrogate→natural-key translation for FK-derived link proposals | Accepted 2026-09-12 → WP36 |
-| [ADR-0014](architecture/adrs/ADR-0014-workbench-ui.md) | A workbench UI as a local web application over the pipeline's internals; frontend stack left to the owner — **Proposed 2026-10-11** |
+| [ADR-0014](architecture/adrs/ADR-0014-workbench-ui.md) | A workbench UI as a local web application over the pipeline's internals; browser-first, Vite + React + TypeScript + Tailwind, a state-driven console first — **Accepted 2026-10-11** |
 | [template](architecture/adrs/ADR-template.md) | The shape a new ADR takes | — |
 
 ## Charters and spikes
@@ -156,8 +156,9 @@ own overview.
 | [wp62](architecture/backlog-2026-07/wp62-default-models-5-5-spec.md) | The default models are Sonnet 5.5 and Opus 5.5 in the auto tool-call mode; the review record is kept per modeler model (the 4.8 record keeps its eleven chains, the 5.5 record starts empty) — **built 2026-10-09; thirteenth chain all green in 23 min for 4.87 USD; the 5.5 record starts with the fourteenth** |
 | [wp63](architecture/backlog-2026-07/wp63-declared-types-decide-spec.md) | A contract field's type is the declared column type where one is declared (SQL Server base types mapped deterministically); the model's answer counts only where none is — 15 `undetermined_type` decisions in one 5.5 step were declared `int`/`datetime` columns — **built and live 2026-10-09: the fourteenth chain had 7 undetermined types (all user-defined), 84 decisions in total** |
 | [wp64](architecture/backlog-2026-07/wp64-alias-types-resolved-spec.md) | AdventureWorks' six SQL Server alias types (`Name`, `Flag`, …) are transcribed from the install script and resolved to their base types in the derived schemas — **built and live 2026-10-10: no alias column undetermined on the fifteenth chain (two computed columns remain)** |
-| [wp65](architecture/backlog-2026-07/wp65-workbench-ui-kickoff.md) | Workbench UI kick-off: three-pane shell (navigation, perspectives, chat + log), the API over the CLI internals, five phases — **proposed 2026-10-11, awaiting the owner's three decisions (ADR-0014)** |
+| [wp65](architecture/backlog-2026-07/wp65-workbench-ui-kickoff.md) | Workbench UI kick-off: three-pane shell (navigation, perspectives, chat + log), the API over the CLI internals, five phases — **decided 2026-10-11 (§7); phases 1–3 built as WP66/WP67** |
 | [wp66](architecture/backlog-2026-07/wp66-workbench-backend-api-spec.md) | Workbench backend: the pipeline as a local FastAPI over the CLI's internals — projects as folders, runs as background tasks with CLI equivalents, the checkpoint read and decided through the CLI paths, events from the trace, both graphs — **built 2026-10-11, keyless; the real-key verification run is recorded in the log** |
+| [wp67](architecture/backlog-2026-07/wp67-workbench-frontend-spec.md) | Workbench frontend: the three-pane shell and the Project, Run, Review, Model, Artefacts and Log perspectives over the WP66 API; the strip derived from the trace, no price in the bundle, the bundle built not committed — **built 2026-10-11, walked through Chromium keyless and with a real key (log)** |
 | [evaluator-guide](evaluator-guide.md) | For an external evaluator with their own requirements and source model: what to prepare, how to run, what to judge (handling and result), how to send feedback, what goes to the API — written 2026-10-09 |
 | [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — **closed 2026-09-12: 7 of 8; rerun 3 on 2026-09-13: 16 links, §6 not met on other clauses, $16.80 for all three attempts** |
 
@@ -201,7 +202,7 @@ partially adopted / deviated, with the deviations named.
 [11 Evaluation](operations/11-evaluation.md) ·
 [12 Troubleshooting](operations/12-troubleshooting.md) ·
 [13 Glossary](operations/13-glossary.md)
-| [14 Workbench backend](operations/14-workbench.md) | The pipeline as a local API (WP66): starting it, projects as folders, the endpoints, what it does not do |
+| [14 Workbench](operations/14-workbench.md) | The pipeline as a local web application: the API (WP66) — starting it, projects as folders, the endpoints — and the frontend (WP67) — the perspectives, the build, replaying a browser run from the terminal |
 
 Chapter 6 covers the flags including brownfield mode and the exit codes; chapter 8 is the gate
 catalogue (the code remains authoritative for the current set); chapter 12 is the first stop for

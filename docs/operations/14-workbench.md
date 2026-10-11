@@ -1,7 +1,8 @@
-# 14 The workbench backend (WP66)
+# 14 The workbench (WP66 backend, WP67 frontend)
 
-The pipeline as a local API, the first phase of the workbench UI (ADR-0014, WP65). It wraps
-the CLI's internals and never re-implements them: a run started here is the same run the CLI
+The pipeline as a local web application (ADR-0014, WP65): a FastAPI backend over the CLI's
+internals (WP66) and a single-page frontend over that API (WP67). The backend never
+re-implements the CLI: a run started here is the same run the CLI
 starts, pauses at the same checkpoint, and every action the API takes is recorded as the CLI
 invocation it is equivalent to (`run.json`, `cli_equivalents`).
 
@@ -9,10 +10,13 @@ invocation it is equivalent to (`run.json`, `cli_equivalents`).
 
 ```bash
 uv sync --extra dev --extra demo --extra ui   # fastapi + uvicorn
+(cd frontend && npm ci && npm run build)      # the bundle, once (needs Node 22; see 14.4)
 uv run vault-agent ui --root workbench --port 8765
 ```
 
-Binds to `127.0.0.1` only. `--root` is the folder holding the projects; it is created.
+Binds to `127.0.0.1` only. `--root` is the folder holding the projects; it is created. Open
+`http://127.0.0.1:8765/` — without a built bundle the page says so and names the build command;
+the API (`/docs`) works either way.
 
 ## 14.2 Projects are folders
 
@@ -45,3 +49,39 @@ Decide anything the agents or the human decide; call a model from the API proces
 does); serve beyond localhost; render model text — the JSON is raw, the Mermaid sources and the
 report escape as the report always has. Cancellation, parallel runs and the frontend (WP67)
 are not in this phase.
+
+## 14.4 The frontend (WP67)
+
+`frontend/` is a Vite + React + TypeScript + Tailwind application; `npm run build` writes it to
+`src/vault_agent/ui/static/`, which is gitignored and shipped in the wheel as a build artifact
+(the release workflow builds it). For development, `npm run dev` serves it on Vite's port with
+`/api` proxied to a running `vault-agent ui`. Its own checks: `npm run check` (TypeScript),
+`npm test` (Vitest — the trace derivations, the router, the review grouping); CI runs them in a
+separate Node job, the Python suite stays Node-free.
+
+The layout: a navigation pane (projects → runs), a workspace with **perspectives**, and a right
+pane with the syslog-style event stream (the console below it is reserved for WP68). The footer
+is the status line: run state, elapsed, calls, tokens.
+
+| Perspective | Shows | Acts |
+|---|---|---|
+| Project | name, inputs, run history | create, attach `.md`/`.txt` requirements and `.yml`/`.json` schemas (a PDF goes through the CLI), start a run — greenfield or extending a finished run of the project |
+| Run | the graph's nodes as a status strip **derived from the trace** (dashed nodes make no model calls and are inferred), tokens and calls, the run's `cli_equivalents` | open the checkpoint |
+| Review | the checkpoint: decisions first with an owner input per contract (on the item's `asset`), unresolved concepts with their evidence, disclosures folded | accept, record without accepting, discard — the same `POST …/checkpoint` the CLI flags reach |
+| Model | the output model and the input `erDiagram`, the inventory, a construct's definition | select a construct |
+| Artefacts | the output directory as a tree; text files in place, the report in a sandboxed iframe | open raw |
+| Log | every trace line, filterable by kind, tool and text | — |
+
+What it does not know: anything the API does not say. Node order and tool names come from
+`GET /api/graph`; there is no price table in the bundle (tokens, not money); model text is
+rendered as text, Mermaid runs under `securityLevel: 'strict'` as the report does.
+
+## 14.5 Replaying a workbench run from the terminal
+
+Every action is recorded in `run.json` as the CLI invocation it is equivalent to and shown in
+the Run perspective — a run driven from the browser reads, for example:
+
+```
+vault-agent run <root>/<project>/inputs/requirements.md --out <root>/<project>/runs/<stamp>
+vault-agent resume --out <root>/<project>/runs/<stamp> --owner 'customer=Jane Doe <jane@example.com>' --accept
+```

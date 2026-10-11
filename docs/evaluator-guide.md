@@ -67,6 +67,15 @@ answer in the terminal. A second increment on the same vault: `run ... --existin
 (brownfield mode, chapter 6.7). The output directory holds a runnable dbt project (staging + raw
 vault), data contracts, `review-queue.md`, an HTML report and a proposed ADR.
 
+### 3.1 In the browser instead
+
+The same run through the workbench: `uv sync --extra ui`, `cd frontend && npm ci && npm run
+build` (Node 22), `uv run vault-agent ui --root workbench`, open `http://127.0.0.1:8765/`.
+Create a project, attach the requirements (`.md`/`.txt`) and the schema (`.yml`), start the run,
+answer the checkpoint in the Review tab, read the model graphs and the artefacts. The Run tab
+shows the CLI commands the run is equivalent to, so anything you see can be reproduced in the
+terminal. Chapter 14 of the operations manual has the details.
+
 ## 4 What to judge
 
 Handling and result are two separate verdicts; both are wanted.

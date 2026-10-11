@@ -67,6 +67,12 @@ is not the project's.
   `pipeline_health` on it, because nothing in the generated vault is wrong.
 
 ### Added
+- The workbench frontend (WP67, ADR-0014): `frontend/` (Vite + React + TypeScript + Tailwind)
+  served by `vault-agent ui` at `/` — projects, runs, a status strip derived from the trace, the
+  checkpoint decided in the browser, both graphs, the artefacts, the event log; every action is
+  recorded as its CLI equivalent. `GET /api/graph` (the nodes with their tool names), a
+  project's run history, and the contract-owner decision now carries its contract as `asset`.
+  Operations manual chapter 14.4–14.5; a frontend CI job; the release builds the bundle.
 - The workbench backend (WP66, ADR-0014): `vault-agent ui` serves the pipeline as a local API on
   `127.0.0.1` — projects as folders, runs as background tasks over the CLI's own internals with
   the equivalent CLI invocation recorded, the checkpoint read and decided through the CLI's

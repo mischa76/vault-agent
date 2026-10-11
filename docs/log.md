@@ -8484,3 +8484,43 @@ synchronisieren `--extra dev --extra ui`. **Überprüft:** die fehlgeschlagene C
 (Lauf 38095911390), dann der grüne Lauf dieses Commits. **Nur angenommen:** nichts.
 **Bewusst nicht getan:** FastAPI zur Pflichtabhängigkeit machen — das Backend bleibt ein Extra
 (ADR-0014), die CI installiert es wie `dev`.
+
+## [2026-10-11] WP67 — the workbench frontend built and walked through a real browser, keyless and with a real key
+
+**Autor:** Claude Code
+
+ADR-0014's phases 2 and 3 (WP65 §4) plus the Artefacts perspective; the chat console stays
+WP68. Spec and red guards `3c8819b`, the API additions `aa618d6` (`GET /api/graph` from the
+agents `default_agents()` constructs — the link proposer's class does not live in a module named
+after its node, so the guard reads the tool name from the instance; a project's run history; the
+bundle served at `/` with a client-route fallback and a hint page without a build; hatch ships
+`static/` as an artifact), the frontend `9225d24`, docs here. `frontend/`: Vite + React +
+TypeScript + Tailwind, Mermaid under `securityLevel: 'strict'`, a three-pane shell (projects →
+runs | perspectives | event stream, the console input reserved for WP68), Project / Run / Review /
+Model / Artefacts / Log; the status strip is derived from the trace and `/api/graph`, tokens are
+shown and no price; every action is the API call the CLI could make, and the Run tab shows the
+run's `cli_equivalents`. CI gained a Node job (`npm run check`, `npm test`, `npm run build`); the
+release workflow builds the bundle before `uv build`; `setup-node` pinned by SHA like the rest.
+
+**One product change on the way.** The contract-owner review item named its contract only in
+its summary; the Review tab needs the typed field to offer an owner input per contract
+(CLAUDE.md: never branch on message text), so the orchestrator now sets `asset=name` on it.
+`review-queue.md` and the byte fixtures are unchanged.
+
+**Walked through Chromium (Playwright, `frontend/e2e/walk.mjs`).** Keyless on the stub agents:
+project created, requirements attached, run started, paused in 3 s with the strip at `human`,
+the owner typed into the Review tab, accepted, finished — `run.json` recorded
+`resume --out … --owner 'customer=Jane Doe <jane@example.com>' --accept`. **With a real key**
+(`vault-agent ui`, Sonnet 5.5 / Opus 5.5, `health_insurance`): paused after 45 s, 9 decisions /
+11 disclosures, four owners entered, accepted, finished at 48 s; 4 hubs / 3 links / 7 satellites
+rendered, 40 artefacts, 18 trace lines, 7 calls, **0.14 USD** (WP66 §4 through the API alone:
+0.13). The input `erDiagram` was empty — the example declares no schema.
+
+**Überprüft.** 1191 tests, ruff, bare mypy; `tsc`, 11 Vitest tests (from an ext4 copy — the
+`/mnt/c` mount times out starting Vitest's workers; CI runs them on its own disk); the two walks
+with their screenshots and the live run's trace (cost from its tokens). **Nur angenommen.** That
+Mermaid's SVG under strict mode is the same trust boundary the report already has; that the
+polling interval (2 s on `run.json` and the trace) is fine for one local user. **Bewusst nicht
+getan.** The chat console (WP68); cancellation; a desktop wrapper; committing the bundle (built
+in CI and for the release instead); a `--resolve` case in the walk (no unresolved concept in a
+greenfield health-insurance run).

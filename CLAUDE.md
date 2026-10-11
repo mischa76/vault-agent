@@ -46,7 +46,7 @@ mapping before citing the source; the deviations are deliberate and argued.
 - `docs/log.md` — the chronicle: every closed WP, live measurement and correction, append-only
 - `docs/architecture/` — ADRs, WP specs, kick-offs, reviews, spike memos (append-only records)
 - `docs/methodology/` — the cheatsheets and the four critical mappings
-- `docs/operations/` — the 13-chapter operations manual (gates, flags, exit codes, troubleshooting)
+- `docs/operations/` — the 14-chapter operations manual (gates, flags, exit codes, troubleshooting, workbench)
 - `tests/fixtures/` — byte-identity baselines · `eval/` — the eval harness · `demo/` — runnable demos
 - `~/.claude/projects/<path-slug>/memory/` — **not a storage location.** Machine-local and keyed
   by checkout path, so copying the project to a second path silently starts a second, empty store

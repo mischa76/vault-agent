@@ -77,3 +77,25 @@ project has a finished run).
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-11 — built, walked keyless and with a real key.** Spec and guards `3c8819b` (red),
+the API additions `aa618d6`, the frontend `9225d24`, the docs in the commit carrying this line.
+`frontend/` (Vite 8, React 19, TypeScript 5.9, Tailwind 4, Mermaid 11, Vitest 5): the shell,
+six perspectives, the trace derivations (`derive.ts`) and the router under Vitest (11 tests),
+`tsc` clean, the bundle 3.7 MB with Mermaid's diagrams split into lazy chunks. One finding on
+the way: the contract-owner review item carried its contract only in its summary text, so the
+Review perspective could not offer an owner input per contract without parsing it — the item
+now carries the name as `asset` (orchestrator, guard in `test_wp67_workbench_shell.py`), the
+CLI's `review-queue.md` unchanged (the byte fixtures held). **§4, keyless:** the walk
+(`frontend/e2e/walk.mjs`, Chromium via Playwright) on the stub agents: project → inputs →
+run → paused in 3 s with the strip at `human` → owner entered → accept → finished in 6 s →
+model, artefacts (4), log; `run.json` reads `vault-agent run … --out …` and `vault-agent resume
+--out … --owner 'customer=Jane Doe <jane@example.com>' --accept`. **§4, real key:** the same walk
+on `vault-agent ui` with the real agents (Sonnet 5.5 / Opus 5.5): paused after 45 s with 9
+decisions / 11 disclosures, four owners entered in the Review tab, accepted, finished at 48 s;
+4 hubs / 3 links / 7 satellites drawn, 40 artefacts, 18 trace lines, 7 calls, 0.14 USD by the
+5.5 price table (WP66 §4: 0.13); the two CLI equivalents as pre-registered, with four `--owner`
+flags. The input diagram was empty — the example declares no schema (the keyless walk and guard
+draw one). **Not measured:** the Review tab's resolution inputs against a brownfield run with
+unresolved concepts (no such case in this walk); `npm test` on the `/mnt/c` mount times out
+starting its workers and was run from an ext4 copy — CI runs it on its own disk.
