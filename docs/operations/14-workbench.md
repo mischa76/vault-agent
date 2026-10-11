@@ -59,6 +59,19 @@ are not in this phase.
 `npm test` (Vitest — the trace derivations, the router, the review grouping); CI runs them in a
 separate Node job, the Python suite stays Node-free.
 
+**The build is a snapshot, and nothing tells you it is stale.** `npm ci` and `npm run build`
+run once and exit; no Node process stays behind — the only server is `vault-agent ui`
+(uvicorn), which serves the API and the built files from `static/`. After a `git pull` that
+touches `frontend/`, the server keeps serving the old bundle without a hint: the page simply
+looks like before. Rebuild, then reload:
+
+```bash
+(cd frontend && npm run build)     # npm ci again only if package-lock.json changed
+```
+
+`npm run dev` (Vite on its own port, `/api` proxied to the running server) is for working on
+the frontend itself, not for using it.
+
 The layout: a navigation pane (projects → runs), a workspace with **perspectives**, and a right
 pane with the syslog-style event stream (the console below it is reserved for WP68). The footer
 is the status line: run state, elapsed, calls, tokens.
