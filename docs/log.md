@@ -8573,3 +8573,49 @@ predecessors would fail it — that outcome is informative, not a defect (the ow
 `MIN_REVIEW_SAMPLES` after this run either way). **P3 — `undetermined_type` ≤ 2.** **P4 — WP34
 §6's other three clauses hold; WP61 repairs reported.** **P5 — cost ≤ 5 USD, wall ≤ 30 min; WP57
 carry-over ≥ 90 %; step 1 in two attempts or fewer.** **Not predicted:** the shapes.
+
+## [2026-10-11] Seventeenth chain run — all green, 83 decisions, the first chain judged against the 5.5 review ceiling, and it held
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261011T115456381889Z`, at `6051ee4`,
+the 5.5 defaults. 111 calls (8 modeler: steps 1, 2 and 5 two attempts, 3 and 4 one), 452k
+uncached input, 262k output, **23.1 min, ≈ 4.68 USD** at the 5.5 prices. Final vault 41 hubs,
+51 links, 88 satellites. **`validation_gate` 1.0 and `pipeline_health` 1.0 in all five steps**
+— the sixth green 5.5 chain in a row, the seventh green chain of the last eight. **WP34 §6: all
+four clauses held** — links 21 cross-domain, invention 1 zero-satellite hub (≤ 2), joins 0/0, and
+**review 83 decisions against the ceiling 85.3** (16 / 9 / 28 / 5 / 25) — the first time the
+review clause judged a 5.5 chain rather than reporting it.
+
+**Against the pre-registration.** **P1 held. P2 held:** 83 ≤ 85.3, inside the expected 78–88.
+**P3 held:** `undetermined_type` 1 (step 3). **P4 held:** the other three clauses; WP61 12 repairs
+(all a trailing brace on `assets`). **P5 held:** 4.68 ≤ 5 USD, 23.1 ≤ 30 min; WP57 carry-over
+100 % of what no issue named — step 1 7/7 hubs, 5/5 links, 17/17 satellites; step 5 12/12,
+22/22, 24/24; step 2 5/6 hubs with `hub_employee_login` the one left out, which is exactly the
+hub `E_HUB_HK_COLLISION`'s remedy named (it shared source entity `Employee` with `hub_employee`
+under a different key); step 1 in two attempts. 0 of 111 calls without a tool block; 8
+truncations retried by the split (7 on `emit_requirements`, 1 on `emit_mapping`).
+
+**The shape worth a line.** Step 2 kept `hub_employee` (keyed on `NationalIDNumber`, entity
+`Employee`) after dropping its collision twin — and that hub carries nothing: the Employee
+payload sits, as in the sixteenth chain, in four satellites on `hub_business_entity`
+(`…_employee_details/sensitive/leave/hierarchy`), and no link reaches `hub_employee` through
+step 5. The sixteenth chain built no `hub_employee` at all. The gates are right to let it pass —
+nothing is wrong in the generated vault, `E_HUB_PAYLOAD_UNREAD` is satisfied by the
+business-entity satellites, and `W_HUB_NO_SAT` discloses it in every step from 2 to 5 — but it
+is the benign variant of the two-hubs-on-one-entity family: a hub that costs a staging model and
+a hash column and holds no history. The invention clause counts it (1 of the 2 it allows). Not
+a defect of this run; a candidate for a later decision item („a new hub that ends the increment
+with neither satellite nor link“) if it recurs — the owner's call, not made here.
+
+**The 5.5 record after four samples: 84, 83, 83, 83** — mean 83.3, sd 0.5; the eighteenth is
+judged against **84.6**. The spread is still that of one corpus and one code line; the ceiling
+moves by a decision or two per chain, as the 4.x record did until its sixth. `MIN_REVIEW_SAMPLES`
+stays 3 — the owner's decision after this run, not made here. The chain enters the record in
+this commit (`eval/wp34_check.py`); results mirrored to tank (skill step, 24 files).
+
+**Überprüft.** The chain file, the five step files and their `review.json` siblings, the five
+`dv_model.yml` snapshots, the trace (all 111 calls, carry-over by name, the 12 repairs, the
+collision issue in the step-2 retry's input), `wp34_check`, the cost from the trace's tokens at
+the 5.5 prices; the mirror on tank. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No
+repeat; no change to `MIN_REVIEW_SAMPLES`; no gate or decision item for the empty hub.
