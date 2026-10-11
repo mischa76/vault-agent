@@ -8554,3 +8554,22 @@ accurate abridgements of chapter 8 — written from it today, not re-derived fro
 code paths. **Bewusst nicht getan.** An LLM over the state (own ADR, own cost line); console
 history on disk; explaining the parsed requirements; a `resolve` what-if against a real
 brownfield run.
+
+## [2026-10-11] Pre-registration for the seventeenth chain run — the first judged against the 5.5 review ceiling, written before the run
+
+**Autor:** Claude Code
+
+The user: „go, starte die siebzehnte Kette“. One repeat of `adventureworks_incremental` at the
+commit carrying this entry, the 5.5 defaults. Code since the sixteenth (`e9878f0`): the
+workbench (WP66–WP68, `vault_agent.ui`, `rules/catalogue.py`), the CI workflows, and one field
+on a review item — the contract-owner decision now carries its contract as `asset` (WP67); no
+agent, gate, prompt or rule changed, and the eval harness is untouched. The review record on
+Opus 5.5 holds three samples (84, 83, 83), so the ceiling is **85.3** (`review_ceiling`, one-sided
+95 % prediction bound) and this is the first chain WP34 §6's review clause **judges**.
+
+**P1 — all five steps green. P2 — the review clause is judged and holds: decisions ≤ 85.3**;
+expected 78–88 on the three samples, and a chain with a few more unresolved concepts than its
+predecessors would fail it — that outcome is informative, not a defect (the owner decides
+`MIN_REVIEW_SAMPLES` after this run either way). **P3 — `undetermined_type` ≤ 2.** **P4 — WP34
+§6's other three clauses hold; WP61 repairs reported.** **P5 — cost ≤ 5 USD, wall ≤ 30 min; WP57
+carry-over ≥ 90 %; step 1 in two attempts or fewer.** **Not predicted:** the shapes.
