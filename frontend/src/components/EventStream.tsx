@@ -6,7 +6,7 @@ const LEVEL = { info: "text-ink", warn: "text-warn", error: "text-bad", debug: "
 
 export function EventStream({ events, follow = true, dense = false }: { events: TraceEvent[]; follow?: boolean; dense?: boolean }) {
   const end = useRef<HTMLDivElement>(null);
-  useEffect(() => { if (follow) end.current?.scrollIntoView({ block: "end" }); }, [events.length, follow]);
+  useEffect(() => { if (follow) end.current?.scrollIntoView?.({ block: "end" }); }, [events.length, follow]);
   if (events.length === 0) return <p className="p-3 text-xs text-ink-faint">no events yet</p>;
   return (
     <ol className={`font-mono ${dense ? "text-[11px] leading-4" : "text-xs leading-5"}`} aria-label="event stream">

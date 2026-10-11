@@ -74,3 +74,18 @@ requirements, and `show` could reach them in a later increment.
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-11 — built and walked keyless.** Spec and guards `fabdd0a` (red), the backend
+`335ffba`, the frontend and docs in the commit carrying this line. `rules/catalogue.py`: 46
+gate lines and 25 flag lines, guarded against the validator's source, `FlagKind` and chapter
+8's table (all three agree today). `ui/console.py`: the grammar of §2.2 over
+`assemble_review_queue`, the validation report, the flags, the retirements, the model and
+`active_modeling_rules()`; the `what if` answers read the `resume` command's option help
+through click. The frontend's console sits under the event stream with a per-run transcript
+in memory and the answer's jumps as buttons. Four Python guards, two Vitest tests (13 in all).
+**§4:** the keyless walk with the three exchanges on the paused run — `items` listed the
+owner decision as item 1, `explain 1` named the contract, kind, role and `--owner`, `what if
+accept` named `vault-agent resume --out … --accept` — and the run was still paused after them
+(the checkpoint button still there), then accepted and finished as in WP67. No paid run, as
+pre-registered. **Not measured:** `why`/`show` in the browser on a real model (unit-tested on
+a constructed state); a brownfield run's `resolve` what-if.

@@ -67,6 +67,12 @@ is not the project's.
   `pipeline_health` on it, because nothing in the generated vault is wrong.
 
 ### Added
+- The workbench console (WP68, ADR-0014 §4 phase 1): the right pane explains a run from its
+  state with no model call — `status`, `items`, `explain`, `why`, `show`, `gates`, `flags`,
+  `steering`, `cli`, `what if …` (the CLI command an action would be, without running it) —
+  through `POST /api/runs/{id}/console`. `rules/catalogue.py` carries every gate code's and
+  flag kind's one-line meaning, guarded against the validator, `FlagKind` and chapter 8.
+  Operations manual chapter 14.6.
 - The workbench frontend (WP67, ADR-0014): `frontend/` (Vite + React + TypeScript + Tailwind)
   served by `vault-agent ui` at `/` — projects, runs, a status strip derived from the trace, the
   checkpoint decided in the browser, both graphs, the artefacts, the event log; every action is

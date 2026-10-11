@@ -33,6 +33,20 @@ const strip = await page.$$eval("[aria-label='pipeline status (derived from the 
 log("paused; strip:", strip.join(","));
 await page.screenshot({ path: `${shotDir}/2-run-paused.png` });
 
+// WP68: three console exchanges on the paused run — explanations only, the run stays paused.
+const console_ = page.getByLabel("console input");
+for (const q of ["items", "explain 1", "what if accept"]) {
+  await console_.fill(q);
+  await console_.press("Enter");
+  await page.getByText(`› ${q}`).waitFor();
+  await page.waitForFunction((n) => document.querySelectorAll("[aria-label='console transcript'] pre").length >= n, ["items", "explain 1", "what if accept"].indexOf(q) + 1);
+}
+const answers = await page.$$eval("[aria-label='console transcript'] pre", (els) => els.map((e) => e.textContent ?? ""));
+log("console:", answers.map((a) => a.split("\n")[0]).join(" | "));
+if (!answers[2]?.includes("vault-agent resume")) throw new Error("what if accept did not name the CLI command");
+await page.getByRole("button", { name: "Open the checkpoint" }).waitFor();  // still paused
+await page.screenshot({ path: `${shotDir}/2b-console.png` });
+
 await page.getByRole("button", { name: "Open the checkpoint" }).click();
 await page.getByText(/decisions$/).first().waitFor();
 const header = await page.locator("header:has-text('Checkpoint')").innerText();
@@ -43,7 +57,7 @@ await page.screenshot({ path: `${shotDir}/3-review.png` });
 await page.getByRole("button", { name: "Accept and continue" }).click();
 await page.waitForFunction(() => /\bfinished\b/.test(document.querySelector("footer")?.innerText ?? ""), null, { timeout: 15 * 60 * 1000 });
 log("finished");
-const cli = await page.locator("pre").first().innerText();
+const cli = await page.locator("main pre").first().innerText();
 log("cli equivalents:\n  " + cli.replace(/\n/g, "\n  "));
 await page.screenshot({ path: `${shotDir}/4-run-finished.png` });
 
@@ -57,7 +71,7 @@ await page.getByRole("tab", { name: "Artefacts" }).click();
 await page.getByText("report.html").waitFor();
 const files = await page.locator("section:has-text('Output directory') button").count();
 await page.getByText("review-queue.md").click();
-await page.locator("pre").waitFor();
+await page.locator("main pre").waitFor();
 log("artefacts:", files, "files; review-queue.md opened");
 await page.screenshot({ path: `${shotDir}/6-artefacts.png` });
 

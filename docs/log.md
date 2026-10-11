@@ -8524,3 +8524,33 @@ polling interval (2 s on `run.json` and the trace) is fine for one local user. *
 getan.** The chat console (WP68); cancellation; a desktop wrapper; committing the bundle (built
 in CI and for the release instead); a `--resolve` case in the walk (no unresolved concept in a
 greenfield health-insurance run).
+
+## [2026-10-11] WP68 — the workbench console: explanations from the state, no model call, nothing changed
+
+**Autor:** Claude Code
+
+ADR-0014 §4 phase 1, the „Chat“ row of WP65 §2. Spec and red guards `fabdd0a`, the backend
+`335ffba`, the frontend and these docs in the commit carrying this entry. **What exists now:**
+`rules/catalogue.py` — the product's one-line meaning for every validator code (`GATES`, 46)
+and every `FlagKind` (`FLAGS`, 25), guarded so that a code added to the validator, the enum or
+chapter 8 without its line fails the suite; `ui/console.py` — a command grammar over the run's
+state: `status`, `items`, `explain <n|asset|CODE|flag_kind>`, `why <construct>`,
+`show <construct>`, `gates`, `gate <CODE>`, `flags`, `steering [id]`, `cli`, `what if accept |
+discard | owner … | resolve …`; free text naming a construct, code, flag kind or asset is
+routed, anything else answers with the help. A `what if` names the `vault-agent resume …`
+command with the option's own help text (read through click from the CLI, never a second
+description) and runs nothing. `POST /api/runs/{id}/console`; a run whose state this session
+does not hold answers kind `unavailable`. The frontend's console sits under the event stream,
+the transcript per run in memory, the answer's jumps (open Review, open Model) as buttons.
+Chapter 14.6.
+
+**Walked keyless (Playwright, the WP67 walk extended):** on the paused stub run `items`,
+`explain 1` and `what if accept` answered in the transcript and the run stayed paused; then
+the checkpoint as before. No paid run — the console calls no model.
+
+**Überprüft.** 1195 tests, ruff, bare mypy; `tsc`, 13 Vitest tests (ext4 copy, as in WP67);
+the walk with its screenshot. **Nur angenommen.** That the one-liners in the catalogue are
+accurate abridgements of chapter 8 — written from it today, not re-derived from the gates'
+code paths. **Bewusst nicht getan.** An LLM over the state (own ADR, own cost line); console
+history on disk; explaining the parsed requirements; a `resolve` what-if against a real
+brownfield run.

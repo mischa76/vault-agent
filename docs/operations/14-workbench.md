@@ -73,7 +73,7 @@ looks like before. Rebuild, then reload:
 the frontend itself, not for using it.
 
 The layout: a navigation pane (projects → runs), a workspace with **perspectives**, and a right
-pane with the syslog-style event stream (the console below it is reserved for WP68). The footer
+pane with the syslog-style event stream and, below it, the console (14.6). The footer
 is the status line: run state, elapsed, calls, tokens.
 
 | Perspective | Shows | Acts |
@@ -98,3 +98,29 @@ the Run perspective — a run driven from the browser reads, for example:
 vault-agent run <root>/<project>/inputs/requirements.md --out <root>/<project>/runs/<stamp>
 vault-agent resume --out <root>/<project>/runs/<stamp> --owner 'customer=Jane Doe <jane@example.com>' --accept
 ```
+
+## 14.6 The console (WP68)
+
+The right pane's console explains a run from its state — deterministically, with no model
+call, and it never runs or decides anything. It answers for a paused run and for a finished
+run of this server session (a finished run's state is not reloaded after a restart; the
+artefacts are). Commands, also listed by `help`:
+
+| Command | Answers |
+|---|---|
+| `status` | run status, modeler attempts, validation result, model counts, what the checkpoint holds |
+| `items [decisions\|disclosures]` | the review queue, numbered — the numbers are positions in the queue |
+| `explain <n>` · `explain <asset>` · `explain <CODE>` · `explain <flag_kind>` | what an item means (kind and role, WP43), how to answer it and the CLI flag that does; a gate's meaning and whether it fired here, with the remedy; a flag kind's meaning and where it was raised |
+| `why <construct>` | every issue (code, message, remedy, what it retires), flag (kind, reason), review item and retirement that concerns a hub, link or satellite, with the attempt count |
+| `show <construct>` | the construct as the model carries it — key, source entity, feeds, satellites and links of a hub; participations and driving key of a link; parent, type and attributes of a satellite — and its concerns |
+| `gates` · `gate <CODE>` | the validator's catalogue (`rules/catalogue.py`, every code the validator emits) and which gates fired in this run |
+| `flags` | the typed flags of this run by kind |
+| `steering [id]` | the prompt steering the modeler was given — id, backstop, origin (WP16's registry, `active_modeling_rules()`) |
+| `cli` | the CLI commands the run is equivalent to so far |
+| `what if accept` · `what if discard` · `what if owner <asset>=<Name <email>>` · `what if resolve <concept>=<answer>` | the `vault-agent resume …` command that action would be, with the option's own help text — **nothing runs**; the Review tab performs it |
+
+Free text that names a construct, a gate code, a flag kind or an item's asset is routed to the
+matching command; anything else answers with the help. Answers carry jumps to the perspective
+where the thing is (open Review, open Model). The catalogue's one-liners are the product's
+short answer; chapter 8 remains the manual with the history behind each gate. The transcript
+lives in the page for the session; it is not an artefact of the run.

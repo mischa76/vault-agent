@@ -123,6 +123,23 @@ export interface ModelView {
   existing: DVModel | null;
 }
 
+export interface ConsoleRef {
+  perspective: string;
+  label: string;
+}
+
+export interface ConsoleAnswer {
+  text: string;
+  kind: "answer" | "help" | "unknown" | "unavailable";
+  refs: ConsoleRef[];
+  command: string | null;
+}
+
+export interface ConsoleEntry {
+  question: string;
+  answer: ConsoleAnswer;
+}
+
 export interface ApiErrorBody {
   detail: string | unknown;
 }

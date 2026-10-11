@@ -1,7 +1,7 @@
 // A thin typed client over the WP66 API. Every call here is one the CLI could make; the run
 // records the equivalent (`cli_equivalents`).
 import type {
-  Artefact, Checkpoint, Decision, Events, GraphNode, ModelView, Project, ProjectFile,
+  Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, Project, ProjectFile,
   ProjectSummary, Run,
 } from "./types";
 
@@ -55,5 +55,7 @@ export const api = {
     return response.text();
   },
   model: (id: string) => call<ModelView>(`/api/runs/${encodeURIComponent(id)}/model`),
+  console: (id: string, text: string) =>
+    call<ConsoleAnswer>(`/api/runs/${encodeURIComponent(id)}/console`, json({ text })),
   reportUrl: (id: string) => `/api/runs/${encodeURIComponent(id)}/report`,
 };

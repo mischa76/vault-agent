@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import { deriveUsage, elapsedSeconds, formatDuration, formatTokens } from "./derive";
 import { PERSPECTIVES, useRoute, type Perspective } from "./router";
-import type { Artefact, Checkpoint, Decision, GraphNode, ModelView, Project, ProjectSummary, Run, TraceEvent } from "./types";
+import type { Artefact, Checkpoint, ConsoleEntry, Decision, GraphNode, ModelView, Project, ProjectSummary, Run, TraceEvent } from "./types";
+import { Console } from "./components/Console";
 import { EventStream } from "./components/EventStream";
 import { Button, Dot, Empty, ErrorNote } from "./components/ui";
 import { ArtefactsPerspective } from "./perspectives/Artefacts";
@@ -33,6 +34,8 @@ export function App() {
   const [busy, setBusy] = useState(false);
   const [newName, setNewName] = useState("");
   const [now, setNow] = useState(() => new Date());
+  const [transcripts, setTranscripts] = useState<Record<string, ConsoleEntry[]>>({});
+  const [asking, setAsking] = useState(false);
 
   const refreshProjects = useCallback(async () => {
     try { setProjects(await api.projects()); } catch (e) { setError(detail(e)); }
@@ -103,6 +106,19 @@ export function App() {
         setTimeout(() => void poll(), POLL_MS);
       }
     } catch (e) { setError(detail(e)); } finally { setBusy(false); }
+  }
+
+  async function ask(text: string) {
+    if (!run) return;
+    const id = run.id;
+    setAsking(true);
+    try {
+      const a = await api.console(id, text);
+      setTranscripts((t) => ({ ...t, [id]: [...(t[id] ?? []), { question: text, answer: a }] }));
+    } catch (e) {
+      const a = { text: detail(e), kind: "unavailable" as const, refs: [], command: null };
+      setTranscripts((t) => ({ ...t, [id]: [...(t[id] ?? []), { question: text, answer: a }] }));
+    } finally { setAsking(false); }
   }
 
   const usage = deriveUsage(events);
@@ -183,15 +199,13 @@ export function App() {
           </div>
         </main>
 
-        <aside className="grid min-h-0 grid-rows-[auto_1fr_auto] border-l border-line bg-pane">
+        <aside className="grid min-h-0 grid-rows-[auto_minmax(0,3fr)_minmax(0,2fr)] border-l border-line bg-pane">
           <header className="flex items-center justify-between border-b border-line px-3 py-2 text-xs uppercase tracking-wide text-ink-dim">
             <span>event stream</span><span className="font-mono normal-case">{events.length} lines</span>
           </header>
           <div className="min-h-0 overflow-auto py-1"><EventStream events={events} dense /></div>
-          <div className="border-t border-line p-3">
-            <input disabled placeholder="console — explains items, gates and commands from the state (WP68)" aria-label="console (not yet available)"
-              className="w-full rounded-md border border-line bg-pane-2 px-2 py-1.5 text-xs text-ink-faint" />
-          </div>
+          <Console entries={run ? (transcripts[run.id] ?? []) : []} onAsk={(t) => void ask(t)} busy={asking} enabled={Boolean(run)}
+            onNavigate={(p) => navigate({ perspective: p })} />
         </aside>
       </div>
 

@@ -159,6 +159,7 @@ own overview.
 | [wp65](architecture/backlog-2026-07/wp65-workbench-ui-kickoff.md) | Workbench UI kick-off: three-pane shell (navigation, perspectives, chat + log), the API over the CLI internals, five phases — **decided 2026-10-11 (§7); phases 1–3 built as WP66/WP67** |
 | [wp66](architecture/backlog-2026-07/wp66-workbench-backend-api-spec.md) | Workbench backend: the pipeline as a local FastAPI over the CLI's internals — projects as folders, runs as background tasks with CLI equivalents, the checkpoint read and decided through the CLI paths, events from the trace, both graphs — **built 2026-10-11, keyless; the real-key verification run is recorded in the log** |
 | [wp67](architecture/backlog-2026-07/wp67-workbench-frontend-spec.md) | Workbench frontend: the three-pane shell and the Project, Run, Review, Model, Artefacts and Log perspectives over the WP66 API; the strip derived from the trace, no price in the bundle, the bundle built not committed — **built 2026-10-11, walked through Chromium keyless and with a real key (log)** |
+| [wp68](architecture/backlog-2026-07/wp68-workbench-console-spec.md) | Workbench console: a command grammar over the run's state (items, explain, why, show, gates, flags, steering, what if), the gate and flag catalogues in code, no model call and nothing changed — **built 2026-10-11, walked keyless (log)** |
 | [evaluator-guide](evaluator-guide.md) | For an external evaluator with their own requirements and source model: what to prepare, how to run, what to judge (handling and result), how to send feedback, what goes to the API — written 2026-10-09 |
 | [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — **closed 2026-09-12: 7 of 8; rerun 3 on 2026-09-13: 16 links, §6 not met on other clauses, $16.80 for all three attempts** |
 
@@ -202,7 +203,7 @@ partially adopted / deviated, with the deviations named.
 [11 Evaluation](operations/11-evaluation.md) ·
 [12 Troubleshooting](operations/12-troubleshooting.md) ·
 [13 Glossary](operations/13-glossary.md)
-| [14 Workbench](operations/14-workbench.md) | The pipeline as a local web application: the API (WP66) — starting it, projects as folders, the endpoints — and the frontend (WP67) — the perspectives, the build, replaying a browser run from the terminal |
+| [14 Workbench](operations/14-workbench.md) | The pipeline as a local web application: the API (WP66) — starting it, projects as folders, the endpoints — the frontend (WP67) — the perspectives, the build, replaying a browser run from the terminal — and the console (WP68) |
 
 Chapter 6 covers the flags including brownfield mode and the exit codes; chapter 8 is the gate
 catalogue (the code remains authoritative for the current set); chapter 12 is the first stop for
