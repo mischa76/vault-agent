@@ -75,7 +75,7 @@ class ProjectStore:
     def get(self, project_id: str) -> dict[str, Any]:
         return self._read(project_id)
 
-    def runs(self, project_id: str) -> "builtins.list[dict[str, Any]]":
+    def runs(self, project_id: str) -> builtins.list[dict[str, Any]]:
         """One summary per ``runs/<stamp>/run.json``, newest first (WP67 §3.2)."""
         summaries: list[dict[str, Any]] = []
         for meta in sorted(self._dir(project_id).glob("runs/*/run.json"), reverse=True):
