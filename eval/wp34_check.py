@@ -83,6 +83,11 @@ REVIEW_DECISION_SAMPLES: dict[str, tuple[tuple[str, int], ...]] = {
 }
 DEFAULT_RECORD_MODEL = "claude-opus-4-8"  # every archived result without `models`
 MIN_REVIEW_SAMPLES = 3
+# WP70 (2026-10-12, the owner's number): the ceiling never sits closer than this to the mean. A
+# tight record (the 5.5 one: 84, 83, 83, 83, sd 0.5) made the t-bound a demand for sameness;
+# five decisions is ~6 % of that mean, under the 12–15 % the 4.x bound carried, so a real rise
+# is still a finding. With a wide record the t-bound wins and nothing changes.
+REVIEW_TOLERANCE = 5
 # One-sided 95 % Student-t quantiles by degrees of freedom (df 1..30; above that, normal).
 _T95 = {
     1: 6.314, 2: 2.920, 3: 2.353, 4: 2.132, 5: 2.015, 6: 1.943, 7: 1.895, 8: 1.860, 9: 1.833,
@@ -92,17 +97,23 @@ _T95 = {
 }
 
 
-def review_ceiling(samples: list[int]) -> float:
-    """The one-sided 95 % prediction bound for the next chain's decisions over `samples`:
-    mean + t(0.95, n-1) * sd * sqrt(1 + 1/n), with the sample standard deviation. Needs at
-    least MIN_REVIEW_SAMPLES samples; the caller decides what fewer means."""
+def review_bounds(samples: list[int]) -> tuple[float, float]:
+    """The two candidate ceilings over `samples` (WP53, WP70): the one-sided 95 % prediction
+    bound for the next chain, mean + t(0.95, n-1) * sd * sqrt(1 + 1/n) with the sample standard
+    deviation, and the floor, mean + REVIEW_TOLERANCE. Needs at least MIN_REVIEW_SAMPLES
+    samples; the caller decides what fewer means."""
     n = len(samples)
     if n < MIN_REVIEW_SAMPLES:
         raise ValueError(f"need at least {MIN_REVIEW_SAMPLES} samples, got {n}")
     mean = statistics.mean(samples)
     sd = statistics.stdev(samples)
     t = _T95.get(n - 1, 1.645)
-    return mean + t * sd * math.sqrt(1 + 1 / n)
+    return mean + t * sd * math.sqrt(1 + 1 / n), mean + REVIEW_TOLERANCE
+
+
+def review_ceiling(samples: list[int]) -> float:
+    """The ceiling the next chain is judged against: the larger of the two bounds (WP70)."""
+    return max(review_bounds(samples))
 ARM_A_CROSS_DOMAIN = 16
 
 
@@ -237,12 +248,17 @@ def _review_clause(
     if len(samples) < MIN_REVIEW_SAMPLES:
         return False, (f"review:     {decisions} decision(s) — cannot be judged: "
                        f"{len(samples)} recorded chain(s), need {MIN_REVIEW_SAMPLES}")
-    ceiling = review_ceiling(samples)
+    t_bound, floor = review_bounds(samples)
+    ceiling = max(t_bound, floor)
+    which = (f"the floor mean + {REVIEW_TOLERANCE} (WP70; t-bound {t_bound:.1f})"
+             if floor > t_bound else
+             f"the one-sided 95 % prediction t-bound "
+             f"(floor mean + {REVIEW_TOLERANCE}: {floor:.1f})")
     stamps = [stamp for stamp, _ in used]
     # (the record is the judged model's own — WP62)
     return decisions <= ceiling, (
-        f"review:     {decisions} decision(s) (ceiling {ceiling:.1f} — the one-sided 95 % "
-        f"prediction bound of {len(samples)} recorded chain(s), mean "
+        f"review:     {decisions} decision(s) (ceiling {ceiling:.1f} — {which} of "
+        f"{len(samples)} recorded chain(s), mean "
         f"{statistics.mean(samples):.1f}, sd {statistics.stdev(samples):.1f}, "
         f"{stamps[0][:8]} → {stamps[-1][:8]}"
         f"{'; this run and later ones excluded' if excluded else ''})" + reported

@@ -8648,3 +8648,30 @@ checkpoint reached, the resume command recorded. **Nur angenommen.** That cancel
 real model call behaves as during the stub's sleep — the SDK's call receives the cancellation
 and LangGraph's saver context exits cleanly; not exercised with a key. **Bewusst nicht getan.**
 Parallel runs; a guard against two servers on one root; a paid run.
+
+## [2026-10-12] WP70 — the review ceiling gets a floor: max(t-bound, mean + 5), the owner's decision on MIN_REVIEW_SAMPLES
+
+**Autor:** Claude Code
+
+The user asked what `MIN_REVIEW_SAMPLES` rested on and whether that had changed. **The basis
+(WP53, 2026-10-07):** three samples are the fewest from which a sample standard deviation and a
+t-bound describe a spread at all (df 2, t 2.92). It held on the 4.x record, whose bound sat
+16–22 decisions above a mean of about 140 and settled after the sixth chain. **What changed:**
+the 5.5 record — 84, 83, 83, 83, sd 0.5 — gave a bound of 84.6, one decision above the mean: not
+a prediction but a demand that the next chain equal the last four; a fifth at 86 would have
+failed and then lifted the bound to 86.8. The owner's decision: „go, bau WP70 mit der Toleranz
+von fünf“. Guards `32111a1`, the change and docs in the commit carrying this entry.
+
+**The rule now.** `review_ceiling = max(t-bound, mean + REVIEW_TOLERANCE)`, tolerance 5 — about
+6 % of the 5.5 mean, under the 12–15 % the 4.x bound carried, so a rise like the sixth chain's
+156 against 140 is still a finding. `MIN_REVIEW_SAMPLES` stays 3; the record and the exclusion
+by stamp are unchanged; the report line names which bound applied. **Re-checked over the
+archive:** the seventeenth holds against 88.3 (the floor; the t-bound was 85.3), the sixth still
+fails against 151.9 (the t-bound; the floor 145.4 below it), the sixteenth is still unjudged on
+two predecessors — no 4.x verdict moved. The eighteenth faces 88.2.
+
+**Überprüft.** 1202 tests (WP70's three guards: the two values, the line, the archived
+seventeenth; WP53's and WP62's unchanged), ruff, bare mypy; the checker re-run on three archived
+chains. **Nur angenommen.** That five absolute decisions remain the right distance as the 5.5
+mean moves — a relative tolerance was considered and not chosen (WP70 §4). **Bewusst nicht
+getan.** A change to the record or to the minimum; any re-telling of a 4.x verdict.

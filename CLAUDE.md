@@ -184,8 +184,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   **refuse forced tool use** — `FORCED_TOOL_CHOICE=false` (WP60) asks instead; **defaults switched to
   5.5 by the owner (WP62, 2026-10-09)**; five 5.5 chains green in a row (21–24 min, 4.2–4.9 USD); the
   fourteenth to sixteenth (WP63, WP64 live) had **84, 83, 83 decisions**, the lowest on any model (4.x:
-  126–156), and are the 5.5 review record's three samples; the seventeenth is judged against a ceiling
-  near 85 — tight on three samples of one corpus, the owner's call after it runs. Opus 5.5 reaches for multi-source
+  126–156); the seventeenth (83) held against the 5.5 record's ceiling. **The ceiling has a floor since
+  WP70 (2026-10-12, the owner's number):** max(t-bound, mean + 5) — a tight record (84, 83, 83, 83)
+  had made the t-bound a demand for sameness. Opus 5.5 reaches for multi-source
   hubs on the person step (three attempts, twice) — the gates answer it; WP63 makes declared types
   the code's, not the model's. **WP34 §6's review clause is a distribution since
   WP53 (2026-10-07)**: the one-sided 95 % prediction bound over the recorded chains before the judged

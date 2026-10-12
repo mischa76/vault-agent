@@ -47,3 +47,11 @@ by the owner); a change to the record.
 ## 5 Results
 
 *(appended after the change)*
+
+**2026-10-12 — built.** Guards `32111a1` (red), the change and these lines in the commit
+carrying them. `review_bounds` returns both candidates, `review_ceiling` the larger,
+`REVIEW_TOLERANCE = 5`; the clause's line names „the floor mean + 5 (WP70; t-bound …)“ or „the
+one-sided 95 % prediction t-bound (floor mean + 5: …)“. **Re-checked:** the seventeenth chain
+holds against 88.3 (floor; t-bound 85.3); the sixth chain still fails against 151.9 (t-bound;
+floor 145.4) — no 4.x verdict moved; the sixteenth is still „cannot be judged“ (two
+predecessors). The eighteenth is judged against 88.2 (four samples, mean 83.25 + 5).

@@ -66,6 +66,12 @@ is not the project's.
   kept unchanged as before and the flag stays a review decision; a run no longer fails
   `pipeline_health` on it, because nothing in the generated vault is wrong.
 
+### Changed
+- The WP34 §6 review ceiling has a floor (WP70, the owner's decision): max(the one-sided 95 %
+  prediction t-bound, mean + 5 decisions). The 5.5 record's spread (sd 0.5) had made the t-bound
+  a demand for sameness; every 4.x verdict reproduces, the report line names which bound
+  applied. `eval.wp34_check.REVIEW_TOLERANCE`, `review_bounds`.
+
 ### Added
 - Workbench cancellation and restart robustness (WP69): `POST /api/runs/{id}/cancel` stops a
   running run into an `interrupted` thread the CLI continues (`vault-agent resume --out <run>`)
