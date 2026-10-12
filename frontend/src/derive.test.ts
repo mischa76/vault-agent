@@ -30,6 +30,10 @@ describe("deriveStrip", () => {
     expect(paused.map((s) => s.state)).toEqual(["done", "done", "done", "done", "done", "active", "pending"]);
     expect(deriveStrip(NODES, [], "finished").every((s) => s.state === "done")).toBe(true);
   });
+  it("closes an interrupted run up to its latest node and leaves the rest pending", () => {
+    const strip = deriveStrip(NODES, [route, call("emit_requirements")], "interrupted");
+    expect(strip.map((s) => s.state)).toEqual(["done", "done", "pending", "pending", "pending", "pending", "pending"]);
+  });
   it("shows the orchestrator active on the route event alone", () => {
     expect(deriveStrip(NODES, [route], "running")[0]!.state).toBe("active");
   });

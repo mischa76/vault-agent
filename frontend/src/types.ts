@@ -1,6 +1,6 @@
 // The API's shapes (WP66 chapter 14). The frontend knows nothing the API does not say.
 
-export type RunStatus = "running" | "paused" | "finished" | "failed" | "crashed" | "discarded";
+export type RunStatus = "running" | "paused" | "finished" | "failed" | "crashed" | "discarded" | "interrupted";
 
 export interface GraphNode {
   id: string;

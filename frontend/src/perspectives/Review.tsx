@@ -22,7 +22,7 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   const groups = useMemo(() => groupItems(checkpoint?.items ?? []), [checkpoint]);
 
   if (run.status !== "paused") {
-    return <Section title="Checkpoint"><Empty>the run is {run.status}; the checkpoint is only open while it is paused</Empty></Section>;
+    return <Section title="Checkpoint"><Empty>the run is {run.status}; the checkpoint is only open while it is paused{run.status === "interrupted" || run.status === "crashed" ? " — continue or discard it from the Run tab" : ""}</Empty></Section>;
   }
   if (!checkpoint) return <Section title="Checkpoint"><Empty>loading the review queue…</Empty></Section>;
 

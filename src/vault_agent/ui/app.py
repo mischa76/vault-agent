@@ -145,6 +145,22 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
                 raise _guard(exc) from exc
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    @app.post("/api/runs/{run_id}/cancel")
+    async def cancel(run_id: str) -> dict[str, Any]:
+        """WP69: stop the task; the thread stays and `continue` or `discard` take it from there."""
+        try:
+            return await runs.cancel(run_id)
+        except (ProjectError, RunConflictError) as exc:
+            raise _guard(exc) from exc
+
+    @app.post("/api/runs/{run_id}/continue")
+    async def continue_run(run_id: str, wait: bool = Query(default=False)) -> dict[str, Any]:
+        """WP69: `vault-agent resume --out <run>` on an interrupted or crashed run."""
+        try:
+            return await runs.continue_(run_id, wait=wait)
+        except (ProjectError, RunConflictError) as exc:
+            raise _guard(exc) from exc
+
     @app.get("/api/runs/{run_id}/artefacts")
     def list_artefacts(run_id: str) -> list[dict[str, Any]]:
         try:

@@ -108,6 +108,28 @@ export function App() {
     } catch (e) { setError(detail(e)); } finally { setBusy(false); }
   }
 
+  async function act(action: "cancel" | "continue" | "discard") {
+    if (!run) return;
+    setBusy(true); setError(null);
+    try {
+      const r = action === "cancel" ? await api.cancel(run.id)
+        : action === "continue" ? await api.continueRun(run.id)
+        : await api.decide(run.id, { discard: true });
+      setRun(r);
+      if (route.project) void refreshProject(route.project);
+      if (r.status === "running") {
+        const id = r.id;
+        const poll = async () => {
+          const [rr, ev] = await Promise.all([api.run(id), api.events(id, next.current)]);
+          setRun(rr); if (ev.events.length) { setEvents((old) => [...old, ...ev.events]); next.current = ev.next; }
+          setNow(new Date());
+          if (rr.status === "running") setTimeout(() => void poll(), POLL_MS);
+        };
+        setTimeout(() => void poll(), POLL_MS);
+      }
+    } catch (e) { setError(detail(e)); } finally { setBusy(false); }
+  }
+
   async function ask(text: string) {
     if (!run) return;
     const id = run.id;
@@ -191,7 +213,10 @@ export function App() {
                 onOpenRun={(id) => navigate({ project: project.id, run: id, perspective: "run" })} />
             ) : null}
             {route.run && !run ? <Empty>loading the run…</Empty> : null}
-            {run && route.perspective === "run" ? <RunPerspective run={run} events={events} nodes={nodes} onReview={() => navigate({ perspective: "review" })} /> : null}
+            {run && route.perspective === "run" ? (
+              <RunPerspective run={run} events={events} nodes={nodes} onReview={() => navigate({ perspective: "review" })}
+                onCancel={() => void act("cancel")} onContinue={() => void act("continue")} onDiscard={() => void act("discard")} busy={busy} />
+            ) : null}
             {run && route.perspective === "review" ? <ReviewPerspective run={run} checkpoint={checkpoint} onDecide={(d) => void decide(d)} busy={busy} error={null} /> : null}
             {run && route.perspective === "model" ? <ModelPerspective view={model} error={run.status === "running" ? "the model arrives when the run reaches the checkpoint" : modelError} /> : null}
             {run && route.perspective === "artefacts" ? <ArtefactsPerspective run={run} artefacts={artefacts} /> : null}

@@ -7,11 +7,13 @@ every action is equivalent to.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import json
 import shlex
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, cast
+from uuid import uuid4
 
 from vault_agent import cli
 from vault_agent.agents.orchestrator import assemble_review_queue
@@ -20,7 +22,10 @@ from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import VaultAgentState
 from vault_agent.ui.projects import ProjectError, ProjectStore
 
-TERMINAL = {"finished", "failed", "crashed", "discarded"}
+TERMINAL = {"finished", "failed", "discarded"}
+# A thread with work in it and nothing running: the CLI's crash path continues or discards it.
+CONTINUABLE = {"interrupted", "crashed"}
+STATE_FILE = "state.json"  # a finished run's state, beside its trace (WP69 §2.3)
 
 
 class RunConflictError(RuntimeError):
@@ -39,6 +44,39 @@ class RunManager:
         self._active: str | None = None
         self._tasks: dict[str, asyncio.Task[None]] = {}
         self._states: dict[str, VaultAgentState] = {}
+        self._reconcile()
+
+    def _reconcile(self) -> None:
+        """Runs a gone server left at ``running`` (WP69 §2.4): with a thread and a checkpoint
+        database they become ``interrupted`` and continuable, without one ``failed``."""
+        for meta_path in sorted(self.store.root.glob("*/runs/*/run.json")):
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            if meta.get("status") != "running":
+                continue
+            out_dir = Path(meta["out_dir"])
+            thread_id = meta.get("thread_id")
+            stamp = datetime.now(UTC).isoformat(timespec="seconds")
+            if thread_id and Path(cli._checkpoint_db(out_dir)).exists():
+                error = "the server stopped while the run was running"
+                cli._write_pending(out_dir, thread_id, self._input_doc(meta),
+                                   phase=cli.PENDING_CRASHED, error=error)
+                meta.update(status="interrupted", error=error, finished=stamp,
+                            cli_equivalents=meta.get("cli_equivalents", [])
+                            + [self._continue_equivalent(out_dir)])
+            else:
+                meta.update(status="failed", finished=stamp,
+                            error="the server stopped before the run was checkpointed")
+            meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+
+    def _input_doc(self, meta: dict[str, Any]) -> Path:
+        try:
+            return self.store.input_path(meta["project"], meta["requirements"])
+        except (ProjectError, KeyError, TypeError):
+            return Path("unknown")
+
+    @staticmethod
+    def _continue_equivalent(out_dir: Path) -> str:
+        return shlex.join(["vault-agent", "resume", "--out", str(out_dir)])
 
     # ----- run.json ------------------------------------------------------------------------
     def _meta_path(self, run_id: str) -> Path:
@@ -76,6 +114,7 @@ class RunManager:
         schema_path = self.store.input_path(project_id, schema) if schema else None
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
         run_id = f"{project_id}:{stamp}"
+        thread_id = uuid4().hex  # known before the task starts (WP69 §2.2)
         out_dir = self.store.run_dir(project_id, stamp, create=True)
         existing_dir = Path(self.read(existing_run)["out_dir"]) if existing_run else None
         equivalent = ["vault-agent", "run", str(input_doc), "--out", str(out_dir)]
@@ -87,7 +126,7 @@ class RunManager:
             "id": run_id,
             "project": project_id,
             "status": "running",
-            "thread_id": None,
+            "thread_id": thread_id,
             "out_dir": str(out_dir),
             "requirements": requirements,
             "schema": schema,
@@ -100,7 +139,7 @@ class RunManager:
         (out_dir / "run.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
         self._active = run_id
         self._tasks[run_id] = asyncio.create_task(
-            self._run(run_id, input_doc, out_dir, schema_path, existing_dir)
+            self._run(run_id, input_doc, out_dir, schema_path, existing_dir, thread_id)
         )
         if wait:
             await self._tasks[run_id]
@@ -113,18 +152,76 @@ class RunManager:
         out_dir: Path,
         schema_path: Path | None,
         existing_dir: Path | None,
+        thread_id: str,
     ) -> None:
         try:
             schemas = load_source_schemas(schema_path) if schema_path else []
             existing = load_existing_model(existing_dir) if existing_dir else None
-            state, paused, thread_id = await cli._run_pipeline(
+            state, paused, _thread = await cli._run_pipeline(
                 input_doc, out_dir, schemas,
                 existing_model=existing,
                 existing_source=str(existing_dir) if existing_dir else None,
+                thread_id=thread_id,
             )
-            self._update(run_id, thread_id=thread_id)
             self._finish(run_id, state, paused, input_doc, thread_id)
+        except asyncio.CancelledError:
+            self._interrupt(run_id, out_dir, thread_id, input_doc)
+            raise
         except Exception as exc:  # the CLI's rescue has recorded the crash; we record the status
+            self._fail(run_id, exc)
+
+    def _interrupt(self, run_id: str, out_dir: Path, thread_id: str, input_doc: Path) -> None:
+        """A cancelled task is an interrupted thread, as a crash is (WP69 §2.1): the pending
+        pointer the CLI continues from, and the status."""
+        meta = self.read(run_id)
+        cli._write_pending(out_dir, thread_id, input_doc,
+                           phase=cli.PENDING_CRASHED, error="cancelled from the workbench")
+        self._update(
+            run_id, status="interrupted", error="cancelled from the workbench",
+            finished=datetime.now(UTC).isoformat(timespec="seconds"),
+            cli_equivalents=meta["cli_equivalents"] + [self._continue_equivalent(out_dir)],
+        )
+
+    # ----- cancel / continue (WP69) ----------------------------------------------------------
+    async def cancel(self, run_id: str) -> dict[str, Any]:
+        meta = self.read(run_id)
+        task = self._tasks.get(run_id)
+        if meta["status"] != "running" or task is None or task.done():
+            raise RunConflictError(f"run {run_id!r} is {meta['status']}; nothing to cancel here")
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+        return self.read(run_id)
+
+    async def continue_(self, run_id: str, *, wait: bool) -> dict[str, Any]:
+        meta = self.read(run_id)
+        if meta["status"] not in CONTINUABLE or not meta["thread_id"]:
+            raise ProjectError(f"run {run_id!r} is {meta['status']}, not interrupted or crashed")
+        other = self._active if self._active and self._active != run_id else None
+        if other and self.read(other)["status"] == "running":
+            raise RunConflictError(f"run {self._active!r} is still running")
+        out_dir, thread_id = Path(meta["out_dir"]), meta["thread_id"]
+        self._update(run_id, status="running", error=None)
+        self._states.pop(run_id, None)
+        self._active = run_id
+        input_doc = self._input_doc(meta)
+        self._tasks[run_id] = asyncio.create_task(
+            self._continue(run_id, out_dir, thread_id, input_doc)
+        )
+        if wait:
+            await self._tasks[run_id]
+        return self.read(run_id)
+
+    async def _continue(
+        self, run_id: str, out_dir: Path, thread_id: str, input_doc: Path
+    ) -> None:
+        try:
+            state, paused = await cli._continue_pipeline(out_dir, thread_id, input_doc=input_doc)
+            self._finish(run_id, state, paused, input_doc, thread_id)
+        except asyncio.CancelledError:
+            self._interrupt(run_id, out_dir, thread_id, input_doc)
+            raise
+        except Exception as exc:
             self._fail(run_id, exc)
 
     def _finish(
@@ -138,6 +235,10 @@ class RunManager:
             self._update(run_id, status="paused")
         else:
             cli._clear_pending(out_dir)
+            # The final state beside the trace, so a restarted server still serves it (§2.3).
+            (cli._checkpoint_dir(out_dir) / STATE_FILE).write_text(
+                state.model_dump_json(), encoding="utf-8"
+            )
             self._update(
                 run_id, status="finished",
                 finished=datetime.now(UTC).isoformat(timespec="seconds"),
@@ -163,6 +264,11 @@ class RunManager:
         meta = self.read(run_id)
         if meta["status"] == "paused" and meta["thread_id"]:
             state = await cli._paused_state(Path(meta["out_dir"]), meta["thread_id"])
+            self._states[run_id] = state
+            return state
+        persisted = cli._checkpoint_dir(Path(meta["out_dir"])) / STATE_FILE
+        if meta["status"] == "finished" and persisted.is_file():
+            state = VaultAgentState.model_validate_json(persisted.read_text(encoding="utf-8"))
             self._states[run_id] = state
             return state
         raise ProjectError(f"run {run_id!r} has no state in this session ({meta['status']})")
@@ -197,7 +303,8 @@ class RunManager:
         wait: bool,
     ) -> dict[str, Any]:
         meta = self.read(run_id)
-        if meta["status"] != "paused" or not meta["thread_id"]:
+        allowed = {"paused"} | (CONTINUABLE if discard else set())
+        if meta["status"] not in allowed or not meta["thread_id"]:
             raise ProjectError(f"run {run_id!r} is {meta['status']}, not paused")
         out_dir, thread_id = Path(meta["out_dir"]), meta["thread_id"]
         equivalent = ["vault-agent", "resume", "--out", str(out_dir)]

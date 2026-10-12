@@ -41,6 +41,8 @@ export const api = {
   startRun: (id: string, requirements: string, schema: string | null, existing_run: string | null) =>
     call<Run>(`/api/projects/${encodeURIComponent(id)}/runs`, json({ requirements, schema, existing_run })),
   run: (id: string) => call<Run>(`/api/runs/${encodeURIComponent(id)}`),
+  cancel: (id: string) => call<Run>(`/api/runs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
+  continueRun: (id: string) => call<Run>(`/api/runs/${encodeURIComponent(id)}/continue`, { method: "POST" }),
   events: (id: string, after: number) =>
     call<Events>(`/api/runs/${encodeURIComponent(id)}/events?after=${after}`),
   checkpoint: (id: string) => call<Checkpoint>(`/api/runs/${encodeURIComponent(id)}/checkpoint`),

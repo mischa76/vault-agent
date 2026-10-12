@@ -34,7 +34,7 @@ export function deriveStrip(nodes: GraphNode[], events: TraceEvent[], status: Ru
     latest = Math.max(latest, i);
   }
   const human = nodes.findIndex((n) => n.id === "human_checkpoint");
-  const terminal = status === "finished" || status === "failed" || status === "crashed" || status === "discarded";
+  const terminal = status === "finished" || status === "failed" || status === "crashed" || status === "discarded" || status === "interrupted";
   return nodes.map((n, i) => {
     let state: NodeState = "pending";
     if (status === "finished") state = "done";

@@ -3,6 +3,7 @@ import type { RunStatus } from "../types";
 
 export const STATUS_TONE: Record<RunStatus, string> = {
   running: "bg-info", paused: "bg-warn", finished: "bg-ok", failed: "bg-bad", crashed: "bg-bad", discarded: "bg-ink-faint",
+  interrupted: "bg-warn",
 };
 
 export function Dot({ status, pulse = false }: { status: RunStatus; pulse?: boolean }) {

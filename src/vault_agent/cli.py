@@ -615,6 +615,7 @@ async def _run_pipeline(
     existing_model: DVModel | None = None,
     existing_source: str | None = None,
     target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
+    thread_id: str | None = None,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
@@ -625,8 +626,10 @@ async def _run_pipeline(
     is the ``--no-write`` flag, honoured by the crash rescue as well. ``existing_model``
     (from ``--existing``, WP23) switches the run to brownfield mode; ``None`` = greenfield,
     and resume needs no flag because the model is persisted in the checkpoint. The same
-    holds for ``target_platform`` (from ``--target-platform``, WP35)."""
-    thread_id = uuid4().hex
+    holds for ``target_platform`` (from ``--target-platform``, WP35). ``thread_id`` lets a
+    caller that must know the thread before the run ends (the workbench, WP69 — a cancel or
+    a server death must not lose the pointer to the work) name it; the CLI draws one."""
+    thread_id = thread_id or uuid4().hex
     _checkpoint_dir(out_dir).mkdir(parents=True, exist_ok=True)
     state, paused = await _invoke_checkpointed(
         out_dir,

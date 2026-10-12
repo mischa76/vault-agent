@@ -122,7 +122,9 @@ def test_a_run_without_state_in_this_session_answers_unavailable(client: TestCli
     rid = str(run["id"])
     client.post(f"/api/runs/{rid}/checkpoint?wait=true",
                 json={"accept": True, "owners": {"customer": "Jane Doe <jane@example.com>"}})
-    # a second app over the same root has no state for the finished run
+    # WP69 persists a finished run's state beside its trace; without that file a second app
+    # over the same root has nothing to answer from (the guard's original shape, narrowed)
+    (Path(str(run["out_dir"])) / ".vault-agent" / "state.json").unlink()
     other = TestClient(create_app(Path(str(run["out_dir"])).parents[2]))
     r = other.post(f"/api/runs/{rid}/console", json={"text": "status"})
     assert r.status_code == 200 and r.json()["kind"] == "unavailable"

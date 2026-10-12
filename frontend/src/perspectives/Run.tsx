@@ -4,8 +4,9 @@ import type { GraphNode, Run, TraceEvent } from "../types";
 import { StatusStrip } from "../components/StatusStrip";
 import { Button, Dot, ErrorNote, KV, Pill, Section } from "../components/ui";
 
-export function RunPerspective({ run, events, nodes, onReview }: {
+export function RunPerspective({ run, events, nodes, onReview, onCancel, onContinue, onDiscard, busy }: {
   run: Run; events: TraceEvent[]; nodes: GraphNode[]; onReview: () => void;
+  onCancel: () => void; onContinue: () => void; onDiscard: () => void; busy: boolean;
 }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -26,6 +27,19 @@ export function RunPerspective({ run, events, nodes, onReview }: {
           <div className="mt-3 flex items-center gap-3">
             <Button onClick={onReview}>Open the checkpoint</Button>
             <span className="text-xs text-ink-faint">the run waits for the human decision</span>
+          </div>
+        ) : null}
+        {run.status === "running" ? (
+          <div className="mt-3 flex items-center gap-3">
+            <Button kind="danger" onClick={onCancel} disabled={busy}>Cancel the run</Button>
+            <span className="text-xs text-ink-faint">the work so far stays checkpointed; the run can be continued or discarded afterwards</span>
+          </div>
+        ) : null}
+        {run.status === "interrupted" || run.status === "crashed" ? (
+          <div className="mt-3 flex items-center gap-3">
+            <Button onClick={onContinue} disabled={busy}>Continue the run</Button>
+            <Button kind="danger" onClick={onDiscard} disabled={busy}>Discard the run</Button>
+            <span className="text-xs text-ink-faint">continues at the latest checkpoint — `vault-agent resume --out …` — or drops the thread</span>
           </div>
         ) : null}
         <div className="mt-3"><ErrorNote error={run.error} /></div>
