@@ -72,3 +72,21 @@ two server processes on one root.
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-12 — built, keyless.** Spec and guards `c54fae9` (red), the change `eefc389`, docs in
+the commit carrying this line. `cli._run_pipeline(..., thread_id=)`; `RunManager.cancel`,
+`continue_`, `_interrupt`, `_reconcile`, the persisted `state.json`; `POST …/cancel` and
+`POST …/continue`; the Run tab's Cancel / Continue / Discard. Four guards: the slowed stub
+modeler gave a 3 s window, the cancel landed inside it, the pending pointer carried the thread
+with phase `crashed`, `continue` ended paused and the checkpoint finished the run; a finished
+run served its model and its console from `state.json` in a second app; a `run.json` left at
+`running` became `interrupted` with its pointer written, a thread-less one `failed`, and
+`discard` ended the interrupted one. The WP68 guard „no state in this session“ was narrowed to
+a run whose persisted state is gone — §2.3 changes what it asserted, deliberately. **§4:** the
+Chromium walk (`frontend/e2e/interrupted.mjs`): a run paused on the stub server, the server
+killed with its `run.json` set back to `running` and the pointer removed, the next server
+marked it `interrupted` („the server stopped while the run was running“), the Run tab offered
+Continue, the click reached the checkpoint, and `run.json` recorded `vault-agent resume --out
+…`. Cancel itself is not reachable in a browser walk on the stub (it finishes in seconds); its
+guard is the evidence. **Not measured:** a cancel during a real model call (the SDK call
+receives the cancellation; the guard's window is a sleep in the modeler stub).

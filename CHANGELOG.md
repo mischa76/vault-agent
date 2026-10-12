@@ -67,6 +67,12 @@ is not the project's.
   `pipeline_health` on it, because nothing in the generated vault is wrong.
 
 ### Added
+- Workbench cancellation and restart robustness (WP69): `POST /api/runs/{id}/cancel` stops a
+  running run into an `interrupted` thread the CLI continues (`vault-agent resume --out <run>`)
+  or discards; `POST …/continue` does the former through the API; a finished run's state is
+  persisted beside its trace so Model, Artefacts and the console answer after a restart; a run
+  the server died on is reconciled at the next start. `_run_pipeline` takes an optional
+  `thread_id`. The Run tab gains Cancel, Continue and Discard.
 - The workbench console (WP68, ADR-0014 §4 phase 1): the right pane explains a run from its
   state with no model call — `status`, `items`, `explain`, `why`, `show`, `gates`, `flags`,
   `steering`, `cli`, `what if …` (the CLI command an action would be, without running it) —

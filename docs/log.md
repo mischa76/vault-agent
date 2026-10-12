@@ -8619,3 +8619,32 @@ this commit (`eval/wp34_check.py`); results mirrored to tank (skill step, 24 fil
 collision issue in the step-2 retry's input), `wp34_check`, the cost from the trace's tokens at
 the 5.5 prices; the mirror on tank. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No
 repeat; no change to `MIN_REVIEW_SAMPLES`; no gate or decision item for the empty hub.
+
+## [2026-10-12] WP69 — workbench cancellation and restart robustness: a cancelled run is an interrupted thread the CLI's crash path continues
+
+**Autor:** Claude Code
+
+The two limits WP66 §5 left open and the user met in the workbench. Spec and red guards
+`c54fae9`, the change `eefc389`, docs here. **What exists now.** `_run_pipeline` takes an
+optional `thread_id` (the CLI still draws one), so the manager knows the thread before the task
+starts and writes it into `run.json`. `POST …/cancel` cancels the task; the manager writes the
+pending pointer with the CLI's `crashed` phase and `cancelled from the workbench`, status
+`interrupted` — from there `vault-agent resume --out <run>` continues at the latest checkpoint
+(`_continue_pipeline`, the node that was running is re-executed) and `--discard` drops it;
+`POST …/continue` and the checkpoint's `discard` are those commands and are recorded. A
+finished run writes `.vault-agent/state.json` beside its trace, and `state()` reads it when the
+process holds nothing, so Model, Artefacts and the console answer after a restart. At start the
+manager reconciles: a `run.json` at `running` with a thread and a checkpoint database becomes
+`interrupted` (pointer written), one without `failed`. The Run tab has Cancel, Continue and
+Discard. One server per root — two on one root would reconcile each other's runs
+(chapter 14.2, documented, not guarded).
+
+**Überprüft.** 1199 tests (four WP69 guards on a stub modeler slowed by 3 s — the cancel lands
+inside its window, the pointer names the thread, continue → paused → finished; the finished run
+served from `state.json` by a second app; reconciliation of a `running` run with and without a
+database), ruff, bare mypy; `tsc`, 14 Vitest tests (ext4 copy); the Chromium walk of an
+interrupted run — server killed, `run.json` set back to `running`, restarted, Continue clicked,
+checkpoint reached, the resume command recorded. **Nur angenommen.** That cancelling during a
+real model call behaves as during the stub's sleep — the SDK's call receives the cancellation
+and LangGraph's saver context exits cleanly; not exercised with a key. **Bewusst nicht getan.**
+Parallel runs; a guard against two servers on one root; a paid run.

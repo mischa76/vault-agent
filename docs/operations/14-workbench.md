@@ -30,7 +30,8 @@ house loader; a malformed one is refused with the loader's message before any mo
 | `GET /api/projects` · `POST /api/projects {name}` · `GET /api/projects/{id}` | the store |
 | `POST /api/projects/{id}/files {kind, name, content}` | `requirements` (.md/.txt/.pdf), `schema` or `profiling` (.yml/.yaml/.json) |
 | `POST /api/projects/{id}/runs {requirements, schema?, existing_run?}` `?wait=true` | start a run (brownfield when `existing_run` names an earlier run of the project); 409 while another run is active |
-| `GET /api/runs/{id}` | `run.json`: status `running / paused / finished / failed / crashed / discarded`, thread, inputs, `cli_equivalents` |
+| `GET /api/runs/{id}` | `run.json`: status `running / paused / finished / failed / crashed / interrupted / discarded`, thread, inputs, `cli_equivalents` |
+| `POST /api/runs/{id}/cancel` · `POST /api/runs/{id}/continue` `?wait=true` | WP69: stop the running task (the thread stays, status `interrupted`), and continue an interrupted or crashed run at its latest checkpoint — `vault-agent resume --out <run>`; `discard` through the checkpoint endpoint drops it |
 | `GET /api/runs/{id}/events?after=N` | the run's trace lines from line N (the JSONL the CLI writes) and the status |
 | `GET /api/runs/{id}/checkpoint` | the review queue (decisions first), `blocked`, the unresolved concepts with evidence |
 | `POST /api/runs/{id}/checkpoint {accept, discard, resolutions: {concept: answer}, owners: {asset: "Name <email>"}}` `?wait=true` | the decision — through `_build_decision` and `_resume_pipeline`, or `_discard_pending` |
@@ -38,17 +39,27 @@ house loader; a malformed one is refused with the loader's message before any mo
 | `GET /api/runs/{id}/model` | the model as JSON, its Mermaid flowchart, and the **input** schema as a Mermaid `erDiagram` with foreign keys |
 | `GET /api/runs/{id}/report` | the WP11 report |
 
-Run ids are `<project>:<stamp>`. The state of a finished run lives in the process for the
-session; a paused run's state is read from its checkpoint, so a restarted server can still
-decide it. One active run per process: the checkpointer and `pending.json` are single-slot per
-directory. A second start answers 409.
+Run ids are `<project>:<stamp>`. A paused run's state is read from its checkpoint, a finished
+run's from `.vault-agent/state.json` (written when it finishes, beside the trace — the same
+sensitivity, never published), so a restarted server serves both. One active run per process:
+the checkpointer and `pending.json` are single-slot per directory. A second start answers 409.
+
+**Cancel, interrupt, continue (WP69).** Cancelling a running run stops its task and leaves the
+thread's latest checkpoint in place, exactly as a crash does: `pending.json` gets the CLI's
+`crashed` phase with the error `cancelled from the workbench`, the status becomes
+`interrupted`, and `continue` re-executes the node that was running — the same
+`vault-agent resume --out <run>` the terminal would run, recorded as such. When the server
+itself dies mid-run, the next start reconciles: a `run.json` left at `running` with a thread and
+a checkpoint database becomes `interrupted` (continuable), one without becomes `failed`. Run
+one server per root — two on the same root would reconcile each other's runs.
 
 ## 14.3 What it does not do
 
 Decide anything the agents or the human decide; call a model from the API process (the run
 does); serve beyond localhost; render model text — the JSON is raw, the Mermaid sources and the
 report escape as the report always has. Cancellation, parallel runs and the frontend (WP67)
-are not in this phase.
+were not in the first phase; WP67 and WP68 brought the first two, WP69 cancellation and
+restart robustness. Parallel runs remain out.
 
 ## 14.4 The frontend (WP67)
 
@@ -79,7 +90,7 @@ is the status line: run state, elapsed, calls, tokens.
 | Perspective | Shows | Acts |
 |---|---|---|
 | Project | name, inputs, run history | create, attach `.md`/`.txt` requirements and `.yml`/`.json` schemas (a PDF goes through the CLI), start a run — greenfield or extending a finished run of the project |
-| Run | the graph's nodes as a status strip **derived from the trace** (dashed nodes make no model calls and are inferred), tokens and calls, the run's `cli_equivalents` | open the checkpoint |
+| Run | the graph's nodes as a status strip **derived from the trace** (dashed nodes make no model calls and are inferred), tokens and calls, the run's `cli_equivalents` | open the checkpoint; cancel a running run; continue or discard an interrupted or crashed one (WP69) |
 | Review | the checkpoint: decisions first with an owner input per contract (on the item's `asset`), unresolved concepts with their evidence, disclosures folded | accept, record without accepting, discard — the same `POST …/checkpoint` the CLI flags reach |
 | Model | the output model and the input `erDiagram`, the inventory, a construct's definition | select a construct |
 | Artefacts | the output directory as a tree; text files in place, the report in a sandboxed iframe | open raw |
