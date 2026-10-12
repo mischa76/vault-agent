@@ -98,3 +98,8 @@ the eleventh is judged against 156.4 (mean 139.1, sd 9.0).
 **2026-10-09 — eleventh chain** (`20261009T133146634551Z`): 136 decisions against 156.4 — held. Eleven chains
 recorded; the twelfth is judged against 155.1 (mean 138.8, sd 8.6). The guard for an unrecorded
 chain now judges the record's mean; its 156 stopped holding as the record tightened.
+
+**2026-10-12 — WP70 adds a floor.** The 5.5 record (84, 83, 83, 83) made the t-bound a
+demand for sameness (84.6, one decision over the mean); the ceiling is now
+max(t-bound, mean + 5). The record, the exclusion by stamp and the minimum of three samples are
+unchanged; every 4.x verdict reproduces. `wp70-review-ceiling-tolerance-spec.md`.
