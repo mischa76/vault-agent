@@ -10,7 +10,9 @@ import shlex
 from dataclasses import dataclass, field
 from typing import Any, cast
 
+from vault_agent.agents.entity_resolver import pending_resolution_decisions
 from vault_agent.agents.orchestrator import ReviewItem, assemble_review_queue
+from vault_agent.link_proposal import pending_link_decisions, proposal_key
 from vault_agent.rules.catalogue import FLAGS, GATES
 from vault_agent.rules.dv2_rules import active_modeling_rules
 from vault_agent.state import Link, VaultAgentState
@@ -73,6 +75,12 @@ def _hub_names(link: Link) -> list[str]:
             for h in link.connected_hubs]
 
 
+def cli_paused_at_resolution(state: VaultAgentState) -> bool:
+    from vault_agent import cli
+
+    return cli._paused_at_resolution(state)
+
+
 def _resume_help() -> dict[str, str]:
     """The `resume` command's own option help, through click — never a second description."""
     import click
@@ -91,6 +99,14 @@ class Console:
         self.meta = meta or {}
         self.queue = assemble_review_queue(state)
         self.constructs = _constructs(state)
+        # WP71: which pause this is — the CLI's predicate, never a second one.
+        self.at_resolution = cli_paused_at_resolution(state)
+        self.pending_links = (
+            pending_link_decisions(state.link_proposals) if self.at_resolution else []
+        )
+        self.pending_resolutions = (
+            pending_resolution_decisions(state.resolutions) if self.at_resolution else []
+        )
 
     # ----- dispatch --------------------------------------------------------------------------
     def answer(self, text: str) -> ConsoleAnswer:
@@ -148,9 +164,14 @@ class Console:
             f"{len(s.dv_model.satellites)} satellites"
             + (f"; {len(s.existing_model.hubs)} existing hubs (brownfield)"
                if s.existing_model else ""),
-            f"checkpoint: {len(self.queue.decisions)} decisions, "
-            f"{len(self.queue.disclosures)} disclosures, "
-            f"{'blocked' if self.queue.requires_signoff else 'not blocked'}",
+            (f"checkpoint: the RESOLUTION checkpoint, before the modeler — "
+             f"{len(self.pending_links)} proposal(s)/license(s), "
+             f"{len(self.pending_resolutions)} entity resolution(s); owners and the model's "
+             f"review come at sign-off"
+             if self.at_resolution else
+             f"checkpoint: sign-off — {len(self.queue.decisions)} decisions, "
+             f"{len(self.queue.disclosures)} disclosures, "
+             f"{'blocked' if self.queue.requires_signoff else 'not blocked'}"),
             f"flags: {len(s.flags)}; retired constructs: {len(s.retired_constructs)}; "
             f"contracts: {len(s.artifacts.contracts)}",
         ]
@@ -162,6 +183,15 @@ class Console:
     def items(self, which: str | None) -> ConsoleAnswer:
         items = self.queue.items
         lines = []
+        if self.at_resolution and which is None:
+            lines.append(f"Resolution checkpoint — {len(self.pending_links)} proposal(s) to build "
+                         "or decline (--link / --no-link), "
+                         f"{len(self.pending_resolutions)} resolution(s) to answer (--resolve):")
+            for link in self.pending_links:
+                lines.append(f"- {proposal_key(link)} ({type(link).__name__})")
+            for res in self.pending_resolutions:
+                lines.append(f"- {res.concept}: proposed {res.resolution}")
+            lines.append("The queue below is sign-off's; its owner decisions are answered there.")
         for n, item in enumerate(items, 1):
             if which == "decisions" and item.role != "decision":
                 continue

@@ -33,8 +33,8 @@ house loader; a malformed one is refused with the loader's message before any mo
 | `GET /api/runs/{id}` | `run.json`: status `running / paused / finished / failed / crashed / interrupted / discarded`, thread, inputs, `cli_equivalents` |
 | `POST /api/runs/{id}/cancel` · `POST /api/runs/{id}/continue` `?wait=true` | WP69: stop the running task (the thread stays, status `interrupted`), and continue an interrupted or crashed run at its latest checkpoint — `vault-agent resume --out <run>`; `discard` through the checkpoint endpoint drops it |
 | `GET /api/runs/{id}/events?after=N` | the run's trace lines from line N (the JSONL the CLI writes) and the status |
-| `GET /api/runs/{id}/checkpoint` | the review queue (decisions first), `blocked`, the unresolved concepts with evidence |
-| `POST /api/runs/{id}/checkpoint {accept, discard, resolutions: {concept: answer}, owners: {asset: "Name <email>"}}` `?wait=true` | the decision — through `_build_decision` and `_resume_pipeline`, or `_discard_pending` |
+| `GET /api/runs/{id}/checkpoint` | `phase` — `resolution` (before the modeler: `links` — proposed links, relationship tables and key licenses with key, kind, target, note and evidence; `resolutions` — pending entity resolutions with claim and evidence; `answers`) or `signoff` (the review queue, decisions first, `blocked`, the unresolved mapping concepts) — WP71 |
+| `POST /api/runs/{id}/checkpoint {accept, discard, resolutions: {concept: answer}, owners: {asset: "Name <email>"}, links: {"Table.Column": true\|false}}` `?wait=true` | the decision — through `_build_decision` and `_resume_pipeline`, or `_discard_pending`; `links` is `--link` / `--no-link` (WP71); `run.json` records which pause it answered (`checkpoints`) |
 | `GET /api/runs/{id}/artefacts` · `GET /api/runs/{id}/artefacts/{path}` | the output directory (never `.vault-agent/`, never outside it) |
 | `GET /api/runs/{id}/model` | the model as JSON, its Mermaid flowchart, and the **input** schema as a Mermaid `erDiagram` with foreign keys |
 | `GET /api/runs/{id}/report` | the WP11 report |
@@ -43,6 +43,14 @@ Run ids are `<project>:<stamp>`. A paused run's state is read from its checkpoin
 run's from `.vault-agent/state.json` (written when it finishes, beside the trace — the same
 sensitivity, never published), so a restarted server serves both. One active run per process:
 the checkpointer and `pending.json` are single-slot per directory. A second start answers 409.
+
+**Two pauses in a grounded run (WP71).** With a declared schema the pipeline pauses first at
+the resolution checkpoint, before the modeler — key licenses from declared foreign keys, link
+proposals, entity resolutions — and again at sign-off. The CLI tells them apart with
+`_paused_at_resolution` and its interactive loop answers both; the API's `phase` is that
+predicate, and a decision at the resolution phase carries `links` and `resolutions`, never
+owners (they are applied at sign-off). Everything left as proposed is ratified by `accept`, as
+`--accept` does. The frontend opens the next phase when the run pauses again.
 
 **Cancel, interrupt, continue (WP69).** Cancelling a running run stops its task and leaves the
 thread's latest checkpoint in place, exactly as a crash does: `pending.json` gets the CLI's
@@ -91,7 +99,7 @@ is the status line: run state, elapsed, calls, tokens.
 |---|---|---|
 | Project | name, inputs, run history | create, attach `.md`/`.txt` requirements and `.yml`/`.json` schemas (a PDF goes through the CLI), start a run — greenfield or extending a finished run of the project |
 | Run | the graph's nodes as a status strip **derived from the trace** (dashed nodes make no model calls and are inferred), tokens and calls, the run's `cli_equivalents` | open the checkpoint; cancel a running run; continue or discard an interrupted or crashed one (WP69) |
-| Review | the checkpoint: decisions first with an owner input per contract (on the item's `asset`), unresolved concepts with their evidence, disclosures folded | accept, record without accepting, discard — the same `POST …/checkpoint` the CLI flags reach |
+| Review | at the resolution phase: the proposed links, relationship tables and key licenses with build/decline (build is the default, as the CLI's prompt), the entity resolutions with an answer field; at sign-off: decisions first with an owner input per contract (on the item's `asset`), unresolved concepts with their evidence, disclosures folded | ratify and build the model; accept, record without accepting, discard — the same `POST …/checkpoint` the CLI flags reach |
 | Model | the output model and the input `erDiagram`, the inventory, a construct's definition | select a construct |
 | Artefacts | the output directory as a tree; text files in place, the report in a sandboxed iframe | open raw |
 | Log | every trace line, filterable by kind, tool and text | — |

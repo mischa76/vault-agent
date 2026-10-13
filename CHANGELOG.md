@@ -73,6 +73,14 @@ is not the project's.
   applied. `eval.wp34_check.REVIEW_TOLERANCE`, `review_bounds`.
 
 ### Added
+- The resolution checkpoint in the workbench (WP71): `GET …/checkpoint` says its `phase`
+  (`resolution` before the modeler, `signoff` after — the CLI's own predicate) and at the
+  resolution phase lists the pending links, relationship tables, key licenses and entity
+  resolutions as the CLI prints them; `POST …/checkpoint` takes `links: {key: build}` as
+  `--link` / `--no-link`; `run.json` records which pause each decision answered. The Review tab
+  shows the phase with build/decline per proposal and no owner fields before sign-off. Found by
+  the demo rehearsal: a grounded run pauses twice, and the workbench had shown the sign-off
+  view both times.
 - Workbench cancellation and restart robustness (WP69): `POST /api/runs/{id}/cancel` stops a
   running run into an `interrupted` thread the CLI continues (`vault-agent resume --out <run>`)
   or discards; `POST …/continue` does the former through the API; a finished run's state is

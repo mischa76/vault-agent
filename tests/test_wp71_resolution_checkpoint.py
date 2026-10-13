@@ -94,3 +94,13 @@ def test_the_plain_stub_pauses_at_signoff_only(plain_client: TestClient) -> None
                             json={"requirements": "req.md", "schema": "schema.yml"}).json()
     cp = plain_client.get(f"/api/runs/{run['id']}/checkpoint").json()
     assert cp["phase"] == "signoff" and cp["links"] == [] and cp["resolutions"] == []
+
+
+def test_the_console_names_the_phase_and_the_license(client: TestClient) -> None:
+    pid = _project_with_inputs(client)
+    run = client.post(f"/api/projects/{pid}/runs?wait=true",
+                      json={"requirements": "req.md", "schema": "schema.yml"}).json()
+    status = client.post(f"/api/runs/{run['id']}/console", json={"text": "status"}).json()["text"]
+    assert "RESOLUTION checkpoint" in status and "1 proposal(s)" in status
+    items = client.post(f"/api/runs/{run['id']}/console", json={"text": "items"}).json()["text"]
+    assert LICENSE_KEY in items and "KeyLicense" in items
