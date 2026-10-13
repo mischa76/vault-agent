@@ -8732,3 +8732,45 @@ is judged against **88.6** (floor; t-bound 85.7). The chain enters the record in
 repairs, the two retries' issue codes), `wp34_check`, the cost from the trace's tokens at the
 5.5 prices; the mirror on tank. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No repeat;
 no change to the rule; no decision item for the empty hub (not recurred).
+
+## [2026-10-13] Finding — the workbench is blind to the resolution checkpoint: a grounded run pauses twice, and the Review tab shows the sign-off view both times
+
+**Autor:** Claude Code
+
+**The run.** A real-key rehearsal of the demo walk-through (`frontend/e2e/walk.mjs`, the WP67
+walk) on `adventureworks_person` with its declared schema, through `vault-agent ui`, out of the
+repo (`~/.claude/jobs/…/e2e/root-demo`). 20 calls, ≈ 0.76 USD, two modeler attempts; the run
+is left paused at sign-off, not finished. Pause after **128 s** (the guide had assumed 4–6 min).
+
+**What happened.** The walk reached „paused“ at 128 s, the Review tab showed 13 owner decisions
+(the contracts are drafted before the resolver), the walk filled them and accepted. The trace
+then shows a second route event, the modeler (two attempts, `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB`
+in between), the mapper — and a second pause, at which the 13 contracts still carry the
+placeholder owner. The walk waited for „finished“ and timed out. **Why.** A grounded run pauses
+twice: first at the WP29/WP34 **resolution checkpoint** (before the modeler — here 13 key
+licenses, WP41's greenfield case: declared foreign keys into hubs that do not exist yet), then at
+sign-off. The CLI knows the difference (`_paused_at_resolution`: `modeling_attempts == 0` and
+pending resolutions or link decisions), presents licenses, link proposals and resolutions there,
+takes `--link`/`--no-link`/`--resolve`, and its interactive loop answers both pauses in one
+session. **The workbench (WP66) does not:** `GET …/checkpoint` assembles the sign-off queue
+whatever the pause is, lists no licenses, proposals or resolutions, offers no ratify/decline;
+a blanket `accept` ratifies every license (the CLI's unattended default) and the owners typed
+there are not applied at that node, so sign-off asks for them again. The health-insurance
+example never showed this: no schema, no licenses, one pause. The sixteen chains never showed
+it either: the eval harness answers both pauses itself.
+
+**Consequences.** (1) The demo guide now names the two pauses and says what each asks. (2) A WP
+candidate, not started: the Review tab must know which checkpoint it is (the CLI's own
+predicate), show the pending licenses, link proposals and resolutions with the CLI's three
+answers, hide the owner fields there, and the walk script must loop over pauses as the CLI's
+interactive loop does. (3) `cli_equivalents` recorded the first accept as `resume --owner … --accept`
+— correct as a command, but at that pause the owners were no-ops; the record should say which
+checkpoint a decision answered.
+
+**Überprüft.** The trace (the two route events, the calls between them), `run.json`,
+`pending.json`, the state read from the checkpoint (`modeling_attempts` 2, owners still
+placeholder, 13 licenses, 0 proposals, 0 resolutions, the decisions' agent sequence with
+`resolution_checkpoint` before the modeler), the server log, the Review screenshot; the CLI's
+`_paused_at_resolution` and its interactive loop. **Nur angenommen.** Nothing. **Bewusst nicht
+getan.** The second accept (the run stays paused; finishing it would cost ≈ 0.05 USD and prove
+nothing new); the WP — the owner's call.
