@@ -8693,3 +8693,42 @@ hold; WP61 repairs reported.** **P5 — cost ≤ 5 USD, wall ≤ 30 min; WP57 ca
 no issue named; step 1 in two attempts or fewer.** **Watched, not predicted:** whether the empty
 `hub_employee` of the seventeenth chain recurs (a satellite-less, link-less hub kept after the
 collision remedy) — a second occurrence would make it a shape, not a one-off.
+
+## [2026-10-13] Eighteenth chain run — all green, 85 decisions: held by WP70's floor, would have failed the t-bound
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261013T020131196768Z`, at `5e6beda`,
+the 5.5 defaults. 108 calls (7 modeler: steps 1 and 2 two attempts, 3 to 5 one), 408k uncached
+input, 246k output, **22.2 min, ≈ 4.30 USD** at the 5.5 prices. Final vault 39 hubs, 45 links,
+90 satellites. **`validation_gate` 1.0 and `pipeline_health` 1.0 in all five steps** — the
+seventh green 5.5 chain in a row. **WP34 §6: all four clauses held** — links 20 cross-domain,
+invention 0, joins 0/0, **review 85 decisions against the ceiling 88.2** (16 / 10 / 26 / 7 / 26).
+
+**The point of this chain.** 85 is the first count above the four recorded ones (84, 83, 83,
+83). Under WP53's rule alone it would have failed: the t-bound was 84.6. Under WP70 the floor
+(mean + 5 = 88.2) holds it, and the line says so — „the floor mean + 5 (WP70; t-bound 84.6)“.
+Two more decisions than the seventeenth on the same code, the same corpus and the same models
+is the modeler's spread, which is exactly what the owner's five were meant to absorb; the
+clause would otherwise have called noise a rise, one day after the decision.
+
+**Against the pre-registration.** **P1 held. P2 held:** 85 ≤ 88.2, inside the expected 80–88,
+the floor named. **P3 held:** `undetermined_type` 1 (step 3). **P4 held:** the other three
+clauses; WP61 11 repairs (all a trailing brace). **P5 held:** 4.30 ≤ 5 USD, 22.2 ≤ 30 min; WP57
+carry-over 100 % — step 1 7/7 hubs, 5/5 links, 17/17 satellites, step 2 4/4, 2/2, 9/9; both
+retries answered `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` (a satellite naming a relation that
+is not one of its multi-source parent's feeds) and were followed in attempt 2; step 1 in two
+attempts. 0 of 108 calls without a tool block; 7 truncations retried by the split. **Watched:**
+the empty `hub_employee` of the seventeenth chain did **not** recur — no satellite-less hub in
+any step, no employee hub at all; the Employee payload went to `hub_business_entity` as in the
+sixteenth. One occurrence in two chains: still a one-off, no decision item.
+
+**The 5.5 record after five samples: 84, 83, 83, 83, 85** — mean 83.6, sd 0.9; the nineteenth
+is judged against **88.6** (floor; t-bound 85.7). The chain enters the record in this commit
+(`eval/wp34_check.py`); results mirrored to tank (skill step, 24 files).
+
+**Überprüft.** The chain file, the five step files and their `review.json` siblings, the five
+`dv_model.yml` snapshots (the hub search), the trace (all 108 calls, carry-over by name, the 11
+repairs, the two retries' issue codes), `wp34_check`, the cost from the trace's tokens at the
+5.5 prices; the mirror on tank. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No repeat;
+no change to the rule; no decision item for the empty hub (not recurred).

@@ -79,6 +79,9 @@ REVIEW_DECISION_SAMPLES: dict[str, tuple[tuple[str, int], ...]] = {
         ("20261009T230452021687Z", 83),  # sixteenth, 2026-10-10 (green; 20.9 min, 4.19 USD)
         ("20261011T115456381889Z", 83),  # seventeenth, 2026-10-11 — the first judged against the
         #                                   5.5 ceiling (85.3): held (green; 23.1 min, 4.68 USD)
+        ("20261013T020131196768Z", 85),  # eighteenth, 2026-10-13 — the first judged under WP70:
+        #                                   held by the floor (88.2), would have failed the t-bound
+        #                                   (84.6) (green; 22.2 min, 4.30 USD)
     ),
 }
 DEFAULT_RECORD_MODEL = "claude-opus-4-8"  # every archived result without `models`
