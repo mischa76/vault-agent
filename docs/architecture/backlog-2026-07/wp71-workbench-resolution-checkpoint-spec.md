@@ -72,3 +72,22 @@ explaining a license (`explain` could, later).
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-13 — built, keyless and rehearsed with a real key.** Guards `e1e7f6c` (red), the
+change `6b073c2`, the console and docs `28e184c`, the rest in the commit carrying this line.
+Four guards on the stub agents with a pending `KeyLicense` and the real
+`ResolutionCheckpointAgent`: phase `resolution` with the license (kind, target, note,
+evidence), `--no-link <key> --accept` recorded, the second pause `signoff`, `checkpoints`
+`[resolution, signoff]`, the plain stub unchanged; the console names the phase and the license.
+Frontend: the Review tab's resolution view (build/decline per proposal, build the default, no
+owner fields), the Run tab's phase labels, 15 Vitest tests. **§4, the rehearsal:**
+`adventureworks_person` with its schema through `vault-agent ui` (Sonnet 5.5 / Opus 5.5):
+pause 1 at 137 s — „Resolution checkpoint — before the modeler“, 13 proposals (all key
+licenses, WP41), 0 resolutions, ratified as proposed; the modeler took three attempts; pause 2
+at 266 s — „Sign-off checkpoint“, 16 decisions (13 owners, 3 code-generator flags), 2
+disclosures, owners filled, accepted; finished at 269 s; 21 calls, 0.94 USD; `run.json`
+`checkpoints` `[resolution, signoff]`, the first command `resume --out … --accept`, the second
+with the 13 `--owner` flags. 7 hubs / 2 links / 16 satellites; both diagrams rendered (the
+input `erDiagram` 5 s after the output one — the walk's screenshot had caught it mid-render).
+**Not measured:** declining a license in a real run; an entity resolution at this pause (a
+brownfield case — none in the rehearsal).

@@ -8774,3 +8774,37 @@ placeholder, 13 licenses, 0 proposals, 0 resolutions, the decisions' agent seque
 `_paused_at_resolution` and its interactive loop. **Nur angenommen.** Nothing. **Bewusst nicht
 getan.** The second accept (the run stays paused; finishing it would cost ≈ 0.05 USD and prove
 nothing new); the WP — the owner's call.
+
+## [2026-10-13] WP71 — the resolution checkpoint in the workbench: shown and answered as the CLI does; the demo rehearsal repeated end-to-end
+
+**Autor:** Claude Code
+
+Closes the morning's finding. Spec and red guards `e1e7f6c`, the change `6b073c2`, the console
+and the manual `28e184c`, this entry in the commit carrying it. **What exists now.**
+`GET …/checkpoint` says its `phase` — `resolution` or `signoff`, from the CLI's own
+`_paused_at_resolution`, never a second predicate — and at `resolution` lists what the CLI
+prints there: every pending proposal from `pending_link_decisions` (key via `proposal_key`,
+kind link / relationship / license, target and note via the CLI's `_link_target` and
+`_link_category_note`, evidence) and every pending entity resolution with its claim; `POST`
+takes `links: {key: build}` and hands it to `_build_decision(links=)` as `--link` / `--no-link`;
+`run.json` gains `checkpoints: [{phase, command}]`. The Review tab shows the phase: build/decline
+per proposal with build as the default (the CLI prompt's default), an answer field per
+resolution, no owner fields before sign-off, and a line saying sign-off follows the modeler.
+The console's `status` and `items` name the phase and list the proposals. The walk script
+answers pauses until `finished`, as the CLI's interactive loop does.
+
+**Rehearsed with a real key** (`adventureworks_person` with schema, `vault-agent ui`): pause 1 at
+137 s with 13 key licenses shown and ratified as proposed, modeler three attempts, pause 2 at
+266 s with 16 decisions (13 owners, 3 code-generator flags), finished at 269 s; 21 calls,
+**0.94 USD**; `checkpoints` `[resolution, signoff]` with the two commands. Both diagrams render
+(the earlier „rendering…“ in a screenshot was timing: the `erDiagram` arrives 5 s after the
+flowchart). The demo guide in the wiki is updated: seven stations, both pauses, the measured
+times.
+
+**Überprüft.** 1206 tests (the four WP71 guards and the console guard on a stub with a pending
+license and the real resolution checkpoint), ruff, bare mypy; `tsc`, 15 Vitest tests (ext4
+copy); the rehearsal's trace, `run.json`, the screenshots of both pauses, a second Chromium pass
+on the finished run for the two diagrams. **Nur angenommen.** That declining a license through
+the API behaves as the guard shows on the stub — not declined in the real run. **Bewusst nicht
+getan.** `--map` overrides; editing a translation; a brownfield rehearsal with entity
+resolutions.
