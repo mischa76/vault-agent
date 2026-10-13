@@ -8675,3 +8675,21 @@ seventeenth; WP53's and WP62's unchanged), ruff, bare mypy; the checker re-run o
 chains. **Nur angenommen.** That five absolute decisions remain the right distance as the 5.5
 mean moves — a relative tolerance was considered and not chosen (WP70 §4). **Bewusst nicht
 getan.** A change to the record or to the minimum; any re-telling of a 4.x verdict.
+
+## [2026-10-13] Pre-registration for the eighteenth chain run — the first judged against the floored ceiling, written before the run
+
+**Autor:** Claude Code
+
+The user: „go, starte die achtzehnte Kette“. One repeat of `adventureworks_incremental` at the
+commit carrying this entry, the 5.5 defaults. Code since the seventeenth (`6051ee4`): WP69 (the
+workbench's cancel and restart paths; `_run_pipeline` gained an optional `thread_id` with the
+same default) and WP70 (the checker's floor); no agent, gate, prompt or rule changed, the eval
+harness is untouched. The 5.5 record holds four samples (84, 83, 83, 83); the t-bound is 84.6
+and the floor 88.2, so the ceiling is **88.2** — the first chain judged under WP70.
+
+**P1 — all five steps green. P2 — the review clause holds: decisions ≤ 88.2**, the line naming
+the floor; expected 80–88. **P3 — `undetermined_type` ≤ 2.** **P4 — WP34 §6's other three clauses
+hold; WP61 repairs reported.** **P5 — cost ≤ 5 USD, wall ≤ 30 min; WP57 carry-over 100 % of what
+no issue named; step 1 in two attempts or fewer.** **Watched, not predicted:** whether the empty
+`hub_employee` of the seventeenth chain recurs (a satellite-less, link-less hub kept after the
+collision remedy) — a second occurrence would make it a shape, not a one-off.
