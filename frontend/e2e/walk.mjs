@@ -47,16 +47,33 @@ if (!answers[2]?.includes("vault-agent resume")) throw new Error("what if accept
 await page.getByRole("button", { name: "Open the checkpoint" }).waitFor();  // still paused
 await page.screenshot({ path: `${shotDir}/2b-console.png` });
 
-await page.getByRole("button", { name: "Open the checkpoint" }).click();
-await page.getByText(/decisions$/).first().waitFor();
-const header = await page.locator("header:has-text('Checkpoint')").innerText();
-log("checkpoint:", header.replace(/\n/g, " | "));
-for (const input of await page.getByLabel(/^owner for /).all()) await input.fill("Jane Doe <jane@example.com>");
-for (const input of await page.getByLabel(/^resolution for /).all()) await input.fill("NEW");
-await page.screenshot({ path: `${shotDir}/3-review.png` });
-await page.getByRole("button", { name: "Accept and continue" }).click();
-await page.waitForFunction(() => /\bfinished\b/.test(document.querySelector("footer")?.innerText ?? ""), null, { timeout: 15 * 60 * 1000 });
-log("finished");
+// WP71: a grounded run pauses twice (resolution, then sign-off); answer pauses until finished,
+// as the CLI's interactive loop does.
+const phases = [];
+for (let pause = 1; pause <= 4; pause++) {
+  await page.getByRole("button", { name: "Open the checkpoint" }).click();
+  await page.locator("main section h2").first().waitFor();
+  const heading = await page.locator("main section h2").first().innerText();
+  const atResolution = /resolution/i.test(heading);
+  phases.push(atResolution ? "resolution" : "signoff");
+  const header = await page.locator("main section header").first().innerText();
+  log(`pause ${pause} — ${heading}:`, header.replace(/\n/g, " | "));
+  if (atResolution) {
+    const n = await page.getByLabel(/^build /).count();
+    log(`  ${n} proposals/licenses, all left as proposed`);
+  } else {
+    for (const input of await page.getByLabel(/^owner for /).all()) await input.fill("Jane Doe <jane@example.com>");
+    for (const input of await page.getByLabel(/^resolution for /).all()) await input.fill("NEW");
+  }
+  await page.screenshot({ path: `${shotDir}/3-review-${pause}.png` });
+  await page.getByRole("button", { name: atResolution ? /build the model/ : "Accept and continue" }).click();
+  await page.waitForFunction(() => /\b(finished|paused|failed|crashed)\b/.test(document.querySelector("footer")?.innerText ?? "") && !/running/.test(document.querySelector("footer")?.innerText ?? ""), null, { timeout: 15 * 60 * 1000 });
+  const status = (await page.locator("footer").innerText()).split("\n")[0];
+  if (/finished/.test(status)) break;
+  if (!/paused/.test(status)) throw new Error("run ended " + status);
+  await page.getByRole("tab", { name: "Run" }).click();
+}
+log("finished; pauses:", phases.join(" → "));
 const cli = await page.locator("main pre").first().innerText();
 log("cli equivalents:\n  " + cli.replace(/\n/g, "\n  "));
 await page.screenshot({ path: `${shotDir}/4-run-finished.png` });

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import type { Checkpoint, Decision, ReviewItem, Run } from "../types";
 import { Button, Empty, ErrorNote, Pill, Section } from "../components/ui";
 
-const RESOLUTION_ANSWERS = ["NEW", "same_as_candidate", "unresolved"];
+const FALLBACK_ANSWERS = ["NEW", "same_as_candidate", "unresolved"];
 
 /** Decisions first, disclosures after (WP43's roles); within a role grouped by kind. */
 export function groupItems(items: ReviewItem[]): { role: ReviewItem["role"]; kinds: { kind: string; items: ReviewItem[] }[] }[] {
@@ -18,6 +18,7 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
 }) {
   const [owners, setOwners] = useState<Record<string, string>>({});
   const [resolutions, setResolutions] = useState<Record<string, string>>({});
+  const [links, setLinks] = useState<Record<string, boolean>>({});
   const [showDisclosures, setShowDisclosures] = useState(false);
   const groups = useMemo(() => groupItems(checkpoint?.items ?? []), [checkpoint]);
 
@@ -26,24 +27,85 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   }
   if (!checkpoint) return <Section title="Checkpoint"><Empty>loading the review queue…</Empty></Section>;
 
-  const ownerItems = checkpoint.items.filter((i) => i.kind === "contract_owner" && i.asset);
+  const atResolution = checkpoint.phase === "resolution";
+  const answers = checkpoint.answers?.length ? checkpoint.answers : FALLBACK_ANSWERS;
+  const ownerItems = atResolution ? [] : checkpoint.items.filter((i) => i.kind === "contract_owner" && i.asset);
   const ownersFilled = ownerItems.every((i) => (owners[i.asset!] ?? "").includes("<"));
+  const declined = Object.values(links).filter((v) => v === false).length;
   const decision = (accept: boolean): Decision => ({
-    accept, owners: Object.fromEntries(Object.entries(owners).filter(([, v]) => v.trim())),
+    accept,
+    owners: atResolution ? {} : Object.fromEntries(Object.entries(owners).filter(([, v]) => v.trim())),
     resolutions: Object.fromEntries(Object.entries(resolutions).filter(([, v]) => v.trim())),
+    links: atResolution ? links : {},
   });
 
   return (
     <div className="grid gap-4">
-      <Section title="Checkpoint" aside={<span className="flex gap-2"><Pill tone="warn">{checkpoint.decisions} decisions</Pill><Pill>{checkpoint.disclosures} disclosures</Pill>{checkpoint.blocked ? <Pill tone="bad">blocked</Pill> : <Pill tone="ok">not blocked</Pill>}</span>}>
-        <p className="text-sm text-ink-dim">{checkpoint.blocked ? "Something blocks agreement — a validation error or a contract without an owner. Answer the decisions, then accept, or discard the run." : "Nothing blocks agreement. Review the decisions and accept, or discard."}</p>
+      <Section title={atResolution ? "Resolution checkpoint — before the modeler" : "Sign-off checkpoint"}
+        aside={<span className="flex gap-2">
+          {atResolution ? <><Pill tone="warn">{checkpoint.links.length} proposals</Pill><Pill tone="warn">{checkpoint.resolutions.length} resolutions</Pill></>
+            : <><Pill tone="warn">{checkpoint.decisions} decisions</Pill><Pill>{checkpoint.disclosures} disclosures</Pill>{checkpoint.blocked ? <Pill tone="bad">blocked</Pill> : <Pill tone="ok">not blocked</Pill>}</>}
+        </span>}>
+        <p className="text-sm text-ink-dim">
+          {atResolution
+            ? "The run paused before the model is built: declared keys and entity resolutions need a decision that steers the modeler. Everything left as proposed is ratified by accept — the CLI's --accept. Owners and the model's review come at sign-off, after the modeler."
+            : checkpoint.blocked ? "Something blocks agreement — a validation error or a contract without an owner. Answer the decisions, then accept, or discard the run." : "Nothing blocks agreement. Review the decisions and accept, or discard."}
+        </p>
         <ErrorNote error={error} />
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Button onClick={() => onDecide(decision(true))} disabled={busy || (checkpoint.blocked && !ownersFilled)} title={checkpoint.blocked && !ownersFilled ? "every contract needs an owner as 'Name <email>' first" : undefined}>Accept and continue</Button>
-          <Button kind="ghost" onClick={() => onDecide(decision(false))} disabled={busy} title="record owners and resolutions without accepting">Record without accepting</Button>
+          <Button onClick={() => onDecide(decision(true))} disabled={busy || (!atResolution && checkpoint.blocked && !ownersFilled)} title={!atResolution && checkpoint.blocked && !ownersFilled ? "every contract needs an owner as 'Name <email>' first" : undefined}>
+            {atResolution ? (declined ? `Ratify the rest, decline ${declined}, and build the model` : "Ratify as proposed and build the model") : "Accept and continue"}
+          </Button>
+          {!atResolution ? <Button kind="ghost" onClick={() => onDecide(decision(false))} disabled={busy} title="record owners and resolutions without accepting">Record without accepting</Button> : null}
           <Button kind="danger" onClick={() => onDecide({ discard: true })} disabled={busy}>Discard the run</Button>
         </div>
       </Section>
+
+      {atResolution && checkpoint.links.length > 0 ? (
+        <Section title="Declared keys — links, relationship tables and key licenses">
+          <p className="mb-2 text-xs text-ink-faint">Proposed from the source's own foreign keys. Build is the default, as in the CLI's prompt (`--link`); decline is the exception (`--no-link`). A license builds nothing: it allows the translation or alias the modeler will need.</p>
+          <ul className="grid gap-2 text-sm">
+            {checkpoint.links.map((l) => {
+              const build = links[l.key] !== false;
+              return (
+                <li key={l.key} className="rounded-md border border-line bg-pane-2 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <code className="font-mono text-xs text-accent">{l.key}</code>
+                    <span>→ {l.target}</span>
+                    <Pill>{l.kind}</Pill>
+                    <label className="ml-auto flex items-center gap-2 text-xs">
+                      <input type="checkbox" checked={build} aria-label={`build ${l.key}`}
+                        onChange={(e) => setLinks({ ...links, [l.key]: e.target.checked })} />
+                      {build ? (l.kind === "license" ? "allow" : "build") : "decline"}
+                    </label>
+                  </div>
+                  <p className="mt-1 text-xs text-ink-dim">{l.note}</p>
+                  {l.evidence.map((e, i) => <p key={i} className="text-xs text-ink-faint">{e}</p>)}
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
+      ) : null}
+
+      {atResolution && checkpoint.resolutions.length > 0 ? (
+        <Section title="Entity resolutions — is the new concept something the vault already holds?">
+          <ul className="grid gap-3 text-sm">
+            {checkpoint.resolutions.map((p) => (
+              <li key={p.concept} className="grid gap-1 rounded-md border border-line bg-pane-2 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span><code className="font-mono text-accent">{p.label}</code>{p.entity ? <span className="text-ink-faint"> (from {p.entity})</span> : null}: proposed {p.claim} <span className="text-ink-faint">({p.category}, confidence {p.confidence.toFixed(2)})</span></span>
+                  <input list="resolution-answers" value={resolutions[p.concept] ?? ""} placeholder="leave as proposed, or NEW / a construct"
+                    onChange={(e) => setResolutions({ ...resolutions, [p.concept]: e.target.value })}
+                    className="w-72 rounded-md border border-line bg-pane px-2 py-1 font-mono text-xs" aria-label={`resolution for ${p.concept}`} />
+                </div>
+                {p.evidence.map((e, i) => <p key={i} className="text-xs text-ink-faint">{e}</p>)}
+              </li>
+            ))}
+          </ul>
+          <datalist id="resolution-answers">{answers.map((a) => <option key={a} value={a} />)}</datalist>
+        </Section>
+      ) : null}
 
       {checkpoint.unresolved.length > 0 ? (
         <Section title="Unresolved concepts (entity resolution)">
@@ -59,11 +121,11 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
               </li>
             ))}
           </ul>
-          <datalist id="resolution-answers">{RESOLUTION_ANSWERS.map((a) => <option key={a} value={a} />)}</datalist>
+          <datalist id="resolution-answers">{answers.map((a) => <option key={a} value={a} />)}</datalist>
         </Section>
       ) : null}
 
-      {groups.map((g) => (
+      {groups.filter((g) => !atResolution || g.role === "disclosure").map((g) => (
         <Section key={g.role} title={g.role === "decision" ? "Decisions — these need an answer" : "Disclosures — what was assumed, inferred, dropped or declined"}
           aside={g.role === "disclosure" ? <button type="button" className="text-xs text-ink-dim underline" onClick={() => setShowDisclosures(!showDisclosures)}>{showDisclosures ? "hide" : "show"}</button> : null}>
           {g.kinds.length === 0 ? <Empty>none</Empty> : null}
@@ -80,7 +142,7 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
                       {item.group && item.group !== "general" ? <Pill>{item.group}</Pill> : null}
                     </div>
                     {item.detail ? <p className="mt-1 text-xs text-ink-dim whitespace-pre-wrap">{item.detail}</p> : null}
-                    {item.kind === "contract_owner" && item.asset ? (
+                    {!atResolution && item.kind === "contract_owner" && item.asset ? (
                       <label className="mt-2 flex items-center gap-2 text-xs">
                         <span className="text-ink-faint">owner</span>
                         <input value={owners[item.asset] ?? ""} placeholder="Name <email>" aria-label={`owner for ${item.asset}`}

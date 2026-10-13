@@ -16,16 +16,52 @@ from typing import Any, cast
 from uuid import uuid4
 
 from vault_agent import cli
+from vault_agent.agents.entity_resolver import pending_resolution_decisions
 from vault_agent.agents.orchestrator import assemble_review_queue
 from vault_agent.existing_model import load_existing_model
+from vault_agent.link_proposal import pending_link_decisions, proposal_key
 from vault_agent.source_schema import load_source_schemas
-from vault_agent.state import VaultAgentState
+from vault_agent.state import RESOLUTION_SAME_AS, VaultAgentState, split_concept_key
 from vault_agent.ui.projects import ProjectError, ProjectStore
 
 TERMINAL = {"finished", "failed", "discarded"}
 # A thread with work in it and nothing running: the CLI's crash path continues or discards it.
 CONTINUABLE = {"interrupted", "crashed"}
 STATE_FILE = "state.json"  # a finished run's state, beside its trace (WP69 §2.3)
+
+
+# The answers `resume --resolve` takes beside a construct name (cli._parse_resolve).
+RESOLUTION_ANSWERS = ("NEW", "same_as_candidate", "unresolved")
+
+
+def _pending_links(state: VaultAgentState) -> list[dict[str, Any]]:
+    """What the CLI prints at the resolution checkpoint for each proposal (WP71 §2.2)."""
+    from vault_agent.state import KeyLicense, LinkProposal
+
+    out = []
+    for p in pending_link_decisions(state.link_proposals):
+        kind = ("license" if isinstance(p, KeyLicense)
+                else "link" if isinstance(p, LinkProposal) else "relationship")
+        out.append({
+            "key": proposal_key(p), "kind": kind, "target": cli._link_target(p),
+            "note": cli._link_category_note(p), "evidence": list(p.evidence),
+        })
+    return out
+
+
+def _pending_resolutions(state: VaultAgentState) -> list[dict[str, Any]]:
+    out = []
+    for p in pending_resolution_decisions(state.resolutions):
+        label, entity = split_concept_key(p.concept)
+        claim = (
+            f"equivalent to {p.same_as!r} but keyed differently"
+            if p.resolution == RESOLUTION_SAME_AS else f"IS the existing {p.resolution!r}"
+        ) + cli._subtype_note(p, state)
+        out.append({
+            "concept": p.concept, "label": label, "entity": entity or None, "claim": claim,
+            "category": p.category, "confidence": p.confidence, "evidence": list(p.evidence),
+        })
+    return out
 
 
 class RunConflictError(RuntimeError):
@@ -280,8 +316,13 @@ class RunManager:
         state = await self.state(run_id)
         queue = assemble_review_queue(state)
         unresolved = sorted(cli._multi_source_unresolved(state))
+        at_resolution = cli._paused_at_resolution(state)  # the CLI's predicate (WP71 §2.1)
         return {
             "run": run_id,
+            "phase": "resolution" if at_resolution else "signoff",
+            "links": _pending_links(state) if at_resolution else [],
+            "resolutions": _pending_resolutions(state) if at_resolution else [],
+            "answers": list(RESOLUTION_ANSWERS),
             "blocked": queue.requires_signoff,
             "decisions": len(queue.decisions),
             "disclosures": len(queue.disclosures),
@@ -301,6 +342,7 @@ class RunManager:
         resolutions: dict[str, str],
         owners: dict[str, str],
         wait: bool,
+        links: dict[str, bool] | None = None,
     ) -> dict[str, Any]:
         meta = self.read(run_id)
         allowed = {"paused"} | (CONTINUABLE if discard else set())
@@ -323,12 +365,20 @@ class RunManager:
             cli._parse_owner(spec)  # the CLI's validation, before anything runs
         for concept, answer in resolutions.items():
             equivalent += ["--resolve", f"{concept}={answer}"]
+        for key, build in (links or {}).items():
+            equivalent += ["--link" if build else "--no-link", key]
         if accept:
             equivalent.append("--accept")
-        decision = cli._build_decision(owner_specs, accept, resolutions=resolutions or None)
+        decision = cli._build_decision(
+            owner_specs, accept, resolutions=resolutions or None, links=links or None
+        )
+        state = await self.state(run_id)
+        phase = "resolution" if cli._paused_at_resolution(state) else "signoff"
+        command = shlex.join(equivalent)
         self._update(
             run_id, status="running",
-            cli_equivalents=meta["cli_equivalents"] + [shlex.join(equivalent)],
+            cli_equivalents=meta["cli_equivalents"] + [command],
+            checkpoints=meta.get("checkpoints", []) + [{"phase": phase, "command": command}],
         )
         self._states.pop(run_id, None)
         self._active = run_id

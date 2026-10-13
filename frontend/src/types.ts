@@ -40,6 +40,7 @@ export interface Run extends RunSummary {
   thread_id: string | null;
   out_dir: string;
   cli_equivalents: string[];
+  checkpoints?: CheckpointRecord[];
 }
 
 export interface TraceEvent {
@@ -82,13 +83,37 @@ export interface Unresolved {
   evidence: unknown;
 }
 
+export type CheckpointPhase = "resolution" | "signoff";
+
+export interface LinkDecision {
+  key: string;
+  kind: "link" | "relationship" | "license";
+  target: string;
+  note: string;
+  evidence: string[];
+}
+
+export interface ResolutionDecision {
+  concept: string;
+  label: string;
+  entity: string | null;
+  claim: string;
+  category: string;
+  confidence: number;
+  evidence: string[];
+}
+
 export interface Checkpoint {
   run: string;
+  phase: CheckpointPhase;
   blocked: boolean;
   decisions: number;
   disclosures: number;
   items: ReviewItem[];
   unresolved: Unresolved[];
+  links: LinkDecision[];
+  resolutions: ResolutionDecision[];
+  answers: string[];
 }
 
 export interface Decision {
@@ -96,6 +121,12 @@ export interface Decision {
   discard?: boolean;
   resolutions?: Record<string, string>;
   owners?: Record<string, string>;
+  links?: Record<string, boolean>;
+}
+
+export interface CheckpointRecord {
+  phase: CheckpointPhase;
+  command: string;
 }
 
 export interface Artefact {

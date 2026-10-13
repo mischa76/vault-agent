@@ -69,6 +69,11 @@ export function RunPerspective({ run, events, nodes, onReview, onCancel, onConti
       <Section title="CLI equivalents">
         <p className="mb-2 text-xs text-ink-faint">Every action taken here is recorded as the command the terminal would run — a run driven from the workbench is replayable.</p>
         <pre className="overflow-auto rounded-md bg-pane-2 p-3 font-mono text-xs leading-5 whitespace-pre-wrap">{run.cli_equivalents.join("\n")}</pre>
+        {run.checkpoints && run.checkpoints.length > 0 ? (
+          <ul className="mt-2 text-xs text-ink-dim">
+            {run.checkpoints.map((c, i) => <li key={i}><Pill tone={c.phase === "resolution" ? "info" : "warn"}>{c.phase}</Pill> <span className="font-mono">{c.command.length > 90 ? c.command.slice(0, 90) + "…" : c.command}</span></li>)}
+          </ul>
+        ) : null}
       </Section>
     </div>
   );

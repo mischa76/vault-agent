@@ -52,6 +52,7 @@ class Decision(BaseModel):
     discard: bool = False
     resolutions: dict[str, str] = Field(default_factory=dict)
     owners: dict[str, str] = Field(default_factory=dict)
+    links: dict[str, bool] = Field(default_factory=dict)  # WP71: --link / --no-link
 
 
 def create_app(root: Path, static: Path | None = None) -> FastAPI:
@@ -139,6 +140,7 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
             return await runs.decide(
                 run_id, accept=body.accept, discard=body.discard,
                 resolutions=body.resolutions, owners=body.owners, wait=wait,
+                links=body.links,
             )
         except (ProjectError, ValueError) as exc:
             if isinstance(exc, ProjectError):
