@@ -1,0 +1,16 @@
+version: 2
+models:
+- name: stg_BusinessEntityContact
+  columns:
+  - name: BUSINESSENTITYID
+    tests:
+    - unique
+    - not_null
+  - name: CONTACTTYPEID
+    tests:
+    - unique
+    - not_null
+  - name: ROWGUID
+    tests:
+    - unique
+    - not_null

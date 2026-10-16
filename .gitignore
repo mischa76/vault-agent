@@ -79,3 +79,6 @@ eval/results/
 # The workbench frontend bundle (WP67): built from frontend/, shipped in the wheel as an artifact
 src/vault_agent/ui/static/
 frontend/node_modules/
+
+# A second environment for the Databricks extra (conflicts with demo; WP72)
+.venv-databricks/

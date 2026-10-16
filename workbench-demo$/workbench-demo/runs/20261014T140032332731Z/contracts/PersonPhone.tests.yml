@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_PersonPhone
+  columns:
+  - name: BUSINESSENTITYID
+    tests:
+    - unique
+    - not_null
+  - name: PHONENUMBERTYPEID
+    tests:
+    - unique
+    - not_null

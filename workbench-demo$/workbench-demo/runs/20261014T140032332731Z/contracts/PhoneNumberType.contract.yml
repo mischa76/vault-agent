@@ -1,0 +1,47 @@
+spec-version: 1.0.0
+name: PhoneNumberType
+namespace: source
+dataAssetResourceName: datastore://source/PhoneNumberType
+doc: Lookup of phone number types (the kind of phone number, e.g. cell, home, work)
+  used to classify phone numbers recorded for a person. Staged from the source PhoneNumberType
+  table; the contract enforces the declared schema and business key on PhoneNumberTypeID.
+owner:
+  name: 'TODO: assign'
+  email: null
+schema:
+- name: PhoneNumberTypeID
+  description: Identifier of the phone number type; business key of the lookup.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the phone number type.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

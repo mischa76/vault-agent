@@ -1,0 +1,73 @@
+spec-version: 1.0.0
+name: EmailAddress
+namespace: source
+dataAssetResourceName: datastore://source/EmailAddress
+doc: Email addresses associated with business entities (e.g., persons), staged from
+  the source EmailAddress table. The contract enforces the declared schema, business
+  keys and not-null constraints; value-level semantics are advisory.
+owner:
+  name: 'TODO: assign'
+  email: null
+schema:
+- name: BusinessEntityID
+  description: Identifier of the business entity (person) that the email address belongs
+    to; references BusinessEntity/Person.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EmailAddressID
+  description: Identifier of the email address row, distinguishing multiple email
+    addresses for the same business entity.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EmailAddress
+  description: The email address text for the business entity.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) for the source record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

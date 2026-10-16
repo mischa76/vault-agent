@@ -1,0 +1,175 @@
+spec-version: 1.0.0
+name: Person
+namespace: source
+dataAssetResourceName: datastore://source/Person
+doc: 'Staging contract for the Person source table: one record per individual (e.g.,
+  employee, customer, vendor contact) identified by BusinessEntityID. The contract
+  enforces schema conformance and key/not-null integrity; value-level semantics are
+  not constrained beyond what requirements state, and ownership is to be confirmed
+  at the human review checkpoint.'
+owner:
+  name: 'TODO: assign'
+  email: null
+schema:
+- name: BusinessEntityID
+  description: Unique identifier of the person; references the parent BusinessEntity
+    record. Business key of the Person asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: PersonType
+  description: Code classifying the type of person (e.g., employee, customer, vendor
+    contact). Allowed values not specified in requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: NameStyle
+  description: Flag indicating how the name is written/ordered (0 = Western style,
+    first name then last name; 1 = Eastern style, last name first).
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: boolean
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Title
+  description: Courtesy title of the person (e.g., Mr., Ms.). Optional.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: FirstName
+  description: Given name of the person.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: MiddleName
+  description: Middle name or initial of the person. Optional.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: LastName
+  description: Family name (surname) of the person.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Suffix
+  description: Name suffix of the person (e.g., Jr., Sr.). Optional.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EmailPromotion
+  description: Code indicating the person's email promotion preference. Allowed values
+    not specified in requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: AdditionalContactInfo
+  description: Additional contact information for the person, stored as semi-structured
+    (XML) content. Optional.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Demographics
+  description: Demographic information about the person, stored as semi-structured
+    (XML) content. Optional.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (ROWGUIDCOL) for the source row.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

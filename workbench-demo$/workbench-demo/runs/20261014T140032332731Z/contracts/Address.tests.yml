@@ -1,0 +1,16 @@
+version: 2
+models:
+- name: stg_Address
+  columns:
+  - name: ADDRESSID
+    tests:
+    - unique
+    - not_null
+  - name: STATEPROVINCEID
+    tests:
+    - unique
+    - not_null
+  - name: ROWGUID
+    tests:
+    - unique
+    - not_null

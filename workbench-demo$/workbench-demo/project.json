@@ -1,0 +1,17 @@
+{
+  "id": "workbench-demo",
+  "name": "workbench-demo",
+  "created": "2026-10-14T13:51:15+00:00",
+  "files": [
+    {
+      "kind": "requirements",
+      "name": "requirements.md",
+      "bytes": 25561
+    },
+    {
+      "kind": "schema",
+      "name": "source_schema.yml",
+      "bytes": 11240
+    }
+  ]
+}

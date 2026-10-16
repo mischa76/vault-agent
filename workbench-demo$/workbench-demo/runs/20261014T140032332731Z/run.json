@@ -1,0 +1,23 @@
+{
+  "id": "workbench-demo:20261014T140032332731Z",
+  "project": "workbench-demo",
+  "status": "paused",
+  "thread_id": "0c86ab743d104be0b0878475ba58554a",
+  "out_dir": "workbench-demo$/workbench-demo/runs/20261014T140032332731Z",
+  "requirements": "requirements.md",
+  "schema": "source_schema.yml",
+  "existing_run": null,
+  "started": "2026-10-14T14:00:32+00:00",
+  "finished": null,
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run '/mnt/c/Users/misch/projects/vault-agent/workbench-demo$/workbench-demo/inputs/requirements.md' --out 'workbench-demo$/workbench-demo/runs/20261014T140032332731Z' --source-schema '/mnt/c/Users/misch/projects/vault-agent/workbench-demo$/workbench-demo/inputs/source_schema.yml'",
+    "vault-agent resume --out 'workbench-demo$/workbench-demo/runs/20261014T140032332731Z' --link StateProvince.CountryRegionCode --accept"
+  ],
+  "checkpoints": [
+    {
+      "phase": "resolution",
+      "command": "vault-agent resume --out 'workbench-demo$/workbench-demo/runs/20261014T140032332731Z' --link StateProvince.CountryRegionCode --accept"
+    }
+  ]
+}
