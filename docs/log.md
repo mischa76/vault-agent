@@ -8980,3 +8980,35 @@ API, the dropped and failed lists. **Nur angenommen.** That the binder's tier, n
 re-bind, chose the mis-bound relations — to be read from the code before the WP. **Bewusst
 nicht getan.** Any hand repair of a binding to make a model build; the translation views'
 measurement; stage 3b's idempotency at this size; the WP (own „go").
+
+## [2026-10-17] Correction — the 13 mis-bound stagings are deterministic, come from `link_source_overrides`' ratified-proposal loop meeting multi-source hubs, and were in every chain
+
+**Autor:** Claude Code
+
+The user asked whether yesterday's findings mean something *different* was built than in the
+eighteen chains, i.e. model non-determinism. **Replayed keyless** (`build_staging` over the
+archived `dv_model.yml` of the seventeenth and eighteenth chains with the steps' schemas, no
+overrides): the same links — `link_business_entity_department_shift`, the customer/store/
+sales-person links — come out **unbound** (`raw_*`, reason `none`) in both; the binder's tiers
+never chose `EmployeePayHistory` or `Store`. The wrong relation enters afterwards, in the
+mapper's re-bind: `source_overrides` merges `link_source_overrides`, whose third loop (WP34
+§3.5, `link_proposal.py`) binds a link to a ratified proposal's `source_table` when a
+participating hub *binds to* that table and the proposal's target hub is a participation.
+`hub_binds_to_source_table` is true for every feed of a multi-source hub, and
+`hub_business_entity` carries twelve feeds by the sales step (`Store`, `Vendor`,
+`EmployeePayHistory` …); so every link with a business-entity participation is bound to
+whichever ratified license's table the loop visits last — a rule written for a single-source
+near hub, met by WP10's multi-source hubs and WP40/41's licenses. **Deterministic** given the
+ratified proposals, and the eighteen chains ratified them the same way (`--accept`); today's
+HR step's own `mappings.review.yml` even maps the link's attributes correctly to
+`EmployeeDepartmentHistory` — the attribute mapping was right, the relation override wrong.
+Yesterday's „Nur angenommen" (the binder's tier) is therefore wrong: it is the override loop.
+
+**What varies between chains is the modeler's shape** (which links exist, how many feeds a hub
+has); **the defect is code and would show in every chain that builds** — which none did. The
+WP candidate narrows: (1) the gate that refuses a staging whose relation lacks a hashed column;
+(2) the override loop restricted to a hub that is built *only* from the proposal's table, or
+dropped for multi-source hubs; (3) the eval harness building at least one step's output, so a
+green chain means a buildable vault. **Überprüft.** The replay over two archived chains, the
+loop's code, the hubs' feeds in the three steps' models, the HR step's mapping file. **Nur
+angenommen.** Nothing. **Bewusst nicht getan.** The fix (own „go").
