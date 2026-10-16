@@ -59,7 +59,9 @@ def test_the_profile_reads_the_connection_from_the_environment() -> None:
 def test_regenerating_with_the_databricks_platform_reproduces_the_committed_models(
     tmp_path: Path,
 ) -> None:
-    spec = importlib.util.spec_from_file_location("bank_databricks_build", DB / "build_vault_models.py")
+    spec = importlib.util.spec_from_file_location(
+        "bank_databricks_build", DB / "build_vault_models.py"
+    )
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
