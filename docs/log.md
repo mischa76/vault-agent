@@ -8894,3 +8894,27 @@ chain's 44 tables (stage 3) — one step of 13 tables cost nothing noticeable. *
 getan.** A second build for idempotency at this size (stage 1 showed the mechanism); loading
 the data through the repo (the loader is a session script, the data is Microsoft's — nothing
 to check in); stage 3 without „go“.
+
+## [2026-10-16] Pre-registration for WP72 stage 3 — the five-step chain generated for Databricks and its final vault built against all 55 AdventureWorks tables, written before the run
+
+**Autor:** Claude Code
+
+The user: „go, starte Stufe 3“. The chain as the eval harness runs it — person → humanresources
+→ production → purchasing → sales, each step `--existing` the previous step's output — but
+through the CLI with `--target-platform databricks`, every pause answered by `resume --accept`,
+every output kept; then the remaining 42 tables of the four schemas (55 in all across the five
+source schemas; 13 are already loaded) loaded as `workspace.<schema>.<Table>` the way stage 2
+loaded the person tables, hierarchy, XML and binary columns carried as text; then the fifth
+step's generated project — the whole vault — built once with `dbt build --full-refresh`.
+
+**P1 — all five runs green** (gate 1.0 each), ≈ 5 USD, ≈ 25 min. **P2 — the final project's
+`sources.yml` carries five blocks, one per schema, and every one resolves under the profile's
+catalog without a mapping.** **P3 — `dbt build --full-refresh` is green** on the whole vault
+(the eighteenth chain had 39 hubs / 45 links / 90 satellites; the count here is the run's), or
+the first failing model and its cause are named — the generator-emitted SQL beyond AutomateDV's
+macros (translation joins, composite-key list hashes, role-qualified columns) is what has never
+run on Databricks. **P4 — every hub counts its source's distinct keys**, and at least one
+translated staging view (a WP36/WP38 join) returns as many rows as its referencing table.
+**Not predicted:** wall time of a ≈ 170-model build on 2X-Small; whether the Free Edition's
+quota carries it in one day — if not, the build resumes the next day and the entry says so.
+**Bewusst nicht getan** unless the quota allows: the step-by-step incremental build (stage 3b).
