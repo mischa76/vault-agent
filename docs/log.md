@@ -8841,3 +8841,25 @@ the merge statement in `target/run/`. **Nur angenommen.** That the Free Edition'
 quota tolerates stage 2 (13 tables of AdventureWorks data) — not tried. **Bewusst nicht
 getan.** Stages 2 and 3 (own „go“); any change to `rules/platforms.py` (the dialect held);
 Snowflake or Fabric.
+
+## [2026-10-16] Pre-registration for WP72 stage 2 — the person step's generated project built on Databricks, written before the run
+
+**Autor:** Claude Code
+
+The user: „ok, go!“. One grounded run of `adventureworks_person` (requirements and declared
+schema) with `--target-platform databricks` through the CLI, both pauses accepted
+(`resume --accept`), the output kept; then the 13 tables' AdventureWorks data (Microsoft's
+sample CSVs, MIT) loaded into `workspace.person` on the Free Edition workspace with the two
+raw-vault columns added; then `dbt deps` and `dbt build --full-refresh` on the generated project
+from `.venv-databricks`.
+
+**P1 — the run is green** (gate 1.0) and pauses twice, as the rehearsals did; ≈ 1 USD.
+**P2 — the generated `sources.yml` names the tables under schema `Person`, and Databricks
+resolves them in `workspace.person` through the profile's catalog alone** (WP35 §6 Q3) — or the
+mapping that is needed is named. **P3 — `dbt build --full-refresh` is green** on every staging
+view, hub, link and satellite, or the failing model and its cause are named: the first real-run
+output ever built on Databricks, with the hubs' key columns as the staging hashes them.
+**P4 — the row counts of the hubs equal the distinct keys of their source tables** (e.g.
+`hub_business_entity` = 20 777 `BusinessEntity` rows), as a sanity check that the staging read
+the real tables. **Not predicted:** wall time on a 2X-Small warehouse for ~20 000-row tables;
+whether the Free Edition's fair-use quota is hit.
