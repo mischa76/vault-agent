@@ -185,9 +185,12 @@ consistently.
 
 **Databricks** — selectable since WP35 (2026-09-11); **verified on the bank demo since
 2026-10-16** (WP72 stage 1: `demo/bank_databricks/` on a Free Edition serverless warehouse,
-dbt-databricks 1.12.5, `PASS=36`, idempotent, end-dating closes, `BALANCE` intact — `docs/log.md`
-2026-10-16); the generated output of a real run and the five-step chain are **not yet built
-there** (stages 2 and 3). dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
+dbt-databricks 1.12.5, `PASS=36`, idempotent, end-dating closes, `BALANCE` intact) **and for a
+real run's output since the same day** (WP72 stage 2: the person step generated with
+`--target-platform databricks`, the 13 AdventureWorks tables in `workspace.person`, `PASS=48`,
+every hub equal to its source's distinct keys — `docs/log.md` 2026-10-16); the five-step chain is
+**not yet built there** (stage 3). A generated `sources.yml`'s `schema:` resolves under the
+profile's `catalog:` with no mapping. dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
 so no incremental-strategy setting is generated. Selecting it changes two things — seed types use the native spellings
 (`string` instead of `varchar`, which needs a length there; `decimal(38,18)` instead of
 `numeric`, whose platform default `DECIMAL(10,0)` would silently truncate fractions) and

@@ -8863,3 +8863,34 @@ output ever built on Databricks, with the hubs' key columns as the staging hashe
 `hub_business_entity` = 20 777 `BusinessEntity` rows), as a sanity check that the staging read
 the real tables. **Not predicted:** wall time on a 2X-Small warehouse for ~20 000-row tables;
 whether the Free Edition's fair-use quota is hit.
+
+## [2026-10-16] WP72 stage 2 — the person step's generated project built on Databricks against the real AdventureWorks tables: PASS=48, hubs equal their sources' keys
+
+**Autor:** Claude Code
+
+Pre-registered the same day (`63d8446`), on „ok, go!“. **The run** (paid): `adventureworks_person`
+with its declared schema and `--target-platform databricks` through the CLI, both pauses
+accepted with `resume --accept` — 20 calls, 0.78 USD, two modeler attempts, 16 decisions / 2
+disclosures, 7 hubs / 5 links / 18 satellites. **The data:** Microsoft's 13 person-schema CSVs
+(MIT) parsed by the DDL's column order — eight tables use `+|` / `&|\n` delimiters, five tabs
+— with `LOAD_DATETIME` and `RECORD_SOURCE` added, uploaded to a volume on the Free Edition and
+created as `workspace.person.<Table>` by `read_files`; `Person` needed `escape => '"'` for its
+XML columns, every table lost the inferred `_rescued_data` and got `timestamp` date columns.
+**The build:** `dbt build --full-refresh` on the generated project with a `profiles.yml` of
+`catalog: workspace`, `schema: vault_person` — **PASS=48** (30 incremental models, 18 staging
+views) in 72 s. **All four predictions held**, P2 answering WP35's last question: the generated
+`sources.yml`'s `schema: Person` resolves under the profile's catalog without any mapping. P4:
+every hub counts its source's distinct keys (`hub_business_entity` 20 777 = `BusinessEntity`,
+`hub_address` 19 614 = `Address`, 181 state provinces, 238 country regions, 20 contact types).
+
+**So:** Databricks now has a real run's output built end-to-end — data in, staging, hubs,
+links, satellites — not only the demo. Chapter 9.6 and CLAUDE.md say so; the chain (stage 3)
+is the remaining step to „verified on Databricks“ in full.
+
+**Überprüft.** The run's trace (cost from its tokens), `review-queue.md`, `dv_model.yml`, the
+build log, the row-count queries through the statements API against the source tables'
+distinct keys. **Nur angenommen.** That the Free Edition's quota also carries the five-step
+chain's 44 tables (stage 3) — one step of 13 tables cost nothing noticeable. **Bewusst nicht
+getan.** A second build for idempotency at this size (stage 1 showed the mechanism); loading
+the data through the repo (the loader is a session script, the data is Microsoft's — nothing
+to check in); stage 3 without „go“.

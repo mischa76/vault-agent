@@ -96,3 +96,24 @@ convention carries over unchanged. **Q3:** the profile's `catalog` is enough for
 models (`workspace.default.hub_account`); declared sources remain stage 2's question. One dbt
 deprecation warning (a custom config key on the effectivity satellite, `is_auto_end_dating`) —
 AutomateDV's, not ours. Cost: none; wall ≈ 5 min of warehouse time in all.
+
+**2026-10-16 — stage 2 verified live: a real run's output built on Databricks.** Pre-registered
+in `docs/log.md` (`63d8446`), the run and the build out of the repo. The paid run:
+`adventureworks_person` with its declared schema, `--target-platform databricks`, two pauses
+accepted — 20 calls, 2 modeler attempts, 0.78 USD, 16 decisions / 2 disclosures, 7 hubs / 5
+links / 18 satellites, 30 raw-vault and 18 staging models. The data: Microsoft's 13 person-
+schema CSVs (MIT; two delimiter dialects, parsed by the DDL's column order, the two raw-vault
+columns added), uploaded to a Unity Catalog volume and created as `workspace.person.<Table>`
+with `read_files` — one reload for `Person` (its XML columns need `escape => '"'`), the
+inferred `_rescued_data` dropped and the date columns cast to `timestamp`; row counts the
+sample's (19 614 addresses, 20 777 business entities, 19 972 persons …). **P1 held** (gate
+1.0, two pauses). **P2 held:** the generated `sources.yml` says `schema: Person`, the profile
+says `catalog: workspace`, and every staging view resolved `workspace.person.<Table>` with no
+mapping — Q3 answered for declared sources. **P3 held:** `dbt build --full-refresh`
+`PASS=48 WARN=0 ERROR=0` (30 incremental, 18 views) in 72 s on the 2X-Small warehouse — the
+first output of a real run ever built on Databricks. **P4 held:** `hub_business_entity` 20 777,
+`hub_address` 19 614, `hub_state_province` 181, `hub_country_region` 238, `hub_contact_type`
+20 — each equal to its source's distinct keys; `link_business_entity_address` 19 614,
+`sat_business_entity_person_name` 19 972. No fair-use limit hit. **Not measured:** a second
+build's idempotency at this size; the dbt tests (the generated project ships none beyond
+AutomateDV's); stage 3.
