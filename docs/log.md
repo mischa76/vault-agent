@@ -8808,3 +8808,36 @@ on the finished run for the two diagrams. **Nur angenommen.** That declining a l
 the API behaves as the guard shows on the stub — not declined in the real run. **Bewusst nicht
 getan.** `--map` overrides; editing a translation; a brownfield rehearsal with entity
 resolutions.
+
+## [2026-10-16] WP72 stage 1 — the bank demo built on Databricks: WP35's four live acceptances held, its three questions answered
+
+**Autor:** Claude Code
+
+The user: „für databricks wurde der Grundstein ja bereits gelegt, wie wäre es wenn man hier mal
+die volle Kette als Beweis dazu nimmt?“ — stage 1 of three; the user created a Free Edition
+workspace the same day and put host, HTTP path and token into `.env`. Guards `47e9192`, the twin
+`05405ba`, docs here. **What exists now:** `demo/bank_databricks/` — the Postgres bank demo's
+twin: the same model (imported, regenerated with `target_platform="databricks"`), the same
+seeds, staging and tests, byte-identical SQL (a guard keeps it), `dbt_project.yml` with the
+dialect's seed types from `rules/platforms.py`, `profiles.yml` reading the connection from the
+environment with no literal secret (a guard keeps that too). A second environment,
+`.venv-databricks` (gitignored), because the `demo-databricks` extra excludes `demo`.
+
+**Live, on the owner's workspace** (serverless 2X-Small, `workspace.default`, dbt-databricks
+1.12.5 / dbt-core 1.11.15 / AutomateDV 0.11.4): `dbt build --full-refresh` **PASS=36** in 76 s;
+rows 3 / 4 / 5 / 3 / 4 / 5 (+ `link_transfer` 3), the Postgres figures; a second plain `dbt build`
+PASS=36 with every count unchanged; the two-batch load closes CH-1001 on ACC-503 at 2026-04-01
+and leaves CH-1002 open; `BALANCE` 250.50 intact as `decimal(38,18)`. **WP35's questions:** (Q1)
+dbt-databricks without a `unique_key` runs `merge … on FALSE … when not matched then insert *` —
+pure append, and AutomateDV's new-row filter makes the re-run insert nothing; no
+`+incremental_strategy` needed. (Q2) identifiers are stored UPPER_SNAKE and resolve
+case-insensitively; nothing to change. (Q3) the profile's `catalog` suffices for seeds and
+models; declared sources are stage 2's question. **So chapter 9.6's wording changes:** Databricks
+is verified for the bank demo on this date; the chain is not.
+
+**Überprüft.** 1210 tests (four WP72 guards), ruff, bare mypy; the three dbt runs' logs, the row
+counts, the BALANCE and ownership queries and the seed types through the SQL statements API,
+the merge statement in `target/run/`. **Nur angenommen.** That the Free Edition's fair-use
+quota tolerates stage 2 (13 tables of AdventureWorks data) — not tried. **Bewusst nicht
+getan.** Stages 2 and 3 (own „go“); any change to `rules/platforms.py` (the dialect held);
+Snowflake or Fabric.

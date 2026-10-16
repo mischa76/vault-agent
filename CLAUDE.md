@@ -197,8 +197,10 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   no satellite read them) — **WP54 (2026-10-07) refuses that** (`E_HUB_PAYLOAD_UNREAD`); live on the
   ninth to eleventh chains, followed within the attempts except the tenth's step 3.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
-- **The Databricks target is keyless-only.** `--target-platform databricks` (WP35, 2026-09-11)
-  changes seed types and the README; no workspace build has ever run. Its extra `demo-databricks`
+- **Databricks is verified on the bank demo only** (WP72 stage 1, 2026-10-16: `demo/bank_databricks/`
+  on a Free Edition warehouse, PASS=36, idempotent, end-dating, `BALANCE` intact; dbt-databricks
+  appends — `merge on FALSE` — so no strategy setting is generated). A real run's output and the
+  chain have not been built there. Its extra `demo-databricks`
   (dbt-core 1.11) **conflicts with `demo`** (dbt-core 1.9, the line verified on Postgres since
   2026-06-23) — `uv sync` installs one or the other, never both (`tool.uv.conflicts`, 2026-09-12).
 

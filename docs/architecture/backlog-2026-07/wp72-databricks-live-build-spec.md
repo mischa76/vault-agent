@@ -76,3 +76,23 @@ the live build contradicts the dialect.
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-16 — stage 1 built and verified live.** Guards `47e9192` (red), the twin `05405ba`,
+docs in the commit carrying this line. Workspace: the owner's Free Edition, serverless
+2X-Small warehouse, catalog `workspace`, schema `default`, DBSQL 2026.39; adapter
+dbt-databricks 1.12.5 on dbt-core 1.11.15 (`.venv-databricks`); AutomateDV 0.11.4. **L1 held:**
+`dbt build --full-refresh` — `PASS=36 WARN=0 ERROR=0` in 76 s (7 incremental models, 4 seeds,
+21 tests, 4 views; the Postgres README's 29 predates WP8's transfer link). Row counts 3 / 4 / 5 /
+3 / 4 / 5 and `link_transfer` 3, the Postgres figures. **L2 held:** a plain `dbt build`
+`PASS=36`, every count unchanged. **L3 held:** after the two-batch load CH-1001 on ACC-503 is
+closed at 2026-04-01 (the current row), CH-1002 open, the satellite 6 rows. **L4 held:**
+`BALANCE` of ACC-501 reads 250.500000000000000000 as `decimal(38,18)`; the seeds are typed
+`string` / `decimal(38,18)` / `timestamp`. **Q1:** without a `unique_key` dbt-databricks runs
+`merge … on FALSE … when not matched then insert *` — every source row is inserted, nothing
+updated; with AutomateDV's own new-row filter the second build inserts nothing. Append semantics
+hold; no `+incremental_strategy` is needed. **Q2:** the stored column names are UPPER_SNAKE as
+emitted (`ACCOUNT_HK`, `ACCOUNT_NUMBER`, …) and resolve case-insensitively — the Postgres
+convention carries over unchanged. **Q3:** the profile's `catalog` is enough for seeds and
+models (`workspace.default.hub_account`); declared sources remain stage 2's question. One dbt
+deprecation warning (a custom config key on the effectivity satellite, `is_auto_end_dating`) —
+AutomateDV's, not ours. Cost: none; wall ≈ 5 min of warehouse time in all.

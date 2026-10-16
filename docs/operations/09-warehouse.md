@@ -153,6 +153,10 @@ hand-authored staging for the two-phase end-dating demo, self-referencing transf
 link with role-qualified FKs. Its README's runbook and Findings section double as a
 worked example of everything in 9.2–9.4.
 
+`demo/bank_databricks/` — the bank demo's twin on Databricks (WP72): same SQL, seeds and
+tests, seed types in the Databricks dialect, connection from the environment, its own
+`.venv-databricks`. Its README has the runbook; the recorded build is in `docs/log.md` 2026-10-16.
+
 `demo/mapping_postgres/` — the grounded contrast: declared enriched schema plus a
 ratified mapping, staging bound to real business-named tables, **zero**
 inferred-binding flags. Same model, different knowledge — comparing the two staging
@@ -174,13 +178,17 @@ profile hint in the generated README. That knowledge lives in one place,
 `rules/platforms.py`; `--target-platform` (6.2) selects it, and the choice is persisted
 with the run so a resume keeps it.
 
-**PostgreSQL** — the default, and the only platform **verified end-to-end** (PostgreSQL 16,
-pinned AutomateDV, both demos in 9.5). The convention worth knowing is casing — every
+**PostgreSQL** — the default, and the only platform **verified end-to-end** including the
+output of real runs (PostgreSQL 16, pinned AutomateDV, the demos in 9.5). The convention worth knowing is casing — every
 identifier stays *unquoted* (seeds set `quote_columns: false`), so UPPER_SNAKE names fold
 consistently.
 
-**Databricks** — selectable since WP35 (2026-09-11), **keyless-only**: no workspace build
-has been recorded. Selecting it changes two things — seed types use the native spellings
+**Databricks** — selectable since WP35 (2026-09-11); **verified on the bank demo since
+2026-10-16** (WP72 stage 1: `demo/bank_databricks/` on a Free Edition serverless warehouse,
+dbt-databricks 1.12.5, `PASS=36`, idempotent, end-dating closes, `BALANCE` intact — `docs/log.md`
+2026-10-16); the generated output of a real run and the five-step chain are **not yet built
+there** (stages 2 and 3). dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
+so no incremental-strategy setting is generated. Selecting it changes two things — seed types use the native spellings
 (`string` instead of `varchar`, which needs a length there; `decimal(38,18)` instead of
 `numeric`, whose platform default `DECIMAL(10,0)` would silently truncate fractions) and
 the README names the adapter (`dbt-databricks`, `uv sync --extra demo-databricks`) and

@@ -163,6 +163,7 @@ own overview.
 | [wp69](architecture/backlog-2026-07/wp69-workbench-cancel-restart-spec.md) | Workbench cancellation and restart robustness: a cancelled run is an interrupted thread the CLI's crash path continues or discards, the thread known from the start, the final state persisted, runs a dead server left behind reconciled — **built 2026-10-12, keyless (log)** |
 | [wp70](architecture/backlog-2026-07/wp70-review-ceiling-tolerance-spec.md) | The review ceiling gets a floor: max(t-bound, mean + 5) — the 5.5 record's tightness had made the t-bound a demand for sameness; 4.x verdicts unchanged — **built 2026-10-12** |
 | [wp71](architecture/backlog-2026-07/wp71-workbench-resolution-checkpoint-spec.md) | Workbench: the resolution checkpoint shown and answered as the CLI does — phase from the CLI's predicate, pending links, licenses and resolutions, `--link`/`--no-link` through the API, which pause a decision answered — **built 2026-10-13, keyless; the rehearsal is in the log** |
+| [wp72](architecture/backlog-2026-07/wp72-databricks-live-build-spec.md) | Databricks live, stage 1 of 3: `demo/bank_databricks/` built on a Free Edition warehouse — WP35's acceptances 7–10 held, its §6 questions answered — **built and verified 2026-10-16; stages 2 (person step) and 3 (the chain) on their own go** |
 | [evaluator-guide](evaluator-guide.md) | For an external evaluator with their own requirements and source model: what to prepare, how to run, what to judge (handling and result), how to send feedback, what goes to the API — written 2026-10-09 |
 | [wp30-arm-b-rerun-protocol](architecture/backlog-2026-07/wp30-arm-b-rerun-protocol.md) | Pre-registered protocol for repeating the contaminated arm comparison — **closed 2026-09-12: 7 of 8; rerun 3 on 2026-09-13: 16 links, §6 not met on other clauses, $16.80 for all three attempts** |
 
@@ -221,6 +222,6 @@ an error message.
 | [competitive-landscape.md](competitive-landscape.md) | Market and differentiation |
 | [blog/2026-06-why-data-vault-is-ready-for-agentic-ai.md](blog/2026-06-why-data-vault-is-ready-for-agentic-ai.md) | Draft article |
 
-Runnable demos live outside `docs/`: `demo/bank_postgres/` (ungrounded, hand-authored staging),
+Runnable demos live outside `docs/`: `demo/bank_postgres/` (ungrounded, hand-authored staging), `demo/bank_databricks/` (its twin on Databricks, WP72),
 `demo/mapping_postgres/` (grounded and ratified, generated staging) and `demo/fk_links_postgres/`
 (FK-derived links: a translated link and a relationship-table link, WP36/WP37).

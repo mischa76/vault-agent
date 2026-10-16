@@ -73,6 +73,10 @@ is not the project's.
   applied. `eval.wp34_check.REVIEW_TOLERANCE`, `review_bounds`.
 
 ### Added
+- `demo/bank_databricks/` (WP72 stage 1): the bank demo's twin on Databricks, built live on a
+  Free Edition warehouse — WP35's four open acceptances held and its three questions answered
+  (append semantics without a `unique_key`, UPPER_SNAKE identifiers resolve, the profile's
+  catalog suffices). Databricks is now verified for the demo; the chain is not yet.
 - The resolution checkpoint in the workbench (WP71): `GET …/checkpoint` says its `phase`
   (`resolution` before the modeler, `signoff` after — the CLI's own predicate) and at the
   resolution phase lists the pending links, relationship tables, key licenses and entity
