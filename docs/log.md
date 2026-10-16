@@ -8918,3 +8918,65 @@ translated staging view (a WP36/WP38 join) returns as many rows as its referenci
 **Not predicted:** wall time of a ≈ 170-model build on 2X-Small; whether the Free Edition's
 quota carries it in one day — if not, the build resumes the next day and the entry says so.
 **Bewusst nicht getan** unless the quota allows: the step-by-step incremental build (stage 3b).
+
+## [2026-10-16] WP72 stage 3 — the chain generated for Databricks and built in increments: the platform holds, the bindings do not, and no chain could have seen it
+
+**Autor:** Claude Code
+
+Pre-registered the same day (`b16aede`; the five schemas hold 68 tables, not the 55 it said —
+13 + 6 + 25 + 5 + 19). **The chain** (paid): person → humanresources → production → purchasing
+→ sales through the CLI with `--existing` and `--target-platform databricks`, every pause
+`resume --accept`, outputs kept — all five steps green, 107 calls, **4.46 USD**, 22.5 min, the
+final model 39 hubs / 51 links / 96 satellites. **The data:** all 68 AdventureWorks tables of
+the five schemas in `workspace.<schema>.<Table>` as stage 2 loaded them (two with their own row
+splitting: `Document`, `ProductReview`).
+
+**Finding 1 — a brownfield step's project is not self-contained (P2 failed).** The fifth
+step's `sources.yml` carries one block, `Sales`; the staging of every earlier construct is
+re-rendered in that step with only the current increment grounded, so it degrades to bare
+names (`ShipMethod`) or inferred `raw_*` names that dbt resolves as `ref()`s to nothing; the
+whole-vault project fails at parse. Per step measured: 15 of 17 re-rendered person staging
+views degraded in step 2, 38 of 45 in step 4, 15 of 23 in step 5. The eighteen chains never
+built an output, so it never showed. **For the proof the vault was built in increments:** step
+1's project in full (PASS=45), steps 2–5 as trimmed projects — the step's new models plus the
+staging they reference, taken from the step where it was grounded — into one schema; nine
+sales models hit the **Free Edition's Unity Catalog quota (100 tables per schema)** and were
+built in a second one. Built: **37 of 39 hubs, 32 of 51 links, 92 of 96 satellites, 133 staging
+views**; nothing failed for a platform reason.
+
+**Finding 2 — 13 mis-bound staging views, one shape, four steps.** A link's or link
+satellite's staging bound to a declared relation that does not carry one of the columns it
+hashes: `link_business_entity_department_shift` reads `EmployeePayHistory` (no `StartDate`,
+`DepartmentID`, `ShiftID`) while its two satellites name `EmployeeDepartmentHistory`; seven
+sales links read `Store` (`PersonID`, `StoreID`, `CreditCardID`, `SalesOrderNumber`,
+`TerritoryID`, `StartDate` missing); three purchasing ones read `Vendor` (`ProductID`,
+`EmployeeID`, `VendorID`); `stg_product_subcategory` reads `ProductSubcategory` (no
+`ProductID`), `stg_document_business_entity` reads `Document` (no `BusinessEntityID`). The
+review queues name none of them; the gates `E_LINK_KEY_NOT_IN_SOURCE` (aliases and
+translations only) and `E_SAT_KEY_NOT_IN_SOURCE` (satellites with a `source_table`) do not reach
+the plain case; the binder's tier (`name` / `offer` in `rules.resolve_link_relation`, or the
+mapper's re-bind) is **not identified here**. **WP candidate, not started:** a gate that
+refuses any staging whose hashed or derived column the bound relation does not declare — the
+generalisation of `E_SAT_KEY_NOT_IN_SOURCE` to every construct — and the binder's choice
+corrected behind it. **Finding 3:** 10 new staging models (2 production, 8 sales) were
+ungrounded — the `source_binding: none` disclosures — and were left out with 18 dependants: by
+design, a human maps them. **Finding 4:** the Free Edition's schema quota, documented.
+
+**P4 held where measurable:** `hub_product` 504, `hub_customer` 19 820, `hub_sales_order`
+31 465, `hub_work_order` 72 591, `hub_purchase_order` 4 012, `hub_department` 16,
+`hub_business_entity` 20 777 — each its source's distinct keys — and the multi-source
+`hub_transaction` 202 696 = `TransactionHistory` 113 443 + `TransactionHistoryArchive` 89 253.
+The WP36 translation views were among the dropped dependants: not measured.
+
+**What this changes.** „Verified on Databricks" now reads: the dialect and AutomateDV's macros
+hold on the whole AdventureWorks landscape, nothing failed for a platform reason; a real
+run's single-step output builds in full (stage 2); the chain's increments build with the
+findings above. The findings are the generator's, and would be Postgres's too: a brownfield
+project must carry its earlier increments' bindings (or ship only its delta), and a staging
+model must be refused when its relation lacks a hashed column. Chapter 9.6 and CLAUDE.md say
+so. **Überprüft.** The five runs' traces (cost from tokens) and model files, the diff of the
+five projects' model files, the six build logs, the row-count queries through the statements
+API, the dropped and failed lists. **Nur angenommen.** That the binder's tier, not the mapper's
+re-bind, chose the mis-bound relations — to be read from the code before the WP. **Bewusst
+nicht getan.** Any hand repair of a binding to make a model build; the translation views'
+measurement; stage 3b's idempotency at this size; the WP (own „go").

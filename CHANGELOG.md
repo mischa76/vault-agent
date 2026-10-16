@@ -78,7 +78,11 @@ is not the project's.
   (append semantics without a `unique_key`, UPPER_SNAKE identifiers resolve, the profile's
   catalog suffices). Stage 2 the same day: the person step's generated project built against
   the real 13 AdventureWorks tables on the workspace (`PASS=48`, hubs equal to their sources'
-  keys). Databricks is verified for the demo and one real run's output; the chain is not yet.
+  keys). Stage 3: the five-step chain generated for Databricks and its increments built across
+  all 68 AdventureWorks tables (37/39 hubs, 32/51 links, 92/96 satellites); nothing failed for a
+  platform reason, and the build exposed two generator findings no chain could see — a brownfield
+  step's project is not self-contained, and 13 link stagings are bound to relations lacking a
+  hashed column (WP candidate).
 - The resolution checkpoint in the workbench (WP71): `GET …/checkpoint` says its `phase`
   (`resolution` before the modeler, `signoff` after — the CLI's own predicate) and at the
   resolution phase lists the pending links, relationship tables, key licenses and entity

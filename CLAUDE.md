@@ -197,11 +197,14 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   no satellite read them) — **WP54 (2026-10-07) refuses that** (`E_HUB_PAYLOAD_UNREAD`); live on the
   ninth to eleventh chains, followed within the attempts except the tenth's step 3.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
-- **Databricks is verified on the bank demo and one real run's output** (WP72, 2026-10-16:
-  `demo/bank_databricks/` PASS=36 with idempotency, end-dating and `BALANCE` intact; the person
-  step's generated project against the real 13 AdventureWorks tables PASS=48, hubs equal to their
-  sources' keys; dbt-databricks appends — `merge on FALSE`). The five-step chain has not been built
-  there. Its extra `demo-databricks`
+- **Databricks is verified** (WP72, 2026-10-16): the bank demo (PASS=36, idempotent, end-dating,
+  `BALANCE` intact), the person step's output against the real tables (PASS=48), and the chain's
+  increments across all 68 AdventureWorks tables (37/39 hubs, 32/51 links, 92/96 satellites) —
+  nothing failed for a platform reason. **What the chain's build found, and no chain could:** a
+  brownfield step's project declares only its own increment's sources and degrades earlier
+  staging to unresolvable names — build each step's new models, never the last project whole; and
+  13 link stagings were bound to relations lacking a hashed column with no gate naming it (WP
+  candidate: refuse a staging whose relation lacks a hashed column). Its extra `demo-databricks`
   (dbt-core 1.11) **conflicts with `demo`** (dbt-core 1.9, the line verified on Postgres since
   2026-06-23) — `uv sync` installs one or the other, never both (`tool.uv.conflicts`, 2026-09-12).
 

@@ -117,3 +117,35 @@ first output of a real run ever built on Databricks. **P4 held:** `hub_business_
 `sat_business_entity_person_name` 19 972. No fair-use limit hit. **Not measured:** a second
 build's idempotency at this size; the dbt tests (the generated project ships none beyond
 AutomateDV's); stage 3.
+
+**2026-10-16 — stage 3 run: the chain green, the vault built in increments, four findings.**
+Pre-registered in `docs/log.md` (`b16aede`; it said 55 tables — the five schemas hold **68**,
+13 + 6 + 25 + 5 + 19). The chain through the CLI with `--target-platform databricks`: all five
+steps green, 107 calls, **4.46 USD**, 22.5 min; final model 39 hubs / 51 links / 96 satellites,
+333 model files. All 68 tables loaded as `workspace.<schema>.<Table>` (two needed their own
+row splitting: `Document`'s `&|\r\n` with NUL bytes, `ProductReview`'s multi-line comments).
+**P1 held. P2 failed**, and that is the first finding: the fifth step's project carries **one**
+source block (`Sales`) — a brownfield step grounds only its own increment's tables, re-renders
+every earlier construct's staging and degrades it to bare or `raw_*` names (`ref()`s dbt cannot
+resolve), so the whole-vault project fails at parse (`stg_ship_method_rates` → `ShipMethod`).
+**P3 — built in increments instead:** step 1's project in full (PASS=45), steps 2–5 as trimmed
+projects of their new models plus the referenced staging from the step where it was grounded,
+into one schema: 30/1/2, 101/2/4, 36/3/3, 97/16/8 (PASS/ERROR/SKIP), nine sales models blocked by
+the **Free Edition's Unity Catalog quota of 100 tables per schema** built in a second schema
+(PASS=18). Built: **37 of 39 hubs, 32 of 51 links, 92 of 96 satellites, 133 staging views**.
+**The second finding — 13 mis-bound staging views**, one shape across four steps: a link's (or
+a link satellite's) staging bound to a relation that lacks one of the hashed participation
+columns — `link_business_entity_department_shift` on `EmployeePayHistory` (no `StartDate`,
+`DepartmentID`, `ShiftID`; its satellites say `EmployeeDepartmentHistory`), seven sales links on
+`Store`, three purchasing ones on `Vendor`, `stg_product_subcategory` on `ProductSubcategory`
+(no `ProductID`), `stg_document_business_entity` on `Document`. No gate names it; every chain
+was green; only a build finds it. **Third:** 10 new staging models were ungrounded (`raw_*`,
+the `source_binding: none` disclosures) and were left out with 18 dependants — not buildable by
+design until a human maps them. **P4 held** where it could be measured: eight hubs across the
+five domains equal their sources' distinct keys (`hub_product` 504, `hub_customer` 19 820,
+`hub_sales_order` 31 465, `hub_work_order` 72 591, `hub_purchase_order` 4 012, `hub_department`
+16, `hub_business_entity` 20 777) and the multi-source `hub_transaction` 202 696 =
+`TransactionHistory` 113 443 + `TransactionHistoryArchive` 89 253; the WP36 translation views
+(`…_via_salesorderheader`) were among the dropped dependants — **not measured**. **So:** the
+Databricks dialect and AutomateDV's macros hold on the whole landscape (nothing failed for a
+platform reason); what failed is binding, and it would fail on Postgres the same way.
