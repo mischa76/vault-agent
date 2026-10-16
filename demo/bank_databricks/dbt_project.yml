@@ -1,0 +1,74 @@
+name: 'bank_databricks'
+version: '1.0.0'
+config-version: 2
+
+# Connection profile defined in profiles.yml (this directory) — a Databricks SQL warehouse,
+# connection values from the environment (WP72).
+profile: 'bank_databricks'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+models:
+  bank_databricks:
+    staging:
+      # Staging is a thin view layer (hash keys / hashdiffs); no need to persist it.
+      +materialized: view
+    raw_vault:
+      # The generated models already carry config(materialized='incremental'); this is a
+      # belt-and-braces default in case a model is added without it.
+      +materialized: incremental
+
+seeds:
+  bank_databricks:
+    # Seed column names stay UNQUOTED as on Postgres; Databricks resolves identifiers
+    # case-insensitively, so the UPPER_SNAKE headers and AutomateDV's UPPER_SNAKE references
+    # meet the same way (WP35 §6 Q2 — the first thing the live build checks).
+    # The column types are the Databricks dialect of rules/platforms.py: `string` for the
+    # Postgres character type (the Databricks one needs a length), `decimal(38,18)` for the
+    # Postgres unscaled number (the platform default DECIMAL(10,0) would drop BALANCE's
+    # fractions). Translated by build_vault_models' sibling test, never typed by hand.
+    +quote_columns: false
+    raw_customer:
+      +column_types:
+        NATIONAL_CUSTOMER_ID: string
+        BANK_CUSTOMER_REFERENCE: string
+        CUSTOMER_NAME: string
+        DATE_OF_BIRTH: date
+        LOAD_DATETIME: timestamp
+        RECORD_SOURCE: string
+    raw_account:
+      +column_types:
+        ACCOUNT_NUMBER: string
+        BALANCE: decimal(38,18)
+        STATUS: string
+        LOAD_DATETIME: timestamp
+        RECORD_SOURCE: string
+    raw_account_customer:
+      +column_types:
+        ACCOUNT_NUMBER: string
+        NATIONAL_CUSTOMER_ID: string
+        EFFECTIVE_FROM: timestamp
+        EFFECTIVE_TO: timestamp
+        LOAD_DATETIME: timestamp
+        RECORD_SOURCE: string
+    raw_transfer:
+      # Self-referencing transfer table (WP8): the counterparty account is carried in a
+      # role-prefixed COUNTERPARTY_ACCOUNT_NUMBER column (rules.role_bk_column), staged into
+      # COUNTERPARTY_ACCOUNT_HK — distinct from the paying account's ACCOUNT_HK.
+      +column_types:
+        ACCOUNT_NUMBER: string
+        COUNTERPARTY_ACCOUNT_NUMBER: string
+        AMOUNT: decimal(38,18)
+        CURRENCY: string
+        TRANSFER_TIMESTAMP: timestamp
+        LOAD_DATETIME: timestamp
+        RECORD_SOURCE: string
