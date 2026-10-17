@@ -9463,3 +9463,45 @@ nothing else; every hub checked equals its source's distinct keys.** Expected ar
 cost ≤ 5.5 USD, wall ≤ 30 min; the other WP34 §6 clauses hold.** **P7 — WP78 on the kept fifth
 project: `unresolved` 0, `inferred` equal to the build's failing views, `dbt parse` ok on the
 Postgres line.** **Not predicted:** attempts per step, the shapes, the inferred count.
+
+## [2026-10-17] Twenty-first chain run — all green under WP77 and WP78; 87 decisions against 89.3; no binding lost between steps; the workbench's check and `dbt parse` hold; the whole-vault build waits on Unity Catalog's quota estimate
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261017T203103850712Z`, at
+`f85aea5`, the 5.5 defaults, outputs kept. 110 calls (7 modeler: steps 1 and 2 two attempts, 3
+to 5 one), 401k uncached input, 252k output, 21.2 min, ≈ 4.31 USD. Final vault 40 hubs / 49 links /
+91 satellites. **All five steps green** — every chain score 1.0, `project_self_contained`
+included.
+
+**Against the pre-registration (entry above).** **P1 held. P2 held:** decisions 16 / 7 / 30 /
+8 / 26 = **87** against 89.3; 87 enters the 5.5 record (84, 83, 83, 83, 85, 88, 87), the
+twenty-second is judged against **89.3** (floor; the t-bound over seven is 88.3). **P3 held, and
+WP77's promise with it:** `stage_refs_unresolved` 0 in every step; inferred stages per kept
+project **0 / 0 / 3 / 3 / 8, none of them declared-bound in an earlier step** (the twentieth had
+4 / 2 / 12 / 6 such); the fifth project's catalogue carries 152 `stage_bindings`. The eight
+inferred are the modeler's never-bound links of this run (`stg_business_entity_credit_card`,
+`stg_customer_sales_territory`, `stg_sales_person_sales_territory`,
+`stg_sales_person_territory_history`, `stg_store_sales_person`, `stg_work_order_operation`) and
+two WP73 refusals (`stg_product_size_unit_measure`, `stg_product_weight_unit_measure` — the
+ratified `ProductVendor` relation lacks their `UnitMeasureCode` roles). **P4 held:**
+`binding_rejected` 0 / 0 / 0 / 2 / 0, one per stage. The multi-source gate fired twice, both on
+`hub_business_entity` with two, then six feeds (WP75's one-feed case did not arise), answered
+in the next attempt; one `undetermined_type` (`Document.DocumentLevel`). **P6 held:** 4.31 USD,
+21.2 min. **P7 held:** WP78's `project_check` on the kept fifth project — 160 staging models,
+`unresolved` 0, `inferred` 8 (the same eight) — and `dbt parse` ok in 17.5 s on the Postgres line
+(dbt-core 1.9.10). **P5 pending:** the four `vault20` schemas were dropped before the run (83 user
+objects); the whole-vault build into `vault21` was refused entirely — 152 `QUOTA_EXCEEDED`, PASS=0
+— by the **metastore** quota: „estimated count: 754, limit: 500“ while the catalogue holds 83;
+Unity Catalog's estimate had not absorbed today's drops (754 = everything created today). The
+resource-quotas API confirms the stale estimate (`table-quota`, 754 / 500, refreshed 20:56 UTC);
+a watcher re-reads it every 150 s and builds once it falls below 160 — the result follows as its
+own entry. **Not predicted:** the modeler's shape — `hub_shopping_cart_item` kept this time (49
+links against the twentieth's 51, 91 satellites against 92).
+
+**Überprüft.** The chain and step result files, the five `review.json` files, the trace (modeler
+attempts, gate codes per retry input), the kept projects' stage files and catalogue, the
+WP78 check and parse log, the build log and the quota API; results mirrored to tank. **Nur
+angenommen.** That the quota estimate converges to the catalogue's count within the hour (the
+Databricks docs call it an estimate; today's lag is the first measurement). **Bewusst nicht
+getan.** Forcing a refresh (no API for it); building into `default` to dodge the estimate.

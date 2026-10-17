@@ -87,6 +87,8 @@ REVIEW_DECISION_SAMPLES: dict[str, tuple[tuple[str, int], ...]] = {
         # twelfth's precedent).
         ("20261017T163032109423Z", 88),  # twentieth, 2026-10-17 — the first under WP75/WP76:
         #                                   held against 88.6 (green; 24.1 min, 4.86 USD)
+        ("20261017T203103850712Z", 87),  # twenty-first, 2026-10-17 — the first under WP77/WP78:
+        #                                   held against 89.3 (green; 21.2 min, 4.31 USD)
     ),
 }
 DEFAULT_RECORD_MODEL = "claude-opus-4-8"  # every archived result without `models`
