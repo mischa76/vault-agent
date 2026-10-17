@@ -9122,3 +9122,74 @@ builds whole on the owner's workspace** against the 68 tables, staging views and
 two target schemas (the 100-per-schema quota), every hub equal to its source's distinct keys —
 the first whole-vault build of a chain's output anywhere. **Not predicted:** the inferred
 bindings' count (40 at the sales step in the replay); the shapes.
+
+## [2026-10-17] Nineteenth chain run — red on a backstop that undoes what a gate demands; WP73 and WP74 live; the fifth project parsed and built whole on Databricks once its inferred relations were declared
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261017T020633663704Z`, at `308b534`,
+the 5.5 defaults, outputs kept (`--keep-outputs`). 109 calls (13 modeler: steps 1 and 2 two
+attempts, 3 to 5 three), 509k uncached input, 266k output, 25.5 min, ≈ 5.53 USD. Final model
+40 hubs / 48 links / 94 satellites. **Steps 1 and 2 green; step 3 red after three attempts,
+steps 4 and 5 inherit it** — the first red chain since the tenth.
+
+**Why step 3 went red, and why it is a product defect, not the modeler's.** Two history
+satellites on `hub_product` — `sat_product_cost_history` on `ProductCostHistory`,
+`sat_product_list_price_history` on `ProductListPriceHistory`, the canonical ADR-0012 shape —
+were refused by `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB`, because the modeler had given
+`hub_product` a `sources` list with a single feed, `Product`, which makes it „multi-source" to
+that gate, and a relation that is not a feed is refused. The gate's message says „drop
+`source_table`"; **the modeler did exactly that in attempt 2** (both `source_table: None`, the
+rest of the model kept 33/33) — and WP56's backstop `satellite_relation_inferred` put
+`ProductCostHistory` back from the schema (its message is in the step's flags), so the gate
+refused the same thing in attempt 3. A backstop and a gate that contradict each other, in every
+attempt identically; the inherited error then skipped the mapper in steps 4 and 5 (decisions
+19 / 10 / 40 / 16 / 40 = 125, the review clause fails against 88.6 on an inflated count). **Two
+roots:** a hub with exactly one feed carries none of the ambiguity ADR-0011's narrowing was
+about, and the inference must never set a relation that gate would refuse. **WP75 candidate**,
+not started. **Record:** as with the twelfth chain (238, a defect's count), 125 is not a
+sample of the modeler's spread and does not enter the 5.5 record; the eighteenth's 88.6 stands
+for the twentieth.
+
+**WP73 live.** `E_STAGE_COLUMN_NOT_IN_SOURCE` fired in step 1's first attempt
+(`stg_business_entity_contact_details`) and in step 4's first attempt (`stg_product_vendor_receipt`,
+`stg_product_vendor_terms`) and was answered in the next attempt each time; the final reports
+carry none. `binding_rejected` 3 / 3 / 1 / 2 / 1 per step (`BusinessEntityContact`,
+`ProductVendor`) — step 1's three are one stage flagged once per pass, a duplicate to fold. **No
+`UNRESOLVED_COLUMN` anywhere in the Databricks build below**: the mis-binding class of WP72 is
+gone live.
+
+**WP74 live.** `project_self_contained` 1.0 and `stage_refs_unresolved` 0 in every step as the
+scorer then read them; the fifth project declares five source blocks, 180 raw-vault and 172
+staging models. **But `dbt parse` failed on it** — `stg_sales_order` depends on a node named
+`raw_sales_order`: AutomateDV's stage macro turns a bare inferred relation into a `ref()`, so
+one inferred binding makes the whole project unparseable, and the scorer's exclusion of
+inferred bindings was wrong. **Corrected the same day** (`7d207b2`, `d87e19b`): inferred
+relations count as unresolved, and a translation view's own `ref()`/`source()` calls are
+checked too (`stg_document_product_via_product` failed the next parse the same way). The
+scorer will read 0.0 on every chain until inferred relations are declared, which is the truth
+of eighteen chains that never built. **WP76 candidate:** render every inferred relation into a
+declared `inferred` source block (schema: the target's) so the project parses and only the
+unprovided stages fail at build — the hand patch below proved the shape.
+
+**The whole-vault build (P6), with that patch applied by hand in the kept project**, 50
+inferred relations declared, staging views and raw vault in two schemas (`vault19_stg`,
+`vault19`): `dbt parse` clean; `dbt build --full-refresh` **PASS=220 ERROR=50 SKIP=100 of 370**
+in 5 min 45 s; all 50 errors are the staging views on inferred relations
+(`TABLE_OR_VIEW_NOT_FOUND`, nobody provided `raw_*`), the 100 skips their dependants; 34 of 40
+hubs built, 123 raw-vault tables, 93 staging views; `hub_product` 504, `hub_customer` 19 820,
+`hub_business_entity` 20 777, `hub_work_order` 72 591, `hub_department` 16 — each its
+source's distinct keys. The first whole-vault parse and build of a chain's output anywhere,
+on a red model; the metastore stands at 299 of 500.
+
+**Against the pre-registration.** P1 failed (step 3). P2 failed on an inflated count (not a
+rise). P3 held as scored, and the scorer was wrong — corrected. P4 held: the gate fired and was
+answered, the refusals are reported. P5: the other clauses held; 5.53 USD over the 5 USD
+mark (three three-attempt steps); 25.5 min. P6 held with the hand-declared inferred block, not
+without. **Überprüft.** The trace (steps segmented by their first `emit_requirements`, the
+modeler payloads of step 3's attempts, the issues in each retry's input), the five
+`review.json` files (issues, flags, decisions by kind), the kept projects, three `dbt parse` and
+two `dbt build` logs, the row counts; results mirrored to tank. **Nur angenommen.** That the
+WP56 inference is the only writer of a satellite's `source_table` after the modeler (the flag
+says so for these two). **Bewusst nicht getan.** WP75 and WP76 (own „go"); entering 125 into
+the record; a second build after dropping the inferred stages.
