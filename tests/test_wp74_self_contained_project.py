@@ -36,12 +36,13 @@ def _model1() -> DVModel:
 
 def _model2() -> DVModel:
     m = _model1().model_dump()
-    m["hubs"].append({"name": "hub_account", "business_key": "AccountID", "source_entity": "Account",
-                      "description": "x"})
-    m["links"].append({"name": "link_account_customer", "connected_hubs": ["hub_account", "hub_customer"],
-                       "description": "x"})
+    m["hubs"].append({"name": "hub_account", "business_key": "AccountID",
+                      "source_entity": "Account", "description": "x"})
+    m["links"].append({"name": "link_account_customer",
+                       "connected_hubs": ["hub_account", "hub_customer"], "description": "x"})
     m["satellites"].append({"name": "sat_account_details", "parent": "hub_account",
-                            "attributes": ["Balance"], "source_table": "Account", "description": "x"})
+                            "attributes": ["Balance"], "source_table": "Account",
+                            "description": "x"})
     return DVModel.model_validate(m)
 
 
@@ -88,7 +89,9 @@ async def test_the_cli_loads_the_catalogue_of_an_existing_output(
     import pytest
 
     assert isinstance(monkeypatch, pytest.MonkeyPatch)
-    monkeypatch.setattr(cli, "build_graph", lambda: build_graph(_sqlite_stub_agents(block_signoff=False)))
+    monkeypatch.setattr(
+        cli, "build_graph", lambda: build_graph(_sqlite_stub_agents(block_signoff=False))
+    )
     first = VaultAgentState(source_schemas=STEP1, dv_model=_model1())
     first.artifacts.automatedv_yaml = {"hubs": {}}
     cli.write_outputs(first, tmp_path / "step1")
@@ -102,5 +105,25 @@ async def test_the_cli_loads_the_catalogue_of_an_existing_output(
     )
     assert [t.table for t in state.carried_schemas] == ["Customer"]
     assert [t.table for t in state.source_schemas] == ["Account"]
+    cli.write_outputs(state, tmp_path / "step2")  # what the `run` command does after the pipeline
     written = yaml.safe_load((tmp_path / "step2" / "metadata" / "source_catalogue.yml").read_text())
     assert sorted(t["table"] for t in written["source_schemas"]) == ["Account", "Customer"]
+
+
+def test_the_scorer_and_the_metric_read_the_written_project() -> None:
+    from eval.scorers import VACUOUS_PREFIX, project_self_contained
+
+    case = type("Case", (), {})()
+    empty = VaultAgentState()
+    assert project_self_contained(empty, case).details.startswith(VACUOUS_PREFIX)
+    carried = build_staging(_model2(), STEP2, existing=_model1(), carried=STEP1)
+    good = VaultAgentState(dv_model=_model2())
+    good.artifacts.staging_models = carried.models
+    good.artifacts.scaffolding = carried.scaffolding
+    assert project_self_contained(good, case).score == 1.0
+    degraded = build_staging(_model2(), STEP2, existing=_model1())
+    bad = VaultAgentState(dv_model=_model2())
+    bad.artifacts.staging_models = degraded.models
+    bad.artifacts.scaffolding = degraded.scaffolding
+    verdict = project_self_contained(bad, case)
+    assert verdict.score == 0.0 and "stg_customer_details" in verdict.details

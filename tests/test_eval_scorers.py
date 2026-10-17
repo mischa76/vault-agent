@@ -430,6 +430,8 @@ def test_bank_case_scores_perfectly_against_the_durchstich_model() -> None:
         "pipeline_health": 1.0,
         # WP23: vacuous 1.0 — the bank case is greenfield, with no vault to preserve.
         "existing_construct_preservation": 1.0,
+        # WP74: vacuous 1.0 — this state carries no staging to resolve.
+        "project_self_contained": 1.0,
     }
 
 

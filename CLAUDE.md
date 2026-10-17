@@ -163,8 +163,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   attention — do not claim the latter (`docs/log.md` 2026-10-05, WP34 §12). **`source_schemas` means
   „this increment's tables"** to the contract agent, the proposer and the modeler's grounding: handing
   a step the whole catalogue (the `_cumulative` eval case) re-drafts every earlier contract and
-  re-proposes every earlier key (193 owners, 227 calls, 9.36 USD) — a binding-only catalogue needs a
-  typed split first. **A red step skips the mapper**, and the mapper's re-bind is where freely named
+  re-proposes every earlier key (193 owners, 227 calls, 9.36 USD); **the binding-only catalogue is
+  `carried_schemas` since WP74 (2026-10-17)** — `metadata/source_catalogue.yml` travels with the
+  model, staging alone reads it, and a step's project parses whole (`project_self_contained`). **A red step skips the mapper**, and the mapper's re-bind is where freely named
   links bind by offer; an inherited error therefore also inflates `source_binding`. **The repair memory
   keyed hubs by name** until WP49 (2026-10-06) keyed them by shape too — the third chain's step 5 had
   gone red on a retired duplicate re-emitted under a new name; the fourth chain produced no rename.

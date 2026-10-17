@@ -305,6 +305,31 @@ def existing_construct_preservation(state: VaultAgentState, case: EvalCase) -> S
     )
 
 
+def project_self_contained(state: VaultAgentState, case: EvalCase) -> ScorerResult:
+    """Does every staging model of the generated project read a relation dbt can resolve?
+    (WP74.) 1.0 when ``unresolved_stage_refs`` is empty; the Databricks chain (2026-10-16)
+    found the fifth step's project unparseable — earlier increments' stages degraded to names
+    nothing declared — and eighteen green chains had never built an output. Inferred ``raw_*``
+    bindings are not counted here: they are disclosed, and a human maps them. Vacuous when the
+    run produced no staging (nothing to resolve)."""
+    from vault_agent.agents.staging_generator import unresolved_stage_refs
+
+    models = state.artifacts.staging_models
+    if not models:
+        return ScorerResult(name="project_self_contained", score=1.0,
+                            details=VACUOUS_PREFIX + "no staging models to resolve")
+    sources = state.artifacts.scaffolding.get("models/staging/sources.yml", "")
+    unresolved = unresolved_stage_refs(models, sources)
+    if not unresolved:
+        return ScorerResult(name="project_self_contained", score=1.0,
+                            details=f"{len(models)} staging model(s), every relation resolves")
+    return ScorerResult(
+        name="project_self_contained", score=0.0,
+        details=f"{len(unresolved)} of {len(models)} staging model(s) read a relation dbt "
+                f"cannot resolve: {', '.join(unresolved[:8])}",
+    )
+
+
 SCORERS: dict[str, Scorer] = {
     "construct_f1": construct_f1,
     "driving_key_accuracy": driving_key_accuracy,
@@ -312,6 +337,8 @@ SCORERS: dict[str, Scorer] = {
     "pipeline_health": pipeline_health,
     # WP23: inert (vacuous 1.0) on greenfield cases, the gate on extension cases.
     "existing_construct_preservation": existing_construct_preservation,
+    # WP74: the project every step writes must parse — a build-time truth the chains lacked.
+    "project_self_contained": project_self_contained,
 }
 
 

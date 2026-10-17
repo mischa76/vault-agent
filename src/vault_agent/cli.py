@@ -40,7 +40,13 @@ from vault_agent.agents.orchestrator import (
     review_queue_layout,
     status_line,
 )
-from vault_agent.existing_model import DV_MODEL_FILENAME, load_existing_model
+from vault_agent.existing_model import (
+    DV_MODEL_FILENAME,
+    SOURCE_CATALOGUE_FILENAME,
+    dump_source_catalogue,
+    load_existing_catalogue,
+    load_existing_model,
+)
 from vault_agent.extension_diff import DIFF_FILENAME, ExtensionDiff, render_extension_diff_md
 from vault_agent.graph import MAX_MODELING_ATTEMPTS, build_graph
 from vault_agent.link_proposal import pending_link_decisions, proposal_key
@@ -180,6 +186,15 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(content, encoding="utf-8")
 
+    # WP74: the source catalogue beside the model — the increment's declared tables first,
+    # then the carried ones — so the next `--existing` run binds every earlier stage again.
+    if state.source_schemas or state.carried_schemas:
+        meta_dir = out_dir / "metadata"
+        meta_dir.mkdir(parents=True, exist_ok=True)
+        (meta_dir / SOURCE_CATALOGUE_FILENAME).write_text(
+            dump_source_catalogue([*state.source_schemas, *state.carried_schemas]),
+            encoding="utf-8",
+        )
     if state.artifacts.automatedv_yaml:
         meta_dir = out_dir / "metadata"
         meta_dir.mkdir(parents=True, exist_ok=True)
@@ -616,6 +631,7 @@ async def _run_pipeline(
     existing_source: str | None = None,
     target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
     thread_id: str | None = None,
+    carried_schemas: list[SourceTable] | None = None,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
@@ -643,6 +659,7 @@ async def _run_pipeline(
             existing_model=existing_model,
             existing_source=existing_source,
             target_platform=target_platform,
+            carried_schemas=carried_schemas or [],  # WP74
         ),
         input_doc=input_doc,
         trace=trace,
@@ -1489,6 +1506,7 @@ def run(
         # WP23: brownfield mode. A malformed/pre-WP23 --existing is an attributable message
         # here, before any LLM token is spent — same reasoning as the other input loaders.
         prior_model = load_existing_model(existing) if existing else None
+        carried = load_existing_catalogue(existing) if existing else []  # WP74
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]Could not load an input file:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
@@ -1498,6 +1516,7 @@ def run(
                 input_doc, out, schemas, profiles, trace, write, prior_model,
                 str(existing) if existing else None,
                 target_platform=target_platform,
+                carried_schemas=carried,
             )
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI

@@ -950,6 +950,12 @@ class VaultAgentState(BaseModel):
     # The --existing path as the user gave it, for the diff artifact and the delta-ADR's
     # "Extends" section. Presentation only — nothing branches on it.
     existing_source: str | None = None
+    # WP74: the declared tables earlier increments bound to — the source catalogue that
+    # travels with the model (`metadata/source_catalogue.yml`). Read by staging only, so an
+    # existing construct's stage keeps its relation and block; never by the contract agent,
+    # the proposer, the resolver or the modeler's grounding (`source_schemas` stays the
+    # increment's — the typed split CLAUDE.md asked for).
+    carried_schemas: list[SourceTable] = Field(default_factory=list)
     # WP35: the warehouse the generated dbt project is aimed at (`run --target-platform`).
     # Read by the staging pass for seed column types and the README's profile hint —
     # nothing else branches on it, the vault SQL is platform-neutral (AutomateDV dispatches

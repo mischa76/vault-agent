@@ -61,15 +61,22 @@ from eval.scorers import (
 )
 from vault_agent import llm
 from vault_agent.agents.orchestrator import assemble_review_queue, render_review_queue_md
+from vault_agent.agents.staging_generator import unresolved_stage_refs
 from vault_agent.cli import _checkpoint_serde
 from vault_agent.config import get_settings
-from vault_agent.existing_model import DV_MODEL_FILENAME, load_existing_model
+from vault_agent.existing_model import (
+    DV_MODEL_FILENAME,
+    SOURCE_CATALOGUE_FILENAME,
+    dump_source_catalogue,
+    load_existing_catalogue,
+    load_existing_model,
+)
 from vault_agent.graph import build_graph
 from vault_agent.llm import TraceEvent
 from vault_agent.profiling import load_profiling
 from vault_agent.rules.dv2_rules import canonical_hub_key_column, normalize_identifier
 from vault_agent.source_schema import load_source_schemas
-from vault_agent.state import DVModel, SourceTable, VaultAgentState
+from vault_agent.state import DVModel, FlagKind, SourceTable, VaultAgentState
 from vault_agent.trace import JsonlTraceWriter
 
 DEFAULT_REPEAT = 3
@@ -314,6 +321,14 @@ def run_metrics(
         # WP30.1: the counts above say how big the answer is; this says what it is.
         "model": model_shape(state.dv_model),
         "flags": len(state.flags),
+        # WP74: what dbt could not resolve in the written project, and what was inferred.
+        "stage_refs_unresolved": len(unresolved_stage_refs(
+            state.artifacts.staging_models,
+            state.artifacts.scaffolding.get("models/staging/sources.yml", ""),
+        )),
+        "stage_refs_inferred": sum(
+            1 for f in state.flags if f.kind == FlagKind.SOURCE_BINDING
+        ),
         # WP34 (2026-08-12): the breakdown, under a NEW key because `flags` is an integer in
         # every archived file and an int cannot be compared against a dict. Keyed by
         # `FlagKind`, which is what consumers branch on; the message text is never counted.
@@ -509,6 +524,7 @@ async def run_case_once(case: EvalCase) -> VaultAgentState:
             profiling=profiling,
             existing_model=existing,
             existing_source=str(case.existing) if case.existing else None,
+            carried_schemas=load_existing_catalogue(case.existing) if case.existing else [],
         ),
         config=config,
     )
@@ -701,6 +717,13 @@ def write_step_vault(state: VaultAgentState, step_dir: Path) -> Path:
     meta_dir.mkdir(parents=True, exist_ok=True)
     path = meta_dir / DV_MODEL_FILENAME
     path.write_text(dump_model_yaml(state), encoding="utf-8")
+    # WP74: the source catalogue beside the model, exactly as cli.write_outputs writes it, so
+    # the next step's staging binds every earlier construct again.
+    if state.source_schemas or state.carried_schemas:
+        (meta_dir / SOURCE_CATALOGUE_FILENAME).write_text(
+            dump_source_catalogue([*state.source_schemas, *state.carried_schemas]),
+            encoding="utf-8",
+        )
     return path
 
 
@@ -783,6 +806,7 @@ async def run_chain_once(
                 dv_model=load_existing_model(persisted) or DVModel(),
                 existing_model=load_existing_model(previous) if previous else None,
                 existing_source=str(previous) if previous else None,
+                carried_schemas=load_existing_catalogue(previous) if previous else [],
             )
             runs.append((step_case, state))
             previous = write_step_vault(state, workdir / f"step{index}_{step_name}")

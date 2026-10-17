@@ -29,6 +29,10 @@ from vault_agent.state import DVModel
 # The logical model a run writes under its output ``metadata/`` directory, and the file a
 # later extension run reads back. One definition, imported by the writer and the loader.
 DV_MODEL_FILENAME = "dv_model.yml"
+# WP74: the declared tables a run's stages bound to, this increment's and every carried one,
+# in the `source_schemas:` shape the house loader reads; foreign keys are not carried (the
+# catalogue binds, it never proposes). Written beside the model, read by `--existing`.
+SOURCE_CATALOGUE_FILENAME = "source_catalogue.yml"
 
 
 def load_existing_model(path: Path) -> DVModel | None:
@@ -163,3 +167,42 @@ def render_extension_prompt_section(existing: DVModel | None) -> str:
         "an existing link or satellite unchanged — there is nothing to gain from restating it.",
     ]
     return "\n" + "\n".join(lines) + "\n"
+
+
+def dump_source_catalogue(tables: list[Any]) -> str:
+    """Render the source catalogue (WP74): table, schema, database and the declared columns,
+    deduplicated by (schema, table), first occurrence wins — so a caller passes the
+    increment's tables before the carried ones."""
+    seen: set[tuple[str | None, str]] = set()
+    entries: list[dict[str, Any]] = []
+    for table in tables:
+        key = (table.schema_name, table.table)
+        if key in seen:
+            continue
+        seen.add(key)
+        entry: dict[str, Any] = {"table": table.table, "columns": list(table.column_names)}
+        if table.schema_name is not None:
+            entry["schema"] = table.schema_name
+        if table.database is not None:
+            entry["database"] = table.database
+        entries.append(entry)
+    return yaml.safe_dump({"source_schemas": entries}, sort_keys=False, allow_unicode=True)
+
+
+def load_existing_catalogue(path: Path) -> list[Any]:
+    """The source catalogue beside an existing output's model, or ``[]`` when the output
+    predates WP74 or ``path`` does not exist (an older `--existing` keeps working, degraded as
+    before). ``path`` is the output directory or the catalogue file itself."""
+    from vault_agent.source_schema import load_source_schemas
+
+    if path.is_file():
+        # `--existing` may name the model file itself (metadata/dv_model.yml): the catalogue
+        # is its sibling, unless the file given is the catalogue.
+        candidate = path if path.name == SOURCE_CATALOGUE_FILENAME else (
+            path.parent / SOURCE_CATALOGUE_FILENAME
+        )
+    else:
+        candidate = path / "metadata" / SOURCE_CATALOGUE_FILENAME
+    if not candidate.is_file():
+        return []
+    return list(load_source_schemas(candidate))

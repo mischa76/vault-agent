@@ -547,6 +547,7 @@ def rebind_staging(state: VaultAgentState) -> None:
         existing=state.existing_model,
         target_platform=state.target_platform,
         binding_reasons=link_binding_reasons(state),  # WP47
+        carried=state.carried_schemas,  # WP74
     )
     # Apply the FULL result (WP9.1 F2) — mirror code_generator so metadata and scaffolding
     # don't keep the pre-rebind bindings. models + scaffolding + the staging metadata block.

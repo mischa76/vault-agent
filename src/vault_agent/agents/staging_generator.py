@@ -15,6 +15,7 @@ the generator names, it never guesses silently.
 Called by the CodeGeneratorAgent after the raw-vault pass; kept in its own module so the
 raw-vault renderer stays under its size budget and this layer is testable in isolation.
 """
+import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 from typing import Any
@@ -1120,6 +1121,7 @@ def build_staging(
     existing: DVModel | None = None,
     target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
     binding_reasons: dict[str, str] | None = None,
+    carried: list[SourceTable] | None = None,
 ) -> StagingResult:
     """The full staging pass: specs -> bindings -> rendered models + scaffolding.
 
@@ -1139,9 +1141,18 @@ def build_staging(
     hint; the rendered models are identical across platforms. The default is the
     byte-identity baseline."""
     specs = collect_staging_specs(model, legacy_feeds(existing))
-    flags = bind_sources(specs, source_schemas, source_overrides, binding_reasons)
+    # WP74: an existing construct's stage binds against the catalogue earlier increments
+    # carried in (schema, database, full columns), the increment's own tables first. The
+    # carried tables reach nothing else — the contract agent, the proposer and the modeler
+    # still see `source_schemas` alone.
+    seen_tables = {(t.schema_name, normalize_identifier(t.table)) for t in source_schemas}
+    binding_schemas = list(source_schemas) + [
+        t for t in (carried or [])
+        if (t.schema_name, normalize_identifier(t.table)) not in seen_tables
+    ]
+    flags = bind_sources(specs, binding_schemas, source_overrides, binding_reasons)
     # Grounded runs only (ungrounded: no blocks, no source_name — byte-identical output).
-    blocks = group_sources(specs, source_schemas)
+    blocks = group_sources(specs, binding_schemas)
     profile = platform_profile(target_platform)
     seed_column_types = _collect_seed_column_types(specs, contracts or [], profile)
     # WP36: one translation model per link whose target key is a join away. Rendered
@@ -1177,3 +1188,35 @@ def build_staging(
     return StagingResult(
         models=models, metadata=metadata, scaffolding=scaffolding, flags=flags
     )
+
+
+def unresolved_stage_refs(models: dict[str, str], sources_yml: str) -> list[str]:
+    """The staging models whose relation dbt could not resolve (WP74 §2.5): a ``source()``
+    mapping whose block or table the generated ``sources.yml`` does not declare, or a bare
+    name that is neither another staging model nor an inferred ``raw_*`` relation. Inferred
+    relations are disclosed (`source_binding`) and a human maps them; they are not listed
+    here. Pure: a rendered project in, names out, sorted."""
+    import yaml as _yaml
+
+    parsed = _yaml.safe_load(sources_yml) or {}
+    blocks: dict[str, set[str]] = {}
+    for block in parsed.get("sources") or []:
+        blocks[str(block.get("name"))] = {
+            normalize_identifier(str(t.get("name"))) for t in (block.get("tables") or [])
+        }
+    unresolved: list[str] = []
+    for name, sql in models.items():
+        mapping = re.search(r"source_model:\s*\n\s+(\w+): '([^']+)'", sql)
+        if mapping:
+            block, table = mapping.group(1), normalize_identifier(mapping.group(2))
+            if table not in blocks.get(block, set()):
+                unresolved.append(name)
+            continue
+        bare = re.search(r"source_model:\s*'?([\w.]+)'?", sql)
+        if not bare:
+            continue
+        relation = bare.group(1)
+        if relation in models or relation.startswith(RAW_SOURCE_PREFIX):
+            continue
+        unresolved.append(name)
+    return sorted(unresolved)

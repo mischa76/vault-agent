@@ -29,3 +29,6 @@ expectations:
   min_scores:
     existing_construct_preservation: 1.0
     pipeline_health: 1.0
+    # WP74: every step's project must read relations dbt can resolve (the fifth step's did
+    # not, 2026-10-16); inferred raw_* bindings are disclosed, not counted here.
+    project_self_contained: 1.0
