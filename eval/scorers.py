@@ -309,9 +309,10 @@ def project_self_contained(state: VaultAgentState, case: EvalCase) -> ScorerResu
     """Does every staging model of the generated project read a relation dbt can resolve?
     (WP74.) 1.0 when ``unresolved_stage_refs`` is empty; the Databricks chain (2026-10-16)
     found the fifth step's project unparseable — earlier increments' stages degraded to names
-    nothing declared — and eighteen green chains had never built an output. Inferred ``raw_*``
-    bindings are not counted here: they are disclosed, and a human maps them. Vacuous when the
-    run produced no staging (nothing to resolve)."""
+    nothing declared — and eighteen green chains had never built an output. Corrected the same
+    day after the nineteenth chain: an inferred ``raw_*`` binding is a missing `ref()` to dbt
+    and is counted too — the project does not parse with one. Vacuous when the run produced no
+    staging (nothing to resolve)."""
     from vault_agent.agents.staging_generator import unresolved_stage_refs
 
     models = state.artifacts.staging_models

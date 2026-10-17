@@ -11,6 +11,7 @@ from vault_agent import cli
 from vault_agent.agents.staging_generator import build_staging, unresolved_stage_refs
 from vault_agent.existing_model import load_existing_catalogue
 from vault_agent.graph import build_graph
+from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import DVModel, SourceTable, VaultAgentState
 
@@ -59,8 +60,14 @@ def test_write_outputs_writes_the_source_catalogue_and_the_loader_reads_it(tmp_p
     assert load_existing_catalogue(tmp_path) and load_existing_catalogue(tmp_path / "nowhere") == []
 
 
+# The link's stage is bound the way the mapper's re-bind binds it (its relation is Account,
+# which carries both keys); without an override it would be inferred, which dbt cannot ref.
+LINK_BINDING = {normalize_identifier("account_customer"): "Account"}
+
+
 def test_staging_keeps_the_earlier_increments_bindings_when_the_catalogue_is_carried() -> None:
-    carried = build_staging(_model2(), STEP2, existing=_model1(), carried=STEP1)
+    carried = build_staging(_model2(), STEP2, existing=_model1(), carried=STEP1,
+                            source_overrides=LINK_BINDING)
     stage = carried.models["stg_customer"]
     assert "source_model:\n" in stage and "'Customer'" in stage  # the source() mapping form
     sat = carried.models["stg_customer_details"]
@@ -70,11 +77,17 @@ def test_staging_keeps_the_earlier_increments_bindings_when_the_catalogue_is_car
     assert not [n for n, sql in carried.models.items() if "raw_customer" in sql]
     assert unresolved_stage_refs(carried.models, sources) == []
 
-    degraded = build_staging(_model2(), STEP2, existing=_model1())  # today's shape, the contrast
+    degraded = build_staging(_model2(), STEP2, existing=_model1(),
+                             source_overrides=LINK_BINDING)  # yesterday's shape, the contrast
     assert "schema: Sales" not in degraded.scaffolding["models/staging/sources.yml"]
-    assert unresolved_stage_refs(
+    assert "stg_customer_details" in unresolved_stage_refs(
         degraded.models, degraded.scaffolding["models/staging/sources.yml"]
-    ) == ["stg_customer_details"]  # the satellite's bare `Customer`, a ref dbt cannot resolve
+    )  # the satellite's bare `Customer`, a ref dbt cannot resolve
+
+
+def test_an_inferred_relation_counts_as_unresolved_because_dbt_refs_it() -> None:
+    models = {"stg_x": "source_model: 'raw_x'\n", "stg_y": "source_model: 'stg_x'\n"}
+    assert unresolved_stage_refs(models, "version: 2\nsources: []\n") == ["stg_x"]
 
 
 def test_carried_schemas_never_enter_source_schemas(tmp_path: Path) -> None:
@@ -116,12 +129,13 @@ def test_the_scorer_and_the_metric_read_the_written_project() -> None:
     case = type("Case", (), {})()
     empty = VaultAgentState()
     assert project_self_contained(empty, case).details.startswith(VACUOUS_PREFIX)
-    carried = build_staging(_model2(), STEP2, existing=_model1(), carried=STEP1)
+    carried = build_staging(_model2(), STEP2, existing=_model1(), carried=STEP1,
+                            source_overrides=LINK_BINDING)
     good = VaultAgentState(dv_model=_model2())
     good.artifacts.staging_models = carried.models
     good.artifacts.scaffolding = carried.scaffolding
     assert project_self_contained(good, case).score == 1.0
-    degraded = build_staging(_model2(), STEP2, existing=_model1())
+    degraded = build_staging(_model2(), STEP2, existing=_model1(), source_overrides=LINK_BINDING)
     bad = VaultAgentState(dv_model=_model2())
     bad.artifacts.staging_models = degraded.models
     bad.artifacts.scaffolding = degraded.scaffolding
@@ -132,7 +146,8 @@ def test_the_scorer_and_the_metric_read_the_written_project() -> None:
 def test_the_harness_can_keep_a_steps_full_output(tmp_path: Path) -> None:
     from eval.run import keep_step_outputs
 
-    carried = build_staging(_model2(), STEP2, existing=_model1(), carried=STEP1)
+    carried = build_staging(_model2(), STEP2, existing=_model1(), carried=STEP1,
+                            source_overrides=LINK_BINDING)
     state = VaultAgentState(source_schemas=STEP2, carried_schemas=STEP1, dv_model=_model2())
     state.artifacts.staging_models = carried.models
     state.artifacts.scaffolding = carried.scaffolding

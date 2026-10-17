@@ -1191,11 +1191,14 @@ def build_staging(
 
 
 def unresolved_stage_refs(models: dict[str, str], sources_yml: str) -> list[str]:
-    """The staging models whose relation dbt could not resolve (WP74 §2.5): a ``source()``
-    mapping whose block or table the generated ``sources.yml`` does not declare, or a bare
-    name that is neither another staging model nor an inferred ``raw_*`` relation. Inferred
-    relations are disclosed (`source_binding`) and a human maps them; they are not listed
-    here. Pure: a rendered project in, names out, sorted."""
+    """The staging models whose relation dbt cannot resolve at parse time (WP74 §2.5, corrected
+    2026-10-17): a ``source()`` mapping whose block or table the generated ``sources.yml`` does
+    not declare, or a bare name that is not another staging model — an inferred ``raw_*``
+    relation included. The nineteenth chain's fifth project failed `dbt parse` on
+    `ref('raw_sales_order')`: AutomateDV's stage macro turns a bare name into a `ref()`, so an
+    inferred relation is not "a table in the target schema" to dbt but a missing node, and one
+    is enough to make the whole project unparseable. Pure: a rendered project in, names out,
+    sorted; ``stage_refs_inferred`` still counts the inferred ones apart."""
     import yaml as _yaml
 
     parsed = _yaml.safe_load(sources_yml) or {}
@@ -1216,7 +1219,7 @@ def unresolved_stage_refs(models: dict[str, str], sources_yml: str) -> list[str]
         if not bare:
             continue
         relation = bare.group(1)
-        if relation in models or relation.startswith(RAW_SOURCE_PREFIX):
+        if relation in models:
             continue
         unresolved.append(name)
     return sorted(unresolved)
