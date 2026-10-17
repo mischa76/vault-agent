@@ -44,8 +44,10 @@ from vault_agent.existing_model import (
     DV_MODEL_FILENAME,
     SOURCE_CATALOGUE_FILENAME,
     dump_source_catalogue,
+    load_carried_bindings,
     load_existing_catalogue,
     load_existing_model,
+    stage_bindings,
 )
 from vault_agent.extension_diff import DIFF_FILENAME, ExtensionDiff, render_extension_diff_md
 from vault_agent.graph import MAX_MODELING_ATTEMPTS, build_graph
@@ -192,7 +194,11 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         meta_dir = out_dir / "metadata"
         meta_dir.mkdir(parents=True, exist_ok=True)
         (meta_dir / SOURCE_CATALOGUE_FILENAME).write_text(
-            dump_source_catalogue([*state.source_schemas, *state.carried_schemas]),
+            dump_source_catalogue(
+                [*state.source_schemas, *state.carried_schemas],
+                # WP77: every declared binding, this run's and the kept ones, travels on.
+                stage_bindings(state.artifacts.automatedv_yaml.get("staging", {}) or {}),
+            ),
             encoding="utf-8",
         )
     if state.artifacts.automatedv_yaml:
@@ -632,6 +638,7 @@ async def _run_pipeline(
     target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
     thread_id: str | None = None,
     carried_schemas: list[SourceTable] | None = None,
+    carried_bindings: dict[str, str] | None = None,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
@@ -660,6 +667,7 @@ async def _run_pipeline(
             existing_source=existing_source,
             target_platform=target_platform,
             carried_schemas=carried_schemas or [],  # WP74
+            carried_bindings=carried_bindings or {},  # WP77
         ),
         input_doc=input_doc,
         trace=trace,
@@ -1507,6 +1515,7 @@ def run(
         # here, before any LLM token is spent — same reasoning as the other input loaders.
         prior_model = load_existing_model(existing) if existing else None
         carried = load_existing_catalogue(existing) if existing else []  # WP74
+        bindings = load_carried_bindings(existing) if existing else {}  # WP77
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]Could not load an input file:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
@@ -1517,6 +1526,7 @@ def run(
                 str(existing) if existing else None,
                 target_platform=target_platform,
                 carried_schemas=carried,
+                carried_bindings=bindings,
             )
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI

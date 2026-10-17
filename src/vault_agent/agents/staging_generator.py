@@ -479,6 +479,7 @@ def bind_sources(
     source_schemas: list[SourceTable],
     source_overrides: dict[str, str] | None = None,
     binding_reasons: dict[str, str] | None = None,
+    carried_bindings: dict[str, str] | None = None,
 ) -> list[PipelineFlag]:
     """Bind each staging model to its raw relation; flag every *inferred* binding.
 
@@ -488,8 +489,14 @@ def bind_sources(
 
     ``source_overrides`` (WP9 §6) maps a normalised construct base to the source table a
     ratified/proposed business↔source mapping resolved it to; an override binds the spec
-    verbatim and raises no flag (the mapping *is* the human-reviewable evidence)."""
+    verbatim and raises no flag (the mapping *is* the human-reviewable evidence).
+
+    ``carried_bindings`` (WP77) maps a stage model's name to the relation an earlier increment
+    bound it to; it is applied after this run's overrides and before the name match, only when
+    the relation is declared here (increment or catalogue) and carries every column the stage
+    hashes — and raises no flag: it was reviewed when it was made."""
     overrides = source_overrides or {}
+    carried = carried_bindings or {}
     # WP47: why a binding is inferred, from the same resolution the overrides come from
     # (``link_proposal.link_binding_reasons``); a base with no entry is ``none``.
     reasons = binding_reasons or {}
@@ -534,6 +541,15 @@ def bind_sources(
         inferred = RAW_SOURCE_PREFIX + spec.base
         if override:
             spec.source_model = inferred  # the override was refused above, with its flag
+            continue
+        kept = carried.get(spec.name)
+        if kept and normalize_identifier(kept) in declared_tables:
+            if _rejected(spec, kept):
+                spec.source_model = inferred
+                continue
+            table_name = declared_tables[normalize_identifier(kept)].table
+            spec.source_model = table_name
+            spec.bound = True
             continue
         for table in source_schemas:
             if construct_binds_to_source_table(spec.base, table.table):
@@ -1142,6 +1158,7 @@ def build_staging(
     target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
     binding_reasons: dict[str, str] | None = None,
     carried: list[SourceTable] | None = None,
+    carried_bindings: dict[str, str] | None = None,
 ) -> StagingResult:
     """The full staging pass: specs -> bindings -> rendered models + scaffolding.
 
@@ -1170,7 +1187,12 @@ def build_staging(
         t for t in (carried or [])
         if (t.schema_name, normalize_identifier(t.table)) not in seen_tables
     ]
-    flags = bind_sources(specs, binding_schemas, source_overrides, binding_reasons)
+    # WP77: the bindings earlier increments made travel with the catalogue, kept unless this
+    # run's own resolution binds the stage (the offer tier and the proposals see only the
+    # increment's tables, so a link bound by offer in step 3 would otherwise infer in step 4).
+    flags = bind_sources(
+        specs, binding_schemas, source_overrides, binding_reasons, carried_bindings
+    )
     # Grounded runs only (ungrounded: no blocks, no source_name — byte-identical output).
     blocks = group_sources(specs, binding_schemas)
     if blocks:

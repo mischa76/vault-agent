@@ -68,8 +68,10 @@ from vault_agent.existing_model import (
     DV_MODEL_FILENAME,
     SOURCE_CATALOGUE_FILENAME,
     dump_source_catalogue,
+    load_carried_bindings,
     load_existing_catalogue,
     load_existing_model,
+    stage_bindings,
 )
 from vault_agent.graph import build_graph
 from vault_agent.llm import TraceEvent
@@ -525,6 +527,7 @@ async def run_case_once(case: EvalCase) -> VaultAgentState:
             existing_model=existing,
             existing_source=str(case.existing) if case.existing else None,
             carried_schemas=load_existing_catalogue(case.existing) if case.existing else [],
+            carried_bindings=load_carried_bindings(case.existing) if case.existing else {},
         ),
         config=config,
     )
@@ -721,7 +724,10 @@ def write_step_vault(state: VaultAgentState, step_dir: Path) -> Path:
     # the next step's staging binds every earlier construct again.
     if state.source_schemas or state.carried_schemas:
         (meta_dir / SOURCE_CATALOGUE_FILENAME).write_text(
-            dump_source_catalogue([*state.source_schemas, *state.carried_schemas]),
+            dump_source_catalogue(
+                [*state.source_schemas, *state.carried_schemas],
+                stage_bindings(state.artifacts.automatedv_yaml.get("staging", {}) or {}),  # WP77
+            ),
             encoding="utf-8",
         )
     return path
@@ -819,6 +825,7 @@ async def run_chain_once(
                 existing_model=load_existing_model(previous) if previous else None,
                 existing_source=str(previous) if previous else None,
                 carried_schemas=load_existing_catalogue(previous) if previous else [],
+                carried_bindings=load_carried_bindings(previous) if previous else {},
             )
             runs.append((step_case, state))
             previous = write_step_vault(state, workdir / f"step{index}_{step_name}")

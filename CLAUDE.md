@@ -165,7 +165,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   a step the whole catalogue (the `_cumulative` eval case) re-drafts every earlier contract and
   re-proposes every earlier key (193 owners, 227 calls, 9.36 USD); **the binding-only catalogue is
   `carried_schemas` since WP74 (2026-10-17)** — `metadata/source_catalogue.yml` travels with the
-  model, staging alone reads it, and a step's project parses whole (`project_self_contained`). **A red step skips the mapper**, and the mapper's re-bind is where freely named
+  model, staging alone reads it, and a step's project parses whole (`project_self_contained`); **the
+  bindings travel too since WP77** (`stage_bindings`, `carried_bindings`) — the offer tier and the
+  proposals see only the increment, so a binding not carried was lost in the next step. **A red step skips the mapper**, and the mapper's re-bind is where freely named
   links bind by offer; an inherited error therefore also inflates `source_binding`. **The repair memory
   keyed hubs by name** until WP49 (2026-10-06) keyed them by shape too — the third chain's step 5 had
   gone red on a retired duplicate re-emitted under a new name; the fourth chain produced no rename.

@@ -597,6 +597,7 @@ class CodeGeneratorAgent(BaseAgent):
             existing=state.existing_model, target_platform=state.target_platform,
             binding_reasons=link_binding_reasons(state),  # WP47
             carried=state.carried_schemas,  # WP74
+            carried_bindings=state.carried_bindings,  # WP77
         )
         state.artifacts.staging_models = staging.models
         state.artifacts.scaffolding = staging.scaffolding

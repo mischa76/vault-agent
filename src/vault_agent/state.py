@@ -956,6 +956,11 @@ class VaultAgentState(BaseModel):
     # the proposer, the resolver or the modeler's grounding (`source_schemas` stays the
     # increment's — the typed split CLAUDE.md asked for).
     carried_schemas: list[SourceTable] = Field(default_factory=list)
+    # WP77: the declared binding of every earlier increment's stage (`stage_bindings` in the
+    # same catalogue), keyed by stage model — kept by staging when this run's own resolution
+    # (a ratified mapping, a ratified proposal, the offer) says nothing about the stage. The
+    # twentieth chain lost 24 of 34 link and hub bindings step by step for want of it.
+    carried_bindings: dict[str, str] = Field(default_factory=dict)
     # WP35: the warehouse the generated dbt project is aimed at (`run --target-platform`).
     # Read by the staging pass for seed column types and the README's profile hint —
     # nothing else branches on it, the vault SQL is platform-neutral (AutomateDV dispatches

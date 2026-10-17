@@ -13,6 +13,11 @@ is not the project's.
 ## [Unreleased]
 
 ### Fixed
+- A brownfield step lost the stage bindings earlier increments had made by resolution (the offer
+  tier, a ratified proposal or mapping) — they were re-derived from the increment's tables alone
+  and fell to `raw_<base>`; the twentieth chain's whole-vault build showed 24 of 34 unbound stages
+  had been bound in an earlier step. The catalogue now carries `stage_bindings` and staging keeps
+  them unless this run's own resolution binds the stage (WP77).
 - A hub declared with a single feed counted as multi-source, so a satellite on its own relation
   under it was refused as feed-ambiguous — and the WP56 relation inference re-set the relation
   the gate's remedy had dropped, attempt after attempt (the nineteenth chain's red step). Two or

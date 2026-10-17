@@ -18,7 +18,11 @@ from uuid import uuid4
 from vault_agent import cli
 from vault_agent.agents.entity_resolver import pending_resolution_decisions
 from vault_agent.agents.orchestrator import assemble_review_queue
-from vault_agent.existing_model import load_existing_catalogue, load_existing_model
+from vault_agent.existing_model import (
+    load_carried_bindings,
+    load_existing_catalogue,
+    load_existing_model,
+)
 from vault_agent.link_proposal import pending_link_decisions, proposal_key
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import RESOLUTION_SAME_AS, VaultAgentState, split_concept_key
@@ -199,6 +203,7 @@ class RunManager:
                 existing_source=str(existing_dir) if existing_dir else None,
                 thread_id=thread_id,
                 carried_schemas=load_existing_catalogue(existing_dir) if existing_dir else [],
+                carried_bindings=load_carried_bindings(existing_dir) if existing_dir else {},
             )
             self._finish(run_id, state, paused, input_doc, thread_id)
         except asyncio.CancelledError:

@@ -62,6 +62,13 @@ staging binds via dbt's `source()` and `sources.yml` becomes a real source defin
 raw tables. Ratifying mappings at the checkpoint (7.6) upgrades bindings to this form
 and clears the inferred-binding flags.
 
+**Carried binding** (WP77, 2026-10-17): a brownfield run keeps the declared binding an earlier
+increment made for a stage — `stage_bindings` in `metadata/source_catalogue.yml`, keyed by stage
+model — when its own resolution (a ratified mapping, a ratified proposal, the offer) says nothing
+about that stage; WP73's column check still applies and a refused carried binding is a
+`binding_rejected` decision. Before WP77 a link bound by offer in one step inferred in the next,
+because the offer tier sees only the increment's tables (the twentieth chain lost 24 of 34).
+
 **Translation model** (WP36, ADR-0013): a link ratified from a foreign key that references a
 surrogate while the hub is keyed on the natural key gets a second staging model,
 `stg_<link>_via_<relation>` — a view that LEFT JOINs the referencing relation to the

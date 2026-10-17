@@ -169,10 +169,12 @@ def render_extension_prompt_section(existing: DVModel | None) -> str:
     return "\n" + "\n".join(lines) + "\n"
 
 
-def dump_source_catalogue(tables: list[Any]) -> str:
+def dump_source_catalogue(tables: list[Any], bindings: dict[str, str] | None = None) -> str:
     """Render the source catalogue (WP74): table, schema, database and the declared columns,
     deduplicated by (schema, table), first occurrence wins — so a caller passes the
-    increment's tables before the carried ones."""
+    increment's tables before the carried ones. ``bindings`` (WP77) adds ``stage_bindings``:
+    every staging model's declared relation, so the next increment keeps a binding its own
+    resolution cannot re-derive (the offer tier and the proposals see only the increment)."""
     seen: set[tuple[str | None, str]] = set()
     entries: list[dict[str, Any]] = []
     for table in tables:
@@ -186,7 +188,56 @@ def dump_source_catalogue(tables: list[Any]) -> str:
         if table.database is not None:
             entry["database"] = table.database
         entries.append(entry)
-    return yaml.safe_dump({"source_schemas": entries}, sort_keys=False, allow_unicode=True)
+    document: dict[str, Any] = {"source_schemas": entries}
+    if bindings:
+        document["stage_bindings"] = dict(sorted(bindings.items()))
+    return yaml.safe_dump(document, sort_keys=False, allow_unicode=True)
+
+
+def stage_bindings(staging_metadata: dict[str, Any]) -> dict[str, str]:
+    """WP77: ``{stage model: relation}`` for every stage whose binding is declared, read from the
+    staging metadata the code generator stores (``artifacts.automatedv_yaml["staging"]``) —
+    after the mapper's re-bind, so a binding a human ratified travels too. The relation, never
+    the translation view: the metadata keeps ``source_model`` as the relation (mapping form
+    ``{block: relation}`` or bare)."""
+    out: dict[str, str] = {}
+    for name, meta in staging_metadata.items():
+        if not isinstance(meta, dict) or meta.get("source_binding") != "declared":
+            continue
+        source = meta.get("source_model")
+        if isinstance(source, dict):
+            values = [str(v) for v in source.values()]
+            if len(values) != 1:
+                continue
+            out[name] = values[0]
+        elif isinstance(source, str) and source:
+            out[name] = source
+    return out
+
+
+def _catalogue_path(path: Path) -> Path:
+    if path.is_file():
+        # `--existing` may name the model file itself (metadata/dv_model.yml): the catalogue
+        # is its sibling, unless the file given is the catalogue.
+        return path if path.name == SOURCE_CATALOGUE_FILENAME else (
+            path.parent / SOURCE_CATALOGUE_FILENAME
+        )
+    return path / "metadata" / SOURCE_CATALOGUE_FILENAME
+
+
+def load_carried_bindings(path: Path) -> dict[str, str]:
+    """WP77: the ``stage_bindings`` of an existing output's catalogue, ``{}`` when the output
+    predates WP77 or ``path`` does not exist. Same path rule as ``load_existing_catalogue``."""
+    candidate = _catalogue_path(path)
+    if not candidate.is_file():
+        return {}
+    document: Any = yaml.safe_load(candidate.read_text(encoding="utf-8"))
+    if not isinstance(document, dict):
+        return {}
+    bindings = document.get("stage_bindings")
+    if not isinstance(bindings, dict):
+        return {}
+    return {str(k): str(v) for k, v in bindings.items()}
 
 
 def load_existing_catalogue(path: Path) -> list[Any]:
@@ -195,14 +246,7 @@ def load_existing_catalogue(path: Path) -> list[Any]:
     before). ``path`` is the output directory or the catalogue file itself."""
     from vault_agent.source_schema import load_source_schemas
 
-    if path.is_file():
-        # `--existing` may name the model file itself (metadata/dv_model.yml): the catalogue
-        # is its sibling, unless the file given is the catalogue.
-        candidate = path if path.name == SOURCE_CATALOGUE_FILENAME else (
-            path.parent / SOURCE_CATALOGUE_FILENAME
-        )
-    else:
-        candidate = path / "metadata" / SOURCE_CATALOGUE_FILENAME
+    candidate = _catalogue_path(path)
     if not candidate.is_file():
         return []
     return list(load_source_schemas(candidate))

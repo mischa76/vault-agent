@@ -58,7 +58,9 @@ def test_the_catalogue_renders_and_loads_stage_bindings(tmp_path: Path) -> None:
     meta.mkdir()
     (meta / "source_catalogue.yml").write_text(text, encoding="utf-8")
     assert load_carried_bindings(tmp_path) == {"stg_purchase_order": "PurchaseOrderHeader"}
-    assert load_carried_bindings(meta / "dv_model.yml") == {"stg_purchase_order": "PurchaseOrderHeader"}
+    (meta / "dv_model.yml").write_text("hubs: []\n", encoding="utf-8")
+    by_model_file = load_carried_bindings(meta / "dv_model.yml")
+    assert by_model_file == {"stg_purchase_order": "PurchaseOrderHeader"}
     (meta / "source_catalogue.yml").write_text(dump_source_catalogue(STEP1), encoding="utf-8")
     assert load_carried_bindings(tmp_path) == {}  # an output before WP77
     assert load_carried_bindings(tmp_path / "nowhere") == {}
