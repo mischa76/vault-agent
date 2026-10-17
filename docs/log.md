@@ -9269,3 +9269,45 @@ project passes `dbt parse` on the owner's workspace without any patch.** A whole
 pre-registered: `vault19` holds 123 tables against a quota of 100, the metastore stands near
 300 of 500, and dropping a schema is the owner's word. **Not predicted:** the number of
 attempts per step, the inferred count, the shapes.
+
+## [2026-10-17] Twentieth chain run — all green under WP75 and WP76; 88 decisions against 88.6; the fifth project parses on Databricks without a patch; the multi-source gate fired only on a six-feed hub
+
+**Autor:** Claude Code
+
+**The run.** `adventureworks_incremental`, one repeat, stamp `20261017T163032109423Z`, at
+`eb25f21`, the 5.5 defaults, outputs kept. 111 calls (8 modeler: steps 1, 2 and 5 two attempts,
+3 and 4 one), 464k uncached input, 272k output, 24.1 min, ≈ 4.86 USD. Final vault 40 hubs / 51
+links / 92 satellites. **All five steps green** — `validation_gate`, `pipeline_health`,
+`existing_construct_preservation` and `project_self_contained` 1.0 on every step and the chain.
+
+**Against the pre-registration (entry above).** **P1 held.** **P2 held, narrowly:** decisions
+16 / 7 / 27 / 7 / 31 = **88** against the ceiling 88.6 (the record's floor, mean 83.6 + 5); the
+three above the eighteenth's 85 are one `binding_rejected` decision per step from step 3 on and
+step 5's wider queue (`W_ROLE_BK_NOT_IN_SOURCE` 4, `W_LINK_REDUNDANT_GRAIN` 1). 88 enters the 5.5
+record (84, 83, 83, 83, 85, 88); the twenty-first is judged against **89.3** (floor; the t-bound
+over six is 88.6). **P3 held:** `stage_refs_unresolved` 0 in every step, `stage_refs_inferred`
+0 / 4 / 8 / 20 / 33 — the scorer the nineteenth corrected reads 1.0 because WP76 declares what
+dbt could not resolve, and the inferred count says what a human still provides. **P4 held:**
+`binding_rejected` 0 / 0 / 1 / 1 / 1, one stage (`stg_product_subcategory`, the ratified relation
+lacking a hashed column), once per step — the nineteenth's triplicate is gone. **P5 held:**
+`E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` was named in two modeler inputs, both on
+`hub_business_entity` with **two, then six feeds** (`BusinessEntity`, `Person`, then also
+`EmailAddress`, `PersonPhone`, `Password`, `Employee` — Opus 5.5 reaching for feeds on the
+person step, as recorded), answered in the next attempt; no one-feed hub was refused and
+`relation_inferred` is 0 in every step (nothing withheld, nothing to withhold). Step 4's single
+other retry cause was `E_HUB_HK_COLLISION`, followed. **P6 held:** 4.86 USD, 24.1 min; the
+other WP34 §6 clauses as scored. **P7 held:** the kept fifth project (`--keep-outputs`),
+profile only, `dbt deps` and `dbt parse` on the owner's workspace: **clean in 1 min 27 s, no
+patch** — 38 relations declared under `inferred`, five declared blocks. **Not predicted:** the
+twentieth's step 5 dropped `hub_shopping_cart_item` and its two links between attempts 1 and
+2 in favour of `hub_shopping_cart` + `link_product_shopping_cart` + `sat_shopping_cart_items`
+(the cart-item-as-hub-or-link variance CLAUDE.md records; the WP57 carry kept 12/13 hubs,
+22/24 links, 24/25 satellites); seven `emit_requirements` and one `emit_mapping` truncations
+split and merged (WP61 repairs 12).
+
+**Überprüft.** The chain and step result files, the five `review.json` files (flags by kind,
+asset and reason), the trace (modeler attempts and the gate codes in each retry's input),
+the parse log; results mirrored to tank. **Nur angenommen.** That the `inferred` block builds
+on this workspace for the twentieth's project too — the regenerated nineteenth did (entry
+above); not rebuilt here. **Bewusst nicht getan.** A whole-vault build (the `vault19` quota,
+the owner's word on dropping it); a twenty-first chain.

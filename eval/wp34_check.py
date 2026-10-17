@@ -82,6 +82,11 @@ REVIEW_DECISION_SAMPLES: dict[str, tuple[tuple[str, int], ...]] = {
         ("20261013T020131196768Z", 85),  # eighteenth, 2026-10-13 — the first judged under WP70:
         #                                   held by the floor (88.2), would have failed the t-bound
         #                                   (84.6) (green; 22.2 min, 4.30 USD)
+        # nineteenth, 2026-10-17 (20261017T020633663704Z): red on WP75's defect, 125 decisions on
+        # three red steps whose mapper was skipped — a defect's count, not entered (the
+        # twelfth's precedent).
+        ("20261017T163032109423Z", 88),  # twentieth, 2026-10-17 — the first under WP75/WP76:
+        #                                   held against 88.6 (green; 24.1 min, 4.86 USD)
     ),
 }
 DEFAULT_RECORD_MODEL = "claude-opus-4-8"  # every archived result without `models`

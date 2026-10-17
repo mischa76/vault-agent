@@ -185,7 +185,7 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   **refuse forced tool use** — `FORCED_TOOL_CHOICE=false` (WP60) asks instead; **defaults switched to
   5.5 by the owner (WP62, 2026-10-09)**; five 5.5 chains green in a row (21–24 min, 4.2–4.9 USD); the
   fourteenth to sixteenth (WP63, WP64 live) had **84, 83, 83 decisions**, the lowest on any model (4.x:
-  126–156); the seventeenth (83) held against the 5.5 record's ceiling. **The ceiling has a floor since
+  126–156); the seventeenth (83), eighteenth (85) and twentieth (88, 2026-10-17, under WP75/WP76) held against the 5.5 record's ceiling (now 89.3 over six). **The ceiling has a floor since
   WP70 (2026-10-12, the owner's number):** max(t-bound, mean + 5) — a tight record (84, 83, 83, 83)
   had made the t-bound a demand for sameness. Opus 5.5 reaches for multi-source
   hubs on the person step (three attempts, twice) — the gates answer it; WP63 makes declared types
