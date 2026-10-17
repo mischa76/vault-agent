@@ -90,6 +90,20 @@ def test_an_inferred_relation_counts_as_unresolved_because_dbt_refs_it() -> None
     assert unresolved_stage_refs(models, "version: 2\nsources: []\n") == ["stg_x"]
 
 
+def test_a_translation_views_jinja_refs_are_checked_too() -> None:
+    sources = "version: 2\nsources:\n  - name: raw\n    schema: S\n    tables:\n      - name: Product\n"
+    models = {
+        "stg_a_via_product": "select * from {{ ref('raw_a') }} t\n"
+                             "left join {{ source('raw', 'Product') }} r on 1=1\n",
+        "stg_b_via_product": "select * from {{ ref('stg_c') }} t\n"
+                             "left join {{ source('raw', 'Product') }} r on 1=1\n",
+        "stg_c": "source_model:\n  raw: 'Product'\n",
+        "stg_d_via_other": "select * from {{ ref('stg_c') }} t\n"
+                           "left join {{ source('raw', 'Missing') }} r on 1=1\n",
+    }
+    assert unresolved_stage_refs(models, sources) == ["stg_a_via_product", "stg_d_via_other"]
+
+
 def test_carried_schemas_never_enter_source_schemas(tmp_path: Path) -> None:
     state = VaultAgentState(source_schemas=STEP2, carried_schemas=STEP1, dv_model=_model2())
     assert [t.table for t in state.source_schemas] == ["Account"]
@@ -135,7 +149,8 @@ def test_the_scorer_and_the_metric_read_the_written_project() -> None:
     good.artifacts.staging_models = carried.models
     good.artifacts.scaffolding = carried.scaffolding
     assert project_self_contained(good, case).score == 1.0
-    degraded = build_staging(_model2(), STEP2, existing=_model1(), source_overrides=LINK_BINDING)
+    degraded = build_staging(_model2(), STEP2, existing=_model1(),
+                             source_overrides=LINK_BINDING)
     bad = VaultAgentState(dv_model=_model2())
     bad.artifacts.staging_models = degraded.models
     bad.artifacts.scaffolding = degraded.scaffolding

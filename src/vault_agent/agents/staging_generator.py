@@ -1209,17 +1209,24 @@ def unresolved_stage_refs(models: dict[str, str], sources_yml: str) -> list[str]
         }
     unresolved: list[str] = []
     for name, sql in models.items():
+        bad = False
         mapping = re.search(r"source_model:\s*\n\s+(\w+): '([^']+)'", sql)
         if mapping:
             block, table = mapping.group(1), normalize_identifier(mapping.group(2))
-            if table not in blocks.get(block, set()):
-                unresolved.append(name)
-            continue
-        bare = re.search(r"source_model:\s*'?([\w.]+)'?", sql)
-        if not bare:
-            continue
-        relation = bare.group(1)
-        if relation in models:
-            continue
-        unresolved.append(name)
+            bad = table not in blocks.get(block, set())
+        else:
+            bare = re.search(r"source_model:\s*'?([\w.]+)'?", sql)
+            if bare and bare.group(1) not in models:
+                bad = True
+        # A translation view (WP36) joins relations with Jinja refs of its own: every ref() must
+        # be a staging model, every source() a declared block and table — the nineteenth
+        # chain's fifth project failed its parse on such a `ref('raw_document_product')`.
+        for ref in re.findall(r"ref\('(\w+)'\)", sql):
+            if ref not in models:
+                bad = True
+        for block, table in re.findall(r"source\('(\w+)',\s*'([^']+)'\)", sql):
+            if normalize_identifier(table) not in blocks.get(block, set()):
+                bad = True
+        if bad:
+            unresolved.append(name)
     return sorted(unresolved)
