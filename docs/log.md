@@ -9405,3 +9405,35 @@ source row). **Nur angenommen.** That a live chain under WP77 writes and carries
 exactly as the replay did (the twenty-first measures it). **Bewusst nicht getan.** The ten: six
 `ambiguous` belong to the review (`--map`, the workbench), four need a relation nobody
 declares; a twenty-first chain (own „go"); the spec's §6 (the hook; results live here).
+
+## [2026-10-17] WP78 built — the workbench says whether a run's project resolves and parses: the deterministic check always, `dbt parse` on request, no build
+
+**Autor:** Claude Code
+
+The user: „go, bau Stufe 1 als WP78“, after the question whether the build is shown in the UI
+(it was not — the workbench ended at the written project). Spec and red guards `fa3e585`, the
+change in this commit. **Built:** `vault_agent.ui.project_check` — `project_check(out_dir)`
+reads the written project (`models/staging/**/*.sql`, `sources.yml`, `metadata/automatedv.yml`)
+and answers staging models, the stages `unresolved_stage_refs` names, the stages whose binding is
+inferred, dbt's availability (`dbt-core` version and the installed adapter, read from the
+packages) and the last parse; `dbt_parse(out_dir, runner)` runs `dbt deps` (when `dbt_packages/`
+is absent) and `dbt parse` with a throwaway profile of placeholder connection values under
+`.vault-agent/dbt-profiles/` — a real path, so the recorded CLI equivalent repeats exactly what
+the button did; result typed (`ok` | `failed` | `unavailable`, adapter, seconds, the error lines,
+the log), persisted in `run.json` under `parse`. `GET /api/runs/{id}/project`, `POST
+/api/runs/{id}/parse` (a worker thread). The Run perspective's **Project** section shows it
+(`ProjectSection`), the bundle rebuilt; chapter 14.7, index, CHANGELOG. Nothing gates.
+
+**Überprüft.** 1243 tests, ruff, bare mypy; Vitest 17 (the section renders unresolved, inferred,
+availability, the last parse, and the button calls `onParse`); `tsc` clean; `npm run build`.
+**The spec's §3.1 said 3 staging models for the WP74 fixture — it is 5** (two hubs, one link, two
+satellites); the guard carries the correct number with the note. **Pre-registration:** on the
+twentieth chain's kept fifth project and on its WP77-regenerated copy, in the main environment
+(dbt-core 1.9.10 with dbt-postgres): `staging_models` 145, `unresolved` 0, **`dbt parse` ok in
+13.8 s and 15.5 s** — the same project that parsed on Databricks under dbt-core 1.11 parses on the
+Postgres line; `inferred` reads 34 on both because both carry the kept run's
+`metadata/automatedv.yml` (the regenerated copy got new models, not new metadata — a replay
+artefact; its stage files carry the ten). **Nur angenommen.** That `dbt parse` with the
+placeholder Databricks profile opens no connection (the Postgres path was run; the Databricks
+adapter is not in this environment). **Bewusst nicht getan.** Stage 2 (`dbt build` with a
+profile and its log in the UI — the build belongs to the customer's CI); the spec's §6.

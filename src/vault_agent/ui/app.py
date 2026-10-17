@@ -177,6 +177,20 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
         except ProjectError as exc:
             raise _guard(exc) from exc
 
+    @app.get("/api/runs/{run_id}/project")
+    def get_project_check(run_id: str) -> dict[str, Any]:
+        try:
+            return runs.project(run_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.post("/api/runs/{run_id}/parse")
+    async def parse_project(run_id: str) -> dict[str, Any]:
+        try:
+            return await runs.parse(run_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
     @app.get("/api/runs/{run_id}/model")
     async def get_model(run_id: str) -> dict[str, Any]:
         try:

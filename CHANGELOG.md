@@ -83,6 +83,10 @@ is not the project's.
   applied. `eval.wp34_check.REVIEW_TOLERANCE`, `review_bounds`.
 
 ### Added
+- The workbench's Run perspective shows whether the written dbt project resolves (the stages
+  dbt cannot resolve, the stages a human must still provide) and parses it on request with
+  `dbt parse` when dbt is installed — keyless, no warehouse, persisted per run (WP78). A build
+  stays outside the workbench.
 - The source catalogue travels with the model (WP74): `metadata/source_catalogue.yml` beside
   `dv_model.yml`, loaded by `--existing` into `carried_schemas` — read by staging alone — so a
   brownfield step's project keeps every earlier increment's bindings and source blocks and

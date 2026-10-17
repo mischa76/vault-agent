@@ -129,6 +129,26 @@ export interface CheckpointRecord {
   command: string;
 }
 
+export interface ParseResult {
+  status: "ok" | "failed" | "unavailable";
+  adapter: string | null;
+  version?: string;
+  seconds: number;
+  errors: string[];
+  log: string | null;
+  command: string | null;
+  detail?: string;
+}
+
+export interface ProjectCheck {
+  run: string;
+  staging_models: number;
+  unresolved: string[];
+  inferred: string[];
+  dbt: { version: string; adapter: string } | null;
+  parse: ParseResult | null;
+}
+
 export interface Artefact {
   path: string;
   bytes: number;

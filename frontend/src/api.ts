@@ -1,9 +1,6 @@
 // A thin typed client over the WP66 API. Every call here is one the CLI could make; the run
 // records the equivalent (`cli_equivalents`).
-import type {
-  Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, Project, ProjectFile,
-  ProjectSummary, Run,
-} from "./types";
+import type { Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, ParseResult, Project, ProjectCheck, ProjectFile, ProjectSummary, Run } from "./types";
 
 export class ApiError extends Error {
   constructor(public status: number, public detail: string) {
@@ -57,6 +54,8 @@ export const api = {
     return response.text();
   },
   model: (id: string) => call<ModelView>(`/api/runs/${encodeURIComponent(id)}/model`),
+  projectCheck: (id: string) => call<ProjectCheck>(`/api/runs/${encodeURIComponent(id)}/project`),
+  parse: (id: string) => call<ParseResult>(`/api/runs/${encodeURIComponent(id)}/parse`, { method: "POST" }),
   console: (id: string, text: string) =>
     call<ConsoleAnswer>(`/api/runs/${encodeURIComponent(id)}/console`, json({ text })),
   reportUrl: (id: string) => `/api/runs/${encodeURIComponent(id)}/report`,

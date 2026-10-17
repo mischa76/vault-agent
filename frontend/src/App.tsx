@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { api, ApiError } from "./api";
 import { deriveUsage, elapsedSeconds, formatDuration, formatTokens } from "./derive";
 import { PERSPECTIVES, useRoute, type Perspective } from "./router";
-import type { Artefact, Checkpoint, ConsoleEntry, Decision, GraphNode, ModelView, Project, ProjectSummary, Run, TraceEvent } from "./types";
+import type { Artefact, Checkpoint, ConsoleEntry, Decision, GraphNode, ModelView, Project, ProjectCheck, ProjectSummary, Run, TraceEvent } from "./types";
 import { Console } from "./components/Console";
 import { EventStream } from "./components/EventStream";
 import { Button, Dot, Empty, ErrorNote } from "./components/ui";
@@ -30,6 +30,8 @@ export function App() {
   const [model, setModel] = useState<ModelView | null>(null);
   const [modelError, setModelError] = useState<string | null>(null);
   const [artefacts, setArtefacts] = useState<Artefact[]>([]);
+  const [check, setCheck] = useState<ProjectCheck | null>(null);
+  const [parsing, setParsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [newName, setNewName] = useState("");
@@ -49,7 +51,7 @@ export function App() {
 
   // The selected run: reset, then poll run.json and the trace while it runs.
   useEffect(() => {
-    setRun(null); setEvents([]); next.current = 0; setCheckpoint(null); setModel(null); setModelError(null); setArtefacts([]);
+    setRun(null); setEvents([]); next.current = 0; setCheckpoint(null); setModel(null); setModelError(null); setArtefacts([]); setCheck(null);
     if (!route.run) return;
     const id = route.run;
     let cancelled = false, timer: ReturnType<typeof setTimeout> | undefined;
@@ -75,6 +77,7 @@ export function App() {
     let cancelled = false;
     if (status === "paused") api.checkpoint(id).then((c) => { if (!cancelled) setCheckpoint(c); }).catch((e: unknown) => { if (!cancelled) setError(detail(e)); });
     api.artefacts(id).then((a) => { if (!cancelled) setArtefacts(a); }).catch(() => undefined);
+    api.projectCheck(id).then((c) => { if (!cancelled) setCheck(c); }).catch(() => undefined);
     api.model(id).then((m) => { if (!cancelled) { setModel(m); setModelError(null); } }).catch((e: unknown) => { if (!cancelled) setModelError(detail(e)); });
     if (route.project) void refreshProject(route.project);
     return () => { cancelled = true; };
@@ -108,6 +111,14 @@ export function App() {
     } catch (e) { setError(detail(e)); } finally { setBusy(false); }
   }
 
+  async function parseProject(id: string) {
+    setParsing(true);
+    try {
+      await api.parse(id);
+      const [c, r] = await Promise.all([api.projectCheck(id), api.run(id)]);
+      setCheck(c); setRun(r);
+    } catch (e: unknown) { setError(detail(e)); } finally { setParsing(false); }
+  }
   async function act(action: "cancel" | "continue" | "discard") {
     if (!run) return;
     setBusy(true); setError(null);
@@ -215,7 +226,8 @@ export function App() {
             {route.run && !run ? <Empty>loading the run…</Empty> : null}
             {run && route.perspective === "run" ? (
               <RunPerspective run={run} events={events} nodes={nodes} onReview={() => navigate({ perspective: "review" })}
-                onCancel={() => void act("cancel")} onContinue={() => void act("continue")} onDiscard={() => void act("discard")} busy={busy} />
+                onCancel={() => void act("cancel")} onContinue={() => void act("continue")} onDiscard={() => void act("discard")} busy={busy}
+                check={check} parsing={parsing} onParse={() => void parseProject(run.id)} />
             ) : null}
             {run && route.perspective === "review" ? <ReviewPerspective run={run} checkpoint={checkpoint} onDecide={(d) => void decide(d)} busy={busy} error={null} /> : null}
             {run && route.perspective === "model" ? <ModelPerspective view={model} error={run.status === "running" ? "the model arrives when the run reaches the checkpoint" : modelError} /> : null}

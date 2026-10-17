@@ -26,6 +26,7 @@ from vault_agent.existing_model import (
 from vault_agent.link_proposal import pending_link_decisions, proposal_key
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import RESOLUTION_SAME_AS, VaultAgentState, split_concept_key
+from vault_agent.ui import project_check
 from vault_agent.ui.projects import ProjectError, ProjectStore
 
 TERMINAL = {"finished", "failed", "discarded"}
@@ -427,6 +428,24 @@ class RunManager:
             if path.is_file() and ".vault-agent" not in relative.parts:
                 entries.append({"path": str(relative), "bytes": path.stat().st_size})
         return entries
+
+    def project(self, run_id: str) -> dict[str, Any]:
+        """WP78: does the written project resolve, is dbt here, what did the last parse say."""
+        return {"run": run_id, **project_check.project_check(self.out_dir(run_id))}
+
+    async def parse(self, run_id: str) -> dict[str, Any]:
+        """WP78: `dbt deps` + `dbt parse` on the run's project, keyless, in a worker thread;
+        the typed result persisted in run.json and the command recorded as a CLI equivalent."""
+        out_dir = self.out_dir(run_id)
+        result = await asyncio.to_thread(
+            project_check.dbt_parse, out_dir, project_check.run_command
+        )
+        meta = self.read(run_id)
+        equivalents = list(meta.get("cli_equivalents", []))
+        if result.get("command") and result["command"] not in equivalents:
+            equivalents.append(result["command"])
+        self._update(run_id, parse=result, cli_equivalents=equivalents)
+        return {"run": run_id, **result}
 
     def artefact(self, run_id: str, relative: str) -> Path:
         out_dir = self.out_dir(run_id).resolve()

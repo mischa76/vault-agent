@@ -143,3 +143,30 @@ matching command; anything else answers with the help. Answers carry jumps to th
 where the thing is (open Review, open Model). The catalogue's one-liners are the product's
 short answer; chapter 8 remains the manual with the history behind each gate. The transcript
 lives in the page for the session; it is not an artefact of the run.
+
+## 14.7 Does the project resolve, does it parse (WP78)
+
+The Run perspective's **Project** section answers, for a run that has written its dbt project,
+what the eval harness measures as `project_self_contained` — without a warehouse and without a
+model call:
+
+- **Staging models** — how many `stg_*` views the project holds.
+- **Resolves** — the stages whose relation dbt cannot resolve (`unresolved_stage_refs`, WP74): a
+  `source()` whose block or table `sources.yml` does not declare, or a bare name that is not
+  another model. One is enough to make `dbt parse` refuse the whole project; since WP76 and WP77
+  a grounded project has none.
+- **To provide** — the stages whose binding is inferred (`source_binding: inferred` in
+  `metadata/automatedv.yml`): declared under the `inferred` source block, so the project parses,
+  but a build fails on exactly these until a human provides a table or view of that name in the
+  target schema or maps the relation at the checkpoint. They are the `source_binding` and
+  `binding_rejected` items of the review, seen from the build's side.
+- **dbt** — whether `dbt-core` and an adapter (`dbt-postgres` from the `demo` extra, or
+  `dbt-databricks` from `demo-databricks`) are installed in the workbench's own environment.
+- **dbt parse** — on request: `dbt deps` (when `dbt_packages/` is absent) and `dbt parse` in the
+  run's output directory with a throwaway profile whose connection values are placeholders —
+  `dbt parse` opens no connection. The result (status, adapter, seconds, the error lines, the log
+  under `.vault-agent/dbt-parse.log`) is persisted in `run.json` and the command joins the CLI
+  equivalents. `GET /api/runs/{id}/project` and `POST /api/runs/{id}/parse` are the endpoints.
+
+Nothing here gates or changes a run. A `dbt build` with a real profile is deliberately not part of
+the workbench (14.3): the build belongs to your CI, the workbench shows what it will meet.
