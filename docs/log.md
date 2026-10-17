@@ -9505,3 +9505,13 @@ WP78 check and parse log, the build log and the quota API; results mirrored to t
 angenommen.** That the quota estimate converges to the catalogue's count within the hour (the
 Databricks docs call it an estimate; today's lag is the first measurement). **Bewusst nicht
 getan.** Forcing a refresh (no API for it); building into `default` to dodge the estimate.
+
+## [2026-10-17] Correction to the twenty-first chain's entry above: the ceiling over seven samples is 89.7, not 89.3
+
+**Autor:** Claude Code
+
+The entry above wrote „the twenty-second is judged against 89.3 (floor; the t-bound over seven
+is 88.3)“ from memory of the previous ceiling. Computed (`eval.wp34_check.review_bounds`): over
+84, 83, 83, 83, 85, 88, 87 the t-bound is 89.0 and the floor (mean 84.7 + 5) is **89.7** — the
+ceiling for the twenty-second is **89.7**. Nothing else in that entry changes. **Überprüft:** the
+function, run. **Nur angenommen:** nothing. **Bewusst nicht getan:** editing the entry above.
