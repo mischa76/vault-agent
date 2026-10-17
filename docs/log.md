@@ -9311,3 +9311,46 @@ the parse log; results mirrored to tank. **Nur angenommen.** That the `inferred`
 on this workspace for the twentieth's project too — the regenerated nineteenth did (entry
 above); not rebuilt here. **Bewusst nicht getan.** A whole-vault build (the `vault19` quota,
 the owner's word on dropping it); a twenty-first chain.
+
+## [2026-10-17] The twentieth chain's fifth project built whole on Databricks — the first green chain's vault ever built: PASS=260, the 34 failures exactly the 34 inferred-bound stages, five hubs equal to their sources' keys
+
+**Autor:** Claude Code
+
+The user: „ok, altes löschen und dann kompletter Neubau des 20 Projekts auf Databricks“. **Dropped
+on his word:** `workspace.vault19` (123 managed tables) and `workspace.vault19_stg` (97 views),
+looked at before dropping (`information_schema.tables`), `DROP SCHEMA … CASCADE`; 303 → 83 user
+objects. The kept projects under `--keep-outputs` are the only other copies of what they held,
+and they regenerate it. **The build:** the twentieth's kept fifth project (stamp
+`20261017T163032109423Z`, entry above), untouched in its models, laid out for the Free
+Edition's 100-objects-per-schema quota by configuration alone — a `profiles.yml` with
+`schema: vault20`, `+schema: stg` on staging, the 92 `sat_*.sql` moved into
+`models/raw_vault/satellites/` with `+schema: sat` (dbt configures by folder; the SQL is
+byte-identical) — so hubs and links land in `vault20`, satellites in `vault20_sat`, views in
+`vault20_stg`. `dbt deps`, **`dbt parse` clean in 1 min 23 s**, **`dbt build --full-refresh`:
+PASS=260 WARN=0 ERROR=34 SKIP=40 of 334** (183 incremental models, 145 views, 6 data tests) in
+5 min 22 s.
+
+**The 34 errors are exactly the 34 staging views bound to an inferred relation** (`inferred:
+'raw_*'`), set-equal by name — 8 `TABLE_OR_VIEW_NOT_FOUND`, 26 `PARSE_SYNTAX_ERROR` (`SELECT ,`,
+the same one root as in the regenerated nineteenth: no columns on a relation nobody provided);
+not one other model failed, no `UNRESOLVED_COLUMN` anywhere (WP73 live on a green chain). The 40
+skips are their dependants: 3 hubs, 32 links, 5 satellites. **Built: 37 of 40 hubs, 19 of 51
+links, 87 of 92 satellites** — `vault20` 56 tables, `vault20_sat` 87, `vault20_stg` 111 views;
+the metastore stands at 337 user objects. **Five hubs checked against their sources' distinct
+keys, each equal:** `hub_product` 504, `hub_customer` 19 820, `hub_business_entity` 20 777,
+`hub_sales_order` 31 465, `hub_work_order` 72 591; `sat_product_details` 504 rows. The links are
+where the inferred bindings sit (33 of step 5's `stage_refs_inferred`, the proposer's
+`none`/`ambiguous` and WP73's one refusal): a link the mapper could not bind by offer has no
+relation until a human maps it — the honest gap WP47 typed, now visible as a build failure
+instead of a parse failure.
+
+**What this is.** The first whole-vault parse and build of a *green* chain's output anywhere,
+without a hand patch to any generated file (the nineteenth's was red and hand-declared). The
+quota's estimate let `vault20_stg` reach 111 views and `vault20_sat` 87 tables without a refusal
+this time; the nineteenth's two late satellites were refused at an estimated 123 — enforcement
+is lagged, not absent. **Überprüft.** The build log (errors by model and class, set comparison
+against the stages' `source_model`), `information_schema` counts, the five hub counts and the
+satellite's rows, all by SQL on the workspace. **Nur angenommen.** That the 26 `SELECT ,` views
+would become `TABLE_OR_VIEW_NOT_FOUND` once AutomateDV sees any columns (not probed). **Bewusst
+nicht getan.** Providing the 34 relations; a demo mapping (`--map`) for one link to show the
+path; another chain.

@@ -201,7 +201,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
 - **Databricks is verified** (WP72, 2026-10-16): the bank demo (PASS=36, idempotent, end-dating,
   `BALANCE` intact), the person step's output against the real tables (PASS=48), and the chain's
   increments across all 68 AdventureWorks tables (37/39 hubs, 32/51 links, 92/96 satellites) —
-  nothing failed for a platform reason. **What the chain's build found, and no chain could:** a
+  nothing failed for a platform reason; **the twentieth chain's whole vault built on 2026-10-17**
+  (PASS=260, the 34 failures exactly the inferred-bound stages, five hubs equal to their sources' keys —
+  the first green chain's output ever built). **What the chain's build found, and no chain could:** a
   brownfield step's project declares only its own increment's sources and degrades earlier
   staging to unresolvable names — build each step's new models, never the last project whole; and
   13 link stagings were bound to relations lacking a hashed column with no gate naming it —
