@@ -197,7 +197,12 @@ generator's, see the log). A generated `sources.yml`'s `schema:` resolves under 
 output written before WP74 (2026-10-17) declares only its own increment's sources and re-renders
 the earlier constructs' staging ungrounded — build each step's new models there, or regenerate
 once; from WP74 on the source catalogue travels with the model and the project parses whole
-(`project_self_contained` in the eval). And the Free Edition allows 100 tables per schema. dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
+(`project_self_contained` in the eval). And the Free Edition's Unity Catalog quotas: **100 tables per
+schema and 500 per metastore, views counted as tables, enforced on an estimate** (the per-schema
+limit let `vault_aw` reach 276 objects before it struck; Databricks mails at 85 % and 100 %). A whole
+AdventureWorks vault with its staging views exceeds the per-schema quota on its own — split staging
+and raw vault into two target schemas there (`+schema:` per model path in `dbt_project.yml`), and drop
+earlier builds before a new one (`docs/log.md` 2026-10-17). dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
 so no incremental-strategy setting is generated. Selecting it changes two things — seed types use the native spellings
 (`string` instead of `varchar`, which needs a length there; `decimal(38,18)` instead of
 `numeric`, whose platform default `DECIMAL(10,0)` would silently truncate fractions) and
