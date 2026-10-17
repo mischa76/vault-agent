@@ -127,3 +127,20 @@ def test_the_scorer_and_the_metric_read_the_written_project() -> None:
     bad.artifacts.scaffolding = degraded.scaffolding
     verdict = project_self_contained(bad, case)
     assert verdict.score == 0.0 and "stg_customer_details" in verdict.details
+
+
+def test_the_harness_can_keep_a_steps_full_output(tmp_path: Path) -> None:
+    from eval.run import keep_step_outputs
+
+    carried = build_staging(_model2(), STEP2, existing=_model1(), carried=STEP1)
+    state = VaultAgentState(source_schemas=STEP2, carried_schemas=STEP1, dv_model=_model2())
+    state.artifacts.staging_models = carried.models
+    state.artifacts.scaffolding = carried.scaffolding
+    state.artifacts.automatedv_yaml = {"hubs": {}, "staging": carried.metadata}
+    out = keep_step_outputs(tmp_path, "chain", "20261017T000000000000Z", 2, "bank", state)
+    assert out == tmp_path / "chain" / "20261017T000000000000Z" / "step2_bank"
+    assert (out / "dbt_project.yml").exists()
+    assert (out / "models" / "staging" / "sources.yml").exists()
+    assert (out / "metadata" / "source_catalogue.yml").exists()
+    names = sorted(p.name for p in (out / "models" / "staging").glob("*.sql"))
+    assert "stg_customer.sql" in names and "stg_account.sql" in names

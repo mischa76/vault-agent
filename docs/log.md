@@ -9096,3 +9096,29 @@ of the repo and are recorded in the WP72 entries. Chapter 9.6 carries both quota
 `80e3de7`. **Überprüft.** The counts before and after through the statements API. **Nur
 angenommen.** Nothing. **Bewusst nicht getan.** The bank demo and the sources stay; no
 rebuild until the nineteenth chain.
+
+## [2026-10-17] Pre-registration for the nineteenth chain run — the first under WP73 and WP74, with its outputs kept for a whole-vault build on Databricks, written before the run
+
+**Autor:** Claude Code
+
+The user: „go, starte die neunzehnte Kette“. One repeat of `adventureworks_incremental` at the
+commit carrying this entry, the 5.5 defaults, through the eval harness with the new
+`--keep-outputs` (this commit: each step's full output directory written beside the temp
+workdir's model, so the fifth step's project can be built). Code since the eighteenth
+(`5e6beda`): WP72's demo twin (no pipeline change), WP73 (the staging key gate, the binder's
+refusal, the override loop on single-source hubs only), WP74 (the carried catalogue, the
+`project_self_contained` scorer gated on this case). The 5.5 record holds five samples (84, 83,
+83, 83, 85): t-bound 85.7, floor 88.6, ceiling **88.6**.
+
+**P1 — all five steps green. P2 — decisions ≤ 88.6**; expected 80–90 — WP73's refusals turn
+former silent mis-bindings into `binding_rejected` decisions, and WP74 removes nothing from the
+queue, so a few more decisions than the eighteenth's 85 would be the mechanism, not a rise.
+**P3 — `project_self_contained` 1.0 and `stage_refs_unresolved` 0 in every step** (the new
+gate on this case holds). **P4 — `E_STAGE_COLUMN_NOT_IN_SOURCE` fires 0 times in the final
+reports and `binding_rejected` is reported per step** (the replay suggested 0 at the sales
+step; the HR step's `EmployeePayHistory` case is the one to watch). **P5 — WP34 §6's other
+clauses hold; cost ≤ 5 USD, wall ≤ 30 min.** **P6 — after the run, the fifth step's project
+builds whole on the owner's workspace** against the 68 tables, staging views and raw vault in
+two target schemas (the 100-per-schema quota), every hub equal to its source's distinct keys —
+the first whole-vault build of a chain's output anywhere. **Not predicted:** the inferred
+bindings' count (40 at the sales step in the replay); the shapes.

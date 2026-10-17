@@ -62,7 +62,7 @@ from eval.scorers import (
 from vault_agent import llm
 from vault_agent.agents.orchestrator import assemble_review_queue, render_review_queue_md
 from vault_agent.agents.staging_generator import unresolved_stage_refs
-from vault_agent.cli import _checkpoint_serde
+from vault_agent.cli import _checkpoint_serde, write_outputs
 from vault_agent.config import get_settings
 from vault_agent.existing_model import (
     DV_MODEL_FILENAME,
@@ -733,6 +733,18 @@ def dump_model_yaml(state: VaultAgentState) -> str:
     return yaml.safe_dump(state.dv_model.model_dump(mode="json"), sort_keys=True)
 
 
+def keep_step_outputs(
+    root: Path, case_name: str, stamp: str, index: int, step_name: str, state: VaultAgentState
+) -> Path:
+    """Write a chain step's full output directory (what ``vault-agent run --out`` writes) under
+    ``root/<case>/<stamp>/step<i>_<name>/`` (2026-10-17). The eval's workdir is temporary; a
+    kept output is what a warehouse build of the step needs, with the catalogue (WP74)."""
+    out = root / case_name / stamp / f"step{index}_{step_name}"
+    out.mkdir(parents=True, exist_ok=True)
+    write_outputs(state, out)
+    return out
+
+
 def step_model_path(case_dir: Path, stamp: str, index: int, step_name: str, run: int) -> Path:
     """Where a chain step's model is persisted, beside its result JSON (2026-09-13)."""
     return case_dir / f"{stamp}-step{index}-{step_name}-run{run}.dv_model.yml"
@@ -949,6 +961,7 @@ async def _run_score_write(
     models: dict[str, str],
     git_sha: str,
     resume_chain: str | None = None,
+    keep_outputs: Path | None = None,
 ) -> tuple[list[list[ScorerResult]], list[dict[str, Any]], list[Path], tuple[int, str] | None]:
     """Run + score + **persist each repeat immediately** (WP14.1, findings Candidate #3).
 
@@ -1025,6 +1038,14 @@ async def _run_score_write(
                         timestamp=f"{repeat_stamp}-step{step_index}-{step_case.name}",
                         state=step_state,
                     )
+                    # WP74 follow-up (2026-10-17): with --keep-outputs, the step's whole output
+                    # directory as the CLI writes it — the dbt project a warehouse can build —
+                    # instead of the temp workdir the run deletes.
+                    if keep_outputs is not None:
+                        keep_step_outputs(
+                            keep_outputs, case.name, repeat_stamp, step_index,
+                            step_case.name, step_state,
+                        )
                     # The model itself, beside the result, in the CLI's artifact form — so a
                     # chain that dies later can be resumed here instead of bought again
                     # (2026-09-13: four paid steps were lost to a temp workdir).
@@ -1155,6 +1176,10 @@ def main(argv: list[str] | None = None) -> int:
         "--out", type=Path, default=DEFAULT_OUT, help="directory for per-run JSON results"
     )
     parser.add_argument(
+        "--keep-outputs", type=Path, default=None, metavar="DIR",
+        help="also write each chain step's full output directory (the dbt project) under DIR",
+    )
+    parser.add_argument(
         "--resume-chain", metavar="STAMP", default=None,
         help="continue an unfinished chain run: reuse every leading step STAMP persisted "
              "(result + model) and run the rest; chain case, --repeat 1",
@@ -1201,7 +1226,7 @@ def main(argv: list[str] | None = None) -> int:
                 _run_score_write(
                     resolved, golden_path, args.repeat,
                     out_root=args.out, models=models, git_sha=git_sha,
-                    resume_chain=args.resume_chain,
+                    resume_chain=args.resume_chain, keep_outputs=args.keep_outputs,
                 )
             )
         # Each completed repeat is already on disk (WP14.1); the summary renders from the
