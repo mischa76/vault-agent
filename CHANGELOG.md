@@ -73,6 +73,12 @@ is not the project's.
   applied. `eval.wp34_check.REVIEW_TOLERANCE`, `review_bounds`.
 
 ### Added
+- The source catalogue travels with the model (WP74): `metadata/source_catalogue.yml` beside
+  `dv_model.yml`, loaded by `--existing` into `carried_schemas` — read by staging alone — so a
+  brownfield step's project keeps every earlier increment's bindings and source blocks and
+  parses whole; `unresolved_stage_refs`, the metrics `stage_refs_unresolved` /
+  `stage_refs_inferred` and the scorer `project_self_contained` (gated on the chain). Found by
+  WP72's Databricks build: the fifth step's project was unparseable, and no chain had built one.
 - `E_STAGE_COLUMN_NOT_IN_SOURCE` (WP73): a staging model bound to a declared relation that
   lacks a column its hash keys or derived columns read is refused — the generalisation of
   `E_SAT_KEY_NOT_IN_SOURCE` to every construct. `bind_sources` refuses such an override or name

@@ -193,10 +193,11 @@ chain's increments are built there too** (WP72 stage 3, the same day: 37 of 39 h
 links, 92 of 96 satellites across the 68 AdventureWorks tables — nothing failed for a platform
 reason; what did not build is 13 mis-bound staging views and 10 ungrounded ones, the
 generator's, see the log). A generated `sources.yml`'s `schema:` resolves under the profile's
-`catalog:` with no mapping. **Two things to know before building a chain's output anywhere:** a
-brownfield step's project declares only its own increment's sources and re-renders the earlier
-constructs' staging ungrounded, so build each step's new models, not the last step's project
-whole; and the Free Edition allows 100 tables per schema. dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
+`catalog:` with no mapping. **Two things to know before building a chain's output anywhere:** an
+output written before WP74 (2026-10-17) declares only its own increment's sources and re-renders
+the earlier constructs' staging ungrounded — build each step's new models there, or regenerate
+once; from WP74 on the source catalogue travels with the model and the project parses whole
+(`project_self_contained` in the eval). And the Free Edition allows 100 tables per schema. dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
 so no incremental-strategy setting is generated. Selecting it changes two things — seed types use the native spellings
 (`string` instead of `varchar`, which needs a length there; `decimal(38,18)` instead of
 `numeric`, whose platform default `DECIMAL(10,0)` would silently truncate fractions) and

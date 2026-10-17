@@ -193,7 +193,9 @@ vault-agent run crm_requirements.md --out output/v2 \
 ```
 
 `--existing` takes a previous run's **output directory** (its `metadata/dv_model.yml` is
-read) or that file directly. An output generated before this file existed cannot be
+read, and since WP74 its `metadata/source_catalogue.yml` beside it — the declared tables every
+earlier increment bound to, so the existing constructs' staging keeps its relations and source
+blocks and the extended project parses whole) or that file directly. An output generated before this file existed cannot be
 extended — regenerate that vault once with the current version first; the generator is
 deterministic, so the regenerated project is identical. The error message says so.
 

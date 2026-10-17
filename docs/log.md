@@ -9046,3 +9046,36 @@ ruff, bare mypy; the replay. **Nur angenommen.** That the three steps not replay
 production, purchasing) behave as the sales step — same mechanism. **Bewusst nicht getan.** WP74
 (the self-contained brownfield project, the harness building a step); a better relation for the
 three links left inferred (a human's `--map`).
+
+## [2026-10-17] WP74 — a brownfield step's project is self-contained: the source catalogue travels with the model, and „green" now means „resolvable"
+
+**Autor:** Claude Code
+
+Closes WP72 stage 3's first finding. Guards `a4c72de`, the change `eb60d02`, docs here. **What
+exists now.** `write_outputs` writes `metadata/source_catalogue.yml` beside `dv_model.yml`: the
+increment's declared tables plus everything carried into the run, with schema, database and
+the full columns, in the house loader's shape, no foreign keys. `--existing` (the CLI and the
+workbench) loads it into a new state field, `carried_schemas` — the typed split CLAUDE.md
+asked for: `source_schemas` stays the increment's, and the contract agent, the proposer, the
+resolver and the modeler's grounding never see the carried tables; only `build_staging` binds
+and groups source blocks over both. The eval harness persists the catalogue beside each step's
+model (`write_step_vault`) and carries it into the next step, resumed steps included. A pure
+function, `unresolved_stage_refs`, names every staging model whose relation dbt could not
+resolve — a `source()` mapping without its block or table, or a bare name that is neither a
+staging model nor an inferred `raw_*` — and the harness records `stage_refs_unresolved` and
+`stage_refs_inferred` per step and scores `project_self_contained`, gated at 1.0 on the chain.
+
+**Replayed over the Databricks chain's five step models:** the fifth step's project now
+declares five source blocks, one per schema, and no stage reads a relation dbt cannot resolve
+in any step; what remains inferred (2 / 4 / 15 / 19 / 40 stages) is disclosed as
+`source_binding` for a human to map. **So:** chapter 9.6's workaround of 2026-10-16 — build
+each step's new models, never the last project whole — is withdrawn for outputs written from
+today; an older output still extends, degraded as before, until it is regenerated once.
+
+**Überprüft.** 1220 tests (six WP74 guards: the catalogue written and read back, the carried
+binding against the degraded contrast, the state split, the CLI's `--existing` path, the
+scorer), ruff, bare mypy; the keyless replay. **Nur angenommen.** That dbt parses the
+replayed fifth project (the resolution check is the keyless stand-in; no warehouse in the
+suite) — the nineteenth chain's Databricks build will say. **Bewusst nicht getan.** A build
+step inside the harness with a warehouse (its own decision); a better relation for inferred
+bindings.

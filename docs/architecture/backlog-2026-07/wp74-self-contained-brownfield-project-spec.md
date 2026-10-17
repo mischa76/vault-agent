@@ -80,3 +80,22 @@ environment; a separate decision); a better relation for inferred bindings.
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-17 — built, keyless; replayed over the Databricks chain.** Guards `a4c72de` (red),
+the change `eb60d02`, docs in the commit carrying this line. `metadata/source_catalogue.yml`
+beside the model (`existing_model.dump_source_catalogue` / `load_existing_catalogue`, the
+latter also from the model file's path, `[]` for an output written before today);
+`VaultAgentState.carried_schemas`; `--existing` and the workbench load it; `build_staging`
+binds and groups blocks over the increment's tables plus the carried ones (the increment's
+first on a clash) — nothing else reads them; `write_step_vault` and `run_chain_once` persist
+and carry it in the harness; `unresolved_stage_refs(models, sources_yml)`; the metrics
+`stage_refs_unresolved` / `stage_refs_inferred` and the scorer `project_self_contained`, gated
+at 1.0 on `adventureworks_incremental`. Six guards; 1220 tests, ruff, bare mypy. The guards'
+one change to existing expectations: the bank scorer test's expected set gains the new
+scorer at 1.0 (vacuous there). **§4 replay** (the five step models of the Databricks chain,
+staging re-rendered step by step with the catalogue carried): source blocks 1 → 2 → 3 → 4 →
+**5** (`Person`, `HumanResources`, `Production`, `Purchasing`, `Sales`), `unresolved_stage_refs`
+**0 in every step**, inferred bindings 2 / 4 / 15 / 19 / 40 — the `source_binding` disclosures
+that remain, a human's mapping, not the generator's loss. **Not measured:** the nineteenth
+chain's live score; a dbt parse of the replayed fifth project (no warehouse here — the
+resolution check is the keyless stand-in, as §5 says).
