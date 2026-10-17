@@ -9437,3 +9437,29 @@ artefact; its stage files carry the ten). **Nur angenommen.** That `dbt parse` w
 placeholder Databricks profile opens no connection (the Postgres path was run; the Databricks
 adapter is not in this environment). **Bewusst nicht getan.** Stage 2 (`dbt build` with a
 profile and its log in the UI — the build belongs to the customer's CI); the spec's §6.
+
+## [2026-10-17] Pre-registration for the twenty-first chain run — the first under WP77 and WP78, run end to end: chain, drop, whole-vault build, workbench check — written before the run
+
+**Autor:** Claude Code
+
+The user: „ich hätte nun gerne mal einen kompletten Lauf von A bis Z für AdventureWorks“, with the
+standing instruction to drop the previous vault schemas on Databricks before the next build so
+the Unity Catalog quota is never hit again (today's in-place rebuild was refused at 111 views —
+replacing a view counts as creating one). One repeat of `adventureworks_incremental` at the
+commit carrying this entry, the 5.5 defaults, `--keep-outputs`; then `vault20`, `vault20_sat`,
+`vault20_stg1`, `vault20_stg2` dropped; then the fifth step's kept project built whole into fresh
+schemas (hubs and links, satellites, two staging halves — configuration only, SQL untouched);
+then WP78's check and `dbt parse` on the kept project. Code since the twentieth (`eb25f21`):
+WP77 (carried bindings), WP78 (the workbench's project check). The 5.5 record holds six samples
+(84, 83, 83, 83, 85, 88): t-bound 88.6, floor 89.3, ceiling **89.3**.
+
+**P1 — all five steps green. P2 — decisions ≤ 89.3.** **P3 — `project_self_contained` 1.0 and
+`stage_refs_unresolved` 0 in every step, and no stage inferred in a step was declared-bound in
+an earlier step** (WP77's promise, measured from the kept projects; the twentieth had 24 such).
+**P4 — `binding_rejected` ≤ 1 per stage per step.** **P5 — the whole-vault build fails only on
+the staging views whose binding is inferred in the fifth project, and on their dependants;
+nothing else; every hub checked equals its source's distinct keys.** Expected around ten inferred
+(the twentieth's never-bound set), not predicted exactly — the modeler's shapes vary. **P6 —
+cost ≤ 5.5 USD, wall ≤ 30 min; the other WP34 §6 clauses hold.** **P7 — WP78 on the kept fifth
+project: `unresolved` 0, `inferred` equal to the build's failing views, `dbt parse` ok on the
+Postgres line.** **Not predicted:** attempts per step, the shapes, the inferred count.

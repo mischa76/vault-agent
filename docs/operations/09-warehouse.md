@@ -216,7 +216,9 @@ schema and 500 per metastore, views counted as tables, enforced on an estimate**
 limit let `vault_aw` reach 276 objects before it struck; Databricks mails at 85 % and 100 %). A whole
 AdventureWorks vault with its staging views exceeds the per-schema quota on its own — split staging
 and raw vault into two target schemas there (`+schema:` per model path in `dbt_project.yml`), and drop
-earlier builds before a new one (`docs/log.md` 2026-10-17). dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
+earlier builds before a new one (`docs/log.md` 2026-10-17) — **always, before every build:** the quota counts
+replacing a view as creating one, so a `--full-refresh` into a schema already above the limit fails whole
+(142 refusals, PASS=0, 2026-10-17); staging alone needs two schemas (145 views). dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
 so no incremental-strategy setting is generated. Selecting it changes two things — seed types use the native spellings
 (`string` instead of `varchar`, which needs a length there; `decimal(38,18)` instead of
 `numeric`, whose platform default `DECIMAL(10,0)` would silently truncate fractions) and

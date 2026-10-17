@@ -214,6 +214,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   **a one-feed hub is not multi-source since WP75** (the nineteenth chain's red). Its extra `demo-databricks`
   (dbt-core 1.11) **conflicts with `demo`** (dbt-core 1.9, the line verified on Postgres since
   2026-06-23) — `uv sync` installs one or the other, never both (`tool.uv.conflicts`, 2026-09-12).
+  **Drop the previous vault schemas before every Databricks build** (the owner's standing word,
+  2026-10-17): the Free Edition's 100-objects-per-schema quota counts replacing a view as creating
+  one, so a rebuild in place fails whole; split staging over two schemas by `+schema` (9.6).
 
 ## How this file is maintained
 
