@@ -9079,3 +9079,20 @@ replayed fifth project (the resolution check is the keyless stand-in; no warehou
 suite) — the nineteenth chain's Databricks build will say. **Bewusst nicht getan.** A build
 step inside the harness with a warehouse (its own decision); a better relation for inferred
 bindings.
+
+## [2026-10-17] Workspace housekeeping — the three vault schemas of WP72 dropped on the owner's word; 83 of 500 metastore objects remain
+
+**Autor:** Claude Code
+
+Databricks mailed three Unity Catalog warnings during WP72 stage 3 (2026-10-16, 20:46 and
+21:21 CEST): 100 % of the 100-tables-per-schema quota on `vault_aw`, then 80 % and 85 % of the
+500-per-metastore quota. Counted today: 425 objects, views included — 342 of them the build
+artefacts of stages 2 and 3 (`vault_person` 48, `vault_aw` 276, `vault_aw2` 18), the rest the 68
+source tables in five schemas, the bank demo's 15 objects and the volume. The user: „ok, lösch
+die drei Vault-Schemas". Dropped with `DROP SCHEMA … CASCADE`; 83 objects remain (default 15,
+person 13, humanresources 6, production 25, purchasing 5, sales 19), the source data and the
+bank demo untouched. The dropped vaults are reproducible from the five step projects kept out
+of the repo and are recorded in the WP72 entries. Chapter 9.6 carries both quotas since
+`80e3de7`. **Überprüft.** The counts before and after through the statements API. **Nur
+angenommen.** Nothing. **Bewusst nicht getan.** The bank demo and the sources stay; no
+rebuild until the nineteenth chain.
