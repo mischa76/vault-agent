@@ -91,7 +91,8 @@ def test_an_inferred_relation_counts_as_unresolved_because_dbt_refs_it() -> None
 
 
 def test_a_translation_views_jinja_refs_are_checked_too() -> None:
-    sources = "version: 2\nsources:\n  - name: raw\n    schema: S\n    tables:\n      - name: Product\n"
+    sources = ("version: 2\nsources:\n  - name: raw\n    schema: S\n    tables:\n"
+               "      - name: Product\n")
     models = {
         "stg_a_via_product": "select * from {{ ref('raw_a') }} t\n"
                              "left join {{ source('raw', 'Product') }} r on 1=1\n",
