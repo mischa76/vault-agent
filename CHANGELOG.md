@@ -73,6 +73,13 @@ is not the project's.
   applied. `eval.wp34_check.REVIEW_TOLERANCE`, `review_bounds`.
 
 ### Added
+- `E_STAGE_COLUMN_NOT_IN_SOURCE` (WP73): a staging model bound to a declared relation that
+  lacks a column its hash keys or derived columns read is refused — the generalisation of
+  `E_SAT_KEY_NOT_IN_SOURCE` to every construct. `bind_sources` refuses such an override or name
+  match itself (`binding_rejected`, a review decision), so the mapper's re-bind cannot
+  re-introduce what the validator refused; and a ratified link proposal binds a link only when
+  its hub is built from the proposal's table alone (a multi-source hub bound every link on it to
+  the last license's table — 13 stagings in WP72's chain, in every chain, seen only by a build).
 - `demo/bank_databricks/` (WP72 stage 1): the bank demo's twin on Databricks, built live on a
   Free Edition warehouse — WP35's four open acceptances held and its three questions answered
   (append semantics without a `unique_key`, UPPER_SNAKE identifiers resolve, the profile's

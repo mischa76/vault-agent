@@ -9012,3 +9012,37 @@ dropped for multi-source hubs; (3) the eval harness building at least one step's
 green chain means a buildable vault. **Überprüft.** The replay over two archived chains, the
 loop's code, the hubs' feeds in the three steps' models, the HR step's mapping file. **Nur
 angenommen.** Nothing. **Bewusst nicht getan.** The fix (own „go").
+
+## [2026-10-17] WP73 — a stage whose relation lacks a key it hashes is refused: the gate, the binder's refusal, the override loop fixed
+
+**Autor:** Claude Code
+
+Closes the second finding of WP72 stage 3 and yesterday's correction. Guards `269d883`, the
+change `2153870`, docs here. **What exists now.** `E_STAGE_COLUMN_NOT_IN_SOURCE` in the
+validator's grounded block: for every stage the code generator bound to a *declared* relation
+(the staging metadata it stores), every hash key's source column and every derived column's
+source must be declared there — the generalisation of `E_SAT_KEY_NOT_IN_SOURCE` to every
+construct; translated stages are judged by their own gates, inferred bindings are disclosed,
+not judged. The same check in `bind_sources`, where the mapper's re-bind would otherwise
+re-introduce the defect after the validator: an override or a name match to a relation lacking
+such a column is **not applied** — the stage falls back to the inferred relation and raises
+`FlagKind.BINDING_REJECTED` (a decision, grouped `binding-rejected`, the rejected table as its
+`reason`, the missing columns in its message). And the ratified-proposal loop of
+`link_source_overrides` binds a link only when its participating hub is built from the
+proposal's table *and from nothing else* — a multi-source hub's links keep the binder's own
+resolution. Catalogue and chapter 8 carry the new code and kind.
+
+**Two narrowings the guards forced** (recorded in the spec): keys, not hashdiff attributes —
+a missing attribute stays `W_ATTR_NOT_IN_SOURCE`'s warning as since WP7; and derived names count
+as available to a hash, because a role alias is derived before it is hashed (WP41). **Replayed
+keyless on the Databricks chain's sales step** (the real proposer, `--accept`, the re-bind on
+the step's final model): the seven `Store` bindings are gone — four links now read the relation
+that carries their keys (`Customer`, `PersonCreditCard`, `SalesOrderHeader`), three fall to the
+inferred relation with a disclosure; `BINDING_REJECTED` fired 0 times there, since nothing wrong
+is proposed any more; the gate's live counts come with the nineteenth chain.
+
+**Überprüft.** 1215 tests (five WP73 guards; the registries' guards for the new kind and code),
+ruff, bare mypy; the replay. **Nur angenommen.** That the three steps not replayed (HR,
+production, purchasing) behave as the sales step — same mechanism. **Bewusst nicht getan.** WP74
+(the self-contained brownfield project, the harness building a step); a better relation for the
+three links left inferred (a human's `--map`).

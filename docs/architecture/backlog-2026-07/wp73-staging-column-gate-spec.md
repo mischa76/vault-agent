@@ -77,3 +77,25 @@ relation for the rejected links (a human's `--map`, or a later binder tier).
 ## 6 Results
 
 *(appended after the change)*
+
+**2026-10-17 — built, keyless; replayed on the Databricks chain's sales step.** Guards `269d883`
+(red), the change `2153870`, docs in the commit carrying this line. **Two narrowings against §2,
+both from the guards that held before:** the check reads the stage's *key* columns — each hash
+key's source column(s) and each derived column's source — and not a hashdiff's attributes,
+because a missing attribute is a partial schema and has been `W_ATTR_NOT_IN_SOURCE`'s warning
+since WP7 (three staging-generator tests declare such partial schemas on purpose); and a hash
+may read a *derived* column — a role alias such as `ORGANISATION_BUSINESSENTITYID` (WP41), which
+AutomateDV derives before it hashes — so derived names count as available (the fk-links demo's
+`link_business_entity_contact` showed it). The ratified-proposal loop iterates `ratified()`
+link proposals, not licenses, which the guard now reflects. 1215 tests, ruff, bare mypy.
+**§4 replay** (keyless: the purchasing step's model as `existing`, the sales schema, the real
+proposer, `--accept`'s blanket ratification, then `source_overrides` and `build_staging` on the
+sales step's final model): the proposer ratified 18 proposals from 13 tables, `Store` among
+them; the seven links that read `Store` in the chain now bind `customer_person` and
+`customer_store` to `Customer`, `person_credit_card` to `PersonCreditCard`,
+`sales_order_sales_person` to `SalesOrderHeader` (the relations that carry their keys), and
+`sales_person_sales_territory`, `sales_person_territory_history`, `store_sales_person` to the
+inferred relation with a `source_binding` disclosure; `BINDING_REJECTED` fired 0 times, because
+nothing wrong was proposed any more; the only stage reading `Store` is the hub feed's own
+`stg_business_entity_store`. **Not measured:** the gate and the flag live (the nineteenth chain);
+the HR, production and purchasing steps' replays (same mechanism, not repeated).
