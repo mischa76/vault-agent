@@ -9193,3 +9193,79 @@ two `dbt build` logs, the row counts; results mirrored to tank. **Nur angenommen
 WP56 inference is the only writer of a satellite's `source_table` after the modeler (the flag
 says so for these two). **Bewusst nicht getan.** WP75 and WP76 (own „go"); entering 125 into
 the record; a second build after dropping the inferred stages.
+
+## [2026-10-17] WP75 and WP76 built — a one-feed hub is not multi-source, the inference asks the gate, a re-bind replaces its refusals; inferred relations declared under an `inferred` block: the nineteenth's fifth project parses and builds on Databricks without a hand patch
+
+**Autor:** Claude Code
+
+The user: „ok, go“ on both candidates of the nineteenth chain's entry (above). Specs and red
+guards `b02749e`, the change `579c0eb`. **WP75:** `rules.hub_is_multi_source` (two or more
+feeds) narrows `source_table_on_multi_source_hub`, so `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB`,
+the raw-vault generator's defense in depth and the staging generator agree that a hub written
+with a single `HubSource` has no feed ambiguity; `rules.single_feed_foreign_relation` routes a
+satellite on its own relation under such a hub to the single-source shape (its own
+`stg_<sat>`, the hub's key from the canonical column, which with one feed is the feed's); the
+modeler's `infer_relation` (WP56) withholds a relation that gate would refuse — on the hub path
+and the collapse path, no backstop event, no flag, nothing repaired; `rebind_staging` drops the
+earlier passes' `binding_rejected` together with `source_binding` and dedupes. **WP76:**
+`rules.INFERRED_SOURCE_NAME`; when `group_sources` yields a declared block, `build_staging`
+gives every unbound spec the source name `inferred` and adds a block of that name with
+`schema: "{{ target.schema }}"` (quoted — the installed dbt-core 1.11
+`SchemaYamlRenderer.should_render_keypath` renders a source's `schema`, exempting only
+`description`/`loaded_at_query`) and the merged inferred relations; stages render the mapping
+form, translation views follow from the same `source_name`; without a block (seed world) the
+bare name stays and the ungrounded baseline is byte-identical. `unresolved_stage_refs` is
+unchanged — resolution is a parse-time fact, `stage_refs_inferred` keeps counting what a human
+must provide. The WP7 grounded-with-locations test asserted the bare `ref()` for the unmatched
+link — exactly what WP76 changes — and was updated with the reason in the same commit.
+Catalogue one-liner, chapters 8, 9.3 and 12, CLAUDE.md, CHANGELOG and the index follow.
+
+**Überprüft.** 1233 tests, ruff, bare mypy. **Keyless replay on the nineteenth chain's kept
+outputs** (`--keep-outputs`): the final step-3 model with the production schema and the step-2
+vault raises no `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` (the ten `E_*_TRANSLATION_UNRATIFIED`
+the replay shows are its missing proposals: the kept fifth project renders `_via_product` views
+for exactly those eight links, and the two history satellites carry an applier-set
+`key_translation` — ratified live). The fifth project regenerated from its model and catalogue
+with the kept bindings as overrides: **all 156 staging models and all 180 raw-vault models
+byte-identical to the hand-patched project**, plus `stg_product_cost_history`,
+`stg_product_list_price_history`, their `_via_product` views and the two satellites WP75 now
+generates (160 / 182); 54 inferred relations under the `inferred` block (the hand patch had
+declared 54 too); `unresolved_stage_refs` empty. **On Databricks, without a hand patch:**
+`dbt parse` clean (2 min 6 s); `dbt build --full-refresh` **PASS=228 WARN=0 ERROR=52 SKIP=100 of
+380** in 6 min 14 s. The 50 failing views are **the identical set** of the hand-patched build —
+24 `TABLE_OR_VIEW_NOT_FOUND` and 26 `PARSE_SYNTAX_ERROR` (`SELECT ,`: AutomateDV finds no
+columns on a relation that does not exist, so the stage projects nothing before its hashes);
+**correction to the nineteenth's entry above, which called all 50 `TABLE_OR_VIEW_NOT_FOUND` —
+its own `build3.log` holds the same 26/24 split; one root, two symptoms.** The two new
+satellites were refused by Unity Catalog's quota (`UC_RESOURCE_QUOTA_EXCEEDED`, estimated
+count 123, limit 100 for `vault19` — the earlier 123 got through before the estimate caught
+up), not for a generator reason; 228 against 220 is the four new staging views and the four
+data tests they bring. **Nur angenommen.** That a chain's live modeler reaches the one-feed
+shape again (the nineteenth's step 3 did; the record says Opus 5.5 reaches for `sources` on the
+person step); that `{{ target.schema }}` renders on Postgres's dbt-core 1.9 line as it does on
+1.11 (same renderer class, not run). **Bewusst nicht getan.** A build of the two satellites
+into a schema under the quota; dropping `vault19`/`vault19_stg` (the owner's word, as for the
+three before); the spec files' §6 (the hook; results live here).
+
+## [2026-10-17] Pre-registration for the twentieth chain run — the first under WP75 and WP76, outputs kept, written before the run
+
+**Autor:** Claude Code
+
+The user's „ok, go“ covered „beide zusammen bauen, danach die zwanzigste Kette als Nachweis“.
+One repeat of `adventureworks_incremental` at the commit carrying this entry, the 5.5 defaults,
+`--keep-outputs`. Code since the nineteenth (`308b534`): the three WP74 scorer corrections
+(`7d207b2`, `d87e19b`, `83d21d1`), WP75, WP76. The 5.5 record holds five samples (84, 83, 83,
+83, 85; the nineteenth's 125 not entered): ceiling **88.6**.
+
+**P1 — all five steps green.** **P2 — decisions ≤ 88.6**; expected 80–90, as before.
+**P3 — `project_self_contained` 1.0 and `stage_refs_unresolved` 0 in every step, with
+`stage_refs_inferred` > 0** (the scorer corrected after the nineteenth would have read 0.0 on
+every earlier chain; WP76 is what makes it 1.0 honestly). **P4 — `binding_rejected` ≤ 1 per
+refused stage per step** (the nineteenth's step 1 had 3 for one). **P5 —
+`E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` fires only on a hub with two or more feeds**, if at
+all; a satellite on its own relation under a one-feed hub is generated, not refused. **P6 — the
+other WP34 §6 clauses hold; cost ≤ 5.5 USD, wall ≤ 30 min.** **P7 — the fifth step's kept
+project passes `dbt parse` on the owner's workspace without any patch.** A whole build is not
+pre-registered: `vault19` holds 123 tables against a quota of 100, the metastore stands near
+300 of 500, and dropping a schema is the owner's word. **Not predicted:** the number of
+attempts per step, the inferred count, the shapes.
