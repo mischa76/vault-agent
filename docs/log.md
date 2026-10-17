@@ -9515,3 +9515,29 @@ is 88.3)“ from memory of the previous ceiling. Computed (`eval.wp34_check.revi
 84, 83, 83, 83, 85, 88, 87 the t-bound is 89.0 and the floor (mean 84.7 + 5) is **89.7** — the
 ceiling for the twenty-second is **89.7**. Nothing else in that entry changes. **Überprüft:** the
 function, run. **Nur angenommen:** nothing. **Bewusst nicht getan:** editing the entry above.
+
+## [2026-10-18] The twenty-first chain's whole-vault build is blocked by Unity Catalog's quota estimate, not by the project: 754 estimated against 83 real, unchanged for seventy minutes
+
+**Autor:** Claude Code
+
+Continuation of the twenty-first chain's entry (2026-10-17, P5 pending). The watcher re-read the
+metastore `table-quota` every 150 s from 21:53 to 22:03 UTC and the estimate never moved from
+**754** (limit 500, `last_refreshed_at` 20:56:59 UTC — the GET does not trigger a refresh); it
+then built anyway and was refused identically: **PASS=0, ERROR=160, SKIP=180 of 340**, all 160
+staging views `QUOTA_EXCEEDED` in the *metastore* (152 messages name it), while
+`information_schema.tables` counts **83** user objects and the four `vault21*` schemas are empty.
+`dbt parse` on the workspace was clean (1 min 23 s), as WP78's parse on the Postgres line was.
+**What this is:** the Free Edition's quota is enforced on an estimate that counts today's
+creations — the nineteenth's 220, the twentieth's 254 and 305, the WP77 rebuild's 305 — and had
+not absorbed the drops in over an hour; the standing rule „drop before every build“ (CLAUDE.md,
+2026-10-17) holds the real count down but not the estimate. **Measured, so written down:** the
+estimated quota buys about 500 object creations per refresh period per metastore, whatever is
+dropped in between; four whole-vault builds in one afternoon are over it. **The build is deferred,
+not failed on the project's account:** the project parses, WP78 reads unresolved 0 and inferred 8,
+and nothing changed in the generator since the twentieth's PASS=311 (WP78 added no SQL). It will
+be run when the estimate has refreshed (a GET of `/api/2.1/unity-catalog/resource-quotas/
+metastore/<id>/table-quota` says when), into the already-created `vault21*` schemas — empty, so no
+drop is due. **Überprüft.** The build log (every refusal's scope and count), the quota API before
+and after the wait, `information_schema`. **Nur angenommen.** That the estimate refreshes within a
+day (the docs call it periodic and give no interval). **Bewusst nicht getan.** Building into
+`default` or another catalogue to dodge the estimate (the same metastore); a second chain.
