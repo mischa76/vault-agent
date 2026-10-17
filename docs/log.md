@@ -9354,3 +9354,54 @@ satellite's rows, all by SQL on the workspace. **Nur angenommen.** That the 26 `
 would become `TABLE_OR_VIEW_NOT_FOUND` once AutomateDV sees any columns (not probed). **Bewusst
 nicht getan.** Providing the 34 relations; a demo mapping (`--map`) for one link to show the
 path; another chain.
+
+## [2026-10-17] WP77 built — the binding travels with the model; the twentieth's fifth project rebuilt on Databricks: PASS=311, the ten failures exactly the ten stages no step ever bound, every recovered construct equal to its source
+
+**Autor:** Claude Code
+
+The user: „nein, wir machen jetzt weiter bis der Fehler ausgeräumt ist“. Spec and red guards
+`7fa893b`, the change `d4e5458`. **The defect, measured first:** of the twentieth chain's 34
+inferred-bound stages, 24 had been bound to a declared table in an earlier step —
+`stg_address_state_province` in step 1 (offer), `hub_purchase_order`'s stage from
+`PurchaseOrderHeader` in step 4 (a mapping) — and lost it in the next: inferred 0 / 4 / 9 / 21 /
+34 per step, of which 4 / 2 / 12 / 6 bound the step before. WP74 carried the tables, but the
+offer tier, the ratified proposals and the ratified mappings all resolve against *this
+increment's* tables and proposals; the catalogue has no foreign keys and no proposals, so the
+resolution found nothing and the stage fell to `raw_<base>`. The ten others were never bound:
+six `ambiguous` (two or more relations offer the participations — a human's decision), three
+`none`, one WP73 refusal (`stg_product_subcategory`).
+
+**The change.** `dump_source_catalogue(tables, bindings)` writes `stage_bindings: {stage:
+relation}` from `existing_model.stage_bindings(staging metadata)` — every declared binding
+after the mapper's re-bind, the relation never the translation view, transitive across steps;
+`load_carried_bindings(path)` reads it (`{}` for an older output). `VaultAgentState.
+carried_bindings`, loaded beside the catalogue by `run --existing`, the workbench and the
+harness; `build_staging(carried_bindings=)` → `bind_sources`: after this run's override, before
+the name match, only when the relation is declared (increment or catalogue) and passes WP73's
+column check — a refused carried binding is a `binding_rejected` decision; a kept one raises no
+flag, it was reviewed when made. The code generator and the mapper pass it; `cli.write_outputs`
+and `eval.run.write_step_vault` write it. Chapter 9.3, CLAUDE.md, CHANGELOG, index follow.
+
+**Überprüft.** 1239 tests, ruff, bare mypy. **Keyless replay** of the twentieth chain's five
+kept projects in order, each step's own resolution read from its staging metadata, bindings
+carried: inferred **0 / 0 / 3 / 3 / 10** against 0 / 4 / 9 / 21 / 34 kept; the final ten are
+exactly the ten never bound; `unresolved_stage_refs` 0 throughout; the `inferred` block lists
+those ten. **On Databricks:** the first rebuild in place was refused by Unity Catalog's quota
+(`vault20_stg` at 111 views; replacing a view counts as creating one: 142 quota errors, PASS=0,
+and the only ten non-quota errors the ten inferred stages) — so the three `vault20` schemas of
+this afternoon's build were dropped (my own build, made to be rebuilt; 337 → 83 user objects) and
+the 145 staging views split by configuration into `vault20_stg1` / `vault20_stg2` (72 / 73,
+`+schema` per folder; SQL byte-identical). `dbt parse` clean in 2 min 21 s; **`dbt build
+--full-refresh` PASS=311 WARN=0 ERROR=10 SKIP=13 of 334** in 6 min 14 s. **The ten errors are
+exactly the ten never-bound stages** (8 `PARSE_SYNTAX_ERROR` from `SELECT ,`, 2
+`TABLE_OR_VIEW_NOT_FOUND`); the 13 skips their dependants (2 hubs, 9 links, 2 satellites).
+**Built: 38 of 40 hubs, 42 of 51 links, 90 of 92 satellites, 135 of 145 views** (against 37 /
+19 / 87 / 111 before WP77); `vault20` 80, `vault20_sat` 90, `vault20_stg1` 65, `vault20_stg2` 70;
+the metastore at 388. **Equal to their sources:** `hub_product` 504, `hub_customer` 19 820,
+`hub_business_entity` 20 777, `hub_sales_order` 31 465, **`hub_purchase_order` 4 012** (the stage
+WP77 recovered), **`link_product_work_order` 72 591 = `WorkOrder` rows,
+`link_address_state_province` 19 614 = `Address` rows** (two recovered links, one row per
+source row). **Nur angenommen.** That a live chain under WP77 writes and carries the bindings
+exactly as the replay did (the twenty-first measures it). **Bewusst nicht getan.** The ten: six
+`ambiguous` belong to the review (`--map`, the workbench), four need a relation nobody
+declares; a twenty-first chain (own „go"); the spec's §6 (the hook; results live here).
