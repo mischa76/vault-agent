@@ -1326,6 +1326,42 @@ class ValidatorAgent(BaseAgent):
                             f"schema; verify the source or complete the schema",
                         )
                     )
+        # WP73 (2026-10-17): a declared-bound stage must find every column it hashes or derives
+        # in its relation — the generalisation of E_SAT_KEY_NOT_IN_SOURCE to every construct,
+        # read from the staging metadata the code generator stored. Thirteen link stagings over
+        # four steps of the Databricks chain read EmployeePayHistory, Store or Vendor for keys
+        # those tables never carried, and no chain could see it without a build.
+        declared_tables = {normalize_identifier(t.table): t for t in state.source_schemas}
+        for stage_name, meta in (state.artifacts.automatedv_yaml.get("staging") or {}).items():
+            if meta.get("source_binding") != "declared" or meta.get("key_translation"):
+                continue
+            source = meta.get("source_model")
+            relation = next(iter(source.values())) if isinstance(source, dict) else source
+            table = declared_tables.get(normalize_identifier(str(relation or "")))
+            if table is None:
+                continue
+            stage_declared = {normalize_identifier(c) for c in table.column_names}
+            # a hash may read a derived column (a role alias, WP41): derived names are available
+            stage_declared |= {
+                normalize_identifier(str(name)) for name in (meta.get("derived_columns") or {})
+            }
+            stage_needs: list[str] = []
+            for value in (meta.get("hashed_columns") or {}).values():
+                if isinstance(value, dict):
+                    continue  # a hashdiff: its attributes are W_ATTR_NOT_IN_SOURCE's, not keys
+                key_columns: list[Any] = list(value) if isinstance(value, list) else [value]
+                stage_needs.extend(str(c) for c in key_columns)
+            stage_needs.extend(str(c) for c in (meta.get("derived_columns") or {}).values())
+            missing = sorted({normalize_identifier(c) for c in stage_needs} - stage_declared)
+            if missing:
+                issues.append(
+                    _issue(
+                        "error", "E_STAGE_COLUMN_NOT_IN_SOURCE", stage_name,
+                        f"staging model reads {table.table}, which declares none of "
+                        f"{', '.join(missing)} that it hashes or derives; the stage would fail "
+                        f"at dbt build — the binding is wrong, not the model",
+                    )
+                )
         # WP54 (2026-10-07): a hub of this increment bound to a declared table whose payload
         # columns no satellite reads — the eighth chain lost TransactionHistory's and
         # PurchaseOrderDetail's descriptive columns in one-attempt steps, with only

@@ -89,6 +89,7 @@ REVIEW_FLAG_ROLES: dict[str, ReviewRole] = {
     FlagKind.RETIRED_REPARENTED: "disclosure",  # WP51: the payload found its home, the twin
     FlagKind.LINK_COLLAPSED: "disclosure",  # WP55: a one-hub link's satellite moved to the hub
     FlagKind.RELATION_INFERRED: "disclosure",  # WP56: the schema named a satellite's relation
+    FlagKind.BINDING_REJECTED: "decision",  # WP73: the relation lacks a hashed column; map it
     FlagKind.GENERIC: "decision",  # untyped work, not provenance
 }
 _DEFAULT_ROLE: ReviewRole = "decision"
@@ -128,6 +129,7 @@ REVIEW_FLAG_GROUPS: dict[str, str] = {
     FlagKind.RETIRED_REPARENTED: "retired-reparented",  # WP51
     FlagKind.LINK_COLLAPSED: "link-collapsed",  # WP55
     FlagKind.RELATION_INFERRED: "relation-inferred",  # WP56
+    FlagKind.BINDING_REJECTED: "binding-rejected",  # WP73
     # WP36: deliberately NOT aggregated — a translation is a join through another relation
     # and each one is a review item in its own right (ADR-0013 §3). Listed here only as a
     # comment so the omission reads as a decision, not an oversight.

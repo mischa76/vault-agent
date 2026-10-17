@@ -22,6 +22,7 @@ declaration; the third is recorded as rejected rather than silently absent.
 """
 import logging
 from dataclasses import dataclass
+from typing import Any
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.rules.dv2_rules import (
@@ -1017,10 +1018,21 @@ def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
         name = _relationship_link_name(rel.source_table)
         if any(link.name == name for link in state.dv_model.links):
             overrides[normalize_identifier(construct_base_name(name))] = rel.source_table
+    # WP73: the near hub must be built from the proposal's table AND FROM NOTHING ELSE. A
+    # multi-source hub "binds to" every one of its feeds, and the rule written for a
+    # single-source hub bound every link on hub_business_entity (twelve feeds by the sales
+    # step) to whichever ratified license's table came last — a stage hashing columns that
+    # relation never had, found only by WP72's Databricks build.
+    def _built_only_from(hub: Any, table: str) -> bool:
+        feeds = [s.source_table for s in (hub.sources or [])]
+        if not hub_binds_to_source_table(hub, table):
+            return False
+        return all(normalize_identifier(f) == normalize_identifier(table) for f in feeds)
+
     for proposal in state.link_proposals.ratified():
         for link in state.dv_model.links:
             if any(
-                hub_binds_to_source_table(hub, proposal.source_table)
+                _built_only_from(hub, proposal.source_table)
                 for ref in link.hub_refs
                 for hub in state.dv_model.hubs
                 if hub.name == ref.hub

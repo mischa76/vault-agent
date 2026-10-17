@@ -114,6 +114,10 @@ GATES: dict[str, str] = {
         "A satellite carries a key translation that no ratified subtype feed, key license or "
         "link proposal produced."
     ),
+    "E_STAGE_COLUMN_NOT_IN_SOURCE": (
+        "A staging model is bound to a declared relation that does not carry a column it hashes "
+        "or derives — the stage would fail at dbt build; the binding, not the model, is wrong."
+    ),
     "E_SAT_KEY_NOT_IN_SOURCE": (
         "A satellite's declared relation lacks the column its parent's hash key is computed "
         "from; its stage would fail at dbt build. The remedy names re-parent candidates."
@@ -213,6 +217,10 @@ FLAGS: dict[str, str] = {
     FlagKind.LINK_COLLAPSED: "A one-hub link was collapsed; its satellite moved to the hub.",
     FlagKind.RELATION_INFERRED: (
         "The declared schema named a satellite's relation where the model left it open."
+    ),
+    FlagKind.BINDING_REJECTED: (
+        "A binding to a declared relation lacking a column the stage hashes was refused; the "
+        "stage reads the inferred relation until a human maps it."
     ),
     FlagKind.GENERIC: "Untyped work for a human; not provenance.",
 }

@@ -441,6 +441,37 @@ def collect_staging_specs(
     return specs
 
 
+def stage_key_columns(spec: StagingSpec) -> list[str]:
+    """The raw columns a stage's KEYS read from its relation: every hash key's source column(s)
+    and every derived column's source (WP73). A hashdiff's attributes are not keys — a missing
+    attribute is a partial schema and stays `W_ATTR_NOT_IN_SOURCE`'s warning; a missing key
+    column is a wrong binding. Normalised, ordered, deduplicated."""
+    seen: list[str] = []
+    for _name, value in spec.hashed:
+        if isinstance(value, _HashDiff):
+            continue
+        columns = value if isinstance(value, list) else [value]
+        for column in columns:
+            key = normalize_identifier(column)
+            if key not in seen:
+                seen.append(key)
+    for source in spec.derived.values():
+        key = normalize_identifier(source)
+        if key not in seen:
+            seen.append(key)
+    return seen
+
+
+def missing_stage_columns(spec: StagingSpec, table: SourceTable) -> list[str]:
+    """The key columns a stage hashes or derives that ``table`` does not declare (WP73). A
+    hash may read a DERIVED column (a role alias such as ``ORGANISATION_BUSINESSENTITYID``,
+    WP41) — AutomateDV derives before it hashes — so derived names count as available; the
+    derived columns' own sources must be declared."""
+    available = {normalize_identifier(c) for c in table.column_names}
+    available |= {normalize_identifier(name) for name in spec.derived}
+    return [c for c in stage_key_columns(spec) if c not in available]
+
+
 def bind_sources(
     specs: dict[str, StagingSpec],
     source_schemas: list[SourceTable],
@@ -461,19 +492,52 @@ def bind_sources(
     # (``link_proposal.link_binding_reasons``); a base with no entry is ``none``.
     reasons = binding_reasons or {}
     flags: list[PipelineFlag] = []
+    declared_tables = {normalize_identifier(t.table): t for t in source_schemas}
+
+    def _rejected(spec: StagingSpec, table_name: str) -> bool:
+        """WP73: a declared relation must carry every column the stage hashes or derives. A
+        translated stage joins through another relation and is judged by its own gates."""
+        table = declared_tables.get(normalize_identifier(table_name))
+        if table is None or spec.translations:
+            return False
+        missing = missing_stage_columns(spec, table)
+        if not missing:
+            return False
+        flags.append(
+            PipelineFlag(
+                agent="code_generator",
+                message=(
+                    f"staging model {spec.name!r} was bound to {table_name!r}, which declares "
+                    f"none of {', '.join(missing)} that the stage hashes or derives; the binding "
+                    f"is refused and the stage reads {RAW_SOURCE_PREFIX + spec.base!r} until a "
+                    f"human maps the relation"
+                ),
+                kind=FlagKind.BINDING_REJECTED,
+                asset=spec.name,
+                reason=table_name,
+            )
+        )
+        return True
+
     for spec in specs.values():
         if spec.bound:
             # Declared on the construct itself (Satellite.source_table, WP7 §7.1):
             # bound verbatim at collection time — no inference, no flag.
             continue
         override = overrides.get(normalize_identifier(spec.base))
-        if override:
+        if override and not _rejected(spec, override):
             spec.source_model = override
             spec.bound = True
             continue
         inferred = RAW_SOURCE_PREFIX + spec.base
+        if override:
+            spec.source_model = inferred  # the override was refused above, with its flag
+            continue
         for table in source_schemas:
             if construct_binds_to_source_table(spec.base, table.table):
+                if _rejected(spec, table.table):
+                    spec.source_model = inferred
+                    break
                 spec.source_model = table.table
                 spec.bound = True
                 break
