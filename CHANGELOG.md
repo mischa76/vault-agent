@@ -13,6 +13,11 @@ is not the project's.
 ## [Unreleased]
 
 ### Fixed
+- A hub declared with a single feed counted as multi-source, so a satellite on its own relation
+  under it was refused as feed-ambiguous — and the WP56 relation inference re-set the relation
+  the gate's remedy had dropped, attempt after attempt (the nineteenth chain's red step). Two or
+  more feeds are multi-source now; the inference withholds a relation a gate would refuse; a
+  re-bind replaces its `binding_rejected` refusals instead of appending them (WP75).
 - The source mapper's re-bind rebuilt staging without the vault being extended, so a brownfield
   run renamed a grandfathered `stg_<entity>` to `stg_<entity>_<source>` and rebound it, while the
   raw-vault hub still read `stg_<entity>` — a vault that cannot build. Replayed from a recorded
@@ -79,6 +84,10 @@ is not the project's.
   parses whole; `unresolved_stage_refs`, the metrics `stage_refs_unresolved` /
   `stage_refs_inferred` and the scorer `project_self_contained` (gated on the chain). Found by
   WP72's Databricks build: the fifth step's project was unparseable, and no chain had built one.
+- A grounded project declares its inferred relations under an `inferred` source block in the
+  target schema (WP76), so the project parses whole and a build fails only on the stages whose
+  relation nobody provided; seed-world projects keep the bare name. Eighteen chains had produced
+  projects dbt could not parse.
 - `E_STAGE_COLUMN_NOT_IN_SOURCE` (WP73): a staging model bound to a declared relation that
   lacks a column its hash keys or derived columns read is refused — the generalisation of
   `E_SAT_KEY_NOT_IN_SOURCE` to every construct. `bind_sources` refuses such an override or name

@@ -10,6 +10,7 @@ from vault_agent.agents.staging_generator import build_staging, unresolved_stage
 from vault_agent.rules.dv2_rules import INFERRED_SOURCE_NAME
 from vault_agent.state import DVModel, FlagKind, SourceTable
 
+
 def test_an_unbound_stage_reads_the_inferred_block_and_the_project_resolves() -> None:
     result = build_staging(_model2(), STEP2, existing=_model1(), carried=STEP1)
     link = result.models["stg_account_customer"]
@@ -31,7 +32,8 @@ def test_without_a_declared_block_the_bare_seed_name_stays() -> None:
     located = [SourceTable(table=t.table, columns=t.column_names) for t in STEP2]  # no schema
     result = build_staging(_model2(), located, existing=_model1())
     assert "source_model: 'raw_account_customer'" in result.models["stg_account_customer"]
-    assert INFERRED_SOURCE_NAME not in result.scaffolding["models/staging/sources.yml"]
+    sources = result.scaffolding["models/staging/sources.yml"]
+    assert f"- name: {INFERRED_SOURCE_NAME}" not in sources  # no block, the seed pattern
 
 
 # Byte identity of the ungrounded baseline is guarded by

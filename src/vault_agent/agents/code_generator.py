@@ -30,6 +30,7 @@ from vault_agent.rules.dv2_rules import (
     normalize_identifier,
     role_fk_column,
     satellite_feed,
+    single_feed_foreign_relation,
     source_table_on_multi_source_hub,
 )
 from vault_agent.state import (
@@ -482,7 +483,13 @@ class CodeGeneratorAgent(BaseAgent):
 
         for sat in model.satellites:
             parent_hub = hub_by_name.get(sat.parent)
-            if parent_hub is not None and parent_hub.sources:
+            # WP75: a satellite on its own relation under a ONE-feed hub is the single-source
+            # shape (WP7 §7.1) — rendered below by _render_satellite against its own stage,
+            # never split across "all" feeds and never refused as feed-ambiguous.
+            if (
+                parent_hub is not None and parent_hub.sources
+                and not single_feed_foreign_relation(sat, parent_hub)
+            ):
                 bound_feed = satellite_feed(sat, parent_hub)
                 if bound_feed is not None:
                     # ADR-0011: the satellite NAMES one of the hub's feeds, so it belongs to

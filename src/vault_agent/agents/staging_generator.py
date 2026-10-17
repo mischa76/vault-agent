@@ -24,6 +24,7 @@ from vault_agent.rules.dv2_rules import (
     AUTOMATE_DV_VERSION,
     EFFECTIVITY_APPLIED_COLUMN,
     HASHDIFF_SUFFIX,
+    INFERRED_SOURCE_NAME,
     LOAD_DATETIME_COLUMN,
     RAW_SOURCE_PREFIX,
     RECORD_SOURCE_COLUMN,
@@ -560,6 +561,12 @@ def bind_sources(
     return flags
 
 
+# WP76: the `inferred` block's schema — dbt renders a source's `schema` with Jinja (dbt-core
+# 1.11 `SchemaYamlRenderer.should_render_keypath` exempts only description/loaded_at_query for
+# sources), so the block follows the profile's target schema, where seeds land too.
+TARGET_SCHEMA_JINJA = "{{ target.schema }}"
+
+
 @dataclass
 class SourceBlock:
     """One dbt ``source:`` block in the generated sources.yml (grounded runs, WP7 §7.2)."""
@@ -1019,10 +1026,23 @@ def _render_sources_yml(
         in_blocks = {spec.name for block in blocks for spec in block.specs}
         for block in blocks:
             lines.append(f"  - name: {block.name}")
+            if block.name == INFERRED_SOURCE_NAME:
+                lines.append(
+                    "    # WP76: relations no declared table matched (see the SOURCE_BINDING /"
+                )
+                lines.append(
+                    "    # BINDING_REJECTED review items). Declared here so the project parses;"
+                )
+                lines.append(
+                    "    # provide each as a table or view of that name in the target schema."
+                )
             if block.database is not None:
                 lines.append(f"    database: {block.database}")
             if block.schema_name is not None:
-                lines.append(f"    schema: {block.schema_name}")
+                schema = block.schema_name
+                if "{{" in schema:
+                    schema = f'"{schema}"'  # Jinja is a YAML flow mapping unless quoted
+                lines.append(f"    schema: {schema}")
             lines.append("    tables:")
             for source_model, source_columns, _ in _merge_source_tables(block.specs):
                 lines.append(f"      - name: {source_model}")
@@ -1153,6 +1173,20 @@ def build_staging(
     flags = bind_sources(specs, binding_schemas, source_overrides, binding_reasons)
     # Grounded runs only (ungrounded: no blocks, no source_name — byte-identical output).
     blocks = group_sources(specs, binding_schemas)
+    if blocks:
+        # WP76: a project that addresses its declared inputs through source() declares its
+        # INFERRED relations the same way, under one block in the target schema — AutomateDV
+        # turns a bare name into a ref(), and one unresolvable ref() made the nineteenth
+        # chain's fifth project unparseable. Without a block (seed world) the bare name stays
+        # the verified pattern. The flags still say what a human must provide.
+        inferred = SourceBlock(name=INFERRED_SOURCE_NAME, database=None,
+                               schema_name=TARGET_SCHEMA_JINJA)
+        for spec in specs.values():
+            if not spec.bound:
+                spec.source_name = INFERRED_SOURCE_NAME
+                inferred.specs.append(spec)
+        if inferred.specs:
+            blocks.append(inferred)
     profile = platform_profile(target_platform)
     seed_column_types = _collect_seed_column_types(specs, contracts or [], profile)
     # WP36: one translation model per link whose target key is a join away. Rendered
@@ -1197,8 +1231,10 @@ def unresolved_stage_refs(models: dict[str, str], sources_yml: str) -> list[str]
     relation included. The nineteenth chain's fifth project failed `dbt parse` on
     `ref('raw_sales_order')`: AutomateDV's stage macro turns a bare name into a `ref()`, so an
     inferred relation is not "a table in the target schema" to dbt but a missing node, and one
-    is enough to make the whole project unparseable. Pure: a rendered project in, names out,
-    sorted; ``stage_refs_inferred`` still counts the inferred ones apart."""
+    is enough to make the whole project unparseable. Since WP76 a grounded project declares its
+    inferred relations under the ``inferred`` block, so they resolve here — resolution is a
+    parse-time fact; ``stage_refs_inferred`` still counts what a human must provide. Pure: a
+    rendered project in, names out, sorted."""
     import yaml as _yaml
 
     parsed = _yaml.safe_load(sources_yml) or {}

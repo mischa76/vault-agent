@@ -23,7 +23,6 @@ from vault_agent.state import (
     DVModel,
     FlagKind,
     Hub,
-    HubSource,
     PipelineFlag,
     Satellite,
     SourceTable,

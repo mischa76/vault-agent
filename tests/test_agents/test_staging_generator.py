@@ -151,9 +151,12 @@ def test_grounded_run_with_locations_binds_staging_through_source_refs() -> None
     assert "  - name: raw\n    database: bank\n    schema: core\n    tables:" in sources
     assert "      - name: raw_customer" in sources
     assert "      - name: raw_account" in sources
-    # The unmatched link staging stays a bare-name reference, documented + flagged.
-    assert "source_model: 'raw_account_customer'" in result.models["stg_account_customer"]
-    assert "#   - raw_account_customer (feeds stg_account_customer)" in sources
+    # The unmatched link staging is declared under the `inferred` block in the target schema
+    # and still flagged (WP76, 2026-10-17 — it used to stay a bare ref() dbt could not parse).
+    link = result.models["stg_account_customer"]
+    assert "source_model:\n  inferred: 'raw_account_customer'" in link
+    assert '  - name: inferred\n' in sources and 'schema: "{{ target.schema }}"' in sources
+    assert "      - name: raw_account_customer" in sources
     assert {f.asset for f in result.flags} == {"stg_account_customer"}
     # Metadata mirrors the mapping form so downstream consumers see the real binding.
     assert result.metadata["stg_customer"]["source_model"] == {"raw": "raw_customer"}

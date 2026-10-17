@@ -107,8 +107,8 @@ GATES: dict[str, str] = {
         "and assumes equal grain."
     ),
     "E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB": (
-        "A satellite on a multi-source hub names a source_table that is not one of the hub's "
-        "feeds."
+        "A satellite on a multi-source hub (two or more feeds, WP75) names a source_table "
+        "that is not one of the hub's feeds."
     ),
     "E_SAT_TRANSLATION_UNRATIFIED": (
         "A satellite carries a key translation that no ratified subtype feed, key license or "

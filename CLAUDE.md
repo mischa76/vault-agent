@@ -204,8 +204,10 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   nothing failed for a platform reason. **What the chain's build found, and no chain could:** a
   brownfield step's project declares only its own increment's sources and degrades earlier
   staging to unresolvable names — build each step's new models, never the last project whole; and
-  13 link stagings were bound to relations lacking a hashed column with no gate naming it (WP
-  candidate: refuse a staging whose relation lacks a hashed column). Its extra `demo-databricks`
+  13 link stagings were bound to relations lacking a hashed column with no gate naming it —
+  both closed: WP73 (the gate and the binder's refusal), WP74/WP76 (the catalogue travels, inferred
+  relations are declared under an `inferred` block, a step's project parses whole; 2026-10-17);
+  **a one-feed hub is not multi-source since WP75** (the nineteenth chain's red). Its extra `demo-databricks`
   (dbt-core 1.11) **conflicts with `demo`** (dbt-core 1.9, the line verified on Postgres since
   2026-06-23) — `uv sync` installs one or the other, never both (`tool.uv.conflicts`, 2026-09-12).
 

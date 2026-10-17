@@ -525,14 +525,39 @@ def source_table_on_multi_source_hub(satellite: Any, parent_hub: Any) -> bool:
       *under* one feed would have to say which feed it belongs to, and the model cannot
       express that; inventing the binding is not something this project does.
 
-    Effectivity satellites and single-source parents are excluded, as before."""
+    Effectivity satellites and single-source parents are excluded, as before. **WP75
+    (2026-10-17): a parent with exactly one feed is single-source here** — a relation under one
+    feed carries none of the ambiguity this gate is about, and refusing it had made the
+    nineteenth chain's step 3 red while WP56's inference re-set what the remedy dropped."""
     if parent_hub is None or not satellite.source_table:
         return False
     if satellite.sat_type == "effectivity":
         return False
-    if not getattr(parent_hub, "sources", None):
+    if not hub_is_multi_source(parent_hub):
         return False
     return satellite_feed(satellite, parent_hub) is None
+
+
+def hub_is_multi_source(hub: Any) -> bool:
+    """WP75: two or more declared feeds make a hub multi-source for the feed-ambiguity gate;
+    one feed is a single source that happens to be written as a ``HubSource``. WP10's per-feed
+    staging shape and naming are a different question and keep reading ``hub.sources``."""
+    return len(getattr(hub, "sources", None) or []) >= 2
+
+
+def single_feed_foreign_relation(satellite: Any, parent_hub: Any) -> bool:
+    """WP75: the satellite reads its own relation under a hub with exactly one feed, and that
+    relation is not the feed — the single-source shape of WP7 §7.1 (a dedicated ``stg_<sat>``
+    bound to the relation, hashing the hub's key from its canonical column), which the
+    raw-vault and staging generators must choose over WP10's split or feed binding. False for
+    an effectivity satellite, a relation-less satellite, a satellite naming the feed, and any
+    parent with zero or two or more feeds."""
+    if parent_hub is None or not satellite.source_table:
+        return False
+    if satellite.sat_type == "effectivity":
+        return False
+    sources = getattr(parent_hub, "sources", None) or []
+    return len(sources) == 1 and satellite_feed(satellite, parent_hub) is None
 
 
 # Physical naming conventions the code generator uses when rendering AutomateDV/dbt
@@ -553,6 +578,10 @@ EFFECTIVITY_APPLIED_COLUMN = "APPLIED_DTS"
 # staging model (e.g. stg_customer -> raw_customer). An inferred binding is always flagged
 # for human review (FlagKind.SOURCE_BINDING) — the generator names, it never guesses silently.
 RAW_SOURCE_PREFIX = "raw_"
+# WP76: the dbt source block a grounded project declares its inferred relations under, so the
+# project parses (AutomateDV turns a bare name into a ref() dbt cannot resolve); its schema is
+# the target's, where a seed or a human-provided table of that name lands.
+INFERRED_SOURCE_NAME = "inferred"
 # AutomateDV package pin for the generated packages.yml — the version the Postgres
 # end-to-end PoC (demo/bank_postgres) is verified against. Bump deliberately, re-verifying the demo.
 AUTOMATE_DV_VERSION = "0.11.4"

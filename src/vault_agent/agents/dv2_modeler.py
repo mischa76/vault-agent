@@ -32,6 +32,7 @@ from vault_agent.rules.dv2_rules import (
     hub_key_columns,
     infer_satellite_relation,
     normalize_identifier,
+    source_table_on_multi_source_hub,
 )
 from vault_agent.state import DVModel, FlagKind, Hub, Link, Satellite, VaultAgentState
 
@@ -635,13 +636,25 @@ class Dv2ModelerAgent(BaseAgent):
         valid_parents = hub_names | {link.name for link in kept_links} | existing_links
         moved: dict[str, list[str]] = {name: [] for name in collapsed}
 
-        def infer_relation(sat: Satellite, path: str) -> bool:
+        def infer_relation(sat: Satellite, path: str, parent_hub: Hub | None) -> bool:
             # WP56: a relation-less satellite whose attributes are all columns of exactly one
             # declared table reads that table — read from the schema, not guessed. The ninth
             # chain dropped `sat_email_address_detail` (EmailAddress, ModifiedDate) for want of
             # a relation the schema determined.
             table = infer_satellite_relation(sat, state.source_schemas)
             if table is None:
+                return False
+            # WP75: the inference asks the gate. A relation E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB
+            # would refuse is not set — the nineteenth chain's step 3 saw the modeler drop a
+            # relation on the gate's word and this backstop put it back, three attempts long.
+            # Withholding repairs nothing, so no backstop event and no flag.
+            candidate = sat.model_copy(update={"source_table": table})
+            if source_table_on_multi_source_hub(candidate, parent_hub):
+                logger.info(
+                    "satellite %r: relation %r determined by the schema but withheld — not a "
+                    "feed of its multi-source parent %r",
+                    sat.name, table, sat.parent,
+                )
                 return False
             sat.source_table = table
             state.flag(
@@ -661,11 +674,16 @@ class Dv2ModelerAgent(BaseAgent):
             )
             return True
 
+        hubs_by_name = {hub.name: hub for hub in hubs}
+        if state.existing_model is not None:
+            hubs_by_name |= {hub.name: hub for hub in state.existing_model.hubs}
         for sat in satellites:
             hub_name = collapsed.get(sat.parent)
             if hub_name is None:
                 continue
-            if not sat.source_table and not infer_relation(sat, "collapse"):
+            if not sat.source_table and not infer_relation(
+                sat, "collapse", hubs_by_name.get(hub_name)
+            ):
                 continue  # no relation and none determined: dropped below, not guessed
             former = sat.parent
             sat.parent = hub_name
@@ -686,9 +704,6 @@ class Dv2ModelerAgent(BaseAgent):
                     detail={"link": link_name, "hub": hub_name, "satellites": moved[link_name]},
                 )
             )
-        hubs_by_name = {hub.name: hub for hub in hubs}
-        if state.existing_model is not None:
-            hubs_by_name |= {hub.name: hub for hub in state.existing_model.hubs}
         kept_satellites: list[Satellite] = []
         for sat in satellites:
             if sat.parent not in valid_parents:
@@ -713,7 +728,7 @@ class Dv2ModelerAgent(BaseAgent):
                 }
                 table = infer_satellite_relation(sat, state.source_schemas)
                 if table is not None and normalize_identifier(table) not in own:
-                    infer_relation(sat, "hub")
+                    infer_relation(sat, "hub", parent_hub)
             # A child_dependent_key also listed among the attributes would duplicate a
             # satellite column (E_SAT_DUP_ATTR). Drop the redundant payload copy — the CDK
             # column is emitted via src_cdk regardless — so a multi-active sat the LLM

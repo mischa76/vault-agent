@@ -40,8 +40,15 @@ How a staging model references its raw relation tells you how much the run knew 
 your sources — recognisable in `models/staging/*.sql` and `sources.yml`:
 
 **Inferred** (`raw_<base>`): no declared source table matched, so the generator named
-the conventional relation and flagged it (`SOURCE_BINDING`, advisory). Seed-based
-builds use this form; the flag is your review prompt, never a silent guess.
+the conventional relation and flagged it (`SOURCE_BINDING`, advisory; `BINDING_REJECTED`, a
+decision, when WP73 refused a relation lacking a hashed column). Seed-based builds use this
+form as a bare name; the flag is your review prompt, never a silent guess. **In a project that
+addresses its declared inputs through `source()` blocks, every inferred relation is declared
+under one more block, `inferred`, with `schema: "{{ target.schema }}"` (WP76, 2026-10-17)** —
+AutomateDV turns a bare name into a `ref()`, and one unresolvable `ref()` had made a whole
+chain project unparseable. The project now parses; a build fails exactly on the inferred
+stages until you provide each relation as a table or view of that name in the target schema
+(or a seed, which lands there too).
 
 **Declared, bare-name**: a grounded run matched a declared table *without*
 schema/database — the staging references the table name directly and `sources.yml`
