@@ -32,6 +32,7 @@ from vault_agent.rules.dv2_rules import (
     satellite_feed,
     single_feed_foreign_relation,
     source_table_on_multi_source_hub,
+    stage_column_name,
 )
 from vault_agent.state import (
     FlagKind,
@@ -49,8 +50,10 @@ _CONSTRUCT_PREFIXES = ("hub_", "link_", "sat_")
 
 
 def _to_column(label: str) -> str:
-    """Normalise a business label into a SQL identifier (UPPER_SNAKE)."""
-    return normalize_identifier(label)
+    """Normalise a business label into a SQL identifier (UPPER_SNAKE) — the stage's column for it,
+    which since WP79 carries a trailing underscore when the name is a reserved word (`GROUP_`),
+    so no raw-vault model references an unquoted reserved word."""
+    return stage_column_name(label)
 
 
 def _collision_warnings(labels: list[str], construct: str) -> list[PipelineFlag]:
@@ -150,13 +153,13 @@ def _render_hub(
             multi_source_staging_name(hub, source, legacy) for source in hub.sources
         ]
         source_model: str | list[str] = source_models
-        src_nk: str | list[str] = canonical_hub_key_column(hub)
+        src_nk: str | list[str] = stage_column_name(canonical_hub_key_column(hub))  # WP79
         source_model_literal = _sql_list(source_models)
     elif is_composite_key(hub):
         # WP45: AutomateDV's hub takes src_nk as a list (expand_column_list); the stage hashes
         # the same list, in the same order, so the key columns and the hash agree by construction.
         source_model = _staging_model(hub.name)
-        src_nk_list = hub_key_columns(hub)
+        src_nk_list = [stage_column_name(c) for c in hub_key_columns(hub)]  # WP79
         src_nk = src_nk_list
         source_model_literal = f'"{source_model}"'
     else:

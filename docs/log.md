@@ -9618,3 +9618,43 @@ Snowflake for a column called `Group`. The other keyword-named columns loaded (`
 reserved-word list from memory (GROUP and PRIMARY are in it); that the sniffed types match what
 the contracts would pin (not compared). **Bewusst nicht getan.** Fixing the two columns by hand
 to make the build whole (the finding is the point); WP79 (own „go"); a Databricks retry.
+
+## [2026-10-18] WP79 built — reserved-word source columns escaped and aliased in the stage per platform; the twenty-first's project rebuilt on PostgreSQL: PASS=322 of 340, the eight failures exactly the eight inferred stages
+
+**Autor:** Claude Code
+
+The user: „go, bau WP79“. Spec and red guards `7f4cc79`, the change in this commit. **Built:**
+`rules.RESERVED_COLUMN_WORDS` — PostgreSQL 16.15's 101 reserved keywords (`pg_get_keywords()`,
+categories R and T, read from the installed server), the strictest of the target platforms;
+`is_reserved_column`, `stage_column_name` (the normalised identifier with a trailing underscore
+when reserved: `GROUP_`), which the code generator's `_to_column` now is, so payload, key and
+date references of every raw-vault model name the alias; `PlatformProfile.identifier_fold`
+(`lower` for PostgreSQL, `none` for Databricks) and `physical_name`. The stage declares the escape
+at render time (`_reserved_rewrite`): for every reserved column **of the bound relation** — not
+only the ones the spec references, because `include_source_columns=true` makes AutomateDV select
+every column, which is why `stg_sales_territory`, hashing `TERRITORYID` only, failed on `group` —
+a derived column `<NAME>_: {source_column: <physical>, escape: true}` (AutomateDV's own mechanism:
+`process_columns_to_escape` → `print_list` escapes the column wherever it prints it, in the
+relation's spelling), hashed references rewritten to the alias (AutomateDV hashes after deriving),
+a derived column with a reserved source in the mapping form. WP73's gate reads the mapping form.
+Specs without reserved columns render byte-identically (every baseline held). Chapter 9.3,
+CLAUDE.md, CHANGELOG, index follow.
+
+**Überprüft.** 1251 tests, ruff, bare mypy. **The twenty-first chain's fifth project regenerated
+keylessly for PostgreSQL** (kept model and catalogue, the WP77 bindings as overrides) and rebuilt
+whole on the local server: six stages now carry escapes (`stg_sales_territory`,
+`_country_region`, `_details`, `_financials`, `stg_product_product_photo`, `_details`);
+**`dbt build --full-refresh` PASS=322 WARN=0 ERROR=8 SKIP=10 of 340** — against 310 / 14 / 16
+before WP79. **The eight errors are exactly the eight inferred stages**, nothing else; the ten
+skips their dependants (one hub, eight links, one satellite). Recovered and equal to their
+sources: `hub_sales_territory` 10 = 10 distinct `TerritoryID`, `sat_sales_territory_details` with
+three distinct `GROUP_` values, `link_product_product_photo` 504 = `ProductProductPhoto` rows,
+`sat_product_product_photo_details` 504 rows with `PRIMARY_` populated. **Against the
+pre-registration:** the six reserved-word failures are gone and the build fails on exactly the
+inferred stages — held; the count is **322, not the predicted 324**: the eight inferred stages have
+ten dependants, not eight (two links hang on two of them). **Two deviations from the spec's
+wording, recorded:** §3.3 said `'Group'` as Databricks' spelling — the stage knows the normalised
+`GROUP`, which Databricks resolves case-insensitively, so that is what it writes; the guard says so.
+**Nur angenommen.** Snowflake's reserved list is contained in PostgreSQL's (from memory; Snowflake
+is not a configured platform yet, so nothing selects `upper`). **Bewusst nicht getan.** A per-
+platform list; a reviewer flag for the alias; the Databricks rebuild (the quota window).

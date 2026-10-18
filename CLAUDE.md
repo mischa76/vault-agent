@@ -208,7 +208,9 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   the first green chain's output ever built); **the twenty-first's built on local PostgreSQL too**
   (2026-10-18, PASS=318 of 340 in under a minute, the same eight inferred stages failing on both
   platforms — and six Postgres-only failures on reserved-word columns `Group`/`Primary`, which
-  AutomateDV renders unquoted: WP79 candidate). **What the chain's build found, and no chain could:** a
+  AutomateDV renders unquoted — **closed by WP79 the same day**: escaped via AutomateDV's `escape:
+  true` and aliased `GROUP_`, the list is PostgreSQL's 101 reserved words). **What the chain's build
+  found, and no chain could:** a
   brownfield step's project declares only its own increment's sources and degrades earlier
   staging to unresolvable names — build each step's new models, never the last project whole; and
   13 link stagings were bound to relations lacking a hashed column with no gate naming it —

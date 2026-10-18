@@ -1351,7 +1351,10 @@ class ValidatorAgent(BaseAgent):
                     continue  # a hashdiff: its attributes are W_ATTR_NOT_IN_SOURCE's, not keys
                 key_columns: list[Any] = list(value) if isinstance(value, list) else [value]
                 stage_needs.extend(str(c) for c in key_columns)
-            stage_needs.extend(str(c) for c in (meta.get("derived_columns") or {}).values())
+            for derived in (meta.get("derived_columns") or {}).values():
+                # WP79: an escaped derived column carries its source in the mapping form
+                source_col = derived.get("source_column") if isinstance(derived, dict) else derived
+                stage_needs.append(str(source_col))
             missing = sorted({normalize_identifier(c) for c in stage_needs} - stage_declared)
             if missing:
                 issues.append(

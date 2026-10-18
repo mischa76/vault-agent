@@ -125,6 +125,16 @@ columns with their own `not_null` tests. AutomateDV computes derived columns tog
 row, so both derivations read source values. Link satellites read from their own table get the same,
 per participation. Built on PostgreSQL since 2026-09-15 (`demo/fk_links_postgres`, `PASS=103`).
 
+**Reserved-word columns** (WP79, 2026-10-18): a source column named like a reserved word —
+`SalesTerritory.Group`, `ProductProductPhoto.Primary` — is escaped in the stage through
+AutomateDV's own mechanism (a derived column `GROUP_` with `source_column: 'group'` and
+`escape: true`, the physical spelling the platform folds to: lower on PostgreSQL, upper on
+Snowflake, as declared on Databricks), and every raw-vault reference names the alias `GROUP_`.
+The list is PostgreSQL's 101 reserved keywords (`rules.RESERVED_COLUMN_WORDS`, from
+`pg_get_keywords()`), the strictest of the platforms; a project without such columns renders as
+before. Before WP79 the same project built on Databricks and failed on PostgreSQL with `syntax
+error at or near "group"` — six views and their sixteen dependants on the twenty-first chain.
+
 ## 9.4 Incremental behaviour & effectivity end-dating
 
 The generated effectivity satellite closes superseded relationships: AutomateDV's

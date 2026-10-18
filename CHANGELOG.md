@@ -13,6 +13,11 @@ is not the project's.
 ## [Unreleased]
 
 ### Fixed
+- A source column named like a reserved word (`Group`, `Primary`) made the staging view
+  unparseable on PostgreSQL and Snowflake while it built on Databricks — AutomateDV renders
+  columns unquoted. The stage now escapes such a column through AutomateDV's `escape: true` with
+  the platform's physical spelling and exposes it as `GROUP_`, which every raw-vault model names
+  (WP79). PostgreSQL's 101 reserved keywords are the list.
 - A brownfield step lost the stage bindings earlier increments had made by resolution (the offer
   tier, a ratified proposal or mapping) — they were re-derived from the increment's tables alone
   and fell to `raw_<base>`; the twentieth chain's whole-vault build showed 24 of 34 unbound stages

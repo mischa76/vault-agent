@@ -578,6 +578,43 @@ EFFECTIVITY_APPLIED_COLUMN = "APPLIED_DTS"
 # staging model (e.g. stg_customer -> raw_customer). An inferred binding is always flagged
 # for human review (FlagKind.SOURCE_BINDING) — the generator names, it never guesses silently.
 RAW_SOURCE_PREFIX = "raw_"
+# WP79: PostgreSQL's reserved keywords — categories R ("reserved") and T ("reserved, can be
+# function or type") of `pg_get_keywords()` on PostgreSQL 16.15, read from the installed server
+# on 2026-10-18 — the strictest of the target platforms (Snowflake's list is contained in it,
+# Databricks reserves none of them as column names). A source column so named cannot be
+# referenced unquoted: AutomateDV renders stage and raw-vault columns unquoted, and the
+# twenty-first chain's `SalesTerritory.Group` and `ProductProductPhoto.Primary` built on
+# Databricks and failed on PostgreSQL with `syntax error at or near "group"`.
+RESERVED_COLUMN_WORDS: frozenset[str] = frozenset((
+    "ALL", "ANALYSE", "ANALYZE", "AND", "ANY", "ARRAY", "AS", "ASC", "ASYMMETRIC", "AUTHORIZATION",
+    "BINARY", "BOTH", "CASE", "CAST", "CHECK", "COLLATE", "COLLATION", "COLUMN", "CONCURRENTLY",
+    "CONSTRAINT", "CREATE", "CROSS", "CURRENT_CATALOG", "CURRENT_DATE", "CURRENT_ROLE",
+    "CURRENT_SCHEMA", "CURRENT_TIME", "CURRENT_TIMESTAMP", "CURRENT_USER", "DEFAULT", "DEFERRABLE",
+    "DESC", "DISTINCT", "DO", "ELSE", "END", "EXCEPT", "FALSE", "FETCH", "FOR", "FOREIGN",
+    "FREEZE", "FROM", "FULL", "GRANT", "GROUP", "HAVING", "ILIKE", "IN", "INITIALLY", "INNER",
+    "INTERSECT", "INTO", "IS", "ISNULL", "JOIN", "LATERAL", "LEADING", "LEFT", "LIKE", "LIMIT",
+    "LOCALTIME", "LOCALTIMESTAMP", "NATURAL", "NOT", "NOTNULL", "NULL", "OFFSET", "ON", "ONLY",
+    "OR", "ORDER", "OUTER", "OVERLAPS", "PLACING", "PRIMARY", "REFERENCES", "RETURNING", "RIGHT",
+    "SELECT", "SESSION_USER", "SIMILAR", "SOME", "SYMMETRIC", "SYSTEM_USER", "TABLE",
+    "TABLESAMPLE", "THEN", "TO", "TRAILING", "TRUE", "UNION", "UNIQUE", "USER", "USING",
+    "VARIADIC", "VERBOSE", "WHEN", "WHERE", "WINDOW", "WITH",
+))
+RESERVED_COLUMN_SUFFIX = "_"
+
+
+def is_reserved_column(name: str) -> bool:
+    """WP79: is this column name, normalised, a reserved word on the strictest target platform?"""
+    return normalize_identifier(name) in RESERVED_COLUMN_WORDS
+
+
+def stage_column_name(name: str) -> str:
+    """WP79: the column the stage exposes for a source column and every raw-vault model reads —
+    the normalised identifier, suffixed with ``_`` when the name is reserved (``GROUP_``), so no
+    generated reference is ever an unquoted reserved word. The stage derives the alias from the
+    escaped physical column (``render_stage_model``); a column that is not reserved is unchanged,
+    which keeps every existing output byte-identical."""
+    column = normalize_identifier(name)
+    return column + RESERVED_COLUMN_SUFFIX if column in RESERVED_COLUMN_WORDS else column
 # WP76: the dbt source block a grounded project declares its inferred relations under, so the
 # project parses (AutomateDV turns a bare name into a ref() dbt cannot resolve); its schema is
 # the target's, where a seed or a human-provided table of that name lands.

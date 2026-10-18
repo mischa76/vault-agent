@@ -54,6 +54,18 @@ class PlatformProfile:
     seed_types: Mapping[str, str]
     # One line for the generated README: the profile keys the adapter needs.
     profile_hint: str
+    # WP79: how the platform folds an unquoted identifier — the spelling a QUOTED reference must
+    # use to hit a column created unquoted: PostgreSQL lowercases, Snowflake uppercases,
+    # Databricks and Fabric compare case-insensitively ("none": the declared spelling serves).
+    identifier_fold: Literal["lower", "upper", "none"] = "none"
+
+    def physical_name(self, column: str) -> str:
+        """WP79: the spelling an escaped reference to ``column`` must carry on this platform."""
+        if self.identifier_fold == "lower":
+            return column.lower()
+        if self.identifier_fold == "upper":
+            return column.upper()
+        return column
 
     def seed_type(self, abstract: str) -> str:
         """Translate one abstract seed type; unknown names are a programming error."""
@@ -67,6 +79,7 @@ PLATFORMS: Mapping[TargetPlatform, PlatformProfile] = {
         profile_type="postgres",
         seed_types={t: t for t in SEED_TYPES},
         profile_hint="host, port, user, password, dbname, schema",
+        identifier_fold="lower",
     ),
     "databricks": PlatformProfile(
         name="databricks",

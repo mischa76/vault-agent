@@ -69,7 +69,9 @@ def test_the_stage_escapes_and_aliases_the_reserved_column_for_postgres() -> Non
 def test_databricks_keeps_the_declared_spelling() -> None:
     result = build_staging(_model(), [TERRITORY], target_platform="databricks")
     sql = result.models["stg_sales_territory_details"]
-    assert "  GROUP_:\n    source_column: 'Group'\n    escape: true" in sql
+    # The stage knows the normalised spelling only; Databricks resolves identifiers
+    # case-insensitively, so `GROUP` is the physical name there (the spec said 'Group').
+    assert "  GROUP_:\n    source_column: 'GROUP'\n    escape: true" in sql
 
 
 async def test_the_column_gate_accepts_the_alias() -> None:
@@ -105,3 +107,17 @@ async def test_a_hub_keyed_on_a_reserved_word() -> None:
     stage = state.artifacts.staging_models["stg_order"]
     assert "  ORDER_:\n    source_column: 'order'\n    escape: true" in stage
     assert "ORDERS_HK: 'ORDER_'" in stage
+
+
+def test_a_stage_that_never_references_the_reserved_column_escapes_it_too() -> None:
+    """`include_source_columns=true` selects every relation column: the twenty-first chain's
+    `stg_sales_territory` hashed `TERRITORYID` only and still failed on `group`."""
+    hub_only = DVModel.model_validate({
+        "hubs": [{"name": "hub_sales_territory", "business_key": "TerritoryID",
+                  "source_entity": "SalesTerritory", "description": "t"}],
+        "links": [], "satellites": [],
+    })
+    result = build_staging(hub_only, [TERRITORY], target_platform="postgres")
+    sql = result.models["stg_sales_territory"]
+    assert "  GROUP_:\n    source_column: 'group'\n    escape: true" in sql
+    assert "SALESTERRITORY_HK: 'TERRITORYID'" in sql

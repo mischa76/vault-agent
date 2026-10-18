@@ -34,6 +34,7 @@ from vault_agent.rules.dv2_rules import (
     construct_binds_to_source_table,
     hub_key_columns,
     is_composite_key,
+    is_reserved_column,
     normalize_identifier,
     participation_key,
     role_bk_column,
@@ -41,6 +42,7 @@ from vault_agent.rules.dv2_rules import (
     satellite_feed,
     satellite_participation_column,
     source_table_on_multi_source_hub,
+    stage_column_name,
 )
 from vault_agent.rules.platforms import (
     DEFAULT_TARGET_PLATFORM,
@@ -630,8 +632,68 @@ def group_sources(
     return list(blocks.values())
 
 
-def render_stage_model(spec: StagingSpec) -> str:
-    """Render one AutomateDV ``stage`` model (the pattern verified by demo/bank_postgres)."""
+def _reserved_rewrite(
+    spec: StagingSpec, profile: PlatformProfile, relation_columns: list[str] | None = None
+) -> tuple[dict[str, str | dict[str, Any]], list[tuple[str, str | list[str] | _HashDiff]]]:
+    """WP79: the derived and hashed columns as the stage must declare them when a source column
+    is a reserved word. Every reserved column the spec references — hashed, a derived column's
+    source, or passed through — gets a derived alias ``<NAME>_: {source_column: <physical>,
+    escape: true}`` (AutomateDV then escapes the column wherever it prints it, in the relation's
+    spelling), hashed references name the alias (AutomateDV hashes after deriving), and a derived
+    column whose source is reserved takes the mapping form. ``relation_columns`` are the bound
+    relation's declared columns: `include_source_columns=true` makes AutomateDV select EVERY
+    column of the relation, so a reserved name the spec never references still breaks the view
+    (the twenty-first chain's `stg_sales_territory` hashed `TERRITORYID` only and failed on
+    `group`). Specs without reserved columns come back unchanged — byte-identical output."""
+    def alias(column: str) -> str:
+        return stage_column_name(column)
+
+    referenced: list[str] = []
+    for _, value in spec.hashed:
+        cols = value.columns if isinstance(value, _HashDiff) else (
+            value if isinstance(value, list) else [value]
+        )
+        referenced.extend(cols)
+    referenced.extend(spec.derived.values())
+    referenced.extend(spec.source_columns)
+    referenced.extend(normalize_identifier(c) for c in (relation_columns or []))
+    reserved = [c for c in dict.fromkeys(referenced) if is_reserved_column(c)]
+    if not reserved:
+        return dict(spec.derived), list(spec.hashed)
+    derived: dict[str, str | dict[str, Any]] = {}
+    for name, source in spec.derived.items():
+        if is_reserved_column(source):
+            derived[name] = {"source_column": profile.physical_name(source), "escape": True}
+        else:
+            derived[name] = source
+    for column in reserved:
+        derived.setdefault(
+            alias(column), {"source_column": profile.physical_name(column), "escape": True}
+        )
+
+    def fix(column: str) -> str:
+        return alias(column) if is_reserved_column(column) else column
+
+    hashed: list[tuple[str, str | list[str] | _HashDiff]] = []
+    for name, value in spec.hashed:
+        if isinstance(value, _HashDiff):
+            hashed.append((name, _HashDiff([fix(c) for c in value.columns])))
+        elif isinstance(value, list):
+            hashed.append((name, [fix(c) for c in value]))
+        else:
+            hashed.append((name, fix(value)))
+    return derived, hashed
+
+
+def render_stage_model(
+    spec: StagingSpec, profile: PlatformProfile | None = None,
+    relation_columns: list[str] | None = None,
+) -> str:
+    """Render one AutomateDV ``stage`` model (the pattern verified by demo/bank_postgres).
+    ``profile`` (WP79) supplies the physical spelling of an escaped reserved column; the
+    default platform's when omitted; ``relation_columns`` the bound relation's declared columns."""
+    profile = profile or platform_profile(DEFAULT_TARGET_PLATFORM)
+    derived, hashed = _reserved_rewrite(spec, profile, relation_columns)
     binding = "declared source schema" if spec.bound else "inferred — see review queue"
     lines = [
         f"-- Generated AutomateDV staging model for the raw-vault constructs on "
@@ -651,12 +713,18 @@ def render_stage_model(spec: StagingSpec) -> str:
         lines.append(f"  {spec.source_name}: '{spec.source_model}'")
     else:
         lines.append(f"source_model: '{spec.source_model}'")
-    if spec.derived:
+    if derived:
         lines.append("derived_columns:")
-        for name, source_col in spec.derived.items():
-            lines.append(f"  {name}: '{source_col}'")
+        for name, source_col in derived.items():
+            if isinstance(source_col, dict):
+                # WP79: AutomateDV's escaping form — the physical spelling, quoted everywhere.
+                lines.append(f"  {name}:")
+                lines.append(f"    source_column: '{source_col['source_column']}'")
+                lines.append("    escape: true")
+            else:
+                lines.append(f"  {name}: '{source_col}'")
     lines.append("hashed_columns:")
-    for name, value in spec.hashed:
+    for name, value in hashed:
         if isinstance(value, str):
             lines.append(f"  {name}: '{value}'")
         elif isinstance(value, _HashDiff):
@@ -667,7 +735,7 @@ def render_stage_model(spec: StagingSpec) -> str:
         else:
             lines.append(f"  {name}:")
             lines.extend(f"    - '{col}'" for col in value)
-    derived_arg = "metadata_dict['derived_columns']" if spec.derived else "none"
+    derived_arg = "metadata_dict['derived_columns']" if derived else "none"
     lines.extend(
         [
             "{%- endset -%}",
@@ -683,9 +751,14 @@ def render_stage_model(spec: StagingSpec) -> str:
     return "\n".join(lines) + "\n"
 
 
-def _stage_metadata(spec: StagingSpec) -> dict[str, object]:
+def _stage_metadata(
+    spec: StagingSpec, profile: PlatformProfile | None = None,
+    relation_columns: list[str] | None = None,
+) -> dict[str, object]:
+    profile = profile or platform_profile(DEFAULT_TARGET_PLATFORM)
+    derived_columns, hashed_columns = _reserved_rewrite(spec, profile, relation_columns)  # WP79
     hashed: dict[str, object] = {}
-    for name, value in spec.hashed:
+    for name, value in hashed_columns:
         if isinstance(value, _HashDiff):
             hashed[name] = {"is_hashdiff": True, "columns": list(value.columns)}
         elif isinstance(value, list):
@@ -701,8 +774,8 @@ def _stage_metadata(spec: StagingSpec) -> dict[str, object]:
         "hashed_columns": hashed,
         "expected_source_columns": list(spec.source_columns),
     }
-    if spec.derived:
-        meta["derived_columns"] = dict(spec.derived)
+    if derived_columns:
+        meta["derived_columns"] = dict(derived_columns)
     if spec.translations and spec.stage_source:
         # WP36: the joins a reader of automatedv.yml must see without opening the SQL.
         meta["key_translation"] = {
@@ -1231,9 +1304,23 @@ def build_staging(
         translations[name] = sql
         translation_tests[f"models/staging/{name}.yml"] = tests
         spec.stage_source = name
-    models = {name: render_stage_model(spec) for name, spec in specs.items()}
+    # WP79: the bound relation's declared columns, so a reserved name the spec never references
+    # is escaped too (AutomateDV selects every column of the relation).
+    declared_columns = {
+        normalize_identifier(t.table): list(t.column_names) for t in binding_schemas
+    }
+
+    def relation_columns(spec: StagingSpec) -> list[str] | None:
+        return declared_columns.get(normalize_identifier(spec.source_model)) if spec.bound else None
+
+    models = {
+        name: render_stage_model(spec, profile, relation_columns(spec))
+        for name, spec in specs.items()
+    }
     models.update(translations)
-    metadata = {name: _stage_metadata(spec) for name, spec in specs.items()}
+    metadata = {
+        name: _stage_metadata(spec, profile, relation_columns(spec)) for name, spec in specs.items()
+    }
     scaffolding = {
         "dbt_project.yml": _render_dbt_project(seed_column_types),
         "packages.yml": _render_packages(),
