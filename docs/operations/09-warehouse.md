@@ -218,7 +218,12 @@ AdventureWorks vault with its staging views exceeds the per-schema quota on its 
 and raw vault into two target schemas there (`+schema:` per model path in `dbt_project.yml`), and drop
 earlier builds before a new one (`docs/log.md` 2026-10-17) — **always, before every build:** the quota counts
 replacing a view as creating one, so a `--full-refresh` into a schema already above the limit fails whole
-(142 refusals, PASS=0, 2026-10-17); staging alone needs two schemas (145 views). dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
+(142 refusals, PASS=0, 2026-10-17); staging alone needs two schemas (145 views). **Dropping does not free
+the metastore quota:** dropped tables and views stay counted for their seven-day UNDROP retention, and
+every `CREATE OR REPLACE VIEW` leaves a dropped copy (`SHOW TABLES DROPPED IN <schema>` shows them), so
+the 500 is a budget of creations per week — one whole AdventureWorks vault (340 objects) beside the 83
+source and demo objects; a second build in the same week is refused with „estimated count: 754“ while
+`information_schema` counts 83 (2026-10-18). Probe with one `CREATE TABLE` first. dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
 so no incremental-strategy setting is generated. Selecting it changes two things — seed types use the native spellings
 (`string` instead of `varchar`, which needs a length there; `decimal(38,18)` instead of
 `numeric`, whose platform default `DECIMAL(10,0)` would silently truncate fractions) and

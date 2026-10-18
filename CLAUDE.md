@@ -216,7 +216,10 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   2026-06-23) — `uv sync` installs one or the other, never both (`tool.uv.conflicts`, 2026-09-12).
   **Drop the previous vault schemas before every Databricks build** (the owner's standing word,
   2026-10-17): the Free Edition's 100-objects-per-schema quota counts replacing a view as creating
-  one, so a rebuild in place fails whole; split staging over two schemas by `+schema` (9.6).
+  one, so a rebuild in place fails whole; split staging over two schemas by `+schema` (9.6). **And
+  the metastore quota (500) counts dropped objects for their seven-day UNDROP retention** — about
+  500 creations per week, one whole AdventureWorks vault (340); four builds in one day exhausted it
+  (2026-10-18). Probe with one `CREATE TABLE` before a build; the quota API's estimate says the rest.
 
 ## How this file is maintained
 

@@ -9541,3 +9541,33 @@ drop is due. **Überprüft.** The build log (every refusal's scope and count), t
 and after the wait, `information_schema`. **Nur angenommen.** That the estimate refreshes within a
 day (the docs call it periodic and give no interval). **Bewusst nicht getan.** Building into
 `default` or another catalogue to dodge the estimate (the same metastore); a second chain.
+
+## [2026-10-18] Why the quota estimate does not fall: dropped objects count for their seven-day UNDROP retention, and every view replace leaves a dropped copy — the Free Edition metastore is a budget of 500 object creations per week
+
+**Autor:** Claude Code
+
+Looked, as asked („schau mal nach“). The `table-quota` GET at 00:17 UTC refreshed the estimate
+(`last_refreshed_at` = now) and it still read **754 / 500** against 83 live objects; a probe
+`CREATE TABLE workspace.vault21.quota_probe (x int)` was refused with the same 754 — creation is
+the only operation that recounts (docs: „Unity Catalog updates the quota count only during
+resource creation … the count might be out of date if only delete operations have been
+performed“), and the recount did not help. **The cause is visible in the catalogue itself:**
+`SHOW TABLES DROPPED IN workspace.default` lists the bank demo's staging views three and four times
+over — one dropped copy per `CREATE OR REPLACE VIEW` of 2026-10-16 — all within Unity Catalog's
+**seven-day UNDROP retention**, and a Free Edition community thread reports the same shape (an
+estimate of 504 after dropping 150 tables, with no self-serve purge; a support case is the
+suggested way). So the metastore quota counts live *and* soft-deleted objects: today's four
+whole-vault builds (220 + 254 + 305 + 305 creations, each view replace counted twice) and the
+drops that followed them add up to the 754, and nothing frees it before the retention runs out
+(the 16th's objects on the 23rd, today's on the 24th and 25th). **Corrected rule:** dropping
+before a build keeps the *per-schema* count under 100 and makes a rebuild possible, but the
+*metastore* quota is a budget of about 500 object creations per seven days, replaces included;
+a whole AdventureWorks vault costs 340, so at most one whole-vault build per week fits beside
+the 83 standing objects — CLAUDE.md and chapter 9.6 say so now. **The twenty-first chain's
+build stays deferred** until the window frees (a probe creation says when), or to a workspace
+on another metastore; the project itself is unchanged, parses on both lines, and WP78 reads
+unresolved 0. **Überprüft.** The quota API, the probe's refusal text, `SHOW TABLES DROPPED`,
+the resource-quotas documentation (Databricks docs, 2026-10-18), the community thread. **Nur
+angenommen.** The seven days (the docs' default retention; a dropped *schema*'s tables are not
+listable — `SHOW SCHEMAS DROPPED` is unsupported — so their retention is read from the default).
+**Bewusst nicht getan.** A support case to purge; a second workspace; building a subset.
