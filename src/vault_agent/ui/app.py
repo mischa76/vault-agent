@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 from vault_agent.report import build_model_mermaid, build_report
 from vault_agent.ui.console import ConsoleAnswer, answer
-from vault_agent.ui.graphs import build_source_mermaid, node_catalogue
+from vault_agent.ui.graphs import area_views, build_source_mermaid, node_catalogue
 from vault_agent.ui.projects import FileKind, ProjectError, ProjectStore
 from vault_agent.ui.runs import RunConflictError, RunManager
 
@@ -202,6 +202,7 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
             "model": state.dv_model.model_dump(mode="json"),
             "output_mermaid": build_model_mermaid(state.dv_model),
             "input_mermaid": build_source_mermaid(state.source_schemas),
+            "areas": area_views(state),  # WP80
             "existing": (
                 state.existing_model.model_dump(mode="json") if state.existing_model else None
             ),

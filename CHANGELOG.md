@@ -12,6 +12,12 @@ is not the project's.
 
 ## [Unreleased]
 
+### Added
+- The workbench's Model perspective shows the vault **by subject area**: one diagram per source
+  schema, with the hubs and links of other areas it reaches drawn dashed, derived from the
+  relation each construct's stage reads — no model field, no flag (WP80). Constructs whose stage
+  is inferred form the `(unbound)` area, the Project section's „to provide“ list as a picture.
+
 ### Fixed
 - A source column named like a reserved word (`Group`, `Primary`) made the staging view
   unparseable on PostgreSQL and Snowflake while it built on Databricks — AutomateDV renders

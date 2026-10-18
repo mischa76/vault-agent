@@ -166,12 +166,23 @@ export interface DVModel {
   [field: string]: unknown;
 }
 
+export interface SubjectArea {
+  name: string;
+  increment: boolean;
+  hubs: string[];
+  links: string[];
+  satellites: string[];
+  neighbours: string[];
+  mermaid: string;
+}
+
 export interface ModelView {
   run: string;
   model: DVModel;
   output_mermaid: string;
   input_mermaid: string;
   existing: DVModel | null;
+  areas: SubjectArea[];
 }
 
 export interface ConsoleRef {

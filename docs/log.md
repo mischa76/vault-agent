@@ -9658,3 +9658,52 @@ wording, recorded:** §3.3 said `'Group'` as Databricks' spelling — the stage 
 **Nur angenommen.** Snowflake's reserved list is contained in PostgreSQL's (from memory; Snowflake
 is not a configured platform yet, so nothing selects `upper`). **Bewusst nicht getan.** A per-
 platform list; a reviewer flag for the alias; the Databricks rebuild (the quota window).
+
+## [2026-10-18] WP80 built — the Model perspective shows the vault by subject area: one diagram per source schema with its dashed neighbours, derived from the relation each construct reads; the twenty-first's fifth project reads as six areas, the pre-registration held to the construct
+
+**Autor:** Claude Code
+
+The user: „ok, bau die Fachgebiets-Sicht in der Workbench als WP80“, after the DBeaver session of
+today had shown that one ER diagram of 340 relations is unreadable and the readable cut is the
+five AdventureWorks schemas. Spec and red guards `c68de0a`, the change in this commit. **Built:**
+`src/vault_agent/subject_areas.py` — `subject_areas(model, source_schemas, carried, staging,
+existing, carried_bindings)` partitions the constructs into areas named by **the schema of the
+relation each construct's stage reads**: a single-source hub's and a link's bound relation
+(`construct_stage_name`, the public name of the generator's `_staging_name`), a satellite's feed
+(`satellite_feed`), its own stage (`_sat_staging_model`) or its parent's areas, a multi-source
+hub's feeds — a member of every area a feed lives in. The bindings come from the generated
+project's staging metadata (`automatedv_yaml["staging"]`: `source_model`, `source_binding`, the
+record of what the project reads including the mapper's re-bind), or are recomputed with the
+generator's own pass (`collect_staging_specs` + `bind_sources` with the carried bindings) before a
+project exists. `(no schema)` gathers relations without a schema, `(unbound)` the constructs whose
+stage is inferred; an area is the increment's when the relation that put a construct **there** is
+one of `source_schemas` — paired per placement, because a multi-source hub's Sales feed says
+nothing about its Person feed's area (the first cut marked Person, HumanResources and Purchasing
+as the increment through `hub_business_entity`; found by the kept-project reading, fixed before
+the commit, the guard `test_the_increment_is_the_run_s_own_tables` covers the single-source case
+only). **Neighbours:** the hubs a member link participates in and the parents of member
+satellites that belong to another area, in model order. `build_model_mermaid(model, members=…,
+neighbours=…)` renders the scope — neighbours as their node only with `class … neighbour;`
+(dashed), edges only when both ends are drawn; without a scope byte-identical (the report fixture
+pin held). `GET /api/runs/{id}/model` carries `areas` (`ui/graphs.area_views`); the Model
+perspective gains the strip (whole model, one button per area with count, the increment marked),
+swaps the diagram and narrows the inventory, neighbours tagged; one area → no strip. Chapter 14.4
+row and 14.8, CHANGELOG, index.
+
+**Überprüft.** 1258 tests (2 skipped) on the committed state, ruff, bare mypy; frontend `tsc`, 19 Vitest tests (two new in `Model.test.tsx`, the
+Mermaid component mocked), bundle rebuilt. **Against the pre-registration (spec §4), on the
+twenty-first chain's kept fifth project read with the real function (model, catalogue and staging
+metadata as written; `pg21-step5`):** HumanResources 4/2/10 + 0 neighbours = 16, Person 7/4/17 +
+0 = 28, Production 15/14/31 + 2 = 62, Purchasing 4/4/8 + 2 = 18, Sales 12/17/24 + 6 = 59,
+`(unbound)` 1/8/1 + 8 = 18 — **every number as pre-registered**; `(unbound)` holds
+`hub_work_order_operation`, the seven never-bound links and `sat_sales_person_territory_history_
+effectivity`, with eight neighbour hubs; the increment flag is Sales alone. **The metadata path and
+the recomputation agree member for member on that project** (the catalogue's `stage_bindings` as
+carried bindings, no `existing`): six areas, identical sets. Scoped Mermaid sources: 63 to 221
+lines against the whole model's. **Nur angenommen.** That the recomputed path agrees with the
+metadata on a run whose mapper bound stages by offer (the kept project's offers are already in its
+`stage_bindings`, so the check above does not separate the two); that the dashed `neighbour`
+class renders as intended in Mermaid 11 (not opened in a browser — the bundle is built, the
+strip and the diagram swap are asserted in Vitest with the Mermaid component mocked). **Bewusst
+nicht getan.** A subject area as a model field or modeler input; a per-area diagram in the report;
+grouping the whole-model inventory by area; a frontend test for the Mermaid rendering itself.

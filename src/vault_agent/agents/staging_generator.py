@@ -145,6 +145,13 @@ def _staging_name(construct_name: str) -> str:
     return STAGING_PREFIX + normalize_identifier(_base_name(construct_name)).lower()
 
 
+def construct_stage_name(construct_name: str) -> str:
+    """The staging model a single-source hub, a link or a satellite with its own ``source_table``
+    reads: ``stg_<base>``. The public name of the rule above for readers outside the generators
+    (WP80's subject areas); a multi-source hub's feeds use ``multi_source_staging_name``."""
+    return _staging_name(construct_name)
+
+
 def legacy_feeds(existing: DVModel | None) -> set[tuple[str, str, str]]:
     """The (hub, table, column) feeds that carry an UNSUFFIXED staging name (WP23 §2.6).
 

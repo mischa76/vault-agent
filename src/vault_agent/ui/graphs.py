@@ -38,6 +38,29 @@ def build_source_mermaid(tables: Iterable[Any]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def area_views(state: Any) -> list[dict[str, Any]]:
+    """WP80: the model's subject areas with one scoped Mermaid source each — from the staging
+    metadata when the project is generated (the record of what it reads), else recomputed."""
+    from vault_agent.report import build_model_mermaid
+    from vault_agent.subject_areas import subject_areas
+
+    staging = state.artifacts.automatedv_yaml.get("staging")
+    areas = subject_areas(
+        state.dv_model, state.source_schemas, carried=state.carried_schemas,
+        staging=staging if isinstance(staging, dict) else None,
+        existing=state.existing_model, carried_bindings=state.carried_bindings,
+    )
+    return [
+        {
+            **area.as_dict(),
+            "mermaid": build_model_mermaid(
+                state.dv_model, members=area.members(), neighbours=area.neighbours
+            ),
+        }
+        for area in areas
+    ]
+
+
 def node_catalogue() -> list[dict[str, Any]]:
     """The graph's nodes in order with the tool name each agent emits (WP67 §2.1).
 

@@ -41,7 +41,7 @@ describe("Model perspective — subject areas (WP80)", () => {
     expect(screen.getByText("hub_customer").closest("li")).toHaveTextContent("neighbour");
   });
   it("shows no strip when there is one area only", () => {
-    render(<ModelPerspective view={{ ...view, areas: [view.areas[0]] }} error={null} />);
+    render(<ModelPerspective view={{ ...view, areas: view.areas.slice(0, 1) }} error={null} />);
     expect(screen.queryByRole("button", { name: /whole model/ })).not.toBeInTheDocument();
   });
 });

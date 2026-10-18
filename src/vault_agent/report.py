@@ -25,6 +25,7 @@ fully readable — the source is always present in a ``<details>`` block that an
 handler un-collapses.
 """
 import html
+from collections.abc import Collection
 
 from vault_agent.agents.orchestrator import (
     KIND_HEADINGS,
@@ -73,7 +74,11 @@ def _mlabel(*parts: str) -> str:
     return "".join(_esc(part) for part in parts)
 
 
-def build_model_mermaid(model: DVModel) -> str:
+def build_model_mermaid(
+    model: DVModel,
+    members: Collection[str] | None = None,
+    neighbours: Collection[str] = (),
+) -> str:
     """Render the DV model as Mermaid ``flowchart LR`` source (pure string generation).
 
     Hubs are rectangles, links hexagons, satellites rounded rectangles (one class per
@@ -82,7 +87,18 @@ def build_model_mermaid(model: DVModel) -> str:
     ``connected_hubs``); a role-qualified ref carries its role as the edge label, and a
     driving-key participation (``Link.resolve_driving_refs()``) renders as a thick ``==>`` edge.
     A satellite with its own ``source_table`` (WP7 §7.1) notes it in the label. Emission order
-    is deterministic: hubs, links, satellites, each in model-list order."""
+    is deterministic: hubs, links, satellites, each in model-list order.
+
+    WP80: with ``members`` the diagram is one subject area — only the named constructs and the
+    ``neighbours`` (hubs or links of other areas, dashed, node only: no feeds, no satellites,
+    no edges of their own) are drawn, and an edge only when both its ends are. Without a scope
+    the output is byte-identical to before (the report's fixture pin)."""
+    scope = None if members is None else {*members, *neighbours}
+    dashed = set(neighbours) if members is not None else set()
+
+    def shown(name: str) -> bool:
+        return scope is None or name in scope
+
     lines = ["flowchart LR"]
     # Static, deterministic styling for the construct classes.
     lines += [
@@ -93,10 +109,19 @@ def build_model_mermaid(model: DVModel) -> str:
         "  classDef sat_multi_active fill:#fed7aa,stroke:#c2410c,color:#0b1324;",
         "  classDef sat_effectivity fill:#e9d5ff,stroke:#7e22ce,color:#0b1324;",
     ]
+    if members is not None:
+        lines.append(
+            "  classDef neighbour fill:#f1f5f9,stroke:#64748b,stroke-dasharray: 5 5,color:#0b1324;"
+        )
 
     for hub in model.hubs:
+        if not shown(hub.name):
+            continue
         hid = _node_id(hub.name)
         lines.append(f'  {hid}["{_mlabel(hub.name)}<br/>BK: {_mlabel(hub.business_key)}"]')
+        if hub.name in dashed:
+            lines.append(f"  class {hid} neighbour;")
+            continue
         lines.append(f"  class {hid} hub;")
         for index, source in enumerate(hub.sources):
             sid = f"{hid}__SRC{index}"
@@ -106,14 +131,21 @@ def build_model_mermaid(model: DVModel) -> str:
             lines.append(f"  {sid} --> {hid}")
 
     for link in model.links:
+        if not shown(link.name):
+            continue
         lid = _node_id(link.name)
         label = _mlabel(link.name)
         if link.link_type == "transactional":
             label += "<br/>(transactional)"
         lines.append(f'  {lid}{{{{"{label}"}}}}')
+        if link.name in dashed:
+            lines.append(f"  class {lid} neighbour;")
+            continue
         lines.append(f"  class {lid} link;")
         driving = {(ref.hub, ref.role) for ref in link.resolve_driving_refs()}
         for ref in link.hub_refs:
+            if not shown(ref.hub):
+                continue
             arrow = "==>" if (ref.hub, ref.role) in driving else "-->"
             target = _node_id(ref.hub)
             if ref.role:
@@ -122,13 +154,16 @@ def build_model_mermaid(model: DVModel) -> str:
                 lines.append(f"  {lid} {arrow} {target}")
 
     for sat in model.satellites:
+        if not shown(sat.name):
+            continue
         sid = _node_id(sat.name)
         label = _mlabel(sat.name)
         if sat.source_table:
             label += f"<br/>src: {_mlabel(sat.source_table)}"
         lines.append(f'  {sid}("{label}")')
         lines.append(f"  class {sid} {_SAT_CLASS.get(sat.sat_type, 'sat_standard')};")
-        lines.append(f"  {_node_id(sat.parent)} --- {sid}")
+        if shown(sat.parent):
+            lines.append(f"  {_node_id(sat.parent)} --- {sid}")
 
     return "\n".join(lines)
 

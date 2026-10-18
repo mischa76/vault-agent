@@ -61,7 +61,9 @@ def test_areas_are_the_schemas_of_what_each_construct_reads() -> None:
     areas = subject_areas(model, TABLES)
     assert [a.name for a in areas] == ["crm", "fin", UNBOUND_AREA]
     crm, fin, unbound = areas
-    assert (crm.hubs, crm.links, crm.satellites) == (["hub_customer"], [], ["sat_customer_details"])
+    assert (crm.hubs, crm.links, crm.satellites) == (
+        ["hub_customer"], [], ["sat_customer_details"]
+    )
     assert crm.neighbours == []
     assert (fin.hubs, fin.links, fin.satellites) == (
         ["hub_account"], ["link_account_customer"], ["sat_account_details"]
@@ -91,7 +93,8 @@ def test_tables_without_a_schema_form_one_area() -> None:
 
 
 def test_the_increment_is_the_run_s_own_tables() -> None:
-    """Carried tables (WP74) bind the same way; only `source_schemas` makes an area the increment's."""
+    """Carried tables (WP74) bind the same way; only `source_schemas` makes an area the
+    increment's."""
     model = _model()
     areas = _by_name(subject_areas(model, [ACCOUNT, ACCOUNT_CUSTOMER], carried=[CUSTOMER]))
     assert areas["fin"].increment and not areas["crm"].increment
@@ -127,7 +130,8 @@ def test_the_scoped_diagram_shows_members_and_dashed_neighbours() -> None:
     fin = _by_name(subject_areas(model, TABLES))["fin"]
     mer = build_model_mermaid(model, members=fin.members(), neighbours=fin.neighbours)
     assert mer.startswith("flowchart LR")
-    assert "HUB_ACCOUNT[" in mer and "LINK_ACCOUNT_CUSTOMER{{" in mer and "SAT_ACCOUNT_DETAILS(" in mer
+    assert "HUB_ACCOUNT[" in mer and "LINK_ACCOUNT_CUSTOMER{{" in mer
+    assert "SAT_ACCOUNT_DETAILS(" in mer
     assert "HUB_CUSTOMER[" in mer and "  class HUB_CUSTOMER neighbour;" in mer
     assert "  LINK_ACCOUNT_CUSTOMER --> HUB_ACCOUNT" in mer
     assert "  LINK_ACCOUNT_CUSTOMER --> HUB_CUSTOMER" in mer
@@ -176,8 +180,9 @@ def test_the_model_response_carries_the_areas(client: TestClient) -> None:
     view = client.get(f"/api/runs/{run['id']}/model").json()
     areas = view["areas"]
     assert [a["name"] for a in areas] == ["crm", "fin", UNBOUND_AREA]
-    constructs = {c["name"] for kind in ("hubs", "links", "satellites") for c in view["model"][kind]}
-    covered = {n for a in areas for kind in ("hubs", "links", "satellites") for n in a[kind]}
+    kinds = ("hubs", "links", "satellites")
+    constructs = {c["name"] for kind in kinds for c in view["model"][kind]}
+    covered = {n for a in areas for kind in kinds for n in a[kind]}
     assert covered == constructs
     assert all(a["mermaid"].startswith("flowchart") for a in areas)
     assert "class HUB_CUSTOMER neighbour;" in areas[1]["mermaid"]

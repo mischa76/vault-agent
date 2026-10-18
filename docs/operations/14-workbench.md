@@ -100,7 +100,7 @@ is the status line: run state, elapsed, calls, tokens.
 | Project | name, inputs, run history | create, attach `.md`/`.txt` requirements and `.yml`/`.json` schemas (a PDF goes through the CLI), start a run — greenfield or extending a finished run of the project |
 | Run | the graph's nodes as a status strip **derived from the trace** (dashed nodes make no model calls and are inferred), tokens and calls, the run's `cli_equivalents` | open the checkpoint; cancel a running run; continue or discard an interrupted or crashed one (WP69) |
 | Review | at the resolution phase: the proposed links, relationship tables and key licenses with build/decline (build is the default, as the CLI's prompt), the entity resolutions with an answer field; at sign-off: decisions first with an owner input per contract (on the item's `asset`), unresolved concepts with their evidence, disclosures folded | ratify and build the model; accept, record without accepting, discard — the same `POST …/checkpoint` the CLI flags reach |
-| Model | the output model and the input `erDiagram`, the inventory, a construct's definition | select a construct |
+| Model | the output model and the input `erDiagram`, the inventory, a construct's definition; since WP80 the model **by subject area** (14.8) | select a construct; choose the whole model or one area |
 | Artefacts | the output directory as a tree; text files in place, the report in a sandboxed iframe | open raw |
 | Log | every trace line, filterable by kind, tool and text | — |
 
@@ -170,3 +170,36 @@ model call:
 
 Nothing here gates or changes a run. A `dbt build` with a real profile is deliberately not part of
 the workbench (14.3): the build belongs to your CI, the workbench shows what it will meet.
+
+## 14.8 The model by subject area (WP80)
+
+One diagram of a whole AdventureWorks vault — 185 constructs and eleven feed cylinders on the
+twenty-first chain's fifth step — is a picture nobody reads. The Model perspective therefore
+offers, above the output diagram, a strip of **subject areas**: „whole model“ and one button per
+area with its member count, the increment's area marked. Choosing an area swaps the diagram for
+the area's and narrows the inventory to its members.
+
+**What an area is.** The schema of the relation a construct's stage reads: a hub's bound
+relation, a link's, a satellite's own `source_table` or its parent's, a multi-source hub's feeds
+(it is a member of every area one of its feeds lives in — `hub_business_entity` belongs to
+Person, HumanResources, Purchasing and Sales). The model carries no subject-area field; the
+partition is read from the generated project's staging metadata (`metadata/automatedv.yml`,
+`source_model` and `source_binding` per stage — what the project reads, including the mapper's
+re-bind) and the catalogue's schemas (WP74), or recomputed with the generator's own binding
+pass before a project exists. Two bracketed areas are special: **`(no schema)`** gathers the
+relations declared without a schema (the seed world has one area, the whole model, and the
+strip is not shown), **`(unbound)`** gathers the constructs whose stage is inferred — exactly
+the stages the Project section lists under „to provide“ (14.7), as a diagram with the hubs they
+would connect.
+
+**Neighbours.** An area's diagram shows its members and, dashed, the hubs and links of other
+areas its links participate in or its satellites hang on — the node only, no feeds, no
+satellites, no edges of its own. Without them a link to a hub of another area would lose its
+edge, which is what made a DBeaver ER diagram of one schema look like isolated tables
+(2026-10-18). The inventory tags a neighbour.
+
+**What it is not.** Not a model statement, not a flag, not a gate: changing a binding at the
+checkpoint is the only thing that moves a construct between areas. The report keeps the
+whole-model graph. `GET /api/runs/{id}/model` carries the areas as `areas` (`name`, `increment`,
+`hubs`, `links`, `satellites`, `neighbours`, `mermaid`); `src/vault_agent/subject_areas.py` is
+the rule, `build_model_mermaid(model, members=…, neighbours=…)` the scoped renderer.
