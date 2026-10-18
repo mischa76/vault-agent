@@ -9571,3 +9571,50 @@ the resource-quotas documentation (Databricks docs, 2026-10-18), the community t
 angenommen.** The seven days (the docs' default retention; a dropped *schema*'s tables are not
 listable — `SHOW SCHEMAS DROPPED` is unsupported — so their retention is read from the default).
 **Bewusst nicht getan.** A support case to purge; a second workspace; building a subset.
+
+## [2026-10-18] The twenty-first chain's fifth project built whole on local PostgreSQL — PASS=318 of 340, the same eight inferred stages as the only generator-side failures, plus six Postgres-only failures on reserved-word columns (`Group`, `Primary`): WP79 candidate
+
+**Autor:** Claude Code
+
+The user: „könnten wir dann den jetzigen Stand kopieren und den Build daraus auf Postgres laufen
+lassen?“ — the platform-neutral proof offered on 2026-10-17, now that Databricks' quota window is
+spent. **The data:** the 68 AdventureWorks tables loaded from the CSVs into the local PostgreSQL 16
+(`vault` database) as `"Person"`, `"HumanResources"`, `"Production"`, `"Purchasing"`, `"Sales"` —
+the schema names the generated `sources.yml` declares, quoted as dbt-postgres quotes them — with
+quoted lowercase column names (what AutomateDV's unquoted `UPPER_SNAKE` references fold to),
+types sniffed per column (bigint / numeric / timestamp / text), `load_datetime` and
+`record_source`; 759 235 rows (scratch loader `pg_load_all.py` beside the Databricks one;
+`ProductReview`'s four multi-line records needed their own, `Document`'s twelve records a CRLF
+fix). **The build:** the kept fifth project copied unchanged (the Databricks quota layout kept —
+schemas are free here), a Postgres profile, `dbt parse` clean in 12 s, `dbt build --full-refresh`
+**PASS=310 WARN=0 ERROR=14 SKIP=16 of 340 in 41 s**; after `ProductReview` was loaded, its four
+stages and four models rebuilt PASS=8 — **318 of 340 built, 180 incremental models and 160 views
+in under a minute** against Databricks' six minutes.
+
+**The 14 errors, in two classes.** Eight are **the eight inferred stages** — the same set the
+WP78 check named and the Databricks attempt would have failed on: six `SELECT ,` (no columns
+on a relation that does not exist) and two `relation "vault21.raw_…" does not exist`. **Six are
+Postgres-only and new:** `stg_sales_territory`, `_country_region`, `_details`, `_financials` fail
+with `syntax error at or near "group"` — `SalesTerritory.Group` — and `stg_product_product_photo`,
+`_details` with `syntax error at or near "primary"` — `ProductProductPhoto.Primary`. AutomateDV
+renders the stage's source and hashed columns **unquoted**, and `GROUP` and `PRIMARY` are reserved
+words in PostgreSQL (and Snowflake), not in Databricks, where the same project built. The 16 skips
+are the dependants: `hub_sales_territory`, `hub_work_order_operation`, ten links, four satellites.
+**Everything else equal to its source:** `hub_product` 504, `hub_customer` 19 820,
+`hub_business_entity` 20 777, `hub_sales_order` 31 465, `hub_purchase_order` 4 012, `hub_work_order`
+72 591; `link_work_order_product` 72 591 = `WorkOrder` rows, `link_address_state_province` 19 614 =
+`Address` rows; `sat_product_details` 504; `hub_product_review` 4. 38 of 40 hubs, 39 of 51 links
+(+4 after the reload), 87 of 92 satellites (+4).
+
+**What this settles.** The user's question of 2026-10-17 — whether Postgres would have shown
+the chain clean — has its answer in data: the same project, the same eight generator-side gaps on
+both platforms; the platform is not the difference. **WP79 candidate:** a source column whose
+name is a reserved word on the target platform must be quoted or aliased in the stage (a
+`derived_columns` alias from the quoted physical name, or the platform profile's quoting), gated
+or flagged at generation — today a model that builds on Databricks fails on Postgres and
+Snowflake for a column called `Group`. The other keyword-named columns loaded (`name`, `size`,
+`class`, `style`, `status`) are not reserved in PostgreSQL and built. **Überprüft.** The build log
+(every error's SQL line), the counts by SQL, `information_schema`. **Nur angenommen.** Snowflake's
+reserved-word list from memory (GROUP and PRIMARY are in it); that the sniffed types match what
+the contracts would pin (not compared). **Bewusst nicht getan.** Fixing the two columns by hand
+to make the build whole (the finding is the point); WP79 (own „go"); a Databricks retry.
