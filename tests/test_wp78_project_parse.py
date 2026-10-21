@@ -127,3 +127,20 @@ def test_the_api_reports_the_project_and_persists_a_parse(
     assert meta["parse"]["status"] == "ok"
     equivalents = client.get(f"/api/runs/{run['id']}").json()["cli_equivalents"]
     assert any("dbt parse" in c for c in equivalents)
+
+
+def test_dbt_parse_resolves_a_relative_out_dir(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The workbench stores `out_dir` relative to its root and runs dbt with `cwd=out_dir`; a
+    relative `--project-dir` then resolves inside itself (2026-10-21, the owner's first parse:
+    `Path 'workbench/…' does not exist`). Every path handed to dbt is absolute."""
+    _write_project(tmp_path / "workbench" / "run")
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(pc, "dbt_available", lambda: {"version": "1.9.10", "adapter": "postgres"})
+    runner = _Runner(0, "ok")
+    result = pc.dbt_parse(Path("workbench/run"), runner=runner)
+    assert result["status"] == "ok"
+    for cmd in runner.calls:
+        for flag in ("--project-dir", "--profiles-dir"):
+            assert Path(cmd[cmd.index(flag) + 1]).is_absolute(), (flag, cmd)
