@@ -9707,3 +9707,28 @@ class renders as intended in Mermaid 11 (not opened in a browser — the bundle 
 strip and the diagram swap are asserted in Vitest with the Mermaid component mocked). **Bewusst
 nicht getan.** A subject area as a model field or modeler input; a per-area diagram in the report;
 grouping the whole-model inventory by area; a frontend test for the Mermaid rendering itself.
+
+## [2026-10-21] Backlog candidates from the owner's hands-on run recorded — a source-driven mode as an ADR candidate, and six further wishes; nothing built
+
+**Autor:** Claude Code
+
+The user: „Notiere den adr fürs backlog", after asking what a run with an input model and no
+requirements document does today. Recorded in `docs/architecture/backlog-2026-10-candidates.md`
+(new, append-only), together with the wishes of 2026-10-19 to 2026-10-21 that had only been
+discussed: deleting in the workbench, a project settings tab with a naming profile, CLI/workbench
+parity (WP82, the owner's word that both must produce identical results), zoom and full screen
+for the Model perspective's diagrams, a `W_UNTRACED_CONSTRUCT` warning, the Phase 3 spike for a
+foreign vault. The former WP81 sketch (a build from the workbench) is recorded as dropped: the
+owner had meant the end-to-end run including dbt, not a build inside the workbench, and the
+workbench ends at the written project (14.3).
+
+**Überprüft** (read from the code, 2026-10-20/21): `vault-agent run` takes the requirements
+document as a required existing argument and the workbench's `StartRun.requirements` is
+required; `BusinessKeyIdentifierAgent` flags `missing_input` on no requirements; the modeler
+prompt's „model only what the requirements support"; no `DELETE` route in `ui/app.py`; the CLI's
+`run` and `resume` options against the API's request models; `requirement_ids` read by neither
+the validator nor `rules/catalogue.py`; the client constructs `AsyncAnthropic(api_key=…)` only.
+**Nur angenommen.** That an empty requirements document runs through to an almost empty model —
+derived from the agents' code, not run. **Bewusst nicht getan.** No ADR file (an ADR is drafted
+when the owner takes the candidate up); no prioritisation; nothing built.
+
