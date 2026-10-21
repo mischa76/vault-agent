@@ -137,6 +137,9 @@ def dbt_parse(out_dir: Path, runner: CommandRunner = run_command) -> dict[str, A
                           "the workbench's environment (`uv sync --extra demo` or "
                           "`--extra demo-databricks`)"}
     adapter = available["adapter"]
+    # The workbench stores `out_dir` relative to its root, and dbt runs with `cwd=out_dir`: a
+    # relative `--project-dir` would then resolve inside itself (2026-10-21). Absolute from here.
+    out_dir = out_dir.resolve()
     started = time.monotonic()
     output: list[str] = []
     log_dir = out_dir / ".vault-agent"

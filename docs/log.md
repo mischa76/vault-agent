@@ -9732,3 +9732,23 @@ the validator nor `rules/catalogue.py`; the client constructs `AsyncAnthropic(ap
 derived from the agents' code, not run. **Bewusst nicht getan.** No ADR file (an ADR is drafted
 when the owner takes the candidate up); no prioritisation; nothing built.
 
+
+## [2026-10-21] WP78's `dbt parse` failed on every real workbench run — a relative `--project-dir` under `cwd=out_dir`; fixed, parsed `ok` on the owner's first run
+
+**Autor:** Claude Code
+
+The owner's first own run (AdventureWorks person, `adventureworks:20261019T204027253108Z`)
+pressed „dbt parse“: `failed` in 3.5 s, `Error: Invalid value for '--project-dir': Path
+'workbench/adventureworks/runs/20261019T204027253108Z' does not exist.` The workbench stores
+`out_dir` relative to its root; `dbt_parse` ran dbt with `cwd=out_dir` and handed it the same
+relative path, which then resolved inside itself. WP78's tests used absolute temporary paths only,
+and its pre-registration (spec §4) was never run through the API — so the button had never worked
+on a workbench run. Guard `06ad64b` (red), fix in this commit: `out_dir.resolve()` before any path
+is handed to dbt.
+
+**Überprüft.** The guard red without the fix, green with it; 1259 tests, ruff, bare mypy; the fixed
+`dbt_parse` against the owner's run with the real dbt 1.9.10 / dbt-postgres 1.9.1: `ok` in 33.7 s
+(including `dbt deps`), no errors. **Nur angenommen.** That the running workbench picks the fix up
+after a restart (uvicorn runs without reload). **Bewusst nicht getan.** A second look at every other
+place the workbench passes `out_dir` to a subprocess — there is none besides this one
+(`rg "runner\(|subprocess" src/vault_agent/ui`).
