@@ -9966,3 +9966,31 @@ getan.** No prioritisation (the owner's next step); no fix. **Noticed on the way
 AdventureWorks eval files were renamed in the working tree (`requirements.md` → `hr_requirements.md`,
 `prd_requirements.md`, `purchasing_…`, `sales_…`; `git status` shows them deleted plus untracked), while each
 case's `dataset.yml` still names `requirements.md`/`source_schema.yml` — the eval harness would not find them.
+
+## [2026-10-22] Correction: ADR-0007 puts PIT/Bridge on the *generate* side — `backlog-2026-10-candidates-2.md` says the opposite; candidate C22 added
+
+**Autor:** Claude Code
+
+The owner asked whether AutomateDV/dbt could build PITs and bridges. Checking for the answer found two wrong
+statements of mine. **ADR-0007's layer table** lists „Business Vault — PIT / Bridge | Pattern-based query-assist
+structures | **Generate** | AutomateDV macros; deterministic", draws the line „up to and including the Raw Vault
+(+ PIT/Bridge)", and names „PIT/Bridge generation" as a step of the roadmap gradient. Wrong were: (1) my
+explanation to the owner on 2026-10-21 that PITs are deliberately not generated because ADR-0007 makes them
+human work; (2) the record `backlog-2026-10-candidates-2.md` (today, `bc23030`), section „Not taken up", which
+says ADR-0007 keeps PIT/Bridge out. The maturity analysis had it right: the one open gap of the class
+„Generate". The record stays as written (append-only); this entry supersedes that bullet.
+
+**C22 — PIT and bridge generation.** Read in the installed AutomateDV 0.11.4: `pit` and `bridge` macros for all
+five platforms including PostgreSQL (`macros/tables/<platform>/pit.sql`, `bridge.sql`;
+`pit(src_pk, src_extra_columns, as_of_dates_table, satellites, stage_tables_ldts, src_ldts, source_model)`,
+`bridge(…, bridge_walk, …)`), incremental materialisations `incremental_pit_materialization.sql` /
+`incremental_bridge_materialization.sql`; `src_extra_columns` is ignored with a warning. vault-agent generates
+neither (no `pit`/`bridge` in `src/`). Shape of the WP, to be specified: an as-of-dates model (a date spine;
+`dbt_utils` is already a dependency), a PIT per hub with two or more satellites — deterministic from the model —
+and bridges along link paths, which need a choice of path (from the requirements, proposed for ratification).
+Interplay to settle first: PITs over C11's and C13's non-idempotent satellites pick an arbitrary row per load
+date; AutomateDV's handling of ghost records for PIT lookups to be read before specifying. Needs the owner's „go".
+
+**Überprüft.** ADR-0007 lines 47–53 and 85; the installed macros' signatures; `rg -i "pit|bridge" src/`.
+**Nur angenommen.** Nothing about AutomateDV's PIT/ghost-record semantics — explicitly left to read.
+**Bewusst nicht getan.** No edit of the backlog record or of the 2026-10-21 explanation (a chat message).
