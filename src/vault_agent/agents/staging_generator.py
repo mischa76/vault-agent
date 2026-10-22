@@ -100,6 +100,12 @@ class StagingSpec:
     # for a role-qualified one, which two roles of one hub through one table cannot do without.
     translation_columns: list[str] = field(default_factory=list)
     stage_source: str | None = None
+    # WP83: one entry per link participation this stage hashes — (the stage columns the hash
+    # is taken over, the relation columns they come from). `build_staging` declares the stage
+    # columns as AutomateDV `null_columns: optional` when every relation column is typed
+    # integer or character, so a NULL participant becomes the zero key instead of dropping the
+    # link row. Translated participations are not recorded (their key arrives through a view).
+    null_groups: list[tuple[tuple[str, ...], tuple[str, ...]]] = field(default_factory=list)
 
     def add_hashed(self, name: str, value: str | list[str] | _HashDiff) -> None:
         if all(existing != name for existing, _ in self.hashed):
@@ -108,6 +114,11 @@ class StagingSpec:
     def add_source_column(self, column: str) -> None:
         if column not in self.source_columns:
             self.source_columns.append(column)
+
+    def add_null_group(self, stage_columns: list[str], relation_columns: list[str]) -> None:
+        group = (tuple(stage_columns), tuple(relation_columns))
+        if group not in self.null_groups:
+            self.null_groups.append(group)
 
     def add_translation(self, translation: KeyTranslation, column: str) -> None:
         if (translation, column) not in zip(
@@ -303,6 +314,7 @@ def collect_staging_specs(
                 spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), cols)
                 for col in cols:
                     spec.add_source_column(col)
+                spec.add_null_group(cols, cols)
                 continue
             bk_col = role_bk_column(canonical_hub_key_column(hub), ref.role)
             bk_cols.append(bk_col)
@@ -324,6 +336,7 @@ def collect_staging_specs(
             if src_col != bk_col:
                 spec.derived[bk_col] = src_col
             spec.add_source_column(src_col)
+            spec.add_null_group([bk_col], [src_col])
         spec.add_hashed(_link_hashkey(link), bk_cols)
         if link.link_type == "transactional":
             for col in link.payload:
@@ -402,6 +415,7 @@ def collect_staging_specs(
                         bk_cols.extend(cols)
                         for col in cols:
                             spec.add_source_column(col)
+                        spec.add_null_group(cols, cols)
                         continue
                     bk_col = role_bk_column(canonical_hub_key_column(ref_hub), ref.role)
                     bk_cols.append(bk_col)
@@ -416,6 +430,8 @@ def collect_staging_specs(
                     elif src_col != bk_col:
                         # WP41: the relation carries this key under another name.
                         spec.derived[bk_col] = src_col
+                    if translated is None:
+                        spec.add_null_group([bk_col], [src_col])  # WP83, as in the link's stage
                     spec.add_source_column(src_col)
                 spec.add_hashed(_link_hashkey(parent_link), bk_cols)
             target_specs = [spec]
@@ -450,6 +466,34 @@ def collect_staging_specs(
         spec.add_source_column(LOAD_DATETIME_COLUMN)
         spec.add_source_column(RECORD_SOURCE_COLUMN)
     return specs
+
+
+# WP83: the declared types `COALESCE(col, '-2')` accepts on every platform — integers and
+# character strings. A date, a boolean, a UUID would fail at build, so they keep today's
+# behaviour; so does an untyped column.
+_NULL_SAFE_TYPES = frozenset({
+    "int", "integer", "bigint", "smallint", "tinyint",
+    "char", "nchar", "varchar", "nvarchar", "text", "string",
+})
+
+
+def _null_safe_type(declared: str) -> bool:
+    base = re.split(r"[\s(]", declared.strip().lower(), maxsplit=1)[0] if declared else ""
+    return base in _NULL_SAFE_TYPES
+
+
+def null_optional_columns(spec: StagingSpec, relation: SourceTable | None) -> list[str]:
+    """WP83: the stage columns to declare as AutomateDV ``null_columns: optional`` — every
+    participation whose relation columns are all typed integer or character in the bound
+    relation. An inferred stage or an unknown relation: none (today's behaviour)."""
+    if not spec.bound or relation is None or not spec.null_groups:
+        return []
+    types = {normalize_identifier(c.name): c.type for c in relation.column_refs}
+    columns: list[str] = []
+    for stage_columns, relation_columns in spec.null_groups:
+        if all(_null_safe_type(types.get(normalize_identifier(c), "")) for c in relation_columns):
+            columns.extend(c for c in stage_columns if c not in columns)
+    return columns
 
 
 def stage_key_columns(spec: StagingSpec) -> list[str]:
@@ -639,6 +683,11 @@ def group_sources(
     return list(blocks.values())
 
 
+def _reserved_alias(column: str) -> str:
+    """WP79's alias for a reserved column, else the column — what the stage hashes by."""
+    return stage_column_name(column) if is_reserved_column(column) else column
+
+
 def _reserved_rewrite(
     spec: StagingSpec, profile: PlatformProfile, relation_columns: list[str] | None = None
 ) -> tuple[dict[str, str | dict[str, Any]], list[tuple[str, str | list[str] | _HashDiff]]]:
@@ -695,6 +744,7 @@ def _reserved_rewrite(
 def render_stage_model(
     spec: StagingSpec, profile: PlatformProfile | None = None,
     relation_columns: list[str] | None = None,
+    null_columns: list[str] | None = None,
 ) -> str:
     """Render one AutomateDV ``stage`` model (the pattern verified by demo/bank_postgres).
     ``profile`` (WP79) supplies the physical spelling of an escaped reserved column; the
@@ -730,6 +780,12 @@ def render_stage_model(
                 lines.append("    escape: true")
             else:
                 lines.append(f"  {name}: '{source_col}'")
+    if null_columns:
+        # WP83: a missing link participant becomes AutomateDV's optional zero key ('-2')
+        # before hashing; the original stays as <COL>_ORIGINAL.
+        lines.append("null_columns:")
+        lines.append("  optional:")
+        lines.extend(f"    - '{_reserved_alias(col)}'" for col in null_columns)
     lines.append("hashed_columns:")
     for name, value in hashed:
         if isinstance(value, str):
@@ -751,6 +807,10 @@ def render_stage_model(
             "{{ automate_dv.stage(include_source_columns=true,",
             "                     source_model=metadata_dict['source_model'],",
             f"                     derived_columns={derived_arg},",
+            *(
+                ["                     null_columns=metadata_dict['null_columns'],"]
+                if null_columns else []
+            ),
             "                     hashed_columns=metadata_dict['hashed_columns'],",
             "                     ranked_columns=none) }}",
         ]
@@ -761,6 +821,7 @@ def render_stage_model(
 def _stage_metadata(
     spec: StagingSpec, profile: PlatformProfile | None = None,
     relation_columns: list[str] | None = None,
+    null_columns: list[str] | None = None,
 ) -> dict[str, object]:
     profile = profile or platform_profile(DEFAULT_TARGET_PLATFORM)
     derived_columns, hashed_columns = _reserved_rewrite(spec, profile, relation_columns)  # WP79
@@ -783,6 +844,8 @@ def _stage_metadata(
     }
     if derived_columns:
         meta["derived_columns"] = dict(derived_columns)
+    if null_columns:
+        meta["null_columns"] = {"optional": [_reserved_alias(c) for c in null_columns]}
     if spec.translations and spec.stage_source:
         # WP36: the joins a reader of automatedv.yml must see without opening the SQL.
         meta["key_translation"] = {
@@ -1320,13 +1383,22 @@ def build_staging(
     def relation_columns(spec: StagingSpec) -> list[str] | None:
         return declared_columns.get(normalize_identifier(spec.source_model)) if spec.bound else None
 
+    # WP83: the bound relation itself, for the declared types the zero-key rule reads.
+    declared_tables = {normalize_identifier(t.table): t for t in binding_schemas}
+
+    def null_columns(spec: StagingSpec) -> list[str]:
+        return null_optional_columns(
+            spec, declared_tables.get(normalize_identifier(spec.source_model))
+        )
+
     models = {
-        name: render_stage_model(spec, profile, relation_columns(spec))
+        name: render_stage_model(spec, profile, relation_columns(spec), null_columns(spec))
         for name, spec in specs.items()
     }
     models.update(translations)
     metadata = {
-        name: _stage_metadata(spec, profile, relation_columns(spec)) for name, spec in specs.items()
+        name: _stage_metadata(spec, profile, relation_columns(spec), null_columns(spec))
+        for name, spec in specs.items()
     }
     scaffolding = {
         "dbt_project.yml": _render_dbt_project(seed_column_types),

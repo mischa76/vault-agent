@@ -65,7 +65,10 @@ def _model() -> DVModel:
         "satellites": [
             {"name": "sat_product_assembly_component_details",
              "parent": "link_product_assembly_component", "attributes": ["PerAssemblyQty"],
-             "source_table": "BillOfMaterials", "description": "quantities"},
+             "source_table": "BillOfMaterials", "description": "quantities",
+             # WP41: the relation carries each role's key under its own name.
+             "participation_aliases": {"hub_product:assembly": "ProductAssemblyID",
+                                       "hub_product:component": "ComponentID"}},
         ],
     })
 
@@ -149,3 +152,24 @@ def test_hub_stages_carry_no_null_columns() -> None:
     for name in ("stg_customer", "stg_product", "stg_business_entity"):
         assert "null_columns" not in result.models[name], name
         assert "null_columns" not in result.metadata[name], name
+
+
+# ── amendment 2026-10-22, before the build: the catalogue carries the types ─────────────────
+def test_the_catalogue_keeps_declared_types_for_the_next_increment() -> None:
+    """A later increment binds earlier tables through the catalogue (WP74); without their types
+    the zero-key rule would fall silent for every link of an earlier domain."""
+    from vault_agent.existing_model import dump_source_catalogue
+
+    document = yaml.safe_load(dump_source_catalogue([BOM]))
+    reloaded = SourceTable.model_validate(document["source_schemas"][0])
+    assert {c.name: c.type for c in reloaded.column_refs}["ProductAssemblyID"] == "int"
+
+
+def test_an_untyped_catalogue_stays_byte_identical() -> None:
+    from vault_agent.existing_model import dump_source_catalogue
+
+    untyped = SourceTable(table="Customer", schema="Sales", columns=["CustomerID", "PersonID"])
+    assert dump_source_catalogue([untyped]) == (
+        "source_schemas:\n- table: Customer\n  columns:\n  - CustomerID\n  - PersonID\n"
+        "  schema: Sales\n"
+    )
