@@ -10254,3 +10254,18 @@ tables, 155 views, nothing outside the vault and its seven views), dropped, view
 **PASS=334 both times; second build 180 of 180 incremental models `INSERT 0 0`.** Customer link 19 820, bill of
 materials 2 679 satellite rows with 0 orphans, pay history 316. **Überprüft.** Build logs, counts by `psql`.
 **Bewusst nicht getan.** The demo's runs (they keep showing the build as it was).
+
+## [2026-10-23] The maturity review filed under reviews; candidates C22–C25 written into a backlog record
+
+**Autor:** Claude Code
+
+The owner asked whether the maturity analysis is a review and belongs under `reviews/` — yes; and „C22–C24
+nachtragen". **Review:** `docs/architecture/reviews/maturity-review-2026-10-22.md`, an English rendering of the
+owner's German original, faithful to its scores and findings, without the details that name a private person,
+local paths and the owner's private knowledge base; a follow-up section says what became of the
+recommendations. The originals (`docs/handover/*.pdf|docx`) were never tracked and stay local: `docs/handover/` is
+now git-ignored. Index row under „The record". **Backlog:** `backlog-2026-10-candidates-3.md` with C22 (PIT/Bridge,
+with the correction to part 2), C23 (AdventureWorks loader), C24 (relocatable runs) — until now only in this log —
+and C25 (zero-key rows in the hubs, C12 phase 2); it also states what „C" means and which candidates became WPs.
+**Überprüft.** The review contains no private name, path or wiki reference (`grep`); `docs/handover/` ignored
+(`git check-ignore`). **Bewusst nicht getan.** The German original not published.

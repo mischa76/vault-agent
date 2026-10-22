@@ -42,6 +42,7 @@ to **new** documents only; existing records were left untouched.
 | [architecture/reviews/project-review-2026-07-06.md](architecture/reviews/project-review-2026-07-06.md) | Review that produced the P1–P3 hardening batch |
 | [architecture/reviews/project-review-2026-07-28.md](architecture/reviews/project-review-2026-07-28.md) | Review behind WP17–WP21 |
 | [architecture/reviews/project-review-2026-07-29.md](architecture/reviews/project-review-2026-07-29.md) | Review behind WP24–WP27 |
+| [architecture/reviews/maturity-review-2026-10-22.md](architecture/reviews/maturity-review-2026-10-22.md) | The owner's maturity review: TRL 6, eight dimensions scored, recommendations — behind backlog C14–C21; follow-up appended |
 | [architecture/checkpoint-2026-08-proposal.md](architecture/checkpoint-2026-08-proposal.md) | **Proposed** charter: a named "clean state", and WP34 §6's link bar re-derived from the 2026-08-12 audits |
 | [architecture/checkpoint-2026-08-review.md](architecture/checkpoint-2026-08-review.md) | Review of that charter — ratify with three changes; found §6's invention clause half-implemented |
 | [architecture/scale-test-findings.md](architecture/scale-test-findings.md) | Live scale measurements and breakpoint candidates; the protocol says quote the trace, not a hunch |
@@ -85,6 +86,7 @@ the eval assets survive.
 | [deployment-residency.md](architecture/deployment-residency.md) | Deployment and data residency (Charter B) |
 | [backlog-2026-10-candidates.md](architecture/backlog-2026-10-candidates.md) | Candidates from the owner's hands-on run, unprioritised: a source-driven mode (ADR candidate), deleting, project settings with a naming profile, CLI/workbench parity (WP82), diagram zoom, `W_UNTRACED_CONSTRUCT`, the Phase 3 foreign-vault spike |
 | [backlog-2026-10-candidates-2.md](architecture/backlog-2026-10-candidates-2.md) | Candidates C8–C21, unprioritised: six from the owner's build of the whole vault (stale flags, owner format, seed config, feed-bound multi-active, nullable link participants, satellite key vs. unique key) and eight from the October maturity analysis (repo hygiene, release 0.10.0, doc drift, a second real domain, inferred link stages, workbench API tests, positioning ADR, Snowflake) |
+| [backlog-2026-10-candidates-3.md](architecture/backlog-2026-10-candidates-3.md) | Candidates C22–C25, so far only in the log: PIT/Bridge generation (with the correction that ADR-0007 puts it on the generate side), an AdventureWorks loader, relocatable runs, zero-key rows in the hubs (C12 phase 2) |
 
 ## Work-package specs
 

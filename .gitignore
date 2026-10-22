@@ -82,6 +82,8 @@ eval/results/
 # nothing a parse or build adds there.
 workbench/
 workbench-demo*/
+# The owner's handover documents (the German original of the maturity review): private, kept locally.
+docs/handover/
 !demo/workbench-adventureworks/**/.vault-agent/
 demo/workbench-adventureworks/**/.vault-agent/*
 !demo/workbench-adventureworks/**/.vault-agent/state.json
