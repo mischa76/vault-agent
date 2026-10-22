@@ -1,0 +1,63 @@
+spec-version: 1.0.0
+name: PersonPhone
+namespace: source
+dataAssetResourceName: datastore://source/PersonPhone
+doc: Staging asset for person phone numbers from the source PersonPhone table. Each
+  record links a person (by BusinessEntityID) to a phone number and its phone number
+  type. The contract enforces the declared schema, business-key uniqueness and not-null
+  rules; value-level semantics are advisory pending producer/consumer review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the person (business entity) that the phone number belongs
+    to. Refers to the Person/BusinessEntity record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: PhoneNumber
+  description: The phone number of the person, stored as free-form text as supplied
+    by the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: PhoneNumberTypeID
+  description: Identifier of the type of phone number (e.g. cell, home, work). Refers
+    to the PhoneNumberType record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

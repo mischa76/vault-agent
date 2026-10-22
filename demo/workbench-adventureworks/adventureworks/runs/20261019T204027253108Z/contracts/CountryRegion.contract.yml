@@ -1,0 +1,48 @@
+spec-version: 1.0.0
+name: CountryRegion
+namespace: source
+dataAssetResourceName: datastore://source/CountryRegion
+doc: Reference data for countries/regions, sourced from the CountryRegion source table
+  and staged as-is. The contract enforces the declared schema and the business key
+  (CountryRegionCode). Value-level semantics are not yet specified and are left for
+  producer/consumer negotiation and human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: CountryRegionCode
+  description: Code identifying the country or region; business key of the asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the country or region.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

@@ -1,0 +1,28 @@
+{
+  "id": "adventureworks:20261022T140746303809Z",
+  "project": "adventureworks",
+  "status": "finished",
+  "thread_id": "7f6519781c154b51b0d9c16efad5403f",
+  "out_dir": "demo/workbench-adventureworks/adventureworks/runs/20261022T140746303809Z",
+  "requirements": "purchasing_requirements.md",
+  "schema": "purchasing_source_schema.yml",
+  "existing_run": "adventureworks:20261022T133219892412Z",
+  "started": "2026-10-22T14:07:46+00:00",
+  "finished": "2026-10-22T15:05:22+00:00",
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run demo/workbench-adventureworks/adventureworks/inputs/purchasing_requirements.md --out demo/workbench-adventureworks/adventureworks/runs/20261022T140746303809Z --source-schema demo/workbench-adventureworks/adventureworks/inputs/purchasing_source_schema.yml --existing demo/workbench-adventureworks/adventureworks/runs/20261022T133219892412Z",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T140746303809Z --resolve 'vendor::AccountNumber (vendor account number)=unresolved' --accept",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T140746303809Z --owner 'ProductVendor=John Doe <john.doe@acme.com>' --owner 'PurchaseOrderDetail=John Doe <john.doe@acme.com>' --owner 'PurchaseOrderHeader=John Doe <john.doe@acme.com>' --owner 'ShipMethod=John Doe <john.doe@acme.com>' --owner 'Vendor=John Doe <john.doe@acme.com>' --accept"
+  ],
+  "checkpoints": [
+    {
+      "phase": "resolution",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T140746303809Z --resolve 'vendor::AccountNumber (vendor account number)=unresolved' --accept"
+    },
+    {
+      "phase": "signoff",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T140746303809Z --owner 'ProductVendor=John Doe <john.doe@acme.com>' --owner 'PurchaseOrderDetail=John Doe <john.doe@acme.com>' --owner 'PurchaseOrderHeader=John Doe <john.doe@acme.com>' --owner 'ShipMethod=John Doe <john.doe@acme.com>' --owner 'Vendor=John Doe <john.doe@acme.com>' --accept"
+    }
+  ]
+}

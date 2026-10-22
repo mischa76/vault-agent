@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_ScrapReason
+  columns:
+  - name: SCRAPREASONID
+    tests:
+    - unique
+    - not_null
+  - name: NAME
+    tests:
+    - unique
+    - not_null

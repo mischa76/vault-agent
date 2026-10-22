@@ -1,0 +1,136 @@
+spec-version: 1.0.0
+name: WorkOrder
+namespace: source
+dataAssetResourceName: datastore://source/WorkOrder
+doc: Manufacturing work order records from the source system, each representing a
+  quantity of a product to be produced, with stocked and scrapped quantities and key
+  schedule dates. The contract enforces the declared schema, business key and not-null
+  constraints; no value-level thresholds are mandated by the requirements.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: WorkOrderID
+  description: Unique identifier of the work order (business key).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductID
+  description: Identifier of the product being manufactured; references the Product
+    asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: OrderQty
+  description: Quantity of the product ordered to be produced on the work order.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StockedQty
+  description: Quantity of the product actually received into inventory from the work
+    order.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ScrappedQty
+  description: Quantity of the product scrapped during manufacturing on the work order.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StartDate
+  description: Date and time work on the work order started.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EndDate
+  description: Date and time work on the work order was completed; may be absent while
+    in progress.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: DueDate
+  description: Date and time the work order is due to be completed.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ScrapReasonID
+  description: Identifier of the reason for scrapping, referencing the ScrapReason
+    asset; may be absent when nothing was scrapped.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

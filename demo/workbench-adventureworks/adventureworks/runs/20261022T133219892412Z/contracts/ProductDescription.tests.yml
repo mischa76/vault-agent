@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_ProductDescription
+  columns:
+  - name: PRODUCTDESCRIPTIONID
+    tests:
+    - unique
+    - not_null
+  - name: ROWGUID
+    tests:
+    - unique
+    - not_null

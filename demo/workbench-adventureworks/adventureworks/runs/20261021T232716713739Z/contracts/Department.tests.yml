@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_Department
+  columns:
+  - name: DEPARTMENTID
+    tests:
+    - unique
+    - not_null
+  - name: NAME
+    tests:
+    - unique
+    - not_null

@@ -1,0 +1,28 @@
+{
+  "id": "adventureworks:20261022T151530662480Z",
+  "project": "adventureworks",
+  "status": "finished",
+  "thread_id": "63651543d22243db92863c3c63783db5",
+  "out_dir": "demo/workbench-adventureworks/adventureworks/runs/20261022T151530662480Z",
+  "requirements": "sales_requirements.md",
+  "schema": "sales_source_schema.yml",
+  "existing_run": "adventureworks:20261022T140746303809Z",
+  "started": "2026-10-22T15:15:30+00:00",
+  "finished": "2026-10-22T17:22:53+00:00",
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run demo/workbench-adventureworks/adventureworks/inputs/sales_requirements.md --out demo/workbench-adventureworks/adventureworks/runs/20261022T151530662480Z --source-schema demo/workbench-adventureworks/adventureworks/inputs/sales_source_schema.yml --existing demo/workbench-adventureworks/adventureworks/runs/20261022T140746303809Z",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T151530662480Z --accept",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T151530662480Z --owner 'CountryRegionCurrency=John Doe <john.doe@acme.com>' --owner 'CreditCard=John Doe <john.doe@acme.com>' --owner 'Currency=John Doe <john.doe@acme.com>' --owner 'CurrencyRate=John Doe <john.doe@acme.com>' --owner 'Customer=John Doe <john.doe@acme.com>' --owner 'PersonCreditCard=John Doe <john.doe@acme.com>' --owner 'SalesOrderDetail=John Doe <john.doe@acme.com>' --owner 'SalesOrderHeader=John Doe <john.doe@acme.com>' --owner 'SalesOrderHeaderSalesReason=John Doe <john.doe@acme.com>' --owner 'SalesPerson=John Doe <john.doe@acme.com>' --owner 'SalesPersonQuotaHistory=John Doe <john.doe@acme.com>' --owner 'SalesReason=John Doe <john.doe@acme.com>' --owner 'SalesTaxRate=John Doe <john.doe@acme.com>' --owner 'SalesTerritory=John Doe <john.doe@acme.com>' --owner 'SalesTerritoryHistory=John Doe <john.doe@acme.com>' --owner 'ShoppingCartItem=John Doe <john.doe@acme.com>' --owner 'SpecialOffer=John Doe <john.doe@acme.com>' --owner 'SpecialOfferProduct=John Doe <john.doe@acme.com>' --owner 'Store=John Doe <john.doe@acme.com>' --accept"
+  ],
+  "checkpoints": [
+    {
+      "phase": "resolution",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T151530662480Z --accept"
+    },
+    {
+      "phase": "signoff",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T151530662480Z --owner 'CountryRegionCurrency=John Doe <john.doe@acme.com>' --owner 'CreditCard=John Doe <john.doe@acme.com>' --owner 'Currency=John Doe <john.doe@acme.com>' --owner 'CurrencyRate=John Doe <john.doe@acme.com>' --owner 'Customer=John Doe <john.doe@acme.com>' --owner 'PersonCreditCard=John Doe <john.doe@acme.com>' --owner 'SalesOrderDetail=John Doe <john.doe@acme.com>' --owner 'SalesOrderHeader=John Doe <john.doe@acme.com>' --owner 'SalesOrderHeaderSalesReason=John Doe <john.doe@acme.com>' --owner 'SalesPerson=John Doe <john.doe@acme.com>' --owner 'SalesPersonQuotaHistory=John Doe <john.doe@acme.com>' --owner 'SalesReason=John Doe <john.doe@acme.com>' --owner 'SalesTaxRate=John Doe <john.doe@acme.com>' --owner 'SalesTerritory=John Doe <john.doe@acme.com>' --owner 'SalesTerritoryHistory=John Doe <john.doe@acme.com>' --owner 'ShoppingCartItem=John Doe <john.doe@acme.com>' --owner 'SpecialOffer=John Doe <john.doe@acme.com>' --owner 'SpecialOfferProduct=John Doe <john.doe@acme.com>' --owner 'Store=John Doe <john.doe@acme.com>' --accept"
+    }
+  ]
+}

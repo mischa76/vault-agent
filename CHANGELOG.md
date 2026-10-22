@@ -13,6 +13,10 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- `demo/workbench-adventureworks/`: five finished workbench runs — all AdventureWorks domains modelled
+  step by step as brownfield extensions — to browse with `vault-agent ui --root demo/workbench-adventureworks`
+  without a key; owner identity replaced by `John Doe <john.doe@acme.com>`, paths repo-relative,
+  `inferred_views.sql` for the seven link stages no rule binds (C14).
 - The workbench's Model perspective shows the vault **by subject area**: one diagram per source
   schema, with the hubs and links of other areas it reaches drawn dashed, derived from the
   relation each construct's stage reads — no model field, no flag (WP80). Constructs whose stage
@@ -64,6 +68,10 @@ is not the project's.
   seventh chain's step 5).
 
 ### Changed
+- The workbench's project root belongs outside the repository: `workbench/` and `workbench-demo*/` are
+  git-ignored, the runs committed under `workbench/myproject/` and `workbench-demo$/` are no longer
+  tracked, and README, evaluator guide and chapter 14.1 start the workbench with
+  `--root ~/vault-agent-workbench` (C14).
 - The AdventureWorks eval datasets declare base types where the install script used one of its
   six alias types (`Name`, `Flag`, `NameStyle`, `Phone`, `AccountNumber`, `OrderNumber`): the
   extractor transcribes the `CREATE TYPE` definitions and the derivation resolves them (WP64).

@@ -1,0 +1,50 @@
+spec-version: 1.0.0
+name: PersonCreditCard
+namespace: source
+dataAssetResourceName: datastore://source/PersonCreditCard
+doc: Association between a person (identified by BusinessEntityID) and a credit card
+  (CreditCardID) in the sales source, staged from the PersonCreditCard source table.
+  The contract enforces the declared schema and business-key integrity; ownership
+  and agreement are to be confirmed at the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the business entity (person) that holds the credit card.
+    Part of the association key with CreditCardID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CreditCardID
+  description: Identifier of the credit card linked to the business entity. References
+    the CreditCard source asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

@@ -10005,3 +10005,41 @@ restored from `HEAD` (`git checkout --`) and the renamed copies deleted after `c
 byte-identical. `git status` lists no `eval/` change any more. **Überprüft.** `cmp` per pair; `pytest -k "dataset or
 eval"` 110 passed. **Nur angenommen.** That the renames came from preparing workbench uploads; the workbench keeps
 its own copies under `workbench/adventureworks/inputs/`, untouched. **Bewusst nicht getan.** Nothing else in the tree.
+
+## [2026-10-22] C14 built: the workbench's data leaves the repo, the owner's AdventureWorks build ships as a curated demo
+
+**Autor:** Claude Code
+
+The owner asked whether the AdventureWorks build should ship as the workbench's demo, and decided the owner
+identity: „ersetze name und email durch "John Doe <john.doe@acme.com>"". Done together with C14
+(`backlog-2026-10-candidates-2.md`).
+
+**Changed.** `.gitignore` ignores `workbench/` and `workbench-demo*/`; the 36 files under `workbench/myproject/`
+and the 95 under `workbench-demo$/` (an accidental root, its `$` from a shell variable) are removed from the
+index — still on disk, still in the pushed history (no customer data; the owner's call whether to rewrite it,
+not done). README, `docs/evaluator-guide.md` and chapter 14.1 start the workbench with
+`--root ~/vault-agent-workbench`. **New `demo/workbench-adventureworks/`** (1 073 files, 4 MB): the five runs of
+the owner's build (person → sales), each with its `.vault-agent/state.json` — the Model view reads it — and
+nothing else from `.vault-agent/` (checkpoint databases, LLM traces), no `dbt_packages/`, `target/`, logs;
+`inferred_views.sql` with the seven views the owner created for link stages no rule binds; a README.
+Scrubbed: every owner name and address — including the typo variants `Mischaa`, `cosulting` and the person
+run's bare-email owners (C9) — became `John Doe <john.doe@acme.com>` (68 contracts as name + email); absolute
+paths `/mnt/c/Users/misch/projects/vault-agent/` removed, run folders rewritten to
+`demo/workbench-adventureworks/adventureworks/runs/…`. CHANGELOG and index updated.
+
+**Überprüft.** `grep -riE "eismann|misch|/home/|/mnt/"` over the demo: 0 hits. Every workbench view through
+the API on the demo root (FastAPI `TestClient`, cwd = repo root): project with 11 input files; per run the
+model (7/5/17 … 39/49/92 constructs, 1 → 6 subject areas), artefacts (93 … 383), the project check (26 … 148
+staging models, inferred 0/0/1/1/7), the report, the console — all 200; the checkpoint answers 400 for a
+finished run and the event stream is empty (per session), both by design. `git add -n`: the five
+`state.json` are added, `.vault-agent/*.sqlite` and `workbench/` ignored. `pytest` 1259 passed, 2 skipped.
+**Nur angenommen.** That the frontend renders what the API returns (no browser check). **Bewusst nicht getan.**
+The wiki's demo guide (it still starts with `--root workbench-demo` in the repo) — the owner's page; history
+rewrite; a data loader.
+
+**Two candidates found on the way.** **C23 — an AdventureWorks loader in the repo**: building the demo needs
+Microsoft's CSVs loaded with `load_datetime`/`record_source`; the loader so far was a session script.
+**C24 — relocatable runs**: `run.json` stores `out_dir` relative to the directory the workbench was started in
+(`runs.py`: `Path(meta["out_dir"])`), so a project root cannot be moved or copied, and the demo works only
+started from the repo root with exactly that `--root`; resolving the run folder from the store
+(`ProjectStore.run_dir`) instead would make roots portable. Both need the owner's „go".

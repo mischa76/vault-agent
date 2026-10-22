@@ -1,0 +1,16 @@
+version: 2
+models:
+- name: stg_Document
+  columns:
+  - name: DOCUMENTNODE
+    tests:
+    - unique
+    - not_null
+  - name: FILENAME
+    tests:
+    - unique
+    - not_null
+  - name: ROWGUID
+    tests:
+    - unique
+    - not_null

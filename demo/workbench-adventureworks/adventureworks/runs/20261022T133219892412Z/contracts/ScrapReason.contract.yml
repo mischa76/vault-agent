@@ -1,0 +1,49 @@
+spec-version: 1.0.0
+name: ScrapReason
+namespace: source
+dataAssetResourceName: datastore://source/ScrapReason
+doc: 'Reference list of reasons why manufactured items are scrapped during production
+  (source: Production.ScrapReason). The contract enforces the declared schema and
+  business-key uniqueness/not-null on the identifier; no value-level thresholds are
+  mandated by the requirements. Ownership and agreement status remain to be confirmed
+  at the human-in-the-loop checkpoint.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ScrapReasonID
+  description: Identifier of the scrap reason; business key for the asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name or description of the scrap reason.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

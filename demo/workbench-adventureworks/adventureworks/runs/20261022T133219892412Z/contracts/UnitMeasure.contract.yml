@@ -1,0 +1,48 @@
+spec-version: 1.0.0
+name: UnitMeasure
+namespace: source
+dataAssetResourceName: datastore://source/UnitMeasure
+doc: Reference data for units of measure (e.g. for product size, weight and bill-of-materials
+  quantities), staged from the source UnitMeasure table. The contract enforces the
+  declared schema and business-key uniqueness/not-null on UnitMeasureCode; no further
+  value-level rules are stated in the requirements.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: UnitMeasureCode
+  description: Code that identifies a unit of measure; the business key of the asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Descriptive name of the unit of measure.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

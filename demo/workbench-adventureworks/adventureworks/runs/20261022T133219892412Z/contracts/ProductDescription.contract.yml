@@ -1,0 +1,60 @@
+spec-version: 1.0.0
+name: ProductDescription
+namespace: source
+dataAssetResourceName: datastore://source/ProductDescription
+doc: 'Source-to-staging asset for ProductDescription: localized/descriptive text for
+  products, identified by ProductDescriptionID. The contract enforces the declared
+  schema, business-key uniqueness and not-null rules; ownership and agreement status
+  are pending human review.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductDescriptionID
+  description: Unique identifier for a product description record (business key).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Description
+  description: Free-text description of the product.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) for the record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

@@ -1,0 +1,16 @@
+version: 2
+models:
+- name: stg_SalesOrderDetail
+  columns:
+  - name: SALESORDERID
+    tests:
+    - unique
+    - not_null
+  - name: SALESORDERDETAILID
+    tests:
+    - unique
+    - not_null
+  - name: SPECIALOFFERID
+    tests:
+    - unique
+    - not_null

@@ -142,9 +142,12 @@ ANTHROPIC_API_KEY=sk-ant-api03-…
 
 **The workbench** (ADR-0014) is the same pipeline in the browser: `uv sync --extra ui`, build the
 frontend once (`cd frontend && npm ci && npm run build`, Node 22), then
-`uv run vault-agent ui --root workbench` and open `http://127.0.0.1:8765/` — projects, runs, the
-checkpoint, the model graphs and the artefacts, every action recorded as its CLI equivalent
-(operations manual, chapter 14).
+`uv run vault-agent ui --root ~/vault-agent-workbench` (a folder **outside** the repo — runs hold your
+requirements and contracts) and open `http://127.0.0.1:8765/` — projects, runs, the checkpoint, the
+model graphs and the artefacts, every action recorded as its CLI equivalent (operations manual,
+chapter 14). To look around without a key: `uv run vault-agent ui --root demo/workbench-adventureworks`
+from the repo root shows all five AdventureWorks domains modelled step by step
+([`demo/workbench-adventureworks/`](demo/workbench-adventureworks/README.md)).
 
 Only the live `run` needs a key — the test suite (`uv run pytest`) and the Postgres demo
 in `demo/bank_postgres` are fully keyless. Two failure modes when a `run` can't

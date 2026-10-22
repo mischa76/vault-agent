@@ -1,0 +1,8 @@
+version: 2
+models:
+- name: stg_Illustration
+  columns:
+  - name: ILLUSTRATIONID
+    tests:
+    - unique
+    - not_null

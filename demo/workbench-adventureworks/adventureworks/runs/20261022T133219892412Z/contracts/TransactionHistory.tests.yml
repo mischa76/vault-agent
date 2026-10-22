@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_TransactionHistory
+  columns:
+  - name: TRANSACTIONID
+    tests:
+    - unique
+    - not_null
+  - name: PRODUCTID
+    tests:
+    - unique
+    - not_null

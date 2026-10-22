@@ -1,0 +1,206 @@
+source_schemas:
+- table: Department
+  columns:
+  - DepartmentID
+  - Name
+  - GroupName
+  - ModifiedDate
+  schema: HumanResources
+- table: Employee
+  columns:
+  - BusinessEntityID
+  - NationalIDNumber
+  - LoginID
+  - OrganizationNode
+  - OrganizationLevel
+  - JobTitle
+  - BirthDate
+  - MaritalStatus
+  - Gender
+  - HireDate
+  - SalariedFlag
+  - VacationHours
+  - SickLeaveHours
+  - CurrentFlag
+  - rowguid
+  - ModifiedDate
+  schema: HumanResources
+- table: EmployeeDepartmentHistory
+  columns:
+  - BusinessEntityID
+  - DepartmentID
+  - ShiftID
+  - StartDate
+  - EndDate
+  - ModifiedDate
+  schema: HumanResources
+- table: EmployeePayHistory
+  columns:
+  - BusinessEntityID
+  - RateChangeDate
+  - Rate
+  - PayFrequency
+  - ModifiedDate
+  schema: HumanResources
+- table: JobCandidate
+  columns:
+  - JobCandidateID
+  - BusinessEntityID
+  - Resume
+  - ModifiedDate
+  schema: HumanResources
+- table: Shift
+  columns:
+  - ShiftID
+  - Name
+  - StartTime
+  - EndTime
+  - ModifiedDate
+  schema: HumanResources
+- table: Address
+  columns:
+  - AddressID
+  - AddressLine1
+  - AddressLine2
+  - City
+  - StateProvinceID
+  - PostalCode
+  - SpatialLocation
+  - rowguid
+  - ModifiedDate
+  schema: Person
+- table: AddressType
+  columns:
+  - AddressTypeID
+  - Name
+  - rowguid
+  - ModifiedDate
+  schema: Person
+- table: BusinessEntity
+  columns:
+  - BusinessEntityID
+  - rowguid
+  - ModifiedDate
+  schema: Person
+- table: BusinessEntityAddress
+  columns:
+  - BusinessEntityID
+  - AddressID
+  - AddressTypeID
+  - rowguid
+  - ModifiedDate
+  schema: Person
+- table: BusinessEntityContact
+  columns:
+  - BusinessEntityID
+  - PersonID
+  - ContactTypeID
+  - rowguid
+  - ModifiedDate
+  schema: Person
+- table: ContactType
+  columns:
+  - ContactTypeID
+  - Name
+  - ModifiedDate
+  schema: Person
+- table: CountryRegion
+  columns:
+  - CountryRegionCode
+  - Name
+  - ModifiedDate
+  schema: Person
+- table: EmailAddress
+  columns:
+  - BusinessEntityID
+  - EmailAddressID
+  - EmailAddress
+  - rowguid
+  - ModifiedDate
+  schema: Person
+- table: Password
+  columns:
+  - BusinessEntityID
+  - PasswordHash
+  - PasswordSalt
+  - rowguid
+  - ModifiedDate
+  schema: Person
+- table: Person
+  columns:
+  - BusinessEntityID
+  - PersonType
+  - NameStyle
+  - Title
+  - FirstName
+  - MiddleName
+  - LastName
+  - Suffix
+  - EmailPromotion
+  - AdditionalContactInfo
+  - Demographics
+  - rowguid
+  - ModifiedDate
+  schema: Person
+- table: PersonPhone
+  columns:
+  - BusinessEntityID
+  - PhoneNumber
+  - PhoneNumberTypeID
+  - ModifiedDate
+  schema: Person
+- table: PhoneNumberType
+  columns:
+  - PhoneNumberTypeID
+  - Name
+  - ModifiedDate
+  schema: Person
+- table: StateProvince
+  columns:
+  - StateProvinceID
+  - StateProvinceCode
+  - CountryRegionCode
+  - IsOnlyStateProvinceFlag
+  - Name
+  - TerritoryID
+  - rowguid
+  - ModifiedDate
+  schema: Person
+stage_bindings:
+  stg_address: Address
+  stg_address_details: Address
+  stg_address_location: Address
+  stg_address_state_province: Address
+  stg_address_type: AddressType
+  stg_address_type_details: AddressType
+  stg_business_entity_address: BusinessEntityAddress
+  stg_business_entity_address_details: BusinessEntityAddress
+  stg_business_entity_businessentity: BusinessEntity
+  stg_business_entity_contact: BusinessEntityContact
+  stg_business_entity_contact_details: BusinessEntityContact
+  stg_business_entity_department_shift: EmployeeDepartmentHistory
+  stg_business_entity_department_shift_audit: EmployeeDepartmentHistory
+  stg_business_entity_emailaddress: EmailAddress
+  stg_business_entity_employee: Employee
+  stg_business_entity_employeepayhistory: EmployeePayHistory
+  stg_business_entity_job_candidate: JobCandidate
+  stg_business_entity_password: Password
+  stg_business_entity_person: Person
+  stg_business_entity_phone_number_type: PersonPhone
+  stg_business_entity_phone_number_type_phones: PersonPhone
+  stg_contact_type: ContactType
+  stg_contact_type_details: ContactType
+  stg_country_region: CountryRegion
+  stg_country_region_details: CountryRegion
+  stg_department: Department
+  stg_department_details: Department
+  stg_job_candidate: JobCandidate
+  stg_job_candidate_resume: JobCandidate
+  stg_phone_number_type: PhoneNumberType
+  stg_phone_number_type_details: PhoneNumberType
+  stg_shift: Shift
+  stg_shift_details: Shift
+  stg_state_province: StateProvince
+  stg_state_province_country_region: StateProvince
+  stg_state_province_details: StateProvince
+  stg_state_province_territory: StateProvince

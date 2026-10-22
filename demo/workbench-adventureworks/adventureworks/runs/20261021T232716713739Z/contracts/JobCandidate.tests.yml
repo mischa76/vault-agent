@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_JobCandidate
+  columns:
+  - name: JOBCANDIDATEID
+    tests:
+    - unique
+    - not_null
+  - name: BUSINESSENTITYID
+    tests:
+    - unique
+    - not_null

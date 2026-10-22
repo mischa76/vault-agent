@@ -1,0 +1,685 @@
+hubs:
+  hub_address:
+    source_model: stg_address
+    src_ldts: LOAD_DATETIME
+    src_nk: ADDRESSID
+    src_pk: ADDRESS_HK
+    src_source: RECORD_SOURCE
+  hub_address_type:
+    source_model: stg_address_type
+    src_ldts: LOAD_DATETIME
+    src_nk: ADDRESSTYPEID
+    src_pk: ADDRESSTYPE_HK
+    src_source: RECORD_SOURCE
+  hub_business_entity:
+    source_model:
+    - stg_business_entity_businessentity
+    - stg_business_entity_person
+    - stg_business_entity_emailaddress
+    - stg_business_entity_password
+    src_ldts: LOAD_DATETIME
+    src_nk: BUSINESSENTITYID
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  hub_contact_type:
+    source_model: stg_contact_type
+    src_ldts: LOAD_DATETIME
+    src_nk: CONTACTTYPEID
+    src_pk: CONTACTTYPE_HK
+    src_source: RECORD_SOURCE
+  hub_country_region:
+    source_model: stg_country_region
+    src_ldts: LOAD_DATETIME
+    src_nk: COUNTRYREGIONCODE
+    src_pk: COUNTRYREGION_HK
+    src_source: RECORD_SOURCE
+  hub_phone_number_type:
+    source_model: stg_phone_number_type
+    src_ldts: LOAD_DATETIME
+    src_nk: PHONENUMBERTYPEID
+    src_pk: PHONENUMBERTYPE_HK
+    src_source: RECORD_SOURCE
+  hub_state_province:
+    source_model: stg_state_province
+    src_ldts: LOAD_DATETIME
+    src_nk: STATEPROVINCEID
+    src_pk: STATEPROVINCE_HK
+    src_source: RECORD_SOURCE
+links:
+  link_address_state_province:
+    source_model: stg_address_state_province
+    src_fk:
+    - ADDRESS_HK
+    - STATEPROVINCE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_ADDRESS_STATE_PROVINCE_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_address:
+    source_model: stg_business_entity_address
+    src_fk:
+    - BUSINESSENTITY_HK
+    - ADDRESS_HK
+    - ADDRESSTYPE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_ADDRESS_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_contact:
+    source_model: stg_business_entity_contact
+    src_fk:
+    - BUSINESSENTITY_HK
+    - PERSON_BUSINESSENTITY_HK
+    - CONTACTTYPE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_CONTACT_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_phone_number_type:
+    source_model: stg_business_entity_phone_number_type
+    src_fk:
+    - BUSINESSENTITY_HK
+    - PHONENUMBERTYPE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_HK
+    src_source: RECORD_SOURCE
+  link_state_province_country_region:
+    source_model: stg_state_province_country_region
+    src_fk:
+    - STATEPROVINCE_HK
+    - COUNTRYREGION_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_STATE_PROVINCE_COUNTRY_REGION_HK
+    src_source: RECORD_SOURCE
+satellites:
+  sat_address_details:
+    source_model: stg_address_details
+    src_hashdiff: ADDRESS_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ADDRESSLINE1
+    - ADDRESSLINE2
+    - CITY
+    - POSTALCODE
+    - MODIFIEDDATE
+    src_pk: ADDRESS_HK
+    src_source: RECORD_SOURCE
+  sat_address_location:
+    source_model: stg_address_location
+    src_hashdiff: ADDRESS_LOCATION_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SPATIALLOCATION
+    src_pk: ADDRESS_HK
+    src_source: RECORD_SOURCE
+  sat_address_type_details:
+    source_model: stg_address_type_details
+    src_hashdiff: ADDRESS_TYPE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: ADDRESSTYPE_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_address_details:
+    source_model: stg_business_entity_address_details
+    src_hashdiff: BUSINESS_ENTITY_ADDRESS_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: LINK_BUSINESS_ENTITY_ADDRESS_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_contact_details:
+    source_model: stg_business_entity_contact_details
+    src_hashdiff: BUSINESS_ENTITY_CONTACT_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: LINK_BUSINESS_ENTITY_CONTACT_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_credential:
+    source_model: stg_business_entity_password
+    src_hashdiff: BUSINESS_ENTITY_CREDENTIAL_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_details:
+    source_model: stg_business_entity_businessentity
+    src_hashdiff: BUSINESS_ENTITY_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_email:
+    source_model: stg_business_entity_emailaddress
+    src_hashdiff: BUSINESS_ENTITY_EMAIL_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - EMAILADDRESS
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_marketing_consent:
+    source_model: stg_business_entity_person
+    src_hashdiff: BUSINESS_ENTITY_MARKETING_CONSENT_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - EMAILPROMOTION
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_person_name:
+    source_model: stg_business_entity_person
+    src_hashdiff: BUSINESS_ENTITY_PERSON_NAME_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - PERSONTYPE
+    - NAMESTYLE
+    - TITLE
+    - FIRSTNAME
+    - MIDDLENAME
+    - LASTNAME
+    - SUFFIX
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_person_sensitive:
+    source_model: stg_business_entity_person
+    src_hashdiff: BUSINESS_ENTITY_PERSON_SENSITIVE_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ADDITIONALCONTACTINFO
+    - DEMOGRAPHICS
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_phone_number_type_phones:
+    source_model: stg_business_entity_phone_number_type_phones
+    src_cdk:
+    - PHONENUMBER
+    src_hashdiff: BUSINESS_ENTITY_PHONE_NUMBER_TYPE_PHONES_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_HK
+    src_source: RECORD_SOURCE
+  sat_contact_type_details:
+    source_model: stg_contact_type_details
+    src_hashdiff: CONTACT_TYPE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: CONTACTTYPE_HK
+    src_source: RECORD_SOURCE
+  sat_country_region_details:
+    source_model: stg_country_region_details
+    src_hashdiff: COUNTRY_REGION_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: COUNTRYREGION_HK
+    src_source: RECORD_SOURCE
+  sat_phone_number_type_details:
+    source_model: stg_phone_number_type_details
+    src_hashdiff: PHONE_NUMBER_TYPE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: PHONENUMBERTYPE_HK
+    src_source: RECORD_SOURCE
+  sat_state_province_details:
+    source_model: stg_state_province_details
+    src_hashdiff: STATE_PROVINCE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - STATEPROVINCECODE
+    - ISONLYSTATEPROVINCEFLAG
+    - NAME
+    - MODIFIEDDATE
+    src_pk: STATEPROVINCE_HK
+    src_source: RECORD_SOURCE
+  sat_state_province_territory:
+    source_model: stg_state_province_territory
+    src_hashdiff: STATE_PROVINCE_TERRITORY_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - TERRITORYID
+    src_pk: STATEPROVINCE_HK
+    src_source: RECORD_SOURCE
+staging:
+  stg_address:
+    expected_source_columns:
+    - ADDRESSID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESS_HK: ADDRESSID
+    source_binding: declared
+    source_model:
+      raw: Address
+  stg_address_details:
+    expected_source_columns:
+    - ADDRESSID
+    - ADDRESSLINE1
+    - ADDRESSLINE2
+    - CITY
+    - POSTALCODE
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESS_DETAILS_HASHDIFF:
+        columns:
+        - ADDRESSLINE1
+        - ADDRESSLINE2
+        - CITY
+        - POSTALCODE
+        - MODIFIEDDATE
+        is_hashdiff: true
+      ADDRESS_HK: ADDRESSID
+    source_binding: declared
+    source_model:
+      raw: Address
+  stg_address_location:
+    expected_source_columns:
+    - ADDRESSID
+    - SPATIALLOCATION
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESS_HK: ADDRESSID
+      ADDRESS_LOCATION_HASHDIFF:
+        columns:
+        - SPATIALLOCATION
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: Address
+  stg_address_state_province:
+    expected_source_columns:
+    - ADDRESSID
+    - STATEPROVINCEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESS_HK: ADDRESSID
+      LINK_ADDRESS_STATE_PROVINCE_HK:
+      - ADDRESSID
+      - STATEPROVINCEID
+      STATEPROVINCE_HK: STATEPROVINCEID
+    source_binding: declared
+    source_model:
+      raw: Address
+  stg_address_type:
+    expected_source_columns:
+    - ADDRESSTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESSTYPE_HK: ADDRESSTYPEID
+    source_binding: declared
+    source_model:
+      raw: AddressType
+  stg_address_type_details:
+    expected_source_columns:
+    - ADDRESSTYPEID
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESSTYPE_HK: ADDRESSTYPEID
+      ADDRESS_TYPE_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: AddressType
+  stg_business_entity_address:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - ADDRESSID
+    - ADDRESSTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESSTYPE_HK: ADDRESSTYPEID
+      ADDRESS_HK: ADDRESSID
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      LINK_BUSINESS_ENTITY_ADDRESS_HK:
+      - BUSINESSENTITYID
+      - ADDRESSID
+      - ADDRESSTYPEID
+    source_binding: declared
+    source_model:
+      raw: BusinessEntityAddress
+  stg_business_entity_address_details:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - ADDRESSID
+    - ADDRESSTYPEID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESS_ENTITY_ADDRESS_DETAILS_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+      LINK_BUSINESS_ENTITY_ADDRESS_HK:
+      - BUSINESSENTITYID
+      - ADDRESSID
+      - ADDRESSTYPEID
+    source_binding: declared
+    source_model:
+      raw: BusinessEntityAddress
+  stg_business_entity_businessentity:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_DETAILS_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: BusinessEntity
+  stg_business_entity_contact:
+    derived_columns:
+      PERSON_BUSINESSENTITYID: PERSONID
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - PERSONID
+    - CONTACTTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      CONTACTTYPE_HK: CONTACTTYPEID
+      LINK_BUSINESS_ENTITY_CONTACT_HK:
+      - BUSINESSENTITYID
+      - PERSON_BUSINESSENTITYID
+      - CONTACTTYPEID
+      PERSON_BUSINESSENTITY_HK: PERSON_BUSINESSENTITYID
+    source_binding: declared
+    source_model:
+      raw: BusinessEntityContact
+  stg_business_entity_contact_details:
+    derived_columns:
+      PERSON_BUSINESSENTITYID: PERSONID
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - PERSONID
+    - CONTACTTYPEID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESS_ENTITY_CONTACT_DETAILS_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+      LINK_BUSINESS_ENTITY_CONTACT_HK:
+      - BUSINESSENTITYID
+      - PERSON_BUSINESSENTITYID
+      - CONTACTTYPEID
+    source_binding: declared
+    source_model:
+      raw: BusinessEntityContact
+  stg_business_entity_emailaddress:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - EMAILADDRESS
+    - MODIFIEDDATE
+    - EMAILADDRESSID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_EMAIL_HASHDIFF:
+        columns:
+        - EMAILADDRESS
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: EmailAddress
+  stg_business_entity_password:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_CREDENTIAL_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: Password
+  stg_business_entity_person:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - PERSONTYPE
+    - NAMESTYLE
+    - TITLE
+    - FIRSTNAME
+    - MIDDLENAME
+    - LASTNAME
+    - SUFFIX
+    - MODIFIEDDATE
+    - EMAILPROMOTION
+    - ADDITIONALCONTACTINFO
+    - DEMOGRAPHICS
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_MARKETING_CONSENT_HASHDIFF:
+        columns:
+        - EMAILPROMOTION
+        is_hashdiff: true
+      BUSINESS_ENTITY_PERSON_NAME_HASHDIFF:
+        columns:
+        - PERSONTYPE
+        - NAMESTYLE
+        - TITLE
+        - FIRSTNAME
+        - MIDDLENAME
+        - LASTNAME
+        - SUFFIX
+        - MODIFIEDDATE
+        is_hashdiff: true
+      BUSINESS_ENTITY_PERSON_SENSITIVE_HASHDIFF:
+        columns:
+        - ADDITIONALCONTACTINFO
+        - DEMOGRAPHICS
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: Person
+  stg_business_entity_phone_number_type:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - PHONENUMBERTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_HK:
+      - BUSINESSENTITYID
+      - PHONENUMBERTYPEID
+      PHONENUMBERTYPE_HK: PHONENUMBERTYPEID
+    source_binding: declared
+    source_model:
+      raw: PersonPhone
+  stg_business_entity_phone_number_type_phones:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - PHONENUMBERTYPEID
+    - MODIFIEDDATE
+    - PHONENUMBER
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESS_ENTITY_PHONE_NUMBER_TYPE_PHONES_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+      LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_HK:
+      - BUSINESSENTITYID
+      - PHONENUMBERTYPEID
+    source_binding: declared
+    source_model:
+      raw: PersonPhone
+  stg_contact_type:
+    expected_source_columns:
+    - CONTACTTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CONTACTTYPE_HK: CONTACTTYPEID
+    source_binding: declared
+    source_model:
+      raw: ContactType
+  stg_contact_type_details:
+    expected_source_columns:
+    - CONTACTTYPEID
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CONTACTTYPE_HK: CONTACTTYPEID
+      CONTACT_TYPE_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: ContactType
+  stg_country_region:
+    expected_source_columns:
+    - COUNTRYREGIONCODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      COUNTRYREGION_HK: COUNTRYREGIONCODE
+    source_binding: declared
+    source_model:
+      raw: CountryRegion
+  stg_country_region_details:
+    expected_source_columns:
+    - COUNTRYREGIONCODE
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      COUNTRYREGION_HK: COUNTRYREGIONCODE
+      COUNTRY_REGION_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: CountryRegion
+  stg_phone_number_type:
+    expected_source_columns:
+    - PHONENUMBERTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PHONENUMBERTYPE_HK: PHONENUMBERTYPEID
+    source_binding: declared
+    source_model:
+      raw: PhoneNumberType
+  stg_phone_number_type_details:
+    expected_source_columns:
+    - PHONENUMBERTYPEID
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PHONENUMBERTYPE_HK: PHONENUMBERTYPEID
+      PHONE_NUMBER_TYPE_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: PhoneNumberType
+  stg_state_province:
+    expected_source_columns:
+    - STATEPROVINCEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      STATEPROVINCE_HK: STATEPROVINCEID
+    source_binding: declared
+    source_model:
+      raw: StateProvince
+  stg_state_province_country_region:
+    expected_source_columns:
+    - STATEPROVINCEID
+    - COUNTRYREGIONCODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      COUNTRYREGION_HK: COUNTRYREGIONCODE
+      LINK_STATE_PROVINCE_COUNTRY_REGION_HK:
+      - STATEPROVINCEID
+      - COUNTRYREGIONCODE
+      STATEPROVINCE_HK: STATEPROVINCEID
+    source_binding: declared
+    source_model:
+      raw: StateProvince
+  stg_state_province_details:
+    expected_source_columns:
+    - STATEPROVINCEID
+    - STATEPROVINCECODE
+    - ISONLYSTATEPROVINCEFLAG
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      STATEPROVINCE_HK: STATEPROVINCEID
+      STATE_PROVINCE_DETAILS_HASHDIFF:
+        columns:
+        - STATEPROVINCECODE
+        - ISONLYSTATEPROVINCEFLAG
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: StateProvince
+  stg_state_province_territory:
+    expected_source_columns:
+    - STATEPROVINCEID
+    - TERRITORYID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      STATEPROVINCE_HK: STATEPROVINCEID
+      STATE_PROVINCE_TERRITORY_HASHDIFF:
+        columns:
+        - TERRITORYID
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: StateProvince

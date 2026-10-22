@@ -1,0 +1,50 @@
+spec-version: 1.0.0
+name: BusinessEntity
+namespace: source
+dataAssetResourceName: datastore://source/BusinessEntity
+doc: Source-to-staging asset for BusinessEntity, a base record that identifies a business
+  entity (e.g. a person, vendor or store) via a unique BusinessEntityID. The contract
+  enforces the declared schema and the business key; no value-level requirements have
+  been stated, so no semantic constraints are defined. Ownership and agreement are
+  to be confirmed at the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Unique identifier of the business entity; the business key of this
+    asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (GUID) row identifier for the record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

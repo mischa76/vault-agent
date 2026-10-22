@@ -1,0 +1,4419 @@
+hubs:
+  hub_address:
+    source_model: stg_address
+    src_ldts: LOAD_DATETIME
+    src_nk: ADDRESSID
+    src_pk: ADDRESS_HK
+    src_source: RECORD_SOURCE
+  hub_address_type:
+    source_model: stg_address_type
+    src_ldts: LOAD_DATETIME
+    src_nk: ADDRESSTYPEID
+    src_pk: ADDRESSTYPE_HK
+    src_source: RECORD_SOURCE
+  hub_business_entity:
+    source_model:
+    - stg_business_entity_businessentity
+    - stg_business_entity_person
+    - stg_business_entity_emailaddress
+    - stg_business_entity_password
+    - stg_business_entity_employee
+    - stg_business_entity_employeepayhistory
+    - stg_business_entity_vendor
+    - stg_business_entity_store
+    - stg_business_entity_salesperson
+    - stg_business_entity_salespersonquotahistory
+    src_ldts: LOAD_DATETIME
+    src_nk: BUSINESSENTITYID
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  hub_contact_type:
+    source_model: stg_contact_type
+    src_ldts: LOAD_DATETIME
+    src_nk: CONTACTTYPEID
+    src_pk: CONTACTTYPE_HK
+    src_source: RECORD_SOURCE
+  hub_country_region:
+    source_model: stg_country_region
+    src_ldts: LOAD_DATETIME
+    src_nk: COUNTRYREGIONCODE
+    src_pk: COUNTRYREGION_HK
+    src_source: RECORD_SOURCE
+  hub_credit_card:
+    source_model: stg_credit_card
+    src_ldts: LOAD_DATETIME
+    src_nk: CREDITCARDID
+    src_pk: CREDITCARD_HK
+    src_source: RECORD_SOURCE
+  hub_culture:
+    source_model: stg_culture
+    src_ldts: LOAD_DATETIME
+    src_nk: CULTUREID
+    src_pk: CULTURE_HK
+    src_source: RECORD_SOURCE
+  hub_currency:
+    source_model: stg_currency
+    src_ldts: LOAD_DATETIME
+    src_nk: CURRENCYCODE
+    src_pk: CURRENCY_HK
+    src_source: RECORD_SOURCE
+  hub_currency_rate:
+    source_model: stg_currency_rate
+    src_ldts: LOAD_DATETIME
+    src_nk:
+    - CURRENCYRATEDATE
+    - FROMCURRENCYCODE
+    - TOCURRENCYCODE
+    src_pk: CURRENCYRATE_HK
+    src_source: RECORD_SOURCE
+  hub_customer:
+    source_model: stg_customer
+    src_ldts: LOAD_DATETIME
+    src_nk: ACCOUNTNUMBER
+    src_pk: CUSTOMER_HK
+    src_source: RECORD_SOURCE
+  hub_department:
+    source_model: stg_department
+    src_ldts: LOAD_DATETIME
+    src_nk: DEPARTMENTID
+    src_pk: DEPARTMENT_HK
+    src_source: RECORD_SOURCE
+  hub_document:
+    source_model: stg_document
+    src_ldts: LOAD_DATETIME
+    src_nk: DOCUMENTNODE
+    src_pk: DOCUMENT_HK
+    src_source: RECORD_SOURCE
+  hub_illustration:
+    source_model: stg_illustration
+    src_ldts: LOAD_DATETIME
+    src_nk: ILLUSTRATIONID
+    src_pk: ILLUSTRATION_HK
+    src_source: RECORD_SOURCE
+  hub_inventory_transaction:
+    source_model:
+    - stg_inventory_transaction_transactionhistory
+    - stg_inventory_transaction_transactionhistoryarchive
+    src_ldts: LOAD_DATETIME
+    src_nk: TRANSACTIONID
+    src_pk: TRANSACTIONHISTORY_HK
+    src_source: RECORD_SOURCE
+  hub_job_candidate:
+    source_model: stg_job_candidate
+    src_ldts: LOAD_DATETIME
+    src_nk: JOBCANDIDATEID
+    src_pk: JOBCANDIDATE_HK
+    src_source: RECORD_SOURCE
+  hub_location:
+    source_model: stg_location
+    src_ldts: LOAD_DATETIME
+    src_nk: LOCATIONID
+    src_pk: LOCATION_HK
+    src_source: RECORD_SOURCE
+  hub_phone_number_type:
+    source_model: stg_phone_number_type
+    src_ldts: LOAD_DATETIME
+    src_nk: PHONENUMBERTYPEID
+    src_pk: PHONENUMBERTYPE_HK
+    src_source: RECORD_SOURCE
+  hub_product:
+    source_model: stg_product
+    src_ldts: LOAD_DATETIME
+    src_nk: PRODUCTID
+    src_pk: PRODUCT_HK
+    src_source: RECORD_SOURCE
+  hub_product_category:
+    source_model: stg_product_category
+    src_ldts: LOAD_DATETIME
+    src_nk: PRODUCTCATEGORYID
+    src_pk: PRODUCTCATEGORY_HK
+    src_source: RECORD_SOURCE
+  hub_product_description:
+    source_model: stg_product_description
+    src_ldts: LOAD_DATETIME
+    src_nk: PRODUCTDESCRIPTIONID
+    src_pk: PRODUCTDESCRIPTION_HK
+    src_source: RECORD_SOURCE
+  hub_product_model:
+    source_model: stg_product_model
+    src_ldts: LOAD_DATETIME
+    src_nk: PRODUCTMODELID
+    src_pk: PRODUCTMODEL_HK
+    src_source: RECORD_SOURCE
+  hub_product_photo:
+    source_model: stg_product_photo
+    src_ldts: LOAD_DATETIME
+    src_nk: PRODUCTPHOTOID
+    src_pk: PRODUCTPHOTO_HK
+    src_source: RECORD_SOURCE
+  hub_product_review:
+    source_model: stg_product_review
+    src_ldts: LOAD_DATETIME
+    src_nk: PRODUCTREVIEWID
+    src_pk: PRODUCTREVIEW_HK
+    src_source: RECORD_SOURCE
+  hub_product_subcategory:
+    source_model: stg_product_subcategory
+    src_ldts: LOAD_DATETIME
+    src_nk: PRODUCTSUBCATEGORYID
+    src_pk: PRODUCTSUBCATEGORY_HK
+    src_source: RECORD_SOURCE
+  hub_purchase_order:
+    source_model: stg_purchase_order
+    src_ldts: LOAD_DATETIME
+    src_nk: PURCHASEORDERID
+    src_pk: PURCHASEORDERHEADER_HK
+    src_source: RECORD_SOURCE
+  hub_purchase_order_line:
+    source_model: stg_purchase_order_line
+    src_ldts: LOAD_DATETIME
+    src_nk:
+    - PURCHASEORDERID
+    - PURCHASEORDERDETAILID
+    src_pk: PURCHASEORDERDETAIL_HK
+    src_source: RECORD_SOURCE
+  hub_sales_order:
+    source_model: stg_sales_order
+    src_ldts: LOAD_DATETIME
+    src_nk: SALESORDERNUMBER
+    src_pk: SALESORDERHEADER_HK
+    src_source: RECORD_SOURCE
+  hub_sales_order_line:
+    source_model: stg_sales_order_line
+    src_ldts: LOAD_DATETIME
+    src_nk:
+    - SALESORDERID
+    - SALESORDERDETAILID
+    src_pk: SALESORDERDETAIL_HK
+    src_source: RECORD_SOURCE
+  hub_sales_reason:
+    source_model: stg_sales_reason
+    src_ldts: LOAD_DATETIME
+    src_nk: SALESREASONID
+    src_pk: SALESREASON_HK
+    src_source: RECORD_SOURCE
+  hub_sales_tax_rate:
+    source_model: stg_sales_tax_rate
+    src_ldts: LOAD_DATETIME
+    src_nk: SALESTAXRATEID
+    src_pk: SALESTAXRATE_HK
+    src_source: RECORD_SOURCE
+  hub_sales_territory:
+    source_model: stg_sales_territory
+    src_ldts: LOAD_DATETIME
+    src_nk: TERRITORYID
+    src_pk: SALESTERRITORY_HK
+    src_source: RECORD_SOURCE
+  hub_scrap_reason:
+    source_model: stg_scrap_reason
+    src_ldts: LOAD_DATETIME
+    src_nk: SCRAPREASONID
+    src_pk: SCRAPREASON_HK
+    src_source: RECORD_SOURCE
+  hub_shift:
+    source_model: stg_shift
+    src_ldts: LOAD_DATETIME
+    src_nk: SHIFTID
+    src_pk: SHIFT_HK
+    src_source: RECORD_SOURCE
+  hub_ship_method:
+    source_model: stg_ship_method
+    src_ldts: LOAD_DATETIME
+    src_nk: SHIPMETHODID
+    src_pk: SHIPMETHOD_HK
+    src_source: RECORD_SOURCE
+  hub_shopping_cart:
+    source_model: stg_shopping_cart
+    src_ldts: LOAD_DATETIME
+    src_nk: SHOPPINGCARTID
+    src_pk: SHOPPINGCARTITEM_HK
+    src_source: RECORD_SOURCE
+  hub_special_offer:
+    source_model: stg_special_offer
+    src_ldts: LOAD_DATETIME
+    src_nk: SPECIALOFFERID
+    src_pk: SPECIALOFFER_HK
+    src_source: RECORD_SOURCE
+  hub_state_province:
+    source_model: stg_state_province
+    src_ldts: LOAD_DATETIME
+    src_nk: STATEPROVINCEID
+    src_pk: STATEPROVINCE_HK
+    src_source: RECORD_SOURCE
+  hub_unit_measure:
+    source_model: stg_unit_measure
+    src_ldts: LOAD_DATETIME
+    src_nk: UNITMEASURECODE
+    src_pk: UNITMEASURE_HK
+    src_source: RECORD_SOURCE
+  hub_work_order:
+    source_model: stg_work_order
+    src_ldts: LOAD_DATETIME
+    src_nk: WORKORDERID
+    src_pk: WORKORDER_HK
+    src_source: RECORD_SOURCE
+links:
+  link_address_state_province:
+    source_model: stg_address_state_province
+    src_fk:
+    - ADDRESS_HK
+    - STATEPROVINCE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_ADDRESS_STATE_PROVINCE_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_address:
+    source_model: stg_business_entity_address
+    src_fk:
+    - BUSINESSENTITY_HK
+    - ADDRESS_HK
+    - ADDRESSTYPE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_ADDRESS_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_contact:
+    source_model: stg_business_entity_contact
+    src_fk:
+    - BUSINESSENTITY_HK
+    - PERSON_BUSINESSENTITY_HK
+    - CONTACTTYPE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_CONTACT_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_credit_card:
+    source_model: stg_business_entity_credit_card
+    src_fk:
+    - BUSINESSENTITY_HK
+    - CREDITCARD_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_CREDIT_CARD_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_department_shift:
+    source_model: stg_business_entity_department_shift
+    src_fk:
+    - BUSINESSENTITY_HK
+    - DEPARTMENT_HK
+    - SHIFT_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_job_candidate:
+    source_model: stg_business_entity_job_candidate
+    src_fk:
+    - JOBCANDIDATE_HK
+    - BUSINESSENTITY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_JOB_CANDIDATE_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_phone_number_type:
+    source_model: stg_business_entity_phone_number_type
+    src_fk:
+    - BUSINESSENTITY_HK
+    - PHONENUMBERTYPE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_sales_territory:
+    source_model: stg_business_entity_sales_territory
+    src_fk:
+    - BUSINESSENTITY_HK
+    - SALESTERRITORY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_SALES_TERRITORY_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_sales_territory_assignment:
+    source_model: stg_business_entity_sales_territory_assignment
+    src_fk:
+    - BUSINESSENTITY_HK
+    - SALESTERRITORY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_HK
+    src_source: RECORD_SOURCE
+  link_business_entity_store_sales_person:
+    source_model: stg_business_entity_store_sales_person
+    src_fk:
+    - STORE_BUSINESSENTITY_HK
+    - SALES_PERSON_BUSINESSENTITY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_STORE_SALES_PERSON_HK
+    src_source: RECORD_SOURCE
+  link_country_region_currency:
+    source_model: stg_country_region_currency
+    src_fk:
+    - COUNTRYREGION_HK
+    - CURRENCY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_COUNTRY_REGION_CURRENCY_HK
+    src_source: RECORD_SOURCE
+  link_currency_rate_currency:
+    source_model: stg_currency_rate_currency
+    src_fk:
+    - CURRENCYRATE_HK
+    - FROM_CURRENCY_HK
+    - TO_CURRENCY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_CURRENCY_RATE_CURRENCY_HK
+    src_source: RECORD_SOURCE
+  link_customer_business_entity:
+    source_model: stg_customer_business_entity
+    src_fk:
+    - CUSTOMER_HK
+    - PERSON_BUSINESSENTITY_HK
+    - STORE_BUSINESSENTITY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_CUSTOMER_BUSINESS_ENTITY_HK
+    src_source: RECORD_SOURCE
+  link_customer_sales_territory:
+    source_model: stg_customer_sales_territory
+    src_fk:
+    - CUSTOMER_HK
+    - SALESTERRITORY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_CUSTOMER_SALES_TERRITORY_HK
+    src_source: RECORD_SOURCE
+  link_document_business_entity:
+    source_model: stg_document_business_entity
+    src_fk:
+    - DOCUMENT_HK
+    - BUSINESSENTITY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_DOCUMENT_BUSINESS_ENTITY_HK
+    src_source: RECORD_SOURCE
+  link_inventory_transaction_product:
+    source_model: stg_inventory_transaction_product
+    src_fk:
+    - TRANSACTIONHISTORY_HK
+    - PRODUCT_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_INVENTORY_TRANSACTION_PRODUCT_HK
+    src_source: RECORD_SOURCE
+  link_product_assembly_component:
+    source_model: stg_product_assembly_component
+    src_fk:
+    - ASSEMBLY_PRODUCT_HK
+    - COMPONENT_PRODUCT_HK
+    - UNITMEASURE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_ASSEMBLY_COMPONENT_HK
+    src_source: RECORD_SOURCE
+  link_product_document:
+    source_model: stg_product_document
+    src_fk:
+    - PRODUCT_HK
+    - DOCUMENT_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_DOCUMENT_HK
+    src_source: RECORD_SOURCE
+  link_product_location:
+    source_model: stg_product_location
+    src_fk:
+    - PRODUCT_HK
+    - LOCATION_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_LOCATION_HK
+    src_source: RECORD_SOURCE
+  link_product_model_description_culture:
+    source_model: stg_product_model_description_culture
+    src_fk:
+    - PRODUCTMODEL_HK
+    - PRODUCTDESCRIPTION_HK
+    - CULTURE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE_HK
+    src_source: RECORD_SOURCE
+  link_product_model_illustration:
+    source_model: stg_product_model_illustration
+    src_fk:
+    - PRODUCTMODEL_HK
+    - ILLUSTRATION_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_MODEL_ILLUSTRATION_HK
+    src_source: RECORD_SOURCE
+  link_product_product_model:
+    source_model: stg_product_product_model
+    src_fk:
+    - PRODUCT_HK
+    - PRODUCTMODEL_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_PRODUCT_MODEL_HK
+    src_source: RECORD_SOURCE
+  link_product_product_photo:
+    source_model: stg_product_product_photo
+    src_fk:
+    - PRODUCT_HK
+    - PRODUCTPHOTO_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_PRODUCT_PHOTO_HK
+    src_source: RECORD_SOURCE
+  link_product_product_subcategory:
+    source_model: stg_product_product_subcategory
+    src_fk:
+    - PRODUCT_HK
+    - PRODUCTSUBCATEGORY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_PRODUCT_SUBCATEGORY_HK
+    src_source: RECORD_SOURCE
+  link_product_review_product:
+    source_model: stg_product_review_product
+    src_fk:
+    - PRODUCTREVIEW_HK
+    - PRODUCT_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_REVIEW_PRODUCT_HK
+    src_source: RECORD_SOURCE
+  link_product_subcategory_product_category:
+    source_model: stg_product_subcategory_product_category
+    src_fk:
+    - PRODUCTSUBCATEGORY_HK
+    - PRODUCTCATEGORY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_SUBCATEGORY_PRODUCT_CATEGORY_HK
+    src_source: RECORD_SOURCE
+  link_product_unit_measure:
+    source_model: stg_product_unit_measure
+    src_fk:
+    - PRODUCT_HK
+    - SIZE_UNITMEASURE_HK
+    - WEIGHT_UNITMEASURE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_UNIT_MEASURE_HK
+    src_source: RECORD_SOURCE
+  link_product_vendor:
+    source_model: stg_product_vendor
+    src_fk:
+    - PRODUCT_HK
+    - VENDOR_BUSINESSENTITY_HK
+    - UNITMEASURE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_VENDOR_HK
+    src_source: RECORD_SOURCE
+  link_purchase_order_business_entity:
+    source_model: stg_purchase_order_business_entity
+    src_fk:
+    - PURCHASEORDERHEADER_HK
+    - BUSINESSENTITY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PURCHASE_ORDER_BUSINESS_ENTITY_HK
+    src_source: RECORD_SOURCE
+  link_purchase_order_line_product:
+    source_model: stg_purchase_order_line_product
+    src_fk:
+    - PURCHASEORDERDETAIL_HK
+    - PURCHASEORDERHEADER_HK
+    - PRODUCT_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PURCHASE_ORDER_LINE_PRODUCT_HK
+    src_source: RECORD_SOURCE
+  link_purchase_order_vendor_employee_ship_method:
+    source_model: stg_purchase_order_vendor_employee_ship_method
+    src_fk:
+    - PURCHASEORDERHEADER_HK
+    - VENDOR_BUSINESSENTITY_HK
+    - EMPLOYEE_BUSINESSENTITY_HK
+    - SHIPMETHOD_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD_HK
+    src_source: RECORD_SOURCE
+  link_sales_order_address:
+    source_model: stg_sales_order_address
+    src_fk:
+    - SALESORDERHEADER_HK
+    - BILL_TO_ADDRESS_HK
+    - SHIP_TO_ADDRESS_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_ORDER_ADDRESS_HK
+    src_source: RECORD_SOURCE
+  link_sales_order_credit_card:
+    source_model: stg_sales_order_credit_card
+    src_fk:
+    - SALESORDERHEADER_HK
+    - CREDITCARD_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_ORDER_CREDIT_CARD_HK
+    src_source: RECORD_SOURCE
+  link_sales_order_currency_rate:
+    source_model: stg_sales_order_currency_rate
+    src_fk:
+    - SALESORDERHEADER_HK
+    - CURRENCYRATE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_ORDER_CURRENCY_RATE_HK
+    src_source: RECORD_SOURCE
+  link_sales_order_customer:
+    source_model: stg_sales_order_customer
+    src_fk:
+    - SALESORDERHEADER_HK
+    - CUSTOMER_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_ORDER_CUSTOMER_HK
+    src_source: RECORD_SOURCE
+  link_sales_order_line_product:
+    source_model: stg_sales_order_line_product
+    src_fk:
+    - SALESORDERDETAIL_HK
+    - PRODUCT_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_ORDER_LINE_PRODUCT_HK
+    src_source: RECORD_SOURCE
+  link_sales_order_line_product_special_offer:
+    source_model: stg_sales_order_line_product_special_offer
+    src_fk:
+    - SALESORDERDETAIL_HK
+    - SALESORDERHEADER_HK
+    - PRODUCT_HK
+    - SPECIALOFFER_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER_HK
+    src_source: RECORD_SOURCE
+  link_sales_order_sales_person:
+    source_model: stg_sales_order_sales_person
+    src_fk:
+    - SALESORDERHEADER_HK
+    - SALES_PERSON_BUSINESSENTITY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_ORDER_SALES_PERSON_HK
+    src_source: RECORD_SOURCE
+  link_sales_order_sales_reason:
+    source_model: stg_sales_order_sales_reason
+    src_fk:
+    - SALESORDERHEADER_HK
+    - SALESREASON_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_ORDER_SALES_REASON_HK
+    src_source: RECORD_SOURCE
+  link_sales_order_sales_territory:
+    source_model: stg_sales_order_sales_territory
+    src_fk:
+    - SALESORDERHEADER_HK
+    - SALESTERRITORY_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_ORDER_SALES_TERRITORY_HK
+    src_source: RECORD_SOURCE
+  link_sales_order_ship_method:
+    source_model: stg_sales_order_ship_method
+    src_fk:
+    - SALESORDERHEADER_HK
+    - SHIPMETHOD_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_ORDER_SHIP_METHOD_HK
+    src_source: RECORD_SOURCE
+  link_sales_tax_rate_state_province:
+    source_model: stg_sales_tax_rate_state_province
+    src_fk:
+    - SALESTAXRATE_HK
+    - STATEPROVINCE_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_TAX_RATE_STATE_PROVINCE_HK
+    src_source: RECORD_SOURCE
+  link_sales_territory_country_region:
+    source_model: stg_sales_territory_country_region
+    src_fk:
+    - SALESTERRITORY_HK
+    - COUNTRYREGION_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SALES_TERRITORY_COUNTRY_REGION_HK
+    src_source: RECORD_SOURCE
+  link_shopping_cart_product:
+    source_model: stg_shopping_cart_product
+    src_fk:
+    - SHOPPINGCARTITEM_HK
+    - PRODUCT_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SHOPPING_CART_PRODUCT_HK
+    src_source: RECORD_SOURCE
+  link_special_offer_product:
+    source_model: stg_special_offer_product
+    src_fk:
+    - SPECIALOFFER_HK
+    - PRODUCT_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_SPECIAL_OFFER_PRODUCT_HK
+    src_source: RECORD_SOURCE
+  link_state_province_country_region:
+    source_model: stg_state_province_country_region
+    src_fk:
+    - STATEPROVINCE_HK
+    - COUNTRYREGION_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_STATE_PROVINCE_COUNTRY_REGION_HK
+    src_source: RECORD_SOURCE
+  link_work_order_product:
+    source_model: stg_work_order_product
+    src_fk:
+    - WORKORDER_HK
+    - PRODUCT_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_WORK_ORDER_PRODUCT_HK
+    src_source: RECORD_SOURCE
+  link_work_order_product_location:
+    source_model: stg_work_order_product_location
+    src_fk:
+    - WORKORDER_HK
+    - PRODUCT_HK
+    - LOCATION_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_WORK_ORDER_PRODUCT_LOCATION_HK
+    src_source: RECORD_SOURCE
+  link_work_order_scrap_reason:
+    source_model: stg_work_order_scrap_reason
+    src_fk:
+    - WORKORDER_HK
+    - SCRAPREASON_HK
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_WORK_ORDER_SCRAP_REASON_HK
+    src_source: RECORD_SOURCE
+satellites:
+  sat_address_details:
+    source_model: stg_address_details
+    src_hashdiff: ADDRESS_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ADDRESSLINE1
+    - ADDRESSLINE2
+    - CITY
+    - POSTALCODE
+    - MODIFIEDDATE
+    src_pk: ADDRESS_HK
+    src_source: RECORD_SOURCE
+  sat_address_location:
+    source_model: stg_address_location
+    src_hashdiff: ADDRESS_LOCATION_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SPATIALLOCATION
+    src_pk: ADDRESS_HK
+    src_source: RECORD_SOURCE
+  sat_address_type_details:
+    source_model: stg_address_type_details
+    src_hashdiff: ADDRESS_TYPE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: ADDRESSTYPE_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_address_details:
+    source_model: stg_business_entity_address_details
+    src_hashdiff: BUSINESS_ENTITY_ADDRESS_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: LINK_BUSINESS_ENTITY_ADDRESS_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_contact_details:
+    source_model: stg_business_entity_contact_details
+    src_hashdiff: BUSINESS_ENTITY_CONTACT_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: LINK_BUSINESS_ENTITY_CONTACT_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_credential:
+    source_model: stg_business_entity_password
+    src_hashdiff: BUSINESS_ENTITY_CREDENTIAL_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_credit_card_details:
+    source_model: stg_business_entity_credit_card_details
+    src_hashdiff: BUSINESS_ENTITY_CREDIT_CARD_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: LINK_BUSINESS_ENTITY_CREDIT_CARD_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_department_shift_audit:
+    source_model: stg_business_entity_department_shift_audit
+    src_hashdiff: BUSINESS_ENTITY_DEPARTMENT_SHIFT_AUDIT_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_department_shift_effectivity:
+    source_model: stg_business_entity_department_shift
+    src_dfk: BUSINESSENTITY_HK
+    src_eff: APPLIED_DTS
+    src_end_date: ENDDATE
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT_HK
+    src_sfk:
+    - DEPARTMENT_HK
+    - SHIFT_HK
+    src_source: RECORD_SOURCE
+    src_start_date: STARTDATE
+  sat_business_entity_details:
+    source_model: stg_business_entity_businessentity
+    src_hashdiff: BUSINESS_ENTITY_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_email:
+    source_model: stg_business_entity_emailaddress
+    src_hashdiff: BUSINESS_ENTITY_EMAIL_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - EMAILADDRESS
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_employee_details:
+    source_model: stg_business_entity_employee
+    src_hashdiff: BUSINESS_ENTITY_EMPLOYEE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - JOBTITLE
+    - HIREDATE
+    - SALARIEDFLAG
+    - CURRENTFLAG
+    - LOGINID
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_employee_hierarchy:
+    source_model: stg_business_entity_employee
+    src_hashdiff: BUSINESS_ENTITY_EMPLOYEE_HIERARCHY_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ORGANIZATIONNODE
+    - ORGANIZATIONLEVEL
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_employee_leave:
+    source_model: stg_business_entity_employee
+    src_hashdiff: BUSINESS_ENTITY_EMPLOYEE_LEAVE_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - VACATIONHOURS
+    - SICKLEAVEHOURS
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_employee_sensitive:
+    source_model: stg_business_entity_employee
+    src_hashdiff: BUSINESS_ENTITY_EMPLOYEE_SENSITIVE_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NATIONALIDNUMBER
+    - BIRTHDATE
+    - GENDER
+    - MARITALSTATUS
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_marketing_consent:
+    source_model: stg_business_entity_person
+    src_hashdiff: BUSINESS_ENTITY_MARKETING_CONSENT_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - EMAILPROMOTION
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_pay_history:
+    source_model: stg_business_entity_employeepayhistory
+    src_hashdiff: BUSINESS_ENTITY_PAY_HISTORY_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - RATE
+    - PAYFREQUENCY
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_person_name:
+    source_model: stg_business_entity_person
+    src_hashdiff: BUSINESS_ENTITY_PERSON_NAME_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - PERSONTYPE
+    - NAMESTYLE
+    - TITLE
+    - FIRSTNAME
+    - MIDDLENAME
+    - LASTNAME
+    - SUFFIX
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_person_sensitive:
+    source_model: stg_business_entity_person
+    src_hashdiff: BUSINESS_ENTITY_PERSON_SENSITIVE_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ADDITIONALCONTACTINFO
+    - DEMOGRAPHICS
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_phone_number_type_phones:
+    source_model: stg_business_entity_phone_number_type_phones
+    src_cdk:
+    - PHONENUMBER
+    src_hashdiff: BUSINESS_ENTITY_PHONE_NUMBER_TYPE_PHONES_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_sales_person_performance:
+    source_model: stg_business_entity_salesperson
+    src_hashdiff: BUSINESS_ENTITY_SALES_PERSON_PERFORMANCE_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SALESYTD
+    - SALESLASTYEAR
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_sales_person_remuneration:
+    source_model: stg_business_entity_salesperson
+    src_hashdiff: BUSINESS_ENTITY_SALES_PERSON_REMUNERATION_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SALESQUOTA
+    - BONUS
+    - COMMISSIONPCT
+    - ROWGUID
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_sales_quota_history:
+    source_model: stg_business_entity_salespersonquotahistory
+    src_hashdiff: BUSINESS_ENTITY_SALES_QUOTA_HISTORY_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SALESQUOTA
+    - ROWGUID
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_sales_territory_assignment_details:
+    source_model: stg_business_entity_sales_territory_assignment_details
+    src_hashdiff: BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ROWGUID
+    - MODIFIEDDATE
+    src_pk: LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_sales_territory_assignment_effectivity:
+    source_model: stg_business_entity_sales_territory_assignment
+    src_dfk: BUSINESSENTITY_HK
+    src_eff: APPLIED_DTS
+    src_end_date: ENDDATE
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_HK
+    src_sfk:
+    - SALESTERRITORY_HK
+    src_source: RECORD_SOURCE
+    src_start_date: STARTDATE
+  sat_business_entity_store_demographics:
+    source_model: stg_business_entity_store
+    src_hashdiff: BUSINESS_ENTITY_STORE_DEMOGRAPHICS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - DEMOGRAPHICS
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_store_details:
+    source_model: stg_business_entity_store
+    src_hashdiff: BUSINESS_ENTITY_STORE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - ROWGUID
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_vendor_details:
+    source_model: stg_business_entity_vendor
+    src_hashdiff: BUSINESS_ENTITY_VENDOR_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ACCOUNTNUMBER
+    - NAME
+    - PURCHASINGWEBSERVICEURL
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_business_entity_vendor_status:
+    source_model: stg_business_entity_vendor
+    src_hashdiff: BUSINESS_ENTITY_VENDOR_STATUS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - CREDITRATING
+    - PREFERREDVENDORSTATUS
+    - ACTIVEFLAG
+    - MODIFIEDDATE
+    src_pk: BUSINESSENTITY_HK
+    src_source: RECORD_SOURCE
+  sat_contact_type_details:
+    source_model: stg_contact_type_details
+    src_hashdiff: CONTACT_TYPE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: CONTACTTYPE_HK
+    src_source: RECORD_SOURCE
+  sat_country_region_currency_details:
+    source_model: stg_country_region_currency_details
+    src_hashdiff: COUNTRY_REGION_CURRENCY_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: LINK_COUNTRY_REGION_CURRENCY_HK
+    src_source: RECORD_SOURCE
+  sat_country_region_details:
+    source_model: stg_country_region_details
+    src_hashdiff: COUNTRY_REGION_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: COUNTRYREGION_HK
+    src_source: RECORD_SOURCE
+  sat_credit_card_details:
+    source_model: stg_credit_card_details
+    src_hashdiff: CREDIT_CARD_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - CARDTYPE
+    - MODIFIEDDATE
+    src_pk: CREDITCARD_HK
+    src_source: RECORD_SOURCE
+  sat_credit_card_sensitive:
+    source_model: stg_credit_card_sensitive
+    src_hashdiff: CREDIT_CARD_SENSITIVE_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - CARDNUMBER
+    - EXPMONTH
+    - EXPYEAR
+    src_pk: CREDITCARD_HK
+    src_source: RECORD_SOURCE
+  sat_culture_details:
+    source_model: stg_culture
+    src_hashdiff: CULTURE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: CULTURE_HK
+    src_source: RECORD_SOURCE
+  sat_currency_details:
+    source_model: stg_currency_details
+    src_hashdiff: CURRENCY_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: CURRENCY_HK
+    src_source: RECORD_SOURCE
+  sat_currency_rate_details:
+    source_model: stg_currency_rate_details
+    src_hashdiff: CURRENCY_RATE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - CURRENCYRATEID
+    - AVERAGERATE
+    - ENDOFDAYRATE
+    - MODIFIEDDATE
+    src_pk: CURRENCYRATE_HK
+    src_source: RECORD_SOURCE
+  sat_customer_details:
+    source_model: stg_customer_details
+    src_hashdiff: CUSTOMER_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - CUSTOMERID
+    - ROWGUID
+    - MODIFIEDDATE
+    src_pk: CUSTOMER_HK
+    src_source: RECORD_SOURCE
+  sat_department_details:
+    source_model: stg_department_details
+    src_hashdiff: DEPARTMENT_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - GROUPNAME
+    - MODIFIEDDATE
+    src_pk: DEPARTMENT_HK
+    src_source: RECORD_SOURCE
+  sat_document_details:
+    source_model: stg_document
+    src_hashdiff: DOCUMENT_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - DOCUMENTLEVEL
+    - TITLE
+    - FOLDERFLAG
+    - FILENAME
+    - FILEEXTENSION
+    - REVISION
+    - CHANGENUMBER
+    - STATUS
+    - DOCUMENTSUMMARY
+    - MODIFIEDDATE
+    src_pk: DOCUMENT_HK
+    src_source: RECORD_SOURCE
+  sat_illustration_diagram:
+    source_model: stg_illustration
+    src_hashdiff: ILLUSTRATION_DIAGRAM_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - DIAGRAM
+    - MODIFIEDDATE
+    src_pk: ILLUSTRATION_HK
+    src_source: RECORD_SOURCE
+  sat_inventory_transaction_archive:
+    source_model: stg_inventory_transaction_transactionhistoryarchive
+    src_hashdiff: INVENTORY_TRANSACTION_ARCHIVE_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - TRANSACTIONDATE
+    - TRANSACTIONTYPE
+    - REFERENCEORDERID
+    - REFERENCEORDERLINEID
+    - QUANTITY
+    - ACTUALCOST
+    - MODIFIEDDATE
+    src_pk: TRANSACTIONHISTORY_HK
+    src_source: RECORD_SOURCE
+  sat_inventory_transaction_details:
+    source_model: stg_inventory_transaction_transactionhistory
+    src_hashdiff: INVENTORY_TRANSACTION_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - TRANSACTIONDATE
+    - TRANSACTIONTYPE
+    - REFERENCEORDERID
+    - REFERENCEORDERLINEID
+    - QUANTITY
+    - ACTUALCOST
+    - MODIFIEDDATE
+    src_pk: TRANSACTIONHISTORY_HK
+    src_source: RECORD_SOURCE
+  sat_job_candidate_resume:
+    source_model: stg_job_candidate_resume
+    src_hashdiff: JOB_CANDIDATE_RESUME_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - RESUME
+    - MODIFIEDDATE
+    src_pk: JOBCANDIDATE_HK
+    src_source: RECORD_SOURCE
+  sat_location_details:
+    source_model: stg_location
+    src_hashdiff: LOCATION_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - COSTRATE
+    - AVAILABILITY
+    - MODIFIEDDATE
+    src_pk: LOCATION_HK
+    src_source: RECORD_SOURCE
+  sat_phone_number_type_details:
+    source_model: stg_phone_number_type_details
+    src_hashdiff: PHONE_NUMBER_TYPE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: PHONENUMBERTYPE_HK
+    src_source: RECORD_SOURCE
+  sat_product_assembly_component_details:
+    source_model: stg_product_assembly_component
+    src_hashdiff: PRODUCT_ASSEMBLY_COMPONENT_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - BOMLEVEL
+    - PERASSEMBLYQTY
+    - MODIFIEDDATE
+    src_pk: LINK_PRODUCT_ASSEMBLY_COMPONENT_HK
+    src_source: RECORD_SOURCE
+  sat_product_assembly_component_effectivity:
+    source_model: stg_product_assembly_component
+    src_dfk:
+    - ASSEMBLY_PRODUCT_HK
+    - COMPONENT_PRODUCT_HK
+    src_eff: APPLIED_DTS
+    src_end_date: ENDDATE
+    src_ldts: LOAD_DATETIME
+    src_pk: LINK_PRODUCT_ASSEMBLY_COMPONENT_HK
+    src_sfk:
+    - UNITMEASURE_HK
+    src_source: RECORD_SOURCE
+    src_start_date: STARTDATE
+  sat_product_category_details:
+    source_model: stg_product_category
+    src_hashdiff: PRODUCT_CATEGORY_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: PRODUCTCATEGORY_HK
+    src_source: RECORD_SOURCE
+  sat_product_cost_history:
+    source_model: stg_product_cost_history
+    src_cdk:
+    - STARTDATE
+    src_hashdiff: PRODUCT_COST_HISTORY_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ENDDATE
+    - STANDARDCOST
+    - MODIFIEDDATE
+    src_pk: PRODUCT_HK
+    src_source: RECORD_SOURCE
+  sat_product_description_details:
+    source_model: stg_product_description
+    src_hashdiff: PRODUCT_DESCRIPTION_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - DESCRIPTION
+    - MODIFIEDDATE
+    src_pk: PRODUCTDESCRIPTION_HK
+    src_source: RECORD_SOURCE
+  sat_product_details:
+    source_model: stg_product
+    src_hashdiff: PRODUCT_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - PRODUCTNUMBER
+    - NAME
+    - MAKEFLAG
+    - FINISHEDGOODSFLAG
+    - COLOR
+    - SIZE
+    - WEIGHT
+    - DAYSTOMANUFACTURE
+    - PRODUCTLINE
+    - CLASS
+    - STYLE
+    - MODIFIEDDATE
+    src_pk: PRODUCT_HK
+    src_source: RECORD_SOURCE
+  sat_product_inventory_policy:
+    source_model: stg_product
+    src_hashdiff: PRODUCT_INVENTORY_POLICY_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SAFETYSTOCKLEVEL
+    - REORDERPOINT
+    src_pk: PRODUCT_HK
+    src_source: RECORD_SOURCE
+  sat_product_lifecycle:
+    source_model: stg_product
+    src_hashdiff: PRODUCT_LIFECYCLE_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SELLSTARTDATE
+    - SELLENDDATE
+    - DISCONTINUEDDATE
+    src_pk: PRODUCT_HK
+    src_source: RECORD_SOURCE
+  sat_product_list_price_history:
+    source_model: stg_product_list_price_history
+    src_cdk:
+    - STARTDATE
+    src_hashdiff: PRODUCT_LIST_PRICE_HISTORY_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ENDDATE
+    - LISTPRICE
+    - MODIFIEDDATE
+    src_pk: PRODUCT_HK
+    src_source: RECORD_SOURCE
+  sat_product_location_inventory:
+    source_model: stg_product_location_inventory
+    src_cdk:
+    - SHELF
+    - BIN
+    src_hashdiff: PRODUCT_LOCATION_INVENTORY_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - QUANTITY
+    - MODIFIEDDATE
+    src_pk: LINK_PRODUCT_LOCATION_HK
+    src_source: RECORD_SOURCE
+  sat_product_model_content:
+    source_model: stg_product_model
+    src_hashdiff: PRODUCT_MODEL_CONTENT_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - CATALOGDESCRIPTION
+    - INSTRUCTIONS
+    src_pk: PRODUCTMODEL_HK
+    src_source: RECORD_SOURCE
+  sat_product_model_details:
+    source_model: stg_product_model
+    src_hashdiff: PRODUCT_MODEL_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: PRODUCTMODEL_HK
+    src_source: RECORD_SOURCE
+  sat_product_photo_details:
+    source_model: stg_product_photo
+    src_hashdiff: PRODUCT_PHOTO_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - THUMBNAILPHOTOFILENAME
+    - LARGEPHOTOFILENAME
+    - MODIFIEDDATE
+    src_pk: PRODUCTPHOTO_HK
+    src_source: RECORD_SOURCE
+  sat_product_photo_images:
+    source_model: stg_product_photo
+    src_hashdiff: PRODUCT_PHOTO_IMAGES_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - THUMBNAILPHOTO
+    - LARGEPHOTO
+    src_pk: PRODUCTPHOTO_HK
+    src_source: RECORD_SOURCE
+  sat_product_pricing:
+    source_model: stg_product
+    src_hashdiff: PRODUCT_PRICING_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - STANDARDCOST
+    - LISTPRICE
+    src_pk: PRODUCT_HK
+    src_source: RECORD_SOURCE
+  sat_product_product_photo_details:
+    source_model: stg_product_product_photo
+    src_hashdiff: PRODUCT_PRODUCT_PHOTO_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - PRIMARY_
+    - MODIFIEDDATE
+    src_pk: LINK_PRODUCT_PRODUCT_PHOTO_HK
+    src_source: RECORD_SOURCE
+  sat_product_review_details:
+    source_model: stg_product_review
+    src_hashdiff: PRODUCT_REVIEW_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - REVIEWDATE
+    - RATING
+    - COMMENTS
+    - MODIFIEDDATE
+    src_pk: PRODUCTREVIEW_HK
+    src_source: RECORD_SOURCE
+  sat_product_review_reviewer_pii:
+    source_model: stg_product_review
+    src_hashdiff: PRODUCT_REVIEW_REVIEWER_PII_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - REVIEWERNAME
+    - EMAILADDRESS
+    src_pk: PRODUCTREVIEW_HK
+    src_source: RECORD_SOURCE
+  sat_product_subcategory_details:
+    source_model: stg_product_subcategory
+    src_hashdiff: PRODUCT_SUBCATEGORY_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: PRODUCTSUBCATEGORY_HK
+    src_source: RECORD_SOURCE
+  sat_product_vendor_receipt:
+    source_model: stg_product_vendor_receipt
+    src_hashdiff: PRODUCT_VENDOR_RECEIPT_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - LASTRECEIPTCOST
+    - LASTRECEIPTDATE
+    - ONORDERQTY
+    src_pk: LINK_PRODUCT_VENDOR_HK
+    src_source: RECORD_SOURCE
+  sat_product_vendor_terms:
+    source_model: stg_product_vendor_terms
+    src_hashdiff: PRODUCT_VENDOR_TERMS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - AVERAGELEADTIME
+    - STANDARDPRICE
+    - MINORDERQTY
+    - MAXORDERQTY
+    - MODIFIEDDATE
+    src_pk: LINK_PRODUCT_VENDOR_HK
+    src_source: RECORD_SOURCE
+  sat_purchase_order_details:
+    source_model: stg_purchase_order_details
+    src_hashdiff: PURCHASE_ORDER_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ORDERDATE
+    - SHIPDATE
+    - SUBTOTAL
+    - TAXAMT
+    - FREIGHT
+    - TOTALDUE
+    src_pk: PURCHASEORDERHEADER_HK
+    src_source: RECORD_SOURCE
+  sat_purchase_order_line_details:
+    source_model: stg_purchase_order_line_details
+    src_hashdiff: PURCHASE_ORDER_LINE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - DUEDATE
+    - ORDERQTY
+    - UNITPRICE
+    - LINETOTAL
+    src_pk: PURCHASEORDERDETAIL_HK
+    src_source: RECORD_SOURCE
+  sat_purchase_order_line_receipt:
+    source_model: stg_purchase_order_line_receipt
+    src_hashdiff: PURCHASE_ORDER_LINE_RECEIPT_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - RECEIVEDQTY
+    - REJECTEDQTY
+    - STOCKEDQTY
+    - MODIFIEDDATE
+    src_pk: PURCHASEORDERDETAIL_HK
+    src_source: RECORD_SOURCE
+  sat_purchase_order_status:
+    source_model: stg_purchase_order_status
+    src_hashdiff: PURCHASE_ORDER_STATUS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - STATUS
+    - REVISIONNUMBER
+    - MODIFIEDDATE
+    src_pk: PURCHASEORDERHEADER_HK
+    src_source: RECORD_SOURCE
+  sat_sales_order_amounts:
+    source_model: stg_sales_order_amounts
+    src_hashdiff: SALES_ORDER_AMOUNTS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SUBTOTAL
+    - TAXAMT
+    - FREIGHT
+    - TOTALDUE
+    src_pk: SALESORDERHEADER_HK
+    src_source: RECORD_SOURCE
+  sat_sales_order_details:
+    source_model: stg_sales_order_details
+    src_hashdiff: SALES_ORDER_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SALESORDERID
+    - ORDERDATE
+    - DUEDATE
+    - ONLINEORDERFLAG
+    - PURCHASEORDERNUMBER
+    - ACCOUNTNUMBER
+    - COMMENT
+    - ROWGUID
+    src_pk: SALESORDERHEADER_HK
+    src_source: RECORD_SOURCE
+  sat_sales_order_line_details:
+    source_model: stg_sales_order_line_details
+    src_hashdiff: SALES_ORDER_LINE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - CARRIERTRACKINGNUMBER
+    - ORDERQTY
+    - UNITPRICE
+    - UNITPRICEDISCOUNT
+    - LINETOTAL
+    - ROWGUID
+    - MODIFIEDDATE
+    src_pk: SALESORDERDETAIL_HK
+    src_source: RECORD_SOURCE
+  sat_sales_order_payment:
+    source_model: stg_sales_order_payment
+    src_hashdiff: SALES_ORDER_PAYMENT_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - CREDITCARDAPPROVALCODE
+    src_pk: SALESORDERHEADER_HK
+    src_source: RECORD_SOURCE
+  sat_sales_order_sales_reason_details:
+    source_model: stg_sales_order_sales_reason_details
+    src_hashdiff: SALES_ORDER_SALES_REASON_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - MODIFIEDDATE
+    src_pk: LINK_SALES_ORDER_SALES_REASON_HK
+    src_source: RECORD_SOURCE
+  sat_sales_order_status:
+    source_model: stg_sales_order_status
+    src_hashdiff: SALES_ORDER_STATUS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - STATUS
+    - SHIPDATE
+    - REVISIONNUMBER
+    - MODIFIEDDATE
+    src_pk: SALESORDERHEADER_HK
+    src_source: RECORD_SOURCE
+  sat_sales_reason_details:
+    source_model: stg_sales_reason_details
+    src_hashdiff: SALES_REASON_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - REASONTYPE
+    - MODIFIEDDATE
+    src_pk: SALESREASON_HK
+    src_source: RECORD_SOURCE
+  sat_sales_tax_rate_details:
+    source_model: stg_sales_tax_rate_details
+    src_hashdiff: SALES_TAX_RATE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - TAXTYPE
+    - TAXRATE
+    - ROWGUID
+    - MODIFIEDDATE
+    src_pk: SALESTAXRATE_HK
+    src_source: RECORD_SOURCE
+  sat_sales_territory_details:
+    source_model: stg_sales_territory_details
+    src_hashdiff: SALES_TERRITORY_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - GROUP_
+    - ROWGUID
+    - MODIFIEDDATE
+    src_pk: SALESTERRITORY_HK
+    src_source: RECORD_SOURCE
+  sat_sales_territory_financials:
+    source_model: stg_sales_territory_financials
+    src_hashdiff: SALES_TERRITORY_FINANCIALS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SALESYTD
+    - SALESLASTYEAR
+    - COSTYTD
+    - COSTLASTYEAR
+    src_pk: SALESTERRITORY_HK
+    src_source: RECORD_SOURCE
+  sat_scrap_reason_details:
+    source_model: stg_scrap_reason
+    src_hashdiff: SCRAP_REASON_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: SCRAPREASON_HK
+    src_source: RECORD_SOURCE
+  sat_shift_details:
+    source_model: stg_shift_details
+    src_hashdiff: SHIFT_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - STARTTIME
+    - ENDTIME
+    - MODIFIEDDATE
+    src_pk: SHIFT_HK
+    src_source: RECORD_SOURCE
+  sat_ship_method_details:
+    source_model: stg_ship_method_details
+    src_hashdiff: SHIP_METHOD_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - SHIPBASE
+    - SHIPRATE
+    - MODIFIEDDATE
+    src_pk: SHIPMETHOD_HK
+    src_source: RECORD_SOURCE
+  sat_shopping_cart_product_details:
+    source_model: stg_shopping_cart_product_details
+    src_hashdiff: SHOPPING_CART_PRODUCT_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SHOPPINGCARTITEMID
+    - QUANTITY
+    - DATECREATED
+    - MODIFIEDDATE
+    src_pk: LINK_SHOPPING_CART_PRODUCT_HK
+    src_source: RECORD_SOURCE
+  sat_special_offer_details:
+    source_model: stg_special_offer_details
+    src_hashdiff: SPECIAL_OFFER_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - DESCRIPTION
+    - DISCOUNTPCT
+    - TYPE
+    - CATEGORY
+    - STARTDATE
+    - ENDDATE
+    - MINQTY
+    - MAXQTY
+    - ROWGUID
+    - MODIFIEDDATE
+    src_pk: SPECIALOFFER_HK
+    src_source: RECORD_SOURCE
+  sat_special_offer_product_details:
+    source_model: stg_special_offer_product_details
+    src_hashdiff: SPECIAL_OFFER_PRODUCT_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ROWGUID
+    - MODIFIEDDATE
+    src_pk: LINK_SPECIAL_OFFER_PRODUCT_HK
+    src_source: RECORD_SOURCE
+  sat_state_province_details:
+    source_model: stg_state_province_details
+    src_hashdiff: STATE_PROVINCE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - STATEPROVINCECODE
+    - ISONLYSTATEPROVINCEFLAG
+    - NAME
+    - MODIFIEDDATE
+    src_pk: STATEPROVINCE_HK
+    src_source: RECORD_SOURCE
+  sat_state_province_territory:
+    source_model: stg_state_province_territory
+    src_hashdiff: STATE_PROVINCE_TERRITORY_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - TERRITORYID
+    src_pk: STATEPROVINCE_HK
+    src_source: RECORD_SOURCE
+  sat_unit_measure_details:
+    source_model: stg_unit_measure
+    src_hashdiff: UNIT_MEASURE_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - NAME
+    - MODIFIEDDATE
+    src_pk: UNITMEASURE_HK
+    src_source: RECORD_SOURCE
+  sat_work_order_details:
+    source_model: stg_work_order
+    src_hashdiff: WORK_ORDER_DETAILS_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - ORDERQTY
+    - STOCKEDQTY
+    - SCRAPPEDQTY
+    - STARTDATE
+    - ENDDATE
+    - DUEDATE
+    - MODIFIEDDATE
+    src_pk: WORKORDER_HK
+    src_source: RECORD_SOURCE
+  sat_work_order_product_location_operation:
+    source_model: stg_work_order_product_location_operation
+    src_cdk:
+    - OPERATIONSEQUENCE
+    src_hashdiff: WORK_ORDER_PRODUCT_LOCATION_OPERATION_HASHDIFF
+    src_ldts: LOAD_DATETIME
+    src_payload:
+    - SCHEDULEDSTARTDATE
+    - SCHEDULEDENDDATE
+    - ACTUALSTARTDATE
+    - ACTUALENDDATE
+    - ACTUALRESOURCEHRS
+    - PLANNEDCOST
+    - ACTUALCOST
+    - MODIFIEDDATE
+    src_pk: LINK_WORK_ORDER_PRODUCT_LOCATION_HK
+    src_source: RECORD_SOURCE
+staging:
+  stg_address:
+    expected_source_columns:
+    - ADDRESSID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESS_HK: ADDRESSID
+    source_binding: declared
+    source_model:
+      raw: Address
+  stg_address_details:
+    expected_source_columns:
+    - ADDRESSID
+    - ADDRESSLINE1
+    - ADDRESSLINE2
+    - CITY
+    - POSTALCODE
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESS_DETAILS_HASHDIFF:
+        columns:
+        - ADDRESSLINE1
+        - ADDRESSLINE2
+        - CITY
+        - POSTALCODE
+        - MODIFIEDDATE
+        is_hashdiff: true
+      ADDRESS_HK: ADDRESSID
+    source_binding: declared
+    source_model:
+      raw: Address
+  stg_address_location:
+    expected_source_columns:
+    - ADDRESSID
+    - SPATIALLOCATION
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESS_HK: ADDRESSID
+      ADDRESS_LOCATION_HASHDIFF:
+        columns:
+        - SPATIALLOCATION
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: Address
+  stg_address_state_province:
+    expected_source_columns:
+    - ADDRESSID
+    - STATEPROVINCEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESS_HK: ADDRESSID
+      LINK_ADDRESS_STATE_PROVINCE_HK:
+      - ADDRESSID
+      - STATEPROVINCEID
+      STATEPROVINCE_HK: STATEPROVINCEID
+    source_binding: declared
+    source_model:
+      raw: Address
+  stg_address_type:
+    expected_source_columns:
+    - ADDRESSTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESSTYPE_HK: ADDRESSTYPEID
+    source_binding: declared
+    source_model:
+      raw: AddressType
+  stg_address_type_details:
+    expected_source_columns:
+    - ADDRESSTYPEID
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESSTYPE_HK: ADDRESSTYPEID
+      ADDRESS_TYPE_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: AddressType
+  stg_business_entity_address:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - ADDRESSID
+    - ADDRESSTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ADDRESSTYPE_HK: ADDRESSTYPEID
+      ADDRESS_HK: ADDRESSID
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      LINK_BUSINESS_ENTITY_ADDRESS_HK:
+      - BUSINESSENTITYID
+      - ADDRESSID
+      - ADDRESSTYPEID
+    source_binding: declared
+    source_model:
+      raw: BusinessEntityAddress
+  stg_business_entity_address_details:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - ADDRESSID
+    - ADDRESSTYPEID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESS_ENTITY_ADDRESS_DETAILS_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+      LINK_BUSINESS_ENTITY_ADDRESS_HK:
+      - BUSINESSENTITYID
+      - ADDRESSID
+      - ADDRESSTYPEID
+    source_binding: declared
+    source_model:
+      raw: BusinessEntityAddress
+  stg_business_entity_businessentity:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_DETAILS_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: BusinessEntity
+  stg_business_entity_contact:
+    derived_columns:
+      PERSON_BUSINESSENTITYID: PERSONID
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - PERSONID
+    - CONTACTTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      CONTACTTYPE_HK: CONTACTTYPEID
+      LINK_BUSINESS_ENTITY_CONTACT_HK:
+      - BUSINESSENTITYID
+      - PERSON_BUSINESSENTITYID
+      - CONTACTTYPEID
+      PERSON_BUSINESSENTITY_HK: PERSON_BUSINESSENTITYID
+    source_binding: declared
+    source_model:
+      raw: BusinessEntityContact
+  stg_business_entity_contact_details:
+    derived_columns:
+      PERSON_BUSINESSENTITYID: PERSONID
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - PERSONID
+    - CONTACTTYPEID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESS_ENTITY_CONTACT_DETAILS_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+      LINK_BUSINESS_ENTITY_CONTACT_HK:
+      - BUSINESSENTITYID
+      - PERSON_BUSINESSENTITYID
+      - CONTACTTYPEID
+    source_binding: declared
+    source_model:
+      raw: BusinessEntityContact
+  stg_business_entity_credit_card:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - CREDITCARDID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      CREDITCARD_HK: CREDITCARDID
+      LINK_BUSINESS_ENTITY_CREDIT_CARD_HK:
+      - BUSINESSENTITYID
+      - CREDITCARDID
+    source_binding: inferred
+    source_model:
+      inferred: raw_business_entity_credit_card
+  stg_business_entity_credit_card_details:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - CREDITCARDID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESS_ENTITY_CREDIT_CARD_DETAILS_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+      LINK_BUSINESS_ENTITY_CREDIT_CARD_HK:
+      - BUSINESSENTITYID
+      - CREDITCARDID
+    source_binding: declared
+    source_model:
+      raw_4: PersonCreditCard
+  stg_business_entity_department_shift:
+    derived_columns:
+      APPLIED_DTS: STARTDATE
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - DEPARTMENTID
+    - SHIFTID
+    - STARTDATE
+    - ENDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      DEPARTMENT_HK: DEPARTMENTID
+      LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT_HK:
+      - BUSINESSENTITYID
+      - DEPARTMENTID
+      - SHIFTID
+      SHIFT_HK: SHIFTID
+    source_binding: declared
+    source_model:
+      raw_2: EmployeeDepartmentHistory
+  stg_business_entity_department_shift_audit:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - DEPARTMENTID
+    - SHIFTID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESS_ENTITY_DEPARTMENT_SHIFT_AUDIT_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+      LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT_HK:
+      - BUSINESSENTITYID
+      - DEPARTMENTID
+      - SHIFTID
+    source_binding: declared
+    source_model:
+      raw_2: EmployeeDepartmentHistory
+  stg_business_entity_emailaddress:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - EMAILADDRESS
+    - MODIFIEDDATE
+    - EMAILADDRESSID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_EMAIL_HASHDIFF:
+        columns:
+        - EMAILADDRESS
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: EmailAddress
+  stg_business_entity_employee:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - JOBTITLE
+    - HIREDATE
+    - SALARIEDFLAG
+    - CURRENTFLAG
+    - LOGINID
+    - MODIFIEDDATE
+    - NATIONALIDNUMBER
+    - BIRTHDATE
+    - GENDER
+    - MARITALSTATUS
+    - VACATIONHOURS
+    - SICKLEAVEHOURS
+    - ORGANIZATIONNODE
+    - ORGANIZATIONLEVEL
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_EMPLOYEE_DETAILS_HASHDIFF:
+        columns:
+        - JOBTITLE
+        - HIREDATE
+        - SALARIEDFLAG
+        - CURRENTFLAG
+        - LOGINID
+        - MODIFIEDDATE
+        is_hashdiff: true
+      BUSINESS_ENTITY_EMPLOYEE_HIERARCHY_HASHDIFF:
+        columns:
+        - ORGANIZATIONNODE
+        - ORGANIZATIONLEVEL
+        is_hashdiff: true
+      BUSINESS_ENTITY_EMPLOYEE_LEAVE_HASHDIFF:
+        columns:
+        - VACATIONHOURS
+        - SICKLEAVEHOURS
+        is_hashdiff: true
+      BUSINESS_ENTITY_EMPLOYEE_SENSITIVE_HASHDIFF:
+        columns:
+        - NATIONALIDNUMBER
+        - BIRTHDATE
+        - GENDER
+        - MARITALSTATUS
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_2: Employee
+  stg_business_entity_employeepayhistory:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - RATE
+    - PAYFREQUENCY
+    - MODIFIEDDATE
+    - RATECHANGEDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_PAY_HISTORY_HASHDIFF:
+        columns:
+        - RATE
+        - PAYFREQUENCY
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_2: EmployeePayHistory
+  stg_business_entity_job_candidate:
+    expected_source_columns:
+    - JOBCANDIDATEID
+    - BUSINESSENTITYID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      JOBCANDIDATE_HK: JOBCANDIDATEID
+      LINK_BUSINESS_ENTITY_JOB_CANDIDATE_HK:
+      - JOBCANDIDATEID
+      - BUSINESSENTITYID
+    source_binding: declared
+    source_model:
+      raw_2: JobCandidate
+  stg_business_entity_password:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_CREDENTIAL_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: Password
+  stg_business_entity_person:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - PERSONTYPE
+    - NAMESTYLE
+    - TITLE
+    - FIRSTNAME
+    - MIDDLENAME
+    - LASTNAME
+    - SUFFIX
+    - MODIFIEDDATE
+    - EMAILPROMOTION
+    - ADDITIONALCONTACTINFO
+    - DEMOGRAPHICS
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_MARKETING_CONSENT_HASHDIFF:
+        columns:
+        - EMAILPROMOTION
+        is_hashdiff: true
+      BUSINESS_ENTITY_PERSON_NAME_HASHDIFF:
+        columns:
+        - PERSONTYPE
+        - NAMESTYLE
+        - TITLE
+        - FIRSTNAME
+        - MIDDLENAME
+        - LASTNAME
+        - SUFFIX
+        - MODIFIEDDATE
+        is_hashdiff: true
+      BUSINESS_ENTITY_PERSON_SENSITIVE_HASHDIFF:
+        columns:
+        - ADDITIONALCONTACTINFO
+        - DEMOGRAPHICS
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: Person
+  stg_business_entity_phone_number_type:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - PHONENUMBERTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_HK:
+      - BUSINESSENTITYID
+      - PHONENUMBERTYPEID
+      PHONENUMBERTYPE_HK: PHONENUMBERTYPEID
+    source_binding: declared
+    source_model:
+      raw: PersonPhone
+  stg_business_entity_phone_number_type_phones:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - PHONENUMBERTYPEID
+    - MODIFIEDDATE
+    - PHONENUMBER
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESS_ENTITY_PHONE_NUMBER_TYPE_PHONES_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+      LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_HK:
+      - BUSINESSENTITYID
+      - PHONENUMBERTYPEID
+    source_binding: declared
+    source_model:
+      raw: PersonPhone
+  stg_business_entity_sales_territory:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - TERRITORYID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      LINK_BUSINESS_ENTITY_SALES_TERRITORY_HK:
+      - BUSINESSENTITYID
+      - TERRITORYID
+      SALESTERRITORY_HK: TERRITORYID
+    source_binding: inferred
+    source_model:
+      inferred: raw_business_entity_sales_territory
+  stg_business_entity_sales_territory_assignment:
+    derived_columns:
+      APPLIED_DTS: STARTDATE
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - TERRITORYID
+    - STARTDATE
+    - ENDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_HK:
+      - BUSINESSENTITYID
+      - TERRITORYID
+      SALESTERRITORY_HK: TERRITORYID
+    source_binding: inferred
+    source_model:
+      inferred: raw_business_entity_sales_territory_assignment
+  stg_business_entity_sales_territory_assignment_details:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - TERRITORYID
+    - ROWGUID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_DETAILS_HASHDIFF:
+        columns:
+        - ROWGUID
+        - MODIFIEDDATE
+        is_hashdiff: true
+      LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_HK:
+      - BUSINESSENTITYID
+      - TERRITORYID
+    source_binding: declared
+    source_model:
+      raw_4: SalesTerritoryHistory
+  stg_business_entity_salesperson:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - SALESQUOTA
+    - BONUS
+    - COMMISSIONPCT
+    - ROWGUID
+    - MODIFIEDDATE
+    - SALESYTD
+    - SALESLASTYEAR
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_SALES_PERSON_PERFORMANCE_HASHDIFF:
+        columns:
+        - SALESYTD
+        - SALESLASTYEAR
+        is_hashdiff: true
+      BUSINESS_ENTITY_SALES_PERSON_REMUNERATION_HASHDIFF:
+        columns:
+        - SALESQUOTA
+        - BONUS
+        - COMMISSIONPCT
+        - ROWGUID
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SalesPerson
+  stg_business_entity_salespersonquotahistory:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - SALESQUOTA
+    - ROWGUID
+    - MODIFIEDDATE
+    - QUOTADATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_SALES_QUOTA_HISTORY_HASHDIFF:
+        columns:
+        - SALESQUOTA
+        - ROWGUID
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SalesPersonQuotaHistory
+  stg_business_entity_store:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - NAME
+    - ROWGUID
+    - MODIFIEDDATE
+    - DEMOGRAPHICS
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_STORE_DEMOGRAPHICS_HASHDIFF:
+        columns:
+        - DEMOGRAPHICS
+        is_hashdiff: true
+      BUSINESS_ENTITY_STORE_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - ROWGUID
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: Store
+  stg_business_entity_store_sales_person:
+    derived_columns:
+      STORE_BUSINESSENTITYID: STOREID
+    expected_source_columns:
+    - STOREID
+    - SALES_PERSON_BUSINESSENTITYID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_BUSINESS_ENTITY_STORE_SALES_PERSON_HK:
+      - STORE_BUSINESSENTITYID
+      - SALES_PERSON_BUSINESSENTITYID
+      SALES_PERSON_BUSINESSENTITY_HK: SALES_PERSON_BUSINESSENTITYID
+      STORE_BUSINESSENTITY_HK: STORE_BUSINESSENTITYID
+    source_binding: inferred
+    source_model:
+      inferred: raw_business_entity_store_sales_person
+  stg_business_entity_vendor:
+    expected_source_columns:
+    - BUSINESSENTITYID
+    - ACCOUNTNUMBER
+    - NAME
+    - PURCHASINGWEBSERVICEURL
+    - CREDITRATING
+    - PREFERREDVENDORSTATUS
+    - ACTIVEFLAG
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      BUSINESS_ENTITY_VENDOR_DETAILS_HASHDIFF:
+        columns:
+        - ACCOUNTNUMBER
+        - NAME
+        - PURCHASINGWEBSERVICEURL
+        is_hashdiff: true
+      BUSINESS_ENTITY_VENDOR_STATUS_HASHDIFF:
+        columns:
+        - CREDITRATING
+        - PREFERREDVENDORSTATUS
+        - ACTIVEFLAG
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_3: Vendor
+  stg_contact_type:
+    expected_source_columns:
+    - CONTACTTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CONTACTTYPE_HK: CONTACTTYPEID
+    source_binding: declared
+    source_model:
+      raw: ContactType
+  stg_contact_type_details:
+    expected_source_columns:
+    - CONTACTTYPEID
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CONTACTTYPE_HK: CONTACTTYPEID
+      CONTACT_TYPE_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: ContactType
+  stg_country_region:
+    expected_source_columns:
+    - COUNTRYREGIONCODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      COUNTRYREGION_HK: COUNTRYREGIONCODE
+    source_binding: declared
+    source_model:
+      raw: CountryRegion
+  stg_country_region_currency:
+    expected_source_columns:
+    - COUNTRYREGIONCODE
+    - CURRENCYCODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      COUNTRYREGION_HK: COUNTRYREGIONCODE
+      CURRENCY_HK: CURRENCYCODE
+      LINK_COUNTRY_REGION_CURRENCY_HK:
+      - COUNTRYREGIONCODE
+      - CURRENCYCODE
+    source_binding: declared
+    source_model:
+      raw_4: CountryRegionCurrency
+  stg_country_region_currency_details:
+    expected_source_columns:
+    - COUNTRYREGIONCODE
+    - CURRENCYCODE
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      COUNTRY_REGION_CURRENCY_DETAILS_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+      LINK_COUNTRY_REGION_CURRENCY_HK:
+      - COUNTRYREGIONCODE
+      - CURRENCYCODE
+    source_binding: declared
+    source_model:
+      raw_4: CountryRegionCurrency
+  stg_country_region_details:
+    expected_source_columns:
+    - COUNTRYREGIONCODE
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      COUNTRYREGION_HK: COUNTRYREGIONCODE
+      COUNTRY_REGION_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: CountryRegion
+  stg_credit_card:
+    expected_source_columns:
+    - CREDITCARDID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CREDITCARD_HK: CREDITCARDID
+    source_binding: declared
+    source_model:
+      raw_4: CreditCard
+  stg_credit_card_details:
+    expected_source_columns:
+    - CREDITCARDID
+    - CARDTYPE
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CREDITCARD_HK: CREDITCARDID
+      CREDIT_CARD_DETAILS_HASHDIFF:
+        columns:
+        - CARDTYPE
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: CreditCard
+  stg_credit_card_sensitive:
+    expected_source_columns:
+    - CREDITCARDID
+    - CARDNUMBER
+    - EXPMONTH
+    - EXPYEAR
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CREDITCARD_HK: CREDITCARDID
+      CREDIT_CARD_SENSITIVE_HASHDIFF:
+        columns:
+        - CARDNUMBER
+        - EXPMONTH
+        - EXPYEAR
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: CreditCard
+  stg_culture:
+    expected_source_columns:
+    - CULTUREID
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CULTURE_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+      CULTURE_HK: CULTUREID
+    source_binding: declared
+    source_model:
+      raw_5: Culture
+  stg_currency:
+    expected_source_columns:
+    - CURRENCYCODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CURRENCY_HK: CURRENCYCODE
+    source_binding: declared
+    source_model:
+      raw_4: Currency
+  stg_currency_details:
+    expected_source_columns:
+    - CURRENCYCODE
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CURRENCY_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+      CURRENCY_HK: CURRENCYCODE
+    source_binding: declared
+    source_model:
+      raw_4: Currency
+  stg_currency_rate:
+    expected_source_columns:
+    - CURRENCYRATEDATE
+    - FROMCURRENCYCODE
+    - TOCURRENCYCODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CURRENCYRATE_HK:
+      - CURRENCYRATEDATE
+      - FROMCURRENCYCODE
+      - TOCURRENCYCODE
+    source_binding: declared
+    source_model:
+      raw_4: CurrencyRate
+  stg_currency_rate_currency:
+    derived_columns:
+      FROM_CURRENCYCODE: FROMCURRENCYCODE
+      TO_CURRENCYCODE: TOCURRENCYCODE
+    expected_source_columns:
+    - CURRENCYRATEDATE
+    - FROMCURRENCYCODE
+    - TOCURRENCYCODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CURRENCYRATE_HK:
+      - CURRENCYRATEDATE
+      - FROMCURRENCYCODE
+      - TOCURRENCYCODE
+      FROM_CURRENCY_HK: FROM_CURRENCYCODE
+      LINK_CURRENCY_RATE_CURRENCY_HK:
+      - CURRENCYRATEDATE
+      - FROMCURRENCYCODE
+      - TOCURRENCYCODE
+      - FROM_CURRENCYCODE
+      - TO_CURRENCYCODE
+      TO_CURRENCY_HK: TO_CURRENCYCODE
+    source_binding: declared
+    source_model:
+      raw_4: CurrencyRate
+  stg_currency_rate_details:
+    expected_source_columns:
+    - CURRENCYRATEDATE
+    - FROMCURRENCYCODE
+    - TOCURRENCYCODE
+    - CURRENCYRATEID
+    - AVERAGERATE
+    - ENDOFDAYRATE
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CURRENCYRATE_HK:
+      - CURRENCYRATEDATE
+      - FROMCURRENCYCODE
+      - TOCURRENCYCODE
+      CURRENCY_RATE_DETAILS_HASHDIFF:
+        columns:
+        - CURRENCYRATEID
+        - AVERAGERATE
+        - ENDOFDAYRATE
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: CurrencyRate
+  stg_customer:
+    expected_source_columns:
+    - ACCOUNTNUMBER
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CUSTOMER_HK: ACCOUNTNUMBER
+    source_binding: declared
+    source_model:
+      raw_4: Customer
+  stg_customer_business_entity:
+    derived_columns:
+      PERSON_BUSINESSENTITYID: PERSONID
+      STORE_BUSINESSENTITYID: STOREID
+    expected_source_columns:
+    - ACCOUNTNUMBER
+    - PERSONID
+    - STOREID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CUSTOMER_HK: ACCOUNTNUMBER
+      LINK_CUSTOMER_BUSINESS_ENTITY_HK:
+      - ACCOUNTNUMBER
+      - PERSON_BUSINESSENTITYID
+      - STORE_BUSINESSENTITYID
+      PERSON_BUSINESSENTITY_HK: PERSON_BUSINESSENTITYID
+      STORE_BUSINESSENTITY_HK: STORE_BUSINESSENTITYID
+    source_binding: declared
+    source_model:
+      raw_4: Customer
+  stg_customer_details:
+    expected_source_columns:
+    - ACCOUNTNUMBER
+    - CUSTOMERID
+    - ROWGUID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CUSTOMER_DETAILS_HASHDIFF:
+        columns:
+        - CUSTOMERID
+        - ROWGUID
+        - MODIFIEDDATE
+        is_hashdiff: true
+      CUSTOMER_HK: ACCOUNTNUMBER
+    source_binding: declared
+    source_model:
+      raw_4: Customer
+  stg_customer_sales_territory:
+    expected_source_columns:
+    - ACCOUNTNUMBER
+    - TERRITORYID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CUSTOMER_HK: ACCOUNTNUMBER
+      LINK_CUSTOMER_SALES_TERRITORY_HK:
+      - ACCOUNTNUMBER
+      - TERRITORYID
+      SALESTERRITORY_HK: TERRITORYID
+    source_binding: inferred
+    source_model:
+      inferred: raw_customer_sales_territory
+  stg_department:
+    expected_source_columns:
+    - DEPARTMENTID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      DEPARTMENT_HK: DEPARTMENTID
+    source_binding: declared
+    source_model:
+      raw_2: Department
+  stg_department_details:
+    expected_source_columns:
+    - DEPARTMENTID
+    - NAME
+    - GROUPNAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      DEPARTMENT_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - GROUPNAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+      DEPARTMENT_HK: DEPARTMENTID
+    source_binding: declared
+    source_model:
+      raw_2: Department
+  stg_document:
+    expected_source_columns:
+    - DOCUMENTNODE
+    - DOCUMENTLEVEL
+    - TITLE
+    - FOLDERFLAG
+    - FILENAME
+    - FILEEXTENSION
+    - REVISION
+    - CHANGENUMBER
+    - STATUS
+    - DOCUMENTSUMMARY
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      DOCUMENT_DETAILS_HASHDIFF:
+        columns:
+        - DOCUMENTLEVEL
+        - TITLE
+        - FOLDERFLAG
+        - FILENAME
+        - FILEEXTENSION
+        - REVISION
+        - CHANGENUMBER
+        - STATUS
+        - DOCUMENTSUMMARY
+        - MODIFIEDDATE
+        is_hashdiff: true
+      DOCUMENT_HK: DOCUMENTNODE
+    source_binding: declared
+    source_model:
+      raw_5: Document
+  stg_document_business_entity:
+    derived_columns:
+      BUSINESSENTITYID: OWNER
+    expected_source_columns:
+    - DOCUMENTNODE
+    - OWNER
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      DOCUMENT_HK: DOCUMENTNODE
+      LINK_DOCUMENT_BUSINESS_ENTITY_HK:
+      - DOCUMENTNODE
+      - BUSINESSENTITYID
+    source_binding: declared
+    source_model:
+      raw_5: Document
+  stg_illustration:
+    expected_source_columns:
+    - ILLUSTRATIONID
+    - DIAGRAM
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ILLUSTRATION_DIAGRAM_HASHDIFF:
+        columns:
+        - DIAGRAM
+        - MODIFIEDDATE
+        is_hashdiff: true
+      ILLUSTRATION_HK: ILLUSTRATIONID
+    source_binding: declared
+    source_model:
+      raw_5: Illustration
+  stg_inventory_transaction_product:
+    expected_source_columns:
+    - TRANSACTIONID
+    - PRODUCTID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_INVENTORY_TRANSACTION_PRODUCT_HK:
+      - TRANSACTIONID
+      - PRODUCTID
+      PRODUCT_HK: PRODUCTID
+      TRANSACTIONHISTORY_HK: TRANSACTIONID
+    source_binding: declared
+    source_model:
+      raw_5: TransactionHistory
+  stg_inventory_transaction_transactionhistory:
+    expected_source_columns:
+    - TRANSACTIONID
+    - TRANSACTIONDATE
+    - TRANSACTIONTYPE
+    - REFERENCEORDERID
+    - REFERENCEORDERLINEID
+    - QUANTITY
+    - ACTUALCOST
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      INVENTORY_TRANSACTION_DETAILS_HASHDIFF:
+        columns:
+        - TRANSACTIONDATE
+        - TRANSACTIONTYPE
+        - REFERENCEORDERID
+        - REFERENCEORDERLINEID
+        - QUANTITY
+        - ACTUALCOST
+        - MODIFIEDDATE
+        is_hashdiff: true
+      TRANSACTIONHISTORY_HK: TRANSACTIONID
+    source_binding: declared
+    source_model:
+      raw_5: TransactionHistory
+  stg_inventory_transaction_transactionhistoryarchive:
+    expected_source_columns:
+    - TRANSACTIONID
+    - TRANSACTIONDATE
+    - TRANSACTIONTYPE
+    - REFERENCEORDERID
+    - REFERENCEORDERLINEID
+    - QUANTITY
+    - ACTUALCOST
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      INVENTORY_TRANSACTION_ARCHIVE_HASHDIFF:
+        columns:
+        - TRANSACTIONDATE
+        - TRANSACTIONTYPE
+        - REFERENCEORDERID
+        - REFERENCEORDERLINEID
+        - QUANTITY
+        - ACTUALCOST
+        - MODIFIEDDATE
+        is_hashdiff: true
+      TRANSACTIONHISTORY_HK: TRANSACTIONID
+    source_binding: declared
+    source_model:
+      raw_5: TransactionHistoryArchive
+  stg_job_candidate:
+    expected_source_columns:
+    - JOBCANDIDATEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      JOBCANDIDATE_HK: JOBCANDIDATEID
+    source_binding: declared
+    source_model:
+      raw_2: JobCandidate
+  stg_job_candidate_resume:
+    expected_source_columns:
+    - JOBCANDIDATEID
+    - RESUME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      JOBCANDIDATE_HK: JOBCANDIDATEID
+      JOB_CANDIDATE_RESUME_HASHDIFF:
+        columns:
+        - RESUME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_2: JobCandidate
+  stg_location:
+    expected_source_columns:
+    - LOCATIONID
+    - NAME
+    - COSTRATE
+    - AVAILABILITY
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LOCATION_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - COSTRATE
+        - AVAILABILITY
+        - MODIFIEDDATE
+        is_hashdiff: true
+      LOCATION_HK: LOCATIONID
+    source_binding: declared
+    source_model:
+      raw_5: Location
+  stg_phone_number_type:
+    expected_source_columns:
+    - PHONENUMBERTYPEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PHONENUMBERTYPE_HK: PHONENUMBERTYPEID
+    source_binding: declared
+    source_model:
+      raw: PhoneNumberType
+  stg_phone_number_type_details:
+    expected_source_columns:
+    - PHONENUMBERTYPEID
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PHONENUMBERTYPE_HK: PHONENUMBERTYPEID
+      PHONE_NUMBER_TYPE_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: PhoneNumberType
+  stg_product:
+    expected_source_columns:
+    - PRODUCTID
+    - PRODUCTNUMBER
+    - NAME
+    - MAKEFLAG
+    - FINISHEDGOODSFLAG
+    - COLOR
+    - SIZE
+    - WEIGHT
+    - DAYSTOMANUFACTURE
+    - PRODUCTLINE
+    - CLASS
+    - STYLE
+    - MODIFIEDDATE
+    - STANDARDCOST
+    - LISTPRICE
+    - SAFETYSTOCKLEVEL
+    - REORDERPOINT
+    - SELLSTARTDATE
+    - SELLENDDATE
+    - DISCONTINUEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PRODUCT_DETAILS_HASHDIFF:
+        columns:
+        - PRODUCTNUMBER
+        - NAME
+        - MAKEFLAG
+        - FINISHEDGOODSFLAG
+        - COLOR
+        - SIZE
+        - WEIGHT
+        - DAYSTOMANUFACTURE
+        - PRODUCTLINE
+        - CLASS
+        - STYLE
+        - MODIFIEDDATE
+        is_hashdiff: true
+      PRODUCT_HK: PRODUCTID
+      PRODUCT_INVENTORY_POLICY_HASHDIFF:
+        columns:
+        - SAFETYSTOCKLEVEL
+        - REORDERPOINT
+        is_hashdiff: true
+      PRODUCT_LIFECYCLE_HASHDIFF:
+        columns:
+        - SELLSTARTDATE
+        - SELLENDDATE
+        - DISCONTINUEDDATE
+        is_hashdiff: true
+      PRODUCT_PRICING_HASHDIFF:
+        columns:
+        - STANDARDCOST
+        - LISTPRICE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: Product
+  stg_product_assembly_component:
+    derived_columns:
+      APPLIED_DTS: STARTDATE
+      ASSEMBLY_PRODUCTID: PRODUCTASSEMBLYID
+      COMPONENT_PRODUCTID: COMPONENTID
+    expected_source_columns:
+    - PRODUCTASSEMBLYID
+    - COMPONENTID
+    - UNITMEASURECODE
+    - STARTDATE
+    - ENDDATE
+    - BOMLEVEL
+    - PERASSEMBLYQTY
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ASSEMBLY_PRODUCT_HK: ASSEMBLY_PRODUCTID
+      COMPONENT_PRODUCT_HK: COMPONENT_PRODUCTID
+      LINK_PRODUCT_ASSEMBLY_COMPONENT_HK:
+      - ASSEMBLY_PRODUCTID
+      - COMPONENT_PRODUCTID
+      - UNITMEASURECODE
+      PRODUCT_ASSEMBLY_COMPONENT_DETAILS_HASHDIFF:
+        columns:
+        - BOMLEVEL
+        - PERASSEMBLYQTY
+        - MODIFIEDDATE
+        is_hashdiff: true
+      UNITMEASURE_HK: UNITMEASURECODE
+    source_binding: declared
+    source_model:
+      raw_5: BillOfMaterials
+  stg_product_category:
+    expected_source_columns:
+    - PRODUCTCATEGORYID
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PRODUCTCATEGORY_HK: PRODUCTCATEGORYID
+      PRODUCT_CATEGORY_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: ProductCategory
+  stg_product_cost_history:
+    expected_source_columns:
+    - PRODUCTID
+    - ENDDATE
+    - STANDARDCOST
+    - MODIFIEDDATE
+    - STARTDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PRODUCT_COST_HISTORY_HASHDIFF:
+        columns:
+        - ENDDATE
+        - STANDARDCOST
+        - MODIFIEDDATE
+        is_hashdiff: true
+      PRODUCT_HK: PRODUCTID
+    source_binding: declared
+    source_model:
+      raw_5: ProductCostHistory
+  stg_product_description:
+    expected_source_columns:
+    - PRODUCTDESCRIPTIONID
+    - DESCRIPTION
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PRODUCTDESCRIPTION_HK: PRODUCTDESCRIPTIONID
+      PRODUCT_DESCRIPTION_DETAILS_HASHDIFF:
+        columns:
+        - DESCRIPTION
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: ProductDescription
+  stg_product_document:
+    expected_source_columns:
+    - PRODUCTID
+    - DOCUMENTNODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      DOCUMENT_HK: DOCUMENTNODE
+      LINK_PRODUCT_DOCUMENT_HK:
+      - PRODUCTID
+      - DOCUMENTNODE
+      PRODUCT_HK: PRODUCTID
+    source_binding: declared
+    source_model:
+      raw_5: ProductDocument
+  stg_product_list_price_history:
+    expected_source_columns:
+    - PRODUCTID
+    - ENDDATE
+    - LISTPRICE
+    - MODIFIEDDATE
+    - STARTDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PRODUCT_HK: PRODUCTID
+      PRODUCT_LIST_PRICE_HISTORY_HASHDIFF:
+        columns:
+        - ENDDATE
+        - LISTPRICE
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: ProductListPriceHistory
+  stg_product_location:
+    expected_source_columns:
+    - PRODUCTID
+    - LOCATIONID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PRODUCT_LOCATION_HK:
+      - PRODUCTID
+      - LOCATIONID
+      LOCATION_HK: LOCATIONID
+      PRODUCT_HK: PRODUCTID
+    source_binding: declared
+    source_model:
+      raw_5: ProductInventory
+  stg_product_location_inventory:
+    expected_source_columns:
+    - PRODUCTID
+    - LOCATIONID
+    - QUANTITY
+    - MODIFIEDDATE
+    - SHELF
+    - BIN
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PRODUCT_LOCATION_HK:
+      - PRODUCTID
+      - LOCATIONID
+      PRODUCT_LOCATION_INVENTORY_HASHDIFF:
+        columns:
+        - QUANTITY
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: ProductInventory
+  stg_product_model:
+    expected_source_columns:
+    - PRODUCTMODELID
+    - NAME
+    - MODIFIEDDATE
+    - CATALOGDESCRIPTION
+    - INSTRUCTIONS
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PRODUCTMODEL_HK: PRODUCTMODELID
+      PRODUCT_MODEL_CONTENT_HASHDIFF:
+        columns:
+        - CATALOGDESCRIPTION
+        - INSTRUCTIONS
+        is_hashdiff: true
+      PRODUCT_MODEL_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: ProductModel
+  stg_product_model_description_culture:
+    expected_source_columns:
+    - PRODUCTMODELID
+    - PRODUCTDESCRIPTIONID
+    - CULTUREID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CULTURE_HK: CULTUREID
+      LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE_HK:
+      - PRODUCTMODELID
+      - PRODUCTDESCRIPTIONID
+      - CULTUREID
+      PRODUCTDESCRIPTION_HK: PRODUCTDESCRIPTIONID
+      PRODUCTMODEL_HK: PRODUCTMODELID
+    source_binding: declared
+    source_model:
+      raw_5: ProductModelProductDescriptionCulture
+  stg_product_model_illustration:
+    expected_source_columns:
+    - PRODUCTMODELID
+    - ILLUSTRATIONID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      ILLUSTRATION_HK: ILLUSTRATIONID
+      LINK_PRODUCT_MODEL_ILLUSTRATION_HK:
+      - PRODUCTMODELID
+      - ILLUSTRATIONID
+      PRODUCTMODEL_HK: PRODUCTMODELID
+    source_binding: declared
+    source_model:
+      raw_5: ProductModelIllustration
+  stg_product_photo:
+    expected_source_columns:
+    - PRODUCTPHOTOID
+    - THUMBNAILPHOTOFILENAME
+    - LARGEPHOTOFILENAME
+    - MODIFIEDDATE
+    - THUMBNAILPHOTO
+    - LARGEPHOTO
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PRODUCTPHOTO_HK: PRODUCTPHOTOID
+      PRODUCT_PHOTO_DETAILS_HASHDIFF:
+        columns:
+        - THUMBNAILPHOTOFILENAME
+        - LARGEPHOTOFILENAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+      PRODUCT_PHOTO_IMAGES_HASHDIFF:
+        columns:
+        - THUMBNAILPHOTO
+        - LARGEPHOTO
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: ProductPhoto
+  stg_product_product_model:
+    expected_source_columns:
+    - PRODUCTID
+    - PRODUCTMODELID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PRODUCT_PRODUCT_MODEL_HK:
+      - PRODUCTID
+      - PRODUCTMODELID
+      PRODUCTMODEL_HK: PRODUCTMODELID
+      PRODUCT_HK: PRODUCTID
+    source_binding: declared
+    source_model:
+      raw_5: Product
+  stg_product_product_photo:
+    derived_columns:
+      PRIMARY_:
+        escape: true
+        source_column: primary
+    expected_source_columns:
+    - PRODUCTID
+    - PRODUCTPHOTOID
+    - PRIMARY
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PRODUCT_PRODUCT_PHOTO_HK:
+      - PRODUCTID
+      - PRODUCTPHOTOID
+      PRODUCTPHOTO_HK: PRODUCTPHOTOID
+      PRODUCT_HK: PRODUCTID
+      PRODUCT_PRODUCT_PHOTO_DETAILS_HASHDIFF:
+        columns:
+        - PRIMARY_
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: ProductProductPhoto
+  stg_product_product_subcategory:
+    expected_source_columns:
+    - PRODUCTID
+    - PRODUCTSUBCATEGORYID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PRODUCT_PRODUCT_SUBCATEGORY_HK:
+      - PRODUCTID
+      - PRODUCTSUBCATEGORYID
+      PRODUCTSUBCATEGORY_HK: PRODUCTSUBCATEGORYID
+      PRODUCT_HK: PRODUCTID
+    source_binding: declared
+    source_model:
+      raw_5: Product
+  stg_product_review:
+    expected_source_columns:
+    - PRODUCTREVIEWID
+    - REVIEWDATE
+    - RATING
+    - COMMENTS
+    - MODIFIEDDATE
+    - REVIEWERNAME
+    - EMAILADDRESS
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PRODUCTREVIEW_HK: PRODUCTREVIEWID
+      PRODUCT_REVIEW_DETAILS_HASHDIFF:
+        columns:
+        - REVIEWDATE
+        - RATING
+        - COMMENTS
+        - MODIFIEDDATE
+        is_hashdiff: true
+      PRODUCT_REVIEW_REVIEWER_PII_HASHDIFF:
+        columns:
+        - REVIEWERNAME
+        - EMAILADDRESS
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: ProductReview
+  stg_product_review_product:
+    expected_source_columns:
+    - PRODUCTREVIEWID
+    - PRODUCTID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PRODUCT_REVIEW_PRODUCT_HK:
+      - PRODUCTREVIEWID
+      - PRODUCTID
+      PRODUCTREVIEW_HK: PRODUCTREVIEWID
+      PRODUCT_HK: PRODUCTID
+    source_binding: declared
+    source_model:
+      raw_5: ProductReview
+  stg_product_subcategory:
+    expected_source_columns:
+    - PRODUCTSUBCATEGORYID
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PRODUCTSUBCATEGORY_HK: PRODUCTSUBCATEGORYID
+      PRODUCT_SUBCATEGORY_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: ProductSubcategory
+  stg_product_subcategory_product_category:
+    expected_source_columns:
+    - PRODUCTSUBCATEGORYID
+    - PRODUCTCATEGORYID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PRODUCT_SUBCATEGORY_PRODUCT_CATEGORY_HK:
+      - PRODUCTSUBCATEGORYID
+      - PRODUCTCATEGORYID
+      PRODUCTCATEGORY_HK: PRODUCTCATEGORYID
+      PRODUCTSUBCATEGORY_HK: PRODUCTSUBCATEGORYID
+    source_binding: declared
+    source_model:
+      raw_5: ProductSubcategory
+  stg_product_unit_measure:
+    derived_columns:
+      SIZE_UNITMEASURECODE: SIZEUNITMEASURECODE
+      WEIGHT_UNITMEASURECODE: WEIGHTUNITMEASURECODE
+    expected_source_columns:
+    - PRODUCTID
+    - SIZEUNITMEASURECODE
+    - WEIGHTUNITMEASURECODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PRODUCT_UNIT_MEASURE_HK:
+      - PRODUCTID
+      - SIZE_UNITMEASURECODE
+      - WEIGHT_UNITMEASURECODE
+      PRODUCT_HK: PRODUCTID
+      SIZE_UNITMEASURE_HK: SIZE_UNITMEASURECODE
+      WEIGHT_UNITMEASURE_HK: WEIGHT_UNITMEASURECODE
+    source_binding: declared
+    source_model:
+      raw_5: Product
+  stg_product_vendor:
+    derived_columns:
+      VENDOR_BUSINESSENTITYID: BUSINESSENTITYID
+    expected_source_columns:
+    - PRODUCTID
+    - BUSINESSENTITYID
+    - UNITMEASURECODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PRODUCT_VENDOR_HK:
+      - PRODUCTID
+      - VENDOR_BUSINESSENTITYID
+      - UNITMEASURECODE
+      PRODUCT_HK: PRODUCTID
+      UNITMEASURE_HK: UNITMEASURECODE
+      VENDOR_BUSINESSENTITY_HK: VENDOR_BUSINESSENTITYID
+    source_binding: declared
+    source_model:
+      raw_3: ProductVendor
+  stg_product_vendor_receipt:
+    derived_columns:
+      VENDOR_BUSINESSENTITYID: BUSINESSENTITYID
+    expected_source_columns:
+    - PRODUCTID
+    - BUSINESSENTITYID
+    - UNITMEASURECODE
+    - LASTRECEIPTCOST
+    - LASTRECEIPTDATE
+    - ONORDERQTY
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PRODUCT_VENDOR_HK:
+      - PRODUCTID
+      - VENDOR_BUSINESSENTITYID
+      - UNITMEASURECODE
+      PRODUCT_VENDOR_RECEIPT_HASHDIFF:
+        columns:
+        - LASTRECEIPTCOST
+        - LASTRECEIPTDATE
+        - ONORDERQTY
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_3: ProductVendor
+  stg_product_vendor_terms:
+    derived_columns:
+      VENDOR_BUSINESSENTITYID: BUSINESSENTITYID
+    expected_source_columns:
+    - PRODUCTID
+    - BUSINESSENTITYID
+    - UNITMEASURECODE
+    - AVERAGELEADTIME
+    - STANDARDPRICE
+    - MINORDERQTY
+    - MAXORDERQTY
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PRODUCT_VENDOR_HK:
+      - PRODUCTID
+      - VENDOR_BUSINESSENTITYID
+      - UNITMEASURECODE
+      PRODUCT_VENDOR_TERMS_HASHDIFF:
+        columns:
+        - AVERAGELEADTIME
+        - STANDARDPRICE
+        - MINORDERQTY
+        - MAXORDERQTY
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_3: ProductVendor
+  stg_purchase_order:
+    expected_source_columns:
+    - PURCHASEORDERID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PURCHASEORDERHEADER_HK: PURCHASEORDERID
+    source_binding: declared
+    source_model:
+      raw_3: PurchaseOrderHeader
+  stg_purchase_order_business_entity:
+    derived_columns:
+      BUSINESSENTITYID: EMPLOYEEID
+    expected_source_columns:
+    - PURCHASEORDERID
+    - EMPLOYEEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BUSINESSENTITY_HK: BUSINESSENTITYID
+      LINK_PURCHASE_ORDER_BUSINESS_ENTITY_HK:
+      - PURCHASEORDERID
+      - BUSINESSENTITYID
+      PURCHASEORDERHEADER_HK: PURCHASEORDERID
+    source_binding: declared
+    source_model:
+      raw_3: PurchaseOrderHeader
+  stg_purchase_order_details:
+    expected_source_columns:
+    - PURCHASEORDERID
+    - ORDERDATE
+    - SHIPDATE
+    - SUBTOTAL
+    - TAXAMT
+    - FREIGHT
+    - TOTALDUE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PURCHASEORDERHEADER_HK: PURCHASEORDERID
+      PURCHASE_ORDER_DETAILS_HASHDIFF:
+        columns:
+        - ORDERDATE
+        - SHIPDATE
+        - SUBTOTAL
+        - TAXAMT
+        - FREIGHT
+        - TOTALDUE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_3: PurchaseOrderHeader
+  stg_purchase_order_line:
+    expected_source_columns:
+    - PURCHASEORDERID
+    - PURCHASEORDERDETAILID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PURCHASEORDERDETAIL_HK:
+      - PURCHASEORDERID
+      - PURCHASEORDERDETAILID
+    source_binding: declared
+    source_model:
+      raw_3: PurchaseOrderDetail
+  stg_purchase_order_line_details:
+    expected_source_columns:
+    - PURCHASEORDERID
+    - PURCHASEORDERDETAILID
+    - DUEDATE
+    - ORDERQTY
+    - UNITPRICE
+    - LINETOTAL
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PURCHASEORDERDETAIL_HK:
+      - PURCHASEORDERID
+      - PURCHASEORDERDETAILID
+      PURCHASE_ORDER_LINE_DETAILS_HASHDIFF:
+        columns:
+        - DUEDATE
+        - ORDERQTY
+        - UNITPRICE
+        - LINETOTAL
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_3: PurchaseOrderDetail
+  stg_purchase_order_line_product:
+    expected_source_columns:
+    - PURCHASEORDERID
+    - PURCHASEORDERDETAILID
+    - PRODUCTID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_PURCHASE_ORDER_LINE_PRODUCT_HK:
+      - PURCHASEORDERID
+      - PURCHASEORDERDETAILID
+      - PURCHASEORDERID
+      - PRODUCTID
+      PRODUCT_HK: PRODUCTID
+      PURCHASEORDERDETAIL_HK:
+      - PURCHASEORDERID
+      - PURCHASEORDERDETAILID
+      PURCHASEORDERHEADER_HK: PURCHASEORDERID
+    source_binding: declared
+    source_model:
+      raw_3: PurchaseOrderDetail
+  stg_purchase_order_line_receipt:
+    expected_source_columns:
+    - PURCHASEORDERID
+    - PURCHASEORDERDETAILID
+    - RECEIVEDQTY
+    - REJECTEDQTY
+    - STOCKEDQTY
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PURCHASEORDERDETAIL_HK:
+      - PURCHASEORDERID
+      - PURCHASEORDERDETAILID
+      PURCHASE_ORDER_LINE_RECEIPT_HASHDIFF:
+        columns:
+        - RECEIVEDQTY
+        - REJECTEDQTY
+        - STOCKEDQTY
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_3: PurchaseOrderDetail
+  stg_purchase_order_status:
+    expected_source_columns:
+    - PURCHASEORDERID
+    - STATUS
+    - REVISIONNUMBER
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      PURCHASEORDERHEADER_HK: PURCHASEORDERID
+      PURCHASE_ORDER_STATUS_HASHDIFF:
+        columns:
+        - STATUS
+        - REVISIONNUMBER
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_3: PurchaseOrderHeader
+  stg_purchase_order_vendor_employee_ship_method:
+    derived_columns:
+      EMPLOYEE_BUSINESSENTITYID: EMPLOYEEID
+      VENDOR_BUSINESSENTITYID: VENDORID
+    expected_source_columns:
+    - PURCHASEORDERID
+    - VENDORID
+    - EMPLOYEEID
+    - SHIPMETHODID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      EMPLOYEE_BUSINESSENTITY_HK: EMPLOYEE_BUSINESSENTITYID
+      LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD_HK:
+      - PURCHASEORDERID
+      - VENDOR_BUSINESSENTITYID
+      - EMPLOYEE_BUSINESSENTITYID
+      - SHIPMETHODID
+      PURCHASEORDERHEADER_HK: PURCHASEORDERID
+      SHIPMETHOD_HK: SHIPMETHODID
+      VENDOR_BUSINESSENTITY_HK: VENDOR_BUSINESSENTITYID
+    source_binding: declared
+    source_model:
+      raw_3: PurchaseOrderHeader
+  stg_sales_order:
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeader
+  stg_sales_order_address:
+    derived_columns:
+      BILL_TO_ADDRESSID: BILLTOADDRESSID
+      SHIP_TO_ADDRESSID: SHIPTOADDRESSID
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - BILLTOADDRESSID
+    - SHIPTOADDRESSID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      BILL_TO_ADDRESS_HK: BILL_TO_ADDRESSID
+      LINK_SALES_ORDER_ADDRESS_HK:
+      - SALESORDERNUMBER
+      - BILL_TO_ADDRESSID
+      - SHIP_TO_ADDRESSID
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+      SHIP_TO_ADDRESS_HK: SHIP_TO_ADDRESSID
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeader
+  stg_sales_order_amounts:
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - SUBTOTAL
+    - TAXAMT
+    - FREIGHT
+    - TOTALDUE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+      SALES_ORDER_AMOUNTS_HASHDIFF:
+        columns:
+        - SUBTOTAL
+        - TAXAMT
+        - FREIGHT
+        - TOTALDUE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeader
+  stg_sales_order_credit_card:
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - CREDITCARDID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CREDITCARD_HK: CREDITCARDID
+      LINK_SALES_ORDER_CREDIT_CARD_HK:
+      - SALESORDERNUMBER
+      - CREDITCARDID
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeader
+  stg_sales_order_currency_rate:
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - CURRENCYRATEDATE
+    - FROMCURRENCYCODE
+    - TOCURRENCYCODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CURRENCYRATE_HK:
+      - CURRENCYRATEDATE
+      - FROMCURRENCYCODE
+      - TOCURRENCYCODE
+      LINK_SALES_ORDER_CURRENCY_RATE_HK:
+      - SALESORDERNUMBER
+      - CURRENCYRATEDATE
+      - FROMCURRENCYCODE
+      - TOCURRENCYCODE
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+    source_binding: inferred
+    source_model:
+      inferred: raw_sales_order_currency_rate
+  stg_sales_order_customer:
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - ACCOUNTNUMBER
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      CUSTOMER_HK: ACCOUNTNUMBER
+      LINK_SALES_ORDER_CUSTOMER_HK:
+      - SALESORDERNUMBER
+      - ACCOUNTNUMBER
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeader
+  stg_sales_order_details:
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - SALESORDERID
+    - ORDERDATE
+    - DUEDATE
+    - ONLINEORDERFLAG
+    - PURCHASEORDERNUMBER
+    - ACCOUNTNUMBER
+    - COMMENT
+    - ROWGUID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+      SALES_ORDER_DETAILS_HASHDIFF:
+        columns:
+        - SALESORDERID
+        - ORDERDATE
+        - DUEDATE
+        - ONLINEORDERFLAG
+        - PURCHASEORDERNUMBER
+        - ACCOUNTNUMBER
+        - COMMENT
+        - ROWGUID
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeader
+  stg_sales_order_line:
+    expected_source_columns:
+    - SALESORDERID
+    - SALESORDERDETAILID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESORDERDETAIL_HK:
+      - SALESORDERID
+      - SALESORDERDETAILID
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderDetail
+  stg_sales_order_line_details:
+    expected_source_columns:
+    - SALESORDERID
+    - SALESORDERDETAILID
+    - CARRIERTRACKINGNUMBER
+    - ORDERQTY
+    - UNITPRICE
+    - UNITPRICEDISCOUNT
+    - LINETOTAL
+    - ROWGUID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESORDERDETAIL_HK:
+      - SALESORDERID
+      - SALESORDERDETAILID
+      SALES_ORDER_LINE_DETAILS_HASHDIFF:
+        columns:
+        - CARRIERTRACKINGNUMBER
+        - ORDERQTY
+        - UNITPRICE
+        - UNITPRICEDISCOUNT
+        - LINETOTAL
+        - ROWGUID
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderDetail
+  stg_sales_order_line_product:
+    expected_source_columns:
+    - SALESORDERID
+    - SALESORDERDETAILID
+    - PRODUCTID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SALES_ORDER_LINE_PRODUCT_HK:
+      - SALESORDERID
+      - SALESORDERDETAILID
+      - PRODUCTID
+      PRODUCT_HK: PRODUCTID
+      SALESORDERDETAIL_HK:
+      - SALESORDERID
+      - SALESORDERDETAILID
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderDetail
+  stg_sales_order_line_product_special_offer:
+    expected_source_columns:
+    - SALESORDERID
+    - SALESORDERDETAILID
+    - PRODUCTID
+    - SPECIALOFFERID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER_HK:
+      - SALESORDERID
+      - SALESORDERDETAILID
+      - SALESORDERNUMBER
+      - PRODUCTID
+      - SPECIALOFFERID
+      PRODUCT_HK: PRODUCTID
+      SALESORDERDETAIL_HK:
+      - SALESORDERID
+      - SALESORDERDETAILID
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+      SPECIALOFFER_HK: SPECIALOFFERID
+    key_translation:
+      joins:
+      - 'on': SALESORDERID = SALESORDERID
+        projects: SALESORDERNUMBER
+        through_table: SalesOrderHeader
+      model: stg_sales_order_line_product_special_offer_via_salesorderheader
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderDetail
+  stg_sales_order_payment:
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - CREDITCARDAPPROVALCODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+      SALES_ORDER_PAYMENT_HASHDIFF:
+        columns:
+        - CREDITCARDAPPROVALCODE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeader
+  stg_sales_order_sales_person:
+    derived_columns:
+      SALES_PERSON_BUSINESSENTITYID: SALESPERSONID
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - SALESPERSONID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SALES_ORDER_SALES_PERSON_HK:
+      - SALESORDERNUMBER
+      - SALES_PERSON_BUSINESSENTITYID
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+      SALES_PERSON_BUSINESSENTITY_HK: SALES_PERSON_BUSINESSENTITYID
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeader
+  stg_sales_order_sales_reason:
+    expected_source_columns:
+    - SALESORDERID
+    - SALESREASONID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SALES_ORDER_SALES_REASON_HK:
+      - SALESORDERNUMBER
+      - SALESREASONID
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+      SALESREASON_HK: SALESREASONID
+    key_translation:
+      joins:
+      - 'on': SALESORDERID = SALESORDERID
+        projects: SALESORDERNUMBER
+        through_table: SalesOrderHeader
+      model: stg_sales_order_sales_reason_via_salesorderheader
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeaderSalesReason
+  stg_sales_order_sales_reason_details:
+    expected_source_columns:
+    - SALESORDERID
+    - SALESREASONID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SALES_ORDER_SALES_REASON_HK:
+      - SALESORDERNUMBER
+      - SALESREASONID
+      SALES_ORDER_SALES_REASON_DETAILS_HASHDIFF:
+        columns:
+        - MODIFIEDDATE
+        is_hashdiff: true
+    key_translation:
+      joins:
+      - 'on': SALESORDERID = SALESORDERID
+        projects: SALESORDERNUMBER
+        through_table: SalesOrderHeader
+      model: stg_sales_order_sales_reason_details_via_salesorderheader
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeaderSalesReason
+  stg_sales_order_sales_territory:
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - TERRITORYID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SALES_ORDER_SALES_TERRITORY_HK:
+      - SALESORDERNUMBER
+      - TERRITORYID
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+      SALESTERRITORY_HK: TERRITORYID
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeader
+  stg_sales_order_ship_method:
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - SHIPMETHODID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SALES_ORDER_SHIP_METHOD_HK:
+      - SALESORDERNUMBER
+      - SHIPMETHODID
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+      SHIPMETHOD_HK: SHIPMETHODID
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeader
+  stg_sales_order_status:
+    expected_source_columns:
+    - SALESORDERNUMBER
+    - STATUS
+    - SHIPDATE
+    - REVISIONNUMBER
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESORDERHEADER_HK: SALESORDERNUMBER
+      SALES_ORDER_STATUS_HASHDIFF:
+        columns:
+        - STATUS
+        - SHIPDATE
+        - REVISIONNUMBER
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SalesOrderHeader
+  stg_sales_reason:
+    expected_source_columns:
+    - SALESREASONID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESREASON_HK: SALESREASONID
+    source_binding: declared
+    source_model:
+      raw_4: SalesReason
+  stg_sales_reason_details:
+    expected_source_columns:
+    - SALESREASONID
+    - NAME
+    - REASONTYPE
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESREASON_HK: SALESREASONID
+      SALES_REASON_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - REASONTYPE
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SalesReason
+  stg_sales_tax_rate:
+    expected_source_columns:
+    - SALESTAXRATEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESTAXRATE_HK: SALESTAXRATEID
+    source_binding: declared
+    source_model:
+      raw_4: SalesTaxRate
+  stg_sales_tax_rate_details:
+    expected_source_columns:
+    - SALESTAXRATEID
+    - NAME
+    - TAXTYPE
+    - TAXRATE
+    - ROWGUID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESTAXRATE_HK: SALESTAXRATEID
+      SALES_TAX_RATE_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - TAXTYPE
+        - TAXRATE
+        - ROWGUID
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SalesTaxRate
+  stg_sales_tax_rate_state_province:
+    expected_source_columns:
+    - SALESTAXRATEID
+    - STATEPROVINCEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SALES_TAX_RATE_STATE_PROVINCE_HK:
+      - SALESTAXRATEID
+      - STATEPROVINCEID
+      SALESTAXRATE_HK: SALESTAXRATEID
+      STATEPROVINCE_HK: STATEPROVINCEID
+    source_binding: declared
+    source_model:
+      raw_4: SalesTaxRate
+  stg_sales_territory:
+    derived_columns:
+      GROUP_:
+        escape: true
+        source_column: group
+    expected_source_columns:
+    - TERRITORYID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESTERRITORY_HK: TERRITORYID
+    source_binding: declared
+    source_model:
+      raw_4: SalesTerritory
+  stg_sales_territory_country_region:
+    derived_columns:
+      GROUP_:
+        escape: true
+        source_column: group
+    expected_source_columns:
+    - TERRITORYID
+    - COUNTRYREGIONCODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      COUNTRYREGION_HK: COUNTRYREGIONCODE
+      LINK_SALES_TERRITORY_COUNTRY_REGION_HK:
+      - TERRITORYID
+      - COUNTRYREGIONCODE
+      SALESTERRITORY_HK: TERRITORYID
+    source_binding: declared
+    source_model:
+      raw_4: SalesTerritory
+  stg_sales_territory_details:
+    derived_columns:
+      GROUP_:
+        escape: true
+        source_column: group
+    expected_source_columns:
+    - TERRITORYID
+    - NAME
+    - GROUP
+    - ROWGUID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESTERRITORY_HK: TERRITORYID
+      SALES_TERRITORY_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - GROUP_
+        - ROWGUID
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SalesTerritory
+  stg_sales_territory_financials:
+    derived_columns:
+      GROUP_:
+        escape: true
+        source_column: group
+    expected_source_columns:
+    - TERRITORYID
+    - SALESYTD
+    - SALESLASTYEAR
+    - COSTYTD
+    - COSTLASTYEAR
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SALESTERRITORY_HK: TERRITORYID
+      SALES_TERRITORY_FINANCIALS_HASHDIFF:
+        columns:
+        - SALESYTD
+        - SALESLASTYEAR
+        - COSTYTD
+        - COSTLASTYEAR
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SalesTerritory
+  stg_scrap_reason:
+    expected_source_columns:
+    - SCRAPREASONID
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SCRAPREASON_HK: SCRAPREASONID
+      SCRAP_REASON_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: ScrapReason
+  stg_shift:
+    expected_source_columns:
+    - SHIFTID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SHIFT_HK: SHIFTID
+    source_binding: declared
+    source_model:
+      raw_2: Shift
+  stg_shift_details:
+    expected_source_columns:
+    - SHIFTID
+    - NAME
+    - STARTTIME
+    - ENDTIME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SHIFT_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - STARTTIME
+        - ENDTIME
+        - MODIFIEDDATE
+        is_hashdiff: true
+      SHIFT_HK: SHIFTID
+    source_binding: declared
+    source_model:
+      raw_2: Shift
+  stg_ship_method:
+    expected_source_columns:
+    - SHIPMETHODID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SHIPMETHOD_HK: SHIPMETHODID
+    source_binding: declared
+    source_model:
+      raw_3: ShipMethod
+  stg_ship_method_details:
+    expected_source_columns:
+    - SHIPMETHODID
+    - NAME
+    - SHIPBASE
+    - SHIPRATE
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SHIPMETHOD_HK: SHIPMETHODID
+      SHIP_METHOD_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - SHIPBASE
+        - SHIPRATE
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_3: ShipMethod
+  stg_shopping_cart:
+    expected_source_columns:
+    - SHOPPINGCARTID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SHOPPINGCARTITEM_HK: SHOPPINGCARTID
+    source_binding: declared
+    source_model:
+      raw_4: ShoppingCartItem
+  stg_shopping_cart_product:
+    expected_source_columns:
+    - SHOPPINGCARTID
+    - PRODUCTID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SHOPPING_CART_PRODUCT_HK:
+      - SHOPPINGCARTID
+      - PRODUCTID
+      PRODUCT_HK: PRODUCTID
+      SHOPPINGCARTITEM_HK: SHOPPINGCARTID
+    source_binding: declared
+    source_model:
+      raw_4: ShoppingCartItem
+  stg_shopping_cart_product_details:
+    expected_source_columns:
+    - SHOPPINGCARTID
+    - PRODUCTID
+    - SHOPPINGCARTITEMID
+    - QUANTITY
+    - DATECREATED
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SHOPPING_CART_PRODUCT_HK:
+      - SHOPPINGCARTID
+      - PRODUCTID
+      SHOPPING_CART_PRODUCT_DETAILS_HASHDIFF:
+        columns:
+        - SHOPPINGCARTITEMID
+        - QUANTITY
+        - DATECREATED
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: ShoppingCartItem
+  stg_special_offer:
+    expected_source_columns:
+    - SPECIALOFFERID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SPECIALOFFER_HK: SPECIALOFFERID
+    source_binding: declared
+    source_model:
+      raw_4: SpecialOffer
+  stg_special_offer_details:
+    expected_source_columns:
+    - SPECIALOFFERID
+    - DESCRIPTION
+    - DISCOUNTPCT
+    - TYPE
+    - CATEGORY
+    - STARTDATE
+    - ENDDATE
+    - MINQTY
+    - MAXQTY
+    - ROWGUID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      SPECIALOFFER_HK: SPECIALOFFERID
+      SPECIAL_OFFER_DETAILS_HASHDIFF:
+        columns:
+        - DESCRIPTION
+        - DISCOUNTPCT
+        - TYPE
+        - CATEGORY
+        - STARTDATE
+        - ENDDATE
+        - MINQTY
+        - MAXQTY
+        - ROWGUID
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SpecialOffer
+  stg_special_offer_product:
+    expected_source_columns:
+    - SPECIALOFFERID
+    - PRODUCTID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SPECIAL_OFFER_PRODUCT_HK:
+      - SPECIALOFFERID
+      - PRODUCTID
+      PRODUCT_HK: PRODUCTID
+      SPECIALOFFER_HK: SPECIALOFFERID
+    source_binding: declared
+    source_model:
+      raw_4: SpecialOfferProduct
+  stg_special_offer_product_details:
+    expected_source_columns:
+    - SPECIALOFFERID
+    - PRODUCTID
+    - ROWGUID
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_SPECIAL_OFFER_PRODUCT_HK:
+      - SPECIALOFFERID
+      - PRODUCTID
+      SPECIAL_OFFER_PRODUCT_DETAILS_HASHDIFF:
+        columns:
+        - ROWGUID
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_4: SpecialOfferProduct
+  stg_state_province:
+    expected_source_columns:
+    - STATEPROVINCEID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      STATEPROVINCE_HK: STATEPROVINCEID
+    source_binding: declared
+    source_model:
+      raw: StateProvince
+  stg_state_province_country_region:
+    expected_source_columns:
+    - STATEPROVINCEID
+    - COUNTRYREGIONCODE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      COUNTRYREGION_HK: COUNTRYREGIONCODE
+      LINK_STATE_PROVINCE_COUNTRY_REGION_HK:
+      - STATEPROVINCEID
+      - COUNTRYREGIONCODE
+      STATEPROVINCE_HK: STATEPROVINCEID
+    source_binding: declared
+    source_model:
+      raw: StateProvince
+  stg_state_province_details:
+    expected_source_columns:
+    - STATEPROVINCEID
+    - STATEPROVINCECODE
+    - ISONLYSTATEPROVINCEFLAG
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      STATEPROVINCE_HK: STATEPROVINCEID
+      STATE_PROVINCE_DETAILS_HASHDIFF:
+        columns:
+        - STATEPROVINCECODE
+        - ISONLYSTATEPROVINCEFLAG
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: StateProvince
+  stg_state_province_territory:
+    expected_source_columns:
+    - STATEPROVINCEID
+    - TERRITORYID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      STATEPROVINCE_HK: STATEPROVINCEID
+      STATE_PROVINCE_TERRITORY_HASHDIFF:
+        columns:
+        - TERRITORYID
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw: StateProvince
+  stg_unit_measure:
+    expected_source_columns:
+    - UNITMEASURECODE
+    - NAME
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      UNITMEASURE_HK: UNITMEASURECODE
+      UNIT_MEASURE_DETAILS_HASHDIFF:
+        columns:
+        - NAME
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: UnitMeasure
+  stg_work_order:
+    expected_source_columns:
+    - WORKORDERID
+    - ORDERQTY
+    - STOCKEDQTY
+    - SCRAPPEDQTY
+    - STARTDATE
+    - ENDDATE
+    - DUEDATE
+    - MODIFIEDDATE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      WORKORDER_HK: WORKORDERID
+      WORK_ORDER_DETAILS_HASHDIFF:
+        columns:
+        - ORDERQTY
+        - STOCKEDQTY
+        - SCRAPPEDQTY
+        - STARTDATE
+        - ENDDATE
+        - DUEDATE
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: WorkOrder
+  stg_work_order_product:
+    expected_source_columns:
+    - WORKORDERID
+    - PRODUCTID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_WORK_ORDER_PRODUCT_HK:
+      - WORKORDERID
+      - PRODUCTID
+      PRODUCT_HK: PRODUCTID
+      WORKORDER_HK: WORKORDERID
+    source_binding: declared
+    source_model:
+      raw_5: WorkOrder
+  stg_work_order_product_location:
+    expected_source_columns:
+    - WORKORDERID
+    - PRODUCTID
+    - LOCATIONID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_WORK_ORDER_PRODUCT_LOCATION_HK:
+      - WORKORDERID
+      - PRODUCTID
+      - LOCATIONID
+      LOCATION_HK: LOCATIONID
+      PRODUCT_HK: PRODUCTID
+      WORKORDER_HK: WORKORDERID
+    source_binding: inferred
+    source_model:
+      inferred: raw_work_order_product_location
+  stg_work_order_product_location_operation:
+    expected_source_columns:
+    - WORKORDERID
+    - PRODUCTID
+    - LOCATIONID
+    - SCHEDULEDSTARTDATE
+    - SCHEDULEDENDDATE
+    - ACTUALSTARTDATE
+    - ACTUALENDDATE
+    - ACTUALRESOURCEHRS
+    - PLANNEDCOST
+    - ACTUALCOST
+    - MODIFIEDDATE
+    - OPERATIONSEQUENCE
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_WORK_ORDER_PRODUCT_LOCATION_HK:
+      - WORKORDERID
+      - PRODUCTID
+      - LOCATIONID
+      WORK_ORDER_PRODUCT_LOCATION_OPERATION_HASHDIFF:
+        columns:
+        - SCHEDULEDSTARTDATE
+        - SCHEDULEDENDDATE
+        - ACTUALSTARTDATE
+        - ACTUALENDDATE
+        - ACTUALRESOURCEHRS
+        - PLANNEDCOST
+        - ACTUALCOST
+        - MODIFIEDDATE
+        is_hashdiff: true
+    source_binding: declared
+    source_model:
+      raw_5: WorkOrderRouting
+  stg_work_order_scrap_reason:
+    expected_source_columns:
+    - WORKORDERID
+    - SCRAPREASONID
+    - LOAD_DATETIME
+    - RECORD_SOURCE
+    hashed_columns:
+      LINK_WORK_ORDER_SCRAP_REASON_HK:
+      - WORKORDERID
+      - SCRAPREASONID
+      SCRAPREASON_HK: SCRAPREASONID
+      WORKORDER_HK: WORKORDERID
+    source_binding: declared
+    source_model:
+      raw_5: WorkOrder

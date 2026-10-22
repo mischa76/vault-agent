@@ -1,0 +1,320 @@
+# Business↔source mapping — review & ratify (WP9, ADR-0008).
+# Edit table/column below, then: vault-agent resume --mappings <this file>
+# Or override one concept:      vault-agent resume --map "concept=TABLE.COLUMN"
+# gaps have no in-scope source (Business Vault/marts); unresolved need your decision.
+proposals:
+- key: Department::DepartmentID
+  concept: DepartmentID
+  entity: Department
+  table: Department
+  column: DepartmentID
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - Primary key for Department records.
+  - Department is the anchor table
+- key: Shift::ShiftID
+  concept: ShiftID
+  entity: Shift
+  table: Shift
+  column: ShiftID
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - Primary key for Shift records.
+  - Shift is anchor table; EmployeeDepartmentHistory.ShiftID is just an FK
+- key: JobCandidate::JobCandidateID
+  concept: JobCandidateID
+  entity: JobCandidate
+  table: JobCandidate
+  column: JobCandidateID
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - Primary key for JobCandidate records.
+- key: hub_business_entity::JobTitle
+  concept: JobTitle
+  entity: hub_business_entity
+  table: Employee
+  column: JobTitle
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Work title such as Buyer or Sales Representative.
+- key: hub_business_entity::HireDate
+  concept: HireDate
+  entity: hub_business_entity
+  table: Employee
+  column: HireDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Employee hired on this date.
+- key: hub_business_entity::SalariedFlag
+  concept: SalariedFlag
+  entity: hub_business_entity
+  table: Employee
+  column: SalariedFlag
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Job classification. 0 = Hourly...
+- key: hub_business_entity::CurrentFlag
+  concept: CurrentFlag
+  entity: hub_business_entity
+  table: Employee
+  column: CurrentFlag
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 0 = Inactive, 1 = Active
+- key: hub_business_entity::LoginID
+  concept: LoginID
+  entity: hub_business_entity
+  table: Employee
+  column: LoginID
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Network login.
+- key: hub_business_entity::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_business_entity
+  table: Employee
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.8
+  ratification_status: accepted
+  evidence:
+  - Date and time the record was last updated.
+  - Hub business entity is employee-based here; other tables also have ModifiedDate
+- key: hub_business_entity::NationalIDNumber
+  concept: NationalIDNumber
+  entity: hub_business_entity
+  table: Employee
+  column: NationalIDNumber
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Unique national identification number
+- key: hub_business_entity::BirthDate
+  concept: BirthDate
+  entity: hub_business_entity
+  table: Employee
+  column: BirthDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Date of birth.
+- key: hub_business_entity::Gender
+  concept: Gender
+  entity: hub_business_entity
+  table: Employee
+  column: Gender
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - M = Male, F = Female
+- key: hub_business_entity::MaritalStatus
+  concept: MaritalStatus
+  entity: hub_business_entity
+  table: Employee
+  column: MaritalStatus
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - M = Married, S = Single
+- key: hub_business_entity::VacationHours
+  concept: VacationHours
+  entity: hub_business_entity
+  table: Employee
+  column: VacationHours
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Number of available vacation hours.
+- key: hub_business_entity::SickLeaveHours
+  concept: SickLeaveHours
+  entity: hub_business_entity
+  table: Employee
+  column: SickLeaveHours
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Number of available sick leave hours.
+- key: hub_business_entity::OrganizationNode
+  concept: OrganizationNode
+  entity: hub_business_entity
+  table: Employee
+  column: OrganizationNode
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Where the employee is located in corporate hierarchy.
+- key: hub_business_entity::OrganizationLevel
+  concept: OrganizationLevel
+  entity: hub_business_entity
+  table: Employee
+  column: OrganizationLevel
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - The depth of the employee in the corporate hierarchy.
+- key: hub_business_entity::Rate
+  concept: Rate
+  entity: hub_business_entity
+  table: EmployeePayHistory
+  column: Rate
+  category: exact_name
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - Salary hourly rate.
+- key: hub_business_entity::PayFrequency
+  concept: PayFrequency
+  entity: hub_business_entity
+  table: EmployeePayHistory
+  column: PayFrequency
+  category: exact_name
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - 1 = Salary received monthly, 2 = Salary received biweekly
+- key: link_business_entity_department_shift::StartDate
+  concept: StartDate
+  entity: link_business_entity_department_shift
+  table: EmployeeDepartmentHistory
+  column: StartDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Date the employee started work in the department.
+- key: link_business_entity_department_shift::EndDate
+  concept: EndDate
+  entity: link_business_entity_department_shift
+  table: EmployeeDepartmentHistory
+  column: EndDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Date the employee left the department.
+- key: link_business_entity_department_shift::ModifiedDate
+  concept: ModifiedDate
+  entity: link_business_entity_department_shift
+  table: EmployeeDepartmentHistory
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - Link built from EmployeeDepartmentHistory
+- key: hub_department::Name
+  concept: Name
+  entity: hub_department
+  table: Department
+  column: Name
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Name of the department.
+- key: hub_department::GroupName
+  concept: GroupName
+  entity: hub_department
+  table: Department
+  column: GroupName
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Name of the group to which the department belongs.
+- key: hub_department::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_department
+  table: Department
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Date and time the record was last updated.
+- key: hub_shift::Name
+  concept: Name
+  entity: hub_shift
+  table: Shift
+  column: Name
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Shift description.
+- key: hub_shift::StartTime
+  concept: StartTime
+  entity: hub_shift
+  table: Shift
+  column: StartTime
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Shift start time.
+- key: hub_shift::EndTime
+  concept: EndTime
+  entity: hub_shift
+  table: Shift
+  column: EndTime
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Shift end time.
+- key: hub_shift::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_shift
+  table: Shift
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Date and time the record was last updated.
+- key: hub_job_candidate::Resume
+  concept: Resume
+  entity: hub_job_candidate
+  table: JobCandidate
+  column: Resume
+  category: exact_name
+  confidence: 0.96
+  ratification_status: accepted
+  evidence:
+  - Résumé in XML format.
+- key: hub_job_candidate::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_job_candidate
+  table: JobCandidate
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Date and time the record was last updated.
+gaps: []
+unresolved: []

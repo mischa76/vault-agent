@@ -1,0 +1,28 @@
+{
+  "id": "adventureworks:20261021T232716713739Z",
+  "project": "adventureworks",
+  "status": "finished",
+  "thread_id": "5f070167afc842c6b7de69895ab5e88b",
+  "out_dir": "demo/workbench-adventureworks/adventureworks/runs/20261021T232716713739Z",
+  "requirements": "hr_requirements.md",
+  "schema": "hr_source_schema.yml",
+  "existing_run": "adventureworks:20261019T204027253108Z",
+  "started": "2026-10-21T23:27:16+00:00",
+  "finished": "2026-10-22T00:00:01+00:00",
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run demo/workbench-adventureworks/adventureworks/inputs/hr_requirements.md --out demo/workbench-adventureworks/adventureworks/runs/20261021T232716713739Z --source-schema demo/workbench-adventureworks/adventureworks/inputs/hr_source_schema.yml --existing demo/workbench-adventureworks/adventureworks/runs/20261019T204027253108Z",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261021T232716713739Z --resolve employee::LoginID=unresolved --resolve employee::NationalIDNumber=unresolved --accept",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261021T232716713739Z --owner 'Department=John Doe <john.doe@acme.com>' --owner 'Employee=John Doe <john.doe@acme.com>' --owner 'EmployeeDepartmentHistory=John Doe <john.doe@acme.com>' --owner 'EmployeePayHistory=John Doe <john.doe@acme.com>' --owner 'JobCandidate=John Doe <john.doe@acme.com>' --owner 'Shift=John Doe <john.doe@acme.com>' --accept"
+  ],
+  "checkpoints": [
+    {
+      "phase": "resolution",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261021T232716713739Z --resolve employee::LoginID=unresolved --resolve employee::NationalIDNumber=unresolved --accept"
+    },
+    {
+      "phase": "signoff",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261021T232716713739Z --owner 'Department=John Doe <john.doe@acme.com>' --owner 'Employee=John Doe <john.doe@acme.com>' --owner 'EmployeeDepartmentHistory=John Doe <john.doe@acme.com>' --owner 'EmployeePayHistory=John Doe <john.doe@acme.com>' --owner 'JobCandidate=John Doe <john.doe@acme.com>' --owner 'Shift=John Doe <john.doe@acme.com>' --accept"
+    }
+  ]
+}

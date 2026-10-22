@@ -1,0 +1,8 @@
+version: 2
+models:
+- name: stg_ProductPhoto
+  columns:
+  - name: PRODUCTPHOTOID
+    tests:
+    - unique
+    - not_null

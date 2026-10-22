@@ -1,0 +1,84 @@
+spec-version: 1.0.0
+name: ProductPhoto
+namespace: source
+dataAssetResourceName: datastore://source/ProductPhoto
+doc: Product photo records from the source ProductPhoto table, holding thumbnail and
+  large images with their file names. The contract enforces the declared schema and
+  the business key (ProductPhotoID). Ownership and agreement are to be confirmed at
+  the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductPhotoID
+  description: Unique identifier of the product photo record (business key).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ThumbNailPhoto
+  description: Binary content of the small thumbnail image of the product.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ThumbnailPhotoFileName
+  description: File name of the thumbnail image.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: LargePhoto
+  description: Binary content of the large image of the product.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: LargePhotoFileName
+  description: File name of the large image.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

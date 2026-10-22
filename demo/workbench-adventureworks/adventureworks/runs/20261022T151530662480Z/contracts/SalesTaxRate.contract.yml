@@ -1,0 +1,95 @@
+spec-version: 1.0.0
+name: SalesTaxRate
+namespace: source
+dataAssetResourceName: datastore://source/SalesTaxRate
+doc: Sales tax rate definitions by state/province, as staged from the source SalesTaxRate
+  table. The contract enforces the declared schema, primary key and not-null constraints;
+  no value-level requirements beyond these were stated.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: SalesTaxRateID
+  description: Identifier of the sales tax rate record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StateProvinceID
+  description: Identifier of the state or province to which the tax rate applies.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: TaxType
+  description: Code indicating the type/category of tax the rate represents.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: TaxRate
+  description: Tax rate applied for this record.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the sales tax rate.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier for the row.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

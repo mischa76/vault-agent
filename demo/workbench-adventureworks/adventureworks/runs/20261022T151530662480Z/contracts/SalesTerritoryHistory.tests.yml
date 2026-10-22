@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_SalesTerritoryHistory
+  columns:
+  - name: BUSINESSENTITYID
+    tests:
+    - unique
+    - not_null
+  - name: TERRITORYID
+    tests:
+    - unique
+    - not_null

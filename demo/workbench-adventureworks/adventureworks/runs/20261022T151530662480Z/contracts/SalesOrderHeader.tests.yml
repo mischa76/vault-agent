@@ -1,0 +1,36 @@
+version: 2
+models:
+- name: stg_SalesOrderHeader
+  columns:
+  - name: SALESORDERID
+    tests:
+    - unique
+    - not_null
+  - name: SALESORDERNUMBER
+    tests:
+    - unique
+    - not_null
+  - name: PURCHASEORDERNUMBER
+    tests:
+    - unique
+    - not_null
+  - name: ACCOUNTNUMBER
+    tests:
+    - unique
+    - not_null
+  - name: CUSTOMERID
+    tests:
+    - unique
+    - not_null
+  - name: TERRITORYID
+    tests:
+    - unique
+    - not_null
+  - name: CREDITCARDID
+    tests:
+    - unique
+    - not_null
+  - name: CURRENCYRATEID
+    tests:
+    - unique
+    - not_null

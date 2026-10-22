@@ -1,0 +1,200 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: customer::AccountNumber
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Customer.AccountNumber is 'Unique number identifying the customer assigned by
+    the accounting system', so it is an alternate key of the customer concept.
+  - No existing hub models customers. The only account-number-like items in the vault
+    are none, so there is nothing to match.
+  confidence: 0.5
+  ratification_status: accepted
+- concept: customer::CustomerID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Customer.CustomerID is its own primary key ('Primary key.') and no existing hub
+    has CustomerID as a business key.
+  - Customer.PersonID and StoreID are only foreign keys to Person/Store. They show
+    that a customer references a business entity, not that it is one.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: store::BusinessEntityID
+  resolution: hub_business_entity
+  category: exact_key
+  evidence:
+  - Store.BusinessEntityID is the same identifier as hub_business_entity's business
+    key, BusinessEntityID. The vault already feeds Person, Employee and Vendor into
+    that hub on the same key.
+  - Customer.StoreID is documented as 'Foreign key to Store.BusinessEntityID', which
+    treats the store as a business entity.
+  - The Store.BusinessEntityID comment says 'Foreign key to Customer.BusinessEntityID',
+    but Customer has no such column. It does not name BusinessEntity explicitly, so
+    confidence is moderate and a reviewer should check.
+  confidence: 0.65
+  ratification_status: accepted
+- concept: sales order::SalesOrderNumber
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesOrderNumber is a computed identifier ('Unique sales order identification
+    number') for the sales order, which is a customer-side order.
+  - The vault's only order hub is hub_purchase_order (PurchaseOrderID, from PurchaseOrderHeader),
+    a vendor-side purchase order. It has a different key and a different concept.
+  confidence: 0.6
+  ratification_status: accepted
+- concept: sales order::SalesOrderID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesOrderHeader.SalesOrderID is the primary key of customer sales orders.
+  - The existing hub_purchase_order is keyed on PurchaseOrderID and fed by PurchaseOrderHeader
+    (vendor purchasing). A different identifier and a different business process.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: sales order::PurchaseOrderNumber
+  resolution: unresolved
+  category: key_overlap
+  evidence:
+  - The comment reads 'Customer purchase order number reference'. It is a customer-supplied
+    reference on a sales order.
+  - hub_purchase_order holds the company's own vendor purchase orders keyed by PurchaseOrderID.
+    No cross-reference or documentation says the two populations overlap.
+  - The shared 'purchase order' name is only a name-level hint, so no merge. It is
+    unclear whether this should be its own hub or just an attribute.
+  confidence: 0.5
+  ratification_status: accepted
+- concept: sales order line::SalesOrderDetailID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesOrderDetail has its own key (SalesOrderID, SalesOrderDetailID). The existing
+    hub_purchase_order_line comes from PurchaseOrderDetail, a vendor-side purchase
+    order line.
+  - The two lines are different business keys and different processes.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: sales representative::BusinessEntityID
+  resolution: hub_business_entity
+  category: exact_key
+  evidence:
+  - SalesPerson.BusinessEntityID is documented as 'Foreign key to Employee.BusinessEntityID'.
+  - Employee already feeds hub_business_entity, so this is the same key population.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: sales territory::TerritoryID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesTerritory.TerritoryID is a primary key. No existing hub has a territory key.
+  - hub_country_region and hub_state_province are related geography but are keyed
+    differently (CountryRegionCode, StateProvinceID).
+  confidence: 0.85
+  ratification_status: accepted
+- concept: sales territory::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Name is a description of the sales territory ('Sales territory description'),
+    so it is an attribute or alternate key of the new territory concept. It is not
+    a separate existing concept.
+  - No existing hub models sales territories.
+  confidence: 0.55
+  ratification_status: accepted
+- concept: credit card::CreditCardID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - CreditCard.CreditCardID is a primary key. Nothing in the vault models payment
+    cards.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: credit card::CardNumber
+  resolution: NEW
+  category: semantic
+  evidence:
+  - CardNumber is an alternate identifier of the credit card concept, which has no
+    existing construct in the vault.
+  - It belongs with the new credit card concept.
+  confidence: 0.6
+  ratification_status: accepted
+- concept: currency::CurrencyCode
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Currency.CurrencyCode is the ISO currency code primary key. No existing hub models
+    currencies.
+  - hub_country_region is keyed on CountryRegionCode, a different ISO code. CountryRegionCurrency
+    only links the two.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: currency rate::CurrencyRateID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - CurrencyRate.CurrencyRateID is a primary key. The vault has no exchange-rate construct.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: currency rate::CurrencyRateDate + FromCurrencyCode + ToCurrencyCode
+  resolution: NEW
+  category: semantic
+  evidence:
+  - This is the natural composite key of the same currency rate entity as CurrencyRateID.
+  - No existing construct models exchange rates.
+  confidence: 0.7
+  ratification_status: accepted
+- concept: sales reason::SalesReasonID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - SalesReason.SalesReasonID is a primary key. No existing hub models sales reasons.
+  - hub_scrap_reason is a manufacturing concept with a different key.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: special offer::SpecialOfferID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SpecialOffer.SpecialOfferID is a primary key. No existing hub models promotions
+    or discounts.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: shopping cart item::ShoppingCartItemID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - ShoppingCartItem.ShoppingCartItemID is a primary key. No existing cart construct.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: shopping cart::ShoppingCartID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - ShoppingCartItem.ShoppingCartID is an nvarchar(50) cart identification number
+    that groups items. No table of its own is given.
+  - No existing hub models shopping carts.
+  confidence: 0.65
+  ratification_status: accepted
+- concept: sales tax rate::SalesTaxRateID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesTaxRate.SalesTaxRateID is a primary key. No existing tax-rate hub.
+  - The StateProvinceID on it is only a foreign key to hub_state_province.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: person::BusinessEntityID
+  resolution: hub_business_entity
+  category: exact_key
+  evidence:
+  - PersonCreditCard.BusinessEntityID is documented as 'Foreign key to Person.BusinessEntityID'.
+  - Customer.PersonID is likewise documented as 'Foreign key to Person.BusinessEntityID'.
+  - The vault's hub_business_entity is already fed by Person on BusinessEntityID.
+  confidence: 0.92
+  ratification_status: accepted

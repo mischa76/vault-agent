@@ -1,0 +1,123 @@
+spec-version: 1.0.0
+name: TransactionHistoryArchive
+namespace: source
+dataAssetResourceName: datastore://source/TransactionHistoryArchive
+doc: Archived product transaction history records (source-to-staging) for TransactionHistoryArchive.
+  Each record represents a historical inventory/order transaction for a product. The
+  contract enforces the declared schema, primary key and not-null rules; value-level
+  constraints are not specified by requirements and are left for human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: TransactionID
+  description: Unique identifier of the archived transaction record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductID
+  description: Identifier of the product involved in the transaction; references Product.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ReferenceOrderID
+  description: Identifier of the order (e.g., sales or work order) the transaction
+    refers to.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ReferenceOrderLineID
+  description: Identifier of the line within the referenced order that the transaction
+    refers to.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: TransactionDate
+  description: Date and time the transaction occurred.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: TransactionType
+  description: Code indicating the type of transaction. Allowed values are not specified
+    in the requirements and need human review.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Quantity
+  description: Quantity of product involved in the transaction.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ActualCost
+  description: Actual cost of the transaction.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

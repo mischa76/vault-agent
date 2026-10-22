@@ -1,0 +1,1246 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Vault-Agent run report</title><style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 2rem; color: #0b1324; background: #f8fafc;
+  font: 15px/1.55 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+main { max-width: 1100px; margin: 0 auto; }
+header h1 { margin: 0 0 .5rem; font-size: 1.6rem; }
+h2 { margin-top: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: .3rem; }
+h3 { margin: 1.2rem 0 .4rem; font-size: 1rem; color: #334155; }
+.badges { margin: .3rem 0 .6rem; }
+.badge { display: inline-block; padding: .15rem .55rem; border-radius: 999px;
+  font-size: .8rem; font-weight: 600; margin-right: .4rem; }
+.badge.ok { background: #dcfce7; color: #166534; }
+.badge.err { background: #fee2e2; color: #991b1b; }
+.badge.muted { background: #e2e8f0; color: #334155; }
+.chips .chip { display: inline-block; background: #eef2ff; color: #3730a3;
+  border-radius: 6px; padding: .1rem .5rem; margin: .15rem .3rem .15rem 0; font-size: .82rem; }
+table { border-collapse: collapse; width: 100%; margin: .4rem 0 1rem; font-size: .88rem; }
+th, td { border: 1px solid #e2e8f0; padding: .35rem .55rem; text-align: left; vertical-align: top; }
+th { background: #f1f5f9; }
+tr:nth-child(even) td { background: #fafcff; }
+ul { margin: .3rem 0 1rem; }
+code { background: #f1f5f9; padding: .05rem .3rem; border-radius: 4px; font-size: .85em; }
+pre.mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 1rem; overflow-x: auto; }
+details { margin: .6rem 0; }
+summary { cursor: pointer; font-weight: 600; color: #334155; }
+.hint { color: #475569; font-size: .85rem; }
+.files { columns: 2; font-size: .82rem; }
+</style></head><body><main><header><h1>Vault-Agent run report</h1><div class='badges'><span class="badge ok">validation passed</span><span class="badge ok">no sign-off needed</span><span class='badge muted'>grounding: on</span></div><div class='chips'><span class="chip">39 hubs</span><span class="chip">49 links</span><span class="chip">92 satellites</span><span class="chip">180 raw-vault models</span><span class="chip">148 staging models</span><span class="chip">19 contracts</span><span class="chip">1 ADRs</span></div></header><section><h2>Model graph</h2><pre class="mermaid">flowchart LR
+  classDef hub fill:#dbeafe,stroke:#1e40af,color:#0b1324;
+  classDef hubsource fill:#eff6ff,stroke:#93c5fd,color:#0b1324;
+  classDef link fill:#dcfce7,stroke:#166534,color:#0b1324;
+  classDef sat_standard fill:#fef9c3,stroke:#a16207,color:#0b1324;
+  classDef sat_multi_active fill:#fed7aa,stroke:#c2410c,color:#0b1324;
+  classDef sat_effectivity fill:#e9d5ff,stroke:#7e22ce,color:#0b1324;
+  HUB_BUSINESS_ENTITY[&quot;hub_business_entity&lt;br/&gt;BK: BusinessEntityID&quot;]
+  class HUB_BUSINESS_ENTITY hub;
+  HUB_BUSINESS_ENTITY__SRC0[(&quot;BusinessEntity.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC0 hubsource;
+  HUB_BUSINESS_ENTITY__SRC0 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC1[(&quot;Person.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC1 hubsource;
+  HUB_BUSINESS_ENTITY__SRC1 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC2[(&quot;EmailAddress.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC2 hubsource;
+  HUB_BUSINESS_ENTITY__SRC2 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC3[(&quot;Password.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC3 hubsource;
+  HUB_BUSINESS_ENTITY__SRC3 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC4[(&quot;Employee.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC4 hubsource;
+  HUB_BUSINESS_ENTITY__SRC4 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC5[(&quot;EmployeePayHistory.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC5 hubsource;
+  HUB_BUSINESS_ENTITY__SRC5 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC6[(&quot;Vendor.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC6 hubsource;
+  HUB_BUSINESS_ENTITY__SRC6 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC7[(&quot;Store.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC7 hubsource;
+  HUB_BUSINESS_ENTITY__SRC7 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC8[(&quot;SalesPerson.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC8 hubsource;
+  HUB_BUSINESS_ENTITY__SRC8 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC9[(&quot;SalesPersonQuotaHistory.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC9 hubsource;
+  HUB_BUSINESS_ENTITY__SRC9 --&gt; HUB_BUSINESS_ENTITY
+  HUB_ADDRESS[&quot;hub_address&lt;br/&gt;BK: AddressID&quot;]
+  class HUB_ADDRESS hub;
+  HUB_ADDRESS_TYPE[&quot;hub_address_type&lt;br/&gt;BK: AddressTypeID&quot;]
+  class HUB_ADDRESS_TYPE hub;
+  HUB_CONTACT_TYPE[&quot;hub_contact_type&lt;br/&gt;BK: ContactTypeID&quot;]
+  class HUB_CONTACT_TYPE hub;
+  HUB_PHONE_NUMBER_TYPE[&quot;hub_phone_number_type&lt;br/&gt;BK: PhoneNumberTypeID&quot;]
+  class HUB_PHONE_NUMBER_TYPE hub;
+  HUB_COUNTRY_REGION[&quot;hub_country_region&lt;br/&gt;BK: CountryRegionCode&quot;]
+  class HUB_COUNTRY_REGION hub;
+  HUB_STATE_PROVINCE[&quot;hub_state_province&lt;br/&gt;BK: StateProvinceID&quot;]
+  class HUB_STATE_PROVINCE hub;
+  HUB_DEPARTMENT[&quot;hub_department&lt;br/&gt;BK: DepartmentID&quot;]
+  class HUB_DEPARTMENT hub;
+  HUB_SHIFT[&quot;hub_shift&lt;br/&gt;BK: ShiftID&quot;]
+  class HUB_SHIFT hub;
+  HUB_JOB_CANDIDATE[&quot;hub_job_candidate&lt;br/&gt;BK: JobCandidateID&quot;]
+  class HUB_JOB_CANDIDATE hub;
+  HUB_PRODUCT[&quot;hub_product&lt;br/&gt;BK: ProductID&quot;]
+  class HUB_PRODUCT hub;
+  HUB_PRODUCT_CATEGORY[&quot;hub_product_category&lt;br/&gt;BK: ProductCategoryID&quot;]
+  class HUB_PRODUCT_CATEGORY hub;
+  HUB_PRODUCT_SUBCATEGORY[&quot;hub_product_subcategory&lt;br/&gt;BK: ProductSubcategoryID&quot;]
+  class HUB_PRODUCT_SUBCATEGORY hub;
+  HUB_PRODUCT_MODEL[&quot;hub_product_model&lt;br/&gt;BK: ProductModelID&quot;]
+  class HUB_PRODUCT_MODEL hub;
+  HUB_CULTURE[&quot;hub_culture&lt;br/&gt;BK: CultureID&quot;]
+  class HUB_CULTURE hub;
+  HUB_UNIT_MEASURE[&quot;hub_unit_measure&lt;br/&gt;BK: UnitMeasureCode&quot;]
+  class HUB_UNIT_MEASURE hub;
+  HUB_PRODUCT_DESCRIPTION[&quot;hub_product_description&lt;br/&gt;BK: ProductDescriptionID&quot;]
+  class HUB_PRODUCT_DESCRIPTION hub;
+  HUB_PRODUCT_PHOTO[&quot;hub_product_photo&lt;br/&gt;BK: ProductPhotoID&quot;]
+  class HUB_PRODUCT_PHOTO hub;
+  HUB_ILLUSTRATION[&quot;hub_illustration&lt;br/&gt;BK: IllustrationID&quot;]
+  class HUB_ILLUSTRATION hub;
+  HUB_DOCUMENT[&quot;hub_document&lt;br/&gt;BK: DocumentNode&quot;]
+  class HUB_DOCUMENT hub;
+  HUB_LOCATION[&quot;hub_location&lt;br/&gt;BK: LocationID&quot;]
+  class HUB_LOCATION hub;
+  HUB_SCRAP_REASON[&quot;hub_scrap_reason&lt;br/&gt;BK: ScrapReasonID&quot;]
+  class HUB_SCRAP_REASON hub;
+  HUB_WORK_ORDER[&quot;hub_work_order&lt;br/&gt;BK: WorkOrderID&quot;]
+  class HUB_WORK_ORDER hub;
+  HUB_INVENTORY_TRANSACTION[&quot;hub_inventory_transaction&lt;br/&gt;BK: TransactionID&quot;]
+  class HUB_INVENTORY_TRANSACTION hub;
+  HUB_INVENTORY_TRANSACTION__SRC0[(&quot;TransactionHistory.TransactionID&quot;)]
+  class HUB_INVENTORY_TRANSACTION__SRC0 hubsource;
+  HUB_INVENTORY_TRANSACTION__SRC0 --&gt; HUB_INVENTORY_TRANSACTION
+  HUB_INVENTORY_TRANSACTION__SRC1[(&quot;TransactionHistoryArchive.TransactionID&quot;)]
+  class HUB_INVENTORY_TRANSACTION__SRC1 hubsource;
+  HUB_INVENTORY_TRANSACTION__SRC1 --&gt; HUB_INVENTORY_TRANSACTION
+  HUB_PRODUCT_REVIEW[&quot;hub_product_review&lt;br/&gt;BK: ProductReviewID&quot;]
+  class HUB_PRODUCT_REVIEW hub;
+  HUB_PURCHASE_ORDER[&quot;hub_purchase_order&lt;br/&gt;BK: PurchaseOrderID&quot;]
+  class HUB_PURCHASE_ORDER hub;
+  HUB_PURCHASE_ORDER_LINE[&quot;hub_purchase_order_line&lt;br/&gt;BK: purchase_order_line&quot;]
+  class HUB_PURCHASE_ORDER_LINE hub;
+  HUB_SHIP_METHOD[&quot;hub_ship_method&lt;br/&gt;BK: ShipMethodID&quot;]
+  class HUB_SHIP_METHOD hub;
+  HUB_CUSTOMER[&quot;hub_customer&lt;br/&gt;BK: AccountNumber&quot;]
+  class HUB_CUSTOMER hub;
+  HUB_SALES_ORDER[&quot;hub_sales_order&lt;br/&gt;BK: SalesOrderNumber&quot;]
+  class HUB_SALES_ORDER hub;
+  HUB_SALES_ORDER_LINE[&quot;hub_sales_order_line&lt;br/&gt;BK: sales_order_line&quot;]
+  class HUB_SALES_ORDER_LINE hub;
+  HUB_SALES_TERRITORY[&quot;hub_sales_territory&lt;br/&gt;BK: TerritoryID&quot;]
+  class HUB_SALES_TERRITORY hub;
+  HUB_CREDIT_CARD[&quot;hub_credit_card&lt;br/&gt;BK: CreditCardID&quot;]
+  class HUB_CREDIT_CARD hub;
+  HUB_CURRENCY[&quot;hub_currency&lt;br/&gt;BK: CurrencyCode&quot;]
+  class HUB_CURRENCY hub;
+  HUB_CURRENCY_RATE[&quot;hub_currency_rate&lt;br/&gt;BK: currency_rate&quot;]
+  class HUB_CURRENCY_RATE hub;
+  HUB_SALES_REASON[&quot;hub_sales_reason&lt;br/&gt;BK: SalesReasonID&quot;]
+  class HUB_SALES_REASON hub;
+  HUB_SPECIAL_OFFER[&quot;hub_special_offer&lt;br/&gt;BK: SpecialOfferID&quot;]
+  class HUB_SPECIAL_OFFER hub;
+  HUB_SHOPPING_CART[&quot;hub_shopping_cart&lt;br/&gt;BK: ShoppingCartID&quot;]
+  class HUB_SHOPPING_CART hub;
+  HUB_SALES_TAX_RATE[&quot;hub_sales_tax_rate&lt;br/&gt;BK: SalesTaxRateID&quot;]
+  class HUB_SALES_TAX_RATE hub;
+  LINK_BUSINESS_ENTITY_ADDRESS{{&quot;link_business_entity_address&quot;}}
+  class LINK_BUSINESS_ENTITY_ADDRESS link;
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_ADDRESS
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_ADDRESS_TYPE
+  LINK_BUSINESS_ENTITY_CONTACT{{&quot;link_business_entity_contact&quot;}}
+  class LINK_BUSINESS_ENTITY_CONTACT link;
+  LINK_BUSINESS_ENTITY_CONTACT --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_CONTACT --&gt;|&quot;person&quot;| HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_CONTACT --&gt; HUB_CONTACT_TYPE
+  LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE{{&quot;link_business_entity_phone_number_type&quot;}}
+  class LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE link;
+  LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE --&gt; HUB_PHONE_NUMBER_TYPE
+  LINK_ADDRESS_STATE_PROVINCE{{&quot;link_address_state_province&quot;}}
+  class LINK_ADDRESS_STATE_PROVINCE link;
+  LINK_ADDRESS_STATE_PROVINCE --&gt; HUB_ADDRESS
+  LINK_ADDRESS_STATE_PROVINCE --&gt; HUB_STATE_PROVINCE
+  LINK_STATE_PROVINCE_COUNTRY_REGION{{&quot;link_state_province_country_region&quot;}}
+  class LINK_STATE_PROVINCE_COUNTRY_REGION link;
+  LINK_STATE_PROVINCE_COUNTRY_REGION --&gt; HUB_STATE_PROVINCE
+  LINK_STATE_PROVINCE_COUNTRY_REGION --&gt; HUB_COUNTRY_REGION
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT{{&quot;link_business_entity_department_shift&quot;}}
+  class LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT link;
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT ==&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT --&gt; HUB_DEPARTMENT
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT --&gt; HUB_SHIFT
+  LINK_BUSINESS_ENTITY_JOB_CANDIDATE{{&quot;link_business_entity_job_candidate&quot;}}
+  class LINK_BUSINESS_ENTITY_JOB_CANDIDATE link;
+  LINK_BUSINESS_ENTITY_JOB_CANDIDATE --&gt; HUB_JOB_CANDIDATE
+  LINK_BUSINESS_ENTITY_JOB_CANDIDATE --&gt; HUB_BUSINESS_ENTITY
+  LINK_PRODUCT_PRODUCT_SUBCATEGORY{{&quot;link_product_product_subcategory&quot;}}
+  class LINK_PRODUCT_PRODUCT_SUBCATEGORY link;
+  LINK_PRODUCT_PRODUCT_SUBCATEGORY --&gt; HUB_PRODUCT
+  LINK_PRODUCT_PRODUCT_SUBCATEGORY --&gt; HUB_PRODUCT_SUBCATEGORY
+  LINK_PRODUCT_SUBCATEGORY_PRODUCT_CATEGORY{{&quot;link_product_subcategory_product_category&quot;}}
+  class LINK_PRODUCT_SUBCATEGORY_PRODUCT_CATEGORY link;
+  LINK_PRODUCT_SUBCATEGORY_PRODUCT_CATEGORY --&gt; HUB_PRODUCT_SUBCATEGORY
+  LINK_PRODUCT_SUBCATEGORY_PRODUCT_CATEGORY --&gt; HUB_PRODUCT_CATEGORY
+  LINK_PRODUCT_PRODUCT_MODEL{{&quot;link_product_product_model&quot;}}
+  class LINK_PRODUCT_PRODUCT_MODEL link;
+  LINK_PRODUCT_PRODUCT_MODEL --&gt; HUB_PRODUCT
+  LINK_PRODUCT_PRODUCT_MODEL --&gt; HUB_PRODUCT_MODEL
+  LINK_PRODUCT_UNIT_MEASURE{{&quot;link_product_unit_measure&quot;}}
+  class LINK_PRODUCT_UNIT_MEASURE link;
+  LINK_PRODUCT_UNIT_MEASURE --&gt; HUB_PRODUCT
+  LINK_PRODUCT_UNIT_MEASURE --&gt;|&quot;size&quot;| HUB_UNIT_MEASURE
+  LINK_PRODUCT_UNIT_MEASURE --&gt;|&quot;weight&quot;| HUB_UNIT_MEASURE
+  LINK_PRODUCT_ASSEMBLY_COMPONENT{{&quot;link_product_assembly_component&quot;}}
+  class LINK_PRODUCT_ASSEMBLY_COMPONENT link;
+  LINK_PRODUCT_ASSEMBLY_COMPONENT ==&gt;|&quot;assembly&quot;| HUB_PRODUCT
+  LINK_PRODUCT_ASSEMBLY_COMPONENT ==&gt;|&quot;component&quot;| HUB_PRODUCT
+  LINK_PRODUCT_ASSEMBLY_COMPONENT --&gt; HUB_UNIT_MEASURE
+  LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE{{&quot;link_product_model_description_culture&quot;}}
+  class LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE link;
+  LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE --&gt; HUB_PRODUCT_MODEL
+  LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE --&gt; HUB_PRODUCT_DESCRIPTION
+  LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE --&gt; HUB_CULTURE
+  LINK_PRODUCT_MODEL_ILLUSTRATION{{&quot;link_product_model_illustration&quot;}}
+  class LINK_PRODUCT_MODEL_ILLUSTRATION link;
+  LINK_PRODUCT_MODEL_ILLUSTRATION --&gt; HUB_PRODUCT_MODEL
+  LINK_PRODUCT_MODEL_ILLUSTRATION --&gt; HUB_ILLUSTRATION
+  LINK_PRODUCT_PRODUCT_PHOTO{{&quot;link_product_product_photo&quot;}}
+  class LINK_PRODUCT_PRODUCT_PHOTO link;
+  LINK_PRODUCT_PRODUCT_PHOTO --&gt; HUB_PRODUCT
+  LINK_PRODUCT_PRODUCT_PHOTO --&gt; HUB_PRODUCT_PHOTO
+  LINK_PRODUCT_DOCUMENT{{&quot;link_product_document&quot;}}
+  class LINK_PRODUCT_DOCUMENT link;
+  LINK_PRODUCT_DOCUMENT --&gt; HUB_PRODUCT
+  LINK_PRODUCT_DOCUMENT --&gt; HUB_DOCUMENT
+  LINK_DOCUMENT_BUSINESS_ENTITY{{&quot;link_document_business_entity&quot;}}
+  class LINK_DOCUMENT_BUSINESS_ENTITY link;
+  LINK_DOCUMENT_BUSINESS_ENTITY --&gt; HUB_DOCUMENT
+  LINK_DOCUMENT_BUSINESS_ENTITY --&gt; HUB_BUSINESS_ENTITY
+  LINK_PRODUCT_LOCATION{{&quot;link_product_location&quot;}}
+  class LINK_PRODUCT_LOCATION link;
+  LINK_PRODUCT_LOCATION --&gt; HUB_PRODUCT
+  LINK_PRODUCT_LOCATION --&gt; HUB_LOCATION
+  LINK_WORK_ORDER_PRODUCT{{&quot;link_work_order_product&quot;}}
+  class LINK_WORK_ORDER_PRODUCT link;
+  LINK_WORK_ORDER_PRODUCT --&gt; HUB_WORK_ORDER
+  LINK_WORK_ORDER_PRODUCT --&gt; HUB_PRODUCT
+  LINK_WORK_ORDER_SCRAP_REASON{{&quot;link_work_order_scrap_reason&quot;}}
+  class LINK_WORK_ORDER_SCRAP_REASON link;
+  LINK_WORK_ORDER_SCRAP_REASON --&gt; HUB_WORK_ORDER
+  LINK_WORK_ORDER_SCRAP_REASON --&gt; HUB_SCRAP_REASON
+  LINK_WORK_ORDER_PRODUCT_LOCATION{{&quot;link_work_order_product_location&quot;}}
+  class LINK_WORK_ORDER_PRODUCT_LOCATION link;
+  LINK_WORK_ORDER_PRODUCT_LOCATION --&gt; HUB_WORK_ORDER
+  LINK_WORK_ORDER_PRODUCT_LOCATION --&gt; HUB_PRODUCT
+  LINK_WORK_ORDER_PRODUCT_LOCATION --&gt; HUB_LOCATION
+  LINK_INVENTORY_TRANSACTION_PRODUCT{{&quot;link_inventory_transaction_product&quot;}}
+  class LINK_INVENTORY_TRANSACTION_PRODUCT link;
+  LINK_INVENTORY_TRANSACTION_PRODUCT --&gt; HUB_INVENTORY_TRANSACTION
+  LINK_INVENTORY_TRANSACTION_PRODUCT --&gt; HUB_PRODUCT
+  LINK_PRODUCT_REVIEW_PRODUCT{{&quot;link_product_review_product&quot;}}
+  class LINK_PRODUCT_REVIEW_PRODUCT link;
+  LINK_PRODUCT_REVIEW_PRODUCT --&gt; HUB_PRODUCT_REVIEW
+  LINK_PRODUCT_REVIEW_PRODUCT --&gt; HUB_PRODUCT
+  LINK_PRODUCT_VENDOR{{&quot;link_product_vendor&quot;}}
+  class LINK_PRODUCT_VENDOR link;
+  LINK_PRODUCT_VENDOR --&gt; HUB_PRODUCT
+  LINK_PRODUCT_VENDOR --&gt;|&quot;vendor&quot;| HUB_BUSINESS_ENTITY
+  LINK_PRODUCT_VENDOR --&gt; HUB_UNIT_MEASURE
+  LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD{{&quot;link_purchase_order_vendor_employee_ship_method&quot;}}
+  class LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD link;
+  LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD --&gt; HUB_PURCHASE_ORDER
+  LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD --&gt;|&quot;vendor&quot;| HUB_BUSINESS_ENTITY
+  LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD --&gt;|&quot;employee&quot;| HUB_BUSINESS_ENTITY
+  LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD --&gt; HUB_SHIP_METHOD
+  LINK_PURCHASE_ORDER_LINE_PRODUCT{{&quot;link_purchase_order_line_product&quot;}}
+  class LINK_PURCHASE_ORDER_LINE_PRODUCT link;
+  LINK_PURCHASE_ORDER_LINE_PRODUCT --&gt; HUB_PURCHASE_ORDER_LINE
+  LINK_PURCHASE_ORDER_LINE_PRODUCT --&gt; HUB_PURCHASE_ORDER
+  LINK_PURCHASE_ORDER_LINE_PRODUCT --&gt; HUB_PRODUCT
+  LINK_PURCHASE_ORDER_BUSINESS_ENTITY{{&quot;link_purchase_order_business_entity&quot;}}
+  class LINK_PURCHASE_ORDER_BUSINESS_ENTITY link;
+  LINK_PURCHASE_ORDER_BUSINESS_ENTITY --&gt; HUB_PURCHASE_ORDER
+  LINK_PURCHASE_ORDER_BUSINESS_ENTITY --&gt; HUB_BUSINESS_ENTITY
+  LINK_CUSTOMER_BUSINESS_ENTITY{{&quot;link_customer_business_entity&quot;}}
+  class LINK_CUSTOMER_BUSINESS_ENTITY link;
+  LINK_CUSTOMER_BUSINESS_ENTITY --&gt; HUB_CUSTOMER
+  LINK_CUSTOMER_BUSINESS_ENTITY --&gt;|&quot;person&quot;| HUB_BUSINESS_ENTITY
+  LINK_CUSTOMER_BUSINESS_ENTITY --&gt;|&quot;store&quot;| HUB_BUSINESS_ENTITY
+  LINK_CUSTOMER_SALES_TERRITORY{{&quot;link_customer_sales_territory&quot;}}
+  class LINK_CUSTOMER_SALES_TERRITORY link;
+  LINK_CUSTOMER_SALES_TERRITORY --&gt; HUB_CUSTOMER
+  LINK_CUSTOMER_SALES_TERRITORY --&gt; HUB_SALES_TERRITORY
+  LINK_BUSINESS_ENTITY_STORE_SALES_PERSON{{&quot;link_business_entity_store_sales_person&quot;}}
+  class LINK_BUSINESS_ENTITY_STORE_SALES_PERSON link;
+  LINK_BUSINESS_ENTITY_STORE_SALES_PERSON --&gt;|&quot;store&quot;| HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_STORE_SALES_PERSON --&gt;|&quot;sales_person&quot;| HUB_BUSINESS_ENTITY
+  LINK_SALES_ORDER_CUSTOMER{{&quot;link_sales_order_customer&quot;}}
+  class LINK_SALES_ORDER_CUSTOMER link;
+  LINK_SALES_ORDER_CUSTOMER --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_CUSTOMER --&gt; HUB_CUSTOMER
+  LINK_SALES_ORDER_SALES_PERSON{{&quot;link_sales_order_sales_person&quot;}}
+  class LINK_SALES_ORDER_SALES_PERSON link;
+  LINK_SALES_ORDER_SALES_PERSON --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_SALES_PERSON --&gt;|&quot;sales_person&quot;| HUB_BUSINESS_ENTITY
+  LINK_SALES_ORDER_SALES_TERRITORY{{&quot;link_sales_order_sales_territory&quot;}}
+  class LINK_SALES_ORDER_SALES_TERRITORY link;
+  LINK_SALES_ORDER_SALES_TERRITORY --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_SALES_TERRITORY --&gt; HUB_SALES_TERRITORY
+  LINK_SALES_ORDER_ADDRESS{{&quot;link_sales_order_address&quot;}}
+  class LINK_SALES_ORDER_ADDRESS link;
+  LINK_SALES_ORDER_ADDRESS --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_ADDRESS --&gt;|&quot;bill_to&quot;| HUB_ADDRESS
+  LINK_SALES_ORDER_ADDRESS --&gt;|&quot;ship_to&quot;| HUB_ADDRESS
+  LINK_SALES_ORDER_SHIP_METHOD{{&quot;link_sales_order_ship_method&quot;}}
+  class LINK_SALES_ORDER_SHIP_METHOD link;
+  LINK_SALES_ORDER_SHIP_METHOD --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_SHIP_METHOD --&gt; HUB_SHIP_METHOD
+  LINK_SALES_ORDER_CREDIT_CARD{{&quot;link_sales_order_credit_card&quot;}}
+  class LINK_SALES_ORDER_CREDIT_CARD link;
+  LINK_SALES_ORDER_CREDIT_CARD --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_CREDIT_CARD --&gt; HUB_CREDIT_CARD
+  LINK_SALES_ORDER_CURRENCY_RATE{{&quot;link_sales_order_currency_rate&quot;}}
+  class LINK_SALES_ORDER_CURRENCY_RATE link;
+  LINK_SALES_ORDER_CURRENCY_RATE --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_CURRENCY_RATE --&gt; HUB_CURRENCY_RATE
+  LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER{{&quot;link_sales_order_line_product_special_offer&quot;}}
+  class LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER link;
+  LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER --&gt; HUB_SALES_ORDER_LINE
+  LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER --&gt; HUB_PRODUCT
+  LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER --&gt; HUB_SPECIAL_OFFER
+  LINK_SALES_ORDER_SALES_REASON{{&quot;link_sales_order_sales_reason&quot;}}
+  class LINK_SALES_ORDER_SALES_REASON link;
+  LINK_SALES_ORDER_SALES_REASON --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_SALES_REASON --&gt; HUB_SALES_REASON
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY{{&quot;link_business_entity_sales_territory&quot;}}
+  class LINK_BUSINESS_ENTITY_SALES_TERRITORY link;
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY --&gt; HUB_SALES_TERRITORY
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT{{&quot;link_business_entity_sales_territory_assignment&quot;}}
+  class LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT link;
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT ==&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT --&gt; HUB_SALES_TERRITORY
+  LINK_SALES_TERRITORY_COUNTRY_REGION{{&quot;link_sales_territory_country_region&quot;}}
+  class LINK_SALES_TERRITORY_COUNTRY_REGION link;
+  LINK_SALES_TERRITORY_COUNTRY_REGION --&gt; HUB_SALES_TERRITORY
+  LINK_SALES_TERRITORY_COUNTRY_REGION --&gt; HUB_COUNTRY_REGION
+  LINK_BUSINESS_ENTITY_CREDIT_CARD{{&quot;link_business_entity_credit_card&quot;}}
+  class LINK_BUSINESS_ENTITY_CREDIT_CARD link;
+  LINK_BUSINESS_ENTITY_CREDIT_CARD --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_CREDIT_CARD --&gt; HUB_CREDIT_CARD
+  LINK_SPECIAL_OFFER_PRODUCT{{&quot;link_special_offer_product&quot;}}
+  class LINK_SPECIAL_OFFER_PRODUCT link;
+  LINK_SPECIAL_OFFER_PRODUCT --&gt; HUB_SPECIAL_OFFER
+  LINK_SPECIAL_OFFER_PRODUCT --&gt; HUB_PRODUCT
+  LINK_COUNTRY_REGION_CURRENCY{{&quot;link_country_region_currency&quot;}}
+  class LINK_COUNTRY_REGION_CURRENCY link;
+  LINK_COUNTRY_REGION_CURRENCY --&gt; HUB_COUNTRY_REGION
+  LINK_COUNTRY_REGION_CURRENCY --&gt; HUB_CURRENCY
+  LINK_CURRENCY_RATE_CURRENCY{{&quot;link_currency_rate_currency&quot;}}
+  class LINK_CURRENCY_RATE_CURRENCY link;
+  LINK_CURRENCY_RATE_CURRENCY --&gt; HUB_CURRENCY_RATE
+  LINK_CURRENCY_RATE_CURRENCY --&gt;|&quot;from&quot;| HUB_CURRENCY
+  LINK_CURRENCY_RATE_CURRENCY --&gt;|&quot;to&quot;| HUB_CURRENCY
+  LINK_SALES_TAX_RATE_STATE_PROVINCE{{&quot;link_sales_tax_rate_state_province&quot;}}
+  class LINK_SALES_TAX_RATE_STATE_PROVINCE link;
+  LINK_SALES_TAX_RATE_STATE_PROVINCE --&gt; HUB_SALES_TAX_RATE
+  LINK_SALES_TAX_RATE_STATE_PROVINCE --&gt; HUB_STATE_PROVINCE
+  LINK_SHOPPING_CART_PRODUCT{{&quot;link_shopping_cart_product&quot;}}
+  class LINK_SHOPPING_CART_PRODUCT link;
+  LINK_SHOPPING_CART_PRODUCT --&gt; HUB_SHOPPING_CART
+  LINK_SHOPPING_CART_PRODUCT --&gt; HUB_PRODUCT
+  LINK_SALES_ORDER_LINE_PRODUCT{{&quot;link_sales_order_line_product&quot;}}
+  class LINK_SALES_ORDER_LINE_PRODUCT link;
+  LINK_SALES_ORDER_LINE_PRODUCT --&gt; HUB_SALES_ORDER_LINE
+  LINK_SALES_ORDER_LINE_PRODUCT --&gt; HUB_PRODUCT
+  SAT_BUSINESS_ENTITY_DETAILS(&quot;sat_business_entity_details&lt;br/&gt;src: BusinessEntity&quot;)
+  class SAT_BUSINESS_ENTITY_DETAILS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_DETAILS
+  SAT_BUSINESS_ENTITY_PERSON_NAME(&quot;sat_business_entity_person_name&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_NAME sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_NAME
+  SAT_BUSINESS_ENTITY_MARKETING_CONSENT(&quot;sat_business_entity_marketing_consent&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_MARKETING_CONSENT sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_MARKETING_CONSENT
+  SAT_BUSINESS_ENTITY_PERSON_SENSITIVE(&quot;sat_business_entity_person_sensitive&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_SENSITIVE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_SENSITIVE
+  SAT_BUSINESS_ENTITY_CREDENTIAL(&quot;sat_business_entity_credential&lt;br/&gt;src: Password&quot;)
+  class SAT_BUSINESS_ENTITY_CREDENTIAL sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_CREDENTIAL
+  SAT_BUSINESS_ENTITY_EMAIL(&quot;sat_business_entity_email&lt;br/&gt;src: EmailAddress&quot;)
+  class SAT_BUSINESS_ENTITY_EMAIL sat_multi_active;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMAIL
+  SAT_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_PHONES(&quot;sat_business_entity_phone_number_type_phones&lt;br/&gt;src: PersonPhone&quot;)
+  class SAT_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_PHONES sat_multi_active;
+  LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE --- SAT_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_PHONES
+  SAT_BUSINESS_ENTITY_ADDRESS_DETAILS(&quot;sat_business_entity_address_details&lt;br/&gt;src: BusinessEntityAddress&quot;)
+  class SAT_BUSINESS_ENTITY_ADDRESS_DETAILS sat_standard;
+  LINK_BUSINESS_ENTITY_ADDRESS --- SAT_BUSINESS_ENTITY_ADDRESS_DETAILS
+  SAT_BUSINESS_ENTITY_CONTACT_DETAILS(&quot;sat_business_entity_contact_details&lt;br/&gt;src: BusinessEntityContact&quot;)
+  class SAT_BUSINESS_ENTITY_CONTACT_DETAILS sat_standard;
+  LINK_BUSINESS_ENTITY_CONTACT --- SAT_BUSINESS_ENTITY_CONTACT_DETAILS
+  SAT_ADDRESS_DETAILS(&quot;sat_address_details&lt;br/&gt;src: Address&quot;)
+  class SAT_ADDRESS_DETAILS sat_standard;
+  HUB_ADDRESS --- SAT_ADDRESS_DETAILS
+  SAT_ADDRESS_LOCATION(&quot;sat_address_location&lt;br/&gt;src: Address&quot;)
+  class SAT_ADDRESS_LOCATION sat_standard;
+  HUB_ADDRESS --- SAT_ADDRESS_LOCATION
+  SAT_ADDRESS_TYPE_DETAILS(&quot;sat_address_type_details&lt;br/&gt;src: AddressType&quot;)
+  class SAT_ADDRESS_TYPE_DETAILS sat_standard;
+  HUB_ADDRESS_TYPE --- SAT_ADDRESS_TYPE_DETAILS
+  SAT_CONTACT_TYPE_DETAILS(&quot;sat_contact_type_details&lt;br/&gt;src: ContactType&quot;)
+  class SAT_CONTACT_TYPE_DETAILS sat_standard;
+  HUB_CONTACT_TYPE --- SAT_CONTACT_TYPE_DETAILS
+  SAT_PHONE_NUMBER_TYPE_DETAILS(&quot;sat_phone_number_type_details&lt;br/&gt;src: PhoneNumberType&quot;)
+  class SAT_PHONE_NUMBER_TYPE_DETAILS sat_standard;
+  HUB_PHONE_NUMBER_TYPE --- SAT_PHONE_NUMBER_TYPE_DETAILS
+  SAT_COUNTRY_REGION_DETAILS(&quot;sat_country_region_details&lt;br/&gt;src: CountryRegion&quot;)
+  class SAT_COUNTRY_REGION_DETAILS sat_standard;
+  HUB_COUNTRY_REGION --- SAT_COUNTRY_REGION_DETAILS
+  SAT_STATE_PROVINCE_DETAILS(&quot;sat_state_province_details&lt;br/&gt;src: StateProvince&quot;)
+  class SAT_STATE_PROVINCE_DETAILS sat_standard;
+  HUB_STATE_PROVINCE --- SAT_STATE_PROVINCE_DETAILS
+  SAT_STATE_PROVINCE_TERRITORY(&quot;sat_state_province_territory&lt;br/&gt;src: StateProvince&quot;)
+  class SAT_STATE_PROVINCE_TERRITORY sat_standard;
+  HUB_STATE_PROVINCE --- SAT_STATE_PROVINCE_TERRITORY
+  SAT_BUSINESS_ENTITY_EMPLOYEE_DETAILS(&quot;sat_business_entity_employee_details&lt;br/&gt;src: Employee&quot;)
+  class SAT_BUSINESS_ENTITY_EMPLOYEE_DETAILS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMPLOYEE_DETAILS
+  SAT_BUSINESS_ENTITY_EMPLOYEE_SENSITIVE(&quot;sat_business_entity_employee_sensitive&lt;br/&gt;src: Employee&quot;)
+  class SAT_BUSINESS_ENTITY_EMPLOYEE_SENSITIVE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMPLOYEE_SENSITIVE
+  SAT_BUSINESS_ENTITY_EMPLOYEE_LEAVE(&quot;sat_business_entity_employee_leave&lt;br/&gt;src: Employee&quot;)
+  class SAT_BUSINESS_ENTITY_EMPLOYEE_LEAVE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMPLOYEE_LEAVE
+  SAT_BUSINESS_ENTITY_EMPLOYEE_HIERARCHY(&quot;sat_business_entity_employee_hierarchy&lt;br/&gt;src: Employee&quot;)
+  class SAT_BUSINESS_ENTITY_EMPLOYEE_HIERARCHY sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMPLOYEE_HIERARCHY
+  SAT_BUSINESS_ENTITY_PAY_HISTORY(&quot;sat_business_entity_pay_history&lt;br/&gt;src: EmployeePayHistory&quot;)
+  class SAT_BUSINESS_ENTITY_PAY_HISTORY sat_multi_active;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PAY_HISTORY
+  SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_EFFECTIVITY(&quot;sat_business_entity_department_shift_effectivity&lt;br/&gt;src: EmployeeDepartmentHistory&quot;)
+  class SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_EFFECTIVITY sat_effectivity;
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT --- SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_EFFECTIVITY
+  SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_AUDIT(&quot;sat_business_entity_department_shift_audit&lt;br/&gt;src: EmployeeDepartmentHistory&quot;)
+  class SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_AUDIT sat_standard;
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT --- SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_AUDIT
+  SAT_DEPARTMENT_DETAILS(&quot;sat_department_details&lt;br/&gt;src: Department&quot;)
+  class SAT_DEPARTMENT_DETAILS sat_standard;
+  HUB_DEPARTMENT --- SAT_DEPARTMENT_DETAILS
+  SAT_SHIFT_DETAILS(&quot;sat_shift_details&lt;br/&gt;src: Shift&quot;)
+  class SAT_SHIFT_DETAILS sat_standard;
+  HUB_SHIFT --- SAT_SHIFT_DETAILS
+  SAT_JOB_CANDIDATE_RESUME(&quot;sat_job_candidate_resume&lt;br/&gt;src: JobCandidate&quot;)
+  class SAT_JOB_CANDIDATE_RESUME sat_standard;
+  HUB_JOB_CANDIDATE --- SAT_JOB_CANDIDATE_RESUME
+  SAT_PRODUCT_DETAILS(&quot;sat_product_details&quot;)
+  class SAT_PRODUCT_DETAILS sat_standard;
+  HUB_PRODUCT --- SAT_PRODUCT_DETAILS
+  SAT_PRODUCT_PRICING(&quot;sat_product_pricing&quot;)
+  class SAT_PRODUCT_PRICING sat_standard;
+  HUB_PRODUCT --- SAT_PRODUCT_PRICING
+  SAT_PRODUCT_INVENTORY_POLICY(&quot;sat_product_inventory_policy&quot;)
+  class SAT_PRODUCT_INVENTORY_POLICY sat_standard;
+  HUB_PRODUCT --- SAT_PRODUCT_INVENTORY_POLICY
+  SAT_PRODUCT_LIFECYCLE(&quot;sat_product_lifecycle&quot;)
+  class SAT_PRODUCT_LIFECYCLE sat_standard;
+  HUB_PRODUCT --- SAT_PRODUCT_LIFECYCLE
+  SAT_PRODUCT_COST_HISTORY(&quot;sat_product_cost_history&lt;br/&gt;src: ProductCostHistory&quot;)
+  class SAT_PRODUCT_COST_HISTORY sat_multi_active;
+  HUB_PRODUCT --- SAT_PRODUCT_COST_HISTORY
+  SAT_PRODUCT_LIST_PRICE_HISTORY(&quot;sat_product_list_price_history&lt;br/&gt;src: ProductListPriceHistory&quot;)
+  class SAT_PRODUCT_LIST_PRICE_HISTORY sat_multi_active;
+  HUB_PRODUCT --- SAT_PRODUCT_LIST_PRICE_HISTORY
+  SAT_PRODUCT_CATEGORY_DETAILS(&quot;sat_product_category_details&quot;)
+  class SAT_PRODUCT_CATEGORY_DETAILS sat_standard;
+  HUB_PRODUCT_CATEGORY --- SAT_PRODUCT_CATEGORY_DETAILS
+  SAT_PRODUCT_SUBCATEGORY_DETAILS(&quot;sat_product_subcategory_details&quot;)
+  class SAT_PRODUCT_SUBCATEGORY_DETAILS sat_standard;
+  HUB_PRODUCT_SUBCATEGORY --- SAT_PRODUCT_SUBCATEGORY_DETAILS
+  SAT_PRODUCT_MODEL_DETAILS(&quot;sat_product_model_details&quot;)
+  class SAT_PRODUCT_MODEL_DETAILS sat_standard;
+  HUB_PRODUCT_MODEL --- SAT_PRODUCT_MODEL_DETAILS
+  SAT_PRODUCT_MODEL_CONTENT(&quot;sat_product_model_content&quot;)
+  class SAT_PRODUCT_MODEL_CONTENT sat_standard;
+  HUB_PRODUCT_MODEL --- SAT_PRODUCT_MODEL_CONTENT
+  SAT_CULTURE_DETAILS(&quot;sat_culture_details&quot;)
+  class SAT_CULTURE_DETAILS sat_standard;
+  HUB_CULTURE --- SAT_CULTURE_DETAILS
+  SAT_UNIT_MEASURE_DETAILS(&quot;sat_unit_measure_details&quot;)
+  class SAT_UNIT_MEASURE_DETAILS sat_standard;
+  HUB_UNIT_MEASURE --- SAT_UNIT_MEASURE_DETAILS
+  SAT_PRODUCT_DESCRIPTION_DETAILS(&quot;sat_product_description_details&quot;)
+  class SAT_PRODUCT_DESCRIPTION_DETAILS sat_standard;
+  HUB_PRODUCT_DESCRIPTION --- SAT_PRODUCT_DESCRIPTION_DETAILS
+  SAT_PRODUCT_PHOTO_DETAILS(&quot;sat_product_photo_details&quot;)
+  class SAT_PRODUCT_PHOTO_DETAILS sat_standard;
+  HUB_PRODUCT_PHOTO --- SAT_PRODUCT_PHOTO_DETAILS
+  SAT_PRODUCT_PHOTO_IMAGES(&quot;sat_product_photo_images&quot;)
+  class SAT_PRODUCT_PHOTO_IMAGES sat_standard;
+  HUB_PRODUCT_PHOTO --- SAT_PRODUCT_PHOTO_IMAGES
+  SAT_ILLUSTRATION_DIAGRAM(&quot;sat_illustration_diagram&quot;)
+  class SAT_ILLUSTRATION_DIAGRAM sat_standard;
+  HUB_ILLUSTRATION --- SAT_ILLUSTRATION_DIAGRAM
+  SAT_DOCUMENT_DETAILS(&quot;sat_document_details&quot;)
+  class SAT_DOCUMENT_DETAILS sat_standard;
+  HUB_DOCUMENT --- SAT_DOCUMENT_DETAILS
+  SAT_LOCATION_DETAILS(&quot;sat_location_details&quot;)
+  class SAT_LOCATION_DETAILS sat_standard;
+  HUB_LOCATION --- SAT_LOCATION_DETAILS
+  SAT_SCRAP_REASON_DETAILS(&quot;sat_scrap_reason_details&quot;)
+  class SAT_SCRAP_REASON_DETAILS sat_standard;
+  HUB_SCRAP_REASON --- SAT_SCRAP_REASON_DETAILS
+  SAT_WORK_ORDER_DETAILS(&quot;sat_work_order_details&quot;)
+  class SAT_WORK_ORDER_DETAILS sat_standard;
+  HUB_WORK_ORDER --- SAT_WORK_ORDER_DETAILS
+  SAT_WORK_ORDER_PRODUCT_LOCATION_OPERATION(&quot;sat_work_order_product_location_operation&lt;br/&gt;src: WorkOrderRouting&quot;)
+  class SAT_WORK_ORDER_PRODUCT_LOCATION_OPERATION sat_multi_active;
+  LINK_WORK_ORDER_PRODUCT_LOCATION --- SAT_WORK_ORDER_PRODUCT_LOCATION_OPERATION
+  SAT_PRODUCT_LOCATION_INVENTORY(&quot;sat_product_location_inventory&lt;br/&gt;src: ProductInventory&quot;)
+  class SAT_PRODUCT_LOCATION_INVENTORY sat_multi_active;
+  LINK_PRODUCT_LOCATION --- SAT_PRODUCT_LOCATION_INVENTORY
+  SAT_PRODUCT_PRODUCT_PHOTO_DETAILS(&quot;sat_product_product_photo_details&quot;)
+  class SAT_PRODUCT_PRODUCT_PHOTO_DETAILS sat_standard;
+  LINK_PRODUCT_PRODUCT_PHOTO --- SAT_PRODUCT_PRODUCT_PHOTO_DETAILS
+  SAT_PRODUCT_ASSEMBLY_COMPONENT_EFFECTIVITY(&quot;sat_product_assembly_component_effectivity&quot;)
+  class SAT_PRODUCT_ASSEMBLY_COMPONENT_EFFECTIVITY sat_effectivity;
+  LINK_PRODUCT_ASSEMBLY_COMPONENT --- SAT_PRODUCT_ASSEMBLY_COMPONENT_EFFECTIVITY
+  SAT_PRODUCT_ASSEMBLY_COMPONENT_DETAILS(&quot;sat_product_assembly_component_details&quot;)
+  class SAT_PRODUCT_ASSEMBLY_COMPONENT_DETAILS sat_standard;
+  LINK_PRODUCT_ASSEMBLY_COMPONENT --- SAT_PRODUCT_ASSEMBLY_COMPONENT_DETAILS
+  SAT_INVENTORY_TRANSACTION_DETAILS(&quot;sat_inventory_transaction_details&lt;br/&gt;src: TransactionHistory&quot;)
+  class SAT_INVENTORY_TRANSACTION_DETAILS sat_standard;
+  HUB_INVENTORY_TRANSACTION --- SAT_INVENTORY_TRANSACTION_DETAILS
+  SAT_INVENTORY_TRANSACTION_ARCHIVE(&quot;sat_inventory_transaction_archive&lt;br/&gt;src: TransactionHistoryArchive&quot;)
+  class SAT_INVENTORY_TRANSACTION_ARCHIVE sat_standard;
+  HUB_INVENTORY_TRANSACTION --- SAT_INVENTORY_TRANSACTION_ARCHIVE
+  SAT_PRODUCT_REVIEW_DETAILS(&quot;sat_product_review_details&quot;)
+  class SAT_PRODUCT_REVIEW_DETAILS sat_standard;
+  HUB_PRODUCT_REVIEW --- SAT_PRODUCT_REVIEW_DETAILS
+  SAT_PRODUCT_REVIEW_REVIEWER_PII(&quot;sat_product_review_reviewer_pii&quot;)
+  class SAT_PRODUCT_REVIEW_REVIEWER_PII sat_standard;
+  HUB_PRODUCT_REVIEW --- SAT_PRODUCT_REVIEW_REVIEWER_PII
+  SAT_BUSINESS_ENTITY_VENDOR_DETAILS(&quot;sat_business_entity_vendor_details&lt;br/&gt;src: Vendor&quot;)
+  class SAT_BUSINESS_ENTITY_VENDOR_DETAILS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_VENDOR_DETAILS
+  SAT_BUSINESS_ENTITY_VENDOR_STATUS(&quot;sat_business_entity_vendor_status&lt;br/&gt;src: Vendor&quot;)
+  class SAT_BUSINESS_ENTITY_VENDOR_STATUS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_VENDOR_STATUS
+  SAT_PRODUCT_VENDOR_TERMS(&quot;sat_product_vendor_terms&lt;br/&gt;src: ProductVendor&quot;)
+  class SAT_PRODUCT_VENDOR_TERMS sat_standard;
+  LINK_PRODUCT_VENDOR --- SAT_PRODUCT_VENDOR_TERMS
+  SAT_PRODUCT_VENDOR_RECEIPT(&quot;sat_product_vendor_receipt&lt;br/&gt;src: ProductVendor&quot;)
+  class SAT_PRODUCT_VENDOR_RECEIPT sat_standard;
+  LINK_PRODUCT_VENDOR --- SAT_PRODUCT_VENDOR_RECEIPT
+  SAT_PURCHASE_ORDER_STATUS(&quot;sat_purchase_order_status&lt;br/&gt;src: PurchaseOrderHeader&quot;)
+  class SAT_PURCHASE_ORDER_STATUS sat_standard;
+  HUB_PURCHASE_ORDER --- SAT_PURCHASE_ORDER_STATUS
+  SAT_PURCHASE_ORDER_DETAILS(&quot;sat_purchase_order_details&lt;br/&gt;src: PurchaseOrderHeader&quot;)
+  class SAT_PURCHASE_ORDER_DETAILS sat_standard;
+  HUB_PURCHASE_ORDER --- SAT_PURCHASE_ORDER_DETAILS
+  SAT_PURCHASE_ORDER_LINE_DETAILS(&quot;sat_purchase_order_line_details&lt;br/&gt;src: PurchaseOrderDetail&quot;)
+  class SAT_PURCHASE_ORDER_LINE_DETAILS sat_standard;
+  HUB_PURCHASE_ORDER_LINE --- SAT_PURCHASE_ORDER_LINE_DETAILS
+  SAT_PURCHASE_ORDER_LINE_RECEIPT(&quot;sat_purchase_order_line_receipt&lt;br/&gt;src: PurchaseOrderDetail&quot;)
+  class SAT_PURCHASE_ORDER_LINE_RECEIPT sat_standard;
+  HUB_PURCHASE_ORDER_LINE --- SAT_PURCHASE_ORDER_LINE_RECEIPT
+  SAT_SHIP_METHOD_DETAILS(&quot;sat_ship_method_details&lt;br/&gt;src: ShipMethod&quot;)
+  class SAT_SHIP_METHOD_DETAILS sat_standard;
+  HUB_SHIP_METHOD --- SAT_SHIP_METHOD_DETAILS
+  SAT_CUSTOMER_DETAILS(&quot;sat_customer_details&lt;br/&gt;src: Customer&quot;)
+  class SAT_CUSTOMER_DETAILS sat_standard;
+  HUB_CUSTOMER --- SAT_CUSTOMER_DETAILS
+  SAT_BUSINESS_ENTITY_STORE_DETAILS(&quot;sat_business_entity_store_details&lt;br/&gt;src: Store&quot;)
+  class SAT_BUSINESS_ENTITY_STORE_DETAILS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_STORE_DETAILS
+  SAT_BUSINESS_ENTITY_STORE_DEMOGRAPHICS(&quot;sat_business_entity_store_demographics&lt;br/&gt;src: Store&quot;)
+  class SAT_BUSINESS_ENTITY_STORE_DEMOGRAPHICS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_STORE_DEMOGRAPHICS
+  SAT_BUSINESS_ENTITY_SALES_PERSON_REMUNERATION(&quot;sat_business_entity_sales_person_remuneration&lt;br/&gt;src: SalesPerson&quot;)
+  class SAT_BUSINESS_ENTITY_SALES_PERSON_REMUNERATION sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_SALES_PERSON_REMUNERATION
+  SAT_BUSINESS_ENTITY_SALES_PERSON_PERFORMANCE(&quot;sat_business_entity_sales_person_performance&lt;br/&gt;src: SalesPerson&quot;)
+  class SAT_BUSINESS_ENTITY_SALES_PERSON_PERFORMANCE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_SALES_PERSON_PERFORMANCE
+  SAT_BUSINESS_ENTITY_SALES_QUOTA_HISTORY(&quot;sat_business_entity_sales_quota_history&lt;br/&gt;src: SalesPersonQuotaHistory&quot;)
+  class SAT_BUSINESS_ENTITY_SALES_QUOTA_HISTORY sat_multi_active;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_SALES_QUOTA_HISTORY
+  SAT_SALES_ORDER_STATUS(&quot;sat_sales_order_status&lt;br/&gt;src: SalesOrderHeader&quot;)
+  class SAT_SALES_ORDER_STATUS sat_standard;
+  HUB_SALES_ORDER --- SAT_SALES_ORDER_STATUS
+  SAT_SALES_ORDER_DETAILS(&quot;sat_sales_order_details&lt;br/&gt;src: SalesOrderHeader&quot;)
+  class SAT_SALES_ORDER_DETAILS sat_standard;
+  HUB_SALES_ORDER --- SAT_SALES_ORDER_DETAILS
+  SAT_SALES_ORDER_AMOUNTS(&quot;sat_sales_order_amounts&lt;br/&gt;src: SalesOrderHeader&quot;)
+  class SAT_SALES_ORDER_AMOUNTS sat_standard;
+  HUB_SALES_ORDER --- SAT_SALES_ORDER_AMOUNTS
+  SAT_SALES_ORDER_PAYMENT(&quot;sat_sales_order_payment&lt;br/&gt;src: SalesOrderHeader&quot;)
+  class SAT_SALES_ORDER_PAYMENT sat_standard;
+  HUB_SALES_ORDER --- SAT_SALES_ORDER_PAYMENT
+  SAT_SALES_ORDER_LINE_DETAILS(&quot;sat_sales_order_line_details&lt;br/&gt;src: SalesOrderDetail&quot;)
+  class SAT_SALES_ORDER_LINE_DETAILS sat_standard;
+  HUB_SALES_ORDER_LINE --- SAT_SALES_ORDER_LINE_DETAILS
+  SAT_SALES_TERRITORY_DETAILS(&quot;sat_sales_territory_details&lt;br/&gt;src: SalesTerritory&quot;)
+  class SAT_SALES_TERRITORY_DETAILS sat_standard;
+  HUB_SALES_TERRITORY --- SAT_SALES_TERRITORY_DETAILS
+  SAT_SALES_TERRITORY_FINANCIALS(&quot;sat_sales_territory_financials&lt;br/&gt;src: SalesTerritory&quot;)
+  class SAT_SALES_TERRITORY_FINANCIALS sat_standard;
+  HUB_SALES_TERRITORY --- SAT_SALES_TERRITORY_FINANCIALS
+  SAT_CREDIT_CARD_DETAILS(&quot;sat_credit_card_details&lt;br/&gt;src: CreditCard&quot;)
+  class SAT_CREDIT_CARD_DETAILS sat_standard;
+  HUB_CREDIT_CARD --- SAT_CREDIT_CARD_DETAILS
+  SAT_CREDIT_CARD_SENSITIVE(&quot;sat_credit_card_sensitive&lt;br/&gt;src: CreditCard&quot;)
+  class SAT_CREDIT_CARD_SENSITIVE sat_standard;
+  HUB_CREDIT_CARD --- SAT_CREDIT_CARD_SENSITIVE
+  SAT_CURRENCY_DETAILS(&quot;sat_currency_details&lt;br/&gt;src: Currency&quot;)
+  class SAT_CURRENCY_DETAILS sat_standard;
+  HUB_CURRENCY --- SAT_CURRENCY_DETAILS
+  SAT_CURRENCY_RATE_DETAILS(&quot;sat_currency_rate_details&lt;br/&gt;src: CurrencyRate&quot;)
+  class SAT_CURRENCY_RATE_DETAILS sat_standard;
+  HUB_CURRENCY_RATE --- SAT_CURRENCY_RATE_DETAILS
+  SAT_SALES_REASON_DETAILS(&quot;sat_sales_reason_details&lt;br/&gt;src: SalesReason&quot;)
+  class SAT_SALES_REASON_DETAILS sat_standard;
+  HUB_SALES_REASON --- SAT_SALES_REASON_DETAILS
+  SAT_SPECIAL_OFFER_DETAILS(&quot;sat_special_offer_details&lt;br/&gt;src: SpecialOffer&quot;)
+  class SAT_SPECIAL_OFFER_DETAILS sat_standard;
+  HUB_SPECIAL_OFFER --- SAT_SPECIAL_OFFER_DETAILS
+  SAT_SHOPPING_CART_PRODUCT_DETAILS(&quot;sat_shopping_cart_product_details&lt;br/&gt;src: ShoppingCartItem&quot;)
+  class SAT_SHOPPING_CART_PRODUCT_DETAILS sat_standard;
+  LINK_SHOPPING_CART_PRODUCT --- SAT_SHOPPING_CART_PRODUCT_DETAILS
+  SAT_SALES_TAX_RATE_DETAILS(&quot;sat_sales_tax_rate_details&lt;br/&gt;src: SalesTaxRate&quot;)
+  class SAT_SALES_TAX_RATE_DETAILS sat_standard;
+  HUB_SALES_TAX_RATE --- SAT_SALES_TAX_RATE_DETAILS
+  SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_EFFECTIVITY(&quot;sat_business_entity_sales_territory_assignment_effectivity&lt;br/&gt;src: SalesTerritoryHistory&quot;)
+  class SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_EFFECTIVITY sat_effectivity;
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT --- SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_EFFECTIVITY
+  SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_DETAILS(&quot;sat_business_entity_sales_territory_assignment_details&lt;br/&gt;src: SalesTerritoryHistory&quot;)
+  class SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_DETAILS sat_standard;
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT --- SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_DETAILS
+  SAT_BUSINESS_ENTITY_CREDIT_CARD_DETAILS(&quot;sat_business_entity_credit_card_details&lt;br/&gt;src: PersonCreditCard&quot;)
+  class SAT_BUSINESS_ENTITY_CREDIT_CARD_DETAILS sat_standard;
+  LINK_BUSINESS_ENTITY_CREDIT_CARD --- SAT_BUSINESS_ENTITY_CREDIT_CARD_DETAILS
+  SAT_SPECIAL_OFFER_PRODUCT_DETAILS(&quot;sat_special_offer_product_details&lt;br/&gt;src: SpecialOfferProduct&quot;)
+  class SAT_SPECIAL_OFFER_PRODUCT_DETAILS sat_standard;
+  LINK_SPECIAL_OFFER_PRODUCT --- SAT_SPECIAL_OFFER_PRODUCT_DETAILS
+  SAT_COUNTRY_REGION_CURRENCY_DETAILS(&quot;sat_country_region_currency_details&lt;br/&gt;src: CountryRegionCurrency&quot;)
+  class SAT_COUNTRY_REGION_CURRENCY_DETAILS sat_standard;
+  LINK_COUNTRY_REGION_CURRENCY --- SAT_COUNTRY_REGION_CURRENCY_DETAILS
+  SAT_SALES_ORDER_SALES_REASON_DETAILS(&quot;sat_sales_order_sales_reason_details&lt;br/&gt;src: SalesOrderHeaderSalesReason&quot;)
+  class SAT_SALES_ORDER_SALES_REASON_DETAILS sat_standard;
+  LINK_SALES_ORDER_SALES_REASON --- SAT_SALES_ORDER_SALES_REASON_DETAILS</pre><details class="graph-source"><summary>Graph source (renders on GitHub / mermaid.live if the diagram did not load)</summary><pre>flowchart LR
+  classDef hub fill:#dbeafe,stroke:#1e40af,color:#0b1324;
+  classDef hubsource fill:#eff6ff,stroke:#93c5fd,color:#0b1324;
+  classDef link fill:#dcfce7,stroke:#166534,color:#0b1324;
+  classDef sat_standard fill:#fef9c3,stroke:#a16207,color:#0b1324;
+  classDef sat_multi_active fill:#fed7aa,stroke:#c2410c,color:#0b1324;
+  classDef sat_effectivity fill:#e9d5ff,stroke:#7e22ce,color:#0b1324;
+  HUB_BUSINESS_ENTITY[&quot;hub_business_entity&lt;br/&gt;BK: BusinessEntityID&quot;]
+  class HUB_BUSINESS_ENTITY hub;
+  HUB_BUSINESS_ENTITY__SRC0[(&quot;BusinessEntity.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC0 hubsource;
+  HUB_BUSINESS_ENTITY__SRC0 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC1[(&quot;Person.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC1 hubsource;
+  HUB_BUSINESS_ENTITY__SRC1 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC2[(&quot;EmailAddress.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC2 hubsource;
+  HUB_BUSINESS_ENTITY__SRC2 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC3[(&quot;Password.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC3 hubsource;
+  HUB_BUSINESS_ENTITY__SRC3 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC4[(&quot;Employee.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC4 hubsource;
+  HUB_BUSINESS_ENTITY__SRC4 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC5[(&quot;EmployeePayHistory.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC5 hubsource;
+  HUB_BUSINESS_ENTITY__SRC5 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC6[(&quot;Vendor.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC6 hubsource;
+  HUB_BUSINESS_ENTITY__SRC6 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC7[(&quot;Store.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC7 hubsource;
+  HUB_BUSINESS_ENTITY__SRC7 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC8[(&quot;SalesPerson.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC8 hubsource;
+  HUB_BUSINESS_ENTITY__SRC8 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC9[(&quot;SalesPersonQuotaHistory.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC9 hubsource;
+  HUB_BUSINESS_ENTITY__SRC9 --&gt; HUB_BUSINESS_ENTITY
+  HUB_ADDRESS[&quot;hub_address&lt;br/&gt;BK: AddressID&quot;]
+  class HUB_ADDRESS hub;
+  HUB_ADDRESS_TYPE[&quot;hub_address_type&lt;br/&gt;BK: AddressTypeID&quot;]
+  class HUB_ADDRESS_TYPE hub;
+  HUB_CONTACT_TYPE[&quot;hub_contact_type&lt;br/&gt;BK: ContactTypeID&quot;]
+  class HUB_CONTACT_TYPE hub;
+  HUB_PHONE_NUMBER_TYPE[&quot;hub_phone_number_type&lt;br/&gt;BK: PhoneNumberTypeID&quot;]
+  class HUB_PHONE_NUMBER_TYPE hub;
+  HUB_COUNTRY_REGION[&quot;hub_country_region&lt;br/&gt;BK: CountryRegionCode&quot;]
+  class HUB_COUNTRY_REGION hub;
+  HUB_STATE_PROVINCE[&quot;hub_state_province&lt;br/&gt;BK: StateProvinceID&quot;]
+  class HUB_STATE_PROVINCE hub;
+  HUB_DEPARTMENT[&quot;hub_department&lt;br/&gt;BK: DepartmentID&quot;]
+  class HUB_DEPARTMENT hub;
+  HUB_SHIFT[&quot;hub_shift&lt;br/&gt;BK: ShiftID&quot;]
+  class HUB_SHIFT hub;
+  HUB_JOB_CANDIDATE[&quot;hub_job_candidate&lt;br/&gt;BK: JobCandidateID&quot;]
+  class HUB_JOB_CANDIDATE hub;
+  HUB_PRODUCT[&quot;hub_product&lt;br/&gt;BK: ProductID&quot;]
+  class HUB_PRODUCT hub;
+  HUB_PRODUCT_CATEGORY[&quot;hub_product_category&lt;br/&gt;BK: ProductCategoryID&quot;]
+  class HUB_PRODUCT_CATEGORY hub;
+  HUB_PRODUCT_SUBCATEGORY[&quot;hub_product_subcategory&lt;br/&gt;BK: ProductSubcategoryID&quot;]
+  class HUB_PRODUCT_SUBCATEGORY hub;
+  HUB_PRODUCT_MODEL[&quot;hub_product_model&lt;br/&gt;BK: ProductModelID&quot;]
+  class HUB_PRODUCT_MODEL hub;
+  HUB_CULTURE[&quot;hub_culture&lt;br/&gt;BK: CultureID&quot;]
+  class HUB_CULTURE hub;
+  HUB_UNIT_MEASURE[&quot;hub_unit_measure&lt;br/&gt;BK: UnitMeasureCode&quot;]
+  class HUB_UNIT_MEASURE hub;
+  HUB_PRODUCT_DESCRIPTION[&quot;hub_product_description&lt;br/&gt;BK: ProductDescriptionID&quot;]
+  class HUB_PRODUCT_DESCRIPTION hub;
+  HUB_PRODUCT_PHOTO[&quot;hub_product_photo&lt;br/&gt;BK: ProductPhotoID&quot;]
+  class HUB_PRODUCT_PHOTO hub;
+  HUB_ILLUSTRATION[&quot;hub_illustration&lt;br/&gt;BK: IllustrationID&quot;]
+  class HUB_ILLUSTRATION hub;
+  HUB_DOCUMENT[&quot;hub_document&lt;br/&gt;BK: DocumentNode&quot;]
+  class HUB_DOCUMENT hub;
+  HUB_LOCATION[&quot;hub_location&lt;br/&gt;BK: LocationID&quot;]
+  class HUB_LOCATION hub;
+  HUB_SCRAP_REASON[&quot;hub_scrap_reason&lt;br/&gt;BK: ScrapReasonID&quot;]
+  class HUB_SCRAP_REASON hub;
+  HUB_WORK_ORDER[&quot;hub_work_order&lt;br/&gt;BK: WorkOrderID&quot;]
+  class HUB_WORK_ORDER hub;
+  HUB_INVENTORY_TRANSACTION[&quot;hub_inventory_transaction&lt;br/&gt;BK: TransactionID&quot;]
+  class HUB_INVENTORY_TRANSACTION hub;
+  HUB_INVENTORY_TRANSACTION__SRC0[(&quot;TransactionHistory.TransactionID&quot;)]
+  class HUB_INVENTORY_TRANSACTION__SRC0 hubsource;
+  HUB_INVENTORY_TRANSACTION__SRC0 --&gt; HUB_INVENTORY_TRANSACTION
+  HUB_INVENTORY_TRANSACTION__SRC1[(&quot;TransactionHistoryArchive.TransactionID&quot;)]
+  class HUB_INVENTORY_TRANSACTION__SRC1 hubsource;
+  HUB_INVENTORY_TRANSACTION__SRC1 --&gt; HUB_INVENTORY_TRANSACTION
+  HUB_PRODUCT_REVIEW[&quot;hub_product_review&lt;br/&gt;BK: ProductReviewID&quot;]
+  class HUB_PRODUCT_REVIEW hub;
+  HUB_PURCHASE_ORDER[&quot;hub_purchase_order&lt;br/&gt;BK: PurchaseOrderID&quot;]
+  class HUB_PURCHASE_ORDER hub;
+  HUB_PURCHASE_ORDER_LINE[&quot;hub_purchase_order_line&lt;br/&gt;BK: purchase_order_line&quot;]
+  class HUB_PURCHASE_ORDER_LINE hub;
+  HUB_SHIP_METHOD[&quot;hub_ship_method&lt;br/&gt;BK: ShipMethodID&quot;]
+  class HUB_SHIP_METHOD hub;
+  HUB_CUSTOMER[&quot;hub_customer&lt;br/&gt;BK: AccountNumber&quot;]
+  class HUB_CUSTOMER hub;
+  HUB_SALES_ORDER[&quot;hub_sales_order&lt;br/&gt;BK: SalesOrderNumber&quot;]
+  class HUB_SALES_ORDER hub;
+  HUB_SALES_ORDER_LINE[&quot;hub_sales_order_line&lt;br/&gt;BK: sales_order_line&quot;]
+  class HUB_SALES_ORDER_LINE hub;
+  HUB_SALES_TERRITORY[&quot;hub_sales_territory&lt;br/&gt;BK: TerritoryID&quot;]
+  class HUB_SALES_TERRITORY hub;
+  HUB_CREDIT_CARD[&quot;hub_credit_card&lt;br/&gt;BK: CreditCardID&quot;]
+  class HUB_CREDIT_CARD hub;
+  HUB_CURRENCY[&quot;hub_currency&lt;br/&gt;BK: CurrencyCode&quot;]
+  class HUB_CURRENCY hub;
+  HUB_CURRENCY_RATE[&quot;hub_currency_rate&lt;br/&gt;BK: currency_rate&quot;]
+  class HUB_CURRENCY_RATE hub;
+  HUB_SALES_REASON[&quot;hub_sales_reason&lt;br/&gt;BK: SalesReasonID&quot;]
+  class HUB_SALES_REASON hub;
+  HUB_SPECIAL_OFFER[&quot;hub_special_offer&lt;br/&gt;BK: SpecialOfferID&quot;]
+  class HUB_SPECIAL_OFFER hub;
+  HUB_SHOPPING_CART[&quot;hub_shopping_cart&lt;br/&gt;BK: ShoppingCartID&quot;]
+  class HUB_SHOPPING_CART hub;
+  HUB_SALES_TAX_RATE[&quot;hub_sales_tax_rate&lt;br/&gt;BK: SalesTaxRateID&quot;]
+  class HUB_SALES_TAX_RATE hub;
+  LINK_BUSINESS_ENTITY_ADDRESS{{&quot;link_business_entity_address&quot;}}
+  class LINK_BUSINESS_ENTITY_ADDRESS link;
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_ADDRESS
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_ADDRESS_TYPE
+  LINK_BUSINESS_ENTITY_CONTACT{{&quot;link_business_entity_contact&quot;}}
+  class LINK_BUSINESS_ENTITY_CONTACT link;
+  LINK_BUSINESS_ENTITY_CONTACT --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_CONTACT --&gt;|&quot;person&quot;| HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_CONTACT --&gt; HUB_CONTACT_TYPE
+  LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE{{&quot;link_business_entity_phone_number_type&quot;}}
+  class LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE link;
+  LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE --&gt; HUB_PHONE_NUMBER_TYPE
+  LINK_ADDRESS_STATE_PROVINCE{{&quot;link_address_state_province&quot;}}
+  class LINK_ADDRESS_STATE_PROVINCE link;
+  LINK_ADDRESS_STATE_PROVINCE --&gt; HUB_ADDRESS
+  LINK_ADDRESS_STATE_PROVINCE --&gt; HUB_STATE_PROVINCE
+  LINK_STATE_PROVINCE_COUNTRY_REGION{{&quot;link_state_province_country_region&quot;}}
+  class LINK_STATE_PROVINCE_COUNTRY_REGION link;
+  LINK_STATE_PROVINCE_COUNTRY_REGION --&gt; HUB_STATE_PROVINCE
+  LINK_STATE_PROVINCE_COUNTRY_REGION --&gt; HUB_COUNTRY_REGION
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT{{&quot;link_business_entity_department_shift&quot;}}
+  class LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT link;
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT ==&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT --&gt; HUB_DEPARTMENT
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT --&gt; HUB_SHIFT
+  LINK_BUSINESS_ENTITY_JOB_CANDIDATE{{&quot;link_business_entity_job_candidate&quot;}}
+  class LINK_BUSINESS_ENTITY_JOB_CANDIDATE link;
+  LINK_BUSINESS_ENTITY_JOB_CANDIDATE --&gt; HUB_JOB_CANDIDATE
+  LINK_BUSINESS_ENTITY_JOB_CANDIDATE --&gt; HUB_BUSINESS_ENTITY
+  LINK_PRODUCT_PRODUCT_SUBCATEGORY{{&quot;link_product_product_subcategory&quot;}}
+  class LINK_PRODUCT_PRODUCT_SUBCATEGORY link;
+  LINK_PRODUCT_PRODUCT_SUBCATEGORY --&gt; HUB_PRODUCT
+  LINK_PRODUCT_PRODUCT_SUBCATEGORY --&gt; HUB_PRODUCT_SUBCATEGORY
+  LINK_PRODUCT_SUBCATEGORY_PRODUCT_CATEGORY{{&quot;link_product_subcategory_product_category&quot;}}
+  class LINK_PRODUCT_SUBCATEGORY_PRODUCT_CATEGORY link;
+  LINK_PRODUCT_SUBCATEGORY_PRODUCT_CATEGORY --&gt; HUB_PRODUCT_SUBCATEGORY
+  LINK_PRODUCT_SUBCATEGORY_PRODUCT_CATEGORY --&gt; HUB_PRODUCT_CATEGORY
+  LINK_PRODUCT_PRODUCT_MODEL{{&quot;link_product_product_model&quot;}}
+  class LINK_PRODUCT_PRODUCT_MODEL link;
+  LINK_PRODUCT_PRODUCT_MODEL --&gt; HUB_PRODUCT
+  LINK_PRODUCT_PRODUCT_MODEL --&gt; HUB_PRODUCT_MODEL
+  LINK_PRODUCT_UNIT_MEASURE{{&quot;link_product_unit_measure&quot;}}
+  class LINK_PRODUCT_UNIT_MEASURE link;
+  LINK_PRODUCT_UNIT_MEASURE --&gt; HUB_PRODUCT
+  LINK_PRODUCT_UNIT_MEASURE --&gt;|&quot;size&quot;| HUB_UNIT_MEASURE
+  LINK_PRODUCT_UNIT_MEASURE --&gt;|&quot;weight&quot;| HUB_UNIT_MEASURE
+  LINK_PRODUCT_ASSEMBLY_COMPONENT{{&quot;link_product_assembly_component&quot;}}
+  class LINK_PRODUCT_ASSEMBLY_COMPONENT link;
+  LINK_PRODUCT_ASSEMBLY_COMPONENT ==&gt;|&quot;assembly&quot;| HUB_PRODUCT
+  LINK_PRODUCT_ASSEMBLY_COMPONENT ==&gt;|&quot;component&quot;| HUB_PRODUCT
+  LINK_PRODUCT_ASSEMBLY_COMPONENT --&gt; HUB_UNIT_MEASURE
+  LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE{{&quot;link_product_model_description_culture&quot;}}
+  class LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE link;
+  LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE --&gt; HUB_PRODUCT_MODEL
+  LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE --&gt; HUB_PRODUCT_DESCRIPTION
+  LINK_PRODUCT_MODEL_DESCRIPTION_CULTURE --&gt; HUB_CULTURE
+  LINK_PRODUCT_MODEL_ILLUSTRATION{{&quot;link_product_model_illustration&quot;}}
+  class LINK_PRODUCT_MODEL_ILLUSTRATION link;
+  LINK_PRODUCT_MODEL_ILLUSTRATION --&gt; HUB_PRODUCT_MODEL
+  LINK_PRODUCT_MODEL_ILLUSTRATION --&gt; HUB_ILLUSTRATION
+  LINK_PRODUCT_PRODUCT_PHOTO{{&quot;link_product_product_photo&quot;}}
+  class LINK_PRODUCT_PRODUCT_PHOTO link;
+  LINK_PRODUCT_PRODUCT_PHOTO --&gt; HUB_PRODUCT
+  LINK_PRODUCT_PRODUCT_PHOTO --&gt; HUB_PRODUCT_PHOTO
+  LINK_PRODUCT_DOCUMENT{{&quot;link_product_document&quot;}}
+  class LINK_PRODUCT_DOCUMENT link;
+  LINK_PRODUCT_DOCUMENT --&gt; HUB_PRODUCT
+  LINK_PRODUCT_DOCUMENT --&gt; HUB_DOCUMENT
+  LINK_DOCUMENT_BUSINESS_ENTITY{{&quot;link_document_business_entity&quot;}}
+  class LINK_DOCUMENT_BUSINESS_ENTITY link;
+  LINK_DOCUMENT_BUSINESS_ENTITY --&gt; HUB_DOCUMENT
+  LINK_DOCUMENT_BUSINESS_ENTITY --&gt; HUB_BUSINESS_ENTITY
+  LINK_PRODUCT_LOCATION{{&quot;link_product_location&quot;}}
+  class LINK_PRODUCT_LOCATION link;
+  LINK_PRODUCT_LOCATION --&gt; HUB_PRODUCT
+  LINK_PRODUCT_LOCATION --&gt; HUB_LOCATION
+  LINK_WORK_ORDER_PRODUCT{{&quot;link_work_order_product&quot;}}
+  class LINK_WORK_ORDER_PRODUCT link;
+  LINK_WORK_ORDER_PRODUCT --&gt; HUB_WORK_ORDER
+  LINK_WORK_ORDER_PRODUCT --&gt; HUB_PRODUCT
+  LINK_WORK_ORDER_SCRAP_REASON{{&quot;link_work_order_scrap_reason&quot;}}
+  class LINK_WORK_ORDER_SCRAP_REASON link;
+  LINK_WORK_ORDER_SCRAP_REASON --&gt; HUB_WORK_ORDER
+  LINK_WORK_ORDER_SCRAP_REASON --&gt; HUB_SCRAP_REASON
+  LINK_WORK_ORDER_PRODUCT_LOCATION{{&quot;link_work_order_product_location&quot;}}
+  class LINK_WORK_ORDER_PRODUCT_LOCATION link;
+  LINK_WORK_ORDER_PRODUCT_LOCATION --&gt; HUB_WORK_ORDER
+  LINK_WORK_ORDER_PRODUCT_LOCATION --&gt; HUB_PRODUCT
+  LINK_WORK_ORDER_PRODUCT_LOCATION --&gt; HUB_LOCATION
+  LINK_INVENTORY_TRANSACTION_PRODUCT{{&quot;link_inventory_transaction_product&quot;}}
+  class LINK_INVENTORY_TRANSACTION_PRODUCT link;
+  LINK_INVENTORY_TRANSACTION_PRODUCT --&gt; HUB_INVENTORY_TRANSACTION
+  LINK_INVENTORY_TRANSACTION_PRODUCT --&gt; HUB_PRODUCT
+  LINK_PRODUCT_REVIEW_PRODUCT{{&quot;link_product_review_product&quot;}}
+  class LINK_PRODUCT_REVIEW_PRODUCT link;
+  LINK_PRODUCT_REVIEW_PRODUCT --&gt; HUB_PRODUCT_REVIEW
+  LINK_PRODUCT_REVIEW_PRODUCT --&gt; HUB_PRODUCT
+  LINK_PRODUCT_VENDOR{{&quot;link_product_vendor&quot;}}
+  class LINK_PRODUCT_VENDOR link;
+  LINK_PRODUCT_VENDOR --&gt; HUB_PRODUCT
+  LINK_PRODUCT_VENDOR --&gt;|&quot;vendor&quot;| HUB_BUSINESS_ENTITY
+  LINK_PRODUCT_VENDOR --&gt; HUB_UNIT_MEASURE
+  LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD{{&quot;link_purchase_order_vendor_employee_ship_method&quot;}}
+  class LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD link;
+  LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD --&gt; HUB_PURCHASE_ORDER
+  LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD --&gt;|&quot;vendor&quot;| HUB_BUSINESS_ENTITY
+  LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD --&gt;|&quot;employee&quot;| HUB_BUSINESS_ENTITY
+  LINK_PURCHASE_ORDER_VENDOR_EMPLOYEE_SHIP_METHOD --&gt; HUB_SHIP_METHOD
+  LINK_PURCHASE_ORDER_LINE_PRODUCT{{&quot;link_purchase_order_line_product&quot;}}
+  class LINK_PURCHASE_ORDER_LINE_PRODUCT link;
+  LINK_PURCHASE_ORDER_LINE_PRODUCT --&gt; HUB_PURCHASE_ORDER_LINE
+  LINK_PURCHASE_ORDER_LINE_PRODUCT --&gt; HUB_PURCHASE_ORDER
+  LINK_PURCHASE_ORDER_LINE_PRODUCT --&gt; HUB_PRODUCT
+  LINK_PURCHASE_ORDER_BUSINESS_ENTITY{{&quot;link_purchase_order_business_entity&quot;}}
+  class LINK_PURCHASE_ORDER_BUSINESS_ENTITY link;
+  LINK_PURCHASE_ORDER_BUSINESS_ENTITY --&gt; HUB_PURCHASE_ORDER
+  LINK_PURCHASE_ORDER_BUSINESS_ENTITY --&gt; HUB_BUSINESS_ENTITY
+  LINK_CUSTOMER_BUSINESS_ENTITY{{&quot;link_customer_business_entity&quot;}}
+  class LINK_CUSTOMER_BUSINESS_ENTITY link;
+  LINK_CUSTOMER_BUSINESS_ENTITY --&gt; HUB_CUSTOMER
+  LINK_CUSTOMER_BUSINESS_ENTITY --&gt;|&quot;person&quot;| HUB_BUSINESS_ENTITY
+  LINK_CUSTOMER_BUSINESS_ENTITY --&gt;|&quot;store&quot;| HUB_BUSINESS_ENTITY
+  LINK_CUSTOMER_SALES_TERRITORY{{&quot;link_customer_sales_territory&quot;}}
+  class LINK_CUSTOMER_SALES_TERRITORY link;
+  LINK_CUSTOMER_SALES_TERRITORY --&gt; HUB_CUSTOMER
+  LINK_CUSTOMER_SALES_TERRITORY --&gt; HUB_SALES_TERRITORY
+  LINK_BUSINESS_ENTITY_STORE_SALES_PERSON{{&quot;link_business_entity_store_sales_person&quot;}}
+  class LINK_BUSINESS_ENTITY_STORE_SALES_PERSON link;
+  LINK_BUSINESS_ENTITY_STORE_SALES_PERSON --&gt;|&quot;store&quot;| HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_STORE_SALES_PERSON --&gt;|&quot;sales_person&quot;| HUB_BUSINESS_ENTITY
+  LINK_SALES_ORDER_CUSTOMER{{&quot;link_sales_order_customer&quot;}}
+  class LINK_SALES_ORDER_CUSTOMER link;
+  LINK_SALES_ORDER_CUSTOMER --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_CUSTOMER --&gt; HUB_CUSTOMER
+  LINK_SALES_ORDER_SALES_PERSON{{&quot;link_sales_order_sales_person&quot;}}
+  class LINK_SALES_ORDER_SALES_PERSON link;
+  LINK_SALES_ORDER_SALES_PERSON --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_SALES_PERSON --&gt;|&quot;sales_person&quot;| HUB_BUSINESS_ENTITY
+  LINK_SALES_ORDER_SALES_TERRITORY{{&quot;link_sales_order_sales_territory&quot;}}
+  class LINK_SALES_ORDER_SALES_TERRITORY link;
+  LINK_SALES_ORDER_SALES_TERRITORY --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_SALES_TERRITORY --&gt; HUB_SALES_TERRITORY
+  LINK_SALES_ORDER_ADDRESS{{&quot;link_sales_order_address&quot;}}
+  class LINK_SALES_ORDER_ADDRESS link;
+  LINK_SALES_ORDER_ADDRESS --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_ADDRESS --&gt;|&quot;bill_to&quot;| HUB_ADDRESS
+  LINK_SALES_ORDER_ADDRESS --&gt;|&quot;ship_to&quot;| HUB_ADDRESS
+  LINK_SALES_ORDER_SHIP_METHOD{{&quot;link_sales_order_ship_method&quot;}}
+  class LINK_SALES_ORDER_SHIP_METHOD link;
+  LINK_SALES_ORDER_SHIP_METHOD --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_SHIP_METHOD --&gt; HUB_SHIP_METHOD
+  LINK_SALES_ORDER_CREDIT_CARD{{&quot;link_sales_order_credit_card&quot;}}
+  class LINK_SALES_ORDER_CREDIT_CARD link;
+  LINK_SALES_ORDER_CREDIT_CARD --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_CREDIT_CARD --&gt; HUB_CREDIT_CARD
+  LINK_SALES_ORDER_CURRENCY_RATE{{&quot;link_sales_order_currency_rate&quot;}}
+  class LINK_SALES_ORDER_CURRENCY_RATE link;
+  LINK_SALES_ORDER_CURRENCY_RATE --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_CURRENCY_RATE --&gt; HUB_CURRENCY_RATE
+  LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER{{&quot;link_sales_order_line_product_special_offer&quot;}}
+  class LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER link;
+  LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER --&gt; HUB_SALES_ORDER_LINE
+  LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER --&gt; HUB_PRODUCT
+  LINK_SALES_ORDER_LINE_PRODUCT_SPECIAL_OFFER --&gt; HUB_SPECIAL_OFFER
+  LINK_SALES_ORDER_SALES_REASON{{&quot;link_sales_order_sales_reason&quot;}}
+  class LINK_SALES_ORDER_SALES_REASON link;
+  LINK_SALES_ORDER_SALES_REASON --&gt; HUB_SALES_ORDER
+  LINK_SALES_ORDER_SALES_REASON --&gt; HUB_SALES_REASON
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY{{&quot;link_business_entity_sales_territory&quot;}}
+  class LINK_BUSINESS_ENTITY_SALES_TERRITORY link;
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY --&gt; HUB_SALES_TERRITORY
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT{{&quot;link_business_entity_sales_territory_assignment&quot;}}
+  class LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT link;
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT ==&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT --&gt; HUB_SALES_TERRITORY
+  LINK_SALES_TERRITORY_COUNTRY_REGION{{&quot;link_sales_territory_country_region&quot;}}
+  class LINK_SALES_TERRITORY_COUNTRY_REGION link;
+  LINK_SALES_TERRITORY_COUNTRY_REGION --&gt; HUB_SALES_TERRITORY
+  LINK_SALES_TERRITORY_COUNTRY_REGION --&gt; HUB_COUNTRY_REGION
+  LINK_BUSINESS_ENTITY_CREDIT_CARD{{&quot;link_business_entity_credit_card&quot;}}
+  class LINK_BUSINESS_ENTITY_CREDIT_CARD link;
+  LINK_BUSINESS_ENTITY_CREDIT_CARD --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_CREDIT_CARD --&gt; HUB_CREDIT_CARD
+  LINK_SPECIAL_OFFER_PRODUCT{{&quot;link_special_offer_product&quot;}}
+  class LINK_SPECIAL_OFFER_PRODUCT link;
+  LINK_SPECIAL_OFFER_PRODUCT --&gt; HUB_SPECIAL_OFFER
+  LINK_SPECIAL_OFFER_PRODUCT --&gt; HUB_PRODUCT
+  LINK_COUNTRY_REGION_CURRENCY{{&quot;link_country_region_currency&quot;}}
+  class LINK_COUNTRY_REGION_CURRENCY link;
+  LINK_COUNTRY_REGION_CURRENCY --&gt; HUB_COUNTRY_REGION
+  LINK_COUNTRY_REGION_CURRENCY --&gt; HUB_CURRENCY
+  LINK_CURRENCY_RATE_CURRENCY{{&quot;link_currency_rate_currency&quot;}}
+  class LINK_CURRENCY_RATE_CURRENCY link;
+  LINK_CURRENCY_RATE_CURRENCY --&gt; HUB_CURRENCY_RATE
+  LINK_CURRENCY_RATE_CURRENCY --&gt;|&quot;from&quot;| HUB_CURRENCY
+  LINK_CURRENCY_RATE_CURRENCY --&gt;|&quot;to&quot;| HUB_CURRENCY
+  LINK_SALES_TAX_RATE_STATE_PROVINCE{{&quot;link_sales_tax_rate_state_province&quot;}}
+  class LINK_SALES_TAX_RATE_STATE_PROVINCE link;
+  LINK_SALES_TAX_RATE_STATE_PROVINCE --&gt; HUB_SALES_TAX_RATE
+  LINK_SALES_TAX_RATE_STATE_PROVINCE --&gt; HUB_STATE_PROVINCE
+  LINK_SHOPPING_CART_PRODUCT{{&quot;link_shopping_cart_product&quot;}}
+  class LINK_SHOPPING_CART_PRODUCT link;
+  LINK_SHOPPING_CART_PRODUCT --&gt; HUB_SHOPPING_CART
+  LINK_SHOPPING_CART_PRODUCT --&gt; HUB_PRODUCT
+  LINK_SALES_ORDER_LINE_PRODUCT{{&quot;link_sales_order_line_product&quot;}}
+  class LINK_SALES_ORDER_LINE_PRODUCT link;
+  LINK_SALES_ORDER_LINE_PRODUCT --&gt; HUB_SALES_ORDER_LINE
+  LINK_SALES_ORDER_LINE_PRODUCT --&gt; HUB_PRODUCT
+  SAT_BUSINESS_ENTITY_DETAILS(&quot;sat_business_entity_details&lt;br/&gt;src: BusinessEntity&quot;)
+  class SAT_BUSINESS_ENTITY_DETAILS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_DETAILS
+  SAT_BUSINESS_ENTITY_PERSON_NAME(&quot;sat_business_entity_person_name&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_NAME sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_NAME
+  SAT_BUSINESS_ENTITY_MARKETING_CONSENT(&quot;sat_business_entity_marketing_consent&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_MARKETING_CONSENT sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_MARKETING_CONSENT
+  SAT_BUSINESS_ENTITY_PERSON_SENSITIVE(&quot;sat_business_entity_person_sensitive&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_SENSITIVE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_SENSITIVE
+  SAT_BUSINESS_ENTITY_CREDENTIAL(&quot;sat_business_entity_credential&lt;br/&gt;src: Password&quot;)
+  class SAT_BUSINESS_ENTITY_CREDENTIAL sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_CREDENTIAL
+  SAT_BUSINESS_ENTITY_EMAIL(&quot;sat_business_entity_email&lt;br/&gt;src: EmailAddress&quot;)
+  class SAT_BUSINESS_ENTITY_EMAIL sat_multi_active;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMAIL
+  SAT_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_PHONES(&quot;sat_business_entity_phone_number_type_phones&lt;br/&gt;src: PersonPhone&quot;)
+  class SAT_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_PHONES sat_multi_active;
+  LINK_BUSINESS_ENTITY_PHONE_NUMBER_TYPE --- SAT_BUSINESS_ENTITY_PHONE_NUMBER_TYPE_PHONES
+  SAT_BUSINESS_ENTITY_ADDRESS_DETAILS(&quot;sat_business_entity_address_details&lt;br/&gt;src: BusinessEntityAddress&quot;)
+  class SAT_BUSINESS_ENTITY_ADDRESS_DETAILS sat_standard;
+  LINK_BUSINESS_ENTITY_ADDRESS --- SAT_BUSINESS_ENTITY_ADDRESS_DETAILS
+  SAT_BUSINESS_ENTITY_CONTACT_DETAILS(&quot;sat_business_entity_contact_details&lt;br/&gt;src: BusinessEntityContact&quot;)
+  class SAT_BUSINESS_ENTITY_CONTACT_DETAILS sat_standard;
+  LINK_BUSINESS_ENTITY_CONTACT --- SAT_BUSINESS_ENTITY_CONTACT_DETAILS
+  SAT_ADDRESS_DETAILS(&quot;sat_address_details&lt;br/&gt;src: Address&quot;)
+  class SAT_ADDRESS_DETAILS sat_standard;
+  HUB_ADDRESS --- SAT_ADDRESS_DETAILS
+  SAT_ADDRESS_LOCATION(&quot;sat_address_location&lt;br/&gt;src: Address&quot;)
+  class SAT_ADDRESS_LOCATION sat_standard;
+  HUB_ADDRESS --- SAT_ADDRESS_LOCATION
+  SAT_ADDRESS_TYPE_DETAILS(&quot;sat_address_type_details&lt;br/&gt;src: AddressType&quot;)
+  class SAT_ADDRESS_TYPE_DETAILS sat_standard;
+  HUB_ADDRESS_TYPE --- SAT_ADDRESS_TYPE_DETAILS
+  SAT_CONTACT_TYPE_DETAILS(&quot;sat_contact_type_details&lt;br/&gt;src: ContactType&quot;)
+  class SAT_CONTACT_TYPE_DETAILS sat_standard;
+  HUB_CONTACT_TYPE --- SAT_CONTACT_TYPE_DETAILS
+  SAT_PHONE_NUMBER_TYPE_DETAILS(&quot;sat_phone_number_type_details&lt;br/&gt;src: PhoneNumberType&quot;)
+  class SAT_PHONE_NUMBER_TYPE_DETAILS sat_standard;
+  HUB_PHONE_NUMBER_TYPE --- SAT_PHONE_NUMBER_TYPE_DETAILS
+  SAT_COUNTRY_REGION_DETAILS(&quot;sat_country_region_details&lt;br/&gt;src: CountryRegion&quot;)
+  class SAT_COUNTRY_REGION_DETAILS sat_standard;
+  HUB_COUNTRY_REGION --- SAT_COUNTRY_REGION_DETAILS
+  SAT_STATE_PROVINCE_DETAILS(&quot;sat_state_province_details&lt;br/&gt;src: StateProvince&quot;)
+  class SAT_STATE_PROVINCE_DETAILS sat_standard;
+  HUB_STATE_PROVINCE --- SAT_STATE_PROVINCE_DETAILS
+  SAT_STATE_PROVINCE_TERRITORY(&quot;sat_state_province_territory&lt;br/&gt;src: StateProvince&quot;)
+  class SAT_STATE_PROVINCE_TERRITORY sat_standard;
+  HUB_STATE_PROVINCE --- SAT_STATE_PROVINCE_TERRITORY
+  SAT_BUSINESS_ENTITY_EMPLOYEE_DETAILS(&quot;sat_business_entity_employee_details&lt;br/&gt;src: Employee&quot;)
+  class SAT_BUSINESS_ENTITY_EMPLOYEE_DETAILS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMPLOYEE_DETAILS
+  SAT_BUSINESS_ENTITY_EMPLOYEE_SENSITIVE(&quot;sat_business_entity_employee_sensitive&lt;br/&gt;src: Employee&quot;)
+  class SAT_BUSINESS_ENTITY_EMPLOYEE_SENSITIVE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMPLOYEE_SENSITIVE
+  SAT_BUSINESS_ENTITY_EMPLOYEE_LEAVE(&quot;sat_business_entity_employee_leave&lt;br/&gt;src: Employee&quot;)
+  class SAT_BUSINESS_ENTITY_EMPLOYEE_LEAVE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMPLOYEE_LEAVE
+  SAT_BUSINESS_ENTITY_EMPLOYEE_HIERARCHY(&quot;sat_business_entity_employee_hierarchy&lt;br/&gt;src: Employee&quot;)
+  class SAT_BUSINESS_ENTITY_EMPLOYEE_HIERARCHY sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMPLOYEE_HIERARCHY
+  SAT_BUSINESS_ENTITY_PAY_HISTORY(&quot;sat_business_entity_pay_history&lt;br/&gt;src: EmployeePayHistory&quot;)
+  class SAT_BUSINESS_ENTITY_PAY_HISTORY sat_multi_active;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PAY_HISTORY
+  SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_EFFECTIVITY(&quot;sat_business_entity_department_shift_effectivity&lt;br/&gt;src: EmployeeDepartmentHistory&quot;)
+  class SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_EFFECTIVITY sat_effectivity;
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT --- SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_EFFECTIVITY
+  SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_AUDIT(&quot;sat_business_entity_department_shift_audit&lt;br/&gt;src: EmployeeDepartmentHistory&quot;)
+  class SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_AUDIT sat_standard;
+  LINK_BUSINESS_ENTITY_DEPARTMENT_SHIFT --- SAT_BUSINESS_ENTITY_DEPARTMENT_SHIFT_AUDIT
+  SAT_DEPARTMENT_DETAILS(&quot;sat_department_details&lt;br/&gt;src: Department&quot;)
+  class SAT_DEPARTMENT_DETAILS sat_standard;
+  HUB_DEPARTMENT --- SAT_DEPARTMENT_DETAILS
+  SAT_SHIFT_DETAILS(&quot;sat_shift_details&lt;br/&gt;src: Shift&quot;)
+  class SAT_SHIFT_DETAILS sat_standard;
+  HUB_SHIFT --- SAT_SHIFT_DETAILS
+  SAT_JOB_CANDIDATE_RESUME(&quot;sat_job_candidate_resume&lt;br/&gt;src: JobCandidate&quot;)
+  class SAT_JOB_CANDIDATE_RESUME sat_standard;
+  HUB_JOB_CANDIDATE --- SAT_JOB_CANDIDATE_RESUME
+  SAT_PRODUCT_DETAILS(&quot;sat_product_details&quot;)
+  class SAT_PRODUCT_DETAILS sat_standard;
+  HUB_PRODUCT --- SAT_PRODUCT_DETAILS
+  SAT_PRODUCT_PRICING(&quot;sat_product_pricing&quot;)
+  class SAT_PRODUCT_PRICING sat_standard;
+  HUB_PRODUCT --- SAT_PRODUCT_PRICING
+  SAT_PRODUCT_INVENTORY_POLICY(&quot;sat_product_inventory_policy&quot;)
+  class SAT_PRODUCT_INVENTORY_POLICY sat_standard;
+  HUB_PRODUCT --- SAT_PRODUCT_INVENTORY_POLICY
+  SAT_PRODUCT_LIFECYCLE(&quot;sat_product_lifecycle&quot;)
+  class SAT_PRODUCT_LIFECYCLE sat_standard;
+  HUB_PRODUCT --- SAT_PRODUCT_LIFECYCLE
+  SAT_PRODUCT_COST_HISTORY(&quot;sat_product_cost_history&lt;br/&gt;src: ProductCostHistory&quot;)
+  class SAT_PRODUCT_COST_HISTORY sat_multi_active;
+  HUB_PRODUCT --- SAT_PRODUCT_COST_HISTORY
+  SAT_PRODUCT_LIST_PRICE_HISTORY(&quot;sat_product_list_price_history&lt;br/&gt;src: ProductListPriceHistory&quot;)
+  class SAT_PRODUCT_LIST_PRICE_HISTORY sat_multi_active;
+  HUB_PRODUCT --- SAT_PRODUCT_LIST_PRICE_HISTORY
+  SAT_PRODUCT_CATEGORY_DETAILS(&quot;sat_product_category_details&quot;)
+  class SAT_PRODUCT_CATEGORY_DETAILS sat_standard;
+  HUB_PRODUCT_CATEGORY --- SAT_PRODUCT_CATEGORY_DETAILS
+  SAT_PRODUCT_SUBCATEGORY_DETAILS(&quot;sat_product_subcategory_details&quot;)
+  class SAT_PRODUCT_SUBCATEGORY_DETAILS sat_standard;
+  HUB_PRODUCT_SUBCATEGORY --- SAT_PRODUCT_SUBCATEGORY_DETAILS
+  SAT_PRODUCT_MODEL_DETAILS(&quot;sat_product_model_details&quot;)
+  class SAT_PRODUCT_MODEL_DETAILS sat_standard;
+  HUB_PRODUCT_MODEL --- SAT_PRODUCT_MODEL_DETAILS
+  SAT_PRODUCT_MODEL_CONTENT(&quot;sat_product_model_content&quot;)
+  class SAT_PRODUCT_MODEL_CONTENT sat_standard;
+  HUB_PRODUCT_MODEL --- SAT_PRODUCT_MODEL_CONTENT
+  SAT_CULTURE_DETAILS(&quot;sat_culture_details&quot;)
+  class SAT_CULTURE_DETAILS sat_standard;
+  HUB_CULTURE --- SAT_CULTURE_DETAILS
+  SAT_UNIT_MEASURE_DETAILS(&quot;sat_unit_measure_details&quot;)
+  class SAT_UNIT_MEASURE_DETAILS sat_standard;
+  HUB_UNIT_MEASURE --- SAT_UNIT_MEASURE_DETAILS
+  SAT_PRODUCT_DESCRIPTION_DETAILS(&quot;sat_product_description_details&quot;)
+  class SAT_PRODUCT_DESCRIPTION_DETAILS sat_standard;
+  HUB_PRODUCT_DESCRIPTION --- SAT_PRODUCT_DESCRIPTION_DETAILS
+  SAT_PRODUCT_PHOTO_DETAILS(&quot;sat_product_photo_details&quot;)
+  class SAT_PRODUCT_PHOTO_DETAILS sat_standard;
+  HUB_PRODUCT_PHOTO --- SAT_PRODUCT_PHOTO_DETAILS
+  SAT_PRODUCT_PHOTO_IMAGES(&quot;sat_product_photo_images&quot;)
+  class SAT_PRODUCT_PHOTO_IMAGES sat_standard;
+  HUB_PRODUCT_PHOTO --- SAT_PRODUCT_PHOTO_IMAGES
+  SAT_ILLUSTRATION_DIAGRAM(&quot;sat_illustration_diagram&quot;)
+  class SAT_ILLUSTRATION_DIAGRAM sat_standard;
+  HUB_ILLUSTRATION --- SAT_ILLUSTRATION_DIAGRAM
+  SAT_DOCUMENT_DETAILS(&quot;sat_document_details&quot;)
+  class SAT_DOCUMENT_DETAILS sat_standard;
+  HUB_DOCUMENT --- SAT_DOCUMENT_DETAILS
+  SAT_LOCATION_DETAILS(&quot;sat_location_details&quot;)
+  class SAT_LOCATION_DETAILS sat_standard;
+  HUB_LOCATION --- SAT_LOCATION_DETAILS
+  SAT_SCRAP_REASON_DETAILS(&quot;sat_scrap_reason_details&quot;)
+  class SAT_SCRAP_REASON_DETAILS sat_standard;
+  HUB_SCRAP_REASON --- SAT_SCRAP_REASON_DETAILS
+  SAT_WORK_ORDER_DETAILS(&quot;sat_work_order_details&quot;)
+  class SAT_WORK_ORDER_DETAILS sat_standard;
+  HUB_WORK_ORDER --- SAT_WORK_ORDER_DETAILS
+  SAT_WORK_ORDER_PRODUCT_LOCATION_OPERATION(&quot;sat_work_order_product_location_operation&lt;br/&gt;src: WorkOrderRouting&quot;)
+  class SAT_WORK_ORDER_PRODUCT_LOCATION_OPERATION sat_multi_active;
+  LINK_WORK_ORDER_PRODUCT_LOCATION --- SAT_WORK_ORDER_PRODUCT_LOCATION_OPERATION
+  SAT_PRODUCT_LOCATION_INVENTORY(&quot;sat_product_location_inventory&lt;br/&gt;src: ProductInventory&quot;)
+  class SAT_PRODUCT_LOCATION_INVENTORY sat_multi_active;
+  LINK_PRODUCT_LOCATION --- SAT_PRODUCT_LOCATION_INVENTORY
+  SAT_PRODUCT_PRODUCT_PHOTO_DETAILS(&quot;sat_product_product_photo_details&quot;)
+  class SAT_PRODUCT_PRODUCT_PHOTO_DETAILS sat_standard;
+  LINK_PRODUCT_PRODUCT_PHOTO --- SAT_PRODUCT_PRODUCT_PHOTO_DETAILS
+  SAT_PRODUCT_ASSEMBLY_COMPONENT_EFFECTIVITY(&quot;sat_product_assembly_component_effectivity&quot;)
+  class SAT_PRODUCT_ASSEMBLY_COMPONENT_EFFECTIVITY sat_effectivity;
+  LINK_PRODUCT_ASSEMBLY_COMPONENT --- SAT_PRODUCT_ASSEMBLY_COMPONENT_EFFECTIVITY
+  SAT_PRODUCT_ASSEMBLY_COMPONENT_DETAILS(&quot;sat_product_assembly_component_details&quot;)
+  class SAT_PRODUCT_ASSEMBLY_COMPONENT_DETAILS sat_standard;
+  LINK_PRODUCT_ASSEMBLY_COMPONENT --- SAT_PRODUCT_ASSEMBLY_COMPONENT_DETAILS
+  SAT_INVENTORY_TRANSACTION_DETAILS(&quot;sat_inventory_transaction_details&lt;br/&gt;src: TransactionHistory&quot;)
+  class SAT_INVENTORY_TRANSACTION_DETAILS sat_standard;
+  HUB_INVENTORY_TRANSACTION --- SAT_INVENTORY_TRANSACTION_DETAILS
+  SAT_INVENTORY_TRANSACTION_ARCHIVE(&quot;sat_inventory_transaction_archive&lt;br/&gt;src: TransactionHistoryArchive&quot;)
+  class SAT_INVENTORY_TRANSACTION_ARCHIVE sat_standard;
+  HUB_INVENTORY_TRANSACTION --- SAT_INVENTORY_TRANSACTION_ARCHIVE
+  SAT_PRODUCT_REVIEW_DETAILS(&quot;sat_product_review_details&quot;)
+  class SAT_PRODUCT_REVIEW_DETAILS sat_standard;
+  HUB_PRODUCT_REVIEW --- SAT_PRODUCT_REVIEW_DETAILS
+  SAT_PRODUCT_REVIEW_REVIEWER_PII(&quot;sat_product_review_reviewer_pii&quot;)
+  class SAT_PRODUCT_REVIEW_REVIEWER_PII sat_standard;
+  HUB_PRODUCT_REVIEW --- SAT_PRODUCT_REVIEW_REVIEWER_PII
+  SAT_BUSINESS_ENTITY_VENDOR_DETAILS(&quot;sat_business_entity_vendor_details&lt;br/&gt;src: Vendor&quot;)
+  class SAT_BUSINESS_ENTITY_VENDOR_DETAILS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_VENDOR_DETAILS
+  SAT_BUSINESS_ENTITY_VENDOR_STATUS(&quot;sat_business_entity_vendor_status&lt;br/&gt;src: Vendor&quot;)
+  class SAT_BUSINESS_ENTITY_VENDOR_STATUS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_VENDOR_STATUS
+  SAT_PRODUCT_VENDOR_TERMS(&quot;sat_product_vendor_terms&lt;br/&gt;src: ProductVendor&quot;)
+  class SAT_PRODUCT_VENDOR_TERMS sat_standard;
+  LINK_PRODUCT_VENDOR --- SAT_PRODUCT_VENDOR_TERMS
+  SAT_PRODUCT_VENDOR_RECEIPT(&quot;sat_product_vendor_receipt&lt;br/&gt;src: ProductVendor&quot;)
+  class SAT_PRODUCT_VENDOR_RECEIPT sat_standard;
+  LINK_PRODUCT_VENDOR --- SAT_PRODUCT_VENDOR_RECEIPT
+  SAT_PURCHASE_ORDER_STATUS(&quot;sat_purchase_order_status&lt;br/&gt;src: PurchaseOrderHeader&quot;)
+  class SAT_PURCHASE_ORDER_STATUS sat_standard;
+  HUB_PURCHASE_ORDER --- SAT_PURCHASE_ORDER_STATUS
+  SAT_PURCHASE_ORDER_DETAILS(&quot;sat_purchase_order_details&lt;br/&gt;src: PurchaseOrderHeader&quot;)
+  class SAT_PURCHASE_ORDER_DETAILS sat_standard;
+  HUB_PURCHASE_ORDER --- SAT_PURCHASE_ORDER_DETAILS
+  SAT_PURCHASE_ORDER_LINE_DETAILS(&quot;sat_purchase_order_line_details&lt;br/&gt;src: PurchaseOrderDetail&quot;)
+  class SAT_PURCHASE_ORDER_LINE_DETAILS sat_standard;
+  HUB_PURCHASE_ORDER_LINE --- SAT_PURCHASE_ORDER_LINE_DETAILS
+  SAT_PURCHASE_ORDER_LINE_RECEIPT(&quot;sat_purchase_order_line_receipt&lt;br/&gt;src: PurchaseOrderDetail&quot;)
+  class SAT_PURCHASE_ORDER_LINE_RECEIPT sat_standard;
+  HUB_PURCHASE_ORDER_LINE --- SAT_PURCHASE_ORDER_LINE_RECEIPT
+  SAT_SHIP_METHOD_DETAILS(&quot;sat_ship_method_details&lt;br/&gt;src: ShipMethod&quot;)
+  class SAT_SHIP_METHOD_DETAILS sat_standard;
+  HUB_SHIP_METHOD --- SAT_SHIP_METHOD_DETAILS
+  SAT_CUSTOMER_DETAILS(&quot;sat_customer_details&lt;br/&gt;src: Customer&quot;)
+  class SAT_CUSTOMER_DETAILS sat_standard;
+  HUB_CUSTOMER --- SAT_CUSTOMER_DETAILS
+  SAT_BUSINESS_ENTITY_STORE_DETAILS(&quot;sat_business_entity_store_details&lt;br/&gt;src: Store&quot;)
+  class SAT_BUSINESS_ENTITY_STORE_DETAILS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_STORE_DETAILS
+  SAT_BUSINESS_ENTITY_STORE_DEMOGRAPHICS(&quot;sat_business_entity_store_demographics&lt;br/&gt;src: Store&quot;)
+  class SAT_BUSINESS_ENTITY_STORE_DEMOGRAPHICS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_STORE_DEMOGRAPHICS
+  SAT_BUSINESS_ENTITY_SALES_PERSON_REMUNERATION(&quot;sat_business_entity_sales_person_remuneration&lt;br/&gt;src: SalesPerson&quot;)
+  class SAT_BUSINESS_ENTITY_SALES_PERSON_REMUNERATION sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_SALES_PERSON_REMUNERATION
+  SAT_BUSINESS_ENTITY_SALES_PERSON_PERFORMANCE(&quot;sat_business_entity_sales_person_performance&lt;br/&gt;src: SalesPerson&quot;)
+  class SAT_BUSINESS_ENTITY_SALES_PERSON_PERFORMANCE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_SALES_PERSON_PERFORMANCE
+  SAT_BUSINESS_ENTITY_SALES_QUOTA_HISTORY(&quot;sat_business_entity_sales_quota_history&lt;br/&gt;src: SalesPersonQuotaHistory&quot;)
+  class SAT_BUSINESS_ENTITY_SALES_QUOTA_HISTORY sat_multi_active;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_SALES_QUOTA_HISTORY
+  SAT_SALES_ORDER_STATUS(&quot;sat_sales_order_status&lt;br/&gt;src: SalesOrderHeader&quot;)
+  class SAT_SALES_ORDER_STATUS sat_standard;
+  HUB_SALES_ORDER --- SAT_SALES_ORDER_STATUS
+  SAT_SALES_ORDER_DETAILS(&quot;sat_sales_order_details&lt;br/&gt;src: SalesOrderHeader&quot;)
+  class SAT_SALES_ORDER_DETAILS sat_standard;
+  HUB_SALES_ORDER --- SAT_SALES_ORDER_DETAILS
+  SAT_SALES_ORDER_AMOUNTS(&quot;sat_sales_order_amounts&lt;br/&gt;src: SalesOrderHeader&quot;)
+  class SAT_SALES_ORDER_AMOUNTS sat_standard;
+  HUB_SALES_ORDER --- SAT_SALES_ORDER_AMOUNTS
+  SAT_SALES_ORDER_PAYMENT(&quot;sat_sales_order_payment&lt;br/&gt;src: SalesOrderHeader&quot;)
+  class SAT_SALES_ORDER_PAYMENT sat_standard;
+  HUB_SALES_ORDER --- SAT_SALES_ORDER_PAYMENT
+  SAT_SALES_ORDER_LINE_DETAILS(&quot;sat_sales_order_line_details&lt;br/&gt;src: SalesOrderDetail&quot;)
+  class SAT_SALES_ORDER_LINE_DETAILS sat_standard;
+  HUB_SALES_ORDER_LINE --- SAT_SALES_ORDER_LINE_DETAILS
+  SAT_SALES_TERRITORY_DETAILS(&quot;sat_sales_territory_details&lt;br/&gt;src: SalesTerritory&quot;)
+  class SAT_SALES_TERRITORY_DETAILS sat_standard;
+  HUB_SALES_TERRITORY --- SAT_SALES_TERRITORY_DETAILS
+  SAT_SALES_TERRITORY_FINANCIALS(&quot;sat_sales_territory_financials&lt;br/&gt;src: SalesTerritory&quot;)
+  class SAT_SALES_TERRITORY_FINANCIALS sat_standard;
+  HUB_SALES_TERRITORY --- SAT_SALES_TERRITORY_FINANCIALS
+  SAT_CREDIT_CARD_DETAILS(&quot;sat_credit_card_details&lt;br/&gt;src: CreditCard&quot;)
+  class SAT_CREDIT_CARD_DETAILS sat_standard;
+  HUB_CREDIT_CARD --- SAT_CREDIT_CARD_DETAILS
+  SAT_CREDIT_CARD_SENSITIVE(&quot;sat_credit_card_sensitive&lt;br/&gt;src: CreditCard&quot;)
+  class SAT_CREDIT_CARD_SENSITIVE sat_standard;
+  HUB_CREDIT_CARD --- SAT_CREDIT_CARD_SENSITIVE
+  SAT_CURRENCY_DETAILS(&quot;sat_currency_details&lt;br/&gt;src: Currency&quot;)
+  class SAT_CURRENCY_DETAILS sat_standard;
+  HUB_CURRENCY --- SAT_CURRENCY_DETAILS
+  SAT_CURRENCY_RATE_DETAILS(&quot;sat_currency_rate_details&lt;br/&gt;src: CurrencyRate&quot;)
+  class SAT_CURRENCY_RATE_DETAILS sat_standard;
+  HUB_CURRENCY_RATE --- SAT_CURRENCY_RATE_DETAILS
+  SAT_SALES_REASON_DETAILS(&quot;sat_sales_reason_details&lt;br/&gt;src: SalesReason&quot;)
+  class SAT_SALES_REASON_DETAILS sat_standard;
+  HUB_SALES_REASON --- SAT_SALES_REASON_DETAILS
+  SAT_SPECIAL_OFFER_DETAILS(&quot;sat_special_offer_details&lt;br/&gt;src: SpecialOffer&quot;)
+  class SAT_SPECIAL_OFFER_DETAILS sat_standard;
+  HUB_SPECIAL_OFFER --- SAT_SPECIAL_OFFER_DETAILS
+  SAT_SHOPPING_CART_PRODUCT_DETAILS(&quot;sat_shopping_cart_product_details&lt;br/&gt;src: ShoppingCartItem&quot;)
+  class SAT_SHOPPING_CART_PRODUCT_DETAILS sat_standard;
+  LINK_SHOPPING_CART_PRODUCT --- SAT_SHOPPING_CART_PRODUCT_DETAILS
+  SAT_SALES_TAX_RATE_DETAILS(&quot;sat_sales_tax_rate_details&lt;br/&gt;src: SalesTaxRate&quot;)
+  class SAT_SALES_TAX_RATE_DETAILS sat_standard;
+  HUB_SALES_TAX_RATE --- SAT_SALES_TAX_RATE_DETAILS
+  SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_EFFECTIVITY(&quot;sat_business_entity_sales_territory_assignment_effectivity&lt;br/&gt;src: SalesTerritoryHistory&quot;)
+  class SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_EFFECTIVITY sat_effectivity;
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT --- SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_EFFECTIVITY
+  SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_DETAILS(&quot;sat_business_entity_sales_territory_assignment_details&lt;br/&gt;src: SalesTerritoryHistory&quot;)
+  class SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_DETAILS sat_standard;
+  LINK_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT --- SAT_BUSINESS_ENTITY_SALES_TERRITORY_ASSIGNMENT_DETAILS
+  SAT_BUSINESS_ENTITY_CREDIT_CARD_DETAILS(&quot;sat_business_entity_credit_card_details&lt;br/&gt;src: PersonCreditCard&quot;)
+  class SAT_BUSINESS_ENTITY_CREDIT_CARD_DETAILS sat_standard;
+  LINK_BUSINESS_ENTITY_CREDIT_CARD --- SAT_BUSINESS_ENTITY_CREDIT_CARD_DETAILS
+  SAT_SPECIAL_OFFER_PRODUCT_DETAILS(&quot;sat_special_offer_product_details&lt;br/&gt;src: SpecialOfferProduct&quot;)
+  class SAT_SPECIAL_OFFER_PRODUCT_DETAILS sat_standard;
+  LINK_SPECIAL_OFFER_PRODUCT --- SAT_SPECIAL_OFFER_PRODUCT_DETAILS
+  SAT_COUNTRY_REGION_CURRENCY_DETAILS(&quot;sat_country_region_currency_details&lt;br/&gt;src: CountryRegionCurrency&quot;)
+  class SAT_COUNTRY_REGION_CURRENCY_DETAILS sat_standard;
+  LINK_COUNTRY_REGION_CURRENCY --- SAT_COUNTRY_REGION_CURRENCY_DETAILS
+  SAT_SALES_ORDER_SALES_REASON_DETAILS(&quot;sat_sales_order_sales_reason_details&lt;br/&gt;src: SalesOrderHeaderSalesReason&quot;)
+  class SAT_SALES_ORDER_SALES_REASON_DETAILS sat_standard;
+  LINK_SALES_ORDER_SALES_REASON --- SAT_SALES_ORDER_SALES_REASON_DETAILS</pre></details></section><section><h2>Constructs</h2><h3>Hubs</h3><table><thead><tr><th>Hub</th><th>Business key</th><th>Source entity</th><th>Sources</th><th>Description</th></tr></thead><tbody><tr><td>hub_business_entity</td><td>BusinessEntityID</td><td>BusinessEntity</td><td>BusinessEntity.BusinessEntityID, Person.BusinessEntityID, EmailAddress.BusinessEntityID, Password.BusinessEntityID, Employee.BusinessEntityID, EmployeePayHistory.BusinessEntityID, Vendor.BusinessEntityID, Store.BusinessEntityID, SalesPerson.BusinessEntityID, SalesPersonQuotaHistory.BusinessEntityID</td><td>Company-wide party register (customers, vendors, employees, stores, persons). Persons share the same business entity number, so person data attaches here as satellites rather than a separate hub. Email addresses and credentials are keyed by the same number and are declared as feeds so their satellites bind to their own source.</td></tr><tr><td>hub_address</td><td>AddressID</td><td>Address</td><td>—</td><td>Postal address recorded once and shareable by many parties.</td></tr><tr><td>hub_address_type</td><td>AddressTypeID</td><td>AddressType</td><td>—</td><td>Reference list of address types (Billing, Home, Shipping).</td></tr><tr><td>hub_contact_type</td><td>ContactTypeID</td><td>ContactType</td><td>—</td><td>Reference list of contact roles.</td></tr><tr><td>hub_phone_number_type</td><td>PhoneNumberTypeID</td><td>PhoneNumberType</td><td>—</td><td>Reference list of phone number types (home, work, mobile).</td></tr><tr><td>hub_country_region</td><td>CountryRegionCode</td><td>CountryRegion</td><td>—</td><td>Countries and regions identified by ISO code.</td></tr><tr><td>hub_state_province</td><td>StateProvinceID</td><td>StateProvince</td><td>—</td><td>States and provinces identified by their own number.</td></tr><tr><td>hub_department</td><td>DepartmentID</td><td>Department</td><td>—</td><td>Register of departments, the organisational units in which people work. Keyed on the stable DepartmentID because department names can change.</td></tr><tr><td>hub_shift</td><td>ShiftID</td><td>Shift</td><td>—</td><td>Register of eight-hour working shifts. Keyed on the stable ShiftID because shift names and definitions can be adjusted.</td></tr><tr><td>hub_job_candidate</td><td>JobCandidateID</td><td>JobCandidate</td><td>—</td><td>Job candidates whose applications are held by HR.</td></tr><tr><td>hub_product</td><td>ProductID</td><td>Product</td><td>—</td><td>Product master. ProductNumber is the business-recognised natural key (REQ-002), but every dependent relation (inventory, work orders, BOM, cost/price history, transactions, reviews, photos, documents) carries only ProductID. The hub is therefore anchored on ProductID so those relations can attach, and ProductNumber is kept as a descriptive attribute.</td></tr><tr><td>hub_product_category</td><td>ProductCategoryID</td><td>ProductCategory</td><td>—</td><td>Top level of the merchandising hierarchy. Anchored on the ID because ProductSubcategory references categories by ID; Name is kept in a satellite.</td></tr><tr><td>hub_product_subcategory</td><td>ProductSubcategoryID</td><td>ProductSubcategory</td><td>—</td><td>Second level of the merchandising hierarchy. Anchored on the ID because Product references subcategories by ID; Name is kept in a satellite.</td></tr><tr><td>hub_product_model</td><td>ProductModelID</td><td>ProductModel</td><td>—</td><td>Product model shared by several products. Anchored on the ID because Product and the association tables reference models by ID; Name is kept in a satellite.</td></tr><tr><td>hub_culture</td><td>CultureID</td><td>Culture</td><td>—</td><td>Language/locale designation, identified by a short culture code.</td></tr><tr><td>hub_unit_measure</td><td>UnitMeasureCode</td><td>UnitMeasure</td><td>—</td><td>Standard unit of measure, identified by a short code.</td></tr><tr><td>hub_product_description</td><td>ProductDescriptionID</td><td>ProductDescription</td><td>—</td><td>Free-text marketing description held in a library, independent of any one product.</td></tr><tr><td>hub_product_photo</td><td>ProductPhotoID</td><td>ProductPhoto</td><td>—</td><td>Photograph in the product photo library.</td></tr><tr><td>hub_illustration</td><td>IllustrationID</td><td>Illustration</td><td>—</td><td>Technical diagram used in manufacturing instructions.</td></tr><tr><td>hub_document</td><td>DocumentNode</td><td>Document</td><td>—</td><td>Entry (document or folder) in the hierarchical controlled document library.</td></tr><tr><td>hub_location</td><td>LocationID</td><td>Location</td><td>—</td><td>Manufacturing location / inventory location. Anchored on the ID because inventory and routing reference locations by ID; Name is kept in a satellite.</td></tr><tr><td>hub_scrap_reason</td><td>ScrapReasonID</td><td>ScrapReason</td><td>—</td><td>Standard scrap reason. Anchored on the ID because WorkOrder references scrap reasons by ID.</td></tr><tr><td>hub_work_order</td><td>WorkOrderID</td><td>WorkOrder</td><td>—</td><td>Work order raised to manufacture a product.</td></tr><tr><td>hub_inventory_transaction</td><td>TransactionID</td><td>TransactionHistory</td><td>TransactionHistory.TransactionID, TransactionHistoryArchive.TransactionID</td><td>Inventory transaction (stock movement), fed by both the live and the archive store so they form one continuous history.</td></tr><tr><td>hub_product_review</td><td>ProductReviewID</td><td>ProductReview</td><td>—</td><td>Customer review of a product.</td></tr><tr><td>hub_purchase_order</td><td>PurchaseOrderID</td><td>PurchaseOrderHeader</td><td>—</td><td>Purchase order placed with a vendor, identified by its purchase order number.</td></tr><tr><td>hub_purchase_order_line</td><td>purchase_order_line</td><td>PurchaseOrderDetail</td><td>—</td><td>A purchase order line, identified by its purchase order together with its line number. Receipt and inspection outcomes attach to the line.</td></tr><tr><td>hub_ship_method</td><td>ShipMethodID</td><td>ShipMethod</td><td>—</td><td>Shipping method (shipping company and rate agreement) used for inbound purchases. Keyed on ShipMethodID, the identifier purchase orders carry, so orders can join to it. The shipping company name is kept in the satellite.</td></tr><tr><td>hub_customer</td><td>AccountNumber</td><td>Customer</td><td>—</td><td>Customer, identified by the account number assigned by the accounting system (source-computed, taken as given).</td></tr><tr><td>hub_sales_order</td><td>SalesOrderNumber</td><td>SalesOrderHeader</td><td>—</td><td>Sales order, identified by its unique sales order number.</td></tr><tr><td>hub_sales_order_line</td><td>sales_order_line</td><td>SalesOrderDetail</td><td>—</td><td>Sales order line, identified within its order by an incremental number per product sold.</td></tr><tr><td>hub_sales_territory</td><td>TerritoryID</td><td>SalesTerritory</td><td>—</td><td>Sales territory catalogue entry.</td></tr><tr><td>hub_credit_card</td><td>CreditCardID</td><td>CreditCard</td><td>—</td><td>Credit card register entry, identified by the card record held in the operational system.</td></tr><tr><td>hub_currency</td><td>CurrencyCode</td><td>Currency</td><td>—</td><td>Currency identified by its ISO currency code.</td></tr><tr><td>hub_currency_rate</td><td>currency_rate</td><td>CurrencyRate</td><td>—</td><td>Daily exchange rate converting from one currency to another on a given day.</td></tr><tr><td>hub_sales_reason</td><td>SalesReasonID</td><td>SalesReason</td><td>—</td><td>Sales reason catalogue entry.</td></tr><tr><td>hub_special_offer</td><td>SpecialOfferID</td><td>SpecialOffer</td><td>—</td><td>Special offer (promotional code) catalogue entry.</td></tr><tr><td>hub_shopping_cart</td><td>ShoppingCartID</td><td>ShoppingCartItem</td><td>—</td><td>Shopping cart grouping cart items; not linked to customer or order.</td></tr><tr><td>hub_sales_tax_rate</td><td>SalesTaxRateID</td><td>SalesTaxRate</td><td>—</td><td>Sales tax rate register entry.</td></tr></tbody></table><h3>Links</h3><table><thead><tr><th>Link</th><th>Type</th><th>Participations</th><th>Driving key</th><th>Unit of work</th><th>Payload</th></tr></thead><tbody><tr><td>link_business_entity_address</td><td>standard</td><td>hub_business_entity, hub_address, hub_address_type</td><td>—</td><td>BusinessEntityID + AddressID + AddressTypeID</td><td>0</td></tr><tr><td>link_business_entity_contact</td><td>standard</td><td>hub_business_entity, hub_business_entity (person), hub_contact_type</td><td>—</td><td>BusinessEntityID (organisation) + PersonID + ContactTypeID</td><td>0</td></tr><tr><td>link_business_entity_phone_number_type</td><td>standard</td><td>hub_business_entity, hub_phone_number_type</td><td>—</td><td>BusinessEntityID + PhoneNumberTypeID (phone number as child key)</td><td>0</td></tr><tr><td>link_address_state_province</td><td>standard</td><td>hub_address, hub_state_province</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_state_province_country_region</td><td>standard</td><td>hub_state_province, hub_country_region</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_business_entity_department_shift</td><td>standard</td><td>hub_business_entity, hub_department, hub_shift</td><td>hub_business_entity</td><td>BusinessEntityID + DepartmentID + ShiftID (assignment starting at StartDate)</td><td>0</td></tr><tr><td>link_business_entity_job_candidate</td><td>standard</td><td>hub_job_candidate, hub_business_entity</td><td>—</td><td>JobCandidateID + BusinessEntityID</td><td>0</td></tr><tr><td>link_product_product_subcategory</td><td>standard</td><td>hub_product, hub_product_subcategory</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_product_subcategory_product_category</td><td>standard</td><td>hub_product_subcategory, hub_product_category</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_product_product_model</td><td>standard</td><td>hub_product, hub_product_model</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_product_unit_measure</td><td>standard</td><td>hub_product, hub_unit_measure (size), hub_unit_measure (weight)</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_product_assembly_component</td><td>standard</td><td>hub_product (assembly), hub_product (component), hub_unit_measure</td><td>hub_product:assembly, hub_product:component</td><td>ProductAssemblyID + ComponentID (+ UnitMeasureCode)</td><td>0</td></tr><tr><td>link_product_model_description_culture</td><td>standard</td><td>hub_product_model, hub_product_description, hub_culture</td><td>—</td><td>ProductModelID + ProductDescriptionID + CultureID</td><td>0</td></tr><tr><td>link_product_model_illustration</td><td>standard</td><td>hub_product_model, hub_illustration</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_product_product_photo</td><td>standard</td><td>hub_product, hub_product_photo</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_product_document</td><td>standard</td><td>hub_product, hub_document</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_document_business_entity</td><td>standard</td><td>hub_document, hub_business_entity</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_product_location</td><td>standard</td><td>hub_product, hub_location</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_work_order_product</td><td>standard</td><td>hub_work_order, hub_product</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_work_order_scrap_reason</td><td>standard</td><td>hub_work_order, hub_scrap_reason</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_work_order_product_location</td><td>standard</td><td>hub_work_order, hub_product, hub_location</td><td>—</td><td>WorkOrderID + ProductID + LocationID (operation sequence as dependent key)</td><td>0</td></tr><tr><td>link_inventory_transaction_product</td><td>standard</td><td>hub_inventory_transaction, hub_product</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_product_review_product</td><td>standard</td><td>hub_product_review, hub_product</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_product_vendor</td><td>standard</td><td>hub_product, hub_business_entity (vendor), hub_unit_measure</td><td>—</td><td>ProductID + vendor BusinessEntityID (+ UnitMeasureCode) from ProductVendor</td><td>0</td></tr><tr><td>link_purchase_order_vendor_employee_ship_method</td><td>standard</td><td>hub_purchase_order, hub_business_entity (vendor), hub_business_entity (employee), hub_ship_method</td><td>—</td><td>PurchaseOrderID + VendorID + EmployeeID + ShipMethodID from PurchaseOrderHeader</td><td>0</td></tr><tr><td>link_purchase_order_line_product</td><td>standard</td><td>hub_purchase_order_line, hub_purchase_order, hub_product</td><td>—</td><td>PurchaseOrderID + PurchaseOrderDetailID + ProductID from PurchaseOrderDetail</td><td>0</td></tr><tr><td>link_purchase_order_business_entity</td><td>standard</td><td>hub_purchase_order, hub_business_entity</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_customer_business_entity</td><td>standard</td><td>hub_customer, hub_business_entity (person), hub_business_entity (store)</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_customer_sales_territory</td><td>standard</td><td>hub_customer, hub_sales_territory</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_business_entity_store_sales_person</td><td>standard</td><td>hub_business_entity (store), hub_business_entity (sales_person)</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_sales_order_customer</td><td>standard</td><td>hub_sales_order, hub_customer</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_sales_order_sales_person</td><td>standard</td><td>hub_sales_order, hub_business_entity (sales_person)</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_sales_order_sales_territory</td><td>standard</td><td>hub_sales_order, hub_sales_territory</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_sales_order_address</td><td>standard</td><td>hub_sales_order, hub_address (bill_to), hub_address (ship_to)</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_sales_order_ship_method</td><td>standard</td><td>hub_sales_order, hub_ship_method</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_sales_order_credit_card</td><td>standard</td><td>hub_sales_order, hub_credit_card</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_sales_order_currency_rate</td><td>standard</td><td>hub_sales_order, hub_currency_rate</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_sales_order_line_product_special_offer</td><td>standard</td><td>hub_sales_order_line, hub_sales_order, hub_product, hub_special_offer</td><td>—</td><td>SalesOrderID + SalesOrderDetailID with ProductID and SpecialOfferID of the line</td><td>0</td></tr><tr><td>link_sales_order_sales_reason</td><td>standard</td><td>hub_sales_order, hub_sales_reason</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_business_entity_sales_territory</td><td>standard</td><td>hub_business_entity, hub_sales_territory</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_business_entity_sales_territory_assignment</td><td>standard</td><td>hub_business_entity, hub_sales_territory</td><td>hub_business_entity</td><td>—</td><td>0</td></tr><tr><td>link_sales_territory_country_region</td><td>standard</td><td>hub_sales_territory, hub_country_region</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_business_entity_credit_card</td><td>standard</td><td>hub_business_entity, hub_credit_card</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_special_offer_product</td><td>standard</td><td>hub_special_offer, hub_product</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_country_region_currency</td><td>standard</td><td>hub_country_region, hub_currency</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_currency_rate_currency</td><td>standard</td><td>hub_currency_rate, hub_currency (from), hub_currency (to)</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_sales_tax_rate_state_province</td><td>standard</td><td>hub_sales_tax_rate, hub_state_province</td><td>—</td><td>—</td><td>0</td></tr><tr><td>link_shopping_cart_product</td><td>standard</td><td>hub_shopping_cart, hub_product</td><td>—</td><td>ShoppingCartID + ProductID of a cart item</td><td>0</td></tr><tr><td>link_sales_order_line_product</td><td>standard</td><td>hub_sales_order_line, hub_product</td><td>—</td><td>—</td><td>0</td></tr></tbody></table><h3>Satellites</h3><table><thead><tr><th>Satellite</th><th>Type</th><th>Parent</th><th>Attrs</th><th>CDK</th><th>Source table</th><th>Split rationale</th></tr></thead><tbody><tr><td>sat_business_entity_details</td><td>standard</td><td>hub_business_entity</td><td>1</td><td>—</td><td>BusinessEntity</td><td>—</td></tr><tr><td>sat_business_entity_person_name</td><td>standard</td><td>hub_business_entity</td><td>8</td><td>—</td><td>Person</td><td>Ordinary name/contact PII; carries the Person ModifiedDate once.</td></tr><tr><td>sat_business_entity_marketing_consent</td><td>standard</td><td>hub_business_entity</td><td>1</td><td>—</td><td>Person</td><td>Consent is a distinct classification with its own audit need and rate of change.</td></tr><tr><td>sat_business_entity_person_sensitive</td><td>standard</td><td>hub_business_entity</td><td>2</td><td>—</td><td>Person</td><td>Sensitive data classification restricted separately from name reporting.</td></tr><tr><td>sat_business_entity_credential</td><td>standard</td><td>hub_business_entity</td><td>1</td><td>—</td><td>Password</td><td>Separate source; credential values excluded from the warehouse.</td></tr><tr><td>sat_business_entity_email</td><td>multi_active</td><td>hub_business_entity</td><td>2</td><td>EmailAddressID</td><td>EmailAddress</td><td>Own source at finer grain, several concurrent rows per person.</td></tr><tr><td>sat_business_entity_phone_number_type_phones</td><td>multi_active</td><td>link_business_entity_phone_number_type</td><td>1</td><td>PhoneNumber</td><td>PersonPhone</td><td>—</td></tr><tr><td>sat_business_entity_address_details</td><td>standard</td><td>link_business_entity_address</td><td>1</td><td>—</td><td>BusinessEntityAddress</td><td>—</td></tr><tr><td>sat_business_entity_contact_details</td><td>standard</td><td>link_business_entity_contact</td><td>1</td><td>—</td><td>BusinessEntityContact</td><td>—</td></tr><tr><td>sat_address_details</td><td>standard</td><td>hub_address</td><td>5</td><td>—</td><td>Address</td><td>—</td></tr><tr><td>sat_address_location</td><td>standard</td><td>hub_address</td><td>1</td><td>—</td><td>Address</td><td>Distinct data type (spatial) and sensitive classification.</td></tr><tr><td>sat_address_type_details</td><td>standard</td><td>hub_address_type</td><td>2</td><td>—</td><td>AddressType</td><td>—</td></tr><tr><td>sat_contact_type_details</td><td>standard</td><td>hub_contact_type</td><td>2</td><td>—</td><td>ContactType</td><td>—</td></tr><tr><td>sat_phone_number_type_details</td><td>standard</td><td>hub_phone_number_type</td><td>2</td><td>—</td><td>PhoneNumberType</td><td>—</td></tr><tr><td>sat_country_region_details</td><td>standard</td><td>hub_country_region</td><td>2</td><td>—</td><td>CountryRegion</td><td>—</td></tr><tr><td>sat_state_province_details</td><td>standard</td><td>hub_state_province</td><td>4</td><td>—</td><td>StateProvince</td><td>—</td></tr><tr><td>sat_state_province_territory</td><td>standard</td><td>hub_state_province</td><td>1</td><td>—</td><td>StateProvince</td><td>Territory assignment changes at a different rate and needs separate history tracking.</td></tr><tr><td>sat_business_entity_employee_details</td><td>standard</td><td>hub_business_entity</td><td>6</td><td>—</td><td>Employee</td><td>General employment attributes that change slowly and are not restricted; holds the single ModifiedDate audit column for Employee.</td></tr><tr><td>sat_business_entity_employee_sensitive</td><td>standard</td><td>hub_business_entity</td><td>4</td><td>—</td><td>Employee</td><td>Split out by data classification (PII) so that access can be restricted.</td></tr><tr><td>sat_business_entity_employee_leave</td><td>standard</td><td>hub_business_entity</td><td>2</td><td>—</td><td>Employee</td><td>Split out by rate of change: balances change much more often than other employee attributes.</td></tr><tr><td>sat_business_entity_employee_hierarchy</td><td>standard</td><td>hub_business_entity</td><td>2</td><td>—</td><td>Employee</td><td>Hierarchy position is its own concern and changes on a different schedule from other attributes.</td></tr><tr><td>sat_business_entity_pay_history</td><td>multi_active</td><td>hub_business_entity</td><td>3</td><td>RateChangeDate</td><td>EmployeePayHistory</td><td>Comes from a separate source table at a finer grain (one row per rate change). EmployeePayHistory is now declared as a feed of hub_business_entity.</td></tr><tr><td>sat_business_entity_department_shift_effectivity</td><td>effectivity</td><td>link_business_entity_department_shift</td><td>2</td><td>—</td><td>EmployeeDepartmentHistory</td><td>—</td></tr><tr><td>sat_business_entity_department_shift_audit</td><td>standard</td><td>link_business_entity_department_shift</td><td>1</td><td>—</td><td>EmployeeDepartmentHistory</td><td>The audit timestamp is kept apart from the effectivity dates.</td></tr><tr><td>sat_department_details</td><td>standard</td><td>hub_department</td><td>3</td><td>—</td><td>Department</td><td>—</td></tr><tr><td>sat_shift_details</td><td>standard</td><td>hub_shift</td><td>4</td><td>—</td><td>Shift</td><td>—</td></tr><tr><td>sat_job_candidate_resume</td><td>standard</td><td>hub_job_candidate</td><td>2</td><td>—</td><td>JobCandidate</td><td>—</td></tr><tr><td>sat_product_details</td><td>standard</td><td>hub_product</td><td>12</td><td>—</td><td>—</td><td>Slowly changing descriptive classification of the product.</td></tr><tr><td>sat_product_pricing</td><td>standard</td><td>hub_product</td><td>2</td><td>—</td><td>—</td><td>Financial figures that change at a different rate from descriptive attributes.</td></tr><tr><td>sat_product_inventory_policy</td><td>standard</td><td>hub_product</td><td>2</td><td>—</td><td>—</td><td>Supply-chain planning parameters, maintained separately.</td></tr><tr><td>sat_product_lifecycle</td><td>standard</td><td>hub_product</td><td>3</td><td>—</td><td>—</td><td>Lifecycle events with their own rate of change.</td></tr><tr><td>sat_product_cost_history</td><td>multi_active</td><td>hub_product</td><td>3</td><td>StartDate</td><td>ProductCostHistory</td><td>Separate source relation at finer grain (one row per cost period).</td></tr><tr><td>sat_product_list_price_history</td><td>multi_active</td><td>hub_product</td><td>3</td><td>StartDate</td><td>ProductListPriceHistory</td><td>Separate source relation at finer grain (one row per price period).</td></tr><tr><td>sat_product_category_details</td><td>standard</td><td>hub_product_category</td><td>2</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_product_subcategory_details</td><td>standard</td><td>hub_product_subcategory</td><td>2</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_product_model_details</td><td>standard</td><td>hub_product_model</td><td>2</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_product_model_content</td><td>standard</td><td>hub_product_model</td><td>2</td><td>—</td><td>—</td><td>Large structured-document content, split from the lightweight descriptive data by data type.</td></tr><tr><td>sat_culture_details</td><td>standard</td><td>hub_culture</td><td>2</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_unit_measure_details</td><td>standard</td><td>hub_unit_measure</td><td>2</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_product_description_details</td><td>standard</td><td>hub_product_description</td><td>2</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_product_photo_details</td><td>standard</td><td>hub_product_photo</td><td>3</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_product_photo_images</td><td>standard</td><td>hub_product_photo</td><td>2</td><td>—</td><td>—</td><td>Binary content split out by data type; whether it is needed is still to be agreed.</td></tr><tr><td>sat_illustration_diagram</td><td>standard</td><td>hub_illustration</td><td>2</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_document_details</td><td>standard</td><td>hub_document</td><td>10</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_location_details</td><td>standard</td><td>hub_location</td><td>4</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_scrap_reason_details</td><td>standard</td><td>hub_scrap_reason</td><td>2</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_work_order_details</td><td>standard</td><td>hub_work_order</td><td>7</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_work_order_product_location_operation</td><td>multi_active</td><td>link_work_order_product_location</td><td>8</td><td>OperationSequence</td><td>WorkOrderRouting</td><td>—</td></tr><tr><td>sat_product_location_inventory</td><td>multi_active</td><td>link_product_location</td><td>2</td><td>Shelf, Bin</td><td>ProductInventory</td><td>—</td></tr><tr><td>sat_product_product_photo_details</td><td>standard</td><td>link_product_product_photo</td><td>2</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_product_assembly_component_effectivity</td><td>effectivity</td><td>link_product_assembly_component</td><td>2</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_product_assembly_component_details</td><td>standard</td><td>link_product_assembly_component</td><td>3</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_inventory_transaction_details</td><td>standard</td><td>hub_inventory_transaction</td><td>7</td><td>—</td><td>TransactionHistory</td><td>Split by source: live store.</td></tr><tr><td>sat_inventory_transaction_archive</td><td>standard</td><td>hub_inventory_transaction</td><td>7</td><td>—</td><td>TransactionHistoryArchive</td><td>Split by source: archive store.</td></tr><tr><td>sat_product_review_details</td><td>standard</td><td>hub_product_review</td><td>4</td><td>—</td><td>—</td><td>—</td></tr><tr><td>sat_product_review_reviewer_pii</td><td>standard</td><td>hub_product_review</td><td>2</td><td>—</td><td>—</td><td>Split out as personal data under data protection classification.</td></tr><tr><td>sat_business_entity_vendor_details</td><td>standard</td><td>hub_business_entity</td><td>3</td><td>—</td><td>Vendor</td><td>Identifying details that rarely change, kept apart from the commercial status codes that change more often.</td></tr><tr><td>sat_business_entity_vendor_status</td><td>standard</td><td>hub_business_entity</td><td>4</td><td>—</td><td>Vendor</td><td>Coded status attributes that change faster and whose history is explicitly required. Holds the single ModifiedDate for the Vendor source.</td></tr><tr><td>sat_product_vendor_terms</td><td>standard</td><td>link_product_vendor</td><td>5</td><td>—</td><td>ProductVendor</td><td>Agreed terms that change slowly. Holds the single ModifiedDate for ProductVendor.</td></tr><tr><td>sat_product_vendor_receipt</td><td>standard</td><td>link_product_vendor</td><td>3</td><td>—</td><td>ProductVendor</td><td>Running values that change with each order or receipt, much faster than the agreed terms.</td></tr><tr><td>sat_purchase_order_status</td><td>standard</td><td>hub_purchase_order</td><td>3</td><td>—</td><td>PurchaseOrderHeader</td><td>Workflow attributes that change with each revision or status transition. Holds the single ModifiedDate for PurchaseOrderHeader.</td></tr><tr><td>sat_purchase_order_details</td><td>standard</td><td>hub_purchase_order</td><td>6</td><td>—</td><td>PurchaseOrderHeader</td><td>Order dates and monetary totals, split from the workflow status attributes.</td></tr><tr><td>sat_purchase_order_line_details</td><td>standard</td><td>hub_purchase_order_line</td><td>4</td><td>—</td><td>PurchaseOrderDetail</td><td>Terms fixed when the order is placed, which rarely change afterwards.</td></tr><tr><td>sat_purchase_order_line_receipt</td><td>standard</td><td>hub_purchase_order_line</td><td>4</td><td>—</td><td>PurchaseOrderDetail</td><td>Receipt progression that changes with each delivery. Holds the single ModifiedDate for PurchaseOrderDetail.</td></tr><tr><td>sat_ship_method_details</td><td>standard</td><td>hub_ship_method</td><td>4</td><td>—</td><td>ShipMethod</td><td>—</td></tr><tr><td>sat_customer_details</td><td>standard</td><td>hub_customer</td><td>3</td><td>—</td><td>Customer</td><td>—</td></tr><tr><td>sat_business_entity_store_details</td><td>standard</td><td>hub_business_entity</td><td>3</td><td>—</td><td>Store</td><td>Non-confidential store descriptors split from confidential demographics.</td></tr><tr><td>sat_business_entity_store_demographics</td><td>standard</td><td>hub_business_entity</td><td>1</td><td>—</td><td>Store</td><td>Commercially confidential classification.</td></tr><tr><td>sat_business_entity_sales_person_remuneration</td><td>standard</td><td>hub_business_entity</td><td>5</td><td>—</td><td>SalesPerson</td><td>Remuneration terms change rarely; restricted.</td></tr><tr><td>sat_business_entity_sales_person_performance</td><td>standard</td><td>hub_business_entity</td><td>2</td><td>—</td><td>SalesPerson</td><td>Running totals change with every sale — high rate of change.</td></tr><tr><td>sat_business_entity_sales_quota_history</td><td>multi_active</td><td>hub_business_entity</td><td>3</td><td>QuotaDate</td><td>SalesPersonQuotaHistory</td><td>—</td></tr><tr><td>sat_sales_order_status</td><td>standard</td><td>hub_sales_order</td><td>4</td><td>—</td><td>SalesOrderHeader</td><td>Fast-changing fulfilment state.</td></tr><tr><td>sat_sales_order_details</td><td>standard</td><td>hub_sales_order</td><td>8</td><td>—</td><td>SalesOrderHeader</td><td>—</td></tr><tr><td>sat_sales_order_amounts</td><td>standard</td><td>hub_sales_order</td><td>4</td><td>—</td><td>SalesOrderHeader</td><td>Financial measures grouped separately from descriptive data.</td></tr><tr><td>sat_sales_order_payment</td><td>standard</td><td>hub_sales_order</td><td>1</td><td>—</td><td>SalesOrderHeader</td><td>Payment-sensitive classification.</td></tr><tr><td>sat_sales_order_line_details</td><td>standard</td><td>hub_sales_order_line</td><td>7</td><td>—</td><td>SalesOrderDetail</td><td>—</td></tr><tr><td>sat_sales_territory_details</td><td>standard</td><td>hub_sales_territory</td><td>4</td><td>—</td><td>SalesTerritory</td><td>—</td></tr><tr><td>sat_sales_territory_financials</td><td>standard</td><td>hub_sales_territory</td><td>4</td><td>—</td><td>SalesTerritory</td><td>Running totals change far more often than descriptors.</td></tr><tr><td>sat_credit_card_details</td><td>standard</td><td>hub_credit_card</td><td>2</td><td>—</td><td>CreditCard</td><td>—</td></tr><tr><td>sat_credit_card_sensitive</td><td>standard</td><td>hub_credit_card</td><td>3</td><td>—</td><td>CreditCard</td><td>Sensitive payment data isolated for access restriction.</td></tr><tr><td>sat_currency_details</td><td>standard</td><td>hub_currency</td><td>2</td><td>—</td><td>Currency</td><td>—</td></tr><tr><td>sat_currency_rate_details</td><td>standard</td><td>hub_currency_rate</td><td>4</td><td>—</td><td>CurrencyRate</td><td>—</td></tr><tr><td>sat_sales_reason_details</td><td>standard</td><td>hub_sales_reason</td><td>3</td><td>—</td><td>SalesReason</td><td>—</td></tr><tr><td>sat_special_offer_details</td><td>standard</td><td>hub_special_offer</td><td>10</td><td>—</td><td>SpecialOffer</td><td>—</td></tr><tr><td>sat_shopping_cart_product_details</td><td>standard</td><td>link_shopping_cart_product</td><td>4</td><td>—</td><td>ShoppingCartItem</td><td>—</td></tr><tr><td>sat_sales_tax_rate_details</td><td>standard</td><td>hub_sales_tax_rate</td><td>5</td><td>—</td><td>SalesTaxRate</td><td>—</td></tr><tr><td>sat_business_entity_sales_territory_assignment_effectivity</td><td>effectivity</td><td>link_business_entity_sales_territory_assignment</td><td>2</td><td>—</td><td>SalesTerritoryHistory</td><td>—</td></tr><tr><td>sat_business_entity_sales_territory_assignment_details</td><td>standard</td><td>link_business_entity_sales_territory_assignment</td><td>2</td><td>—</td><td>SalesTerritoryHistory</td><td>—</td></tr><tr><td>sat_business_entity_credit_card_details</td><td>standard</td><td>link_business_entity_credit_card</td><td>1</td><td>—</td><td>PersonCreditCard</td><td>—</td></tr><tr><td>sat_special_offer_product_details</td><td>standard</td><td>link_special_offer_product</td><td>2</td><td>—</td><td>SpecialOfferProduct</td><td>—</td></tr><tr><td>sat_country_region_currency_details</td><td>standard</td><td>link_country_region_currency</td><td>1</td><td>—</td><td>CountryRegionCurrency</td><td>—</td></tr><tr><td>sat_sales_order_sales_reason_details</td><td>standard</td><td>link_sales_order_sales_reason</td><td>1</td><td>—</td><td>SalesOrderHeaderSalesReason</td><td>—</td></tr></tbody></table></section><section><h2>Validation — PASSED</h2><table><thead><tr><th>Severity</th><th>Code</th><th>Construct</th><th>Message</th></tr></thead><tbody><tr><td>warning</td><td>W_HUB_NO_SAT</td><td>hub_shopping_cart</td><td>hub has no satellite; no descriptive data is captured for it</td></tr><tr><td>warning</td><td>W_EFFSAT_DATE_ORDER_UNVERIFIED</td><td>sat_business_entity_department_shift_effectivity</td><td>cannot verify that the effectivity date attributes (&#x27;StartDate&#x27;, &#x27;EndDate&#x27;) are in (start, end) order; confirm &#x27;StartDate&#x27; is the start and &#x27;EndDate&#x27; the end of the active period</td></tr><tr><td>warning</td><td>W_EFFSAT_DATE_ORDER_UNVERIFIED</td><td>sat_product_assembly_component_effectivity</td><td>cannot verify that the effectivity date attributes (&#x27;StartDate&#x27;, &#x27;EndDate&#x27;) are in (start, end) order; confirm &#x27;StartDate&#x27; is the start and &#x27;EndDate&#x27; the end of the active period</td></tr><tr><td>warning</td><td>W_EFFSAT_DATE_ORDER_UNVERIFIED</td><td>sat_business_entity_sales_territory_assignment_effectivity</td><td>cannot verify that the effectivity date attributes (&#x27;StartDate&#x27;, &#x27;EndDate&#x27;) are in (start, end) order; confirm &#x27;StartDate&#x27; is the start and &#x27;EndDate&#x27; the end of the active period</td></tr><tr><td>warning</td><td>W_LINK_REDUNDANT_GRAIN</td><td>link_business_entity_sales_territory, link_business_entity_sales_territory_assignment</td><td>links link_business_entity_sales_territory, link_business_entity_sales_territory_assignment connect the same hubs with the same link_type; likely the same unit of work modeled twice or a grain error</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_business_entity</td><td>attribute &#x27;Demographics&#x27; appears in several satellites of &#x27;hub_business_entity&#x27; fed by different source relations (sat_business_entity_person_sensitive &lt;- PERSON, sat_business_entity_store_demographics &lt;- STORE); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_business_entity</td><td>attribute &#x27;ModifiedDate&#x27; appears in several satellites of &#x27;hub_business_entity&#x27; fed by different source relations (sat_business_entity_credential &lt;- PASSWORD, sat_business_entity_details &lt;- BUSINESSENTITY, sat_business_entity_email &lt;- EMAILADDRESS, sat_business_entity_employee_details &lt;- EMPLOYEE, sat_business_entity_pay_history &lt;- EMPLOYEEPAYHISTORY, sat_business_entity_person_name &lt;- PERSON, sat_business_entity_sales_person_remuneration &lt;- SALESPERSON, sat_business_entity_sales_quota_history &lt;- SALESPERSONQUOTAHISTORY, sat_business_entity_store_details &lt;- STORE, sat_business_entity_vendor_status &lt;- VENDOR); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_business_entity</td><td>attribute &#x27;Name&#x27; appears in several satellites of &#x27;hub_business_entity&#x27; fed by different source relations (sat_business_entity_store_details &lt;- STORE, sat_business_entity_vendor_details &lt;- VENDOR); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_business_entity</td><td>attribute &#x27;rowguid&#x27; appears in several satellites of &#x27;hub_business_entity&#x27; fed by different source relations (sat_business_entity_sales_person_remuneration &lt;- SALESPERSON, sat_business_entity_sales_quota_history &lt;- SALESPERSONQUOTAHISTORY, sat_business_entity_store_details &lt;- STORE); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_business_entity</td><td>attribute &#x27;SalesQuota&#x27; appears in several satellites of &#x27;hub_business_entity&#x27; fed by different source relations (sat_business_entity_sales_person_remuneration &lt;- SALESPERSON, sat_business_entity_sales_quota_history &lt;- SALESPERSONQUOTAHISTORY); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_inventory_transaction</td><td>attribute &#x27;ActualCost&#x27; appears in several satellites of &#x27;hub_inventory_transaction&#x27; fed by different source relations (sat_inventory_transaction_archive &lt;- TRANSACTIONHISTORYARCHIVE, sat_inventory_transaction_details &lt;- TRANSACTIONHISTORY); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_inventory_transaction</td><td>attribute &#x27;ModifiedDate&#x27; appears in several satellites of &#x27;hub_inventory_transaction&#x27; fed by different source relations (sat_inventory_transaction_archive &lt;- TRANSACTIONHISTORYARCHIVE, sat_inventory_transaction_details &lt;- TRANSACTIONHISTORY); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_inventory_transaction</td><td>attribute &#x27;Quantity&#x27; appears in several satellites of &#x27;hub_inventory_transaction&#x27; fed by different source relations (sat_inventory_transaction_archive &lt;- TRANSACTIONHISTORYARCHIVE, sat_inventory_transaction_details &lt;- TRANSACTIONHISTORY); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_inventory_transaction</td><td>attribute &#x27;ReferenceOrderID&#x27; appears in several satellites of &#x27;hub_inventory_transaction&#x27; fed by different source relations (sat_inventory_transaction_archive &lt;- TRANSACTIONHISTORYARCHIVE, sat_inventory_transaction_details &lt;- TRANSACTIONHISTORY); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_inventory_transaction</td><td>attribute &#x27;ReferenceOrderLineID&#x27; appears in several satellites of &#x27;hub_inventory_transaction&#x27; fed by different source relations (sat_inventory_transaction_archive &lt;- TRANSACTIONHISTORYARCHIVE, sat_inventory_transaction_details &lt;- TRANSACTIONHISTORY); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_inventory_transaction</td><td>attribute &#x27;TransactionDate&#x27; appears in several satellites of &#x27;hub_inventory_transaction&#x27; fed by different source relations (sat_inventory_transaction_archive &lt;- TRANSACTIONHISTORYARCHIVE, sat_inventory_transaction_details &lt;- TRANSACTIONHISTORY); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_inventory_transaction</td><td>attribute &#x27;TransactionType&#x27; appears in several satellites of &#x27;hub_inventory_transaction&#x27; fed by different source relations (sat_inventory_transaction_archive &lt;- TRANSACTIONHISTORYARCHIVE, sat_inventory_transaction_details &lt;- TRANSACTIONHISTORY); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_product</td><td>attribute &#x27;EndDate&#x27; appears in several satellites of &#x27;hub_product&#x27; fed by different source relations (sat_product_cost_history &lt;- PRODUCTCOSTHISTORY, sat_product_list_price_history &lt;- PRODUCTLISTPRICEHISTORY); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_product</td><td>attribute &#x27;ListPrice&#x27; appears in several satellites of &#x27;hub_product&#x27; fed by different source relations (sat_product_list_price_history &lt;- PRODUCTLISTPRICEHISTORY, sat_product_pricing &lt;- PRODUCT); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_product</td><td>attribute &#x27;ModifiedDate&#x27; appears in several satellites of &#x27;hub_product&#x27; fed by different source relations (sat_product_cost_history &lt;- PRODUCTCOSTHISTORY, sat_product_details &lt;- PRODUCT, sat_product_list_price_history &lt;- PRODUCTLISTPRICEHISTORY); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_product</td><td>attribute &#x27;StandardCost&#x27; appears in several satellites of &#x27;hub_product&#x27; fed by different source relations (sat_product_cost_history &lt;- PRODUCTCOSTHISTORY, sat_product_pricing &lt;- PRODUCT); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_business_entity</td><td>existing hub &#x27;hub_business_entity&#x27; gained 3 source feed(s): Store, SalesPerson, SalesPersonQuotaHistory</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_customer</td><td>new hub &#x27;hub_customer&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_sales_order</td><td>new hub &#x27;hub_sales_order&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_sales_order_line</td><td>new hub &#x27;hub_sales_order_line&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_sales_territory</td><td>new hub &#x27;hub_sales_territory&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_credit_card</td><td>new hub &#x27;hub_credit_card&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_currency</td><td>new hub &#x27;hub_currency&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_currency_rate</td><td>new hub &#x27;hub_currency_rate&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_sales_reason</td><td>new hub &#x27;hub_sales_reason&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_special_offer</td><td>new hub &#x27;hub_special_offer&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_shopping_cart</td><td>new hub &#x27;hub_shopping_cart&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>hub_sales_tax_rate</td><td>new hub &#x27;hub_sales_tax_rate&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_customer_business_entity</td><td>new link &#x27;link_customer_business_entity&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_customer_sales_territory</td><td>new link &#x27;link_customer_sales_territory&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_business_entity_store_sales_person</td><td>new link &#x27;link_business_entity_store_sales_person&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_order_customer</td><td>new link &#x27;link_sales_order_customer&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_order_sales_person</td><td>new link &#x27;link_sales_order_sales_person&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_order_sales_territory</td><td>new link &#x27;link_sales_order_sales_territory&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_order_address</td><td>new link &#x27;link_sales_order_address&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_order_ship_method</td><td>new link &#x27;link_sales_order_ship_method&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_order_credit_card</td><td>new link &#x27;link_sales_order_credit_card&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_order_currency_rate</td><td>new link &#x27;link_sales_order_currency_rate&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_order_line_product_special_offer</td><td>new link &#x27;link_sales_order_line_product_special_offer&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_order_sales_reason</td><td>new link &#x27;link_sales_order_sales_reason&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_business_entity_sales_territory</td><td>new link &#x27;link_business_entity_sales_territory&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_business_entity_sales_territory_assignment</td><td>new link &#x27;link_business_entity_sales_territory_assignment&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_territory_country_region</td><td>new link &#x27;link_sales_territory_country_region&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_business_entity_credit_card</td><td>new link &#x27;link_business_entity_credit_card&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_special_offer_product</td><td>new link &#x27;link_special_offer_product&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_country_region_currency</td><td>new link &#x27;link_country_region_currency&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_currency_rate_currency</td><td>new link &#x27;link_currency_rate_currency&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_tax_rate_state_province</td><td>new link &#x27;link_sales_tax_rate_state_province&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_shopping_cart_product</td><td>new link &#x27;link_shopping_cart_product&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>link_sales_order_line_product</td><td>new link &#x27;link_sales_order_line_product&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_customer_details</td><td>new satellite &#x27;sat_customer_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_business_entity_store_details</td><td>new satellite &#x27;sat_business_entity_store_details&#x27; on hub_business_entity added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_business_entity_store_demographics</td><td>new satellite &#x27;sat_business_entity_store_demographics&#x27; on hub_business_entity added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_business_entity_sales_person_remuneration</td><td>new satellite &#x27;sat_business_entity_sales_person_remuneration&#x27; on hub_business_entity added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_business_entity_sales_person_performance</td><td>new satellite &#x27;sat_business_entity_sales_person_performance&#x27; on hub_business_entity added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_business_entity_sales_quota_history</td><td>new satellite &#x27;sat_business_entity_sales_quota_history&#x27; on hub_business_entity added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_sales_order_status</td><td>new satellite &#x27;sat_sales_order_status&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_sales_order_details</td><td>new satellite &#x27;sat_sales_order_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_sales_order_amounts</td><td>new satellite &#x27;sat_sales_order_amounts&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_sales_order_payment</td><td>new satellite &#x27;sat_sales_order_payment&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_sales_order_line_details</td><td>new satellite &#x27;sat_sales_order_line_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_sales_territory_details</td><td>new satellite &#x27;sat_sales_territory_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_sales_territory_financials</td><td>new satellite &#x27;sat_sales_territory_financials&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_credit_card_details</td><td>new satellite &#x27;sat_credit_card_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_credit_card_sensitive</td><td>new satellite &#x27;sat_credit_card_sensitive&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_currency_details</td><td>new satellite &#x27;sat_currency_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_currency_rate_details</td><td>new satellite &#x27;sat_currency_rate_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_sales_reason_details</td><td>new satellite &#x27;sat_sales_reason_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_special_offer_details</td><td>new satellite &#x27;sat_special_offer_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_shopping_cart_product_details</td><td>new satellite &#x27;sat_shopping_cart_product_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_sales_tax_rate_details</td><td>new satellite &#x27;sat_sales_tax_rate_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_business_entity_sales_territory_assignment_effectivity</td><td>new satellite &#x27;sat_business_entity_sales_territory_assignment_effectivity&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_business_entity_sales_territory_assignment_details</td><td>new satellite &#x27;sat_business_entity_sales_territory_assignment_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_business_entity_credit_card_details</td><td>new satellite &#x27;sat_business_entity_credit_card_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_special_offer_product_details</td><td>new satellite &#x27;sat_special_offer_product_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_country_region_currency_details</td><td>new satellite &#x27;sat_country_region_currency_details&#x27; added by this extension run</td></tr><tr><td>info</td><td>I_EXISTING_EXTENDED</td><td>sat_sales_order_sales_reason_details</td><td>new satellite &#x27;sat_sales_order_sales_reason_details&#x27; added by this extension run</td></tr><tr><td>warning</td><td>W_ROLE_BK_NOT_IN_SOURCE</td><td>link_business_entity_store_sales_person</td><td>role-qualified participation hub_business_entity (role &#x27;sales_person&#x27;) expects a source column &#x27;SALES_PERSON_BUSINESSENTITYID&#x27;, which matches no column in the declared source schema; verify the source or complete the schema</td></tr></tbody></table></section><section><h2>Review queue</h2><p><strong>Status:</strong> advisory only — 12 decision(s), 31 disclosure(s).</p><h3>Decisions</h3><h4>Review flags (advisory)</h4><ul><li><strong>entity_resolver: concept &#x27;PurchaseOrderNumber&#x27; could not be resolved against the existing vault — a human decides whether it is an existing construct or new</strong> <em>(entity_resolver)</em></li><li><strong>link_proposer: link link_sales_order_line_product_special_offer, built by the modeler from SalesOrderDetail, requires surrogate→natural-key translation through SalesOrderHeader for hub_sales_order (SalesOrderID → SALESORDERNUMBER); repaired under a ratified key; review the translation model</strong> <em>(link_proposer)</em></li><li><strong>link_proposer: link link_sales_order_sales_reason, built by the modeler from SalesOrderHeaderSalesReason, requires surrogate→natural-key translation through SalesOrderHeader for hub_sales_order (SalesOrderID → SALESORDERNUMBER); repaired under a ratified key; review the translation model</strong> <em>(link_proposer)</em></li><li><strong>link_proposer: satellite sat_sales_order_sales_reason_details reads SalesOrderHeaderSalesReason, which carries SalesOrderID but not hub_sales_order&#x27;s key SALESORDERNUMBER: joined in through SalesOrderHeader under a ratified key; review the translation model</strong> <em>(link_proposer)</em></li><li><strong>code_generator: satellite &#x27;sat_business_entity_sales_quota_history&#x27; of type &#x27;multi_active&#x27; on multi-source hub &#x27;hub_business_entity&#x27; is not supported; flagged for human review</strong> <em>(code_generator)</em></li><li><strong>source_mapper: concept &#x27;rowguid&#x27; could not be resolved to a single source column — a human ratifies it (a multi-source key is deferred to WP10)</strong> <em>(source_mapper)</em></li><li><strong>source_mapper: concept &#x27;ModifiedDate&#x27; could not be resolved to a single source column — a human ratifies it (a multi-source key is deferred to WP10)</strong> <em>(source_mapper)</em></li><li><strong>5× inferred staging source binding(s)</strong> — e.g. stg_customer_sales_territory, stg_business_entity_store_sales_person, … — review before agreeing <em>(code_generator)</em></li></ul><h3>Disclosures (no answer needed)</h3><h4>Validation warnings (advisory)</h4><ul><li><strong>W_HUB_NO_SAT on hub_shopping_cart</strong> — hub has no satellite; no descriptive data is captured for it <em>(validator)</em></li><li><strong>W_EFFSAT_DATE_ORDER_UNVERIFIED on sat_business_entity_department_shift_effectivity</strong> — cannot verify that the effectivity date attributes (&#x27;StartDate&#x27;, &#x27;EndDate&#x27;) are in (start, end) order; confirm &#x27;StartDate&#x27; is the start and &#x27;EndDate&#x27; the end of the active period <em>(validator)</em></li><li><strong>W_EFFSAT_DATE_ORDER_UNVERIFIED on sat_product_assembly_component_effectivity</strong> — cannot verify that the effectivity date attributes (&#x27;StartDate&#x27;, &#x27;EndDate&#x27;) are in (start, end) order; confirm &#x27;StartDate&#x27; is the start and &#x27;EndDate&#x27; the end of the active period <em>(validator)</em></li><li><strong>W_EFFSAT_DATE_ORDER_UNVERIFIED on sat_business_entity_sales_territory_assignment_effectivity</strong> — cannot verify that the effectivity date attributes (&#x27;StartDate&#x27;, &#x27;EndDate&#x27;) are in (start, end) order; confirm &#x27;StartDate&#x27; is the start and &#x27;EndDate&#x27; the end of the active period <em>(validator)</em></li><li><strong>W_LINK_REDUNDANT_GRAIN on link_business_entity_sales_territory, link_business_entity_sales_territory_assignment</strong> — links link_business_entity_sales_territory, link_business_entity_sales_territory_assignment connect the same hubs with the same link_type; likely the same unit of work modeled twice or a grain error <em>(validator)</em></li><li><strong>16× W_SAT_ATTR_OVERLAP_CROSS_SOURCE</strong> — e.g. hub_business_entity, hub_business_entity, … — review before agreeing <em>(validator)</em></li><li><strong>W_ROLE_BK_NOT_IN_SOURCE on link_business_entity_store_sales_person</strong> — role-qualified participation hub_business_entity (role &#x27;sales_person&#x27;) expects a source column &#x27;SALES_PERSON_BUSINESSENTITYID&#x27;, which matches no column in the declared source schema; verify the source or complete the schema <em>(validator)</em></li></ul><h4>Review flags (advisory)</h4><ul><li><strong>requirements_parser: document &#x27;demo/workbench-adventureworks/adventureworks/inputs/sales_requirements.md&#x27; did not fit one model response and was extracted over 3 segment(s) split on section boundaries; requirement ids are per-segment and were de-collided — review the extracted set for completeness</strong> <em>(requirements_parser)</em></li><li><strong>source_mapper: the 97 concept(s) did not fit one model response; mapping ran over 2 segment(s) of the concept list (each saw the full source schema) — review the proposals for consistency</strong> <em>(source_mapper)</em></li><li><strong>5× declined foreign key(s) — no hub for the referenced table</strong> — e.g. CountryRegionCurrency.CountryRegionCode, PersonCreditCard.BusinessEntityID, … — review before agreeing <em>(link_proposer)</em></li><li><strong>code_generator: staging model &#x27;stg_work_order_product_location&#x27; assumes raw source &#x27;raw_work_order_product_location&#x27; (no declared source table matched); provide it as a seed/table of that name or correct the binding</strong> <em>(code_generator)</em></li><li><strong>code_generator: staging model &#x27;stg_sales_order_currency_rate&#x27; assumes raw source &#x27;raw_sales_order_currency_rate&#x27; (no declared source table matched); provide it as a seed/table of that name or correct the binding</strong> <em>(code_generator)</em></li></ul></section><section><h2>Source mappings</h2><table><thead><tr><th>Concept</th><th>Source</th><th>Category</th><th>Confidence</th><th>Status</th></tr></thead><tbody><tr><td>AccountNumber</td><td>Customer.AccountNumber</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>SalesOrderNumber</td><td>SalesOrderHeader.SalesOrderNumber</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>sales_order_line</td><td>SalesOrderDetail.SalesOrderDetailID</td><td>llm_semantic</td><td>0.650</td><td>accepted</td></tr><tr><td>TerritoryID</td><td>SalesTerritory.TerritoryID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>CreditCardID</td><td>CreditCard.CreditCardID</td><td>exact_name</td><td>0.920</td><td>accepted</td></tr><tr><td>CurrencyCode</td><td>Currency.CurrencyCode</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>currency_rate</td><td>CurrencyRate.CurrencyRateID</td><td>llm_semantic</td><td>0.850</td><td>accepted</td></tr><tr><td>SalesReasonID</td><td>SalesReason.SalesReasonID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>SpecialOfferID</td><td>SpecialOffer.SpecialOfferID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ShoppingCartID</td><td>ShoppingCartItem.ShoppingCartID</td><td>exact_name</td><td>0.850</td><td>accepted</td></tr><tr><td>SalesTaxRateID</td><td>SalesTaxRate.SalesTaxRateID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>CustomerID</td><td>Customer.CustomerID</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>rowguid</td><td>Customer.rowguid</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>Customer.ModifiedDate</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>Name</td><td>Store.Name</td><td>exact_name</td><td>0.500</td><td>accepted</td></tr><tr><td>Demographics</td><td>Store.Demographics</td><td>exact_name</td><td>0.850</td><td>accepted</td></tr><tr><td>SalesQuota</td><td>SalesPerson.SalesQuota</td><td>exact_name</td><td>0.800</td><td>accepted</td></tr><tr><td>Bonus</td><td>SalesPerson.Bonus</td><td>exact_name</td><td>0.920</td><td>accepted</td></tr><tr><td>CommissionPct</td><td>SalesPerson.CommissionPct</td><td>exact_name</td><td>0.920</td><td>accepted</td></tr><tr><td>SalesYTD</td><td>SalesPerson.SalesYTD</td><td>exact_name</td><td>0.800</td><td>accepted</td></tr><tr><td>SalesLastYear</td><td>SalesPerson.SalesLastYear</td><td>exact_name</td><td>0.800</td><td>accepted</td></tr><tr><td>Status</td><td>SalesOrderHeader.Status</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ShipDate</td><td>SalesOrderHeader.ShipDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>RevisionNumber</td><td>SalesOrderHeader.RevisionNumber</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>SalesOrderHeader.ModifiedDate</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>SalesOrderID</td><td>SalesOrderHeader.SalesOrderID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>OrderDate</td><td>SalesOrderHeader.OrderDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>DueDate</td><td>SalesOrderHeader.DueDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>OnlineOrderFlag</td><td>SalesOrderHeader.OnlineOrderFlag</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>PurchaseOrderNumber</td><td>SalesOrderHeader.PurchaseOrderNumber</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>AccountNumber</td><td>SalesOrderHeader.AccountNumber</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>Comment</td><td>SalesOrderHeader.Comment</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>rowguid</td><td>SalesOrderHeader.rowguid</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>SubTotal</td><td>SalesOrderHeader.SubTotal</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>TaxAmt</td><td>SalesOrderHeader.TaxAmt</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Freight</td><td>SalesOrderHeader.Freight</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>TotalDue</td><td>SalesOrderHeader.TotalDue</td><td>exact_name</td><td>0.920</td><td>accepted</td></tr><tr><td>CreditCardApprovalCode</td><td>SalesOrderHeader.CreditCardApprovalCode</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>CarrierTrackingNumber</td><td>SalesOrderDetail.CarrierTrackingNumber</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>OrderQty</td><td>SalesOrderDetail.OrderQty</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>UnitPrice</td><td>SalesOrderDetail.UnitPrice</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>UnitPriceDiscount</td><td>SalesOrderDetail.UnitPriceDiscount</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>LineTotal</td><td>SalesOrderDetail.LineTotal</td><td>exact_name</td><td>0.920</td><td>accepted</td></tr><tr><td>rowguid</td><td>SalesOrderDetail.rowguid</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>SalesOrderDetail.ModifiedDate</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>Name</td><td>SalesTerritory.Name</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>Group</td><td>SalesTerritory.Group</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>rowguid</td><td>SalesTerritory.rowguid</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>SalesTerritory.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>SalesYTD</td><td>SalesTerritory.SalesYTD</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>SalesLastYear</td><td>SalesTerritory.SalesLastYear</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>CostYTD</td><td>SalesTerritory.CostYTD</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>CostLastYear</td><td>SalesTerritory.CostLastYear</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>CardType</td><td>CreditCard.CardType</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>CreditCard.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>CardNumber</td><td>CreditCard.CardNumber</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ExpMonth</td><td>CreditCard.ExpMonth</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ExpYear</td><td>CreditCard.ExpYear</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Name</td><td>Currency.Name</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>Currency.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>CurrencyRateID</td><td>CurrencyRate.CurrencyRateID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>AverageRate</td><td>CurrencyRate.AverageRate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>EndOfDayRate</td><td>CurrencyRate.EndOfDayRate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>CurrencyRate.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Name</td><td>SalesReason.Name</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ReasonType</td><td>SalesReason.ReasonType</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>SalesReason.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Description</td><td>SpecialOffer.Description</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>DiscountPct</td><td>SpecialOffer.DiscountPct</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Type</td><td>SpecialOffer.Type</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Category</td><td>SpecialOffer.Category</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>StartDate</td><td>SpecialOffer.StartDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>EndDate</td><td>SpecialOffer.EndDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>MinQty</td><td>SpecialOffer.MinQty</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>MaxQty</td><td>SpecialOffer.MaxQty</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>rowguid</td><td>SpecialOffer.rowguid</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>SpecialOffer.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ShoppingCartItemID</td><td>ShoppingCartItem.ShoppingCartItemID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Quantity</td><td>ShoppingCartItem.Quantity</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>DateCreated</td><td>ShoppingCartItem.DateCreated</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>ShoppingCartItem.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Name</td><td>SalesTaxRate.Name</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>TaxType</td><td>SalesTaxRate.TaxType</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>TaxRate</td><td>SalesTaxRate.TaxRate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>rowguid</td><td>SalesTaxRate.rowguid</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>SalesTaxRate.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>StartDate</td><td>SalesTerritoryHistory.StartDate</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>EndDate</td><td>SalesTerritoryHistory.EndDate</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>rowguid</td><td>SalesTerritoryHistory.rowguid</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>SalesTerritoryHistory.ModifiedDate</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>PersonCreditCard.ModifiedDate</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>rowguid</td><td>SpecialOfferProduct.rowguid</td><td>exact_name</td><td>0.920</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>SpecialOfferProduct.ModifiedDate</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>CountryRegionCurrency.ModifiedDate</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>SalesOrderHeaderSalesReason.ModifiedDate</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr></tbody></table><h3>Unresolved (need a decision)</h3><ul><li>hub_business_entity::rowguid</li><li>hub_business_entity::ModifiedDate</li></ul><p class='hint'>Ratify in <code>mappings.review.yml</code> (<code>vault-agent resume --mappings &lt;file&gt;</code>).</p></section><section><h2>Extension</h2><p>Extends <code>demo/workbench-adventureworks/adventureworks/runs/20261022T140746303809Z</code>: <strong>119</strong> unchanged, <strong>1</strong> extended, <strong>60</strong> new construct(s). Unchanged constructs render byte-identically, so a rebuild leaves their tables untouched.</p><table><thead><tr><th>Construct</th><th>Gained</th><th>Changed files</th></tr></thead><tbody><tr><td>hub_business_entity</td><td>3 source feed(s): Store.BusinessEntityID, SalesPerson.BusinessEntityID, SalesPersonQuotaHistory.BusinessEntityID; 5 new satellite(s): sat_business_entity_store_details, sat_business_entity_store_demographics, sat_business_entity_sales_person_remuneration, sat_business_entity_sales_person_performance, sat_business_entity_sales_quota_history</td><td><code>models/raw_vault/hub_business_entity.sql</code></td></tr></tbody></table><h3>New</h3><table><thead><tr><th>Construct</th><th>Parent</th></tr></thead><tbody><tr><td>hub_customer</td><td>—</td></tr><tr><td>hub_sales_order</td><td>—</td></tr><tr><td>hub_sales_order_line</td><td>—</td></tr><tr><td>hub_sales_territory</td><td>—</td></tr><tr><td>hub_credit_card</td><td>—</td></tr><tr><td>hub_currency</td><td>—</td></tr><tr><td>hub_currency_rate</td><td>—</td></tr><tr><td>hub_sales_reason</td><td>—</td></tr><tr><td>hub_special_offer</td><td>—</td></tr><tr><td>hub_shopping_cart</td><td>—</td></tr><tr><td>hub_sales_tax_rate</td><td>—</td></tr><tr><td>link_customer_business_entity</td><td>—</td></tr><tr><td>link_customer_sales_territory</td><td>—</td></tr><tr><td>link_business_entity_store_sales_person</td><td>—</td></tr><tr><td>link_sales_order_customer</td><td>—</td></tr><tr><td>link_sales_order_sales_person</td><td>—</td></tr><tr><td>link_sales_order_sales_territory</td><td>—</td></tr><tr><td>link_sales_order_address</td><td>—</td></tr><tr><td>link_sales_order_ship_method</td><td>—</td></tr><tr><td>link_sales_order_credit_card</td><td>—</td></tr><tr><td>link_sales_order_currency_rate</td><td>—</td></tr><tr><td>link_sales_order_line_product_special_offer</td><td>—</td></tr><tr><td>link_sales_order_sales_reason</td><td>—</td></tr><tr><td>link_business_entity_sales_territory</td><td>—</td></tr><tr><td>link_business_entity_sales_territory_assignment</td><td>—</td></tr><tr><td>link_sales_territory_country_region</td><td>—</td></tr><tr><td>link_business_entity_credit_card</td><td>—</td></tr><tr><td>link_special_offer_product</td><td>—</td></tr><tr><td>link_country_region_currency</td><td>—</td></tr><tr><td>link_currency_rate_currency</td><td>—</td></tr><tr><td>link_sales_tax_rate_state_province</td><td>—</td></tr><tr><td>link_shopping_cart_product</td><td>—</td></tr><tr><td>link_sales_order_line_product</td><td>—</td></tr><tr><td>sat_customer_details</td><td>hub_customer</td></tr><tr><td>sat_business_entity_store_details</td><td>hub_business_entity</td></tr><tr><td>sat_business_entity_store_demographics</td><td>hub_business_entity</td></tr><tr><td>sat_business_entity_sales_person_remuneration</td><td>hub_business_entity</td></tr><tr><td>sat_business_entity_sales_person_performance</td><td>hub_business_entity</td></tr><tr><td>sat_business_entity_sales_quota_history</td><td>hub_business_entity</td></tr><tr><td>sat_sales_order_status</td><td>hub_sales_order</td></tr><tr><td>sat_sales_order_details</td><td>hub_sales_order</td></tr><tr><td>sat_sales_order_amounts</td><td>hub_sales_order</td></tr><tr><td>sat_sales_order_payment</td><td>hub_sales_order</td></tr><tr><td>sat_sales_order_line_details</td><td>hub_sales_order_line</td></tr><tr><td>sat_sales_territory_details</td><td>hub_sales_territory</td></tr><tr><td>sat_sales_territory_financials</td><td>hub_sales_territory</td></tr><tr><td>sat_credit_card_details</td><td>hub_credit_card</td></tr><tr><td>sat_credit_card_sensitive</td><td>hub_credit_card</td></tr><tr><td>sat_currency_details</td><td>hub_currency</td></tr><tr><td>sat_currency_rate_details</td><td>hub_currency_rate</td></tr><tr><td>sat_sales_reason_details</td><td>hub_sales_reason</td></tr><tr><td>sat_special_offer_details</td><td>hub_special_offer</td></tr><tr><td>sat_shopping_cart_product_details</td><td>link_shopping_cart_product</td></tr><tr><td>sat_sales_tax_rate_details</td><td>hub_sales_tax_rate</td></tr><tr><td>sat_business_entity_sales_territory_assignment_effectivity</td><td>link_business_entity_sales_territory_assignment</td></tr><tr><td>sat_business_entity_sales_territory_assignment_details</td><td>link_business_entity_sales_territory_assignment</td></tr><tr><td>sat_business_entity_credit_card_details</td><td>link_business_entity_credit_card</td></tr><tr><td>sat_special_offer_product_details</td><td>link_special_offer_product</td></tr><tr><td>sat_country_region_currency_details</td><td>link_country_region_currency</td></tr><tr><td>sat_sales_order_sales_reason_details</td><td>link_sales_order_sales_reason</td></tr></tbody></table><details><summary>Unchanged (119)</summary><p><code>hub_address</code>, <code>hub_address_type</code>, <code>hub_contact_type</code>, <code>hub_phone_number_type</code>, <code>hub_country_region</code>, <code>hub_state_province</code>, <code>hub_department</code>, <code>hub_shift</code>, <code>hub_job_candidate</code>, <code>hub_product</code>, <code>hub_product_category</code>, <code>hub_product_subcategory</code>, <code>hub_product_model</code>, <code>hub_culture</code>, <code>hub_unit_measure</code>, <code>hub_product_description</code>, <code>hub_product_photo</code>, <code>hub_illustration</code>, <code>hub_document</code>, <code>hub_location</code>, <code>hub_scrap_reason</code>, <code>hub_work_order</code>, <code>hub_inventory_transaction</code>, <code>hub_product_review</code>, <code>hub_purchase_order</code>, <code>hub_purchase_order_line</code>, <code>hub_ship_method</code>, <code>link_business_entity_address</code>, <code>link_business_entity_contact</code>, <code>link_business_entity_phone_number_type</code>, <code>link_address_state_province</code>, <code>link_state_province_country_region</code>, <code>link_business_entity_department_shift</code>, <code>link_business_entity_job_candidate</code>, <code>link_product_product_subcategory</code>, <code>link_product_subcategory_product_category</code>, <code>link_product_product_model</code>, <code>link_product_unit_measure</code>, <code>link_product_assembly_component</code>, <code>link_product_model_description_culture</code>, <code>link_product_model_illustration</code>, <code>link_product_product_photo</code>, <code>link_product_document</code>, <code>link_document_business_entity</code>, <code>link_product_location</code>, <code>link_work_order_product</code>, <code>link_work_order_scrap_reason</code>, <code>link_work_order_product_location</code>, <code>link_inventory_transaction_product</code>, <code>link_product_review_product</code>, <code>link_product_vendor</code>, <code>link_purchase_order_vendor_employee_ship_method</code>, <code>link_purchase_order_line_product</code>, <code>link_purchase_order_business_entity</code>, <code>sat_business_entity_details</code>, <code>sat_business_entity_person_name</code>, <code>sat_business_entity_marketing_consent</code>, <code>sat_business_entity_person_sensitive</code>, <code>sat_business_entity_credential</code>, <code>sat_business_entity_email</code>, <code>sat_business_entity_phone_number_type_phones</code>, <code>sat_business_entity_address_details</code>, <code>sat_business_entity_contact_details</code>, <code>sat_address_details</code>, <code>sat_address_location</code>, <code>sat_address_type_details</code>, <code>sat_contact_type_details</code>, <code>sat_phone_number_type_details</code>, <code>sat_country_region_details</code>, <code>sat_state_province_details</code>, <code>sat_state_province_territory</code>, <code>sat_business_entity_employee_details</code>, <code>sat_business_entity_employee_sensitive</code>, <code>sat_business_entity_employee_leave</code>, <code>sat_business_entity_employee_hierarchy</code>, <code>sat_business_entity_pay_history</code>, <code>sat_business_entity_department_shift_effectivity</code>, <code>sat_business_entity_department_shift_audit</code>, <code>sat_department_details</code>, <code>sat_shift_details</code>, <code>sat_job_candidate_resume</code>, <code>sat_product_details</code>, <code>sat_product_pricing</code>, <code>sat_product_inventory_policy</code>, <code>sat_product_lifecycle</code>, <code>sat_product_cost_history</code>, <code>sat_product_list_price_history</code>, <code>sat_product_category_details</code>, <code>sat_product_subcategory_details</code>, <code>sat_product_model_details</code>, <code>sat_product_model_content</code>, <code>sat_culture_details</code>, <code>sat_unit_measure_details</code>, <code>sat_product_description_details</code>, <code>sat_product_photo_details</code>, <code>sat_product_photo_images</code>, <code>sat_illustration_diagram</code>, <code>sat_document_details</code>, <code>sat_location_details</code>, <code>sat_scrap_reason_details</code>, <code>sat_work_order_details</code>, <code>sat_work_order_product_location_operation</code>, <code>sat_product_location_inventory</code>, <code>sat_product_product_photo_details</code>, <code>sat_product_assembly_component_effectivity</code>, <code>sat_product_assembly_component_details</code>, <code>sat_inventory_transaction_details</code>, <code>sat_inventory_transaction_archive</code>, <code>sat_product_review_details</code>, <code>sat_product_review_reviewer_pii</code>, <code>sat_business_entity_vendor_details</code>, <code>sat_business_entity_vendor_status</code>, <code>sat_product_vendor_terms</code>, <code>sat_product_vendor_receipt</code>, <code>sat_purchase_order_status</code>, <code>sat_purchase_order_details</code>, <code>sat_purchase_order_line_details</code>, <code>sat_purchase_order_line_receipt</code>, <code>sat_ship_method_details</code></p></details></section><section><h2>Data contracts</h2><table><thead><tr><th>Contract</th><th>Owner</th><th>Fields</th></tr></thead><tbody><tr><td>CountryRegionCurrency</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>3</td></tr><tr><td>CreditCard</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>6</td></tr><tr><td>Currency</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>3</td></tr><tr><td>CurrencyRate</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>7</td></tr><tr><td>Customer</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>7</td></tr><tr><td>PersonCreditCard</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>3</td></tr><tr><td>SalesOrderDetail</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>11</td></tr><tr><td>SalesOrderHeader</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>26</td></tr><tr><td>SalesOrderHeaderSalesReason</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>3</td></tr><tr><td>SalesPerson</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>9</td></tr><tr><td>SalesPersonQuotaHistory</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>5</td></tr><tr><td>SalesReason</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>4</td></tr><tr><td>SalesTaxRate</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>7</td></tr><tr><td>SalesTerritory</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>10</td></tr><tr><td>SalesTerritoryHistory</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>6</td></tr><tr><td>ShoppingCartItem</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>6</td></tr><tr><td>SpecialOffer</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>11</td></tr><tr><td>SpecialOfferProduct</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>4</td></tr><tr><td>Store</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>6</td></tr></tbody></table></section><section><details><summary>Generated files</summary><ul class='files'><li><code>models/raw_vault/hub_business_entity.sql</code></li><li><code>models/raw_vault/hub_address.sql</code></li><li><code>models/raw_vault/hub_address_type.sql</code></li><li><code>models/raw_vault/hub_contact_type.sql</code></li><li><code>models/raw_vault/hub_phone_number_type.sql</code></li><li><code>models/raw_vault/hub_country_region.sql</code></li><li><code>models/raw_vault/hub_state_province.sql</code></li><li><code>models/raw_vault/hub_department.sql</code></li><li><code>models/raw_vault/hub_shift.sql</code></li><li><code>models/raw_vault/hub_job_candidate.sql</code></li><li><code>models/raw_vault/hub_product.sql</code></li><li><code>models/raw_vault/hub_product_category.sql</code></li><li><code>models/raw_vault/hub_product_subcategory.sql</code></li><li><code>models/raw_vault/hub_product_model.sql</code></li><li><code>models/raw_vault/hub_culture.sql</code></li><li><code>models/raw_vault/hub_unit_measure.sql</code></li><li><code>models/raw_vault/hub_product_description.sql</code></li><li><code>models/raw_vault/hub_product_photo.sql</code></li><li><code>models/raw_vault/hub_illustration.sql</code></li><li><code>models/raw_vault/hub_document.sql</code></li><li><code>models/raw_vault/hub_location.sql</code></li><li><code>models/raw_vault/hub_scrap_reason.sql</code></li><li><code>models/raw_vault/hub_work_order.sql</code></li><li><code>models/raw_vault/hub_inventory_transaction.sql</code></li><li><code>models/raw_vault/hub_product_review.sql</code></li><li><code>models/raw_vault/hub_purchase_order.sql</code></li><li><code>models/raw_vault/hub_purchase_order_line.sql</code></li><li><code>models/raw_vault/hub_ship_method.sql</code></li><li><code>models/raw_vault/hub_customer.sql</code></li><li><code>models/raw_vault/hub_sales_order.sql</code></li><li><code>models/raw_vault/hub_sales_order_line.sql</code></li><li><code>models/raw_vault/hub_sales_territory.sql</code></li><li><code>models/raw_vault/hub_credit_card.sql</code></li><li><code>models/raw_vault/hub_currency.sql</code></li><li><code>models/raw_vault/hub_currency_rate.sql</code></li><li><code>models/raw_vault/hub_sales_reason.sql</code></li><li><code>models/raw_vault/hub_special_offer.sql</code></li><li><code>models/raw_vault/hub_shopping_cart.sql</code></li><li><code>models/raw_vault/hub_sales_tax_rate.sql</code></li><li><code>models/raw_vault/link_business_entity_address.sql</code></li><li><code>models/raw_vault/link_business_entity_contact.sql</code></li><li><code>models/raw_vault/link_business_entity_phone_number_type.sql</code></li><li><code>models/raw_vault/link_address_state_province.sql</code></li><li><code>models/raw_vault/link_state_province_country_region.sql</code></li><li><code>models/raw_vault/link_business_entity_department_shift.sql</code></li><li><code>models/raw_vault/link_business_entity_job_candidate.sql</code></li><li><code>models/raw_vault/link_product_product_subcategory.sql</code></li><li><code>models/raw_vault/link_product_subcategory_product_category.sql</code></li><li><code>models/raw_vault/link_product_product_model.sql</code></li><li><code>models/raw_vault/link_product_unit_measure.sql</code></li><li><code>models/raw_vault/link_product_assembly_component.sql</code></li><li><code>models/raw_vault/link_product_model_description_culture.sql</code></li><li><code>models/raw_vault/link_product_model_illustration.sql</code></li><li><code>models/raw_vault/link_product_product_photo.sql</code></li><li><code>models/raw_vault/link_product_document.sql</code></li><li><code>models/raw_vault/link_document_business_entity.sql</code></li><li><code>models/raw_vault/link_product_location.sql</code></li><li><code>models/raw_vault/link_work_order_product.sql</code></li><li><code>models/raw_vault/link_work_order_scrap_reason.sql</code></li><li><code>models/raw_vault/link_work_order_product_location.sql</code></li><li><code>models/raw_vault/link_inventory_transaction_product.sql</code></li><li><code>models/raw_vault/link_product_review_product.sql</code></li><li><code>models/raw_vault/link_product_vendor.sql</code></li><li><code>models/raw_vault/link_purchase_order_vendor_employee_ship_method.sql</code></li><li><code>models/raw_vault/link_purchase_order_line_product.sql</code></li><li><code>models/raw_vault/link_purchase_order_business_entity.sql</code></li><li><code>models/raw_vault/link_customer_business_entity.sql</code></li><li><code>models/raw_vault/link_customer_sales_territory.sql</code></li><li><code>models/raw_vault/link_business_entity_store_sales_person.sql</code></li><li><code>models/raw_vault/link_sales_order_customer.sql</code></li><li><code>models/raw_vault/link_sales_order_sales_person.sql</code></li><li><code>models/raw_vault/link_sales_order_sales_territory.sql</code></li><li><code>models/raw_vault/link_sales_order_address.sql</code></li><li><code>models/raw_vault/link_sales_order_ship_method.sql</code></li><li><code>models/raw_vault/link_sales_order_credit_card.sql</code></li><li><code>models/raw_vault/link_sales_order_currency_rate.sql</code></li><li><code>models/raw_vault/link_sales_order_line_product_special_offer.sql</code></li><li><code>models/raw_vault/link_sales_order_sales_reason.sql</code></li><li><code>models/raw_vault/link_business_entity_sales_territory.sql</code></li><li><code>models/raw_vault/link_business_entity_sales_territory_assignment.sql</code></li><li><code>models/raw_vault/link_sales_territory_country_region.sql</code></li><li><code>models/raw_vault/link_business_entity_credit_card.sql</code></li><li><code>models/raw_vault/link_special_offer_product.sql</code></li><li><code>models/raw_vault/link_country_region_currency.sql</code></li><li><code>models/raw_vault/link_currency_rate_currency.sql</code></li><li><code>models/raw_vault/link_sales_tax_rate_state_province.sql</code></li><li><code>models/raw_vault/link_shopping_cart_product.sql</code></li><li><code>models/raw_vault/link_sales_order_line_product.sql</code></li><li><code>models/raw_vault/sat_business_entity_details.sql</code></li><li><code>models/raw_vault/sat_business_entity_person_name.sql</code></li><li><code>models/raw_vault/sat_business_entity_marketing_consent.sql</code></li><li><code>models/raw_vault/sat_business_entity_person_sensitive.sql</code></li><li><code>models/raw_vault/sat_business_entity_credential.sql</code></li><li><code>models/raw_vault/sat_business_entity_email.sql</code></li><li><code>models/raw_vault/sat_business_entity_phone_number_type_phones.sql</code></li><li><code>models/raw_vault/sat_business_entity_address_details.sql</code></li><li><code>models/raw_vault/sat_business_entity_contact_details.sql</code></li><li><code>models/raw_vault/sat_address_details.sql</code></li><li><code>models/raw_vault/sat_address_location.sql</code></li><li><code>models/raw_vault/sat_address_type_details.sql</code></li><li><code>models/raw_vault/sat_contact_type_details.sql</code></li><li><code>models/raw_vault/sat_phone_number_type_details.sql</code></li><li><code>models/raw_vault/sat_country_region_details.sql</code></li><li><code>models/raw_vault/sat_state_province_details.sql</code></li><li><code>models/raw_vault/sat_state_province_territory.sql</code></li><li><code>models/raw_vault/sat_business_entity_employee_details.sql</code></li><li><code>models/raw_vault/sat_business_entity_employee_sensitive.sql</code></li><li><code>models/raw_vault/sat_business_entity_employee_leave.sql</code></li><li><code>models/raw_vault/sat_business_entity_employee_hierarchy.sql</code></li><li><code>models/raw_vault/sat_business_entity_pay_history.sql</code></li><li><code>models/raw_vault/sat_business_entity_department_shift_effectivity.sql</code></li><li><code>models/raw_vault/sat_business_entity_department_shift_audit.sql</code></li><li><code>models/raw_vault/sat_department_details.sql</code></li><li><code>models/raw_vault/sat_shift_details.sql</code></li><li><code>models/raw_vault/sat_job_candidate_resume.sql</code></li><li><code>models/raw_vault/sat_product_details.sql</code></li><li><code>models/raw_vault/sat_product_pricing.sql</code></li><li><code>models/raw_vault/sat_product_inventory_policy.sql</code></li><li><code>models/raw_vault/sat_product_lifecycle.sql</code></li><li><code>models/raw_vault/sat_product_cost_history.sql</code></li><li><code>models/raw_vault/sat_product_list_price_history.sql</code></li><li><code>models/raw_vault/sat_product_category_details.sql</code></li><li><code>models/raw_vault/sat_product_subcategory_details.sql</code></li><li><code>models/raw_vault/sat_product_model_details.sql</code></li><li><code>models/raw_vault/sat_product_model_content.sql</code></li><li><code>models/raw_vault/sat_culture_details.sql</code></li><li><code>models/raw_vault/sat_unit_measure_details.sql</code></li><li><code>models/raw_vault/sat_product_description_details.sql</code></li><li><code>models/raw_vault/sat_product_photo_details.sql</code></li><li><code>models/raw_vault/sat_product_photo_images.sql</code></li><li><code>models/raw_vault/sat_illustration_diagram.sql</code></li><li><code>models/raw_vault/sat_document_details.sql</code></li><li><code>models/raw_vault/sat_location_details.sql</code></li><li><code>models/raw_vault/sat_scrap_reason_details.sql</code></li><li><code>models/raw_vault/sat_work_order_details.sql</code></li><li><code>models/raw_vault/sat_work_order_product_location_operation.sql</code></li><li><code>models/raw_vault/sat_product_location_inventory.sql</code></li><li><code>models/raw_vault/sat_product_product_photo_details.sql</code></li><li><code>models/raw_vault/sat_product_assembly_component_effectivity.sql</code></li><li><code>models/raw_vault/sat_product_assembly_component_details.sql</code></li><li><code>models/raw_vault/sat_inventory_transaction_details.sql</code></li><li><code>models/raw_vault/sat_inventory_transaction_archive.sql</code></li><li><code>models/raw_vault/sat_product_review_details.sql</code></li><li><code>models/raw_vault/sat_product_review_reviewer_pii.sql</code></li><li><code>models/raw_vault/sat_business_entity_vendor_details.sql</code></li><li><code>models/raw_vault/sat_business_entity_vendor_status.sql</code></li><li><code>models/raw_vault/sat_product_vendor_terms.sql</code></li><li><code>models/raw_vault/sat_product_vendor_receipt.sql</code></li><li><code>models/raw_vault/sat_purchase_order_status.sql</code></li><li><code>models/raw_vault/sat_purchase_order_details.sql</code></li><li><code>models/raw_vault/sat_purchase_order_line_details.sql</code></li><li><code>models/raw_vault/sat_purchase_order_line_receipt.sql</code></li><li><code>models/raw_vault/sat_ship_method_details.sql</code></li><li><code>models/raw_vault/sat_customer_details.sql</code></li><li><code>models/raw_vault/sat_business_entity_store_details.sql</code></li><li><code>models/raw_vault/sat_business_entity_store_demographics.sql</code></li><li><code>models/raw_vault/sat_business_entity_sales_person_remuneration.sql</code></li><li><code>models/raw_vault/sat_business_entity_sales_person_performance.sql</code></li><li><code>models/raw_vault/sat_business_entity_sales_quota_history.sql</code></li><li><code>models/raw_vault/sat_sales_order_status.sql</code></li><li><code>models/raw_vault/sat_sales_order_details.sql</code></li><li><code>models/raw_vault/sat_sales_order_amounts.sql</code></li><li><code>models/raw_vault/sat_sales_order_payment.sql</code></li><li><code>models/raw_vault/sat_sales_order_line_details.sql</code></li><li><code>models/raw_vault/sat_sales_territory_details.sql</code></li><li><code>models/raw_vault/sat_sales_territory_financials.sql</code></li><li><code>models/raw_vault/sat_credit_card_details.sql</code></li><li><code>models/raw_vault/sat_credit_card_sensitive.sql</code></li><li><code>models/raw_vault/sat_currency_details.sql</code></li><li><code>models/raw_vault/sat_currency_rate_details.sql</code></li><li><code>models/raw_vault/sat_sales_reason_details.sql</code></li><li><code>models/raw_vault/sat_special_offer_details.sql</code></li><li><code>models/raw_vault/sat_shopping_cart_product_details.sql</code></li><li><code>models/raw_vault/sat_sales_tax_rate_details.sql</code></li><li><code>models/raw_vault/sat_business_entity_sales_territory_assignment_effectivity.sql</code></li><li><code>models/raw_vault/sat_business_entity_sales_territory_assignment_details.sql</code></li><li><code>models/raw_vault/sat_business_entity_credit_card_details.sql</code></li><li><code>models/raw_vault/sat_special_offer_product_details.sql</code></li><li><code>models/raw_vault/sat_country_region_currency_details.sql</code></li><li><code>models/raw_vault/sat_sales_order_sales_reason_details.sql</code></li><li><code>models/staging/stg_business_entity_businessentity.sql</code></li><li><code>models/staging/stg_business_entity_person.sql</code></li><li><code>models/staging/stg_business_entity_emailaddress.sql</code></li><li><code>models/staging/stg_business_entity_password.sql</code></li><li><code>models/staging/stg_business_entity_employee.sql</code></li><li><code>models/staging/stg_business_entity_employeepayhistory.sql</code></li><li><code>models/staging/stg_business_entity_vendor.sql</code></li><li><code>models/staging/stg_business_entity_store.sql</code></li><li><code>models/staging/stg_business_entity_salesperson.sql</code></li><li><code>models/staging/stg_business_entity_salespersonquotahistory.sql</code></li><li><code>models/staging/stg_address.sql</code></li><li><code>models/staging/stg_address_type.sql</code></li><li><code>models/staging/stg_contact_type.sql</code></li><li><code>models/staging/stg_phone_number_type.sql</code></li><li><code>models/staging/stg_country_region.sql</code></li><li><code>models/staging/stg_state_province.sql</code></li><li><code>models/staging/stg_department.sql</code></li><li><code>models/staging/stg_shift.sql</code></li><li><code>models/staging/stg_job_candidate.sql</code></li><li><code>models/staging/stg_product.sql</code></li><li><code>models/staging/stg_product_category.sql</code></li><li><code>models/staging/stg_product_subcategory.sql</code></li><li><code>models/staging/stg_product_model.sql</code></li><li><code>models/staging/stg_culture.sql</code></li><li><code>models/staging/stg_unit_measure.sql</code></li><li><code>models/staging/stg_product_description.sql</code></li><li><code>models/staging/stg_product_photo.sql</code></li><li><code>models/staging/stg_illustration.sql</code></li><li><code>models/staging/stg_document.sql</code></li><li><code>models/staging/stg_location.sql</code></li><li><code>models/staging/stg_scrap_reason.sql</code></li><li><code>models/staging/stg_work_order.sql</code></li><li><code>models/staging/stg_inventory_transaction_transactionhistory.sql</code></li><li><code>models/staging/stg_inventory_transaction_transactionhistoryarchive.sql</code></li><li><code>models/staging/stg_product_review.sql</code></li><li><code>models/staging/stg_purchase_order.sql</code></li><li><code>models/staging/stg_purchase_order_line.sql</code></li><li><code>models/staging/stg_ship_method.sql</code></li><li><code>models/staging/stg_customer.sql</code></li><li><code>models/staging/stg_sales_order.sql</code></li><li><code>models/staging/stg_sales_order_line.sql</code></li><li><code>models/staging/stg_sales_territory.sql</code></li><li><code>models/staging/stg_credit_card.sql</code></li><li><code>models/staging/stg_currency.sql</code></li><li><code>models/staging/stg_currency_rate.sql</code></li><li><code>models/staging/stg_sales_reason.sql</code></li><li><code>models/staging/stg_special_offer.sql</code></li><li><code>models/staging/stg_shopping_cart.sql</code></li><li><code>models/staging/stg_sales_tax_rate.sql</code></li><li><code>models/staging/stg_business_entity_address.sql</code></li><li><code>models/staging/stg_business_entity_contact.sql</code></li><li><code>models/staging/stg_business_entity_phone_number_type.sql</code></li><li><code>models/staging/stg_address_state_province.sql</code></li><li><code>models/staging/stg_state_province_country_region.sql</code></li><li><code>models/staging/stg_business_entity_department_shift.sql</code></li><li><code>models/staging/stg_business_entity_job_candidate.sql</code></li><li><code>models/staging/stg_product_product_subcategory.sql</code></li><li><code>models/staging/stg_product_subcategory_product_category.sql</code></li><li><code>models/staging/stg_product_product_model.sql</code></li><li><code>models/staging/stg_product_unit_measure.sql</code></li><li><code>models/staging/stg_product_assembly_component.sql</code></li><li><code>models/staging/stg_product_model_description_culture.sql</code></li><li><code>models/staging/stg_product_model_illustration.sql</code></li><li><code>models/staging/stg_product_product_photo.sql</code></li><li><code>models/staging/stg_product_document.sql</code></li><li><code>models/staging/stg_document_business_entity.sql</code></li><li><code>models/staging/stg_product_location.sql</code></li><li><code>models/staging/stg_work_order_product.sql</code></li><li><code>models/staging/stg_work_order_scrap_reason.sql</code></li><li><code>models/staging/stg_work_order_product_location.sql</code></li><li><code>models/staging/stg_inventory_transaction_product.sql</code></li><li><code>models/staging/stg_product_review_product.sql</code></li><li><code>models/staging/stg_product_vendor.sql</code></li><li><code>models/staging/stg_purchase_order_vendor_employee_ship_method.sql</code></li><li><code>models/staging/stg_purchase_order_line_product.sql</code></li><li><code>models/staging/stg_purchase_order_business_entity.sql</code></li><li><code>models/staging/stg_customer_business_entity.sql</code></li><li><code>models/staging/stg_customer_sales_territory.sql</code></li><li><code>models/staging/stg_business_entity_store_sales_person.sql</code></li><li><code>models/staging/stg_sales_order_customer.sql</code></li><li><code>models/staging/stg_sales_order_sales_person.sql</code></li><li><code>models/staging/stg_sales_order_sales_territory.sql</code></li><li><code>models/staging/stg_sales_order_address.sql</code></li><li><code>models/staging/stg_sales_order_ship_method.sql</code></li><li><code>models/staging/stg_sales_order_credit_card.sql</code></li><li><code>models/staging/stg_sales_order_currency_rate.sql</code></li><li><code>models/staging/stg_sales_order_line_product_special_offer.sql</code></li><li><code>models/staging/stg_sales_order_sales_reason.sql</code></li><li><code>models/staging/stg_business_entity_sales_territory.sql</code></li><li><code>models/staging/stg_business_entity_sales_territory_assignment.sql</code></li><li><code>models/staging/stg_sales_territory_country_region.sql</code></li><li><code>models/staging/stg_business_entity_credit_card.sql</code></li><li><code>models/staging/stg_special_offer_product.sql</code></li><li><code>models/staging/stg_country_region_currency.sql</code></li><li><code>models/staging/stg_currency_rate_currency.sql</code></li><li><code>models/staging/stg_sales_tax_rate_state_province.sql</code></li><li><code>models/staging/stg_shopping_cart_product.sql</code></li><li><code>models/staging/stg_sales_order_line_product.sql</code></li><li><code>models/staging/stg_business_entity_phone_number_type_phones.sql</code></li><li><code>models/staging/stg_business_entity_address_details.sql</code></li><li><code>models/staging/stg_business_entity_contact_details.sql</code></li><li><code>models/staging/stg_address_details.sql</code></li><li><code>models/staging/stg_address_location.sql</code></li><li><code>models/staging/stg_address_type_details.sql</code></li><li><code>models/staging/stg_contact_type_details.sql</code></li><li><code>models/staging/stg_phone_number_type_details.sql</code></li><li><code>models/staging/stg_country_region_details.sql</code></li><li><code>models/staging/stg_state_province_details.sql</code></li><li><code>models/staging/stg_state_province_territory.sql</code></li><li><code>models/staging/stg_business_entity_department_shift_audit.sql</code></li><li><code>models/staging/stg_department_details.sql</code></li><li><code>models/staging/stg_shift_details.sql</code></li><li><code>models/staging/stg_job_candidate_resume.sql</code></li><li><code>models/staging/stg_product_cost_history.sql</code></li><li><code>models/staging/stg_product_list_price_history.sql</code></li><li><code>models/staging/stg_work_order_product_location_operation.sql</code></li><li><code>models/staging/stg_product_location_inventory.sql</code></li><li><code>models/staging/stg_product_vendor_terms.sql</code></li><li><code>models/staging/stg_product_vendor_receipt.sql</code></li><li><code>models/staging/stg_purchase_order_status.sql</code></li><li><code>models/staging/stg_purchase_order_details.sql</code></li><li><code>models/staging/stg_purchase_order_line_details.sql</code></li><li><code>models/staging/stg_purchase_order_line_receipt.sql</code></li><li><code>models/staging/stg_ship_method_details.sql</code></li><li><code>models/staging/stg_customer_details.sql</code></li><li><code>models/staging/stg_sales_order_status.sql</code></li><li><code>models/staging/stg_sales_order_details.sql</code></li><li><code>models/staging/stg_sales_order_amounts.sql</code></li><li><code>models/staging/stg_sales_order_payment.sql</code></li><li><code>models/staging/stg_sales_order_line_details.sql</code></li><li><code>models/staging/stg_sales_territory_details.sql</code></li><li><code>models/staging/stg_sales_territory_financials.sql</code></li><li><code>models/staging/stg_credit_card_details.sql</code></li><li><code>models/staging/stg_credit_card_sensitive.sql</code></li><li><code>models/staging/stg_currency_details.sql</code></li><li><code>models/staging/stg_currency_rate_details.sql</code></li><li><code>models/staging/stg_sales_reason_details.sql</code></li><li><code>models/staging/stg_special_offer_details.sql</code></li><li><code>models/staging/stg_shopping_cart_product_details.sql</code></li><li><code>models/staging/stg_sales_tax_rate_details.sql</code></li><li><code>models/staging/stg_business_entity_sales_territory_assignment_details.sql</code></li><li><code>models/staging/stg_business_entity_credit_card_details.sql</code></li><li><code>models/staging/stg_special_offer_product_details.sql</code></li><li><code>models/staging/stg_country_region_currency_details.sql</code></li><li><code>models/staging/stg_sales_order_sales_reason_details.sql</code></li><li><code>models/staging/stg_sales_order_line_product_special_offer_via_salesorderheader.sql</code></li><li><code>models/staging/stg_sales_order_sales_reason_via_salesorderheader.sql</code></li><li><code>models/staging/stg_sales_order_sales_reason_details_via_salesorderheader.sql</code></li><li><code>dbt_project.yml</code></li><li><code>packages.yml</code></li><li><code>models/staging/sources.yml</code></li><li><code>README.md</code></li><li><code>models/staging/stg_sales_order_line_product_special_offer_via_salesorderheader.yml</code></li><li><code>models/staging/stg_sales_order_sales_reason_via_salesorderheader.yml</code></li><li><code>models/staging/stg_sales_order_sales_reason_details_via_salesorderheader.yml</code></li><li><code>contracts/CountryRegionCurrency.contract.yml</code></li><li><code>contracts/CreditCard.contract.yml</code></li><li><code>contracts/Currency.contract.yml</code></li><li><code>contracts/CurrencyRate.contract.yml</code></li><li><code>contracts/Customer.contract.yml</code></li><li><code>contracts/PersonCreditCard.contract.yml</code></li><li><code>contracts/SalesOrderDetail.contract.yml</code></li><li><code>contracts/SalesOrderHeader.contract.yml</code></li><li><code>contracts/SalesOrderHeaderSalesReason.contract.yml</code></li><li><code>contracts/SalesPerson.contract.yml</code></li><li><code>contracts/SalesPersonQuotaHistory.contract.yml</code></li><li><code>contracts/SalesReason.contract.yml</code></li><li><code>contracts/SalesTaxRate.contract.yml</code></li><li><code>contracts/SalesTerritory.contract.yml</code></li><li><code>contracts/SalesTerritoryHistory.contract.yml</code></li><li><code>contracts/ShoppingCartItem.contract.yml</code></li><li><code>contracts/SpecialOffer.contract.yml</code></li><li><code>contracts/SpecialOfferProduct.contract.yml</code></li><li><code>contracts/Store.contract.yml</code></li><li><code>adrs/ (1 ADR file(s))</code></li></ul></details></section></main><script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" onload="mermaid.initialize({securityLevel:'strict'}); mermaid.run();" onerror="document.querySelectorAll('details.graph-source').forEach(function(d){d.open=true;});"></script></body></html>

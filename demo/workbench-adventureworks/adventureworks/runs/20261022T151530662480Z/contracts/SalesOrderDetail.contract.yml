@@ -1,0 +1,147 @@
+spec-version: 1.0.0
+name: SalesOrderDetail
+namespace: source
+dataAssetResourceName: datastore://source/SalesOrderDetail
+doc: 'Line-item level detail of sales orders, one record per product line within a
+  sales order (source: SalesOrderDetail). The contract enforces the declared schema,
+  business-key uniqueness and not-null on keys; value-level semantics are advisory
+  pending producer/consumer review.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: SalesOrderID
+  description: Identifier of the parent sales order (references SalesOrderHeader).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: SalesOrderDetailID
+  description: Identifier of the individual line item within the sales order.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CarrierTrackingNumber
+  description: Shipment tracking number assigned by the carrier for this line item.
+    May be absent if not yet shipped.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: OrderQty
+  description: Quantity of the product ordered on this line item.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductID
+  description: Identifier of the product ordered on this line (references Product).
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: SpecialOfferID
+  description: Identifier of the special offer applied to this line (references SpecialOffer).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: UnitPrice
+  description: Selling price of a single unit of the product at the time of order.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: UnitPriceDiscount
+  description: Discount applied to the unit price for this line item.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: LineTotal
+  description: Line total for the item (quantity times discounted unit price); derived
+    value in source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) used by the source system for
+    replication.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

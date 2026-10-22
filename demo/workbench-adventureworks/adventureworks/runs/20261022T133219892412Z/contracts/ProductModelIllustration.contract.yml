@@ -1,0 +1,48 @@
+spec-version: 1.0.0
+name: ProductModelIllustration
+namespace: source
+dataAssetResourceName: datastore://source/ProductModelIllustration
+doc: Association (bridge) between product models and illustrations, linking each ProductModel
+  to the Illustration diagrams that depict it. Staged from the source ProductModelIllustration
+  table; the contract enforces the declared schema and key columns. Ownership and
+  agreement are to be confirmed at the human review checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductModelID
+  description: Identifier of the product model; references the ProductModel asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: IllustrationID
+  description: Identifier of the illustration; references the Illustration asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

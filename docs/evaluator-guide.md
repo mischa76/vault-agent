@@ -70,7 +70,8 @@ vault), data contracts, `review-queue.md`, an HTML report and a proposed ADR.
 ### 3.1 In the browser instead
 
 The same run through the workbench: `uv sync --extra ui`, `cd frontend && npm ci && npm run
-build` (Node 22), `uv run vault-agent ui --root workbench`, open `http://127.0.0.1:8765/`.
+build` (Node 22), `uv run vault-agent ui --root ~/vault-agent-workbench` (outside the repo), open
+`http://127.0.0.1:8765/`. Finished runs to browse without a key: `--root demo/workbench-adventureworks`.
 Create a project, attach the requirements (`.md`/`.txt`) and the schema (`.yml`), start the run,
 answer the checkpoint in the Review tab, read the model graphs and the artefacts. The Run tab
 shows the CLI commands the run is equivalent to, so anything you see can be reproduced in the

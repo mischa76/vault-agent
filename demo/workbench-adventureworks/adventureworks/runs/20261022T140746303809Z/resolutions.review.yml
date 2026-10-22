@@ -1,0 +1,117 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: vendor::AccountNumber (vendor account number)
+  resolution: unresolved
+  category: comment_grounded
+  evidence:
+  - Vendor.AccountNumber (nvarchar(15)) is a vendor identification number, a different
+    key format from the integer BusinessEntityID that hub_business_entity uses.
+  - The same Vendor table carries Vendor.BusinessEntityID, which is a foreign key
+    to BusinessEntity.BusinessEntityID. So the account number describes the same real-world
+    entity under a different key.
+  - It cannot hash into hub_business_entity, so it is flagged for a human rather than
+    merged.
+  - human ratification
+  confidence: 0.5
+  ratification_status: overridden
+- concept: vendor::BusinessEntityID (internal business entity identifier)
+  resolution: hub_business_entity
+  category: comment_grounded
+  evidence:
+  - 'Vendor.BusinessEntityID comment: ''Foreign key to BusinessEntity.BusinessEntityID''.'
+  - hub_business_entity has business key BusinessEntityID with source entity BusinessEntity,
+    so the key and its format are identical.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: vendor::Name (vendor company name)
+  resolution: unresolved
+  category: semantic
+  evidence:
+  - Vendor.Name ('Company name') is a descriptive attribute, not an identifier.
+  - No existing hub has a company name as its business key. sat_business_entity_person_name
+    covers persons, not companies.
+  - It belongs in a satellite on whichever hub represents the vendor, and that is
+    for a reviewer to settle.
+  confidence: 0.5
+  ratification_status: accepted
+- concept: product::ProductID
+  resolution: hub_product
+  category: exact_key
+  evidence:
+  - 'PurchaseOrderDetail.ProductID comment: ''Foreign key to Product.ProductID''.'
+  - 'ProductVendor.ProductID comment: ''Foreign key to Product.ProductID''.'
+  - hub_product has business key ProductID with source entity Product.
+  confidence: 0.97
+  ratification_status: accepted
+- concept: product-vendor supply relationship::ProductID + BusinessEntityID (product
+    and vendor pairing)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - ProductVendor has a composite primary key of ProductID and BusinessEntityID, so
+    it is a relationship between product and vendor.
+  - No existing link connects hub_product to hub_business_entity. The nearest links
+    are product-location and product-model, which are different relationships.
+  - Its hubs already exist, so this should be a new link.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: purchase order::PurchaseOrderID (purchase order number)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - PurchaseOrderHeader.PurchaseOrderID is the primary key of the purchase order.
+  - No existing hub has a purchase order business key. The nearest, hub_work_order,
+    uses WorkOrderID, which is a different identifier.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: purchase order line::PurchaseOrderID + PurchaseOrderDetailID (purchase
+    order with line number)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - PurchaseOrderDetail has a composite primary key of PurchaseOrderID and PurchaseOrderDetailID.
+  - No existing hub or link models purchase order lines.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: purchase order line::PurchaseOrderDetailID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - PurchaseOrderDetailID is 'One line number per purchased product'. It is only one
+    component of the composite line key and is not unique on its own.
+  - Nothing existing matches it. It is likely the same concept as the purchase order
+    line entry, so a reviewer should fold it into that one.
+  confidence: 0.5
+  ratification_status: accepted
+- concept: shipping method::Name (shipping company name)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ShipMethod.Name ('Shipping company name') is a descriptive attribute of the shipping
+    method.
+  - No existing construct models shipping methods or carriers. It is likely only a
+    satellite attribute of the new shipping method hub.
+  confidence: 0.5
+  ratification_status: accepted
+- concept: shipping method::ShipMethodID (internal shipping method identifier)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ShipMethod.ShipMethodID is the primary key for ShipMethod records.
+  - No existing hub has ShipMethodID or a shipping concept as its business key.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: employee::EmployeeID
+  resolution: hub_business_entity
+  category: comment_grounded
+  evidence:
+  - 'PurchaseOrderHeader.EmployeeID comment: ''Foreign key to Employee.BusinessEntityID''.'
+  - The existing vault feeds Employee into hub_business_entity, whose business key
+    is BusinessEntityID. EmployeeID is therefore an alias of the same key.
+  confidence: 0.92
+  ratification_status: accepted

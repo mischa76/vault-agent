@@ -76,6 +76,19 @@ eval/results/
 .vault-agent/
 **/.vault-agent/
 
+# Workbench project roots (C14, 2026-10-22): a run holds requirements, contracts and models — the
+# owner's data, never the repo's. Start the workbench with a root outside the repo. The one shipped
+# demo, demo/workbench-adventureworks/, keeps each run's state.json (the Model view reads it) and
+# nothing a parse or build adds there.
+workbench/
+workbench-demo*/
+!demo/workbench-adventureworks/**/.vault-agent/
+demo/workbench-adventureworks/**/.vault-agent/*
+!demo/workbench-adventureworks/**/.vault-agent/state.json
+demo/workbench-adventureworks/**/dbt_packages/
+demo/workbench-adventureworks/**/target/
+demo/workbench-adventureworks/**/package-lock.yml
+
 # The workbench frontend bundle (WP67): built from frontend/, shipped in the wheel as an artifact
 src/vault_agent/ui/static/
 frontend/node_modules/

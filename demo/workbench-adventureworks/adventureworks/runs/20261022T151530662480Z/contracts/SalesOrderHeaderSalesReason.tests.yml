@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_SalesOrderHeaderSalesReason
+  columns:
+  - name: SALESORDERID
+    tests:
+    - unique
+    - not_null
+  - name: SALESREASONID
+    tests:
+    - unique
+    - not_null

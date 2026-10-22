@@ -233,5 +233,5 @@ an error message.
 | [blog/2026-06-why-data-vault-is-ready-for-agentic-ai.md](blog/2026-06-why-data-vault-is-ready-for-agentic-ai.md) | Draft article |
 
 Runnable demos live outside `docs/`: `demo/bank_postgres/` (ungrounded, hand-authored staging), `demo/bank_databricks/` (its twin on Databricks, WP72),
-`demo/mapping_postgres/` (grounded and ratified, generated staging) and `demo/fk_links_postgres/`
+`demo/mapping_postgres/` (grounded and ratified, generated staging), `demo/workbench-adventureworks/` (five finished workbench runs, the owner's AdventureWorks build of 2026-10-22, browsable without a key) and `demo/fk_links_postgres/`
 (FK-derived links: a translated link and a relationship-table link, WP36/WP37).
