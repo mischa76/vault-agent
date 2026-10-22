@@ -21,6 +21,14 @@ is not the project's.
 - A multi-active satellite bound to one feed of a multi-source hub is generated as `automate_dv.ma_sat`
   with its child-dependent key; before, it was a plain `sat` that lost the key and re-inserted on every
   run (WP84, backlog C11).
+- The AdventureWorks extract reads every primary key (it found none: the install script writes
+  `WITH CHECK ADD`), clustered unique indexes, and ignores commented-out key columns; the datasets
+  carry `primary_key` / `unique_keys` (WP85).
+
+### Added
+- Gate `E_SAT_GRAIN_NOT_UNIQUE`: a satellite whose key covers no primary or unique key of its relation
+  is refused, with the missing columns as the remedy's child-dependent key — such a satellite holds
+  several rows per key and load date and re-inserts on every load (WP85, backlog C13). 36 gates.
 
 ## [0.10.0] - 2026-10-22
 

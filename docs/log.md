@@ -10167,3 +10167,45 @@ the new generator (as for WP84), saved for the owner as `workbench/adventurework
 Ken's first name version of 2026-10-18 is gone; a vault built once from today's sources knows today's state only.
 **Überprüft.** Both build logs; counts by `psql`. **Bewusst nicht getan.** `aw_wp83`/`aw_wp84` kept; the demo's runs
 unchanged (they show the build as it was, findings included).
+
+## [2026-10-22] WP85 built and measured: `E_SAT_GRAIN_NOT_UNIQUE` — a satellite whose key covers no unique key of its relation is refused; the extract had found no primary key at all (C13)
+
+**Autor:** Claude Code
+
+On the owner's word: „wichtig ist, dass die software mit dem change nun korrekt arbeitet. eine vergleichbarkeit mit
+vorherigen tests ist nur in sofern wichtig, dass die software jetzt die fehler der vorgängerversionen nicht mehr
+wiederholt." Spec and guards `932a51e` (red), feature `23cd439`, extract fix `ef5e380` (guard `ca2c743`).
+**A correction of mine first:** I had told the owner that re-deriving the datasets changes what the modeler sees.
+It does not — the schema section renders table and column names only (`grounding.render_schema_prompt_section`),
+the mapper types and comments; keys reach no prompt.
+
+**What changed.** `SourceTable.primary_key` / `unique_keys` (empty by default). The extract had **no primary key
+for any of the 68 tables** (`_PK_RE` expected `] ADD`, the script writes `] WITH CHECK ADD`) and missed the one
+clustered alternate key (`AK_BillOfMaterials_ProductAssemblyID_ComponentID_StartDate`) — the same class as the
+2026-09-12 foreign-key defect. `derive.py` writes the keys (row GUIDs excluded); the six AdventureWorks datasets and
+`adventureworks_full` re-derived — only `primary_key`/`unique_keys` lines added, requirements and golden mappings
+unchanged. The gate (validator, after WP73): for each satellite of the increment (not pre-existing, not
+effectivity) whose stage reads a relation of the increment with declared keys, the relation columns of its key —
+parent-hash columns through derived columns, plus its child-dependent key — must cover one unique key; a link's
+stage is resolved as the mapper's re-bind will (`link_source_overrides`), because at validation time it is still
+inferred. The remedy names the missing columns of the closest unique key (most columns already covered, a surrogate
+primary key never wins over a natural unique key). Catalogue, chapter 8 and README (36 gates) updated.
+
+**Measured.** **P1** ✔ the re-run extract: 68 of 68 tables with a primary key, the bill-of-materials unique key read.
+**P2** — first measurement, the owner's five steps re-validated with the keyed catalogue: the four predicted
+satellites (`sat_business_entity_department_shift_audit`, `sat_product_assembly_component_details`,
+`sat_shopping_cart_product_details`, `sat_business_entity_sales_territory_assignment_details`) **plus**
+`sat_business_entity_sales_quota_history`, whose remedy asked for `ProductCategoryID` — a column the table does not
+have. Cause: the script comments that column out of `PK_SalesPersonQuotaHistory` (`[QuotaDate] --,` / `--
+[ProductCategoryID]`) and `_names` read it. Guard, fix (line comments stripped), re-derived; every key and FK column
+of the extract now exists in its table. Second measurement: **exactly the four predicted**, nothing in Person and
+Purchasing ✔. **P3** ✔ the remedy applied by hand to the bill-of-materials satellite (multi-active on `StartDate`),
+the Sales project regenerated and built twice into a fresh schema: PASS=334 both times, second build **180 of 180**
+incremental models `INSERT 0 0`, the satellite 2 679 rows (one per source row).
+
+**Überprüft.** Guards (8), full suite 1279 passed / 2 skipped, ruff, bare mypy; the extract diff (keys only, all key
+columns present); both build logs. **Nur angenommen.** That a live modeler follows the remedy within the bounded
+loop — unmeasured (a paid run); the other three flagged satellites have no repeating keys in today's data, the gate
+refuses them for what the schema allows. **Bewusst nicht getan.** The owner's `aw` not rebuilt again (its
+bill-of-materials satellite keeps the 195 duplicates; applying the remedy there is a model change); the test schema
+`aw_wp85` dropped after the measurement; nothing pushed.
