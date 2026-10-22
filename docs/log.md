@@ -10069,3 +10069,14 @@ coverage (~1260, ~93 %) — the suite count is measured today (1259), the covera
 **Bewusst nicht getan.** The ADR files' `Status` lines (they could move along their path with
 `VAULT_AGENT_ALLOW_RECORD_EDIT=1`; left for the owner); CLAUDE.md (its open-items block is current enough and
 at budget).
+
+## [2026-10-22] C15: release 0.10.0
+
+**Autor:** Claude Code
+
+On the owner's go („… danach C16 und C15"). `uv version 0.10.0`, `uv lock`, the `[Unreleased]` entries
+become `## [0.10.0] - 2026-10-22` with a summary paragraph (WP11–WP80; open defects pointed to C11–C13);
+tag `0.10.0` pushed, the release workflow builds and publishes. **Überprüft.** Definition of done before the tag:
+`pytest` 1259 passed, 2 skipped (incl. `tests/test_release.py`: pyproject, `__version__`, lock and changelog
+agree), `ruff`, bare `mypy` (59 files). The workflow's own result is checked after the push. **Nur angenommen.**
+Nothing. **Bewusst nicht getan.** No PyPI (the project publishes GitHub releases only).

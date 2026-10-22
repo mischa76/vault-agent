@@ -12,6 +12,15 @@ is not the project's.
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-10-22
+
+Six weeks and work packages WP11–WP80 after 0.9.1: brownfield extension with entity resolution and
+links from declared foreign keys, ratified before modelling; composite keys; the AdventureWorks
+five-domain chain all-green on Sonnet/Opus 5.5 and built on PostgreSQL and Databricks; a project that
+carries its catalogue and stage bindings from step to step; and the browser workbench (ADR-0014). The
+owner's own step-by-step build of AdventureWorks ships as `demo/workbench-adventureworks/`. Known open
+defects found by that build are listed in `docs/architecture/backlog-2026-10-candidates-2.md` (C11–C13).
+
 ### Added
 - `demo/workbench-adventureworks/`: five finished workbench runs — all AdventureWorks domains modelled
   step by step as brownfield extensions — to browse with `vault-agent ui --root demo/workbench-adventureworks`
