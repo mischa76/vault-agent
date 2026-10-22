@@ -26,6 +26,16 @@ BOM = SourceTable.model_validate({
                 "UnitMeasureCode", "PerAssemblyQty"],
     "primary_key": ["BillOfMaterialsID"],
     "unique_keys": [["ProductAssemblyID", "ComponentID", "StartDate"]],
+    # The declared foreign keys are what binds the freely named link to this relation (WP42's
+    # offer) — at validation time, before the mapper's re-bind.
+    "foreign_keys": [
+        {"columns": ["ProductAssemblyID"], "references_table": "Product",
+         "references_columns": ["ProductID"]},
+        {"columns": ["ComponentID"], "references_table": "Product",
+         "references_columns": ["ProductID"]},
+        {"columns": ["UnitMeasureCode"], "references_table": "UnitMeasure",
+         "references_columns": ["UnitMeasureCode"]},
+    ],
 })
 
 
@@ -139,3 +149,20 @@ def test_derive_writes_the_keys() -> None:
     assert SourceTable.model_validate(declared).unique_keys == [
         ["ProductAssemblyID", "ComponentID", "StartDate"]
     ]
+
+
+def test_a_commented_out_key_column_is_not_a_key_column() -> None:
+    """Found by the pre-registration (P2): the install script comments a third column out of
+    `PK_SalesPersonQuotaHistory` (`[QuotaDate] --,` / `-- [ProductCategoryID]`), and the parser
+    read it as part of the key — a column the table does not have."""
+    ddl = (
+        "CREATE TABLE [Sales].[SalesPersonQuotaHistory](\n"
+        "    [BusinessEntityID] [int] NOT NULL,\n    [QuotaDate] [datetime] NOT NULL\n"
+        ") ON [PRIMARY];\nGO\n"
+        "ALTER TABLE [Sales].[SalesPersonQuotaHistory] WITH CHECK ADD\n"
+        "    CONSTRAINT [PK_SalesPersonQuotaHistory_BusinessEntityID_QuotaDate] PRIMARY KEY "
+        "CLUSTERED\n    (\n        [BusinessEntityID],\n        [QuotaDate] --,\n"
+        "        -- [ProductCategoryID]\n    )  ON [PRIMARY];\nGO\n"
+    )
+    (table,) = parse(ddl)
+    assert table.primary_key == ["BusinessEntityID", "QuotaDate"]
