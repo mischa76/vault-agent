@@ -18,6 +18,9 @@ is not the project's.
   AutomateDV `null_columns: optional` (zero key `-2`) when the bound relation types them integer or
   character; the source catalogue now carries declared column types so later increments apply it to
   earlier domains' links (WP83, backlog C12 phase 1). Zero-key rows in the hubs are phase 2.
+- A multi-active satellite bound to one feed of a multi-source hub is generated as `automate_dv.ma_sat`
+  with its child-dependent key; before, it was a plain `sat` that lost the key and re-inserted on every
+  run (WP84, backlog C11).
 
 ## [0.10.0] - 2026-10-22
 

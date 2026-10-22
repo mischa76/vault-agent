@@ -10130,3 +10130,23 @@ the build log (`PASS=334`); the counts by `psql` against `aw`. **Nur angenommen.
 behaves the same on Snowflake, Databricks and SQL Server (AutomateDV dispatches `IFNULL`/`ISNULL`; only
 PostgreSQL was built). **Bewusst nicht getan.** Phase 2 (hub zero-key rows); the owner's `aw` schema
 untouched; `aw_wp83` left in place for inspection; nothing pushed.
+
+## [2026-10-22] WP84 built and measured: a feed-bound multi-active satellite is an `ma_sat` — the owner's Sales vault regenerated and built twice, the three satellites idempotent (C11)
+
+**Autor:** Claude Code
+
+Spec and guards `2a84f84` (red with the fix stashed), fix `0dcd624`. The ADR-0011 branch of the code generator
+dispatches on `sat_type`: `multi_active` renders `_render_ma_sat` against the feed's staging (`source_model`
+parameter added), without a child-dependent key it is flagged `GENERATION_GAP` as `_render_satellite` does;
+standard unchanged. **Measurement** (keyless, PostgreSQL, fresh schema `aw_wp84`, the Sales run regenerated as
+for WP83): **P1** `sat_business_entity_pay_history`, `_email`, `_sales_quota_history` render
+`automate_dv.ma_sat` with `src_cdk` `RATECHANGEDATE` / `EMAILADDRESSID` / `QUOTADATE` ✔. **P2** first build 316 /
+19 972 / 163 rows ✔. **P3** second build: all three `INSERT 0 0`; 179 of 180 incremental models `INSERT 0 0`, the
+one exception `sat_product_assembly_component_details` +195 (C13, as predicted) ✔. **P4** PASS=334 both times ✔.
+The owner's pay history had re-inserted +26/+35/+38/+38 under the old generator.
+
+**Überprüft.** Guards (3), full suite 1271 passed / 2 skipped, ruff, bare mypy; both build logs; counts by `psql`.
+**Nur angenommen.** Nothing beyond PostgreSQL (the `ma_sat` macro is AutomateDV's, platform-dispatched).
+**Bewusst nicht getan.** The owner's `aw` untouched (its three satellites keep their extra rows; a
+`--full-refresh` of those models after regenerating would reset them); `aw_wp84` left for inspection; nothing
+pushed.
