@@ -9873,3 +9873,38 @@ of all multi-active satellites; `source_overrides` and `link_source_overrides`; 
 macro. **Nur angenommen.** That AutomateDV's link drops NULL participants in its `WHERE` (inferred from the
 counts — 2 387 equals the distinct non-NULL triples exactly — not read in the macro). **Bewusst nicht
 getan.** No fix; the view stays in `aw`; the orphan rows stay; Purchasing and Sales not yet run.
+
+## [2026-10-22] The owner's hands-on run, step 7: Purchasing built — PASS=208, every pre-registered count held, all five `ma_sat` idempotent; one unpredicted move: the bill-of-materials satellite re-inserted 195 rows (C13)
+
+**Autor:** Claude Code
+
+Continues step 6 (today, `75b94db`). Run `adventureworks:20261022T140746303809Z` on the Production run, by the
+owner in the workbench. Resolution: `vendor::BusinessEntityID`, `employee::EmployeeID`, `product::ProductID`
+accepted onto existing hubs, `vendor::AccountNumber` `unresolved`. Model: no `hub_vendor` — `Vendor` is the
+seventh feed of `hub_business_entity` with two standard satellites; `link_purchase_order_vendor_employee_ship_method`
+carries `hub_business_entity` twice with roles `vendor`/`employee`; `hub_purchase_order_line` on the composite
+key (`PurchaseOrderID`, `PurchaseOrderDetailID`). Redundant `link_purchase_order_business_entity` (the employee
+participation again, without role) and a `model_merger` „re-states existing link" flag on a link new in this
+run (C8's class) — both harmless.
+
+**Build** (keyless, PostgreSQL, `aw`): **PASS=208** in 48 s. Held as pre-registered: every earlier model
+`INSERT 0 0` including **all five `ma_sat`** (cost history, list price history, inventory, routing operation,
+phones) — multi-active rendered as `ma_sat` is idempotent; `sat_business_entity_pay_history` **+38** (C11, fourth
+time); `hub_business_entity` 0 with seven feeds; `hub_purchase_order` 4 012, `hub_purchase_order_line` 8 845,
+`hub_ship_method` 5, vendor satellites 104 each, `link_product_vendor` 460, the four-way link 4 012,
+`link_purchase_order_line_product` 8 845, `link_purchase_order_business_entity` 4 012.
+
+**Not predicted: `sat_product_assembly_component_details` `INSERT 0 195`.** `BillOfMaterials` has 2 679 rows on
+2 484 (assembly, component, unit) triples: 195 triples recur with another `StartDate` (the declared alternate key
+is assembly + component + `StartDate`). The satellite hangs off the link keyed on the triple, is a standard
+`sat`, so each recurring key holds rows with one load date and the satellite re-inserts — 195 = rows − distinct
+keys exactly, the same mechanism as C11 but a *modelling* choice, not the generator's. **C13 — a satellite whose
+parent key does not cover a unique key of its relation:** deterministic from the catalogue when the relation
+declares its unique keys (here the `AK_` index WP30's extract reads); a warning or a gate asking for a
+child-dependent key (`ma_sat`) or an effectivity shape. I predicted 0 because I checked only multi-active
+satellites for this property. Needs the owner's „go".
+
+**Überprüft.** The build log; the 195 by `psql` (read-only); the model diff against step 6; the generated SQL
+(five `ma_sat`, vendor satellites plain). **Nur angenommen.** That the catalogue carries `BillOfMaterials`'
+alternate key in a form a gate could read — `source_schema.yml` names only the primary key in comments; not
+checked in `schema_extract.json`. **Bewusst nicht getan.** No fix; Sales not yet run.
