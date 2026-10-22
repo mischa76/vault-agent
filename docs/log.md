@@ -10080,3 +10080,53 @@ tag `0.10.0` pushed, the release workflow builds and publishes. **Überprüft.**
 `pytest` 1259 passed, 2 skipped (incl. `tests/test_release.py`: pyproject, `__version__`, lock and changelog
 agree), `ruff`, bare `mypy` (59 files). The workflow's own result is checked after the push. **Nur angenommen.**
 Nothing. **Bewusst nicht getan.** No PyPI (the project publishes GitHub releases only).
+
+## [2026-10-22] WP83 built and measured: zero keys for nullable link participants — the owner's Sales vault regenerated and built on PostgreSQL, PASS=334, all six predictions held (C12, phase 1)
+
+**Autor:** Claude Code
+
+Spec and pre-registration `8ef4347` (red guards), feature `bd785f9`, catalogue amendment `1984009`; on the
+owner's „… danach soweit wie du alleine kommst" after my proposed order (data defects next, C12 first).
+**What changed.** `StagingSpec.null_groups` records, per link participation, the stage columns its hash is
+taken over and the relation columns they come from — in the link's own stage and in a link satellite's
+dedicated stage, translated participations excluded. `build_staging` declares a group's stage columns as
+AutomateDV `null_columns: optional` when every relation column is typed integer or character in the bound
+relation (`_NULL_SAFE_TYPES`); inferred stages, untyped columns, dates and other classes keep today's
+behaviour. The stage renders a `null_columns:` block and passes it to `automate_dv.stage`; the metadata
+carries it. Read before writing: AutomateDV 0.11.4's `macros/staging/null_columns.sql` (`<COL>_ORIGINAL`,
+`COALESCE(col, '-2')` on PostgreSQL, `var('null_key_optional', '-2')`) and `stage.sql` (null CTE after
+derived, before hashed).
+
+**Amendment before the build** (the spec is append-only, so it is recorded here): regenerating the Sales run
+put zero keys on only 8 stages — `dump_source_catalogue` wrote column *names* only, so every table an
+earlier increment carried had lost its types and the rule fell silent for every earlier domain's link
+(e.g. `BillOfMaterials`). The catalogue now writes `{name, type}` for a typed column and a bare name for an
+untyped one (untyped catalogues byte-identical; guard `test_an_untyped_catalogue_stays_byte_identical`).
+
+**The measurement** (keyless `dbt build`, PostgreSQL, fresh schema `aw_wp83`, the same AdventureWorks tables
+as the owner's `aw`): the Sales run's `state.json` from `demo/workbench-adventureworks/` loaded, its carried
+tables given the types the eval datasets declare (what the amended catalogue now carries — the demo's
+catalogues predate it), `CodeGeneratorAgent` and the mapper's `rebind_staging` re-run, `write_outputs`;
+the seven inferred-stage views re-created in `aw_wp83`. 56 stages declare zero keys; the same seven stages
+are inferred as in the owner's run. **P1** `link_customer_business_entity` 19 820 (was 635) ✔. **P2**
+`link_product_assembly_component` 2 484 (was 2 387) and 0 orphaned rows in
+`sat_product_assembly_component_details` (was 103) ✔. **P3** `link_sales_order_sales_person` 31 465 (was
+3 806), `link_sales_order_credit_card` 31 465 (was 30 334) ✔. **P4** `link_sales_order_currency_rate` 13 976,
+unchanged (inferred stage) ✔. **P5** all 39 hubs equal the owner's build; 40 of 49 links equal, and each of the
+nine that moved has NULL participants in its source — the four predicted plus
+`link_business_entity_job_candidate` 13 (11 candidates without employee), `link_product_product_model` and
+`_product_subcategory` 504 (209 products without), `link_product_unit_measure` 504 (328 without a size or
+weight unit), `link_work_order_scrap_reason` 72 591 (71 862 without scrap) ✔. **P6** PASS=334, nothing new
+failing ✔.
+
+**What phase 1 does not do.** The zero key points at `hash('-2')`, which no hub row carries: a join from such
+a link to its hub must be an outer join until phase 2 puts `-1`/`-2` rows into the hubs (typed per hub key).
+Existing vaults: every non-NULL hash is unchanged, so an extension is additive — but the rows a link dropped
+before arrive as new rows, and the orphaned satellite rows of an existing vault (hashed with AutomateDV's
+`^^` placeholder) stay as they were.
+
+**Überprüft.** Guards `tests/test_wp83_zero_keys.py` (9), full suite 1268 passed / 2 skipped, ruff, bare mypy;
+the build log (`PASS=334`); the counts by `psql` against `aw`. **Nur angenommen.** That `COALESCE(int, '-2')`
+behaves the same on Snowflake, Databricks and SQL Server (AutomateDV dispatches `IFNULL`/`ISNULL`; only
+PostgreSQL was built). **Bewusst nicht getan.** Phase 2 (hub zero-key rows); the owner's `aw` schema
+untouched; `aw_wp83` left in place for inspection; nothing pushed.

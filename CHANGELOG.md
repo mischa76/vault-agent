@@ -12,6 +12,13 @@ is not the project's.
 
 ## [Unreleased]
 
+### Fixed
+- A link no longer drops a source row whose participant key is NULL, and a satellite on it no longer
+  orphans that row: every stage that hashes a link key declares the participant columns as
+  AutomateDV `null_columns: optional` (zero key `-2`) when the bound relation types them integer or
+  character; the source catalogue now carries declared column types so later increments apply it to
+  earlier domains' links (WP83, backlog C12 phase 1). Zero-key rows in the hubs are phase 2.
+
 ## [0.10.0] - 2026-10-22
 
 Six weeks and work packages WP11–WP80 after 0.9.1: brownfield extension with entity resolution and
