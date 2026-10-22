@@ -31,6 +31,20 @@ describe("Review", () => {
   });
 });
 
+describe("Review — the owner field (WP87)", () => {
+  it("accepts a bare email address as a filled owner", () => {
+    render(<ReviewPerspective run={run} checkpoint={checkpoint} onDecide={() => undefined} busy={false} error={null} />);
+    fireEvent.change(screen.getByLabelText("owner for customer"), { target: { value: "john.doe@acme.com" } });
+    expect(screen.getByRole("button", { name: "Accept and continue" })).toBeEnabled();
+  });
+  it("says at the field what is wrong", () => {
+    render(<ReviewPerspective run={run} checkpoint={checkpoint} onDecide={() => undefined} busy={false} error={null} />);
+    fireEvent.change(screen.getByLabelText("owner for customer"), { target: { value: "John" } });
+    expect(screen.getByText("Name <email> or an email address")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Accept and continue" })).toBeDisabled();
+  });
+});
+
 const resolution: Checkpoint = {
   ...checkpoint, phase: "resolution", blocked: false, decisions: 0, disclosures: 0, items: [],
   links: [{ key: "Account.CustomerID", kind: "license", target: "Customer (no hub yet)", note: "declared_fk_pending: builds nothing", evidence: ["Account.CustomerID → Customer.CustomerID"] }],
