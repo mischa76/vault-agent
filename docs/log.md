@@ -9908,3 +9908,38 @@ satellites for this property. Needs the owner's „go".
 (five `ma_sat`, vendor satellites plain). **Nur angenommen.** That the catalogue carries `BillOfMaterials`'
 alternate key in a form a gate could read — `source_schema.yml` names only the primary key in comments; not
 checked in `schema_extract.json`. **Bewusst nicht getan.** No fix; Sales not yet run.
+
+## [2026-10-22] The owner's hands-on run, step 8 and end: Sales built — PASS=334, the whole AdventureWorks vault (39 hubs, 49 links, 92 satellites, 2.3 M rows) built step by step by the owner; C12 measured at scale: 635 of 19 820 customers keep their person/store link
+
+**Autor:** Claude Code
+
+Continues step 7 (today, `457175b`). Run `adventureworks:20261022T151530662480Z` on the Purchasing run. Resolution:
+`person::`, `sales representative::`, `store::BusinessEntityID` accepted onto `hub_business_entity` — no
+`hub_sales_person` (the chain's standing red class, WP38/WP50, held); `hub_business_entity` now has ten feeds.
+New: 11 hubs (`hub_customer` on `AccountNumber`, `hub_sales_order` on `SalesOrderNumber` — the natural keys
+from Microsoft's `AK_` indexes; `hub_sales_order_line`, `hub_currency_rate` composite), 22 links with roles
+(`person`/`store`, `bill_to`/`ship_to`, `from`/`to`, `sales_person`), 27 satellites, two WP36 translation views
+through `SalesOrderHeader` (their four schema tests passed). Six new inferred link stages (reason `none`):
+the owner created six views in `aw` from a script I tested in a rolled-back transaction
+(`PersonCreditCard`, `SalesPerson`, `SalesTerritoryHistory`, `Store` with `SalesPersonID` aliased to the
+role column `W_ROLE_BK_NOT_IN_SOURCE` names, `Customer`, `SalesOrderHeader` ⟕ `CurrencyRate`).
+
+**Build** (keyless, PostgreSQL, `aw`): **PASS=334** (328 models, 6 tests) in 74 s. As predicted before the
+build: **`link_customer_business_entity` 635** — C12: the link carries `person` and `store`, every customer has
+only one, AutomateDV drops a row with a NULL participant, so 19 185 of 19 820 customers lose the link to who
+they are (no satellite on it, so nothing orphaned — the relation is simply absent); binary links drop
+correctly (`link_sales_order_sales_person` 3 806, `_credit_card` 30 334, `_currency_rate` 13 976); every earlier
+`ma_sat` `INSERT 0 0`; `sat_business_entity_pay_history` +38 (C11). `sat_business_entity_sales_quota_history`
+is C11's third satellite (multi-active `QuotaDate`, feed-bound on the multi-source hub, rendered `sat`; 163 rows,
+not yet re-run). `sat_product_assembly_component_details` +339 (C13, second re-run). I had promised the owner a
+full count table before the build and did not send it; the predictions above were stated in the sign-off message.
+
+**The end state.** All five AdventureWorks domains built by the owner, each a brownfield step on the last,
+without `--full-refresh`: 39 hubs (536 076 rows), 49 links (836 173), 92 satellites (952 017), 7 hand-made views
+for inferred link stages. Every step's earlier models stayed `INSERT 0 0` except the two defect classes found
+(C11, C13). Backlog from the run: C8–C13 and C4's correction — each needs the owner's „go".
+
+**Überprüft.** The build log; the C12 counts against the sources by `psql`; the model diff against step 7; the
+views in a rolled-back transaction; table counts by `pg_stat_user_tables` after `ANALYZE` (estimates of live
+rows, not `count(*)`). **Nur angenommen.** That the quota satellite is non-idempotent (same mechanism, not re-run).
+**Bewusst nicht getan.** No fix; the views and the duplicated rows stay in `aw`.
