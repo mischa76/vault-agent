@@ -9752,3 +9752,70 @@ is handed to dbt.
 after a restart (uvicorn runs without reload). **Bewusst nicht getan.** A second look at every other
 place the workbench passes `out_dir` to a subprocess — there is none besides this one
 (`rg "runner\(|subprocess" src/vault_agent/ui`).
+
+## [2026-10-22] The owner's hands-on run, steps 1–5: person greenfield and HumanResources brownfield built into local PostgreSQL by hand, every pre-registered count held; a feed-bound multi-active satellite is generated as a standard one (C11), plus three UX findings (C8–C10)
+
+**Autor:** Claude Code
+
+The owner ran AdventureWorks end to end themselves — modelling in the workbench, `dbt` in the
+terminal (the workbench ends at the written project, 14.3; the owner confirmed 2026-10-20). Both
+runs are paid LLM runs; both builds are keyless `dbt build`s on the local PostgreSQL 16 (`vault`,
+schema `aw`, dbt-core 1.9.10 / dbt-postgres 1.9.1, AutomateDV 0.11.4) against the CSV-loaded
+AdventureWorks tables of 2026-10-18.
+
+**Step 1–4, person (greenfield, `adventureworks:20261019T204027253108Z`).** 7 hubs / 5 links / 17
+satellites. Initial load PASS=55; hubs equal their sources' keys (`hub_business_entity` 20 777,
+`hub_address` 19 614). Rerun: all 29 raw-vault models `INSERT 0 0`. Then a delta applied by the
+owner (Ken renamed, one new person): exactly the predicted five models moved
+(`hub_business_entity` +1, `sat_business_entity_person_name` +2, three satellites +1), Ken's
+history two rows with distinct hashdiffs.
+
+**Step 5, HumanResources (brownfield on the person run, `adventureworks:20261021T232716713739Z`,
+started through the workbench API).** Resolution: `employee::BusinessEntityID` accepted onto
+`hub_business_entity`; `NationalIDNumber` and `LoginID` answered `unresolved` — accepting
+`same_as_candidate` can render „model it as its OWN hub" when no declared subtype path is found
+(`render_resolution_prompt_section`), the two-hubs-on-one-person class. The modeler built no
+`hub_employee`: four employee satellites on `hub_business_entity`, `hub_department`, `hub_shift`,
+`hub_job_candidate`, the three-way `link_business_entity_department_shift` with an effectivity
+satellite. Build of the whole regenerated project (37 staging, 44 raw vault — `hub_business_entity`
+now reads six feeds) without `--full-refresh`: **PASS=81, every count as pre-registered** — the 29
+person models `INSERT 0 0`, `hub_department` 16, `hub_shift` 3, `hub_job_candidate` 13, the link
+296, employee satellites 290 each, `link_business_entity_job_candidate` 2 (only two candidates are
+employees). `EmployeeDepartmentHistory`: no end before start, 290 open — W_EFFSAT_DATE_ORDER_UNVERIFIED
+answered for this data.
+
+**The finding: `sat_business_entity_pay_history`.** The model has it right — `sat_type:
+multi_active`, `child_dependent_key: [RateChangeDate]`, `source_table: EmployeePayHistory`. The
+generated SQL is `automate_dv.sat` with payload `RATE, PAYFREQUENCY, MODIFIEDDATE` and no
+`RateChangeDate`. Cause, read from the code: `code_generator.py`'s ADR-0011 branch for a satellite
+that names one of a multi-source hub's feeds calls `_render_sat` whatever the type („No type
+restriction here … a satellite bound to one feed is an ordinary satellite"), so `_render_ma_sat`
+is never reached; no gate names the lost key. Consequence measured: the initial load wrote 316
+rows for 290 employees, 13 of them three rows with the same key and load date; **the rerun inserted
+26 more** (predicted 26–39: AutomateDV 0.11.4's `sat` compares each source row with an arbitrary
+one of the tied latest rows, `macros/tables/postgres/sat.sql`) — 342 rows now, the satellite is not
+idempotent while all 80 other models are. The sign-off showed a `code_generator` flag „type
+'multi_active' on multi-source hub … not supported" for the same satellite although SQL was
+generated — the flag belongs to the split branch, so it is either from an earlier shape of the
+model (C8's class) or the sat passed through both; not traced.
+
+**Backlog candidates (each needs the owner's „go"; continuing `backlog-2026-10-candidates.md`,
+which is append-only):**
+
+- **C8 — stale code-generator flags.** Flags from a modeler attempt survive a re-model and reach the
+  sign-off for constructs whose final shape no longer earns them (first seen on the person run,
+  again here).
+- **C9 — owner format at sign-off.** A bare email disables accept and says so only in a tooltip;
+  „Record without accepting" then finishes the run when nothing blocks, owners stored with name =
+  email and email null, mappings left `proposed`. Inline message; parse a bare email.
+- **C10 — seed config in grounded runs.** `dbt_project.yml` carries `seeds:` column types for the
+  increment's tables although a grounded run reads sources, not seeds — dbt warns of 7 unused paths.
+- **C11 — a feed-bound multi-active satellite is generated as a standard satellite.** Dispatch the
+  ADR-0011 branch on `sat_type` (`_render_ma_sat` with the feed's staging), or refuse it as a
+  generation gap — never a silent standard sat; a guard on this shape first.
+
+**Überprüft.** Both build logs as pasted by the owner; the counts against the sources and the vault
+by `psql` (read-only); the satellite's model entry and SQL; the generator branch; the installed
+AutomateDV macro. **Nur angenommen.** Where the stale-looking flag came from. **Bewusst nicht
+getan.** No fix (C11 needs a guard and a „go"); the pay-history rows left as they are — the owner's
+vault, a `--full-refresh` of that model would reset it; Production, Purchasing and Sales not yet run.
