@@ -729,11 +729,15 @@ async def _discard_pending(out_dir: Path, thread_id: str) -> None:
 
 
 def _parse_owner(spec: str) -> tuple[str, dict[str, str | None]]:
-    """Parse ``asset=Owner Name <email@host>`` (the ``<email>`` part optional)."""
+    """Parse ``asset=Owner Name <email@host>`` (the ``<email>`` part optional). WP87: a bare
+    address ``asset=local@domain`` is the email, its local part the name — before, it became the
+    name with no email (the owner's run of 2026-10-21 stored 13 contracts that way)."""
     asset, sep, rest = spec.partition("=")
     asset, rest = asset.strip(), rest.strip()
     if not sep or not asset or not rest:
         raise ValueError(f"invalid --owner {spec!r}; expected 'asset=Name <email>'")
+    if re.fullmatch(r"[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+", rest):
+        return asset, {"name": rest.split("@", 1)[0], "email": rest}
     email: str | None = None
     match = re.search(r"<([^>]+)>", rest)
     if match:

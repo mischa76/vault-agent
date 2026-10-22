@@ -13,6 +13,14 @@ export function groupItems(items: ReviewItem[]): { role: ReviewItem["role"]; kin
   });
 }
 
+// WP87: what the CLI's `_parse_owner` stores as name and address — `Name <email>`, or a bare address
+// (its local part becomes the name). Anything else would be stored as a name without an address.
+const BARE_EMAIL = /^[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+$/;
+export function ownerValid(value: string): boolean {
+  const v = value.trim();
+  return BARE_EMAIL.test(v) || /^[^<>]+<[^<>@\s]+@[^<>\s]+>$/.test(v);
+}
+
 export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   run: Run; checkpoint: Checkpoint | null; onDecide: (d: Decision) => void; busy: boolean; error: string | null;
 }) {
@@ -30,7 +38,7 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   const atResolution = checkpoint.phase === "resolution";
   const answers = checkpoint.answers?.length ? checkpoint.answers : FALLBACK_ANSWERS;
   const ownerItems = atResolution ? [] : checkpoint.items.filter((i) => i.kind === "contract_owner" && i.asset);
-  const ownersFilled = ownerItems.every((i) => (owners[i.asset!] ?? "").includes("<"));
+  const ownersFilled = ownerItems.every((i) => ownerValid(owners[i.asset!] ?? ""));
   const declined = Object.values(links).filter((v) => v === false).length;
   const decision = (accept: boolean): Decision => ({
     accept,
@@ -53,10 +61,10 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
         </p>
         <ErrorNote error={error} />
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Button onClick={() => onDecide(decision(true))} disabled={busy || (!atResolution && checkpoint.blocked && !ownersFilled)} title={!atResolution && checkpoint.blocked && !ownersFilled ? "every contract needs an owner as 'Name <email>' first" : undefined}>
+          <Button onClick={() => onDecide(decision(true))} disabled={busy || (!atResolution && checkpoint.blocked && !ownersFilled)} title={!atResolution && checkpoint.blocked && !ownersFilled ? "every contract needs an owner: 'Name <email>' or an email address" : undefined}>
             {atResolution ? (declined ? `Ratify the rest, decline ${declined}, and build the model` : "Ratify as proposed and build the model") : "Accept and continue"}
           </Button>
-          {!atResolution ? <Button kind="ghost" onClick={() => onDecide(decision(false))} disabled={busy} title="record owners and resolutions without accepting">Record without accepting</Button> : null}
+          {!atResolution ? <Button kind="ghost" onClick={() => onDecide(decision(false))} disabled={busy} title={checkpoint.blocked ? "record owners and resolutions without accepting; the run stays paused" : "record owners and resolutions without accepting — nothing blocks, so the run finishes"}>Record without accepting</Button> : null}
           <Button kind="danger" onClick={() => onDecide({ discard: true })} disabled={busy}>Discard the run</Button>
         </div>
       </Section>
@@ -148,6 +156,9 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
                         <input value={owners[item.asset] ?? ""} placeholder="Name <email>" aria-label={`owner for ${item.asset}`}
                           onChange={(e) => setOwners({ ...owners, [item.asset!]: e.target.value })}
                           className="w-72 rounded-md border border-line bg-pane px-2 py-1 font-mono" />
+                        {(owners[item.asset] ?? "").trim() && !ownerValid(owners[item.asset] ?? "") ? (
+                          <span className="text-bad">Name &lt;email&gt; or an email address</span>
+                        ) : null}
                       </label>
                     ) : null}
                   </li>
