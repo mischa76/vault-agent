@@ -4849,8 +4849,7 @@
       "name": "SalesPersonQuotaHistory",
       "primary_key": [
         "BusinessEntityID",
-        "QuotaDate",
-        "ProductCategoryID"
+        "QuotaDate"
       ],
       "schema": "Sales"
     },

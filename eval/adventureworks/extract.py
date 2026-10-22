@@ -121,7 +121,9 @@ class Table:
 
 
 def _names(raw: str) -> list[str]:
-    return re.findall(r"\[(\w+)\]", raw)
+    # WP85: a `--` line comment is not a column — the script comments `[ProductCategoryID]` out of
+    # PK_SalesPersonQuotaHistory, and reading it made a key of a column the table does not have.
+    return re.findall(r"\[(\w+)\]", re.sub(r"--[^\n]*", "", raw))
 
 
 def _clean(text: str) -> str:

@@ -2169,7 +2169,6 @@ source_schemas:
   primary_key:
   - BusinessEntityID
   - QuotaDate
-  - ProductCategoryID
 - table: SalesReason
   schema: Sales
   columns:
