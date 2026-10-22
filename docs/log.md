@@ -9819,3 +9819,57 @@ by `psql` (read-only); the satellite's model entry and SQL; the generator branch
 AutomateDV macro. **Nur angenommen.** Where the stale-looking flag came from. **Bewusst nicht
 getan.** No fix (C11 needs a guard and a „go"); the pay-history rows left as they are — the owner's
 vault, a `--full-refresh` of that model would reset it; Production, Purchasing and Sales not yet run.
+
+## [2026-10-22] The owner's hands-on run, step 6: Production brownfield built — PASS=177, 13 of 15 pre-registered counts held; the two misses are one finding: a link with a nullable participant drops the row while its satellite keeps it (C12); C11 confirmed on a second satellite; `--map` cannot bind a link stage (C4 corrected)
+
+**Autor:** Claude Code
+
+Continues „The owner's hands-on run, steps 1–5" (today, `0889a86`). Run `adventureworks:20261022T133219892412Z`,
+started by the owner in the workbench on the HR run; resolution: one link proposal (`Document.Owner` →
+`hub_business_entity`), 27 licenses, no entity resolutions; sign-off accepted with 25 owners as `Name
+<email>` — stored as name and email (C9's format, followed). Model: 25 hubs (15 new), 23 links (16 new),
+56 satellites.
+
+**Multi-active, the counter-test to C11.** Every multi-active satellite on a single-source hub or a link
+is generated as `automate_dv.ma_sat` with its `src_cdk` (`sat_product_cost_history`,
+`sat_product_list_price_history` — `STARTDATE`; `sat_product_location_inventory` — `SHELF, BIN`;
+`sat_work_order_product_location_operation` — `OPERATIONSEQUENCE`). Both feed-bound ones on the
+multi-source `hub_business_entity` are plain `sat`: `sat_business_entity_pay_history` and — newly seen —
+`sat_business_entity_email` (from the person run; harmless in this data, one address per person,
+19 972 / 19 972). C11's scope is exactly the ADR-0011 branch.
+
+**One inferred stage, and a correction.** `stg_work_order_product_location` read `raw_work_order_product_location`:
+`WorkOrderRouting` carries all three keys but declares no foreign key on `ProductID` (part of its primary
+key only), so WP42's offer finds no relation (`none`). I had told the owner such stages are bound with
+`resume --map` — wrong: `source_mapper.source_overrides` binds hub stages only, link stages come from
+`link_source_overrides` (ratified link proposals and offers). Neither the CLI nor the workbench can bind a
+link stage after the fact; C4 is extended accordingly. For the build the owner created the view
+`aw.raw_work_order_product_location` over `"Production"."WorkOrderRouting"`, which `sources.yml`'s
+`inferred` block asks for.
+
+**The build** (keyless, local PostgreSQL, schema `aw`, no `--full-refresh`): **PASS=177** in 36 s. Held:
+all person and HR models `INSERT 0 0` except `sat_business_entity_pay_history` **+35** (predicted > 0, C11's
+non-idempotence, third time); `hub_product` 504, `hub_product_model` 128, `_subcategory` 37, `_category` 4,
+`hub_location` 14, `hub_product_review` 4, `hub_work_order` 72 591, `hub_inventory_transaction` 202 696
+(two feeds), `link_work_order_product_location` 67 131 through the view, `sat_product_cost_history` 395.
+**Missed:** `hub_document` and `link_document_business_entity` **11** (predicted 12) — the root of
+`Document`'s hierarchy has an empty `DocumentNode` (a `hierarchyid` root is the empty binary; the CSV loader
+made it NULL), and a hub drops a NULL key; a loading artefact, not the generator's. And
+`link_product_assembly_component` **2 387** (predicted ≥ 2 484) — **C12:** the 103 `BillOfMaterials` rows
+with a NULL `ProductAssemblyID` (top-level assemblies) are dropped by the link (AutomateDV requires every
+participant key) while `sat_product_assembly_component_details` keeps all 2 679: **103 satellite rows on 97
+link hashes that no link row carries** — orphans; the effectivity satellite has 2 576 = 2 679 − 103. My
+prediction assumed the link hashes NULL participants as the satellite does; it does not.
+
+**Backlog C12 — nullable link participants.** AutomateDV 0.11.4 provides zero keys for exactly this
+(`macros/staging/null_columns.sql`: `null_columns: {required: […], optional: […]}`, values
+`var('null_key_required', '-1')` / `var('null_key_optional', '-2')`); the generator passes none. Candidate:
+stage a nullable foreign key of a link participant as `optional` (and a hub's own key as `required`), so the
+link row exists with the zero key and no satellite is orphaned; plus a ghost hub row to land on. Guard first;
+needs the owner's „go".
+
+**Überprüft.** The build log as pasted; the counts and the orphans by `psql` (read-only); the generated SQL
+of all multi-active satellites; `source_overrides` and `link_source_overrides`; the installed AutomateDV
+macro. **Nur angenommen.** That AutomateDV's link drops NULL participants in its `WHERE` (inferred from the
+counts — 2 387 equals the distinct non-NULL triples exactly — not read in the macro). **Bewusst nicht
+getan.** No fix; the view stays in `aw`; the orphan rows stay; Purchasing and Sales not yet run.
