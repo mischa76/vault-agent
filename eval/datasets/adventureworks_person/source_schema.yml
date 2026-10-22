@@ -41,6 +41,8 @@ source_schemas:
     references_columns:
     - StateProvinceID
     references_schema: Person
+  primary_key:
+  - AddressID
 - table: AddressType
   schema: Person
   columns:
@@ -57,6 +59,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - AddressTypeID
+  unique_keys:
+  - - Name
 - table: BusinessEntity
   schema: Person
   columns:
@@ -70,6 +76,8 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - BusinessEntityID
 - table: BusinessEntityAddress
   schema: Person
   columns:
@@ -108,6 +116,10 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - AddressID
+  - AddressTypeID
 - table: BusinessEntityContact
   schema: Person
   columns:
@@ -146,6 +158,10 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - PersonID
+  - ContactTypeID
 - table: ContactType
   schema: Person
   columns:
@@ -158,6 +174,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - ContactTypeID
+  unique_keys:
+  - - Name
 - table: CountryRegion
   schema: Person
   columns:
@@ -170,6 +190,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - CountryRegionCode
+  unique_keys:
+  - - Name
 - table: EmailAddress
   schema: Person
   columns:
@@ -197,6 +221,9 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - EmailAddressID
 - table: Password
   schema: Person
   columns:
@@ -223,6 +250,8 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
 - table: Person
   schema: Person
   columns:
@@ -279,6 +308,8 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
 - table: PersonPhone
   schema: Person
   columns:
@@ -307,6 +338,10 @@ source_schemas:
     references_columns:
     - PhoneNumberTypeID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - PhoneNumber
+  - PhoneNumberTypeID
 - table: PhoneNumberType
   schema: Person
   columns:
@@ -319,6 +354,8 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - PhoneNumberTypeID
 - table: StateProvince
   schema: Person
   columns:
@@ -362,3 +399,9 @@ source_schemas:
     references_columns:
     - TerritoryID
     references_schema: Sales
+  primary_key:
+  - StateProvinceID
+  unique_keys:
+  - - Name
+  - - StateProvinceCode
+    - CountryRegionCode

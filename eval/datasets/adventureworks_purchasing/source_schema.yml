@@ -58,6 +58,9 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Purchasing
+  primary_key:
+  - ProductID
+  - BusinessEntityID
 - table: PurchaseOrderDetail
   schema: Purchasing
   columns:
@@ -107,6 +110,9 @@ source_schemas:
     references_columns:
     - PurchaseOrderID
     references_schema: Purchasing
+  primary_key:
+  - PurchaseOrderID
+  - PurchaseOrderDetailID
 - table: PurchaseOrderHeader
   schema: Purchasing
   columns:
@@ -169,6 +175,8 @@ source_schemas:
     references_columns:
     - ShipMethodID
     references_schema: Purchasing
+  primary_key:
+  - PurchaseOrderID
 - table: ShipMethod
   schema: Purchasing
   columns:
@@ -191,6 +199,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - ShipMethodID
+  unique_keys:
+  - - Name
 - table: Vendor
   schema: Purchasing
   columns:
@@ -225,3 +237,7 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  unique_keys:
+  - - AccountNumber

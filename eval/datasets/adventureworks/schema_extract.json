@@ -51,7 +51,9 @@
       "description": "Lookup table containing the departments within the Adventure Works Cycles company.",
       "foreign_keys": [],
       "name": "Department",
-      "primary_key": [],
+      "primary_key": [
+        "DepartmentID"
+      ],
       "schema": "HumanResources"
     },
     {
@@ -206,7 +208,9 @@
         }
       ],
       "name": "Employee",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID"
+      ],
       "schema": "HumanResources"
     },
     {
@@ -289,7 +293,12 @@
         }
       ],
       "name": "EmployeeDepartmentHistory",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID",
+        "StartDate",
+        "DepartmentID",
+        "ShiftID"
+      ],
       "schema": "HumanResources"
     },
     {
@@ -345,7 +354,10 @@
         }
       ],
       "name": "EmployeePayHistory",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID",
+        "RateChangeDate"
+      ],
       "schema": "HumanResources"
     },
     {
@@ -394,7 +406,9 @@
         }
       ],
       "name": "JobCandidate",
-      "primary_key": [],
+      "primary_key": [
+        "JobCandidateID"
+      ],
       "schema": "HumanResources"
     },
     {
@@ -455,7 +469,9 @@
       "description": "Work shift lookup table.",
       "foreign_keys": [],
       "name": "Shift",
-      "primary_key": [],
+      "primary_key": [
+        "ShiftID"
+      ],
       "schema": "HumanResources"
     },
     {
@@ -547,7 +563,9 @@
         }
       ],
       "name": "Address",
-      "primary_key": [],
+      "primary_key": [
+        "AddressID"
+      ],
       "schema": "Person"
     },
     {
@@ -600,7 +618,9 @@
       "description": "Types of addresses stored in the Address table.",
       "foreign_keys": [],
       "name": "AddressType",
-      "primary_key": [],
+      "primary_key": [
+        "AddressTypeID"
+      ],
       "schema": "Person"
     },
     {
@@ -639,7 +659,9 @@
       "description": "Source of the ID that connects vendors, customers, and employees with address and contact information.",
       "foreign_keys": [],
       "name": "BusinessEntity",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID"
+      ],
       "schema": "Person"
     },
     {
@@ -723,7 +745,11 @@
         }
       ],
       "name": "BusinessEntityAddress",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID",
+        "AddressID",
+        "AddressTypeID"
+      ],
       "schema": "Person"
     },
     {
@@ -807,7 +833,11 @@
         }
       ],
       "name": "BusinessEntityContact",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID",
+        "PersonID",
+        "ContactTypeID"
+      ],
       "schema": "Person"
     },
     {
@@ -846,7 +876,9 @@
       "description": "Lookup table containing the types of business entity contacts.",
       "foreign_keys": [],
       "name": "ContactType",
-      "primary_key": [],
+      "primary_key": [
+        "ContactTypeID"
+      ],
       "schema": "Person"
     },
     {
@@ -885,7 +917,9 @@
       "description": "Lookup table containing the ISO standard codes for countries and regions.",
       "foreign_keys": [],
       "name": "CountryRegion",
-      "primary_key": [],
+      "primary_key": [
+        "CountryRegionCode"
+      ],
       "schema": "Person"
     },
     {
@@ -941,7 +975,10 @@
         }
       ],
       "name": "EmailAddress",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID",
+        "EmailAddressID"
+      ],
       "schema": "Person"
     },
     {
@@ -997,7 +1034,9 @@
         }
       ],
       "name": "Password",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID"
+      ],
       "schema": "Person"
     },
     {
@@ -1117,7 +1156,9 @@
         }
       ],
       "name": "Person",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID"
+      ],
       "schema": "Person"
     },
     {
@@ -1176,7 +1217,11 @@
         }
       ],
       "name": "PersonPhone",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID",
+        "PhoneNumber",
+        "PhoneNumberTypeID"
+      ],
       "schema": "Person"
     },
     {
@@ -1207,7 +1252,9 @@
       "description": "Type of phone number of a person.",
       "foreign_keys": [],
       "name": "PhoneNumberType",
-      "primary_key": [],
+      "primary_key": [
+        "PhoneNumberTypeID"
+      ],
       "schema": "Person"
     },
     {
@@ -1317,11 +1364,23 @@
         }
       ],
       "name": "StateProvince",
-      "primary_key": [],
+      "primary_key": [
+        "StateProvinceID"
+      ],
       "schema": "Person"
     },
     {
-      "alternate_keys": [],
+      "alternate_keys": [
+        {
+          "columns": [
+            "ProductAssemblyID",
+            "ComponentID",
+            "StartDate"
+          ],
+          "name": "AK_BillOfMaterials_ProductAssemblyID_ComponentID_StartDate",
+          "technical_guid": false
+        }
+      ],
       "columns": [
         {
           "description": "Primary key for BillOfMaterials records.",
@@ -1421,7 +1480,9 @@
         }
       ],
       "name": "BillOfMaterials",
-      "primary_key": [],
+      "primary_key": [
+        "BillOfMaterialsID"
+      ],
       "schema": "Production"
     },
     {
@@ -1460,7 +1521,9 @@
       "description": "Lookup table containing the languages in which some AdventureWorks data is stored.",
       "foreign_keys": [],
       "name": "Culture",
-      "primary_key": [],
+      "primary_key": [
+        "CultureID"
+      ],
       "schema": "Production"
     },
     {
@@ -1587,7 +1650,9 @@
         }
       ],
       "name": "Document",
-      "primary_key": [],
+      "primary_key": [
+        "DocumentNode"
+      ],
       "schema": "Production"
     },
     {
@@ -1618,7 +1683,9 @@
       "description": "Bicycle assembly diagrams.",
       "foreign_keys": [],
       "name": "Illustration",
-      "primary_key": [],
+      "primary_key": [
+        "IllustrationID"
+      ],
       "schema": "Production"
     },
     {
@@ -1671,7 +1738,9 @@
       "description": "Product inventory and manufacturing locations.",
       "foreign_keys": [],
       "name": "Location",
-      "primary_key": [],
+      "primary_key": [
+        "LocationID"
+      ],
       "schema": "Production"
     },
     {
@@ -1919,7 +1988,9 @@
         }
       ],
       "name": "Product",
-      "primary_key": [],
+      "primary_key": [
+        "ProductID"
+      ],
       "schema": "Production"
     },
     {
@@ -1972,7 +2043,9 @@
       "description": "High-level product categorization.",
       "foreign_keys": [],
       "name": "ProductCategory",
-      "primary_key": [],
+      "primary_key": [
+        "ProductCategoryID"
+      ],
       "schema": "Production"
     },
     {
@@ -2028,7 +2101,10 @@
         }
       ],
       "name": "ProductCostHistory",
-      "primary_key": [],
+      "primary_key": [
+        "ProductID",
+        "StartDate"
+      ],
       "schema": "Production"
     },
     {
@@ -2074,7 +2150,9 @@
       "description": "Product descriptions in several languages.",
       "foreign_keys": [],
       "name": "ProductDescription",
-      "primary_key": [],
+      "primary_key": [
+        "ProductDescriptionID"
+      ],
       "schema": "Production"
     },
     {
@@ -2126,7 +2204,10 @@
         }
       ],
       "name": "ProductDocument",
-      "primary_key": [],
+      "primary_key": [
+        "ProductID",
+        "DocumentNode"
+      ],
       "schema": "Production"
     },
     {
@@ -2206,7 +2287,10 @@
         }
       ],
       "name": "ProductInventory",
-      "primary_key": [],
+      "primary_key": [
+        "ProductID",
+        "LocationID"
+      ],
       "schema": "Production"
     },
     {
@@ -2262,7 +2346,10 @@
         }
       ],
       "name": "ProductListPriceHistory",
-      "primary_key": [],
+      "primary_key": [
+        "ProductID",
+        "StartDate"
+      ],
       "schema": "Production"
     },
     {
@@ -2329,7 +2416,9 @@
       "description": "Product model classification.",
       "foreign_keys": [],
       "name": "ProductModel",
-      "primary_key": [],
+      "primary_key": [
+        "ProductModelID"
+      ],
       "schema": "Production"
     },
     {
@@ -2381,7 +2470,10 @@
         }
       ],
       "name": "ProductModelIllustration",
-      "primary_key": [],
+      "primary_key": [
+        "ProductModelID",
+        "IllustrationID"
+      ],
       "schema": "Production"
     },
     {
@@ -2450,7 +2542,11 @@
         }
       ],
       "name": "ProductModelProductDescriptionCulture",
-      "primary_key": [],
+      "primary_key": [
+        "ProductModelID",
+        "ProductDescriptionID",
+        "CultureID"
+      ],
       "schema": "Production"
     },
     {
@@ -2502,7 +2598,9 @@
       "description": "Product images.",
       "foreign_keys": [],
       "name": "ProductPhoto",
-      "primary_key": [],
+      "primary_key": [
+        "ProductPhotoID"
+      ],
       "schema": "Production"
     },
     {
@@ -2561,7 +2659,10 @@
         }
       ],
       "name": "ProductProductPhoto",
-      "primary_key": [],
+      "primary_key": [
+        "ProductID",
+        "ProductPhotoID"
+      ],
       "schema": "Production"
     },
     {
@@ -2638,7 +2739,9 @@
         }
       ],
       "name": "ProductReview",
-      "primary_key": [],
+      "primary_key": [
+        "ProductReviewID"
+      ],
       "schema": "Production"
     },
     {
@@ -2709,7 +2812,9 @@
         }
       ],
       "name": "ProductSubcategory",
-      "primary_key": [],
+      "primary_key": [
+        "ProductSubcategoryID"
+      ],
       "schema": "Production"
     },
     {
@@ -2748,7 +2853,9 @@
       "description": "Manufacturing failure reasons lookup table.",
       "foreign_keys": [],
       "name": "ScrapReason",
-      "primary_key": [],
+      "primary_key": [
+        "ScrapReasonID"
+      ],
       "schema": "Production"
     },
     {
@@ -2832,7 +2939,9 @@
         }
       ],
       "name": "TransactionHistory",
-      "primary_key": [],
+      "primary_key": [
+        "TransactionID"
+      ],
       "schema": "Production"
     },
     {
@@ -2905,7 +3014,9 @@
       "description": "Transactions for previous years.",
       "foreign_keys": [],
       "name": "TransactionHistoryArchive",
-      "primary_key": [],
+      "primary_key": [
+        "TransactionID"
+      ],
       "schema": "Production"
     },
     {
@@ -2944,7 +3055,9 @@
       "description": "Unit of measure lookup table.",
       "foreign_keys": [],
       "name": "UnitMeasure",
-      "primary_key": [],
+      "primary_key": [
+        "UnitMeasureCode"
+      ],
       "schema": "Production"
     },
     {
@@ -3045,7 +3158,9 @@
         }
       ],
       "name": "WorkOrder",
-      "primary_key": [],
+      "primary_key": [
+        "WorkOrderID"
+      ],
       "schema": "Production"
     },
     {
@@ -3160,7 +3275,11 @@
         }
       ],
       "name": "WorkOrderRouting",
-      "primary_key": [],
+      "primary_key": [
+        "WorkOrderID",
+        "ProductID",
+        "OperationSequence"
+      ],
       "schema": "Production"
     },
     {
@@ -3278,7 +3397,10 @@
         }
       ],
       "name": "ProductVendor",
-      "primary_key": [],
+      "primary_key": [
+        "ProductID",
+        "BusinessEntityID"
+      ],
       "schema": "Purchasing"
     },
     {
@@ -3386,7 +3508,10 @@
         }
       ],
       "name": "PurchaseOrderDetail",
-      "primary_key": [],
+      "primary_key": [
+        "PurchaseOrderID",
+        "PurchaseOrderDetailID"
+      ],
       "schema": "Purchasing"
     },
     {
@@ -3518,7 +3643,9 @@
         }
       ],
       "name": "PurchaseOrderHeader",
-      "primary_key": [],
+      "primary_key": [
+        "PurchaseOrderID"
+      ],
       "schema": "Purchasing"
     },
     {
@@ -3585,7 +3712,9 @@
       "description": "Shipping company lookup table.",
       "foreign_keys": [],
       "name": "ShipMethod",
-      "primary_key": [],
+      "primary_key": [
+        "ShipMethodID"
+      ],
       "schema": "Purchasing"
     },
     {
@@ -3670,7 +3799,9 @@
         }
       ],
       "name": "Vendor",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID"
+      ],
       "schema": "Purchasing"
     },
     {
@@ -3722,7 +3853,10 @@
         }
       ],
       "name": "CountryRegionCurrency",
-      "primary_key": [],
+      "primary_key": [
+        "CountryRegionCode",
+        "CurrencyCode"
+      ],
       "schema": "Sales"
     },
     {
@@ -3782,7 +3916,9 @@
       "description": "Customer credit card information.",
       "foreign_keys": [],
       "name": "CreditCard",
-      "primary_key": [],
+      "primary_key": [
+        "CreditCardID"
+      ],
       "schema": "Sales"
     },
     {
@@ -3821,7 +3957,9 @@
       "description": "Lookup table containing standard ISO currencies.",
       "foreign_keys": [],
       "name": "Currency",
-      "primary_key": [],
+      "primary_key": [
+        "CurrencyCode"
+      ],
       "schema": "Sales"
     },
     {
@@ -3911,7 +4049,9 @@
         }
       ],
       "name": "CurrencyRate",
-      "primary_key": [],
+      "primary_key": [
+        "CurrencyRateID"
+      ],
       "schema": "Sales"
     },
     {
@@ -4016,7 +4156,9 @@
         }
       ],
       "name": "Customer",
-      "primary_key": [],
+      "primary_key": [
+        "CustomerID"
+      ],
       "schema": "Sales"
     },
     {
@@ -4068,7 +4210,10 @@
         }
       ],
       "name": "PersonCreditCard",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID",
+        "CreditCardID"
+      ],
       "schema": "Sales"
     },
     {
@@ -4186,7 +4331,10 @@
         }
       ],
       "name": "SalesOrderDetail",
-      "primary_key": [],
+      "primary_key": [
+        "SalesOrderID",
+        "SalesOrderDetailID"
+      ],
       "schema": "Sales"
     },
     {
@@ -4474,7 +4622,9 @@
         }
       ],
       "name": "SalesOrderHeader",
-      "primary_key": [],
+      "primary_key": [
+        "SalesOrderID"
+      ],
       "schema": "Sales"
     },
     {
@@ -4526,7 +4676,10 @@
         }
       ],
       "name": "SalesOrderHeaderSalesReason",
-      "primary_key": [],
+      "primary_key": [
+        "SalesOrderID",
+        "SalesReasonID"
+      ],
       "schema": "Sales"
     },
     {
@@ -4628,7 +4781,9 @@
         }
       ],
       "name": "SalesPerson",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID"
+      ],
       "schema": "Sales"
     },
     {
@@ -4692,7 +4847,11 @@
         }
       ],
       "name": "SalesPersonQuotaHistory",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID",
+        "QuotaDate",
+        "ProductCategoryID"
+      ],
       "schema": "Sales"
     },
     {
@@ -4730,7 +4889,9 @@
       "description": "Lookup table of customer purchase reasons.",
       "foreign_keys": [],
       "name": "SalesReason",
-      "primary_key": [],
+      "primary_key": [
+        "SalesReasonID"
+      ],
       "schema": "Sales"
     },
     {
@@ -4816,7 +4977,9 @@
         }
       ],
       "name": "SalesTaxRate",
-      "primary_key": [],
+      "primary_key": [
+        "SalesTaxRateID"
+      ],
       "schema": "Sales"
     },
     {
@@ -4922,7 +5085,9 @@
         }
       ],
       "name": "SalesTerritory",
-      "primary_key": [],
+      "primary_key": [
+        "TerritoryID"
+      ],
       "schema": "Sales"
     },
     {
@@ -5003,7 +5168,11 @@
         }
       ],
       "name": "SalesTerritoryHistory",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID",
+        "StartDate",
+        "TerritoryID"
+      ],
       "schema": "Sales"
     },
     {
@@ -5066,7 +5235,9 @@
         }
       ],
       "name": "ShoppingCartItem",
-      "primary_key": [],
+      "primary_key": [
+        "ShoppingCartItemID"
+      ],
       "schema": "Sales"
     },
     {
@@ -5161,7 +5332,9 @@
       "description": "Sale discounts lookup table.",
       "foreign_keys": [],
       "name": "SpecialOffer",
-      "primary_key": [],
+      "primary_key": [
+        "SpecialOfferID"
+      ],
       "schema": "Sales"
     },
     {
@@ -5228,7 +5401,10 @@
         }
       ],
       "name": "SpecialOfferProduct",
-      "primary_key": [],
+      "primary_key": [
+        "SpecialOfferID",
+        "ProductID"
+      ],
       "schema": "Sales"
     },
     {
@@ -5309,7 +5485,9 @@
         }
       ],
       "name": "Store",
-      "primary_key": [],
+      "primary_key": [
+        "BusinessEntityID"
+      ],
       "schema": "Sales"
     }
   ],

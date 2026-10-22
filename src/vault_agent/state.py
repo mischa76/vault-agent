@@ -224,6 +224,10 @@ class SourceTable(BaseModel):
     # pre-WP34 shape, and every artifact stays byte-identical (test_wp34_fk_inertness.py).
     # Read ONLY by the deterministic link proposer — never rendered to the modeler (§3.8).
     foreign_keys: list[ForeignKeyRef] = Field(default_factory=list)
+    # WP85: the relation's primary key and unique keys, transcribed from the catalogue. Empty =
+    # not declared; read only by `E_SAT_GRAIN_NOT_UNIQUE` — never rendered to an agent.
+    primary_key: list[str] = Field(default_factory=list)
+    unique_keys: list[list[str]] = Field(default_factory=list)
 
     @field_validator("columns", mode="before")
     @classmethod

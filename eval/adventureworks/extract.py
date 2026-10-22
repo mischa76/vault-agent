@@ -68,12 +68,18 @@ _DESC_RE = re.compile(
     r"(?:, N'COLUMN', \[(?P<column>\w+)\])?"
 )
 _PK_RE = re.compile(
-    r"ALTER TABLE \[(?P<schema>\w+)\]\.\[(?P<table>\w+)\] ADD\s+CONSTRAINT \[PK_\w+\] "
+    # WP85: the install script writes `WITH CHECK ADD` for every primary key (71 statements);
+    # the bare `ADD` this expected matched none, so no table had a primary key until 2026-10-22.
+    r"ALTER TABLE \[(?P<schema>\w+)\]\.\[(?P<table>\w+)\] (?:WITH CHECK )?ADD\s+"
+    r"CONSTRAINT \[PK_\w+\] "
     r"PRIMARY KEY \w+\s*\((?P<cols>.*?)\)",
     re.S,
 )
 _AK_RE = re.compile(
-    r"CREATE UNIQUE INDEX \[(?P<name>AK_\w+)\] ON \[(?P<schema>\w+)\]\.\[(?P<table>\w+)\]"
+    # WP85: `CLUSTERED`/`NONCLUSTERED` too — `AK_BillOfMaterials_ProductAssemblyID_ComponentID_
+    # StartDate` is a unique clustered index and was missed.
+    r"CREATE UNIQUE (?:(?:NON)?CLUSTERED )?INDEX \[(?P<name>AK_\w+)\] ON "
+    r"\[(?P<schema>\w+)\]\.\[(?P<table>\w+)\]"
     r"\((?P<cols>.*?)\)",
     re.S,
 )

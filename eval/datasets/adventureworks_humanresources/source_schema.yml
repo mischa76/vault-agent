@@ -17,6 +17,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - DepartmentID
+  unique_keys:
+  - - Name
 - table: Employee
   schema: HumanResources
   columns:
@@ -77,6 +81,11 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  unique_keys:
+  - - LoginID
+  - - NationalIDNumber
 - table: EmployeeDepartmentHistory
   schema: HumanResources
   columns:
@@ -118,6 +127,11 @@ source_schemas:
     references_columns:
     - ShiftID
     references_schema: HumanResources
+  primary_key:
+  - BusinessEntityID
+  - StartDate
+  - DepartmentID
+  - ShiftID
 - table: EmployeePayHistory
   schema: HumanResources
   columns:
@@ -143,6 +157,9 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: HumanResources
+  primary_key:
+  - BusinessEntityID
+  - RateChangeDate
 - table: JobCandidate
   schema: HumanResources
   columns:
@@ -166,6 +183,8 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: HumanResources
+  primary_key:
+  - JobCandidateID
 - table: Shift
   schema: HumanResources
   columns:
@@ -184,3 +203,9 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - ShiftID
+  unique_keys:
+  - - Name
+  - - StartTime
+    - EndTime

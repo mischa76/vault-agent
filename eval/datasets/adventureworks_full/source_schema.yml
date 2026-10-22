@@ -41,6 +41,8 @@ source_schemas:
     references_columns:
     - StateProvinceID
     references_schema: Person
+  primary_key:
+  - AddressID
 - table: AddressType
   schema: Person
   columns:
@@ -57,6 +59,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - AddressTypeID
+  unique_keys:
+  - - Name
 - table: BusinessEntity
   schema: Person
   columns:
@@ -70,6 +76,8 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - BusinessEntityID
 - table: BusinessEntityAddress
   schema: Person
   columns:
@@ -108,6 +116,10 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - AddressID
+  - AddressTypeID
 - table: BusinessEntityContact
   schema: Person
   columns:
@@ -146,6 +158,10 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - PersonID
+  - ContactTypeID
 - table: ContactType
   schema: Person
   columns:
@@ -158,6 +174,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - ContactTypeID
+  unique_keys:
+  - - Name
 - table: CountryRegion
   schema: Person
   columns:
@@ -170,6 +190,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - CountryRegionCode
+  unique_keys:
+  - - Name
 - table: EmailAddress
   schema: Person
   columns:
@@ -197,6 +221,9 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - EmailAddressID
 - table: Password
   schema: Person
   columns:
@@ -223,6 +250,8 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
 - table: Person
   schema: Person
   columns:
@@ -279,6 +308,8 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
 - table: PersonPhone
   schema: Person
   columns:
@@ -307,6 +338,10 @@ source_schemas:
     references_columns:
     - PhoneNumberTypeID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - PhoneNumber
+  - PhoneNumberTypeID
 - table: PhoneNumberType
   schema: Person
   columns:
@@ -319,6 +354,8 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - PhoneNumberTypeID
 - table: StateProvince
   schema: Person
   columns:
@@ -362,6 +399,12 @@ source_schemas:
     references_columns:
     - TerritoryID
     references_schema: Sales
+  primary_key:
+  - StateProvinceID
+  unique_keys:
+  - - Name
+  - - StateProvinceCode
+    - CountryRegionCode
 - table: Department
   schema: HumanResources
   columns:
@@ -377,6 +420,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - DepartmentID
+  unique_keys:
+  - - Name
 - table: Employee
   schema: HumanResources
   columns:
@@ -437,6 +484,11 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  unique_keys:
+  - - LoginID
+  - - NationalIDNumber
 - table: EmployeeDepartmentHistory
   schema: HumanResources
   columns:
@@ -478,6 +530,11 @@ source_schemas:
     references_columns:
     - ShiftID
     references_schema: HumanResources
+  primary_key:
+  - BusinessEntityID
+  - StartDate
+  - DepartmentID
+  - ShiftID
 - table: EmployeePayHistory
   schema: HumanResources
   columns:
@@ -503,6 +560,9 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: HumanResources
+  primary_key:
+  - BusinessEntityID
+  - RateChangeDate
 - table: JobCandidate
   schema: HumanResources
   columns:
@@ -526,6 +586,8 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: HumanResources
+  primary_key:
+  - JobCandidateID
 - table: Shift
   schema: HumanResources
   columns:
@@ -544,6 +606,12 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - ShiftID
+  unique_keys:
+  - - Name
+  - - StartTime
+    - EndTime
 - table: BillOfMaterials
   schema: Production
   columns:
@@ -593,6 +661,12 @@ source_schemas:
     references_columns:
     - UnitMeasureCode
     references_schema: Production
+  primary_key:
+  - BillOfMaterialsID
+  unique_keys:
+  - - ProductAssemblyID
+    - ComponentID
+    - StartDate
 - table: Culture
   schema: Production
   columns:
@@ -605,6 +679,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - CultureID
+  unique_keys:
+  - - Name
 - table: Document
   schema: Production
   columns:
@@ -657,6 +735,8 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: HumanResources
+  primary_key:
+  - DocumentNode
 - table: Illustration
   schema: Production
   columns:
@@ -669,6 +749,8 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - IllustrationID
 - table: Location
   schema: Production
   columns:
@@ -687,6 +769,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - LocationID
+  unique_keys:
+  - - Name
 - table: Product
   schema: Production
   columns:
@@ -791,6 +877,11 @@ source_schemas:
     references_columns:
     - ProductSubcategoryID
     references_schema: Production
+  primary_key:
+  - ProductID
+  unique_keys:
+  - - ProductNumber
+  - - Name
 - table: ProductCategory
   schema: Production
   columns:
@@ -807,6 +898,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - ProductCategoryID
+  unique_keys:
+  - - Name
 - table: ProductCostHistory
   schema: Production
   columns:
@@ -832,6 +927,9 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  primary_key:
+  - ProductID
+  - StartDate
 - table: ProductDescription
   schema: Production
   columns:
@@ -848,6 +946,8 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - ProductDescriptionID
 - table: ProductDocument
   schema: Production
   columns:
@@ -873,6 +973,9 @@ source_schemas:
     references_columns:
     - DocumentNode
     references_schema: Production
+  primary_key:
+  - ProductID
+  - DocumentNode
 - table: ProductInventory
   schema: Production
   columns:
@@ -911,6 +1014,9 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  primary_key:
+  - ProductID
+  - LocationID
 - table: ProductListPriceHistory
   schema: Production
   columns:
@@ -936,6 +1042,9 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  primary_key:
+  - ProductID
+  - StartDate
 - table: ProductModel
   schema: Production
   columns:
@@ -958,6 +1067,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - ProductModelID
+  unique_keys:
+  - - Name
 - table: ProductModelIllustration
   schema: Production
   columns:
@@ -983,6 +1096,9 @@ source_schemas:
     references_columns:
     - IllustrationID
     references_schema: Production
+  primary_key:
+  - ProductModelID
+  - IllustrationID
 - table: ProductModelProductDescriptionCulture
   schema: Production
   columns:
@@ -1017,6 +1133,10 @@ source_schemas:
     references_columns:
     - ProductModelID
     references_schema: Production
+  primary_key:
+  - ProductModelID
+  - ProductDescriptionID
+  - CultureID
 - table: ProductPhoto
   schema: Production
   columns:
@@ -1038,6 +1158,8 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - ProductPhotoID
 - table: ProductProductPhoto
   schema: Production
   columns:
@@ -1066,6 +1188,9 @@ source_schemas:
     references_columns:
     - ProductPhotoID
     references_schema: Production
+  primary_key:
+  - ProductID
+  - ProductPhotoID
 - table: ProductReview
   schema: Production
   columns:
@@ -1101,6 +1226,8 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  primary_key:
+  - ProductReviewID
 - table: ProductSubcategory
   schema: Production
   columns:
@@ -1127,6 +1254,10 @@ source_schemas:
     references_columns:
     - ProductCategoryID
     references_schema: Production
+  primary_key:
+  - ProductSubcategoryID
+  unique_keys:
+  - - Name
 - table: ScrapReason
   schema: Production
   columns:
@@ -1139,6 +1270,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - ScrapReasonID
+  unique_keys:
+  - - Name
 - table: TransactionHistory
   schema: Production
   columns:
@@ -1177,6 +1312,8 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  primary_key:
+  - TransactionID
 - table: TransactionHistoryArchive
   schema: Production
   columns:
@@ -1208,6 +1345,8 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - TransactionID
 - table: UnitMeasure
   schema: Production
   columns:
@@ -1220,6 +1359,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - UnitMeasureCode
+  unique_keys:
+  - - Name
 - table: WorkOrder
   schema: Production
   columns:
@@ -1256,6 +1399,8 @@ source_schemas:
     references_columns:
     - ScrapReasonID
     references_schema: Production
+  primary_key:
+  - WorkOrderID
 - table: WorkOrderRouting
   schema: Production
   columns:
@@ -1296,6 +1441,10 @@ source_schemas:
     references_columns:
     - WorkOrderID
     references_schema: Production
+  primary_key:
+  - WorkOrderID
+  - ProductID
+  - OperationSequence
 - table: ProductVendor
   schema: Purchasing
   columns:
@@ -1352,6 +1501,9 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Purchasing
+  primary_key:
+  - ProductID
+  - BusinessEntityID
 - table: PurchaseOrderDetail
   schema: Purchasing
   columns:
@@ -1401,6 +1553,9 @@ source_schemas:
     references_columns:
     - PurchaseOrderID
     references_schema: Purchasing
+  primary_key:
+  - PurchaseOrderID
+  - PurchaseOrderDetailID
 - table: PurchaseOrderHeader
   schema: Purchasing
   columns:
@@ -1463,6 +1618,8 @@ source_schemas:
     references_columns:
     - ShipMethodID
     references_schema: Purchasing
+  primary_key:
+  - PurchaseOrderID
 - table: ShipMethod
   schema: Purchasing
   columns:
@@ -1485,6 +1642,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - ShipMethodID
+  unique_keys:
+  - - Name
 - table: Vendor
   schema: Purchasing
   columns:
@@ -1519,6 +1680,10 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  unique_keys:
+  - - AccountNumber
 - table: CountryRegionCurrency
   schema: Sales
   columns:
@@ -1544,6 +1709,9 @@ source_schemas:
     references_columns:
     - CurrencyCode
     references_schema: Sales
+  primary_key:
+  - CountryRegionCode
+  - CurrencyCode
 - table: CreditCard
   schema: Sales
   columns:
@@ -1565,6 +1733,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - CreditCardID
+  unique_keys:
+  - - CardNumber
 - table: Currency
   schema: Sales
   columns:
@@ -1577,6 +1749,10 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - CurrencyCode
+  unique_keys:
+  - - Name
 - table: CurrencyRate
   schema: Sales
   columns:
@@ -1614,6 +1790,12 @@ source_schemas:
     references_columns:
     - CurrencyCode
     references_schema: Sales
+  primary_key:
+  - CurrencyRateID
+  unique_keys:
+  - - CurrencyRateDate
+    - FromCurrencyCode
+    - ToCurrencyCode
 - table: Customer
   schema: Sales
   columns:
@@ -1659,6 +1841,10 @@ source_schemas:
     references_columns:
     - TerritoryID
     references_schema: Sales
+  primary_key:
+  - CustomerID
+  unique_keys:
+  - - AccountNumber
 - table: PersonCreditCard
   schema: Sales
   columns:
@@ -1684,6 +1870,9 @@ source_schemas:
     references_columns:
     - CreditCardID
     references_schema: Sales
+  primary_key:
+  - BusinessEntityID
+  - CreditCardID
 - table: SalesOrderDetail
   schema: Sales
   columns:
@@ -1737,6 +1926,9 @@ source_schemas:
     - SpecialOfferID
     - ProductID
     references_schema: Sales
+  primary_key:
+  - SalesOrderID
+  - SalesOrderDetailID
 - table: SalesOrderHeader
   schema: Sales
   columns:
@@ -1870,6 +2062,10 @@ source_schemas:
     references_columns:
     - TerritoryID
     references_schema: Sales
+  primary_key:
+  - SalesOrderID
+  unique_keys:
+  - - SalesOrderNumber
 - table: SalesOrderHeaderSalesReason
   schema: Sales
   columns:
@@ -1895,6 +2091,9 @@ source_schemas:
     references_columns:
     - SalesOrderID
     references_schema: Sales
+  primary_key:
+  - SalesOrderID
+  - SalesReasonID
 - table: SalesPerson
   schema: Sales
   columns:
@@ -1939,6 +2138,8 @@ source_schemas:
     references_columns:
     - TerritoryID
     references_schema: Sales
+  primary_key:
+  - BusinessEntityID
 - table: SalesPersonQuotaHistory
   schema: Sales
   columns:
@@ -1965,6 +2166,10 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Sales
+  primary_key:
+  - BusinessEntityID
+  - QuotaDate
+  - ProductCategoryID
 - table: SalesReason
   schema: Sales
   columns:
@@ -1980,6 +2185,8 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - SalesReasonID
 - table: SalesTaxRate
   schema: Sales
   columns:
@@ -2013,6 +2220,11 @@ source_schemas:
     references_columns:
     - StateProvinceID
     references_schema: Person
+  primary_key:
+  - SalesTaxRateID
+  unique_keys:
+  - - StateProvinceID
+    - TaxType
 - table: SalesTerritory
   schema: Sales
   columns:
@@ -2054,6 +2266,10 @@ source_schemas:
     references_columns:
     - CountryRegionCode
     references_schema: Person
+  primary_key:
+  - TerritoryID
+  unique_keys:
+  - - Name
 - table: SalesTerritoryHistory
   schema: Sales
   columns:
@@ -2089,6 +2305,10 @@ source_schemas:
     references_columns:
     - TerritoryID
     references_schema: Sales
+  primary_key:
+  - BusinessEntityID
+  - StartDate
+  - TerritoryID
 - table: ShoppingCartItem
   schema: Sales
   columns:
@@ -2117,6 +2337,8 @@ source_schemas:
     references_columns:
     - ProductID
     references_schema: Production
+  primary_key:
+  - ShoppingCartItemID
 - table: SpecialOffer
   schema: Sales
   columns:
@@ -2154,6 +2376,8 @@ source_schemas:
   - name: ModifiedDate
     type: datetime
     comment: Date and time the record was last updated.
+  primary_key:
+  - SpecialOfferID
 - table: SpecialOfferProduct
   schema: Sales
   columns:
@@ -2183,6 +2407,9 @@ source_schemas:
     references_columns:
     - SpecialOfferID
     references_schema: Sales
+  primary_key:
+  - SpecialOfferID
+  - ProductID
 - table: Store
   schema: Sales
   columns:
@@ -2219,3 +2446,5 @@ source_schemas:
     references_columns:
     - BusinessEntityID
     references_schema: Sales
+  primary_key:
+  - BusinessEntityID

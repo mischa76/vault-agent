@@ -106,6 +106,13 @@ def build_source_schema(extract: dict[str, Any], schema: str) -> dict[str, Any]:
                 }
                 for fk in table["foreign_keys"]
             ]
+        # WP85: the keys a satellite's grain is checked against (`E_SAT_GRAIN_NOT_UNIQUE`); row
+        # GUIDs excluded, as for natural keys. Emitted only when declared.
+        if table.get("primary_key"):
+            declared["primary_key"] = list(table["primary_key"])
+        unique = [list(ak["columns"]) for ak in table["alternate_keys"] if not ak["technical_guid"]]
+        if unique:
+            declared["unique_keys"] = unique
         tables.append(declared)
     return {"source_schemas": tables}
 

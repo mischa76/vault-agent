@@ -118,6 +118,11 @@ GATES: dict[str, str] = {
         "A staging model is bound to a declared relation that does not carry a column it hashes "
         "or derives — the stage would fail at dbt build; the binding, not the model, is wrong."
     ),
+    "E_SAT_GRAIN_NOT_UNIQUE": (
+        "A satellite's key does not cover any unique key its relation declares — it would hold "
+        "several rows per key and load date and re-insert on every load. The remedy names the "
+        "missing columns as a child-dependent key."
+    ),
     "E_SAT_KEY_NOT_IN_SOURCE": (
         "A satellite's declared relation lacks the column its parent's hash key is computed "
         "from; its stage would fail at dbt build. The remedy names re-parent candidates."

@@ -1365,6 +1365,79 @@ class ValidatorAgent(BaseAgent):
                         f"at dbt build — the binding is wrong, not the model",
                     )
                 )
+        # WP85 (2026-10-22): a satellite's key must cover a unique key of the relation it reads,
+        # or it holds several rows per key and load date and re-inserts on every run — the owner's
+        # bill-of-materials satellite (+195 rows per build, C13). Judged from the staging metadata:
+        # the parent-hash columns mapped back through derived columns, plus the child-dependent key.
+        staging_meta = state.artifacts.automatedv_yaml.get("staging") or {}
+        # A link's stage is bound by its offer or ratified proposal only in the mapper's re-bind,
+        # which runs after this validator; resolve it here the way that re-bind will.
+        from vault_agent.link_proposal import link_source_overrides
+
+        link_relations = link_source_overrides(state)
+        for sat_name, sat_meta in (state.artifacts.automatedv_yaml.get("satellites") or {}).items():
+            if sat_name in pre_existing or "src_dfk" in sat_meta or "src_eff" in sat_meta:
+                continue  # an existing construct, or effectivity (its grain is the driving key)
+            stage_name = str(sat_meta.get("source_model") or "")
+            stage = staging_meta.get(stage_name)
+            if not stage or stage.get("key_translation"):
+                continue
+            if stage.get("source_binding") == "declared":
+                source = stage.get("source_model")
+                relation_name = (
+                    next(iter(source.values())) if isinstance(source, dict) else source
+                )
+            else:
+                relation_name = link_relations.get(
+                    normalize_identifier(stage_name.removeprefix("stg_"))
+                )
+            table = declared_tables.get(normalize_identifier(str(relation_name or "")))
+            if table is None:
+                continue
+            unique_keys = [k for k in [table.primary_key, *table.unique_keys] if k]
+            if not unique_keys:
+                continue
+            derived = stage.get("derived_columns") or {}
+
+            def relation_column(column: str, derived: dict[str, Any] = derived) -> str:
+                value = derived.get(column)
+                if isinstance(value, dict):
+                    value = value.get("source_column")
+                return normalize_identifier(str(value if value else column))
+
+            pk_value = (stage.get("hashed_columns") or {}).get(str(sat_meta.get("src_pk")))
+            pk_columns: list[Any] = (
+                list(pk_value) if isinstance(pk_value, list) else [pk_value] if pk_value else []
+            )
+            cdk = sat_meta.get("src_cdk") or []
+            grain = {relation_column(str(c)) for c in [*pk_columns, *cdk]}
+            if any({normalize_identifier(c) for c in key} <= grain for key in unique_keys):
+                continue
+            # The key the satellite is closest to: most columns already in its grain, then the
+            # fewest missing — a surrogate primary key never wins over the natural unique key.
+            nearest = min(
+                unique_keys,
+                key=lambda k: (
+                    -len({normalize_identifier(c) for c in k} & grain),
+                    len({normalize_identifier(c) for c in k} - grain),
+                ),
+            )
+            missing = [c for c in nearest if normalize_identifier(c) not in grain]
+            issues.append(
+                _issue(
+                    "error", "E_SAT_GRAIN_NOT_UNIQUE", sat_name,
+                    f"satellite reads {table.table}, which is unique on "
+                    f"{' + '.join(nearest)}, but its key covers only "
+                    f"{', '.join(sorted(grain)) or 'nothing'} — {', '.join(missing)} would repeat "
+                    f"per key and load date, so the satellite would hold several rows per key and "
+                    f"re-insert on every load",
+                    remedy=(
+                        f"make {sat_name} sat_type multi_active with child_dependent_key "
+                        f"{missing} (the columns of {table.table}'s unique key its parent's key "
+                        f"lacks), or hang it on a parent whose key covers {' + '.join(nearest)}"
+                    ),
+                )
+            )
         # WP54 (2026-10-07): a hub of this increment bound to a declared table whose payload
         # columns no satellite reads — the eighth chain lost TransactionHistory's and
         # PurchaseOrderDetail's descriptive columns in one-attempt steps, with only
