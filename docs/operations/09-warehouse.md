@@ -202,8 +202,8 @@ profile hint in the generated README. That knowledge lives in one place,
 `rules/platforms.py`; `--target-platform` (6.2) selects it, and the choice is persisted
 with the run so a resume keeps it.
 
-**PostgreSQL** — the default, and the only platform **verified end-to-end** including the
-output of real runs (PostgreSQL 16, pinned AutomateDV, the demos in 9.5). The convention worth knowing is casing — every
+**PostgreSQL** — the default, and the first platform **verified end-to-end** including the
+output of real runs (Databricks followed in WP72, below) (PostgreSQL 16, pinned AutomateDV, the demos in 9.5). The convention worth knowing is casing — every
 identifier stays *unquoted* (seeds set `quote_columns: false`), so UPPER_SNAKE names fold
 consistently.
 

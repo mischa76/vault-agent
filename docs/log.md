@@ -10209,3 +10209,31 @@ loop — unmeasured (a paid run); the other three flagged satellites have no rep
 refuses them for what the schema allows. **Bewusst nicht getan.** The owner's `aw` not rebuilt again (its
 bill-of-materials satellite keeps the 195 duplicates; applying the remedy there is a model change); the test schema
 `aw_wp85` dropped after the measurement; nothing pushed.
+
+## [2026-10-22] README combed for contradictions; quick start split by platform; the backlog folder gets an index
+
+**Autor:** Claude Code
+
+The owner: „durchkämme mal noch die README.md … nach widersprüchlichen / falschen aussagen … im unterkapitel
+Quickstart die plattformspezifischen abschnitte durch abschnittsüberschriften besser erkenntlich machen. der
+index unter dem link backlog-2026-07 … führt ins leere". **Found and corrected in README:** the architecture
+diagram still said „Databricks (keyless)" and listed nine of thirteen nodes (now all, plus CLI/workbench); the
+Databricks paragraph said „Keyless-only so far … what the first live build must check" (built since WP72); the
+roadmap named `nh_link`, a macro AutomateDV does not have (`t_link`, CLAUDE.md's first invariant) and listed the
+data defects as next (fixed by WP83–WP85, hub zero-key rows open); the approach described one checkpoint (there
+are two: resolution before modelling, sign-off after); the PostgreSQL demo's command block contained
+`uv sync --extra demo-databricks` right after `--extra demo` — run in order, that swaps the PostgreSQL adapter out
+and the next `dbt build` fails; the LLM-agent note omitted the data-contract agent and entity resolver. **Quick
+start restructured** under headings: Install (Windows 11 / Linux, macOS, Ubuntu), API key, first run, workbench,
+keyless, grounding (incl. brownfield and declared keys), target platform (PostgreSQL / Databricks / other
+AutomateDV platforms), what a run writes, build the generated vault (on PostgreSQL / on Databricks). **The backlog
+link:** README pointed at `00-overview.md`, the July plan for WP1–WP10 only, and the folder had no README, so
+GitHub showed a bare file list; new `docs/architecture/backlog-2026-07/README.md` explains the folder and points
+at the index's work-package table, which README now links directly (`docs/index.md#work-package-specs`). Also
+chapter 9.6: PostgreSQL was „the only platform verified end-to-end" two sentences before Databricks' verification —
+now „the first".
+
+**Überprüft.** Every relative link in README and the new folder README resolves; node list from `graph.NODES`
+(13); which examples need a key (their docstrings: 01–06 do, 07 does not); PDF/DOCX input (`requirements_parser`,
+`pypdf`, `python-docx`); full suite green. **Nur angenommen.** That GitHub's anchor for „Work-package specs" is
+`#work-package-specs` (its slug rule). **Bewusst nicht getan.** `00-overview.md` itself (append-only record).

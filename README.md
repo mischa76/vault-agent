@@ -36,9 +36,11 @@ niche — and where this project lives.
 Vault-Agent treats DV2.0 modeling as a pipeline of specialized agents, each responsible for one
 well-defined step, wired together as a LangGraph state machine. A self-correcting validation loop
 routes a failing model back to the modeler with the issues as feedback (bounded by a retry cap), and
-a live human-in-the-loop checkpoint (per
-[ADR-0006](docs/architecture/adrs/ADR-0006-human-in-the-loop-review-queue.md)) pauses the run for
-sign-off — e.g. to assign a data-contract owner — then resumes from a persisted checkpoint. The methodology rules live in code (not buried in prompts), code
+two human-in-the-loop checkpoints (per
+[ADR-0006](docs/architecture/adrs/ADR-0006-human-in-the-loop-review-queue.md)) pause the run: one
+*before* modelling, where a human ratifies entity resolutions and links proposed from declared foreign
+keys, and one for sign-off — e.g. to assign a data-contract owner — each resuming from a persisted
+checkpoint. The methodology rules live in code (not buried in prompts), code
 generation goes through the established AutomateDV dbt package rather than hand-written SQL, and
 every modeling decision the agents make is captured as an Architecture Decision Record — so the
 *reasoning* survives, not just the output.
@@ -55,17 +57,19 @@ every modeling decision the agents make is captured as an Architecture Decision 
                           │
    ┌──────────────────────┼───────────────────────┐
    ▼                      ▼                        ▼
- Requirements        DV2.0 Modeler            Data Contract
- Parser              Business-Key Id.         Validator
- Code Generator      ADR Author               Orchestrator
+ Requirements        Entity Resolver          DV2.0 Modeler
+ Parser              Link Proposer            Code Generator
+ Business-Key Id.    Resolution Checkpoint    Validator
+ Data Contract       Orchestrator             Source Mapper
+                                              Human Checkpoint · ADR Author
                           │
                           ▼
    Reviewed dbt project in git  ·  AutomateDV YAML  ·  Data contracts  ·  ADRs
                           │
                           ▼
-        Targets:  strategic — Snowflake & MS Fabric · seed dialects today: Postgres (verified),
-                  Databricks (keyless) · builds unchanged on every AutomateDV platform
-                 Observability:  LangSmith traces + evals
+        Targets:  strategic — Snowflake & MS Fabric · verified by real builds: PostgreSQL,
+                  Databricks · builds unchanged on every AutomateDV platform
+        Interfaces:  CLI · browser workbench   Observability:  LangSmith traces + evals
 ```
 
 ## The agents
@@ -114,114 +118,148 @@ one-off overrides).
 The pipeline runs end-to-end today: a requirements document in; generated AutomateDV/dbt models,
 metadata, data contracts, and an ADR out.
 
-On **Windows 11**, [`scripts/install/`](scripts/install/README.md) installs the whole stack
-(WSL2 + Ubuntu, uv, PostgreSQL, this repo, a keyless smoke test) from one elevated PowerShell
-script. On an existing Ubuntu/Debian machine, its second stage runs standalone. Otherwise the
-steps below assume git, [uv](https://docs.astral.sh/uv/), and — for the Postgres demos — a
-local PostgreSQL:
+### 1. Install
+
+#### Windows 11 (WSL2)
+
+[`scripts/install/`](scripts/install/README.md) installs the whole stack — WSL2 + Ubuntu, uv,
+PostgreSQL, this repo and a keyless smoke test — from one elevated PowerShell script.
+
+#### Linux, macOS, or an existing Ubuntu/Debian
+
+On Ubuntu/Debian, the installer's second stage runs standalone. Otherwise you need git,
+[uv](https://docs.astral.sh/uv/) and — for the PostgreSQL demos — a local PostgreSQL:
 
 ```bash
 git clone https://github.com/mischa76/vault-agent.git
 cd vault-agent
 uv sync
-cp .env.example .env          # then add your ANTHROPIC_API_KEY
-
-# Run the full pipeline on a demo dataset and write artifacts to ./output
-uv run vault-agent run examples/inputs/health_insurance_requirements.md --out output
+uv run vault-agent --version                # the released version; see CHANGELOG.md
 ```
 
-**Bring your own API key.** Each developer uses their **own** Anthropic key with active
-billing — don't share one across the team (shared keys pool cost on one account, and a
-single revocation locks everyone out). Create one at
-[console.anthropic.com](https://console.anthropic.com/settings/keys) and put it in your
-local `.env` (no quotes, no surrounding whitespace):
+### 2. Your API key
+
+Only a live `run` calls the API. Each developer uses their **own** Anthropic key with active
+billing — don't share one across the team (shared keys pool cost on one account, and a single
+revocation locks everyone out). Create one at
+[console.anthropic.com](https://console.anthropic.com/settings/keys) and put it in your local `.env`
+(no quotes, no surrounding whitespace):
 
 ```bash
+cp .env.example .env
+# .env:
 ANTHROPIC_API_KEY=sk-ant-api03-…
 ```
 
-**The workbench** (ADR-0014) is the same pipeline in the browser: `uv sync --extra ui`, build the
-frontend once (`cd frontend && npm ci && npm run build`, Node 22), then
-`uv run vault-agent ui --root ~/vault-agent-workbench` (a folder **outside** the repo — runs hold your
-requirements and contracts) and open `http://127.0.0.1:8765/` — projects, runs, the checkpoint, the
-model graphs and the artefacts, every action recorded as its CLI equivalent (operations manual,
-chapter 14). To look around without a key: `uv run vault-agent ui --root demo/workbench-adventureworks`
-from the repo root shows all five AdventureWorks domains modelled step by step
-([`demo/workbench-adventureworks/`](demo/workbench-adventureworks/README.md)).
+Two failure modes when a `run` can't authenticate: `401 invalid x-api-key` means the key is wrong,
+revoked, or (commonly) an older `ANTHROPIC_API_KEY` already exported in your shell is overriding
+`.env` — check with `echo "${ANTHROPIC_API_KEY:0:12}… len=${#ANTHROPIC_API_KEY}"` and `unset` it if
+it differs; a `400` mentioning *credit balance* means the key is valid but the account has no funds.
 
-Only the live `run` needs a key — the test suite (`uv run pytest`) and the Postgres demo
-in `demo/bank_postgres` are fully keyless. Two failure modes when a `run` can't
-authenticate: `401 invalid x-api-key` means the key is wrong, revoked, or (commonly) an
-older `ANTHROPIC_API_KEY` already exported in your shell is overriding `.env` — check with
-`echo "${ANTHROPIC_API_KEY:0:12}… len=${#ANTHROPIC_API_KEY}"` and `unset` it if it differs;
-a `400` mentioning *credit balance* means the key is valid but the account has no funds.
+### 3. First run (CLI)
+
+```bash
+uv run vault-agent run examples/inputs/health_insurance_requirements.md --out output
+```
+
+### 4. In the browser: the workbench
+
+The workbench (ADR-0014) is the same pipeline in the browser, every action recorded as its CLI
+equivalent (operations manual, chapter 14):
+
+```bash
+uv sync --extra ui
+(cd frontend && npm ci && npm run build)    # once; Node 22
+uv run vault-agent ui --root ~/vault-agent-workbench
+```
+
+Keep the root **outside** the repo — runs hold your requirements and contracts. Open
+`http://127.0.0.1:8765/`. To look around without a key, start
+`uv run vault-agent ui --root demo/workbench-adventureworks` from the repo root: all five
+AdventureWorks domains modelled step by step
+([`demo/workbench-adventureworks/`](demo/workbench-adventureworks/README.md)).
 
 ### Try it without an API key
 
-No key yet? Most of the project runs keyless — only `vault-agent run` (and the source
-mapper on grounded runs) calls the API. Everything below works immediately:
+Most of the project runs keyless — only `vault-agent run` (and the source mapper on grounded runs)
+calls the API:
 
 ```bash
 uv run pytest -q                            # full test suite, green without a key
 uv run ruff check . && uv run mypy          # lint + strict type-check
-
-# End-to-end: build a running Data Vault on local Postgres (no key, no Docker)
-cd demo/bank_postgres && uv sync --extra demo
-uv run python build_vault_models.py         # regenerate raw_vault/*.sql from the real generator
-DBT_PROFILES_DIR=. uv run dbt deps
-DBT_PROFILES_DIR=. uv run dbt build --full-refresh   # seed + run + test, all green
+uv run python examples/07_routing.py        # the self-correcting validation loop, deterministic
 ```
 
-The Postgres build uses the *same* code generator the pipeline uses, just fed a fixed model
-instead of an LLM — see [`demo/bank_postgres/README.md`](demo/bank_postgres/README.md) for
-prerequisites, verification, and the effectivity-satellite end-dating demo, and
-[`demo/mapping_postgres/`](demo/mapping_postgres/README.md) for the grounded + ratified
-variant, and [`demo/fk_links_postgres/`](demo/fk_links_postgres/README.md) for links derived
-from declared foreign keys (translated and relationship-table links).
+The `examples/` directory also has step-by-step scripts that run each stage in isolation
+(`01_simple_requirement.py` … `06_pipeline.py`, these call the API). The two small demo domains
+(retail banking and health insurance) are described in [docs/demos/](docs/demos/README.md). To build
+a running vault without a key, see [Build the generated vault](#build-the-generated-vault) below.
 
-Optionally ground the model against a **declared source schema** (YAML/JSON listing each
-source table and its columns) so proposed business keys and satellite attributes are
-cross-checked against columns that actually exist (ADR-0004). With a schema supplied,
-the run reports `grounding: on`, emits one data contract per source table, and flags any
-key/attribute absent from the schema as a non-blocking `W_*_NOT_IN_SOURCE` warning:
+### Ground the model in a source schema
+
+Supply a **declared source schema** (YAML/JSON listing each source table, its columns and,
+optionally, types, foreign keys and primary/unique keys) so proposed business keys and satellite
+attributes are cross-checked against columns that actually exist (ADR-0004):
 
 ```bash
 uv run vault-agent run examples/inputs/bank_account_requirements.md \
   --source-schema examples/inputs/bank_source_schema.yml --out output
 ```
 
-Without `--source-schema`, grounding stays inert and the output is unchanged. To see
-grounding bite, drop or rename a column in the schema file and re-run. On a grounded run
-the **source mapper** additionally proposes, per business concept, the physical source
-column that feeds it (ADR-0008 — assist-level, evidence trail, coverage gaps reported,
-never guessed); add `--profiling <file.yml>` to supply column profiling statistics as
-extra evidence. Proposals land in `output/mappings.review.yml` for human ratification.
+With a schema the run reports `grounding: on`, emits one data contract per source table, and flags
+any key or attribute absent from the schema as a non-blocking `W_*_NOT_IN_SOURCE` warning; without
+`--source-schema`, grounding stays inert and the output is unchanged. Declared foreign keys become
+link proposals ratified at the first checkpoint (WP34). On a grounded run the **source mapper**
+proposes, per business concept, the physical source column that feeds it (ADR-0008 — assist-level,
+evidence trail, coverage gaps reported, never guessed); `--profiling <file.yml>` adds column
+profiling statistics as evidence. Proposals land in `output/mappings.review.yml` for ratification.
 
-`--target-platform databricks` aims the generated project at Databricks: the vault SQL is
-the same (AutomateDV dispatches per adapter), but the seed column types a contract pins
-use Databricks' native spellings (`string`, `decimal(38,18)` — bare `numeric` would be
-`DECIMAL(10,0)` there and truncate fractions) and the README names the adapter. The
-default, `postgres`, is byte-identical to the output before the option existed. Keyless-only
-so far: see the operations manual, chapter 9.6, for what the first live build must check.
+To **extend an existing vault** instead of modelling into an empty one, point the run at an earlier
+run's output: `vault-agent run … --existing <earlier output dir>` (brownfield, WP23/WP29).
 
-This produces a **runnable dbt project**: raw-vault models (`output/models/raw_vault/`),
-generated staging models computing every hash key and hashdiff
-(`output/models/staging/`), project scaffolding (`dbt_project.yml`, `packages.yml`,
-`sources.yml`, a README with run instructions), AutomateDV metadata
-(`output/metadata/automatedv.yml`), data contracts and their dbt tests
-(`output/contracts/`), and a finalized ADR (`output/adrs/`). When the run needs human
-sign-off (e.g. to assign a data-contract owner) it pauses at a checkpoint and writes
-`output/review-queue.md`; resume it once you've decided:
+### Choose the target platform
+
+The vault SQL is the same on every platform — AutomateDV dispatches per adapter. What the generator
+knows per platform is the seed column types a contract pins and the adapter hint in the generated
+README (operations manual, chapter 9.6).
+
+#### PostgreSQL (default)
+
+Nothing to set: `postgres` is the default and the line verified since 2026-06 — the demos below and
+the owner's full AdventureWorks build.
+
+#### Databricks
+
+`--target-platform databricks` writes Databricks' native seed types (`string`, `decimal(38,18)` —
+bare `numeric` would be `DECIMAL(10,0)` there and truncate fractions) and names the adapter.
+**Verified since 2026-10-16** (WP72): the bank demo, a real run's output, and the whole AdventureWorks
+chain built on a Databricks SQL warehouse. The adapter lives in its own extra, `demo-databricks`
+(dbt-core 1.11 + dbt-databricks 1.12), which cannot be installed together with the PostgreSQL extra
+`demo` — use a second environment ([`demo/bank_databricks/`](demo/bank_databricks/README.md)).
+
+#### Other AutomateDV platforms
+
+Snowflake, BigQuery and MS SQL Server run the generated project unchanged, as far as AutomateDV
+does — no build has been recorded on them yet. MS Fabric has no AutomateDV dialect.
+
+### What a run writes
+
+A **runnable dbt project**: raw-vault models (`output/models/raw_vault/`), generated staging models
+computing every hash key and hashdiff (`output/models/staging/`), project scaffolding
+(`dbt_project.yml`, `packages.yml`, `sources.yml`, a README with run instructions), AutomateDV
+metadata (`output/metadata/automatedv.yml`), data contracts and their dbt tests
+(`output/contracts/`), an HTML report and a finalized ADR (`output/adrs/`). When the run needs a
+human decision it pauses at a checkpoint and writes `output/review-queue.md`; resume it once you've
+decided:
 
 ```bash
 uv run vault-agent resume --out output --owner "customer=Data Team <data@acme.com>" \
   --map "national customer ID=RAW_CUSTOMER.NATIONAL_CUSTOMER_ID" --accept
 ```
 
-Every run also leaves a **grep-able LLM transcript** at
-`output/.vault-agent/traces/<thread_id>.jsonl` — one JSON object per API call with the system
-prompt (written once per prompt digest), the user payload, and the tool payload the model
-returned; a paused run's resume appends to the same file, so one run reads as one transcript.
+Every run also leaves a **grep-able LLM transcript** at `output/.vault-agent/traces/<thread_id>.jsonl`
+— one JSON object per API call with the system prompt (written once per prompt digest), the user
+payload, and the tool payload the model returned; a paused run's resume appends to the same file.
 Diagnosing a mis-modelled run means reading the trace, not re-running with prints:
 
 ```bash
@@ -233,42 +271,41 @@ Traces are debug artifacts, **not deliverables**: they contain your raw requirem
 source-schema text, so they stay inside `.vault-agent/` and must not be published with a demo
 output. Opt out per run with `vault-agent run … --no-trace`.
 
-The `examples/` directory has step-by-step scripts that run each stage in isolation
-(`01_simple_requirement.py` … `06_pipeline.py`), plus `07_routing.py`, a deterministic demo of
-the self-correcting validation loop that needs **no API key**. The two demo domains
-(retail banking and health insurance) are described in [docs/demos/](docs/demos/README.md).
+### Build the generated vault
 
-### Run the generated vault (local Postgres)
+The pipeline's output is not just plausible SQL — it is **operable**. The demos take the *real* code
+generator's AutomateDV/dbt models, fed a fixed model instead of an LLM, and build a running Data
+Vault — no API key, no Docker.
 
-The pipeline's output is not just plausible SQL — it is **operable**. The
-[`demo/bank_postgres/`](demo/bank_postgres/README.md) end-to-end PoC takes the *real* code
-generator's AutomateDV/dbt models, loads toy data through a staging layer, and builds a running
-Data Vault (two hubs, a standard link, a self-referencing transactional transfer link — one hub
-in two roles — two standard satellites, and an effectivity satellite with verified auto
-end-dating) on a local PostgreSQL 16 — no API key, no Docker required:
+#### On PostgreSQL
+
+[`demo/bank_postgres/`](demo/bank_postgres/README.md) builds two hubs, a standard link, a
+self-referencing transactional transfer link (one hub in two roles), two standard satellites and an
+effectivity satellite with verified auto end-dating on a local PostgreSQL 16:
 
 ```bash
 cd demo/bank_postgres
 uv sync --extra demo                        # dbt-core + dbt-postgres
-uv sync --extra demo-databricks             # dbt-core 1.11 + dbt-databricks 1.12 — not together with `demo`
-uv run vault-agent --version                # the released version; see CHANGELOG.md
 uv run python build_vault_models.py         # regenerate raw_vault/*.sql from the generator
 DBT_PROFILES_DIR=. uv run dbt deps          # pull AutomateDV
 DBT_PROFILES_DIR=. uv run dbt build --full-refresh   # seed + run + test, all green
 ```
 
-See the [demo runbook](demo/bank_postgres/README.md) for prerequisites and verification.
+[`demo/mapping_postgres/`](demo/mapping_postgres/README.md) is the **grounded + ratified**
+counterpart — the generated staging binds to real, business-named source tables via a ratified
+source mapping — and [`demo/fk_links_postgres/`](demo/fk_links_postgres/README.md) builds links
+derived from declared foreign keys (translated and relationship-table links).
 
-A second demo, [`demo/mapping_postgres/`](demo/mapping_postgres/README.md), is the **grounded +
-ratified** counterpart: the same fixed model, but bound to real, business-named source tables via
-a ratified source mapping — the generated staging binds to `customer` / `account` /
-`account_customer` instead of inferred `raw_*`, with zero inferred-binding flags — also built
-green on Postgres (deterministic, no API key).
+#### On Databricks
 
-> The requirements parser, business-key identifier, modeler, contract enricher, and source
-> mapper are LLM-driven (Claude, via one shared hardened call path with retry/backoff and
-> prompt caching); the code/staging generators, validator, and ADR author are deterministic,
-> so the full test suite (`uv run pytest`) runs without an API key. An eval harness
+[`demo/bank_databricks/`](demo/bank_databricks/README.md) is the bank demo's twin on a Databricks SQL
+warehouse — the same raw-vault SQL, Databricks seed types, host, HTTP path and token from the
+environment, built in a second environment with the `demo-databricks` extra.
+
+> The requirements parser, business-key identifier, data-contract agent, entity resolver, modeler
+> and source mapper are LLM-driven (Claude, via one shared hardened call path with retry/backoff
+> and prompt caching); the link proposer, code/staging generators, validator and ADR author are
+> deterministic, so the full test suite (`uv run pytest`) runs without an API key. An eval harness
 > (`python -m eval.run`) measures the LLM agents against golden datasets — construct F1,
 > driving-key accuracy, mapping accuracy, and gap detection.
 
@@ -299,7 +336,7 @@ domain, a real customer project. Day-by-day evidence: [`docs/log.md`](docs/log.m
 ```
 Foundation        repo · architecture · ADRs                                  ✅ done
 Core pipeline     requirements parser · business-key id · DV2.0 modeler        ✅ done
-Code generation   AutomateDV: hubs · links · sat · ma_sat · eff_sat · nh_link  ✅ done
+Code generation   AutomateDV: hubs · links · sat · ma_sat · eff_sat · t_link   ✅ done
 Quality & docs    validator · ADR author · CLI · 2 demo datasets               ✅ done
 Routing           self-correcting validation loop (retry on failure)           ✅ done
 Grounding         optional source-schema grounding (ADR-0004)                  ✅ done
@@ -324,15 +361,17 @@ Databricks        whole chain built on a Databricks warehouse (WP72)           �
 Self-contained    catalogue and stage bindings travel with the model (WP74–WP77) ✅ done
 Workbench         browser UI over the same pipeline, CLI equivalent per action
                   (ADR-0014, WP66–WP71, WP78, WP80)                            ✅ done
-Data defects      found in the owner's build: multi-active on multi-source hubs,
-                  nullable link participants, satellite grain (backlog C11–C13) 🔜 next
+Data defects      found in the owner's build and fixed: zero keys for nullable link
+                  participants, multi-active on multi-source hubs, satellite-grain
+                  gate (WP83–WP85; hub zero-key rows still open)               ✅ done
 Business Vault    PIT / Bridge generation on AutomateDV's macros (ADR-0007)    🔜 next
 Second domain     a non-AdventureWorks landscape (bank / insurance)            ⏳ planned
 Snowflake         platform profile and a recorded build                       ⏳ planned
 ```
 
-The work-package specs, agent kick-offs, and the measured mapping-spike evidence live in
-[`docs/architecture/backlog-2026-07/`](docs/architecture/backlog-2026-07/00-overview.md).
+Every work package has a spec in
+[`docs/architecture/backlog-2026-07/`](docs/architecture/backlog-2026-07/README.md); the catalogue
+with each one's status is the [work-package table of the documentation index](docs/index.md#work-package-specs).
 
 ## Documentation
 
