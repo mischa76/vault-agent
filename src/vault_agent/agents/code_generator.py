@@ -301,12 +301,15 @@ def _render_nh_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict
     return sql, meta
 
 
-def _render_ma_sat(sat: Satellite, parent_hashkey: str) -> tuple[str, dict[str, Any]]:
+def _render_ma_sat(
+    sat: Satellite, parent_hashkey: str, source_model: str | None = None
+) -> tuple[str, dict[str, Any]]:
     payload = [_to_column(attr) for attr in sat.attributes]
     cdk = [_to_column(key) for key in sat.child_dependent_key]
     src_hashdiff = _to_column(_base_name(sat.name)) + HASHDIFF_SUFFIX
     meta: dict[str, Any] = {
-        "source_model": _sat_staging_model(sat),
+        # WP84: a feed-bound satellite reads its feed's staging, as `_render_sat` does.
+        "source_model": source_model or _sat_staging_model(sat),
         "src_pk": parent_hashkey,
         "src_cdk": cdk,
         "src_hashdiff": src_hashdiff,
@@ -500,18 +503,34 @@ class CodeGeneratorAgent(BaseAgent):
                     # shape. Rendered ONCE (no per-source suffix: there is only one) against
                     # that feed's staging, via the same naming the hub itself uses for it, so
                     # a grandfathered legacy feed keeps its unsuffixed name (WP23 §2.6).
-                    # No type restriction here: the restriction below belongs to the SPLIT,
-                    # and a satellite bound to one feed is an ordinary satellite.
+                    # No type restriction here: the restriction below belongs to the SPLIT, and a
+                    # satellite bound to one feed is an ordinary satellite of its type (WP84).
                     from vault_agent.agents.staging_generator import multi_source_staging_name
 
                     state.flags.extend(
                         _collision_warnings(sat.attributes + sat.child_dependent_key, sat.name)
                     )
-                    sql, meta = _render_sat(
-                        sat,
-                        parent_hashkeys[sat.parent],
-                        source_model=multi_source_staging_name(parent_hub, bound_feed, legacy),
-                    )
+                    feed_stage = multi_source_staging_name(parent_hub, bound_feed, legacy)
+                    if sat.sat_type == "multi_active":
+                        # WP84 (C11): the type decides the template here too. Before, every
+                        # feed-bound satellite was a plain `sat`, and a multi-active one lost its
+                        # child-dependent key and re-inserted on every run.
+                        if not sat.child_dependent_key:
+                            state.flag(
+                                "code_generator",
+                                f"multi-active satellite {sat.name!r} has no child_dependent_key; "
+                                f"cannot generate automate_dv.ma_sat, flagged for human review",
+                                kind=FlagKind.GENERATION_GAP,
+                                asset=sat.name,
+                            )
+                            continue
+                        sql, meta = _render_ma_sat(
+                            sat, parent_hashkeys[sat.parent], source_model=feed_stage
+                        )
+                    else:
+                        sql, meta = _render_sat(
+                            sat, parent_hashkeys[sat.parent], source_model=feed_stage
+                        )
                     dbt_models[sat.name] = sql
                     metadata["satellites"][sat.name] = meta
                     continue
