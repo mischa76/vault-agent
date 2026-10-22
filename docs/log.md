@@ -10288,3 +10288,36 @@ recorded, not predicted. **P3** every generated stage whose link has a typed int
 fresh schema, with views for its inferred stages written after reading their metadata: PASS for every node; a second
 build `INSERT 0 0` for every incremental model. **P5** cost 4–6 USD, wall time 25–45 min. Not predicted: construct
 counts, decisions per step.
+
+## [2026-10-23] The paid chain through the workbench API: all five steps green on today's generator, WP85's gate fired live four times and was followed, the fifth project PASS=340 and idempotent
+
+**Autor:** Claude Code
+
+Pre-registered today (`10c1d08`). Five runs person → sales on a fresh workbench (port 8766, root
+`workbench/chain-20261023/`), driven by a script through the API, checkpoints answered as pre-registered (no
+`same_as_candidate` proposal came up, so no `unresolved` answer was given), owners `John Doe <john.doe@acme.com>`.
+Run stamps `20261022T232630984833Z` … `20261022T234439976097Z`.
+
+- **P1 ✔** all five finished with a passing validation (person 4.2 min, HR 2.5, production 8.2, purchasing 3.4,
+  sales 6.4). Final models 7/4/17 → 10/6/27 → 26/22/57 → 29/27/67 → **40 hubs, 47 links, 90 satellites**.
+- **P2 ✔** no final model has `E_SAT_GRAIN_NOT_UNIQUE`. **Live, the gate fired inside the attempts four times and the
+  modeler followed each remedy:** person `sat_business_entity_contact_details` (BusinessEntityContact is unique on
+  BusinessEntityID + PersonID + ContactTypeID), HR `sat_business_entity_department_shift_details`, production
+  `sat_work_order_operation_details` and `sat_bill_of_materials_details` — the last is the owner's C13 case, now
+  modelled multi-active by the modeler itself.
+- **P3 ✔** zero keys on 4 / 7 / 24 / 31 / 45 stages; all ten multi-active satellites of the final model are `ma_sat`,
+  four of them feed-bound on the multi-source `hub_business_entity` (email, phone, employee pay, sales quota).
+- **P4 ✔** the fifth project built whole into fresh schema `aw_chain` with ten views for its ten inferred stages (written
+  after reading their metadata; `stg_sales_order` needed SalesOrderHeader ⟕ CurrencyRate): **PASS=340**; second build
+  **177 of 177** incremental models `INSERT 0 0`.
+- **P5 ✔/✗** cost ≈ **4.61 USD** at the 5.5 prices recorded on 2026-10-09 (Sonnet 108 calls: 295k input / 200k output /
+  200k cache read / 33k cache write; Opus 8 calls: 150k / 55k / 22k / 42k) — inside 4–6; wall time **24.6 min**, just
+  under the predicted 25–45.
+
+**What the chain also shows.** Ten inferred stages where the owner's chain had seven — C18 grows in importance: the
+contact link's roles had no source column this time (`stg_business_entity_contact`), and three link stages share a
+hub's name (`stg_product_model`, `stg_product_subcategory`, `stg_sales_order`), so WP73 refused the hub's own relation
+and the hub's stage became inferred too. **Überprüft.** The run records and states, the traces (gate occurrences,
+tokens), both build logs. **Nur angenommen.** The prices (from the log of 2026-10-09, not re-checked today).
+**Bewusst nicht getan.** Not entered into the review record (the eval harness was not used; decisions per step are in
+the summary: 13/17, 6/8, 25/29, 6/9, 20/33).
