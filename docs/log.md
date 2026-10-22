@@ -10269,3 +10269,22 @@ with the correction to part 2), C23 (AdventureWorks loader), C24 (relocatable ru
 and C25 (zero-key rows in the hubs, C12 phase 2); it also states what „C" means and which candidates became WPs.
 **Überprüft.** The review contains no private name, path or wiki reference (`grep`); `docs/handover/` ignored
 (`git check-ignore`). **Bewusst nicht getan.** The German original not published.
+
+## [2026-10-23] Pre-registration: one paid AdventureWorks chain through the workbench API on today's generator — WP83–WP85 live, and the demo regenerated from it
+
+**Autor:** Claude Code
+
+The owner: „ok ziehs durch in der reihenfolge" — first the paid chain (~5 USD) that verifies WP83–WP85 in a real run,
+then C25, C18, C22, a draft for C20. Written before the run. **The run:** a fresh workbench (today's code) on port
+8766, root `workbench/chain-20261023/` (git-ignored), project `adventureworks`, the five eval cases' requirements and
+re-derived schemas (with keys, WP85) uploaded, five runs person → sales, each extending the previous one. The
+checkpoints answered by me through the API as the owner did on 2026-10-22: every link proposal and license accepted;
+an entity resolution of category `exact_key`/`comment_grounded` naming an existing hub accepted, a `same_as_candidate`
+answered `unresolved`; every contract owner `John Doe <john.doe@acme.com>`; accept. **Predictions.** **P1** all five
+runs finish with a passing validation (re-model attempts allowed). **P2** no final model contains
+`E_SAT_GRAIN_NOT_UNIQUE`; whether the gate fired inside attempts, and whether the modeler followed its remedy, is
+recorded, not predicted. **P3** every generated stage whose link has a typed integer/character participant carries
+`null_columns`; every feed-bound multi-active satellite renders `ma_sat`. **P4** the fifth project built whole into a
+fresh schema, with views for its inferred stages written after reading their metadata: PASS for every node; a second
+build `INSERT 0 0` for every incremental model. **P5** cost 4–6 USD, wall time 25–45 min. Not predicted: construct
+counts, decisions per step.
