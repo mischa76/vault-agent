@@ -82,7 +82,7 @@ too). All built; the list is `graph.py`'s, which owns it:
 | **Business-Key Identifier** | Scores key candidates against DV2.0 heuristics; flags ambiguity for review | ✅ Built |
 | **DV2.0 Modeler** | Generates Hubs, Links (incl. role-qualified self-referencing links), and Satellites under DV2.0 rules | ✅ Built |
 | **Code Generator** | Emits AutomateDV dbt models — hubs, links, standard/multi-active/effectivity satellites, transactional links — plus the staging layer and dbt project scaffolding (a runnable project) | ✅ Built |
-| **Validator** | 33 independent `E_` gates (plus advisory `W_` warnings) checking the model and generated artifacts for DV2.0 compliance — the code owns the count: `rg -o '"E_[A-Z_]+"' src/vault_agent/agents/validator.py \| sort -u` | ✅ Built |
+| **Validator** | 35 independent `E_` gates (plus advisory `W_` warnings) checking the model and generated artifacts for DV2.0 compliance — the code owns the count: `rg -o '"E_[A-Z_]+"' src/vault_agent/agents/validator.py \| sort -u` | ✅ Built |
 | **ADR Author** | Turns the agents' modeling decisions into an explicit, traceable ADR | ✅ Built |
 | **Data Contract Agent** | Drafts JSON-Schema source-to-staging contracts + dbt schema tests; flags gaps for human review | ✅ Built |
 | **Entity Resolver** | In brownfield runs, proposes whether a new concept is an existing hub (merge / same-as / new), with evidence and a confidence category; nothing merges unratified (WP29) | ✅ Built |
@@ -104,7 +104,7 @@ one-off overrides).
 
 - **Speed without sacrificing rigor** — collapse initial DV2.0 modeling from weeks toward hours
 - **Reproducible outputs** — reviewed dbt projects in git, never a no-code black box
-- **Warehouse-agnostic** — strategic targets Snowflake and MS Fabric (DACH). Today's generator has seed dialects for PostgreSQL (verified, the local demos) and Databricks (`--target-platform databricks`: native seed types, adapter hint — keyless-only so far, no workspace build recorded), and the generated project builds unchanged on every AutomateDV-supported platform (Snowflake, BigQuery, Databricks, MS SQL Server, PostgreSQL). No Fabric-specific dialect exists yet; AutomateDV 0.11.4 ships none
+- **Warehouse-agnostic** — strategic targets Snowflake and MS Fabric (DACH). Today's generator has seed dialects for PostgreSQL (verified, the local demos) and Databricks (`--target-platform databricks`: native seed types, adapter hint — built on a Databricks warehouse since 2026-10-16: the bank demo, the person step and the whole AdventureWorks chain, WP72), and the generated project builds unchanged on every AutomateDV-supported platform (Snowflake, BigQuery, Databricks, MS SQL Server, PostgreSQL). No Fabric-specific dialect exists yet; AutomateDV 0.11.4 ships none
 - **Knowledge capture** — every modeling decision documented as an ADR
 - **Human-in-the-loop sign-off** — the run pauses for owner assignment and approval, then resumes from a checkpoint
 - **A force multiplier, not a replacement** — the architect keeps judgment; the agents do the toil
@@ -289,8 +289,12 @@ Python 3.12+ · [uv](https://github.com/astral-sh/uv) · [LangGraph](https://lan
 
 ## Status & roadmap
 
-Actively built in the open. The **core pipeline runs end-to-end on two demo domains** today, via
-a CLI, with the methodology rules in code and a self-correcting validation loop.
+Actively built in the open. The **pipeline runs end-to-end** — CLI and browser workbench — with the
+methodology rules in code and a self-correcting validation loop. Its main instrument is AdventureWorks:
+a five-step brownfield chain (person → sales, 68 tables) run more than twenty times and built on
+PostgreSQL and Databricks; the owner's own step-by-step build of it ships as
+[`demo/workbench-adventureworks/`](demo/workbench-adventureworks/README.md). Not yet: a second real
+domain, a real customer project. Day-by-day evidence: [`docs/log.md`](docs/log.md).
 
 ```
 Foundation        repo · architecture · ADRs                                  ✅ done
@@ -303,13 +307,28 @@ Contracts         data contract agent + dbt schema tests                       �
 Orchestration     orchestrator entry node · live HITL (interrupt/resume)       ✅ done
 Hardening         typed pipeline flags · resilient LLM call path (retry/backoff/caching) ✅ done
 Runnable output   staging generator + dbt project scaffolding (verified on Postgres) ✅ done
-Validation depth  33 independent validator gates (incl. eff-sat order, HK collisions, composite keys) ✅ done
+Validation depth  35 independent validator gates (incl. eff-sat order, HK collisions, composite keys) ✅ done
 Evals             eval harness: golden datasets · deterministic scorers · LangSmith layer ✅ done
 Multi-role links  role-qualified self-referencing links (ADR-0009, Postgres-verified) ✅ done
 Mapping (Phase 2) business↔source mapping — LLM-first, ratified, opacity-probed &
                   Postgres-verified (ADR-0008 Accepted)                        ✅ done
 Multi-source hub  business-key harmonisation across sources (WP10, Postgres-verified) ✅ done
-Polish            public walkthrough                                           🔜 next
+Brownfield        extend an existing vault: run --existing, entity resolution,
+                  ratified at a checkpoint before modelling (WP23, WP29)       ✅ done
+FK-derived links  links and key translations from declared foreign keys (WP34–WP42) ✅ done
+Composite keys    composite business and foreign keys end to end (WP45, WP46) ✅ done
+Real-data chain   AdventureWorks, five domains, all-green chains; payload, hub-shape
+                  and repair-memory gates (WP30, WP49–WP57)                    ✅ done
+Model generation  Sonnet 5.5 / Opus 5.5 by default (WP59–WP62)                 ✅ done
+Databricks        whole chain built on a Databricks warehouse (WP72)           ✅ done
+Self-contained    catalogue and stage bindings travel with the model (WP74–WP77) ✅ done
+Workbench         browser UI over the same pipeline, CLI equivalent per action
+                  (ADR-0014, WP66–WP71, WP78, WP80)                            ✅ done
+Data defects      found in the owner's build: multi-active on multi-source hubs,
+                  nullable link participants, satellite grain (backlog C11–C13) 🔜 next
+Business Vault    PIT / Bridge generation on AutomateDV's macros (ADR-0007)    🔜 next
+Second domain     a non-AdventureWorks landscape (bank / insurance)            ⏳ planned
+Snowflake         platform profile and a recorded build                       ⏳ planned
 ```
 
 The work-package specs, agent kick-offs, and the measured mapping-spike evidence live in

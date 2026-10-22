@@ -58,10 +58,10 @@ Append-only. Status is the ADR's own header, not this table's opinion.
 | [0001](architecture/adrs/ADR-0001-llm-choice.md) | Primary LLM = Anthropic Claude | Accepted |
 | [0002](architecture/adrs/ADR-0002-orchestration-langgraph.md) | Orchestration = LangGraph | Accepted |
 | [0003](architecture/adrs/ADR-0003-codegen-automatedv.md) | Code generation backend = AutomateDV on dbt | Accepted |
-| [0004](architecture/adrs/ADR-0004-source-schema-grounding.md) | Ground the model in declared source schemas | Proposed |
-| [0005](architecture/adrs/ADR-0005-data-contract-spec.md) | JSON-Schema data contracts, drafted producer-side | Proposed |
+| [0004](architecture/adrs/ADR-0004-source-schema-grounding.md) | Ground the model in declared source schemas | Accepted (2026-10-22, the owner's go on C16; recorded in `docs/log.md`, the ADR file's header unchanged) |
+| [0005](architecture/adrs/ADR-0005-data-contract-spec.md) | JSON-Schema data contracts, drafted producer-side | Accepted (2026-10-22, the owner's go on C16; recorded in `docs/log.md`, the ADR file's header unchanged) |
 | [0006](architecture/adrs/ADR-0006-human-in-the-loop-review-queue.md) | HITL — review queue plus live interrupt/resume | Accepted |
-| [0007](architecture/adrs/ADR-0007-automation-scope-by-layer.md) | Automation scope per Data Vault layer (the assist boundary) | Proposed |
+| [0007](architecture/adrs/ADR-0007-automation-scope-by-layer.md) | Automation scope per Data Vault layer (the assist boundary) | Accepted (2026-10-22, the owner's go on C16; recorded in `docs/log.md`, the ADR file's header unchanged) |
 | [0008](architecture/adrs/ADR-0008-source-to-target-mapping.md) | Source-to-target mapping — scope and premises | Accepted |
 | [0009](architecture/adrs/ADR-0009-role-qualified-link-hub-references.md) | Role-qualified link hub references (self-referencing links) | Accepted |
 | [0010](architecture/adrs/ADR-0010-modeler-output-scaling.md) | Modeler output scaling — streaming before staged modelling | Accepted |

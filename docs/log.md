@@ -10043,3 +10043,29 @@ Microsoft's CSVs loaded with `load_datetime`/`record_source`; the loader so far 
 (`runs.py`: `Path(meta["out_dir"])`), so a project root cannot be moved or copied, and the demo works only
 started from the repo root with exactly that `--root`; resolving the run folder from the store
 (`ProjectStore.run_dir`) instead would make roots portable. Both need the owner's „go".
+
+## [2026-10-22] C16 built: documentation drift corrected — README, reference architecture, ADR-0004/-0005/-0007 accepted
+
+**Autor:** Claude Code
+
+The owner: „… danach C16 und C15". **README:** 35 `E_` gates (was 33; counted in `validator.py`), Databricks
+described as built since WP72 (was „keyless-only so far, no workspace build recorded"), the status paragraph
+and roadmap brought from WP10 („Polish — next") to today — brownfield, FK-derived links, composite keys, the
+AdventureWorks chain, the 5.5 models, Databricks, the self-contained project, the workbench as done; the data
+defects C11–C13 and PIT/Bridge as next, a second domain and Snowflake as planned. **Reference architecture**
+re-derived (was 2026-08-14): profiling (`--profiling` feeds the mapper; the agent computes none), staging
+(WP74–WP79, the inferred-link-stage gap C18), Raw Vault structure (known defects C11–C13), loading
+(idempotence measured over five steps, except C11/C13 — no longer „AutomateDV's contract"), PIT/Bridge (the
+installed macros, C22), brownfield (the owner's build), platform reality (Databricks verified). **ADR-0004, -0005
+and -0007 are Accepted as of today** on the owner's go on C16, whose analysis asked for exactly that decision;
+all three are built and in use. Recorded here and in the index's status column — the ADR files' headers stay
+as written, as the maturity analysis recommended. **Wiki** (the owner's knowledge base): `vault-agent.md`
+rewritten to the October state with its honest limits (it feeds CV and positioning); the demo guide and the
+cheat sheet start the workbench outside the repo and point at the new demo.
+
+**Überprüft.** Gate count by `rg`; Databricks builds in this log (2026-10-16/17); profiling by `cli.py` and
+`profiling.py`; the macros in the installed AutomateDV. **Nur angenommen.** The wiki page's test count and
+coverage (~1260, ~93 %) — the suite count is measured today (1259), the coverage is the analysis'.
+**Bewusst nicht getan.** The ADR files' `Status` lines (they could move along their path with
+`VAULT_AGENT_ALLOW_RECORD_EDIT=1`; left for the owner); CLAUDE.md (its open-items block is current enough and
+at budget).
