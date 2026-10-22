@@ -9994,3 +9994,14 @@ date; AutomateDV's handling of ghost records for PIT lookups to be read before s
 **Überprüft.** ADR-0007 lines 47–53 and 85; the installed macros' signatures; `rg -i "pit|bridge" src/`.
 **Nur angenommen.** Nothing about AutomateDV's PIT/ghost-record semantics — explicitly left to read.
 **Bewusst nicht getan.** No edit of the backlog record or of the 2026-10-21 explanation (a chat message).
+
+## [2026-10-22] The renamed AdventureWorks eval files restored
+
+**Autor:** Claude Code
+
+Follows „Backlog candidates C8–C21 recorded" (today, `bc23030`), which noted seven eval files renamed in the
+working tree. On the owner's word („stell die alten Dateinamen der Eval-Dateien wieder her") the originals were
+restored from `HEAD` (`git checkout --`) and the renamed copies deleted after `cmp` showed all seven
+byte-identical. `git status` lists no `eval/` change any more. **Überprüft.** `cmp` per pair; `pytest -k "dataset or
+eval"` 110 passed. **Nur angenommen.** That the renames came from preparing workbench uploads; the workbench keeps
+its own copies under `workbench/adventureworks/inputs/`, untouched. **Bewusst nicht getan.** Nothing else in the tree.
