@@ -9943,3 +9943,26 @@ for inferred link stages. Every step's earlier models stayed `INSERT 0 0` except
 views in a rolled-back transaction; table counts by `pg_stat_user_tables` after `ANALYZE` (estimates of live
 rows, not `count(*)`). **Nur angenommen.** That the quota satellite is non-idempotent (same mechanism, not re-run).
 **Bewusst nicht getan.** No fix; the views and the duplicated rows stay in `aw`.
+
+## [2026-10-22] Backlog candidates C8–C21 recorded — the owner's build of the whole vault and the October maturity analysis; nothing built, nothing prioritised
+
+**Autor:** Claude Code
+
+The owner: „kannst du mal im lokalen repo unter handover die reifegradanalyse durchsehen und relevante punkte
+in den backlog aufnehmen bevor wir die priorisierung machen". Read `docs/handover/261022_vault-agent_Reifegradanalyse.pdf`
+(five pages, judged on `d18b8d7`: TRL 6, pilot-ready in code, architecture, functions and docs, below in
+security 3.5, result quality 3, operations 2.5, market 2). New record `docs/architecture/backlog-2026-10-candidates-2.md`
+(part 1 is append-only): C8–C13 gathered from this week's log entries, C14–C21 from the analysis — repo
+hygiene, release 0.10.0, doc drift, a second real domain, closing inferred link stages (with C4's correction),
+workbench API tests, a positioning ADR, Snowflake. Not taken up: C1 (exists), the evaluator walk-through (an
+activity), PIT/Bridge (ADR-0007). Index row added.
+
+**Überprüft** (2026-10-22, against the repo): `.gitignore` has no `workbench` entry; 36 tracked files under
+`workbench/myproject/`, 95 under `workbench-demo$/`; last tag `0.9.1`, 299 commits since; README: roadmap ends at
+WP10, „33" gates against 35 in the validator, Databricks „keyless-only"; reference architecture re-derived
+2026-08-14 with „no data profiling"; ADR-0004/-0005/-0007 `Proposed` in file and index. **Nur angenommen.** The
+analysis' coverage figures for `ui/console.py` and `ui/app.py` (marked as such in the record). **Bewusst nicht
+getan.** No prioritisation (the owner's next step); no fix. **Noticed on the way, not touched:** seven
+AdventureWorks eval files were renamed in the working tree (`requirements.md` → `hr_requirements.md`,
+`prd_requirements.md`, `purchasing_…`, `sales_…`; `git status` shows them deleted plus untracked), while each
+case's `dataset.yml` still names `requirements.md`/`source_schema.yml` — the eval harness would not find them.

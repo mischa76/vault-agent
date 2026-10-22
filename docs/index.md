@@ -84,6 +84,7 @@ the eval assets survive.
 | [roadmap-2026-07-productization.md](architecture/roadmap-2026-07-productization.md) | UI track and productization readiness |
 | [deployment-residency.md](architecture/deployment-residency.md) | Deployment and data residency (Charter B) |
 | [backlog-2026-10-candidates.md](architecture/backlog-2026-10-candidates.md) | Candidates from the owner's hands-on run, unprioritised: a source-driven mode (ADR candidate), deleting, project settings with a naming profile, CLI/workbench parity (WP82), diagram zoom, `W_UNTRACED_CONSTRUCT`, the Phase 3 foreign-vault spike |
+| [backlog-2026-10-candidates-2.md](architecture/backlog-2026-10-candidates-2.md) | Candidates C8–C21, unprioritised: six from the owner's build of the whole vault (stale flags, owner format, seed config, feed-bound multi-active, nullable link participants, satellite key vs. unique key) and eight from the October maturity analysis (repo hygiene, release 0.10.0, doc drift, a second real domain, inferred link stages, workbench API tests, positioning ADR, Snowflake) |
 
 ## Work-package specs
 
