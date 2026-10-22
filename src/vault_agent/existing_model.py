@@ -170,7 +170,8 @@ def render_extension_prompt_section(existing: DVModel | None) -> str:
 
 
 def dump_source_catalogue(tables: list[Any], bindings: dict[str, str] | None = None) -> str:
-    """Render the source catalogue (WP74): table, schema, database and the declared columns,
+    """Render the source catalogue (WP74): table, schema, database and the declared columns (with
+    their types where declared, WP83),
     deduplicated by (schema, table), first occurrence wins — so a caller passes the
     increment's tables before the carried ones. ``bindings`` (WP77) adds ``stage_bindings``:
     every staging model's declared relation, so the next increment keeps a binding its own
@@ -182,7 +183,12 @@ def dump_source_catalogue(tables: list[Any], bindings: dict[str, str] | None = N
         if key in seen:
             continue
         seen.add(key)
-        entry: dict[str, Any] = {"table": table.table, "columns": list(table.column_names)}
+        # WP83: a column keeps its declared type, so a later increment's zero-key rule can read
+        # it; an untyped column stays a bare name — untyped catalogues are byte-identical.
+        columns: list[Any] = [
+            {"name": c.name, "type": c.type} if c.type else c.name for c in table.column_refs
+        ]
+        entry: dict[str, Any] = {"table": table.table, "columns": columns}
         if table.schema_name is not None:
             entry["schema"] = table.schema_name
         if table.database is not None:
