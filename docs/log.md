@@ -10150,3 +10150,20 @@ The owner's pay history had re-inserted +26/+35/+38/+38 under the old generator.
 **Bewusst nicht getan.** The owner's `aw` untouched (its three satellites keep their extra rows; a
 `--full-refresh` of those models after regenerating would reset them); `aw_wp84` left for inspection; nothing
 pushed.
+
+## [2026-10-22] The owner's `aw` rebuilt with WP83/WP84: the whole vault from the regenerated Sales project, PASS=334, 179 of 180 models idempotent
+
+**Autor:** Claude Code
+
+The owner: „push it, dann aw neu aufbauen". WP83/WP84 pushed (`095c139` on `origin/main`). Schema `aw` held only the
+vault (180 tables, 148 staging views) and the seven inferred-stage views — checked before dropping it whole
+(`DROP SCHEMA aw CASCADE`, recreated, `inferred_views.sql` re-applied). Built from the Sales run regenerated with
+the new generator (as for WP84), saved for the owner as `workbench/adventureworks/rebuild-20261022/` (git-ignored).
+**Result:** PASS=334; a second build 179 of 180 incremental models `INSERT 0 0`, the one exception
+`sat_product_assembly_component_details` +195 (C13, open — so `aw` holds those 195 duplicates again);
+`link_customer_business_entity` 19 820, `link_product_assembly_component` 2 484 with 0 orphaned satellite rows,
+`sat_business_entity_pay_history` 316; 39 hubs (536 076 rows), 49 links (956 864), 92 satellites (951 643 —
+`pg_stat_user_tables` after `ANALYZE`). **What the rebuild lost:** history the step-by-step build had accumulated —
+Ken's first name version of 2026-10-18 is gone; a vault built once from today's sources knows today's state only.
+**Überprüft.** Both build logs; counts by `psql`. **Bewusst nicht getan.** `aw_wp83`/`aw_wp84` kept; the demo's runs
+unchanged (they show the build as it was, findings included).
