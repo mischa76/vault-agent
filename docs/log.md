@@ -10237,3 +10237,20 @@ now „the first".
 (13); which examples need a key (their docstrings: 01–06 do, 07 does not); PDF/DOCX input (`requirements_parser`,
 `pypdf`, `python-docx`); full suite green. **Nur angenommen.** That GitHub's anchor for „Work-package specs" is
 `#work-package-specs` (its slug rule). **Bewusst nicht getan.** `00-overview.md` itself (append-only record).
+
+## [2026-10-22] The owner's `aw` rebuilt a second time, with WP85's remedy applied — 180 of 180 incremental models idempotent
+
+**Autor:** Claude Code
+
+The owner: „1. und 2. go" (push; rebuild `aw` with the remedy for the four satellites WP85 refuses). Pushed
+(`1d47ab0`). The Sales run regenerated with today's generator and the keyed catalogue; the four satellites made
+multi-active as `E_SAT_GRAIN_NOT_UNIQUE`'s remedy says — `sat_business_entity_department_shift_audit`,
+`sat_product_assembly_component_details`, `sat_business_entity_sales_territory_assignment_details` on `StartDate`,
+`sat_shopping_cart_product_details` on `ShoppingCartItemID` — a model change made by hand, the modeler's job in a
+live run. Re-validated against the whole keyed catalogue (all five domains' tables, no construct treated as
+pre-existing): **no `E_SAT_GRAIN_NOT_UNIQUE` left anywhere in the vault**. Project saved as
+`workbench/adventureworks/rebuild-20261022/` (replacing the first rebuild). `aw` checked before dropping (180
+tables, 155 views, nothing outside the vault and its seven views), dropped, views re-applied, built twice:
+**PASS=334 both times; second build 180 of 180 incremental models `INSERT 0 0`.** Customer link 19 820, bill of
+materials 2 679 satellite rows with 0 orphans, pay history 316. **Überprüft.** Build logs, counts by `psql`.
+**Bewusst nicht getan.** The demo's runs (they keep showing the build as it was).
