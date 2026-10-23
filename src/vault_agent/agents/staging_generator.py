@@ -975,6 +975,27 @@ def _relation_test_ref(source_model: str, source_name: str | None) -> str:
     return f"ref('{source_model}')"
 
 
+def _project_homonyms_apart(spec: StagingSpec, relation_columns: list[str]) -> None:
+    """WP89: a translated key projected under a name the relation already carries would put the
+    column into the view twice (`select t.*, r.ACCOUNTNUMBER as ACCOUNTNUMBER` over
+    `SalesOrderHeader`, whose own `AccountNumber` is a financial account). Such a key is projected
+    as ``<KEY>_VIA_<THROUGH>`` and every hash key taken over it follows; the relation's own column
+    stays what it is, payload included. The hash value does not depend on the column's name."""
+    present = {normalize_identifier(c) for c in relation_columns}
+    for i, (t, column) in enumerate(
+        zip(spec.translations, spec.translation_columns, strict=True)
+    ):
+        if normalize_identifier(column) not in present:
+            continue
+        renamed = f"{column}_VIA_{_to_column(t.through_table)}"
+        spec.translation_columns[i] = renamed
+        for j, (name, value) in enumerate(spec.hashed):
+            if isinstance(value, str) and value == column:
+                spec.hashed[j] = (name, renamed)
+            elif isinstance(value, list) and column in value:
+                spec.hashed[j] = (name, [renamed if v == column else v for v in value])
+
+
 def translation_model_name(spec: StagingSpec) -> str:
     """``stg_<link>_via_<table>``; several translations join their tables with ``_and_``."""
     assert spec.translations
@@ -1458,9 +1479,18 @@ def build_staging(
     by_relation = {
         normalize_identifier(s.source_model): s for s in specs.values() if s.bound
     }
+    # WP79: the bound relation's declared columns, so a reserved name the spec never references
+    # is escaped too (AutomateDV selects every column of the relation).
+    declared_columns = {
+        normalize_identifier(t.table): list(t.column_names) for t in binding_schemas
+    }
     for spec in specs.values():
         if not spec.translations:
             continue
+        if spec.bound:
+            _project_homonyms_apart(
+                spec, declared_columns.get(normalize_identifier(spec.source_model), [])
+            )
         throughs = [
             by_relation.get(normalize_identifier(t.through_table)) for t in spec.translations
         ]
@@ -1469,11 +1499,6 @@ def build_staging(
         translations[name] = sql
         translation_tests[f"models/staging/{name}.yml"] = tests
         spec.stage_source = name
-    # WP79: the bound relation's declared columns, so a reserved name the spec never references
-    # is escaped too (AutomateDV selects every column of the relation).
-    declared_columns = {
-        normalize_identifier(t.table): list(t.column_names) for t in binding_schemas
-    }
 
     def relation_columns(spec: StagingSpec) -> list[str] | None:
         return declared_columns.get(normalize_identifier(spec.source_model)) if spec.bound else None

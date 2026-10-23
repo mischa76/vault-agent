@@ -765,25 +765,26 @@ class _Grant:
 
 
 def _pair_participations(
-    refs: list[LinkHubRef], grants: list[_Grant], key: str, present: set[str] | None
+    refs: list[LinkHubRef], grants: list[_Grant], key: str, present: set[str] | None,
+    declares_key: bool = False,
 ) -> list[tuple[LinkHubRef, _Grant]]:
     """WP41 §2: which ratified key each participation of one hub reads — or none.
 
     ``refs`` are one link's participations of the grants' hub, ``grants`` the ratified keys into
     that hub from the relation being read, ``key`` the hub's canonical key column, ``present``
-    the relation's declared columns (``None`` when undeclared). Decided per relation and hub,
-    never per key alone: two keys into one hub are a question only a role can answer."""
+    the relation's declared columns (``None`` when undeclared), ``declares_key`` whether the
+    relation declares its same-named column as a key into the hub (WP89). Decided per relation and
+    hub, never per key alone: two keys into one hub are a question only a role can answer."""
     by_column = {normalize_identifier(g.column): g for g in grants}
     if len(refs) == 1 and refs[0].role is None:
-        if key in by_column or len(by_column) != 1:
+        if key in by_column or declares_key or len(by_column) != 1:
             return []  # the relation declares the hub's key itself, or which key is not known
         [grant] = by_column.values()
         if grant.translation is None and grant.alias is None:
             return []
-        if present is not None and key in present and grant.translation is not None:
-            # A same-named key column beside a surrogate reference may be a legitimate copy; only
-            # an alias — the E_LINK_KEY_WRONG_COLUMN signature — says that column is another key.
-            return []
+        # WP89: a same-named column the relation does not declare as the hub's key does not stop a
+        # translation. If it is a copy, the translation yields the same value; if it is a homonym
+        # (`SalesOrderHeader.AccountNumber`, a financial account), only the translation is right.
         return [(refs[0], grant)]
     if len(refs) == 1 and len(by_column) == 1:
         return [(refs[0], next(iter(by_column.values())))]
@@ -800,6 +801,17 @@ def _pair_participations(
         if len(rivals) == 1:
             pairs.append((ref, named[0]))
     return pairs
+
+
+def _homonym_note(relation: SourceTable | None, key: str, table: str) -> str:
+    """WP89: the flag's clause naming a same-named column the translation does not read."""
+    if relation is None:
+        return ""
+    same = [c for c in relation.column_names if normalize_identifier(c) == key]
+    if not same:
+        return ""
+    return (f"; {table}.{same[0]} has the hub key's name but is not declared as its key — "
+            f"not read (a copy or a homonym; the declared key decides)")
 
 
 def _needs_repair(ref: LinkHubRef, key: str, present: set[str] | None) -> bool:
@@ -882,6 +894,12 @@ def apply_key_licenses(
             if relation is not None else None
         )
         key = normalize_identifier(canonical_hub_key_column(hub))
+        declares_key = relation is not None and any(
+            fk.is_single_column and normalize_identifier(fk.columns[0]) == key
+            and hub_binds_to_source_table(hub, fk.references_table)
+            for fk in relation.foreign_keys
+        )
+        homonym = "" if declares_key else _homonym_note(relation, key, table)
         for link in delta.links:
             # WP42: which relation a link reads is no longer its name alone. The modeler names
             # links freely (`link_bom` from `BillOfMaterials`), and over six chains only 84 of
@@ -904,7 +922,7 @@ def apply_key_licenses(
             if not reads:
                 continue
             refs = [ref for ref in link.hub_refs if ref.hub == hub.name]
-            for ref, grant in _pair_participations(refs, group, key, present):
+            for ref, grant in _pair_participations(refs, group, key, present, declares_key):
                 if not _needs_repair(ref, key, present):
                     continue
                 if grant.translation is not None:
@@ -915,7 +933,7 @@ def apply_key_licenses(
                         f"link {link.name}, built by the modeler from {table}, requires "
                         f"surrogate→natural-key translation through {t.through_table} for "
                         f"{ref} ({t.referencing_column} → {t.natural_key_column}); repaired under "
-                        f"a ratified key; review the translation model",
+                        f"a ratified key; review the translation model{homonym}",
                         kind=FlagKind.LINK_TRANSLATION,
                         asset=f"{table}.{t.referencing_column}",
                     )
@@ -933,9 +951,9 @@ def apply_key_licenses(
                 columns = {normalize_identifier(g.column) for g in group}
                 if (
                     sat.key_translation is not None or len(columns) != 1
-                    or group[0].translation is None or (present is not None and key in present)
+                    or group[0].translation is None or declares_key
                 ):
-                    continue
+                    continue  # WP89: a same-named column no longer blocks the translation
                 t = group[0].translation
                 sat.key_translation = t
                 state.flag(
@@ -943,7 +961,8 @@ def apply_key_licenses(
                     f"satellite {sat.name} reads {table}, which carries "
                     f"{t.referencing_column} but not {hub.name}'s key "
                     f"{t.natural_key_column}: joined in through "
-                    f"{t.through_table} under a ratified key; review the translation model",
+                    f"{t.through_table} under a ratified key; review the translation model"
+                    f"{homonym}",
                     kind=FlagKind.SAT_TRANSLATION,
                     asset=sat.name,
                 )
@@ -952,7 +971,7 @@ def apply_key_licenses(
             if parent is None:
                 continue
             refs = [ref for ref in parent.hub_refs if ref.hub == hub.name]
-            for ref, grant in _pair_participations(refs, group, key, present):
+            for ref, grant in _pair_participations(refs, group, key, present, declares_key):
                 p_key = participation_key(ref.hub, ref.role)
                 if (
                     p_key in sat.participation_translations or p_key in sat.participation_aliases
@@ -972,7 +991,8 @@ def apply_key_licenses(
                     f"satellite {sat.name} reads {table}, which carries "
                     f"{t.referencing_column} but not {hub.name}'s key "
                     f"{t.natural_key_column}: joined in through "
-                    f"{t.through_table} under a ratified key; review the translation model",
+                    f"{t.through_table} under a ratified key; review the translation model"
+                    f"{homonym}",
                     kind=FlagKind.SAT_TRANSLATION,
                     asset=sat.name,
                 )

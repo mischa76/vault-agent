@@ -13,6 +13,9 @@ is not the project's.
 ## [Unreleased]
 
 ### Fixed
+- A link no longer hashes a same-named column that means something else: a ratified foreign key's
+  translation wins over it (`SalesOrderHeader.AccountNumber`, a financial account, beside
+  `CustomerID → Customer`), and the translated key is projected beside the homonym (WP89, backlog C26).
 - A link's zero key now points at a hub row: every hub a zero-keyed participation reaches gets `-1`/`-2`
   rows through a generated view (keys cast to the hub stage's warehouse type at run time) and stage in its
   `source_model` list (WP86, backlog C25).

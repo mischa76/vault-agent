@@ -10387,3 +10387,35 @@ built twice: **PASS=406 both times; second build 180 of 180 incremental models `
 `hub_customer` two `SYSTEM` rows, `link_customer_business_entity` 19 820. **Überprüft.** Build logs, counts by `psql`.
 **Bewusst nicht getan.** `link_sales_order_customer` still hashes the homonym `SalesOrderHeader.AccountNumber` (C26,
 next); schema `aw_chain` (today's paid chain's build) left in place for the owner.
+
+## [2026-10-23] WP89 built and measured: homonym keys — `link_sales_order_customer` 31 465 of 31 465 rows joined (was 0), PASS=407, 180 of 180 idempotent; the build found a duplicate column first; P5 is C18's
+
+**Autor:** Claude Code
+
+The owner: „3. ja" (C26 as a work package, before C22). Spec and guards `e24e6bb` (red, 4 of 5). **Cause:**
+`link_proposal._pair_participations` dropped a ratified key's translation whenever the relation carried a column
+named like the hub's key — WP41 §2 rule 1, „repaired only by an alias, never a translation", on the reasoning that
+such a column may be a legitimate copy. `SalesOrderHeader.AccountNumber` is a financial account, not
+`Customer.AccountNumber`. Before the change, with the clause disabled, the whole suite stayed green: no test pinned
+it. **Change:** the translation wins unless the relation *declares* the same-named column as a key into the hub's
+table (`declares_key`); the hub-satellite repair alike; the flag names the column not read (`_homonym_note`). The
+pre-registered build then failed to plan — the translation view projected `t.*, r.ACCOUNTNUMBER as ACCOUNTNUMBER`,
+the column twice — so `staging_generator._project_homonyms_apart` projects such a key as `<KEY>_VIA_<THROUGH>`
+(`ACCOUNTNUMBER_VIA_CUSTOMER`) and every hash key over it follows; the relation's own column stays payload (guard
+added; fails without the change).
+
+**Measured** (the owner's Sales run regenerated as for the third `aw` rebuild; `apply_key_licenses` re-applied, but
+only what the new code changes beyond the old one taken over — re-applying the old code alone re-binds
+`link_business_entity_credit_card`, one of the seven hand-bound links, a replay artefact): one construct changed,
+`link_sales_order_customer`. Fresh schema `aw_wp89`, built twice. **P1 ✔** 0 of 31 465 `CUSTOMER_HK` unjoined (`aw`:
+31 465). **P2 ✔** `stg_sales_order_customer_via_customer` built and tested. **P3 ✔** every link's row count equals
+`aw`'s; no other link column changed its join count. **P4 ✔** PASS=407 both builds (406 − the customer zero-key view
+and stage + the translation view and its test), 180 of 180 `INSERT 0 0`. **Not predicted:** `hub_customer` loses its
+two zero-key rows — the translated link was the only zero-keyed participation into it, and WP83 rule 2 gives a
+translated participation no null handling (`CustomerID` is `NOT NULL`, nothing lost). **P5 ✗** the paid chain's
+`link_sales_order` gets no translation: the repair finds no relation for that nine-participant link
+(`resolve_link_relation` → `none`), so there is nothing to repair — C18's case, not WP89's.
+**Überprüft.** Suites green (1292 passed, 2 skipped), ruff, mypy; build logs; join and row counts by `psql`.
+**Nur angenommen.** That no other vault has a legitimate copy whose foreign key dangles (the translation's LEFT
+JOIN would then leave a NULL key the view's test refuses). **Bewusst nicht getan.** The owner's `aw` not rebuilt with
+WP89 (asked for WP86 only); no gate for a homonym without a ratified key (spec §2 rule 5); `aw_wp89` dropped.

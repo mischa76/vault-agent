@@ -89,3 +89,19 @@ def test_a_declared_key_on_the_same_named_column_needs_no_translation() -> None:
     [link] = model.links
     [ref] = [r for r in link.hub_refs if r.hub == "hub_customer"]
     assert ref.key_translation is None and ref.source_key_column is None
+
+
+# ── found by the pre-registered build: the view must not carry the column twice ───────────
+def test_the_translated_key_is_projected_beside_the_homonym_not_over_it() -> None:
+    from vault_agent.agents.staging_generator import build_staging
+
+    model, _ = _run(_header())
+    result = build_staging(model, [CUSTOMER, _header()],
+                           source_overrides={"SALES_ORDER_CUSTOMER": "SalesOrderHeader"},
+                           target_platform="postgres")
+    view = result.models["stg_sales_order_customer_via_customer"]
+    assert "r.ACCOUNTNUMBER as ACCOUNTNUMBER_VIA_CUSTOMER" in view
+    stage = result.models["stg_sales_order_customer"]
+    assert "CUSTOMER_HK: 'ACCOUNTNUMBER_VIA_CUSTOMER'" in stage
+    assert ("LINK_SALES_ORDER_CUSTOMER_HK:\n    - 'SALESORDERID'\n"
+            "    - 'ACCOUNTNUMBER_VIA_CUSTOMER'") in stage
