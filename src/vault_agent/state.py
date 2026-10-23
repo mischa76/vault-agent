@@ -1,6 +1,7 @@
 """Shared state passed through the LangGraph nodes."""
 import warnings
 from collections.abc import Sequence
+from datetime import date
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -77,6 +78,9 @@ class FlagKind:
     # WP90: a link several declared relations offer was bound to the one its satellites' payload
     # or its participations' key singles out; `reason` is the tier (`payload`/`key`).
     LINK_BINDING_EVIDENCE = "link_binding_evidence"
+    # WP91: a point-in-time table was generated for a hub (ADR-0016) — deterministic from the
+    # model, a disclosure.
+    PIT_GENERATED = "pit_generated"
     GENERIC = "generic"
 
 
@@ -832,9 +836,35 @@ class DVModel(BaseModel):
     satellites: list[Satellite] = Field(default_factory=list)
 
 
+class BusinessVaultOptions(BaseModel):
+    """WP91 (ADR-0016): which Business Vault constructs a run generates, and their bounds.
+
+    ``pit`` asks for a point-in-time table per hub with two or more descriptive satellites. A PIT
+    is a cross join of hub keys and as-of dates, so both bounds are required — nothing in
+    the inputs says what the spine should span. ``as_of_end`` is exclusive
+    (``dbt_utils.date_spine``)."""
+
+    pit: bool = False
+    as_of_start: date | None = None
+    as_of_end: date | None = None
+    as_of_grain: Literal["day", "month"] = "day"
+
+    @model_validator(mode="after")
+    def _bounded(self) -> "BusinessVaultOptions":
+        if self.pit:
+            if self.as_of_start is None or self.as_of_end is None:
+                raise ValueError("a PIT needs as_of_start and as_of_end (YYYY-MM-DD)")
+            if self.as_of_start >= self.as_of_end:
+                raise ValueError("as_of_start must lie before as_of_end")
+        return self
+
+
 class Artifacts(BaseModel):
     automatedv_yaml: dict[str, Any] = Field(default_factory=dict)
     dbt_models: dict[str, str] = Field(default_factory=dict)
+    # WP91: Business Vault models (the as-of spine, one PIT per eligible hub), written under
+    # models/business_vault/. Empty unless the run asked for PITs.
+    business_vault_models: dict[str, str] = Field(default_factory=dict)
     # One JSON-Schema-based data contract per source-to-staging asset (ADR-0005), each a
     # plain JSON/YAML-round-trippable dict (DataContract.to_dict()).
     contracts: list[dict[str, Any]] = Field(default_factory=list)
@@ -973,6 +1003,9 @@ class VaultAgentState(BaseModel):
     # nothing else branches on it, the vault SQL is platform-neutral (AutomateDV dispatches
     # per adapter). Persisted here so a resumed run keeps the choice without re-passing it.
     target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM
+    # WP91 (ADR-0016): Business Vault output the operator asked for — off by default, so every
+    # artifact is what it was. Persisted so a resumed run keeps the choice.
+    business_vault: BusinessVaultOptions = Field(default_factory=lambda: BusinessVaultOptions())
     # WP29: entity-resolution proposals for an extension run (concept -> existing
     # construct / NEW / same-as candidate / unresolved). Empty unless BOTH an existing
     # model and a declared schema are present — the grounding gate.

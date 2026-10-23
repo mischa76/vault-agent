@@ -267,3 +267,38 @@ their own yet: they run under the default platform, i.e. with Postgres-spelled s
 which those platforms accept. Not covered by the project's own verification; treat the
 demo checklist as the acceptance test and expect platform-specific casing/quoting to be
 the first thing to check. A profile is added when someone verifies one.
+
+## 9.7 Business Vault: point-in-time tables (WP91, ADR-0016)
+
+Opt-in — `--pit --as-of-start D1 --as-of-end D2 [--as-of-grain day|month]`, or the same fields on the
+workbench's run start. The project then gains `models/business_vault/`:
+
+- **`as_of_dates`** — the spine every PIT reads, `dbt_utils.date_spine` over the operator's bounds
+  (start inclusive, end exclusive), one `AS_OF_DATE` per grain. Both bounds are required: a PIT is a
+  cross join of hub keys and as-of dates, and nothing in the inputs says what it should span.
+- **`pit_<hub base>`** — one per hub with **two or more descriptive satellites** (standard or
+  multi-active, parent = the hub; effectivity and link satellites are not a hub's payload). A row
+  is the hub's hash key, `AS_OF_DATE`, and per satellite model `<SAT>_PK` and `<SAT>_LDTS`: the
+  satellite's latest load at or before the as-of date. Plain SQL — one grouped LEFT JOIN per
+  satellite — materialised `table` and rebuilt whole on every run; no `automate_dv.pit()`, which
+  AutomateDV 0.11.4 deprecates as „not currently fit-for-purpose" (`spike-pit-trial-results.md`).
+- **Ghost entries are AutomateDV ghost records.** The project sets `enable_ghost_records: true`, so
+  every standard satellite carries AutomateDV's ghost row (key `binary_ghost`, load date
+  `1900-01-01`, `RECORD_SOURCE = 'AUTOMATE_DV_SYSTEM'`), and a PIT entry with no satellite row
+  carries exactly those values (`automate_dv.binary_ghost`, `automate_dv.date_ghost` — the
+  package's own helpers, so the two agree on every platform). A join from the PIT to a standard
+  satellite on (`<SAT>_PK`, `<SAT>_LDTS`) therefore finds one row for every entry. AutomateDV has
+  **no ghost record for a multi-active satellite**: a ghost entry of such a satellite joins nothing
+  — the model's header names them; join those LEFT. The hubs' `-1`/`-2` zero-key rows (WP86) are a
+  different thing: unknown or not-applicable business keys in links, not PIT ghosts.
+- `metadata/automatedv.yml` records each PIT under `pit:` (hub, key, spine, satellites with their
+  key and load-date columns); the review lists one `pit_generated` disclosure per PIT — a PIT is
+  deterministic from the model, nothing to decide (ADR-0007's reading).
+- Turning PITs on adds one ghost row per standard satellite to a vault built without them; the
+  second build is idempotent again. `packages.yml` declares `dbt_utils` (the version AutomateDV
+  already resolves) only then.
+
+Not generated yet: bridges (a path choice ratified by a human, ADR-0016), an incremental PIT,
+per-hub selection, PITs over link satellites. Verified by a keyless `dbt build` on PostgreSQL
+against the owner's AdventureWorks vault (`docs/log.md`, 2026-10-23, WP91); Databricks not built.
+

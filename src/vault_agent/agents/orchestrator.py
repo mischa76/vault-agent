@@ -91,6 +91,7 @@ REVIEW_FLAG_ROLES: dict[str, ReviewRole] = {
     FlagKind.RELATION_INFERRED: "disclosure",  # WP56: the schema named a satellite's relation
     FlagKind.BINDING_REJECTED: "decision",  # WP73: the relation lacks a hashed column; map it
     FlagKind.LINK_BINDING_EVIDENCE: "decision",  # WP90: bound by evidence, in place of ambiguous
+    FlagKind.PIT_GENERATED: "disclosure",  # WP91: deterministic from the model (ADR-0016)
     FlagKind.GENERIC: "decision",  # untyped work, not provenance
 }
 _DEFAULT_ROLE: ReviewRole = "decision"
@@ -132,6 +133,7 @@ REVIEW_FLAG_GROUPS: dict[str, str] = {
     FlagKind.RELATION_INFERRED: "relation-inferred",  # WP56
     FlagKind.BINDING_REJECTED: "binding-rejected",  # WP73
     FlagKind.LINK_BINDING_EVIDENCE: "link-binding-evidence",  # WP90
+    FlagKind.PIT_GENERATED: "pit-generated",  # WP91
     # WP36: deliberately NOT aggregated — a translation is a join through another relation
     # and each one is a review item in its own right (ADR-0013 §3). Listed here only as a
     # comment so the omission reads as a decision, not an oversight.

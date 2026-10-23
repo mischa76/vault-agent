@@ -20,6 +20,12 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, busy }: {
   const [req, setReq] = useState(requirements[0]?.name ?? "");
   const [schema, setSchema] = useState(schemas[0]?.name ?? "");
   const [existing, setExisting] = useState("");
+  // WP91: Business Vault — a PIT per hub with two or more descriptive satellites, over a bounded spine.
+  const [pit, setPit] = useState(false);
+  const [asOfStart, setAsOfStart] = useState("");
+  const [asOfEnd, setAsOfEnd] = useState("");
+  const [grain, setGrain] = useState<"day" | "month">("day");
+  const pitIncomplete = pit && (!asOfStart || !asOfEnd || asOfStart >= asOfEnd);
   const active = project.runs.find((r) => r.status === "running");
 
   async function upload(kind: ProjectFile["kind"], file: File) {
@@ -37,7 +43,10 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, busy }: {
   async function start() {
     setError(null);
     try {
-      const run = await api.startRun(project.id, req, schema || null, existing || null);
+      const run = await api.startRun(
+        project.id, req, schema || null, existing || null,
+        pit ? { pit: true, as_of_start: asOfStart, as_of_end: asOfEnd, as_of_grain: grain } : undefined,
+      );
       onChanged();
       onOpenRun(run.id);
     } catch (e) {
@@ -96,8 +105,34 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, busy }: {
             </select>
           </label>
         </div>
+        <div className="mt-3 grid gap-2 text-sm">
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={pit} onChange={(e) => setPit(e.target.checked)} />
+            <span>point-in-time tables (Business Vault) — one per hub with two or more satellites, over a bounded spine</span>
+          </label>
+          {pit ? (
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="grid gap-1">
+                <span className="text-xs text-ink-faint">as-of start (inclusive)</span>
+                <input type="date" value={asOfStart} onChange={(e) => setAsOfStart(e.target.value)} className="rounded-md border border-line bg-pane-2 px-2 py-1.5" />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-xs text-ink-faint">as-of end (exclusive)</span>
+                <input type="date" value={asOfEnd} onChange={(e) => setAsOfEnd(e.target.value)} className="rounded-md border border-line bg-pane-2 px-2 py-1.5" />
+              </label>
+              <label className="grid gap-1">
+                <span className="text-xs text-ink-faint">grain</span>
+                <select value={grain} onChange={(e) => setGrain(e.target.value as "day" | "month")} className="rounded-md border border-line bg-pane-2 px-2 py-1.5">
+                  <option value="day">day</option>
+                  <option value="month">month</option>
+                </select>
+              </label>
+              {pitIncomplete ? <p className="text-xs text-ink-faint sm:col-span-3">A PIT needs both dates, start before end — the CLI's --as-of-start and --as-of-end.</p> : null}
+            </div>
+          ) : null}
+        </div>
         <div className="mt-3 flex items-center gap-3">
-          <Button onClick={() => void start()} disabled={!req || busy || Boolean(active)}>Run the generator</Button>
+          <Button onClick={() => void start()} disabled={!req || busy || Boolean(active) || pitIncomplete}>Run the generator</Button>
           <span className="text-xs text-ink-faint">calls the models — the run pauses at the human checkpoint</span>
         </div>
       </Section>

@@ -201,6 +201,8 @@ def _header_section(state: VaultAgentState) -> str:
         f"{len(model.satellites)} satellites",
         f"{len(state.artifacts.dbt_models)} raw-vault models",
         f"{len(state.artifacts.staging_models)} staging models",
+        *([f"{len(state.artifacts.business_vault_models)} business-vault models"]
+          if state.artifacts.business_vault_models else []),
         f"{len(state.artifacts.contracts)} contracts",
         f"{len(state.adrs)} ADRs",
     ]
@@ -446,6 +448,7 @@ def _files_section(state: VaultAgentState) -> str:
     paths: list[str] = []
     paths += [f"models/raw_vault/{name}.sql" for name in state.artifacts.dbt_models]
     paths += [f"models/staging/{name}.sql" for name in state.artifacts.staging_models]
+    paths += [f"models/business_vault/{name}.sql" for name in state.artifacts.business_vault_models]
     paths += list(state.artifacts.scaffolding)
     for contract in state.artifacts.contracts:
         asset = str(contract.get("name", "contract"))

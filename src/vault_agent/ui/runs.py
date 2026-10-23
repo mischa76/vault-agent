@@ -25,7 +25,12 @@ from vault_agent.existing_model import (
 )
 from vault_agent.link_proposal import pending_link_decisions, proposal_key
 from vault_agent.source_schema import load_source_schemas
-from vault_agent.state import RESOLUTION_SAME_AS, VaultAgentState, split_concept_key
+from vault_agent.state import (
+    RESOLUTION_SAME_AS,
+    BusinessVaultOptions,
+    VaultAgentState,
+    split_concept_key,
+)
 from vault_agent.ui import project_check
 from vault_agent.ui.projects import ProjectError, ProjectStore
 
@@ -148,7 +153,9 @@ class RunManager:
         existing_run: str | None,
         *,
         wait: bool,
+        business_vault: BusinessVaultOptions | None = None,
     ) -> dict[str, Any]:
+        business_vault = business_vault or BusinessVaultOptions()
         if self._active and self.read(self._active)["status"] == "running":
             raise RunConflictError(f"run {self._active!r} is still running")
         input_doc = self.store.input_path(project_id, requirements)
@@ -163,6 +170,12 @@ class RunManager:
             equivalent += ["--source-schema", str(schema_path)]
         if existing_dir:
             equivalent += ["--existing", str(existing_dir)]
+        if business_vault.pit:  # WP91
+            equivalent += [
+                "--pit", "--as-of-start", str(business_vault.as_of_start),
+                "--as-of-end", str(business_vault.as_of_end),
+                "--as-of-grain", business_vault.as_of_grain,
+            ]
         meta = {
             "id": run_id,
             "project": project_id,
@@ -172,6 +185,7 @@ class RunManager:
             "requirements": requirements,
             "schema": schema,
             "existing_run": existing_run,
+            "business_vault": business_vault.model_dump(mode="json"),
             "started": datetime.now(UTC).isoformat(timespec="seconds"),
             "finished": None,
             "error": None,
@@ -180,7 +194,8 @@ class RunManager:
         (out_dir / "run.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
         self._active = run_id
         self._tasks[run_id] = asyncio.create_task(
-            self._run(run_id, input_doc, out_dir, schema_path, existing_dir, thread_id)
+            self._run(run_id, input_doc, out_dir, schema_path, existing_dir, thread_id,
+                      business_vault)
         )
         if wait:
             await self._tasks[run_id]
@@ -194,6 +209,7 @@ class RunManager:
         schema_path: Path | None,
         existing_dir: Path | None,
         thread_id: str,
+        business_vault: BusinessVaultOptions | None = None,
     ) -> None:
         try:
             schemas = load_source_schemas(schema_path) if schema_path else []
@@ -205,6 +221,7 @@ class RunManager:
                 thread_id=thread_id,
                 carried_schemas=load_existing_catalogue(existing_dir) if existing_dir else [],
                 carried_bindings=load_carried_bindings(existing_dir) if existing_dir else {},
+                business_vault=business_vault,  # WP91
             )
             self._finish(run_id, state, paused, input_doc, thread_id)
         except asyncio.CancelledError:

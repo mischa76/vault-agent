@@ -32,6 +32,11 @@ is not the project's.
   carry `primary_key` / `unique_keys` (WP85).
 
 ### Added
+- Business Vault, first increment: `--pit --as-of-start --as-of-end [--as-of-grain]` (and the workbench's
+  run start) generates `models/business_vault/` — a `dbt_utils` as-of spine and one point-in-time table per
+  hub with two or more descriptive satellites, in plain SQL (AutomateDV deprecates its `pit()`); ghost
+  entries are AutomateDV ghost records, which the project now enables when PITs are on (WP91, ADR-0016,
+  backlog C22).
 - A link several declared relations offer binds to the one its satellites' payload or its
   participations' primary key singles out, as a `link_binding_evidence` review decision naming the
   rivals (WP90, backlog C18).

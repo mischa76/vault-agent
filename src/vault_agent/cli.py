@@ -14,6 +14,7 @@ import re
 import sys
 from collections.abc import Iterator
 from contextlib import contextmanager
+from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any, cast
 from uuid import uuid4
@@ -24,7 +25,7 @@ from langchain_core.runnables import RunnableConfig
 from langgraph.checkpoint.serde.jsonplus import JsonPlusSerializer
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from rich.console import Console
 from rich.prompt import Confirm, Prompt
 
@@ -60,6 +61,7 @@ from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import (
     RESOLUTION_SAME_AS,
+    BusinessVaultOptions,
     ColumnProfile,
     DVModel,
     EntityResolution,
@@ -181,6 +183,15 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
                 sql, encoding="utf-8"
             )
 
+    # WP91: the Business Vault — the as-of spine and the PITs — in its own folder.
+    if state.artifacts.business_vault_models:
+        business_dir = out_dir / "models" / "business_vault"
+        business_dir.mkdir(parents=True, exist_ok=True)
+        for name, sql in state.artifacts.business_vault_models.items():
+            (business_dir / f"{_safe_component(name, 'business-vault model')}.sql").write_text(
+                sql, encoding="utf-8"
+            )
+
     # Project scaffolding (dbt_project.yml, packages.yml, sources.yml, README.md) —
     # relative paths inside the output dir, so the output is a runnable dbt project.
     for rel_path, content in state.artifacts.scaffolding.items():
@@ -278,6 +289,7 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
     return {
         "models": len(state.artifacts.dbt_models),
         "staging": len(state.artifacts.staging_models),
+        "business_vault": len(state.artifacts.business_vault_models),
         "scaffolding": len(state.artifacts.scaffolding),
         "adrs": len(state.adrs),
         "metadata": 1 if state.artifacts.automatedv_yaml else 0,
@@ -639,6 +651,7 @@ async def _run_pipeline(
     thread_id: str | None = None,
     carried_schemas: list[SourceTable] | None = None,
     carried_bindings: dict[str, str] | None = None,
+    business_vault: BusinessVaultOptions | None = None,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
@@ -668,6 +681,7 @@ async def _run_pipeline(
             target_platform=target_platform,
             carried_schemas=carried_schemas or [],  # WP74
             carried_bindings=carried_bindings or {},  # WP77
+            business_vault=business_vault or BusinessVaultOptions(),  # WP91
         ),
         input_doc=input_doc,
         trace=trace,
@@ -1231,7 +1245,9 @@ def _print_summary(console: Console, state: VaultAgentState) -> None:
         f"  model:         {len(model.hubs)} hubs, {len(model.links)} links, "
         f"{len(model.satellites)} satellites\n"
         f"  dbt models:    {len(state.artifacts.dbt_models)} raw vault + "
-        f"{len(state.artifacts.staging_models)} staging\n"
+        f"{len(state.artifacts.staging_models)} staging"
+        + (f" + {len(state.artifacts.business_vault_models)} business vault"
+           if state.artifacts.business_vault_models else "") + "\n"
         f"  contracts:     {len(state.artifacts.contracts)}\n"
         f"  validation:    {verdict} ({len(report.issues)} issue(s))"
     )
@@ -1261,7 +1277,10 @@ def _print_checkpoint(console: Console, queue: HumanReviewQueue) -> None:
 def _report_written(console: Console, counts: dict[str, int], out: Path) -> None:
     console.print(
         f"\n[bold]Wrote[/bold] {counts['models']} raw-vault model(s), "
-        f"{counts['staging']} staging model(s), {counts['scaffolding']} scaffolding "
+        f"{counts['staging']} staging model(s), "
+        + (f"{counts['business_vault']} business-vault model(s), "
+           if counts.get('business_vault') else "")
+        + f"{counts['scaffolding']} scaffolding "
         f"file(s), {counts['contracts']} contract(s), {counts['adrs']} ADR(s), "
         f"{counts['metadata']} metadata file(s), {counts['review_items']} review "
         f"item(s), and [cyan]report.html[/cyan] to [cyan]{out}/[/cyan]"
@@ -1508,9 +1527,43 @@ def run(
             help="Answer the checkpoint in the terminal (default: auto — on when a TTY).",
         ),
     ] = None,
+    pit: Annotated[
+        bool,
+        typer.Option(
+            "--pit/--no-pit",
+            help="Generate a point-in-time table per hub with two or more descriptive satellites "
+                 "(Business Vault, ADR-0016); needs --as-of-start and --as-of-end.",
+        ),
+    ] = False,
+    as_of_start: Annotated[
+        datetime | None,
+        typer.Option("--as-of-start", formats=["%Y-%m-%d"],
+                     help="First as-of date of the PIT spine (inclusive, YYYY-MM-DD)."),
+    ] = None,
+    as_of_end: Annotated[
+        datetime | None,
+        typer.Option("--as-of-end", formats=["%Y-%m-%d"],
+                     help="End of the PIT spine (exclusive, YYYY-MM-DD)."),
+    ] = None,
+    as_of_grain: Annotated[
+        str, typer.Option("--as-of-grain", help="Spine grain: day (default) or month."),
+    ] = "day",
 ) -> None:
     """Run the full pipeline on a requirements document and write the artifacts."""
     console = Console()
+    try:
+        business_vault = BusinessVaultOptions(
+            pit=pit,
+            as_of_start=as_of_start.date() if as_of_start else None,
+            as_of_end=as_of_end.date() if as_of_end else None,
+            as_of_grain=as_of_grain,  # type: ignore[arg-type]  # pydantic validates the literal
+        )
+    except ValidationError as exc:
+        console.print(
+            "[bold red]--pit needs --as-of-start and --as-of-end (YYYY-MM-DD, start before end) "
+            f"and --as-of-grain day|month:[/bold red] {exc.errors()[0]['msg']}"
+        )
+        raise typer.Exit(code=2) from exc
     console.print(f"[bold]Running Vault-Agent pipeline[/bold] on {input_doc} …\n")
     try:
         schemas = load_source_schemas(source_schema) if source_schema else []
@@ -1531,6 +1584,7 @@ def run(
                 target_platform=target_platform,
                 carried_schemas=carried,
                 carried_bindings=bindings,
+                business_vault=business_vault,
             )
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI

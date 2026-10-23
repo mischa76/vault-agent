@@ -231,5 +231,9 @@ FLAGS: dict[str, str] = {
         "A link several declared relations offer was bound to the one its satellites' payload or "
         "its participations' key singles out; confirm the binding or map another relation."
     ),
+    FlagKind.PIT_GENERATED: (
+        "A point-in-time table was generated for a hub with two or more descriptive satellites; "
+        "deterministic from the model, its ghost entries are AutomateDV ghost records."
+    ),
     FlagKind.GENERIC: "Untyped work for a human; not provenance.",
 }

@@ -1,4 +1,5 @@
-"""WP91 — a PIT per hub as a bounded table (ADR-0016 option B). Committed before the change, failing."""
+"""WP91 — a PIT per hub as a bounded table (ADR-0016 option B). Committed before the change,
+failing."""
 from __future__ import annotations
 
 from datetime import date
@@ -30,8 +31,9 @@ def _model() -> DVModel:
              "description": "d"},
             {"name": "sat_account_status", "parent": "hub_account", "attributes": ["Status"],
              "description": "s"},
-            {"name": "sat_account_limits", "parent": "hub_account", "attributes": ["Limit", "ValidFrom"],
-             "sat_type": "multi_active", "child_dependent_key": ["ValidFrom"], "description": "l"},
+            {"name": "sat_account_limits", "parent": "hub_account",
+             "attributes": ["Limit", "ValidFrom"], "sat_type": "multi_active",
+             "child_dependent_key": ["ValidFrom"], "description": "l"},
             {"name": "sat_customer_details", "parent": "hub_customer", "attributes": ["Name"],
              "description": "n"},
             {"name": "sat_branch_details", "parent": "hub_branch", "attributes": ["City"],

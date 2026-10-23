@@ -33,7 +33,7 @@ house loader; a malformed one is refused with the loader's message before any mo
 |---|---|
 | `GET /api/projects` · `POST /api/projects {name}` · `GET /api/projects/{id}` | the store |
 | `POST /api/projects/{id}/files {kind, name, content}` | `requirements` (.md/.txt/.pdf), `schema` or `profiling` (.yml/.yaml/.json) |
-| `POST /api/projects/{id}/runs {requirements, schema?, existing_run?}` `?wait=true` | start a run (brownfield when `existing_run` names an earlier run of the project); 409 while another run is active |
+| `POST /api/projects/{id}/runs {requirements, schema?, existing_run?, pit?, as_of_start?, as_of_end?, as_of_grain?}` `?wait=true` | start a run (brownfield when `existing_run` names an earlier run of the project; WP91: `pit` with both bounds asks for point-in-time tables, 9.7 — 422 without them); 409 while another run is active |
 | `GET /api/runs/{id}` | `run.json`: status `running / paused / finished / failed / crashed / interrupted / discarded`, thread, inputs, `cli_equivalents` |
 | `POST /api/runs/{id}/cancel` · `POST /api/runs/{id}/continue` `?wait=true` | WP69: stop the running task (the thread stays, status `interrupted`), and continue an interrupted or crashed run at its latest checkpoint — `vault-agent resume --out <run>`; `discard` through the checkpoint endpoint drops it |
 | `GET /api/runs/{id}/events?after=N` | the run's trace lines from line N (the JSONL the CLI writes) and the status |

@@ -10534,3 +10534,37 @@ nicht getan.** No generator code; the bridge macro not run; Databricks not touch
 The owner: „1. ok, 2. option B" (push `cffc34d`; ADR-0016 decided for option B). Pushed. The ADR file keeps its
 drafted text (records are append-only); the acceptance is this entry and the index row. Consequence taken up now:
 **WP91 — a PIT per hub as a bounded `table`**, the ghost question settled in its spec first. **Überprüft.** The push.
+
+## [2026-10-23] WP91 built and measured: a PIT per hub as a bounded table — the owner's vault PASS=421 both builds, 180 of 180 idempotent, 13 PITs, 0 unjoined entries over the standard satellites, one ghost row per standard satellite
+
+**Autor:** Claude Code
+
+ADR-0016 option B, first increment. Spec and guards `767aa6c` (red, 10 of 10). **Built:** `agents/business_vault_generator.py`
+(deterministic; `pit_hubs`, `render_as_of_dates`, `render_pit`, `build_business_vault`, reading the raw-vault metadata
+for every key and load-date column); `BusinessVaultOptions` on the state (`pit`, both bounds required when on, grain
+`day|month`); the code generator calls it after the staging pass and stores `artifacts.business_vault_models`,
+`automatedv.yml['pit']`, one `PIT_GENERATED` disclosure per PIT; scaffolding gains `business_vault: +materialized:
+table`, `vars: enable_ghost_records: true` and `dbt-labs/dbt_utils 1.4.1` only when on (`DBT_UTILS_VERSION` in
+`rules/dv2_rules.py`); `write_outputs` → `models/business_vault/`; CLI `--pit --as-of-start --as-of-end --as-of-grain`
+(a usage error without the bounds, before any token); workbench `StartRun` fields → 422 without bounds, the CLI
+equivalent in `run.json`, a checkbox with two dates and a grain on the project's start form (frontend rebuilt). The
+ghost decision (spec §2 rule 1): AutomateDV's ghost records, written by the PIT through the package's own
+`binary_ghost`/`date_ghost` — read in 0.11.4: `sat.sql` adds the ghost row under `enable_ghost_records`, `ma_sat.sql`
+and `eff_sat.sql` have none. Three pinned tests updated deliberately: `write_outputs`' counts dict gains
+`business_vault: 0` (two in `test_cli.py`), and `test_installed_automate_dv_dispatches_every_called_macro_for_databricks`
+now accepts a supporting macro that dispatches with a `default__` (the ghost helpers are not table macros).
+
+**Measured** (keyless, the owner's Sales run regenerated as for the fourth `aw` rebuild with `pit`, 2026-10-15 →
+2026-10-26 daily, fresh schema `aw_wp91`, three hand views, built twice, dropped afterwards). **P1 ✔** 13 PITs and
+`as_of_dates`, **PASS=421 both builds**, 180 of 180 incremental models `INSERT 0 0`. **P2 ✔** `pit_sales_order`
+346 115 rows, 94 395 ghost entries (the three dates before the load, as the trial); over all 13 PITs' **48**
+standard-satellite columns **0 entries without a satellite row** on (`_PK`, `_LDTS`) and 0 with more than one.
+**P3 ✔** all 77 standard satellites hold exactly one ghost row (`AUTOMATE_DV_SYSTEM`) and otherwise `aw`'s rows;
+multi-active and effectivity satellites, every hub and link equal `aw` — 0 deviations. **P4 ✔** the multi-active
+satellites' 529 952 ghost entries are unjoined and nothing else is. **Not predicted:** the 13 PITs take 655 MB —
+`pit_inventory_transaction` alone 2 229 678 rows (42 s), `pit_business_entity` 45 s; a PIT over a hub of 200 000 keys
+and a daily spine is a table to bound deliberately, which is why the bounds are required. **Überprüft.** Suites green
+(1313 passed, 2 skipped), ruff, mypy, frontend build and 21 vitest tests (one worker-startup timeout on `/mnt/c`, no
+test failed); build logs; counts and joins by `psql`. **Nur angenommen.** That `binary_ghost`/`date_ghost` render
+alike on Databricks (default dispatch read, not built). **Bewusst nicht getan.** Bridges; an incremental PIT; per-hub
+selection; `aw` not rebuilt with PITs; nothing pushed.

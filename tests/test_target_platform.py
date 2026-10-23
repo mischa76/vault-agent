@@ -233,7 +233,14 @@ def test_installed_automate_dv_dispatches_every_called_macro_for_databricks() ->
     called = set(re.findall(r"automate_dv\.([a-z_]+)", source))
     assert {"hub", "link", "sat", "eff_sat", "t_link", "ma_sat", "stage"} <= called
     for macro in called - {"stage"}:
-        assert (_AUTOMATE_DV / "macros" / "tables" / "databricks" / f"{macro}.sql").is_file(), macro
+        if (_AUTOMATE_DV / "macros" / "tables" / "databricks" / f"{macro}.sql").is_file():
+            continue
+        # WP91: the PIT calls AutomateDV's ghost helpers (binary_ghost, date_ghost), supporting
+        # macros that dispatch through the adapter with a default Databricks needs no override for.
+        [helper] = list((_AUTOMATE_DV / "macros" / "supporting").rglob(f"{macro}.sql"))
+        text = helper.read_text(encoding="utf-8")
+        assert f"adapter.dispatch('{macro}', 'automate_dv')" in text, macro
+        assert f"macro default__{macro}(" in text, macro
     stage = (_AUTOMATE_DV / "macros" / "staging" / "stage.sql").read_text(encoding="utf-8")
     assert "adapter.dispatch('stage', 'automate_dv')" in stage
     assert "macro default__stage(" in stage

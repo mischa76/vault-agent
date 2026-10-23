@@ -1,15 +1,17 @@
 """The FastAPI application (WP66): routes over :class:`ProjectStore` and :class:`RunManager`."""
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from vault_agent.report import build_model_mermaid, build_report
+from vault_agent.state import BusinessVaultOptions
 from vault_agent.ui.console import ConsoleAnswer, answer
 from vault_agent.ui.graphs import area_views, build_source_mermaid, node_catalogue
 from vault_agent.ui.projects import FileKind, ProjectError, ProjectStore
@@ -39,8 +41,19 @@ class StartRun(BaseModel):
     requirements: str
     schema_file: str | None = Field(default=None, alias="schema")
     existing_run: str | None = None
+    # WP91: Business Vault options, the CLI's --pit/--as-of-* (validated by the same model).
+    pit: bool = False
+    as_of_start: date | None = None
+    as_of_end: date | None = None
+    as_of_grain: str = "day"
 
     model_config = {"populate_by_name": True}
+
+    def business_vault(self) -> BusinessVaultOptions:
+        return BusinessVaultOptions(
+            pit=self.pit, as_of_start=self.as_of_start, as_of_end=self.as_of_end,
+            as_of_grain=self.as_of_grain,  # type: ignore[arg-type]  # pydantic validates it
+        )
 
 
 class ConsoleQuestion(BaseModel):
@@ -105,8 +118,13 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
         project_id: str, body: StartRun, wait: bool = Query(default=False)
     ) -> dict[str, Any]:
         try:
+            business_vault = body.business_vault()
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.errors()[0]["msg"]) from exc
+        try:
             return await runs.start(
-                project_id, body.requirements, body.schema_file, body.existing_run, wait=wait
+                project_id, body.requirements, body.schema_file, body.existing_run, wait=wait,
+                business_vault=business_vault,
             )
         except (ProjectError, RunConflictError) as exc:
             raise _guard(exc) from exc

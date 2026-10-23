@@ -2,6 +2,9 @@
 // records the equivalent (`cli_equivalents`).
 import type { Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, ParseResult, Project, ProjectCheck, ProjectFile, ProjectSummary, Run } from "./types";
 
+// WP91: the CLI's --pit / --as-of-* on the run start; the server validates the bounds.
+export type BusinessVault = { pit: boolean; as_of_start: string; as_of_end: string; as_of_grain: "day" | "month" };
+
 export class ApiError extends Error {
   constructor(public status: number, public detail: string) {
     super(`${status}: ${detail}`);
@@ -35,8 +38,8 @@ export const api = {
   createProject: (name: string) => call<ProjectSummary>("/api/projects", json({ name })),
   addFile: (id: string, kind: ProjectFile["kind"], name: string, content: string) =>
     call<ProjectFile>(`/api/projects/${encodeURIComponent(id)}/files`, json({ kind, name, content })),
-  startRun: (id: string, requirements: string, schema: string | null, existing_run: string | null) =>
-    call<Run>(`/api/projects/${encodeURIComponent(id)}/runs`, json({ requirements, schema, existing_run })),
+  startRun: (id: string, requirements: string, schema: string | null, existing_run: string | null, business?: BusinessVault) =>
+    call<Run>(`/api/projects/${encodeURIComponent(id)}/runs`, json({ requirements, schema, existing_run, ...(business ?? {}) })),
   run: (id: string) => call<Run>(`/api/runs/${encodeURIComponent(id)}`),
   cancel: (id: string) => call<Run>(`/api/runs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   continueRun: (id: string) => call<Run>(`/api/runs/${encodeURIComponent(id)}/continue`, { method: "POST" }),

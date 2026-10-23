@@ -622,6 +622,9 @@ INFERRED_SOURCE_NAME = "inferred"
 # AutomateDV package pin for the generated packages.yml — the version the Postgres
 # end-to-end PoC (demo/bank_postgres) is verified against. Bump deliberately, re-verifying the demo.
 AUTOMATE_DV_VERSION = "0.11.4"
+# WP91: declared only when a Business Vault model needs it; the version AutomateDV 0.11.4 resolves
+# itself (package-lock.yml of every built project), so one install serves both.
+DBT_UTILS_VERSION = "1.4.1"
 
 # Vos revisions (NBK over hash, insert-only over persisted end-dating, ELM relationship-hubs,
 # foreign-key links, PSA, PIT/Bridge) are deliberately out of scope here — they are ADR-gated

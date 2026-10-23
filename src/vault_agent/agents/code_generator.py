@@ -643,12 +643,23 @@ class CodeGeneratorAgent(BaseAgent):
             binding_reasons=link_binding_reasons(state),  # WP47
             carried=state.carried_schemas,  # WP74
             carried_bindings=state.carried_bindings,  # WP77
+            business_vault=state.business_vault,  # WP91
         )
         state.artifacts.staging_models = staging.models
         state.artifacts.scaffolding = staging.scaffolding
         metadata["staging"] = staging.metadata
         state.flags.extend(staging.flags)
         apply_zero_key_hubs(state, staging.zero_key_hubs)  # WP86
+
+        # WP91 (ADR-0016): the Business Vault — a PIT per eligible hub — rendered from the
+        # metadata above, so its key and load-date columns are the raw vault's by construction.
+        from vault_agent.agents.business_vault_generator import build_business_vault
+
+        business = build_business_vault(model, metadata, state.business_vault)
+        state.artifacts.business_vault_models = business.models
+        if business.metadata:
+            metadata["pit"] = business.metadata
+        state.flags.extend(business.flags)
 
         if state.existing_model is not None:
             # WP23 §2.7: computed here because file-change attribution needs the freshly
