@@ -227,5 +227,9 @@ FLAGS: dict[str, str] = {
         "A binding to a declared relation lacking a column the stage hashes was refused; the "
         "stage reads the inferred relation until a human maps it."
     ),
+    FlagKind.LINK_BINDING_EVIDENCE: (
+        "A link several declared relations offer was bound to the one its satellites' payload or "
+        "its participations' key singles out; confirm the binding or map another relation."
+    ),
     FlagKind.GENERIC: "Untyped work for a human; not provenance.",
 }

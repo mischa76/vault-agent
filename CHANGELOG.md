@@ -32,6 +32,9 @@ is not the project's.
   carry `primary_key` / `unique_keys` (WP85).
 
 ### Added
+- A link several declared relations offer binds to the one its satellites' payload or its
+  participations' primary key singles out, as a `link_binding_evidence` review decision naming the
+  rivals (WP90, backlog C18).
 - Every workbench diagram has zoom (in, out, fit, 1:1, Ctrl+wheel), two-way scrolling in a height-capped tile
   and full screen; the zoom is remembered per tile while the page is open (WP88, backlog C5).
 - At sign-off a bare email is accepted as an owner and stored as address with its local part as name, in CLI and

@@ -30,6 +30,7 @@ from vault_agent.rules.dv2_rules import (
     construct_base_from_table,
     construct_base_name,
     hub_binds_to_source_table,
+    link_relation_candidates,
     normalize_identifier,
     participation_key,
     resolve_link_relation,
@@ -50,6 +51,7 @@ from vault_agent.state import (
     LinkSkip,
     LinkSkipReason,
     Participation,
+    PipelineFlag,
     RelationshipLinkProposal,
     SourceTable,
     VaultAgentState,
@@ -848,7 +850,9 @@ def apply_key_licenses(
     if not licenses and not ratified:
         return delta
     declared = {normalize_identifier(t.table): t for t in state.source_schemas}
-    merged = DVModel(hubs=[*existing.hubs, *delta.hubs])
+    # WP90: the satellites too, so the binding's payload tier sees what staging's override sees.
+    merged = DVModel(hubs=[*existing.hubs, *delta.hubs],
+                     satellites=[*existing.satellites, *delta.satellites])
     hubs = {hub.name: hub for hub in merged.hubs}
     grants: list[_Grant] = []
     for lic in licenses:
@@ -1032,7 +1036,7 @@ def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
             lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
             expand=lambda fk: component_keys(fk, declared),
         )
-        if grund == "offer":
+        if grund in ("offer", "payload", "key"):  # WP90: the evidence tier binds like an offer
             overrides[base] = relation.table
     for rel in state.link_proposals.ratified_relationships():
         name = _relationship_link_name(rel.source_table)
@@ -1061,6 +1065,54 @@ def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
                     proposal.source_table
                 )
     return overrides
+
+
+def link_binding_evidence_flags(state: VaultAgentState) -> list[PipelineFlag]:
+    """WP90: one review decision per link staging binds by evidence (``payload``/``key``).
+
+    It takes the place of the ``ambiguous`` ``SOURCE_BINDING`` decision the link raised before,
+    names the chosen relation and its rivals, and is raised only where the evidence binding is the
+    one staging uses — a ratified binding that overrides it is a decision already."""
+    declared = {normalize_identifier(t.table): t for t in state.source_schemas}
+    hub_bases = {normalize_identifier(construct_base_name(hub.name)) for hub in state.dv_model.hubs}
+    overrides = link_source_overrides(state)
+    flags: list[PipelineFlag] = []
+    for link in state.dv_model.links:
+        base = normalize_identifier(construct_base_name(link.name))
+        if base in hub_bases:
+            continue
+        def resolve(_relation: Any, fk: ForeignKeyRef) -> Any:
+            return resolve_fk_target(state.dv_model, fk, declared)[0]
+
+        def expand(fk: ForeignKeyRef) -> list[ForeignKeyRef]:
+            return component_keys(fk, declared)
+
+        relation, grund = resolve_link_relation(
+            link, state.dv_model, state.source_schemas, resolve, expand=expand
+        )
+        if grund not in ("payload", "key") or overrides.get(base) != relation.table:
+            continue
+        rivals = [
+            t.table for t in link_relation_candidates(
+                link, state.dv_model, state.source_schemas, resolve, expand
+            ) if t.table != relation.table
+        ]
+        why = (
+            "it declares every attribute of the link's satellites" if grund == "payload"
+            else "its primary key is covered by the link's participations"
+        )
+        flags.append(PipelineFlag(
+            agent="link_proposer",
+            message=(
+                f"link {link.name} is offered by {relation.table} and by "
+                f"{', '.join(rivals)}; bound to {relation.table} because {why}; confirm the "
+                f"binding or map another relation"
+            ),
+            kind=FlagKind.LINK_BINDING_EVIDENCE,
+            asset=link.name,
+            reason=grund,
+        ))
+    return flags
 
 
 def link_binding_reasons(state: VaultAgentState) -> dict[str, str]:

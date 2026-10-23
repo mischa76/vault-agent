@@ -29,7 +29,11 @@ import re
 from typing import Any, Protocol, cast
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.link_proposal import link_binding_reasons, link_source_overrides
+from vault_agent.link_proposal import (
+    link_binding_evidence_flags,
+    link_binding_reasons,
+    link_source_overrides,
+)
 from vault_agent.llm import (
     TraceEvent,
     call_with_truncation_split,
@@ -563,7 +567,17 @@ def rebind_staging(state: VaultAgentState) -> None:
     # Drop the now-satisfied SOURCE_BINDING flags for overridden specs; keep the rest. WP75:
     # a re-bind's refusals (BINDING_REJECTED, WP73) replace the earlier passes' too — the
     # nineteenth chain's step 1 showed one refused stage as three identical decisions.
-    rebound = (FlagKind.SOURCE_BINDING, FlagKind.BINDING_REJECTED)
+    # WP90: an evidence binding's decision is re-derived with the binding it describes.
+    rebound = (
+        FlagKind.SOURCE_BINDING, FlagKind.BINDING_REJECTED, FlagKind.LINK_BINDING_EVIDENCE
+    )
+    from vault_agent.agents.staging_generator import construct_stage_name
+
+    refused = {f.asset for f in result.flags if f.kind == FlagKind.BINDING_REJECTED}
+    evidence = [
+        f for f in link_binding_evidence_flags(state)
+        if construct_stage_name(f.asset or "") not in refused  # WP73's refusal stands alone
+    ]
     state.flags = dedupe_flags(
-        [f for f in state.flags if f.kind not in rebound] + result.flags
+        [f for f in state.flags if f.kind not in rebound] + result.flags + evidence
     )

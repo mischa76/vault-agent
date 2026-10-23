@@ -74,6 +74,9 @@ class FlagKind:
     # WP73: a binding to a declared relation that lacks a column the stage hashes or derives was
     # refused in bind_sources; the stage fell back to the inferred relation. A human maps it.
     BINDING_REJECTED = "binding_rejected"
+    # WP90: a link several declared relations offer was bound to the one its satellites' payload
+    # or its participations' key singles out; `reason` is the tier (`payload`/`key`).
+    LINK_BINDING_EVIDENCE = "link_binding_evidence"
     GENERIC = "generic"
 
 

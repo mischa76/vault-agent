@@ -155,3 +155,38 @@ def test_an_evidence_binding_is_a_review_decision_naming_its_rivals() -> None:
     assert flag.kind == FlagKind.LINK_BINDING_EVIDENCE and flag.reason == "key"
     assert "Customer" in flag.message and "SalesOrderHeader" in flag.message
     assert flag_role(flag) == "decision"
+
+
+def test_the_mapper_raises_the_decision_and_drops_it_where_wp73_refuses() -> None:
+    from vault_agent.agents.source_mapper import rebind_staging
+    from vault_agent.state import VaultAgentState
+
+    state = VaultAgentState(source_schemas=SCHEMAS, dv_model=_model())
+    rebind_staging(state)
+    assets = {f.asset for f in state.flags if f.kind == FlagKind.LINK_BINDING_EVIDENCE}
+    assert assets == {"link_customer_region", "link_representative_region"}
+    assert not [f for f in state.flags if f.kind == FlagKind.SOURCE_BINDING
+                and f.asset in ("stg_customer_region", "stg_representative_region")]
+    # a relation lacking a hashed column: WP73 refuses, and only its refusal is shown
+    lacking = SourceTable(table="Customer", columns=["CustomerID", "TerritoryID"],
+                          primary_key=["CustomerID"],
+                          foreign_keys=[_fk("TerritoryID", "SalesTerritory", "TerritoryID")])
+    state = VaultAgentState(source_schemas=[lacking, HEADER, TERRITORY], dv_model=_model())
+    rebind_staging(state)
+    kinds = {f.kind for f in state.flags if f.asset in ("link_customer_region",
+                                                        "stg_customer_region")}
+    assert FlagKind.BINDING_REJECTED in kinds
+    assert FlagKind.LINK_BINDING_EVIDENCE not in kinds
+
+
+# ── found by the pre-registered build: every call site must agree with staging's refusal ────
+def test_a_pick_lacking_a_column_a_participation_names_is_declined() -> None:
+    """The owner's `link_business_entity_store_sales_person` names `StoreID` (a column of
+    `Customer`) for its store role while the key points at `Store`: the repair would alias against
+    `Store`, staging would refuse it (WP73) — the tier declines instead."""
+    model = _model(extra={"links": [
+        {"name": "link_customer_rep", "description": "named column",
+         "connected_hubs": [{"hub": "hub_customer"},
+                            {"hub": "hub_sales_territory", "source_key_column": "RegionCode"}]},
+    ]})
+    assert _resolve(model, "link_customer_rep") == (None, "ambiguous")

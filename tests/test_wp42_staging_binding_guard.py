@@ -58,18 +58,10 @@ async def test_a_renamed_link_stage_reads_its_resolved_relation() -> None:
 
 async def test_an_ambiguous_link_stage_stays_inferred_and_flagged() -> None:
     """Two relations offer the link's hubs: the vault binds nothing, so staging must not either."""
-    zwilling = SourceTable(
-        table="BillOfMaterialsArchive",
-        columns=["BillOfMaterialsID", "ProductAssemblyID", "ComponentID", "UnitMeasureCode"],
-        foreign_keys=[
-            {"columns": ["ProductAssemblyID"], "references_table": "Product",
-             "references_columns": ["ProductID"]},
-            {"columns": ["ComponentID"], "references_table": "Product",
-             "references_columns": ["ProductID"]},
-            {"columns": ["UnitMeasureCode"], "references_table": "UnitMeasure",
-             "references_columns": ["UnitMeasureCode"]},
-        ],
-    )
+    # WP90: a twin lacking the satellite's payload is no longer ambiguous — the payload tier binds
+    # BillOfMaterials. A complete twin (same columns, key, foreign keys) still is.
+    bom = next(t for t in bom_schema() if t.table == "BillOfMaterials")
+    zwilling = bom.model_copy(update={"table": "BillOfMaterialsArchive"})
     state = await _bis_zum_rebind(bom_unter_falschem_namen(), [*bom_schema(), zwilling])
     assert "stg_bom" in _binding_flags(state)
     assert "BOM" not in link_source_overrides(state)

@@ -10419,3 +10419,47 @@ translated participation no null handling (`CustomerID` is `NOT NULL`, nothing l
 **Nur angenommen.** That no other vault has a legitimate copy whose foreign key dangles (the translation's LEFT
 JOIN would then leave a NULL key the view's test refuses). **Bewusst nicht getan.** The owner's `aw` not rebuilt with
 WP89 (asked for WP86 only); no gate for a homonym without a ratified key (spec §2 rule 5); `aw_wp89` dropped.
+
+## [2026-10-23] WP90 built and measured: an evidence tier for link bindings — 123 of 129 ambiguous occurrences decided over the stored chains; the owner's Sales vault PASS=407 with four of five hand views no longer needed
+
+**Autor:** Claude Code
+
+The owner: „2. ja" (allow the evidence-based third binding tier, overriding WP42 §2's „deliberately no third tier").
+Spec and guards `ff6f03d` (red, 6 of 9). **Rule** (`rules/dv2_rules.link_binding_by_evidence`, called by
+`resolve_link_relation` only when two or more relations fit the offer): the relation declaring every attribute of the
+link's satellites (`payload`), else the one whose primary key the participations cover (`key`; a single-source hub
+built from the relation covers it whole, a multi-source feed only its key column). `link_source_overrides` binds
+`payload`/`key` like `offer`; `apply_key_licenses`'s model gains the satellites so every call site binds alike; each
+binding raises a `LINK_BINDING_EVIDENCE` decision (new `FlagKind`, role `decision`, group, catalogue text) from the
+mapper's re-bind, dropped where WP73 refuses the binding. **Before the spec**, a prototype of the rule on the owner's
+run found one wrong pick — `..._sales_territory_assignment` to `SalesPerson` where the owner's view reads
+`SalesTerritoryHistory` — because one satellite of generic columns (`rowguid`, `ModifiedDate`) qualified every
+relation; the payload tier was tightened to *all* the link's satellites before anything was written.
+
+**The build found a second defect, fixed before measuring:** the repair aliased
+`link_business_entity_store_sales_person`'s sales-person role to `Store.SalesPersonID` (the tier picked `Store` by
+key) while staging refused `Store` — the model's store role names `StoreID`, a column of `Customer` — so the stage
+expected a column its fallback relation lacked (1 error). The tier now declines a pick lacking a column a
+participation names explicitly (guard added; fails with the check reverted). Three WP42 tests pinned a twin relation
+that lacked the satellite's payload; WP90 binds that by payload, so the twin is now a complete twin and still
+ambiguous (same commit, comment in each).
+
+**Measured.** **P1 ✗ in part:** over the stored chain steps (`eval/results/adventureworks_incremental/*dv_model.yml`,
+keyed catalogue) 129 ambiguous occurrences → 96 by key, 27 by payload, **6 still ambiguous** — all the store/sales
+person shape the decline now refuses (pre-registered: 0; the prototype predated the decline). **P2 4 of 5:** the
+owner's hand-bound links bind to the hand views' relations — `Customer`, `SalesPerson`, `SalesTerritoryHistory`,
+`PersonCreditCard`; `link_business_entity_store_sales_person` declines. **P3 ✔ for those four:** the Sales run
+regenerated (WP85's remedies, the key repair re-applied to this step's own constructs only — passing the whole model as
+delta doubles earlier hubs and was the cause of the `SalesPersonID` alias seen in WP89's replay), fresh schema
+`aw_wp90` with only three hand views, built twice: PASS=407, 180 of 180 `INSERT 0 0`, every link column joined; the
+four links' rows equal `aw`'s except `link_business_entity_sales_territory` 17 against 14 — the three sales persons
+without a territory now point at the zero-key row (a declared stage gets WP83's null handling, the inferred view did
+not). **P4 4 of 5** (+2 not predicted, `link_customer_person`/`_store` → `Customer`); `link_store_sales_person`
+declines. **Validator:** the owner's run raises the same three `E_SAT_GRAIN_NOT_UNIQUE` errors before and after WP90,
+the chain's none. **Überprüft.** Suites green (1303 passed, 2 skipped), ruff, mypy; build logs; counts by `psql`.
+**Nur angenommen.** That the 96 key and 27 payload picks over the corpus are right — 9 of them are checked against the
+owner's views and the chain's names; the rest are judged plausible by reading (`Product` over `BillOfMaterials` for
+unit links, `SpecialOfferProduct` over `SalesOrderDetail`), and `Person` over `BusinessEntityContact` for
+`link_person_business_entity` is a reading either way — the review decision is there for that. **Bewusst nicht
+getan.** C18's second half (a binding field at sign-off, C4/WP82); the store role's column choice (a model matter);
+`aw` not rebuilt with WP90; `aw_wp90` dropped.

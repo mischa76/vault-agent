@@ -116,18 +116,10 @@ async def test_two_fitting_relations_are_ambiguous_and_bind_nothing() -> None:
     """24 of 348 links over six chains fit more than one relation. Picking one would be a guess
     whose failure mode is wrong data, so the reason is `ambiguous` and nothing binds."""
     schema = bom_schema()
-    zwilling = SourceTable(
-        table="BillOfMaterialsArchive",
-        columns=["BillOfMaterialsID", "ProductAssemblyID", "ComponentID", "UnitMeasureCode"],
-        foreign_keys=[
-            {"columns": ["ProductAssemblyID"], "references_table": "Product",
-             "references_columns": ["ProductID"]},
-            {"columns": ["ComponentID"], "references_table": "Product",
-             "references_columns": ["ProductID"]},
-            {"columns": ["UnitMeasureCode"], "references_table": "UnitMeasure",
-             "references_columns": ["UnitMeasureCode"]},
-        ],
-    )
+    # WP90: a twin lacking the satellite's payload is no longer ambiguous — the payload tier binds
+    # BillOfMaterials. A complete twin (same columns, key, foreign keys) still is.
+    bom = next(t for t in bom_schema() if t.table == "BillOfMaterials")
+    zwilling = bom.model_copy(update={"table": "BillOfMaterialsArchive"})
     state = await run_greenfield(bom_unter_falschem_namen(), [*schema, zwilling])
     [link] = state.dv_model.links
     assert binde(link, state.dv_model, state.source_schemas) == (None, "ambiguous")

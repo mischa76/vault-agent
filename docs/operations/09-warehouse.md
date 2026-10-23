@@ -78,7 +78,10 @@ its hashes are unchanged. Every row of the referencing relation survives the joi
 unmatched surrogate becomes a NULL key that the model's own `schema.yml` refuses at
 `dbt build` (`not_null` on the projected key, `relationships` from the surrogate to the
 referenced relation). The translation is therefore visible SQL and a failing test, never a
-hidden mapping. `metadata/automatedv.yml` records it under the link's staging entry as
+hidden mapping. When the referencing relation carries a column of the natural key's name that
+means something else (`SalesOrderHeader.AccountNumber`, a financial account), the key is projected
+as `<KEY>_VIA_<RELATION>` (`ACCOUNTNUMBER_VIA_CUSTOMER`) and the relation's own column stays payload
+(WP89, 2026-10-23). `metadata/automatedv.yml` records it under the link's staging entry as
 `key_translation`, one entry per join. Since WP39 the join may go one table further than the relation the foreign key names — when that relation has no hub and its key is itself a declared foreign key — and the view is still one LEFT JOIN, to the end table. **Built on PostgreSQL since 2026-09-13** (`demo/fk_links_postgres`); that first build fixed the view's `schema.yml` (not valid YAML before) and the case of two translations in one link (one view, one LEFT JOIN each, `_via_<a>_and_<b>`).
 
 **Relationship-table link** (WP37): a link ratified for a whole table (`Table.*`, 7.5) is
@@ -102,6 +105,18 @@ stages them as the run that built them did. One case keeps its binding on purpos
 stage a hub shares by name (`link_vendor_business_entity` beside `hub_vendor_business_entity`),
 where the hub's binding decides. Built on PostgreSQL in the same
 demo since 2026-09-17.
+
+**Link bound by evidence** (WP90, 2026-10-23): when two or more relations offer a link's
+participations, the catalogue may still single one out — first the relation that declares
+**every** attribute of the link's satellites (reason `payload`; a generic column such as
+`ModifiedDate` decides nothing), else the one whose primary key the participations cover (reason
+`key`; a single-source hub of the link built from the relation covers it whole —
+`Customer.CustomerID` for `hub_customer` keyed on `AccountNumber`). The pick is declined when it
+lacks a column a participation names explicitly, because staging would refuse it. The stage binds
+through the override path like an offer, and every such binding is a `link_binding_evidence`
+review decision naming the chosen relation and its rivals — in place of the `ambiguous` decision.
+Measured on the owner's Sales vault: four of the five links bound by hand bind exactly to the
+hand views' relations, built PASS=407 without those four views.
 
 **Subtype feed** (WP38): a satellite on a hub keyed on the natural key, read from a table keyed
 on the supertype's surrogate — `sat_sales_person_details` on `hub_employee` from `SalesPerson` —

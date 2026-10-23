@@ -720,7 +720,9 @@ def resolve_link_relation(
 ) -> tuple[Any, str]:
     """The declared relation a link reads — ``(relation, grund)``; relation is None when unknown.
 
-    Two tiers, and deliberately no third (WP42 §2):
+    Two tiers, and deliberately no third (WP42 §2) — superseded by WP90 (2026-10-23, the owner's
+    word): a third tier decides among two or more fitting relations from the catalogue's evidence
+    only (:func:`link_binding_by_evidence`), never by a guess. WP42's reasoning as written:
 
     * **name** — exactly one declared table the link's construct name binds. Unchanged, tried
       first, so every binding that held before holds now.
@@ -733,10 +735,25 @@ def resolve_link_relation(
     A satellite's ``source_table`` is not a tier: measured over the same corpus it resolves 1 of
     those 24 and contradicts a unique offer match once (``link_transaction_product``).
 
-    ``grund`` is a code, never a sentence: ``name``, ``offer``, ``ambiguous``, ``none``."""
+    ``grund`` is a code, never a sentence: ``name``, ``offer``, ``payload``, ``key`` (WP90),
+    ``ambiguous``, ``none``."""
     benannt = [t for t in schemas if construct_binds_to_source_table(link.name, t.table)]
     if len(benannt) == 1:
         return benannt[0], "name"
+    passend = link_relation_candidates(link, model, schemas, resolve, expand)
+    if len(passend) == 1:
+        return passend[0], "offer"
+    if len(passend) > 1:
+        chosen, grund = link_binding_by_evidence(link, model, passend, resolve, expand)
+        if chosen is not None:
+            return chosen, grund
+    return None, ("ambiguous" if passend else "none")
+
+
+def link_relation_candidates(
+    link: Any, model: Any, schemas: Any, resolve: Any, expand: Any | None = None
+) -> list[Any]:
+    """Every declared relation whose offer covers the link's participations as a multiset."""
     gewollt: dict[str, int] = {}
     for ref in link.hub_refs:
         gewollt[ref.hub] = gewollt.get(ref.hub, 0) + 1
@@ -747,9 +764,87 @@ def resolve_link_relation(
         )
         if angebot and all(angebot.get(hub, 0) >= n for hub, n in gewollt.items()):
             passend.append(relation)
-    if len(passend) == 1:
-        return passend[0], "offer"
-    return None, ("ambiguous" if passend else "none")
+    return passend
+
+
+def link_binding_by_evidence(
+    link: Any, model: Any, candidates: list[Any], resolve: Any, expand: Any | None = None
+) -> tuple[Any, str]:
+    """WP90: which of several fitting relations the catalogue singles out — ``(relation, grund)``.
+
+    1. **payload** — the one relation declaring every attribute of the link's satellites. A
+       generic attribute every relation carries (``ModifiedDate``) qualifies all, deciding nothing.
+    2. **key** — among the payload's qualifiers (all candidates when none qualified), the one
+       whose non-empty primary key the participations cover: foreign-key columns resolving to a
+       hub of the link, a multi-source hub's feed column from this relation, or the whole key when
+       a single-source hub of the link is built from it (the key identifies that hub's rows,
+       whatever the hub is keyed on — ``Customer.CustomerID`` for ``hub_customer`` on
+       ``AccountNumber``). A multi-source hub „is built from" each of its feeds, so only the
+       feed's key column counts (WP73).
+
+    The pick is declined (``ambiguous``) when it lacks a column one of the link's participations
+    names explicitly (``source_key_column``): staging would refuse that binding (WP73), and every
+    call site must agree on it — the key repair would otherwise repair a link against a relation
+    the stage never reads (the owner's ``link_business_entity_store_sales_person`` names
+    ``StoreID``, a column of ``Customer``, while the key points at ``Store``).
+
+    ``(None, "ambiguous")`` when neither singles one out."""
+    gewollt = {ref.hub for ref in link.hub_refs}
+    benannt = {
+        normalize_identifier(ref.source_key_column)
+        for ref in link.hub_refs if getattr(ref, "source_key_column", None)
+    }
+
+    def tragbar(relation: Any) -> bool:
+        return benannt <= {normalize_identifier(c) for c in relation.column_names}
+
+    attributes: set[str] = set()
+    for sat in getattr(model, "satellites", None) or []:
+        if sat.parent == link.name:
+            attributes |= {normalize_identifier(a) for a in sat.attributes}
+    tragend = [
+        relation for relation in candidates
+        if attributes and attributes <= {normalize_identifier(c) for c in relation.column_names}
+    ]
+    if len(tragend) == 1:
+        return (tragend[0], "payload") if tragbar(tragend[0]) else (None, "ambiguous")
+    hubs = {hub.name: hub for hub in getattr(model, "hubs", None) or []}
+    schluessig = []
+    for relation in tragend or candidates:
+        primary = {normalize_identifier(c) for c in getattr(relation, "primary_key", None) or []}
+        if not primary:
+            continue
+        covered: set[str] = set()
+        own = False
+        for fk in getattr(relation, "foreign_keys", None) or []:
+            if getattr(fk, "is_single_column", False):
+                keys = [fk]
+            elif expand is not None:
+                keys = list(expand(fk))
+            else:
+                continue
+            for key in keys:
+                hub = resolve(relation, key)
+                if hub is not None and hub.name in gewollt:
+                    covered.add(normalize_identifier(key.columns[0]))
+        for name in gewollt:
+            hub = hubs.get(name)
+            if hub is None or not hub_binds_to_source_table(hub, relation.table):
+                continue
+            feeds = [
+                feed for feed in (getattr(hub, "sources", None) or [])
+                if _separator_insensitive(feed.source_table)
+                == _separator_insensitive(relation.table)
+            ]
+            if feeds:
+                covered |= {normalize_identifier(f.business_key_column) for f in feeds}
+            elif not getattr(hub, "sources", None):
+                own = True
+        if own or primary <= covered:
+            schluessig.append(relation)
+    if len(schluessig) == 1 and tragbar(schluessig[0]):
+        return schluessig[0], "key"
+    return None, "ambiguous"
 
 
 def hub_binds_to_source_table(hub: Any, table_name: str) -> bool:
