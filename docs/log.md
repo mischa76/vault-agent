@@ -10482,3 +10482,13 @@ missing satellite row. **Consequence:** building on the deprecated macros, writi
 locked stack forbids bypassing it without an ADR), or waiting for AutomateDV's redesign is the owner's decision; no
 spec, no code written. **Überprüft.** The warning text and its call in `macros/tables/snowflake/pit.sql:12` and the
 other dispatchers (installed 0.11.4, `demo/bank_postgres/dbt_packages/automate_dv`).
+
+## [2026-10-23] Precision to the entry above: one dispatcher per macro, not one per platform
+
+**Autor:** Claude Code
+
+The entry „Correction: AutomateDV 0.11.4 deprecates `pit()` and `bridge()`" (today) says every platform's dispatcher
+calls the warning. There is one dispatcher per macro — `pit` in `macros/tables/snowflake/pit.sql`, `bridge` in
+`macros/tables/snowflake/bridge.sql` — and it `adapter.dispatch`es to `postgres__pit`, `databricks__pit` and the
+rest; every platform's call passes the warning. **Überprüft.** `grep -rln "pit_bridge_deprecation_warning()"` over the
+installed `macros/tables/`: exactly those two files.
