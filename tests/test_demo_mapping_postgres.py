@@ -41,6 +41,9 @@ EXPECTED_BINDINGS = {
     "stg_account": "account",
     "stg_account_customer": "account_customer",
 }
+ZERO_KEY_MODELS = (
+    "zero_keys_customer", "stg_customer_zero_keys", "zero_keys_account", "stg_account_zero_keys",
+)
 
 
 async def test_grounded_staging_binds_to_declared_sources_without_flags() -> None:
@@ -55,7 +58,9 @@ async def test_grounded_staging_binds_to_declared_sources_without_flags() -> Non
     # Grounded + ratified: every staging model binds to a DECLARED source table by its real,
     # business-named relation — so there are ZERO inferred-source-binding flags (the whole
     # point vs. the ungrounded demo/bank_postgres, which infers and flags raw_* bindings).
-    assert set(state.artifacts.staging_models) == set(EXPECTED_BINDINGS)
+    # WP86 (2026-10-23, deliberate): the link's participants are typed integers, so both hubs get
+    # zero-key rows — a generated view and its stage each, beside the three bound stagings.
+    assert set(state.artifacts.staging_models) == set(EXPECTED_BINDINGS) | set(ZERO_KEY_MODELS)
     assert state.flags == []
     for stg, source in EXPECTED_BINDINGS.items():
         assert f"source_model: '{source}'" in state.artifacts.staging_models[stg]

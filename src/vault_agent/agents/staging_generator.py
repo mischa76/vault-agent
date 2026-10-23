@@ -105,7 +105,8 @@ class StagingSpec:
     # columns as AutomateDV `null_columns: optional` when every relation column is typed
     # integer or character, so a NULL participant becomes the zero key instead of dropping the
     # link row. Translated participations are not recorded (their key arrives through a view).
-    null_groups: list[tuple[tuple[str, ...], tuple[str, ...]]] = field(default_factory=list)
+    # WP86: the third element names the hub the participation hashes into — its zero-key rows.
+    null_groups: list[tuple[tuple[str, ...], tuple[str, ...], str]] = field(default_factory=list)
 
     def add_hashed(self, name: str, value: str | list[str] | _HashDiff) -> None:
         if all(existing != name for existing, _ in self.hashed):
@@ -115,8 +116,10 @@ class StagingSpec:
         if column not in self.source_columns:
             self.source_columns.append(column)
 
-    def add_null_group(self, stage_columns: list[str], relation_columns: list[str]) -> None:
-        group = (tuple(stage_columns), tuple(relation_columns))
+    def add_null_group(
+        self, stage_columns: list[str], relation_columns: list[str], hub: str
+    ) -> None:
+        group = (tuple(stage_columns), tuple(relation_columns), hub)
         if group not in self.null_groups:
             self.null_groups.append(group)
 
@@ -134,6 +137,8 @@ class StagingResult:
     metadata: dict[str, dict[str, object]]  # staging model name -> stage() metadata
     scaffolding: dict[str, str]  # relative output path -> file content
     flags: list[PipelineFlag]
+    # WP86: hub name -> the zero-key stage its source_model list must end with.
+    zero_key_hubs: dict[str, str] = field(default_factory=dict)
 
 
 def _to_column(label: str) -> str:
@@ -314,7 +319,7 @@ def collect_staging_specs(
                 spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), cols)
                 for col in cols:
                     spec.add_source_column(col)
-                spec.add_null_group(cols, cols)
+                spec.add_null_group(cols, cols, hub.name)
                 continue
             bk_col = role_bk_column(canonical_hub_key_column(hub), ref.role)
             bk_cols.append(bk_col)
@@ -336,7 +341,7 @@ def collect_staging_specs(
             if src_col != bk_col:
                 spec.derived[bk_col] = src_col
             spec.add_source_column(src_col)
-            spec.add_null_group([bk_col], [src_col])
+            spec.add_null_group([bk_col], [src_col], hub.name)
         spec.add_hashed(_link_hashkey(link), bk_cols)
         if link.link_type == "transactional":
             for col in link.payload:
@@ -415,7 +420,7 @@ def collect_staging_specs(
                         bk_cols.extend(cols)
                         for col in cols:
                             spec.add_source_column(col)
-                        spec.add_null_group(cols, cols)
+                        spec.add_null_group(cols, cols, ref_hub.name)
                         continue
                     bk_col = role_bk_column(canonical_hub_key_column(ref_hub), ref.role)
                     bk_cols.append(bk_col)
@@ -431,7 +436,8 @@ def collect_staging_specs(
                         # WP41: the relation carries this key under another name.
                         spec.derived[bk_col] = src_col
                     if translated is None:
-                        spec.add_null_group([bk_col], [src_col])  # WP83, as in the link's stage
+                        # WP83, as in the link's stage
+                        spec.add_null_group([bk_col], [src_col], ref_hub.name)
                     spec.add_source_column(src_col)
                 spec.add_hashed(_link_hashkey(parent_link), bk_cols)
             target_specs = [spec]
@@ -490,10 +496,85 @@ def null_optional_columns(spec: StagingSpec, relation: SourceTable | None) -> li
         return []
     types = {normalize_identifier(c.name): c.type for c in relation.column_refs}
     columns: list[str] = []
-    for stage_columns, relation_columns in spec.null_groups:
+    for stage_columns, relation_columns, _hub in spec.null_groups:
         if all(_null_safe_type(types.get(normalize_identifier(c), "")) for c in relation_columns):
             columns.extend(c for c in stage_columns if c not in columns)
     return columns
+
+
+_INTEGER_TYPES = frozenset({"int", "integer", "bigint", "smallint", "tinyint"})
+
+
+def zero_key_hubs(
+    model: DVModel, specs: dict[str, StagingSpec], declared: dict[str, SourceTable]
+) -> dict[str, list[tuple[str, str]]]:
+    """WP86: every hub a zero-keyed participation (WP83's rule) hashes into, with the hub's own
+    stage key columns and each one's abstract type — ``bigint`` for an integer-typed relation
+    column, else ``varchar`` — taken from the participation's relation columns, position by
+    position. A participation whose column count differs from the hub key's is not used."""
+    hubs = {hub.name: hub for hub in model.hubs}
+    out: dict[str, list[tuple[str, str]]] = {}
+    for spec in specs.values():
+        relation = declared.get(normalize_identifier(spec.source_model)) if spec.bound else None
+        if relation is None:
+            continue
+        types = {normalize_identifier(c.name): c.type for c in relation.column_refs}
+        for _stage_columns, relation_columns, hub_name in spec.null_groups:
+            hub = hubs.get(hub_name)
+            if hub is None or hub_name in out:
+                continue
+            declared_types = [types.get(normalize_identifier(c), "") for c in relation_columns]
+            if not all(_null_safe_type(t) for t in declared_types):
+                continue
+            key_columns = hub_stage_key_columns(hub)
+            if len(key_columns) != len(declared_types):
+                continue
+            out[hub_name] = [
+                (col, "bigint" if re.split(r"[\s(]", t.strip().lower(), maxsplit=1)[0]
+                 in _INTEGER_TYPES else "varchar")
+                for col, t in zip(key_columns, declared_types, strict=True)
+            ]
+    return out
+
+
+def hub_stage_key_columns(hub: Hub) -> list[str]:
+    """The columns a hub's own stage hashes its key over — the order the hash takes them."""
+    if hub.sources:
+        return [canonical_hub_key_column(hub)]
+    if is_composite_key(hub):
+        return list(hub_key_columns(hub))
+    return [_to_column(hub.business_key)]
+
+
+def zero_key_model_name(hub: Hub) -> str:
+    return f"zero_keys_{_base_name(hub.name)}"
+
+
+def zero_key_stage_name(hub: Hub) -> str:
+    return f"stg_{_base_name(hub.name)}_zero_keys"
+
+
+def render_zero_key_model(
+    hub: Hub, columns: list[tuple[str, str]], profile: PlatformProfile
+) -> str:
+    """WP86: the hub's two zero-key rows — every key column `-1` (required, missing) and `-2`
+    (optional, not applicable) — at AutomateDV's ghost-record date, from the system."""
+    def row(value: str) -> str:
+        keys = ", ".join(
+            f"CAST('{value}' AS {profile.seed_type(kind)}) AS {col}" for col, kind in columns
+        )
+        return (
+            f"SELECT {keys}, CAST('1900-01-01' AS {profile.seed_type('timestamp')}) AS "
+            f"{LOAD_DATETIME_COLUMN}, CAST('SYSTEM' AS {profile.seed_type('varchar')}) AS "
+            f"{RECORD_SOURCE_COLUMN}"
+        )
+
+    return (
+        f"-- Generated zero-key rows for {hub.name} (WP86): a link whose participant is missing\n"
+        "-- carries the zero key; these rows give it a hub row to join.\n"
+        "{{ config(materialized='view') }}\n"
+        f"{row('-1')}\nUNION ALL\n{row('-2')}\n"
+    )
 
 
 def stage_key_columns(spec: StagingSpec) -> list[str]:
@@ -1400,6 +1481,31 @@ def build_staging(
         name: _stage_metadata(spec, profile, relation_columns(spec), null_columns(spec))
         for name, spec in specs.items()
     }
+    # WP86: a zero-key view and stage per hub a zero-keyed participation reaches.
+    zero_hubs: dict[str, str] = {}
+    hubs_by_name = {hub.name: hub for hub in model.hubs}
+    for hub_name, columns in zero_key_hubs(model, specs, declared_tables).items():
+        hub = hubs_by_name[hub_name]
+        from vault_agent.agents.code_generator import _hub_hashkey
+
+        view = zero_key_model_name(hub)
+        stage = StagingSpec(name=zero_key_stage_name(hub), base=_base_name(hub.name),
+                            source_model=view)
+        key_columns = [col for col, _ in columns]
+        stage.add_hashed(_hub_hashkey(hub), key_columns if len(key_columns) > 1 else key_columns[0])
+        for col in key_columns:
+            stage.add_source_column(col)
+        stage.add_source_column(LOAD_DATETIME_COLUMN)
+        stage.add_source_column(RECORD_SOURCE_COLUMN)
+        models[view] = render_zero_key_model(hub, columns, profile)
+        models[stage.name] = render_stage_model(stage, profile).replace(
+            "(source binding: inferred — see review queue)",
+            f"(source binding: generated — {view}, WP86)",
+        )
+        stage_meta = _stage_metadata(stage, profile)
+        stage_meta["source_binding"] = "generated"
+        metadata[stage.name] = stage_meta
+        zero_hubs[hub_name] = stage.name
     scaffolding = {
         "dbt_project.yml": _render_dbt_project(seed_column_types),
         "packages.yml": _render_packages(),
@@ -1408,7 +1514,8 @@ def build_staging(
         **translation_tests,
     }
     return StagingResult(
-        models=models, metadata=metadata, scaffolding=scaffolding, flags=flags
+        models=models, metadata=metadata, scaffolding=scaffolding, flags=flags,
+        zero_key_hubs=zero_hubs,
     )
 
 

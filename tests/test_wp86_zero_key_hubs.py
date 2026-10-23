@@ -7,11 +7,20 @@ from tests.test_wp83_zero_keys import BOM, BUSINESS_ENTITY, CUSTOMER, ORDERS, PR
 from vault_agent.agents.code_generator import CodeGeneratorAgent
 from vault_agent.agents.source_mapper import rebind_staging
 from vault_agent.agents.staging_generator import unresolved_stage_refs
-from vault_agent.state import VaultAgentState
+from vault_agent.state import ForeignKeyRef, VaultAgentState
+
+# The declared foreign keys bind the freely named links to their relations (WP42's offer), as in a
+# grounded run — the zero keys follow the binding.
+CUSTOMER_FK = CUSTOMER.model_copy(update={"foreign_keys": [
+    ForeignKeyRef(columns=["PersonID"], references_table="BusinessEntity",
+                  references_columns=["BusinessEntityID"]),
+    ForeignKeyRef(columns=["StoreID"], references_table="BusinessEntity",
+                  references_columns=["BusinessEntityID"]),
+]})
 
 
 async def _state() -> VaultAgentState:
-    state = VaultAgentState(source_schemas=[CUSTOMER, BUSINESS_ENTITY, PRODUCT, BOM, ORDERS],
+    state = VaultAgentState(source_schemas=[CUSTOMER_FK, BUSINESS_ENTITY, PRODUCT, BOM, ORDERS],
                             dv_model=_model(), target_platform="postgres")
     await CodeGeneratorAgent().run(state)
     rebind_staging(state)

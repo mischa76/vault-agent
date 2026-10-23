@@ -1,6 +1,6 @@
 {{ config(materialized='incremental') }}
 
-{%- set source_model = "stg_account" -%}
+{%- set source_model = ["stg_account", "stg_account_zero_keys"] -%}
 {%- set src_pk = "ACCOUNT_HK" -%}
 {%- set src_nk = "ACCOUNT_NUMBER" -%}
 {%- set src_ldts = "LOAD_DATETIME" -%}

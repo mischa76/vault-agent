@@ -1,6 +1,6 @@
 {{ config(materialized='incremental') }}
 
-{%- set source_model = "stg_customer" -%}
+{%- set source_model = ["stg_customer", "stg_customer_zero_keys"] -%}
 {%- set src_pk = "CUSTOMER_HK" -%}
 {%- set src_nk = "NATIONAL_CUSTOMER_ID" -%}
 {%- set src_ldts = "LOAD_DATETIME" -%}

@@ -137,7 +137,8 @@ def _link_hashkey(link: Link) -> str:
 
 
 def _render_hub(
-    hub: Hub, legacy: set[tuple[str, str, str]] | None = None
+    hub: Hub, legacy: set[tuple[str, str, str]] | None = None,
+    zero_key_stage: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     # WP10: a multi-source hub unions one staging model per feed (AutomateDV's hub macro
     # accepts source_model as a list — verified against 0.11.4 postgres__hub) and keys off
@@ -166,6 +167,12 @@ def _render_hub(
         source_model = _staging_model(hub.name)
         src_nk = _to_column(hub.business_key)
         source_model_literal = f'"{source_model}"'
+    if zero_key_stage is not None:
+        # WP86: the zero-key rows join the hub as one more source, after the real ones.
+        source_model = [
+            *(source_model if isinstance(source_model, list) else [source_model]), zero_key_stage
+        ]
+        source_model_literal = _sql_list(source_model)
     src_nk_literal = _sql_list(src_nk) if isinstance(src_nk, list) else f'"{src_nk}"'
     meta: dict[str, Any] = {
         "source_model": source_model,
@@ -189,6 +196,22 @@ def _render_hub(
         + "                   src_source=src_source, source_model=source_model) }}\n"
     )
     return sql, meta
+
+
+def apply_zero_key_hubs(state: VaultAgentState, zero_key_hubs: dict[str, str]) -> None:
+    """WP86: re-render every hub with or without its zero-key stage, after a staging pass. Called
+    by the code generator and by the mapper's re-bind — link stages are bound by offer only in the
+    re-bind, so the set of zero-keyed hubs is final only there."""
+    from vault_agent.agents.staging_generator import legacy_feeds
+
+    legacy = legacy_feeds(state.existing_model)
+    hub_metadata = state.artifacts.automatedv_yaml.setdefault("hubs", {})
+    for hub in state.dv_model.hubs:
+        if hub.name not in state.artifacts.dbt_models:
+            continue
+        sql, meta = _render_hub(hub, legacy, zero_key_hubs.get(hub.name))
+        state.artifacts.dbt_models[hub.name] = sql
+        hub_metadata[hub.name] = meta
 
 
 def _link_src_fk(link: Link, hub_hashkeys: dict[str, str]) -> list[str]:
@@ -625,6 +648,7 @@ class CodeGeneratorAgent(BaseAgent):
         state.artifacts.scaffolding = staging.scaffolding
         metadata["staging"] = staging.metadata
         state.flags.extend(staging.flags)
+        apply_zero_key_hubs(state, staging.zero_key_hubs)  # WP86
 
         if state.existing_model is not None:
             # WP23 §2.7: computed here because file-change attribution needs the freshly

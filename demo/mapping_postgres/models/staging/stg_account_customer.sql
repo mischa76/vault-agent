@@ -6,6 +6,10 @@
 source_model: 'account_customer'
 derived_columns:
   APPLIED_DTS: 'EFFECTIVE_FROM'
+null_columns:
+  optional:
+    - 'ACCOUNT_NUMBER'
+    - 'NATIONAL_CUSTOMER_ID'
 hashed_columns:
   ACCOUNT_HK: 'ACCOUNT_NUMBER'
   CUSTOMER_HK: 'NATIONAL_CUSTOMER_ID'
@@ -18,5 +22,6 @@ hashed_columns:
 {{ automate_dv.stage(include_source_columns=true,
                      source_model=metadata_dict['source_model'],
                      derived_columns=metadata_dict['derived_columns'],
+                     null_columns=metadata_dict['null_columns'],
                      hashed_columns=metadata_dict['hashed_columns'],
                      ranked_columns=none) }}

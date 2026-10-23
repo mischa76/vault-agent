@@ -557,6 +557,9 @@ def rebind_staging(state: VaultAgentState) -> None:
     state.artifacts.scaffolding = result.scaffolding
     if state.artifacts.automatedv_yaml:
         state.artifacts.automatedv_yaml["staging"] = result.metadata
+        from vault_agent.agents.code_generator import apply_zero_key_hubs
+
+        apply_zero_key_hubs(state, result.zero_key_hubs)  # WP86
     # Drop the now-satisfied SOURCE_BINDING flags for overridden specs; keep the rest. WP75:
     # a re-bind's refusals (BINDING_REJECTED, WP73) replace the earlier passes' too — the
     # nineteenth chain's step 1 showed one refused stage as three identical decisions.
