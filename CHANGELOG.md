@@ -26,6 +26,12 @@ is not the project's.
   carry `primary_key` / `unique_keys` (WP85).
 
 ### Added
+- Every workbench diagram has zoom (in, out, fit, 1:1, Ctrl+wheel), two-way scrolling in a height-capped tile
+  and full screen; the zoom is remembered per tile while the page is open (WP88, backlog C5).
+- At sign-off a bare email is accepted as an owner and stored as address with its local part as name, in CLI and
+  workbench alike; the workbench says at the field what is wrong (WP87, backlog C9).
+- `demo/workbench-adventureworks/` regenerated on the fixed generator: five runs, the last one PASS=340 and
+  idempotent on PostgreSQL.
 - Gate `E_SAT_GRAIN_NOT_UNIQUE`: a satellite whose key covers no primary or unique key of its relation
   is refused, with the missing columns as the remedy's child-dependent key — such a satellite holds
   several rows per key and load date and re-inserts on every load (WP85, backlog C13). 36 gates.
