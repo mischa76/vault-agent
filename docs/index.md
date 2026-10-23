@@ -71,7 +71,7 @@ Append-only. Status is the ADR's own header, not this table's opinion.
 | [0013](architecture/adrs/ADR-0013-surrogate-to-natural-key-translation.md) | Surrogate→natural-key translation for FK-derived link proposals | Accepted 2026-09-12 → WP36 |
 | [ADR-0014](architecture/adrs/ADR-0014-workbench-ui.md) | A workbench UI as a local web application over the pipeline's internals; browser-first, Vite + React + TypeScript + Tailwind, a state-driven console first — **Accepted 2026-10-11** |
 | [0015](architecture/adrs/ADR-0015-positioning-single-user-or-team.md) | Positioning: the consultant's single-user tool, or a team tool with auth and a shared checkpointer (backlog C20) | Proposed — a draft by Claude, the owner decides |
-| [0016](architecture/adrs/ADR-0016-business-vault-pit-bridge.md) | Business Vault PIT and bridge generation: on AutomateDV's deprecated `pit()`/`bridge()`, in our own SQL as a scoped exception to the stack rule (recommended), or later (backlog C22) | Proposed — a draft by Claude after the PIT trial, the owner decides |
+| [0016](architecture/adrs/ADR-0016-business-vault-pit-bridge.md) | Business Vault PIT and bridge generation: on AutomateDV's deprecated `pit()`/`bridge()`, in our own SQL as a scoped exception to the stack rule (recommended), or later (backlog C22) | **Accepted 2026-10-23, option B** (the owner: „option B“; recorded in `docs/log.md`, the file stays as drafted) — PIT first as WP91 |
 | [template](architecture/adrs/ADR-template.md) | The shape a new ADR takes | — |
 
 ## Charters and spikes
