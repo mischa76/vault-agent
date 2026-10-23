@@ -1,0 +1,97 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: employee::NationalIDNumber
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - NationalIDNumber (nvarchar(15)) matches no existing hub business key; no vault
+    construct holds national IDs.
+  - It is an alternate identifier on the Employee row, likely a satellite attribute
+    or alternate key rather than a separate hub; reviewer should decide.
+  confidence: 0.5
+  ratification_status: accepted
+- concept: employee::BusinessEntityID
+  resolution: hub_business_entity
+  category: exact_key
+  evidence:
+  - 'Employee.BusinessEntityID comment: ''Foreign key to BusinessEntity.BusinessEntityID''
+    — explicit cross-reference.'
+  - hub_business_entity has business key BusinessEntityID, sourced from BusinessEntity,
+    same int identifier.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: employee::LoginID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - LoginID ('Network login') matches no existing hub key. sat_business_entity_credential
+    holds Password data, but nothing says LoginID is the same thing.
+  - Probably an attribute of the employee; flagged for reviewer.
+  confidence: 0.45
+  ratification_status: accepted
+- concept: employee::rowguid
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - rowguid is a replication/technical GUID ('Used to support a merge replication
+    sample'), not a business key matching any existing hub.
+  - Likely should not be a hub; reviewer may discard.
+  confidence: 0.35
+  ratification_status: accepted
+- concept: department::DepartmentID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - 'DepartmentID is the primary key of Department; no existing hub models departments
+    (existing hubs: business entity, address, address type, contact type, phone number
+    type, country region, state province).'
+  confidence: 0.9
+  ratification_status: accepted
+- concept: department::Name
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Name is a descriptive attribute of Department ('Name of the department'); no existing
+    construct matches. Likely belongs in a department satellite rather than a hub.
+  confidence: 0.5
+  ratification_status: accepted
+- concept: shift::ShiftID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - ShiftID is the primary key of Shift; no existing hub models shifts or work schedules.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: shift::Name
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Name is a descriptive attribute of Shift ('Shift description'); no existing construct
+    matches. Likely a shift satellite attribute.
+  confidence: 0.5
+  ratification_status: accepted
+- concept: job candidate::JobCandidateID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - JobCandidateID is the primary key of JobCandidate; no existing hub models candidates.
+  - Its BusinessEntityID FK (employee if hired) is a relationship to hub_business_entity,
+    not an identity with it.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: employee department history::BusinessEntityID + DepartmentID + ShiftID
+    + StartDate
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Composite key of employee, department, shift and start date; no existing link
+    connects these (existing links cover business entity/address/contact only).
+  - It would be a new link to hub_business_entity and the new department and shift
+    hubs.
+  confidence: 0.85
+  ratification_status: accepted

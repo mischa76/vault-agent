@@ -1,0 +1,148 @@
+spec-version: 1.0.0
+name: ProductVendor
+namespace: source
+dataAssetResourceName: datastore://source/ProductVendor
+doc: Source-to-staging asset linking each product to the vendor that supplies it,
+  with purchasing terms (lead time, pricing, order quantity limits) and last receipt
+  details. The contract enforces the declared schema, business keys (ProductID, BusinessEntityID)
+  and not-null rules; value-level semantics are advisory pending human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductID
+  description: Identifier of the product supplied by the vendor. Part of the business
+    key; references the product.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: BusinessEntityID
+  description: Identifier of the vendor (business entity) supplying the product. Part
+    of the business key; references the vendor.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: AverageLeadTime
+  description: Average time between placing a purchase order and receiving the product
+    from the vendor (unit not stated in requirements, typically days).
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StandardPrice
+  description: Vendor's usual selling price for the product.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: LastReceiptCost
+  description: Unit cost paid the last time the product was received from the vendor.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: LastReceiptDate
+  description: Date the product was last received from the vendor.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: MinOrderQty
+  description: Minimum quantity that can be ordered from the vendor for this product.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: MaxOrderQty
+  description: Maximum quantity that can be ordered from the vendor for this product.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: OnOrderQty
+  description: Quantity currently on order with the vendor for this product.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: UnitMeasureCode
+  description: Code of the unit of measure used for the product's quantities with
+    this vendor.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

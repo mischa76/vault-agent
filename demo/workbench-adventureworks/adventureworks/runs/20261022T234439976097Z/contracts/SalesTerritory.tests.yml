@@ -1,0 +1,16 @@
+version: 2
+models:
+- name: stg_SalesTerritory
+  columns:
+  - name: TERRITORYID
+    tests:
+    - unique
+    - not_null
+  - name: NAME
+    tests:
+    - unique
+    - not_null
+  - name: COUNTRYREGIONCODE
+    tests:
+    - unique
+    - not_null

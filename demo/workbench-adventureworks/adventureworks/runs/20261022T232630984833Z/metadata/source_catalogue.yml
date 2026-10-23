@@ -1,0 +1,204 @@
+source_schemas:
+- table: Address
+  columns:
+  - name: AddressID
+    type: int
+  - name: AddressLine1
+    type: nvarchar(60)
+  - name: AddressLine2
+    type: nvarchar(60)
+  - name: City
+    type: nvarchar(30)
+  - name: StateProvinceID
+    type: int
+  - name: PostalCode
+    type: nvarchar(15)
+  - name: SpatialLocation
+    type: geography
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: AddressType
+  columns:
+  - name: AddressTypeID
+    type: int
+  - name: Name
+    type: nvarchar(50)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: BusinessEntity
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: BusinessEntityAddress
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: AddressID
+    type: int
+  - name: AddressTypeID
+    type: int
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: BusinessEntityContact
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: PersonID
+    type: int
+  - name: ContactTypeID
+    type: int
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: ContactType
+  columns:
+  - name: ContactTypeID
+    type: int
+  - name: Name
+    type: nvarchar(50)
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: CountryRegion
+  columns:
+  - name: CountryRegionCode
+    type: nvarchar(3)
+  - name: Name
+    type: nvarchar(50)
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: EmailAddress
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: EmailAddressID
+    type: int
+  - name: EmailAddress
+    type: nvarchar(50)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: Password
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: PasswordHash
+    type: varchar(128)
+  - name: PasswordSalt
+    type: varchar(10)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: Person
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: PersonType
+    type: nchar(2)
+  - name: NameStyle
+    type: bit
+  - name: Title
+    type: nvarchar(8)
+  - name: FirstName
+    type: nvarchar(50)
+  - name: MiddleName
+    type: nvarchar(50)
+  - name: LastName
+    type: nvarchar(50)
+  - name: Suffix
+    type: nvarchar(10)
+  - name: EmailPromotion
+    type: int
+  - name: AdditionalContactInfo
+    type: XML(Person.AdditionalContactInfoSchemaCollection)
+  - name: Demographics
+    type: XML(Person.IndividualSurveySchemaCollection)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: PersonPhone
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: PhoneNumber
+    type: nvarchar(25)
+  - name: PhoneNumberTypeID
+    type: int
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: PhoneNumberType
+  columns:
+  - name: PhoneNumberTypeID
+    type: int
+  - name: Name
+    type: nvarchar(50)
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: StateProvince
+  columns:
+  - name: StateProvinceID
+    type: int
+  - name: StateProvinceCode
+    type: nchar(3)
+  - name: CountryRegionCode
+    type: nvarchar(3)
+  - name: IsOnlyStateProvinceFlag
+    type: bit
+  - name: Name
+    type: nvarchar(50)
+  - name: TerritoryID
+    type: int
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+stage_bindings:
+  stg_address: Address
+  stg_address_details: Address
+  stg_address_location: Address
+  stg_address_state_province: Address
+  stg_address_type: AddressType
+  stg_address_type_details: AddressType
+  stg_business_entity_address: BusinessEntityAddress
+  stg_business_entity_address_details: BusinessEntityAddress
+  stg_business_entity_businessentity: BusinessEntity
+  stg_business_entity_emailaddress: EmailAddress
+  stg_business_entity_password: Password
+  stg_business_entity_person: Person
+  stg_business_entity_personphone: PersonPhone
+  stg_contact_type: ContactType
+  stg_contact_type_details: ContactType
+  stg_country_region: CountryRegion
+  stg_country_region_details: CountryRegion
+  stg_phone_number_type: PhoneNumberType
+  stg_phone_number_type_details: PhoneNumberType
+  stg_state_province: StateProvince
+  stg_state_province_country_region: StateProvince
+  stg_state_province_details: StateProvince
+  stg_state_province_territory: StateProvince

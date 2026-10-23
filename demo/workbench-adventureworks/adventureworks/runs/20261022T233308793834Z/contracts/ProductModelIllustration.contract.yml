@@ -1,0 +1,49 @@
+spec-version: 1.0.0
+name: ProductModelIllustration
+namespace: source
+dataAssetResourceName: datastore://source/ProductModelIllustration
+doc: Association between product models and illustrations (many-to-many link), staged
+  from the source ProductModelIllustration table. The contract enforces the presence
+  and schema of the composite key (ProductModelID, IllustrationID); ownership and
+  agreement remain to be confirmed at the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductModelID
+  description: Identifier of the product model; references ProductModel.ProductModelID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: IllustrationID
+  description: Identifier of the illustration linked to the product model; references
+    Illustration.IllustrationID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source row was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

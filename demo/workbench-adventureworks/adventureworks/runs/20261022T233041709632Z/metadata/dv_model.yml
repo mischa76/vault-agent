@@ -1,0 +1,855 @@
+hubs:
+- business_key: BusinessEntityID
+  business_key_columns: []
+  description: Company-wide party register (customers, vendors, employees, persons).
+    A person is a business entity with no separate identifier, so persons share this
+    hub rather than getting a hub of their own. Email, phone and credential relations
+    are also keyed by BusinessEntityID and feed this hub.
+  name: hub_business_entity
+  requirement_ids:
+  - REQ-001
+  - REQ-002
+  - REQ-003
+  - REQ-004
+  - REQ-007
+  - REQ-008
+  - REQ-045
+  - REQ-047
+  - REQ-049
+  - REQ-077
+  source_entity: BusinessEntity
+  sources:
+  - business_key_column: BusinessEntityID
+    source_table: BusinessEntity
+  - business_key_column: BusinessEntityID
+    source_table: Person
+  - business_key_column: BusinessEntityID
+    source_table: EmailAddress
+  - business_key_column: BusinessEntityID
+    source_table: PersonPhone
+  - business_key_column: BusinessEntityID
+    source_table: Password
+  - business_key_column: BusinessEntityID
+    source_table: Employee
+  - business_key_column: BusinessEntityID
+    source_table: EmployeePayHistory
+- business_key: AddressID
+  business_key_columns: []
+  description: Postal address, recorded once and shareable by many parties.
+  name: hub_address
+  requirement_ids:
+  - REQ-001-2
+  - REQ-007-2
+  source_entity: Address
+  sources: []
+- business_key: AddressTypeID
+  business_key_columns: []
+  description: Reference list of address types (Billing, Home, Shipping).
+  name: hub_address_type
+  requirement_ids:
+  - REQ-011-2
+  - REQ-015-2
+  - REQ-068
+  source_entity: AddressType
+  sources: []
+- business_key: ContactTypeID
+  business_key_columns: []
+  description: Reference list of contact roles a person plays for an organisation.
+  name: hub_contact_type
+  requirement_ids:
+  - REQ-037-2
+  - REQ-038-2
+  - REQ-068
+  source_entity: ContactType
+  sources: []
+- business_key: PhoneNumberTypeID
+  business_key_columns: []
+  description: Reference list of phone number kinds (home, work, mobile).
+  name: hub_phone_number_type
+  requirement_ids:
+  - REQ-037
+  - REQ-041
+  - REQ-068
+  source_entity: PhoneNumberType
+  sources: []
+- business_key: CountryRegionCode
+  business_key_columns: []
+  description: Country or region identified by ISO code.
+  name: hub_country_region
+  requirement_ids:
+  - REQ-022-2
+  - REQ-068
+  source_entity: CountryRegion
+  sources: []
+- business_key: StateProvinceID
+  business_key_columns: []
+  description: State or province identified by its own number.
+  name: hub_state_province
+  requirement_ids:
+  - REQ-023-2
+  - REQ-068
+  source_entity: StateProvince
+  sources: []
+- business_key: DepartmentID
+  business_key_columns: []
+  description: Register of departments, the organisational units where people work.
+    Keyed on the stable DepartmentID because department names can change.
+  name: hub_department
+  requirement_ids:
+  - REQ-031
+  - REQ-035
+  - REQ-044
+  - REQ-055
+  source_entity: Department
+  sources: []
+- business_key: ShiftID
+  business_key_columns: []
+  description: Register of eight-hour working shifts. Keyed on the stable ShiftID
+    because shift names and times can be adjusted.
+  name: hub_shift
+  requirement_ids:
+  - REQ-038
+  - REQ-042
+  - REQ-055
+  source_entity: Shift
+  sources: []
+- business_key: JobCandidateID
+  business_key_columns: []
+  description: 'Job candidates: people who applied for a position and whose application
+    HR holds.'
+  name: hub_job_candidate
+  requirement_ids:
+  - REQ-067
+  - REQ-071
+  - REQ-089
+  source_entity: JobCandidate
+  sources: []
+links:
+- connected_hubs:
+  - hub: hub_address
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_state_province
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: The state or province in which an address sits; country is derived
+    via the state.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_address_state_province
+  payload: []
+  requirement_ids:
+  - REQ-002-2
+  - REQ-003-2
+  - REQ-005-2
+  - REQ-055
+  unit_of_work: AddressID + StateProvinceID from Address
+- connected_hubs:
+  - hub: hub_state_province
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_country_region
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: Each state or province belongs to exactly one country or region.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_state_province_country_region
+  payload: []
+  requirement_ids:
+  - REQ-024-2
+  - REQ-025-2
+  - REQ-005-2
+  unit_of_work: StateProvinceID + CountryRegionCode from StateProvince
+- connected_hubs:
+  - hub: hub_business_entity
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_address
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_address_type
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: Party-address relationship in a given capacity (address type); unique
+    by party, address and type.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_business_entity_address
+  payload: []
+  requirement_ids:
+  - REQ-009-2
+  - REQ-010-2
+  - REQ-011-2
+  - REQ-012-2
+  - REQ-013-2
+  - REQ-014-2
+  - REQ-016-2
+  - REQ-017-2
+  - REQ-020-2
+  - REQ-056
+  unit_of_work: BusinessEntityID + AddressID + AddressTypeID from BusinessEntityAddress
+- connected_hubs:
+  - hub: hub_business_entity
+    key_translation: null
+    role: organisation
+    source_key_column: null
+  - hub: hub_business_entity
+    key_translation: null
+    role: contact_person
+    source_key_column: null
+  - hub: hub_contact_type
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: 'Organisational contact relationship: an organisation (BusinessEntityID),
+    the person acting as its contact (PersonID) and the contact role; unique by all
+    three.'
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_business_entity_contact
+  payload: []
+  requirement_ids:
+  - REQ-035-2
+  - REQ-036-2
+  - REQ-037-2
+  - REQ-039-2
+  - REQ-040-2
+  - REQ-041-2
+  - REQ-042-2
+  - REQ-045-2
+  - REQ-046
+  - REQ-057
+  unit_of_work: BusinessEntityID + PersonID + ContactTypeID from BusinessEntityContact
+- connected_hubs:
+  - hub: hub_business_entity
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_department
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_shift
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: Employee assignment to a department and shift over time, from EmployeeDepartmentHistory.
+    The employee has one current assignment at a time, so the employee is the driving
+    key.
+  driving_key:
+  - hub_business_entity
+  event_timestamp: null
+  link_type: standard
+  name: link_business_entity_department_shift
+  payload: []
+  requirement_ids:
+  - REQ-044
+  - REQ-048
+  - REQ-049
+  - REQ-050
+  - REQ-051
+  - REQ-054
+  - REQ-055
+  - REQ-086
+  unit_of_work: 'BusinessEntityID + DepartmentID + ShiftID: one assignment of an employee
+    to a department and shift (start date tracked in the effectivity satellite)'
+- connected_hubs:
+  - hub: hub_job_candidate
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_business_entity
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: Links a job candidate record to the employee hired from it. If a link
+    exists, the candidate was hired.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_job_candidate_business_entity
+  payload: []
+  requirement_ids:
+  - REQ-070
+  - REQ-071
+  - REQ-072
+  - REQ-073
+  - REQ-089
+  unit_of_work: 'JobCandidateID + BusinessEntityID: a candidate hired as an employee'
+satellites:
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Business entity register change timestamp; rowguid excluded as replication-only
+    technical metadata.
+  key_translation: null
+  name: sat_business_entity_details
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-005
+  - REQ-006
+  sat_type: standard
+  source_table: BusinessEntity
+  split_rationale: null
+- attributes:
+  - NameStyle
+  - Title
+  - FirstName
+  - MiddleName
+  - LastName
+  - Suffix
+  - ModifiedDate
+  child_dependent_key: []
+  description: Person name details with full history.
+  key_translation: null
+  name: sat_business_entity_person_name
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-014
+  - REQ-015
+  - REQ-016
+  - REQ-017
+  - REQ-018
+  - REQ-019
+  - REQ-028
+  - REQ-052
+  sat_type: standard
+  source_table: Person
+  split_rationale: Ordinary personal name data; carries the Person last-modified timestamp
+    (held in this satellite only).
+- attributes:
+  - PersonType
+  child_dependent_key: []
+  description: Primary person type classification code.
+  key_translation: null
+  name: sat_business_entity_person_type
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-009
+  - REQ-010
+  - REQ-011
+  - REQ-012
+  - REQ-013
+  sat_type: standard
+  source_table: Person
+  split_rationale: Classification used for wide aggregated reporting; changes at a
+    different rate from names.
+- attributes:
+  - EmailPromotion
+  child_dependent_key: []
+  description: Email promotion (marketing consent) preference with full history for
+    compliance audit.
+  key_translation: null
+  name: sat_business_entity_person_consent
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-020
+  - REQ-021
+  - REQ-022
+  - REQ-023
+  - REQ-053
+  - REQ-074
+  - REQ-075
+  sat_type: standard
+  source_table: Person
+  split_rationale: Compliance-sensitive consent tracked independently of name changes.
+- attributes:
+  - AdditionalContactInfo
+  - Demographics
+  child_dependent_key: []
+  description: Sensitive XML additional contact information and demographics, access-restricted.
+  key_translation: null
+  name: sat_business_entity_person_sensitive
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-024
+  - REQ-025
+  - REQ-026
+  - REQ-027
+  - REQ-070
+  - REQ-071
+  sat_type: standard
+  source_table: Person
+  split_rationale: 'Data classification: sensitive personal data restricted separately;
+    XML data type.'
+- attributes:
+  - EmailAddress
+  - ModifiedDate
+  child_dependent_key:
+  - EmailAddressID
+  description: A person's email addresses, numbered within the person, with history.
+  key_translation: null
+  name: sat_business_entity_email
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-029
+  - REQ-030
+  - REQ-031
+  - REQ-032
+  - REQ-033
+  - REQ-034
+  - REQ-054
+  - REQ-062
+  sat_type: multi_active
+  source_table: EmailAddress
+  split_rationale: Own source relation at finer grain (several per person).
+- attributes:
+  - ModifiedDate
+  child_dependent_key:
+  - PhoneNumberTypeID
+  - PhoneNumber
+  description: A person's telephone numbers qualified by phone number type, with history.
+  key_translation: null
+  name: sat_business_entity_phone
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-035
+  - REQ-036
+  - REQ-038
+  - REQ-039
+  - REQ-040
+  - REQ-054
+  - REQ-063
+  sat_type: multi_active
+  source_table: PersonPhone
+  split_rationale: Own source relation at finer grain (several per person).
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Existence and last-change date of a sign-in credential only; hash and
+    salt are never loaded.
+  key_translation: null
+  name: sat_business_entity_credential
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-042
+  - REQ-043
+  - REQ-044
+  - REQ-045
+  - REQ-073
+  sat_type: standard
+  source_table: Password
+  split_rationale: Separate source; credential values excluded for security.
+- attributes:
+  - AddressLine1
+  - AddressLine2
+  - City
+  - PostalCode
+  - ModifiedDate
+  child_dependent_key: []
+  description: Street, city and postal details of an address with full history.
+  key_translation: null
+  name: sat_address_details
+  parent: hub_address
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-002-2
+  - REQ-005-2
+  - REQ-006-2
+  - REQ-008-2
+  - REQ-055
+  sat_type: standard
+  source_table: Address
+  split_rationale: null
+- attributes:
+  - SpatialLocation
+  child_dependent_key: []
+  description: Geographic coordinates of an address for mapping and territory analysis.
+  key_translation: null
+  name: sat_address_location
+  parent: hub_address
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-004-2
+  - REQ-066
+  - REQ-070
+  sat_type: standard
+  source_table: Address
+  split_rationale: Spatial data type and personal-data classification differ from
+    street details.
+- attributes:
+  - Name
+  - ModifiedDate
+  child_dependent_key: []
+  description: Address type descriptive name.
+  key_translation: null
+  name: sat_address_type_details
+  parent: hub_address_type
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-015-2
+  sat_type: standard
+  source_table: AddressType
+  split_rationale: null
+- attributes:
+  - Name
+  - ModifiedDate
+  child_dependent_key: []
+  description: Contact type descriptive name.
+  key_translation: null
+  name: sat_contact_type_details
+  parent: hub_contact_type
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-038-2
+  sat_type: standard
+  source_table: ContactType
+  split_rationale: null
+- attributes:
+  - Name
+  - ModifiedDate
+  child_dependent_key: []
+  description: Phone number type name, historised so renames are visible.
+  key_translation: null
+  name: sat_phone_number_type_details
+  parent: hub_phone_number_type
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-037
+  - REQ-041
+  sat_type: standard
+  source_table: PhoneNumberType
+  split_rationale: null
+- attributes:
+  - Name
+  - ModifiedDate
+  child_dependent_key: []
+  description: Country or region name, historised so renames are visible.
+  key_translation: null
+  name: sat_country_region_details
+  parent: hub_country_region
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-022-2
+  - REQ-033-2
+  - REQ-034-2
+  sat_type: standard
+  source_table: CountryRegion
+  split_rationale: null
+- attributes:
+  - StateProvinceCode
+  - IsOnlyStateProvinceFlag
+  - Name
+  - ModifiedDate
+  child_dependent_key: []
+  description: State or province ISO code, no-genuine-code flag and name.
+  key_translation: null
+  name: sat_state_province_details
+  parent: hub_state_province
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-023-2
+  - REQ-026-2
+  - REQ-027-2
+  - REQ-033-2
+  - REQ-034-2
+  - REQ-067
+  sat_type: standard
+  source_table: StateProvince
+  split_rationale: null
+- attributes:
+  - TerritoryID
+  child_dependent_key: []
+  description: Sales territory assignment of a state or province, historised; territory
+    descriptions come from the sales area.
+  key_translation: null
+  name: sat_state_province_territory
+  parent: hub_state_province
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-028-2
+  - REQ-029-2
+  - REQ-030-2
+  - REQ-031-2
+  - REQ-032-2
+  - REQ-058
+  sat_type: standard
+  source_table: StateProvince
+  split_rationale: Territory reassignment changes at a different rate and drives historical
+    roll-ups.
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Last-changed timestamp of the party-address relationship.
+  key_translation: null
+  name: sat_business_entity_address_details
+  parent: link_business_entity_address
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-018-2
+  - REQ-019-2
+  - REQ-056
+  sat_type: standard
+  source_table: BusinessEntityAddress
+  split_rationale: null
+- attributes:
+  - LoginID
+  - JobTitle
+  - HireDate
+  - SalariedFlag
+  - CurrentFlag
+  - ModifiedDate
+  child_dependent_key: []
+  description: 'Employee attributes that can be widely reported: network login, job
+    title, hire date, salaried/hourly flag, active flag and last-updated timestamp.
+    History is kept because the source overwrites these values.'
+  key_translation: null
+  name: sat_business_entity_employee_details
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-005
+  - REQ-007
+  - REQ-008
+  - REQ-009
+  - REQ-010
+  - REQ-012
+  - REQ-013
+  - REQ-014
+  - REQ-076
+  - REQ-079
+  - REQ-080
+  sat_type: standard
+  source_table: Employee
+  split_rationale: Non-sensitive employee classification attributes from Employee
+    that change slowly; rowguid is excluded as a technical column
+- attributes:
+  - NationalIDNumber
+  - BirthDate
+  - Gender
+  - MaritalStatus
+  child_dependent_key: []
+  description: 'Restricted personal employee data: national ID, date of birth, gender
+    and marital status. Access is limited to authorised HR users.'
+  key_translation: null
+  name: sat_business_entity_employee_sensitive
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-002
+  - REQ-015
+  - REQ-016
+  - REQ-017
+  - REQ-018
+  - REQ-019
+  - REQ-065
+  sat_type: standard
+  source_table: Employee
+  split_rationale: Split out by data classification (PII) so access can be restricted
+- attributes:
+  - VacationHours
+  - SickLeaveHours
+  child_dependent_key: []
+  description: Available vacation and sick-leave balances, kept as a series of point-in-time
+    readings.
+  key_translation: null
+  name: sat_business_entity_employee_leave
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-020
+  - REQ-021
+  - REQ-022
+  - REQ-023
+  - REQ-024
+  - REQ-088
+  sat_type: standard
+  source_table: Employee
+  split_rationale: High rate of change compared with other employee attributes
+- attributes:
+  - OrganizationNode
+  - OrganizationLevel
+  child_dependent_key: []
+  description: The employee's position and level in the corporate hierarchy. Changes
+    are captured because the source holds only the current position.
+  key_translation: null
+  name: sat_business_entity_employee_hierarchy
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-025
+  - REQ-026
+  - REQ-027
+  - REQ-028
+  - REQ-029
+  - REQ-030
+  sat_type: standard
+  source_table: Employee
+  split_rationale: Hierarchy position changes independently of other attributes and
+    supports reconstructing past structures
+- attributes:
+  - Rate
+  - PayFrequency
+  - ModifiedDate
+  child_dependent_key:
+  - RateChangeDate
+  description: 'Employee pay rate history: one row per effective rate-change date,
+    with the hourly rate and pay frequency.'
+  key_translation: null
+  name: sat_business_entity_employee_pay
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-056
+  - REQ-057
+  - REQ-058
+  - REQ-059
+  - REQ-060
+  - REQ-061
+  - REQ-062
+  - REQ-063
+  - REQ-064
+  - REQ-087
+  sat_type: multi_active
+  source_table: EmployeePayHistory
+  split_rationale: Separate source relation at finer grain (one row per rate change),
+    so modelled as multi-active; EmployeePayHistory is now declared as a feed of hub_business_entity
+- attributes:
+  - Name
+  - GroupName
+  - ModifiedDate
+  child_dependent_key: []
+  description: Department name, group membership and last-changed date, with history
+    kept for as-was reporting.
+  key_translation: null
+  name: sat_department_details
+  parent: hub_department
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-032
+  - REQ-033
+  - REQ-034
+  - REQ-035
+  - REQ-036
+  - REQ-037
+  - REQ-081
+  sat_type: standard
+  source_table: Department
+  split_rationale: null
+- attributes:
+  - Name
+  - StartTime
+  - EndTime
+  - ModifiedDate
+  child_dependent_key: []
+  description: Shift definition (name, start and end time), with history kept so past
+    shift hours stay understandable.
+  key_translation: null
+  name: sat_shift_details
+  parent: hub_shift
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-039
+  - REQ-040
+  - REQ-042
+  - REQ-043
+  sat_type: standard
+  source_table: Shift
+  split_rationale: null
+- attributes:
+  - Resume
+  - ModifiedDate
+  child_dependent_key: []
+  description: "The candidate's r\xE9sum\xE9 as a structured document, plus its last-updated\
+    \ timestamp."
+  key_translation: null
+  name: sat_job_candidate_resume
+  parent: hub_job_candidate
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-068
+  - REQ-069
+  - REQ-074
+  - REQ-076
+  sat_type: standard
+  source_table: JobCandidate
+  split_rationale: Candidate personal data about non-employees, subject to its own
+    retention rules
+- attributes:
+  - StartDate
+  - EndDate
+  child_dependent_key: []
+  description: Active period of each department/shift assignment. An open end date
+    marks the current assignment.
+  key_translation: null
+  name: sat_business_entity_department_shift_effectivity
+  parent: link_business_entity_department_shift
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-045
+  - REQ-046
+  - REQ-047
+  - REQ-048
+  - REQ-049
+  - REQ-052
+  - REQ-053
+  - REQ-054
+  - REQ-084
+  sat_type: effectivity
+  source_table: EmployeeDepartmentHistory
+  split_rationale: null
+- attributes:
+  - ModifiedDate
+  child_dependent_key:
+  - StartDate
+  description: Last-updated timestamp of each assignment record, one row per assignment
+    start date, used to spot stale records.
+  key_translation: null
+  name: sat_business_entity_department_shift_details
+  parent: link_business_entity_department_shift
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-076
+  - REQ-077
+  sat_type: multi_active
+  source_table: EmployeeDepartmentHistory
+  split_rationale: The effectivity satellite carries only the start and end dates,
+    so the audit timestamp sits in its own satellite. It is multi-active on StartDate
+    because repeat assignments to the same department and shift are separate rows.

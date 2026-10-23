@@ -1,0 +1,72 @@
+spec-version: 1.0.0
+name: Shift
+namespace: source
+dataAssetResourceName: datastore://source/Shift
+doc: Work shift reference data from the source Shift table, describing named shifts
+  and their daily start and end times. The contract enforces the declared schema and
+  business-key uniqueness and non-null checks. Ownership and agreement status are
+  left for human-in-the-loop review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ShiftID
+  description: Identifier of the shift; the business key of the Shift table.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the shift.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StartTime
+  description: Time of day at which the shift starts.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EndTime
+  description: Time of day at which the shift ends.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

@@ -1,0 +1,110 @@
+spec-version: 1.0.0
+name: StateProvince
+namespace: source
+dataAssetResourceName: datastore://source/StateProvince
+doc: 'Source-to-staging asset for StateProvince: state or province reference records,
+  each linked to a country/region and a sales territory. The contract enforces the
+  declared schema and business-key constraints; value-level semantics are left for
+  producer/consumer review.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: StateProvinceID
+  description: Unique identifier of the state or province record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StateProvinceCode
+  description: Code identifying the state or province.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CountryRegionCode
+  description: Code of the country or region the state or province belongs to; references
+    CountryRegion.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: IsOnlyStateProvinceFlag
+  description: Flag indicating whether the record is the only state/province for its
+    country or region (i.e., StateProvinceCode is not used).
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: boolean
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the state or province.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: TerritoryID
+  description: Identifier of the sales territory the state or province belongs to.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (ROWGUIDCOL) for the row.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

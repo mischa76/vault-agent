@@ -10321,3 +10321,22 @@ and the hub's stage became inferred too. **Überprüft.** The run records and st
 tokens), both build logs. **Nur angenommen.** The prices (from the log of 2026-10-09, not re-checked today).
 **Bewusst nicht getan.** Not entered into the review record (the eval harness was not used; decisions per step are in
 the summary: 13/17, 6/8, 25/29, 6/9, 20/33).
+
+## [2026-10-23] WP87 and WP88 built (C9, C5), and the demo regenerated from today's paid chain
+
+**Autor:** Claude Code
+
+The owner: „lass es so laufen und zieh C9 und C5 vor". **WP87** (`ef5c32f` red, `cf5a756`): `cli._parse_owner` stores a
+bare address as email with its local part as name — the workbench sends the same text, so both front ends agree;
+the Review perspective accepts `Name <email>` or a bare address (`ownerValid`), shows „Name <email> or an email
+address" under an invalid field, and the record button says whether the run stays paused or finishes. **WP88**
+(`b769ca1` red, `0d902ce`): `components/Mermaid.tsx` — zoom out/in (×1.25), fit (default), 1:1 from the SVG's
+`viewBox`, Ctrl/⌘ + wheel, the tile capped at 70vh and scrolling both ways, full screen as a dialog closed by Escape,
+the zoom remembered per title in a module-level map while the page is open; `styles.css` no longer caps the SVG at
+100 %. Frontend: 16 tests (5 new for the tile, 2 for the owner field), `tsc`, build. Vitest's default fork pool
+timed out starting a worker on `/mnt/c`; `--pool=threads` runs — noted, not changed in the config.
+**Demo:** `demo/workbench-adventureworks/` now holds the five runs of today's chain (`b8eabf0`), scrubbed of local
+paths (owners were `John Doe` already), `state.json` only from `.vault-agent/`, ten views in `inferred_views.sql`,
+README rewritten; every workbench view answers through the API on it (model 7 … 40 hubs, 2 … 6 subject areas,
+project check, report). **Überprüft.** Suites green (Python 1282, frontend 16), ruff, mypy; the API on the demo.
+**Nur angenommen.** That the zoom feels right in a real browser (jsdom only). **Bewusst nicht getan.** The vitest pool.

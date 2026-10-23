@@ -1,0 +1,75 @@
+spec-version: 1.0.0
+name: EmployeePayHistory
+namespace: source
+dataAssetResourceName: datastore://source/EmployeePayHistory
+doc: 'Staging asset for employee pay history: one record per employee per pay rate
+  change, capturing the effective date of the change, the new rate and its pay frequency.
+  The contract enforces the declared schema, business-key uniqueness and not-null
+  on keys; value-level semantics are minimal because no further requirements were
+  stated.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the employee (business entity) whose pay rate changed.
+    Refers to the Employee source record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: RateChangeDate
+  description: Date on which the employee's pay rate change took effect.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Rate
+  description: Pay rate assigned to the employee as of the rate change date.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: PayFrequency
+  description: Code indicating how often the employee is paid. The set of allowed
+    values and their meanings is not specified in the requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

@@ -1,17 +1,17 @@
 {
   "id": "adventureworks",
   "name": "AdventureWorks",
-  "created": "2026-10-19T04:59:08+00:00",
+  "created": "2026-10-22T23:26:29+00:00",
   "files": [
     {
       "kind": "requirements",
-      "name": "requirements.md",
+      "name": "person_requirements.md",
       "bytes": 25561
     },
     {
       "kind": "schema",
-      "name": "source_schema.yml",
-      "bytes": 11240
+      "name": "person_source_schema.yml",
+      "bytes": 11968
     },
     {
       "kind": "requirements",
@@ -21,7 +21,7 @@
     {
       "kind": "schema",
       "name": "hr_source_schema.yml",
-      "bytes": 5608
+      "bytes": 6005
     },
     {
       "kind": "requirements",
@@ -31,12 +31,7 @@
     {
       "kind": "schema",
       "name": "production_source_schema.yml",
-      "bytes": 21637
-    },
-    {
-      "kind": "requirements",
-      "name": "prd_requirements.md",
-      "bytes": 31293
+      "bytes": 22931
     },
     {
       "kind": "requirements",
@@ -46,7 +41,7 @@
     {
       "kind": "schema",
       "name": "purchasing_source_schema.yml",
-      "bytes": 6835
+      "bytes": 7110
     },
     {
       "kind": "requirements",
@@ -56,7 +51,7 @@
     {
       "kind": "schema",
       "name": "sales_source_schema.yml",
-      "bytes": 20645
+      "bytes": 21713
     }
   ]
 }

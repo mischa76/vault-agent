@@ -1,0 +1,60 @@
+spec-version: 1.0.0
+name: AddressType
+namespace: source
+dataAssetResourceName: datastore://source/AddressType
+doc: Reference data describing the types of addresses (e.g. billing, shipping, home)
+  that can be associated with a business entity. Staged from the source AddressType
+  table. The contract enforces the declared schema, primary key and not-null constraints;
+  value-level semantics are left for producer/consumer negotiation.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: AddressTypeID
+  description: Unique identifier of the address type; business key of the asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the address type.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (GUID) for the source row.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source row was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

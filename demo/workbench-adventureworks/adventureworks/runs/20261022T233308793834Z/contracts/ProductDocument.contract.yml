@@ -1,0 +1,50 @@
+spec-version: 1.0.0
+name: ProductDocument
+namespace: source
+dataAssetResourceName: datastore://source/ProductDocument
+doc: 'Link table associating products with their documents (source: Production.ProductDocument).
+  Each row pairs a ProductID with a DocumentNode. The contract enforces the schema,
+  business-key uniqueness and not-null rules, which the deterministic core propagates.
+  Ownership and agreement status are left to human review.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductID
+  description: Identifier of the product the document is associated with. References
+    the Product asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: DocumentNode
+  description: Hierarchical node identifier of the document associated with the product.
+    References the Document asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

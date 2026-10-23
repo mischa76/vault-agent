@@ -1,0 +1,74 @@
+spec-version: 1.0.0
+name: BusinessEntityContact
+namespace: source
+dataAssetResourceName: datastore://source/BusinessEntityContact
+doc: Source-to-staging asset linking a business entity to a person acting as a contact,
+  qualified by a contact type. The contract enforces the declared schema and business-key
+  integrity; value-level constraints are left for producer/consumer review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the business entity (e.g. a vendor or store) that the
+    contact belongs to; references BusinessEntity.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: PersonID
+  description: Identifier of the person who is the contact for the business entity;
+    references Person.BusinessEntityID.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ContactTypeID
+  description: Identifier of the type/role of the contact; references ContactType.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (GUID) for the row, used for replication/row
+    identification.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

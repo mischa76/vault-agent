@@ -1,44 +1,46 @@
 # The workbench demo: AdventureWorks, five domains modelled step by step
 
-Five finished workbench runs, one per AdventureWorks schema, each a brownfield extension of the one
-before — the vault the owner modelled in the workbench and built into PostgreSQL by hand on
-2026-10-19 → 22 (`docs/log.md`, „The owner's hands-on run", steps 1–8). Browse it without an API key:
+Five finished workbench runs, one per AdventureWorks schema, each a brownfield extension of the one before,
+generated on 2026-10-23 with the generator of that day (release 0.10.0 plus WP83–WP85) through the workbench API,
+checkpoints answered as the owner answered them in his own build (`docs/log.md`, 2026-10-23, „The paid chain …").
+Browse it without an API key:
 
 ```bash
 uv sync --extra ui && (cd frontend && npm ci && npm run build)   # once
 uv run vault-agent ui --root demo/workbench-adventureworks        # from the repo root
 ```
 
-Start it **from the repo root**: each run's `run.json` stores its folder relative to the directory the
-workbench was started in. Do not start new runs here — use a root outside the repo for your own work.
+Start it **from the repo root**: each run's `run.json` stores its folder relative to the directory the workbench
+was started in (backlog C24). Do not start new runs here — use a root outside the repo for your own work.
 
-| Run | Domain | Extends | Constructs (hubs / links / sats) | Build on PostgreSQL |
+| Run | Domain | Extends | Constructs (hubs / links / sats) | Minutes |
 |---|---|---|---|---|
-| `20261019T204027253108Z` | Person (greenfield) | — | 7 / 5 / 17 | PASS=55 |
-| `20261021T232716713739Z` | HumanResources | Person | 10 / 7 / 27 | PASS=81 |
-| `20261022T133219892412Z` | Production | HumanResources | 25 / 23 / 56 | PASS=177 |
-| `20261022T140746303809Z` | Purchasing | Production | 28 / 27 / 65 | PASS=208 |
-| `20261022T151530662480Z` | Sales | Purchasing | 39 / 49 / 92 | PASS=334 |
+| `20261022T232630984833Z` | Person (greenfield) | — | 7 / 4 / 17 | 4.2 |
+| `20261022T233041709632Z` | HumanResources | Person | 10 / 6 / 27 | 2.5 |
+| `20261022T233308793834Z` | Production | HumanResources | 26 / 22 / 57 | 8.2 |
+| `20261022T234118699534Z` | Purchasing | Production | 29 / 27 / 67 | 3.4 |
+| `20261022T234439976097Z` | Sales | Purchasing | 40 / 47 / 90 | 6.4 |
 
-**What to look at.** The Model perspective by subject area (WP80): one area in the first run, six in the
-last. The resolution checkpoints' decisions are in each run's `run.json` (`checkpoints`) and CLI
-equivalents. Employee, vendor, sales person and store are subtypes of `hub_business_entity` — no hub of
-their own; the purchase order header carries that hub twice, as `vendor` and `employee`.
+The last run's project builds whole on PostgreSQL — **PASS=340**, and a second build inserts nothing
+(177 of 177 incremental models `INSERT 0 0`) — once the views in [`inferred_views.sql`](inferred_views.sql) exist.
 
-**Known findings, kept visible on purpose** (backlog `docs/architecture/backlog-2026-10-candidates-2.md`):
-C11 — `sat_business_entity_pay_history`, `_email`, `_sales_quota_history` are multi-active in the model
-but generated as standard satellites; C12 — `link_customer_business_entity` keeps 635 of 19 820 customers
-(a NULL participant drops the row); C13 — `sat_product_assembly_component_details` re-inserts on every
-run; seven link stages are inferred and need the views in [`inferred_views.sql`](inferred_views.sql).
+**What to look at.** The Model perspective by subject area, with zoom and full screen per diagram. Employee,
+vendor, sales person and store are subtypes of `hub_business_entity`, no hubs of their own. Ten multi-active
+satellites, four of them bound to one feed of the multi-source `hub_business_entity` (email, phone, employee pay,
+sales quota). Links whose participant may be missing carry zero keys (`null_columns` in the staging). In the run
+records' history (`run.json`, CLI equivalents) the checkpoint decisions; in the traces (not shipped) the four
+times the satellite-grain gate `E_SAT_GRAIN_NOT_UNIQUE` refused a satellite and the modeler followed its remedy.
+
+**Known open points** (backlog `docs/architecture/backlog-2026-10-candidates-*.md`): ten link or hub stages are
+inferred and need the views above (C18); a link's zero key points at a hub row only once WP86 lands (C25).
 
 **Building it yourself** needs the AdventureWorks tables in PostgreSQL under the schemas the generated
-`sources.yml` names (`"Person"`, `"HumanResources"`, …) with `load_datetime` and `record_source` added.
-Microsoft's CSVs are MIT-licensed; a loader is not in the repo yet (backlog). Then, per run in order:
-`uv run dbt deps|build --project-dir demo/workbench-adventureworks/adventureworks/runs/<run>`, without
-`--full-refresh`, after `inferred_views.sql`.
+`sources.yml` names (`"Person"`, `"HumanResources"`, …) with `load_datetime` and `record_source` added. Microsoft's
+CSVs are MIT-licensed; a loader is not in the repo yet (C23). Then, after `inferred_views.sql`:
+`uv run dbt deps|build --project-dir demo/workbench-adventureworks/adventureworks/runs/20261022T234439976097Z`.
 
-**What was changed for publishing.** The owner's name and address in contracts, run records and state
-were replaced by `John Doe <john.doe@acme.com>`; absolute local paths were made repo-relative. Not
-shipped: checkpoint databases and LLM traces (`.vault-agent/` except `state.json`), `dbt_packages/`,
-`target/`, logs. The event stream is per session, so a demo run shows no events; finished runs have no
-open checkpoint.
+**What was changed for publishing.** Contract owners were given as `John Doe <john.doe@acme.com>` at the
+checkpoints; absolute local paths were made repo-relative. Not shipped: checkpoint databases and LLM traces
+(`.vault-agent/` except `state.json`), `dbt_packages/`, `target/`, logs. The event stream is per session, so a demo
+run shows no events; finished runs have no open checkpoint. The previous demo (the owner's own build of
+2026-10-22, with the data defects it found) is in the git history.

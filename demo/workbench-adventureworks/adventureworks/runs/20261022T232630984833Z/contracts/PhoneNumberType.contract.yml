@@ -1,0 +1,50 @@
+spec-version: 1.0.0
+name: PhoneNumberType
+namespace: source
+dataAssetResourceName: datastore://source/PhoneNumberType
+doc: Reference/lookup data describing the types of phone numbers (e.g. cell, home,
+  work) that can be associated with a person's phone number. Sourced from the PhoneNumberType
+  source table and staged as-is; the contract enforces the declared schema, primary
+  key and not-null rules. Ownership and agreement are to be confirmed at the human-in-the-loop
+  checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: PhoneNumberTypeID
+  description: Unique identifier of the phone number type; referenced by PersonPhone.PhoneNumberTypeID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the phone number type (e.g. the category of phone such as cell,
+    home or work).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

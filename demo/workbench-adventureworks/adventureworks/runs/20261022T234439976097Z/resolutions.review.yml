@@ -1,0 +1,197 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: customer::AccountNumber
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Customer.AccountNumber is 'number identifying the customer assigned by the accounting
+    system', an alternate identifier of the customer concept.
+  - No existing hub has a customer account number key. hub_business_entity is keyed
+    by BusinessEntityID, which is a different identifier.
+  confidence: 0.6
+  ratification_status: accepted
+- concept: customer::CustomerID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Customer.CustomerID is the primary key of its own table. No existing hub is keyed
+    by CustomerID.
+  - Customer.PersonID and Customer.StoreID reference BusinessEntityID. That makes
+    customer a separate account concept pointing at a business entity, not the same
+    key.
+  - No mapping table says CustomerID equals BusinessEntityID.
+  confidence: 0.7
+  ratification_status: accepted
+- concept: store::BusinessEntityID
+  resolution: hub_business_entity
+  category: exact_key
+  evidence:
+  - Store.BusinessEntityID is a BusinessEntityID, the same identifier name and format
+    as hub_business_entity's key. The hub is already fed by Person, Employee and Vendor
+    from the shared BusinessEntityID space.
+  - The column comment says 'Foreign key to Customer.BusinessEntityID', but Customer
+    has no such column. The comment looks mistaken, which lowers confidence.
+  - The merge rests on the key match only. A reviewer should confirm that Store keys
+    come from the BusinessEntity population.
+  confidence: 0.7
+  ratification_status: accepted
+- concept: sales order::SalesOrderNumber
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesOrderNumber is a computed unique identifier derived from SalesOrderID. It
+    is an alternate key of the sales order concept.
+  - The only existing order hub is hub_purchase_order, which is keyed by PurchaseOrderID.
+    That is a procurement order, not a sales order.
+  confidence: 0.65
+  ratification_status: accepted
+- concept: sales order::SalesOrderID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesOrderHeader.SalesOrderID is the primary key of a sales order. The vault only
+    has hub_purchase_order (PurchaseOrderID), a different business key and process
+    (vendor purchasing).
+  - No cross-reference links SalesOrderID to PurchaseOrderID.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: sales order line::SalesOrderDetailID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesOrderDetail is keyed by SalesOrderID + SalesOrderDetailID. The existing hub_purchase_order_detail
+    is keyed by purchase_order_line and belongs to purchase orders.
+  - No cross-reference links the two.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: sales representative::BusinessEntityID
+  resolution: hub_business_entity
+  category: exact_key
+  evidence:
+  - 'SalesPerson.BusinessEntityID comment: ''Foreign key to Employee.BusinessEntityID''.
+    This is an explicit cross-reference.'
+  - Employee already feeds hub_business_entity, which is keyed by BusinessEntityID.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: sales territory::TerritoryID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesTerritory.TerritoryID is the primary key of a sales territory. No existing
+    hub models territories.
+  - hub_state_province and hub_country_region are different concepts. SalesTerritory
+    only references CountryRegionCode as an FK.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: sales territory::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesTerritory.Name is a descriptive name or alternate identifier of the new territory
+    concept.
+  - No existing hub models territories, and a shared 'Name' stem is not evidence of
+    a match.
+  confidence: 0.55
+  ratification_status: accepted
+- concept: credit card::CreditCardID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - CreditCard.CreditCardID is the primary key of its own table. No existing hub is
+    keyed by a credit card identifier.
+  - PersonCreditCard only links it to BusinessEntityID.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: credit card::CardNumber
+  resolution: NEW
+  category: semantic
+  evidence:
+  - CardNumber is an alternate identifier of the credit card concept. No existing
+    hub holds it.
+  - It is also sensitive data, so the human reviewer should decide whether it is used
+    as a business key.
+  confidence: 0.6
+  ratification_status: accepted
+- concept: currency::CurrencyCode
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Currency.CurrencyCode is the ISO currency code and the primary key of Currency.
+    No existing hub is keyed by a currency code.
+  - hub_country_region (CountryRegionCode) and hub_unit_measure (UnitMeasureCode)
+    are different code lists.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: currency exchange rate::CurrencyRateID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - CurrencyRate.CurrencyRateID is the primary key of the exchange rate table. No
+    existing construct models exchange rates.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: currency exchange rate::CurrencyRateDate + FromCurrencyCode + ToCurrencyCode
+  resolution: NEW
+  category: semantic
+  evidence:
+  - 'This is the natural composite key of an exchange rate: date plus from and to
+    currency. No existing construct models exchange rates.'
+  - It is an alternate key to CurrencyRateID for the same new concept.
+  confidence: 0.7
+  ratification_status: accepted
+- concept: special offer::SpecialOfferID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SpecialOffer.SpecialOfferID is the primary key of a promotion or discount. No
+    existing hub models promotions.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: sales reason::SalesReasonID
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - SalesReason.SalesReasonID is the primary key of a reason lookup for sales. The
+    existing hub_scrap_reason is keyed by ScrapReasonID and is a different concept;
+    a shared 'reason' stem is not evidence.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: shopping cart item::ShoppingCartID + ShoppingCartItemID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ShoppingCartItem is a new online-shopping concept, keyed by ShoppingCartID (nvarchar)
+    and ShoppingCartItemID. No existing hub models carts.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: sales tax rate::SalesTaxRateID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesTaxRate.SalesTaxRateID is the primary key of tax rates. No existing hub models
+    tax rates.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: sales tax rate::StateProvinceID + TaxType
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - This composite is an alternate key of the tax rate concept. StateProvinceID is
+    only a reference to hub_state_province.
+  - The tax rate is not the state or province itself, so it is not a merge with hub_state_province.
+  confidence: 0.7
+  ratification_status: accepted
+- concept: country/region::CountryRegionCode
+  resolution: hub_country_region
+  category: exact_key
+  evidence:
+  - 'CountryRegionCurrency.CountryRegionCode comment: ''Foreign key to CountryRegion.CountryRegionCode''.
+    SalesTerritory.CountryRegionCode says the same.'
+  - It is the same ISO code and the same name as the business key of hub_country_region.
+  confidence: 0.93
+  ratification_status: accepted

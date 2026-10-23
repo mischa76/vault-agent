@@ -1,0 +1,92 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: vendor::AccountNumber (vendor account number)
+  resolution: unresolved
+  category: comment_grounded
+  evidence:
+  - Vendor.AccountNumber is an alternate identifier on the same Vendor row as BusinessEntityID
+    (the key that is FK to BusinessEntity). It is not the hub_business_entity key.
+  - Merging these values into hub_business_entity would put a different key format
+    into a live hub. Nothing says whether AccountNumber should be its own hub or only
+    a satellite attribute, so a human should decide.
+  confidence: 0.4
+  ratification_status: accepted
+- concept: vendor::BusinessEntityID (internal business entity identifier)
+  resolution: hub_business_entity
+  category: comment_grounded
+  evidence:
+  - 'Vendor.BusinessEntityID comment: ''Foreign key to BusinessEntity.BusinessEntityID''.'
+  - hub_business_entity has business key BusinessEntityID and source entity BusinessEntity,
+    so the key and its meaning match.
+  confidence: 0.93
+  ratification_status: accepted
+- concept: product::ProductID
+  resolution: hub_product
+  category: exact_key
+  evidence:
+  - ProductVendor.ProductID and PurchaseOrderDetail.ProductID are both commented 'Foreign
+    key to Product.ProductID'.
+  - hub_product has business key ProductID from the Product source entity.
+  confidence: 0.96
+  ratification_status: accepted
+- concept: purchase order::PurchaseOrderID (purchase order number)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - PurchaseOrderHeader.PurchaseOrderID is the primary key of a purchase order.
+  - No existing hub models purchase orders. The closest, hub_work_order, is a manufacturing
+    work order, which is a different concept.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: purchase order line::PurchaseOrderID + PurchaseOrderDetailID (purchase
+    order and line number)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - PurchaseOrderDetail has the composite key PurchaseOrderID + PurchaseOrderDetailID,
+    with one line per purchased product.
+  - No existing hub or link models purchase order lines.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: shipping method::Name (shipping company name)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ShipMethod.Name is the shipping company name, a descriptive attribute or alternate
+    key of ShipMethod.
+  - The vault has no shipping method hub, and no existing construct carries shipping
+    company names.
+  confidence: 0.75
+  ratification_status: accepted
+- concept: shipping method::ShipMethodID (internal shipping method identifier)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ShipMethod.ShipMethodID is the primary key of ShipMethod, referenced by PurchaseOrderHeader.ShipMethodID.
+  - No existing hub has ShipMethodID as its business key.
+  confidence: 0.92
+  ratification_status: accepted
+- concept: vendor-product supply relationship::ProductID + vendor (BusinessEntityID/AccountNumber)
+    pairing
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - ProductVendor is keyed by ProductID + BusinessEntityID (a vendor).
+  - No existing link joins hub_product to hub_business_entity as a supply relationship.
+  - link_product_location and link_job_candidate_business_entity connect different
+    hubs.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: employee::EmployeeID
+  resolution: hub_business_entity
+  category: comment_grounded
+  evidence:
+  - 'PurchaseOrderHeader.EmployeeID comment: ''Foreign key to Employee.BusinessEntityID''.'
+  - hub_business_entity is already fed by the Employee source, with business key BusinessEntityID.
+  confidence: 0.9
+  ratification_status: accepted

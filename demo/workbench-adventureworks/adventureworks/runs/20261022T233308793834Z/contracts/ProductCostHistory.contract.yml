@@ -1,0 +1,74 @@
+spec-version: 1.0.0
+name: ProductCostHistory
+namespace: source
+dataAssetResourceName: datastore://source/ProductCostHistory
+doc: Historical record of the standard cost of a product over time. Each row captures
+  the standard cost applicable to a product for a validity period (StartDate to EndDate).
+  The contract enforces the declared schema and business-key constraints; no value-level
+  thresholds are mandated by the requirements.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductID
+  description: Identifier of the product whose standard cost is recorded; references
+    the Product asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StartDate
+  description: Date on which the standard cost became effective for the product.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EndDate
+  description: Date on which the standard cost stopped being effective for the product.
+    Empty when the cost is still current.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StandardCost
+  description: Standard cost of the product during the validity period.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

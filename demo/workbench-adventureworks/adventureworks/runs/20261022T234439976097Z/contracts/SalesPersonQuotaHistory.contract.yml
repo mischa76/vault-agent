@@ -1,0 +1,73 @@
+spec-version: 1.0.0
+name: SalesPersonQuotaHistory
+namespace: source
+dataAssetResourceName: datastore://source/SalesPersonQuotaHistory
+doc: Historical record of sales quotas assigned to sales people, one row per sales
+  person (BusinessEntityID) and quota date. The contract enforces the declared schema
+  and the business key columns; no value-level thresholds are mandated by the requirements.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the sales person (business entity) to whom the quota
+    applies.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: QuotaDate
+  description: Date on which the sales quota became effective for the sales person.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: SalesQuota
+  description: Sales quota amount assigned to the sales person as of the quota date.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (GUID) for the row, used as a row-level
+    identifier by the source system.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source row was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

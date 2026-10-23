@@ -1,0 +1,61 @@
+spec-version: 1.0.0
+name: Department
+namespace: source
+dataAssetResourceName: datastore://source/Department
+doc: 'Department represents an organizational department within the company (source:
+  Department table). The contract enforces the declared schema, the business key DepartmentID,
+  and not-null rules; value-level semantics are minimal pending producer/consumer
+  review.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: DepartmentID
+  description: Unique identifier of the department; business key of the Department
+    asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the department.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: GroupName
+  description: Name of the group to which the department belongs.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the department record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

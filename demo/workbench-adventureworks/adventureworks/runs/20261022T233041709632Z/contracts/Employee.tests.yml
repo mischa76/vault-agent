@@ -1,0 +1,20 @@
+version: 2
+models:
+- name: stg_Employee
+  columns:
+  - name: BUSINESSENTITYID
+    tests:
+    - unique
+    - not_null
+  - name: NATIONALIDNUMBER
+    tests:
+    - unique
+    - not_null
+  - name: LOGINID
+    tests:
+    - unique
+    - not_null
+  - name: ROWGUID
+    tests:
+    - unique
+    - not_null

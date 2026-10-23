@@ -1,0 +1,73 @@
+spec-version: 1.0.0
+name: ProductSubcategory
+namespace: source
+dataAssetResourceName: datastore://source/ProductSubcategory
+doc: Product subcategory reference data from the source system, where each record
+  groups products under a parent product category. The contract enforces the declared
+  schema and business-key identity. Ownership and agreement are left to human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductSubcategoryID
+  description: Identifier of the product subcategory. It is the business key of this
+    asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductCategoryID
+  description: Identifier of the parent product category that this subcategory belongs
+    to. It references ProductCategory.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the product subcategory.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) assigned in the source system.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

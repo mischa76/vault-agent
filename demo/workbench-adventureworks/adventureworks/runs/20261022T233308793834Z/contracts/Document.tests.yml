@@ -1,0 +1,16 @@
+version: 2
+models:
+- name: stg_Document
+  columns:
+  - name: DOCUMENTNODE
+    tests:
+    - unique
+    - not_null
+  - name: TITLE
+    tests:
+    - unique
+    - not_null
+  - name: CHANGENUMBER
+    tests:
+    - unique
+    - not_null

@@ -1,0 +1,848 @@
+# Business↔source mapping — review & ratify (WP9, ADR-0008).
+# Edit table/column below, then: vault-agent resume --mappings <this file>
+# Or override one concept:      vault-agent resume --map "concept=TABLE.COLUMN"
+# gaps have no in-scope source (Business Vault/marts); unresolved need your decision.
+proposals:
+- key: Customer::AccountNumber
+  concept: AccountNumber
+  entity: Customer
+  table: Customer
+  column: AccountNumber
+  category: exact_name
+  confidence: 0.85
+  ratification_status: accepted
+  evidence:
+  - 'Customer anchor table; comment: ''Unique number identifying the customer assigned
+    by the accounting system.'''
+  - Computed column (type AS)
+- key: SalesOrderHeader::SalesOrderNumber
+  concept: SalesOrderNumber
+  entity: SalesOrderHeader
+  table: SalesOrderHeader
+  column: SalesOrderNumber
+  category: exact_name
+  confidence: 0.88
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Unique sales order identification number.'''
+  - SalesOrderID is a surrogate PK; SalesOrderNumber is the business-facing number
+- key: SalesOrderDetail::sales_order_line
+  concept: sales_order_line
+  entity: SalesOrderDetail
+  table: SalesOrderDetail
+  column: SalesOrderDetailID
+  category: llm_semantic
+  confidence: 0.65
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''One incremental unique number per product sold.'''
+  - Line key is composite with SalesOrderID (FK to header); SalesOrderDetailID is
+    the line identifier
+- key: SalesTerritory::TerritoryID
+  concept: TerritoryID
+  entity: SalesTerritory
+  table: SalesTerritory
+  column: TerritoryID
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Primary key for SalesTerritory records.'''
+  - Anchor table; other TerritoryID columns are FKs
+- key: CreditCard::CreditCardID
+  concept: CreditCardID
+  entity: CreditCard
+  table: CreditCard
+  column: CreditCardID
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Primary key for CreditCard records.'''
+- key: Currency::CurrencyCode
+  concept: CurrencyCode
+  entity: Currency
+  table: Currency
+  column: CurrencyCode
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''The ISO code for the Currency.'''
+  - Anchor table
+- key: CurrencyRate::currency_rate
+  concept: currency_rate
+  entity: CurrencyRate
+  table: CurrencyRate
+  column: CurrencyRateID
+  category: llm_semantic
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Primary key for CurrencyRate records.'''
+- key: SpecialOffer::SpecialOfferID
+  concept: SpecialOfferID
+  entity: SpecialOffer
+  table: SpecialOffer
+  column: SpecialOfferID
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Primary key for SpecialOffer records.'''
+- key: SalesReason::SalesReasonID
+  concept: SalesReasonID
+  entity: SalesReason
+  table: SalesReason
+  column: SalesReasonID
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Primary key for SalesReason records.'''
+- key: ShoppingCartItem::shopping_cart_item
+  concept: shopping_cart_item
+  entity: ShoppingCartItem
+  table: ShoppingCartItem
+  column: ShoppingCartItemID
+  category: llm_semantic
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Primary key for ShoppingCartItem records.'''
+- key: SalesTaxRate::sales_tax_rate
+  concept: sales_tax_rate
+  entity: SalesTaxRate
+  table: SalesTaxRate
+  column: SalesTaxRateID
+  category: llm_semantic
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Primary key for SalesTaxRate records.'''
+- key: hub_customer::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_customer
+  table: Customer
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - Customer table; 'Date and time the record was last updated.'
+- key: hub_customer::rowguid
+  concept: rowguid
+  entity: hub_customer
+  table: Customer
+  column: rowguid
+  category: exact_name
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - Customer table rowguid
+- key: hub_business_entity::Name
+  concept: Name
+  entity: hub_business_entity
+  table: Store
+  column: Name
+  category: exact_name
+  confidence: 0.8
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Name of the store.'''
+  - Only Name column among business-entity-like tables in scope (Person not provided)
+- key: hub_business_entity::Demographics
+  concept: Demographics
+  entity: hub_business_entity
+  table: Store
+  column: Demographics
+  category: exact_name
+  confidence: 0.85
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Demographic informationg about the store...'''
+- key: hub_business_entity::SalesQuota
+  concept: SalesQuota
+  entity: hub_business_entity
+  table: SalesPerson
+  column: SalesQuota
+  category: exact_name
+  confidence: 0.8
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Projected yearly sales.'''
+  - SalesPersonQuotaHistory.SalesQuota is a history alternative
+- key: hub_business_entity::Bonus
+  concept: Bonus
+  entity: hub_business_entity
+  table: SalesPerson
+  column: Bonus
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Bonus due if quota is met.'''
+- key: hub_business_entity::CommissionPct
+  concept: CommissionPct
+  entity: hub_business_entity
+  table: SalesPerson
+  column: CommissionPct
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Commision percent received per sale.'''
+- key: hub_business_entity::SalesYTD
+  concept: SalesYTD
+  entity: hub_business_entity
+  table: SalesPerson
+  column: SalesYTD
+  category: exact_name
+  confidence: 0.85
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Sales total year to date.'''
+- key: hub_business_entity::SalesLastYear
+  concept: SalesLastYear
+  entity: hub_business_entity
+  table: SalesPerson
+  column: SalesLastYear
+  category: exact_name
+  confidence: 0.85
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Sales total of previous year.'''
+- key: link_sales_person_territory_history::StartDate
+  concept: StartDate
+  entity: link_sales_person_territory_history
+  table: SalesTerritoryHistory
+  column: StartDate
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Date the sales representive started work in the territory.'''
+- key: link_sales_person_territory_history::EndDate
+  concept: EndDate
+  entity: link_sales_person_territory_history
+  table: SalesTerritoryHistory
+  column: EndDate
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Date the sales representative left work in the territory.'''
+- key: hub_sales_territory::Name
+  concept: Name
+  entity: hub_sales_territory
+  table: SalesTerritory
+  column: Name
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Sales territory description'''
+- key: hub_sales_territory::Group
+  concept: Group
+  entity: hub_sales_territory
+  table: SalesTerritory
+  column: Group
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Geographic area to which the sales territory belong.'''
+- key: hub_sales_territory::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_sales_territory
+  table: SalesTerritory
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - SalesTerritory last-updated timestamp
+- key: hub_sales_territory::rowguid
+  concept: rowguid
+  entity: hub_sales_territory
+  table: SalesTerritory
+  column: rowguid
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - SalesTerritory rowguid
+- key: hub_sales_territory::SalesYTD
+  concept: SalesYTD
+  entity: hub_sales_territory
+  table: SalesTerritory
+  column: SalesYTD
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Sales in the territory year to date.'''
+- key: hub_sales_territory::SalesLastYear
+  concept: SalesLastYear
+  entity: hub_sales_territory
+  table: SalesTerritory
+  column: SalesLastYear
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Sales in the territory the previous year.'''
+- key: hub_sales_territory::CostYTD
+  concept: CostYTD
+  entity: hub_sales_territory
+  table: SalesTerritory
+  column: CostYTD
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Business costs in the territory year to date.'''
+- key: hub_sales_territory::CostLastYear
+  concept: CostLastYear
+  entity: hub_sales_territory
+  table: SalesTerritory
+  column: CostLastYear
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Business costs in the territory the previous year.'''
+- key: hub_sales_order::RevisionNumber
+  concept: RevisionNumber
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: RevisionNumber
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesOrderHeader attribute
+- key: hub_sales_order::OrderDate
+  concept: OrderDate
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: OrderDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesOrderHeader attribute
+- key: hub_sales_order::DueDate
+  concept: DueDate
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: DueDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesOrderHeader attribute
+- key: hub_sales_order::ShipDate
+  concept: ShipDate
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: ShipDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesOrderHeader attribute
+- key: hub_sales_order::Status
+  concept: Status
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: Status
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Order current status...'''
+- key: hub_sales_order::OnlineOrderFlag
+  concept: OnlineOrderFlag
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: OnlineOrderFlag
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesOrderHeader attribute
+- key: hub_sales_order::PurchaseOrderNumber
+  concept: PurchaseOrderNumber
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: PurchaseOrderNumber
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesOrderHeader attribute
+- key: hub_sales_order::AccountNumber
+  concept: AccountNumber
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: AccountNumber
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Financial accounting number reference.'''
+- key: hub_sales_order::Comment
+  concept: Comment
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: Comment
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesOrderHeader attribute
+- key: hub_sales_order::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - SalesOrderHeader timestamp
+- key: hub_sales_order::rowguid
+  concept: rowguid
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: rowguid
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - SalesOrderHeader rowguid
+- key: hub_sales_order::SubTotal
+  concept: SubTotal
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: SubTotal
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - SalesOrderHeader stored column
+- key: hub_sales_order::TaxAmt
+  concept: TaxAmt
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: TaxAmt
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Tax amount.'''
+- key: hub_sales_order::Freight
+  concept: Freight
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: Freight
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Shipping cost.'''
+- key: hub_sales_order::TotalDue
+  concept: TotalDue
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: TotalDue
+  category: exact_name
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - 'computed column in source: ''Subtotal + TaxAmt + Freight'''
+- key: hub_sales_order::CreditCardApprovalCode
+  concept: CreditCardApprovalCode
+  entity: hub_sales_order
+  table: SalesOrderHeader
+  column: CreditCardApprovalCode
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Approval code provided by the credit card company.'''
+- key: hub_sales_order_line::CarrierTrackingNumber
+  concept: CarrierTrackingNumber
+  entity: hub_sales_order_line
+  table: SalesOrderDetail
+  column: CarrierTrackingNumber
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesOrderDetail attribute
+- key: hub_sales_order_line::OrderQty
+  concept: OrderQty
+  entity: hub_sales_order_line
+  table: SalesOrderDetail
+  column: OrderQty
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesOrderDetail attribute
+- key: hub_sales_order_line::UnitPrice
+  concept: UnitPrice
+  entity: hub_sales_order_line
+  table: SalesOrderDetail
+  column: UnitPrice
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesOrderDetail attribute
+- key: hub_sales_order_line::UnitPriceDiscount
+  concept: UnitPriceDiscount
+  entity: hub_sales_order_line
+  table: SalesOrderDetail
+  column: UnitPriceDiscount
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesOrderDetail attribute
+- key: hub_sales_order_line::LineTotal
+  concept: LineTotal
+  entity: hub_sales_order_line
+  table: SalesOrderDetail
+  column: LineTotal
+  category: exact_name
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - computed column in source
+- key: hub_sales_order_line::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_sales_order_line
+  table: SalesOrderDetail
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - SalesOrderDetail timestamp
+- key: hub_sales_order_line::rowguid
+  concept: rowguid
+  entity: hub_sales_order_line
+  table: SalesOrderDetail
+  column: rowguid
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - SalesOrderDetail rowguid
+- key: hub_credit_card::CardType
+  concept: CardType
+  entity: hub_credit_card
+  table: CreditCard
+  column: CardType
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - CreditCard attribute
+- key: hub_credit_card::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_credit_card
+  table: CreditCard
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - CreditCard timestamp
+- key: hub_credit_card::CardNumber
+  concept: CardNumber
+  entity: hub_credit_card
+  table: CreditCard
+  column: CardNumber
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - CreditCard attribute
+- key: hub_credit_card::ExpMonth
+  concept: ExpMonth
+  entity: hub_credit_card
+  table: CreditCard
+  column: ExpMonth
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - CreditCard attribute
+- key: hub_credit_card::ExpYear
+  concept: ExpYear
+  entity: hub_credit_card
+  table: CreditCard
+  column: ExpYear
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - CreditCard attribute
+- key: hub_currency::Name
+  concept: Name
+  entity: hub_currency
+  table: Currency
+  column: Name
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Currency name.'''
+- key: hub_currency::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_currency
+  table: Currency
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - Currency timestamp
+- key: hub_currency_rate::AverageRate
+  concept: AverageRate
+  entity: hub_currency_rate
+  table: CurrencyRate
+  column: AverageRate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Average exchange rate for the day.'''
+- key: hub_currency_rate::EndOfDayRate
+  concept: EndOfDayRate
+  entity: hub_currency_rate
+  table: CurrencyRate
+  column: EndOfDayRate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Final exchange rate for the day.'''
+- key: hub_currency_rate::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_currency_rate
+  table: CurrencyRate
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - CurrencyRate timestamp
+- key: hub_special_offer::Description
+  concept: Description
+  entity: hub_special_offer
+  table: SpecialOffer
+  column: Description
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Discount description.'''
+- key: hub_special_offer::Type
+  concept: Type
+  entity: hub_special_offer
+  table: SpecialOffer
+  column: Type
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Discount type category.'''
+- key: hub_special_offer::Category
+  concept: Category
+  entity: hub_special_offer
+  table: SpecialOffer
+  column: Category
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SpecialOffer attribute
+- key: hub_special_offer::MinQty
+  concept: MinQty
+  entity: hub_special_offer
+  table: SpecialOffer
+  column: MinQty
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SpecialOffer attribute
+- key: hub_special_offer::MaxQty
+  concept: MaxQty
+  entity: hub_special_offer
+  table: SpecialOffer
+  column: MaxQty
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SpecialOffer attribute
+- key: hub_special_offer::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_special_offer
+  table: SpecialOffer
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - SpecialOffer timestamp (SpecialOfferProduct also has one, but it is a link table)
+- key: hub_special_offer::rowguid
+  concept: rowguid
+  entity: hub_special_offer
+  table: SpecialOffer
+  column: rowguid
+  category: exact_name
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - SpecialOffer rowguid
+- key: hub_special_offer::DiscountPct
+  concept: DiscountPct
+  entity: hub_special_offer
+  table: SpecialOffer
+  column: DiscountPct
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Discount precentage.'''
+- key: hub_special_offer::StartDate
+  concept: StartDate
+  entity: hub_special_offer
+  table: SpecialOffer
+  column: StartDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Discount start date.'''
+- key: hub_special_offer::EndDate
+  concept: EndDate
+  entity: hub_special_offer
+  table: SpecialOffer
+  column: EndDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Discount end date.'''
+- key: hub_sales_reason::Name
+  concept: Name
+  entity: hub_sales_reason
+  table: SalesReason
+  column: Name
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Sales reason description.'''
+- key: hub_sales_reason::ReasonType
+  concept: ReasonType
+  entity: hub_sales_reason
+  table: SalesReason
+  column: ReasonType
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - SalesReason attribute
+- key: hub_sales_reason::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_sales_reason
+  table: SalesReason
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - SalesReason timestamp
+- key: hub_sales_tax_rate::Name
+  concept: Name
+  entity: hub_sales_tax_rate
+  table: SalesTaxRate
+  column: Name
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Tax rate description.'''
+- key: hub_sales_tax_rate::TaxRate
+  concept: TaxRate
+  entity: hub_sales_tax_rate
+  table: SalesTaxRate
+  column: TaxRate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Tax rate amount.'''
+- key: hub_sales_tax_rate::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_sales_tax_rate
+  table: SalesTaxRate
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - SalesTaxRate timestamp
+- key: hub_sales_tax_rate::rowguid
+  concept: rowguid
+  entity: hub_sales_tax_rate
+  table: SalesTaxRate
+  column: rowguid
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - SalesTaxRate rowguid
+- key: hub_shopping_cart_item::Quantity
+  concept: Quantity
+  entity: hub_shopping_cart_item
+  table: ShoppingCartItem
+  column: Quantity
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - 'comment: ''Product quantity ordered.'''
+- key: hub_shopping_cart_item::DateCreated
+  concept: DateCreated
+  entity: hub_shopping_cart_item
+  table: ShoppingCartItem
+  column: DateCreated
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - ShoppingCartItem attribute
+- key: hub_shopping_cart_item::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_shopping_cart_item
+  table: ShoppingCartItem
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.92
+  ratification_status: accepted
+  evidence:
+  - ShoppingCartItem timestamp
+gaps: []
+unresolved:
+- hub_business_entity::ModifiedDate
+- hub_business_entity::rowguid

@@ -1,0 +1,28 @@
+{
+  "id": "adventureworks:20261022T233308793834Z",
+  "project": "adventureworks",
+  "status": "finished",
+  "thread_id": "13ae9650931c420fbf6c71873dc0dda5",
+  "out_dir": "demo/workbench-adventureworks/adventureworks/runs/20261022T233308793834Z",
+  "requirements": "production_requirements.md",
+  "schema": "production_source_schema.yml",
+  "existing_run": "adventureworks:20261022T233041709632Z",
+  "started": "2026-10-22T23:33:08+00:00",
+  "finished": "2026-10-22T23:41:12+00:00",
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run demo/workbench-adventureworks/adventureworks/inputs/production_requirements.md --out demo/workbench-adventureworks/adventureworks/runs/20261022T233308793834Z --source-schema demo/workbench-adventureworks/adventureworks/inputs/production_source_schema.yml --existing demo/workbench-adventureworks/adventureworks/runs/20261022T233041709632Z",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T233308793834Z --accept",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T233308793834Z --owner 'BillOfMaterials=John Doe <john.doe@acme.com>' --owner 'Culture=John Doe <john.doe@acme.com>' --owner 'Document=John Doe <john.doe@acme.com>' --owner 'Illustration=John Doe <john.doe@acme.com>' --owner 'Location=John Doe <john.doe@acme.com>' --owner 'Product=John Doe <john.doe@acme.com>' --owner 'ProductCategory=John Doe <john.doe@acme.com>' --owner 'ProductCostHistory=John Doe <john.doe@acme.com>' --owner 'ProductDescription=John Doe <john.doe@acme.com>' --owner 'ProductDocument=John Doe <john.doe@acme.com>' --owner 'ProductInventory=John Doe <john.doe@acme.com>' --owner 'ProductListPriceHistory=John Doe <john.doe@acme.com>' --owner 'ProductModel=John Doe <john.doe@acme.com>' --owner 'ProductModelIllustration=John Doe <john.doe@acme.com>' --owner 'ProductModelProductDescriptionCulture=John Doe <john.doe@acme.com>' --owner 'ProductPhoto=John Doe <john.doe@acme.com>' --owner 'ProductProductPhoto=John Doe <john.doe@acme.com>' --owner 'ProductReview=John Doe <john.doe@acme.com>' --owner 'ProductSubcategory=John Doe <john.doe@acme.com>' --owner 'ScrapReason=John Doe <john.doe@acme.com>' --owner 'TransactionHistory=John Doe <john.doe@acme.com>' --owner 'TransactionHistoryArchive=John Doe <john.doe@acme.com>' --owner 'UnitMeasure=John Doe <john.doe@acme.com>' --owner 'WorkOrder=John Doe <john.doe@acme.com>' --owner 'WorkOrderRouting=John Doe <john.doe@acme.com>' --accept"
+  ],
+  "checkpoints": [
+    {
+      "phase": "resolution",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T233308793834Z --accept"
+    },
+    {
+      "phase": "signoff",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T233308793834Z --owner 'BillOfMaterials=John Doe <john.doe@acme.com>' --owner 'Culture=John Doe <john.doe@acme.com>' --owner 'Document=John Doe <john.doe@acme.com>' --owner 'Illustration=John Doe <john.doe@acme.com>' --owner 'Location=John Doe <john.doe@acme.com>' --owner 'Product=John Doe <john.doe@acme.com>' --owner 'ProductCategory=John Doe <john.doe@acme.com>' --owner 'ProductCostHistory=John Doe <john.doe@acme.com>' --owner 'ProductDescription=John Doe <john.doe@acme.com>' --owner 'ProductDocument=John Doe <john.doe@acme.com>' --owner 'ProductInventory=John Doe <john.doe@acme.com>' --owner 'ProductListPriceHistory=John Doe <john.doe@acme.com>' --owner 'ProductModel=John Doe <john.doe@acme.com>' --owner 'ProductModelIllustration=John Doe <john.doe@acme.com>' --owner 'ProductModelProductDescriptionCulture=John Doe <john.doe@acme.com>' --owner 'ProductPhoto=John Doe <john.doe@acme.com>' --owner 'ProductProductPhoto=John Doe <john.doe@acme.com>' --owner 'ProductReview=John Doe <john.doe@acme.com>' --owner 'ProductSubcategory=John Doe <john.doe@acme.com>' --owner 'ScrapReason=John Doe <john.doe@acme.com>' --owner 'TransactionHistory=John Doe <john.doe@acme.com>' --owner 'TransactionHistoryArchive=John Doe <john.doe@acme.com>' --owner 'UnitMeasure=John Doe <john.doe@acme.com>' --owner 'WorkOrder=John Doe <john.doe@acme.com>' --owner 'WorkOrderRouting=John Doe <john.doe@acme.com>' --accept"
+    }
+  ]
+}

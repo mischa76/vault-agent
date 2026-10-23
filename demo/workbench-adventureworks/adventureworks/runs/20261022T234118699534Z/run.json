@@ -1,0 +1,28 @@
+{
+  "id": "adventureworks:20261022T234118699534Z",
+  "project": "adventureworks",
+  "status": "finished",
+  "thread_id": "87a2963c084e4f2e9c4e8e48240b4e8a",
+  "out_dir": "demo/workbench-adventureworks/adventureworks/runs/20261022T234118699534Z",
+  "requirements": "purchasing_requirements.md",
+  "schema": "purchasing_source_schema.yml",
+  "existing_run": "adventureworks:20261022T233308793834Z",
+  "started": "2026-10-22T23:41:18+00:00",
+  "finished": "2026-10-22T23:44:34+00:00",
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run demo/workbench-adventureworks/adventureworks/inputs/purchasing_requirements.md --out demo/workbench-adventureworks/adventureworks/runs/20261022T234118699534Z --source-schema demo/workbench-adventureworks/adventureworks/inputs/purchasing_source_schema.yml --existing demo/workbench-adventureworks/adventureworks/runs/20261022T233308793834Z",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T234118699534Z --accept",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T234118699534Z --owner 'ProductVendor=John Doe <john.doe@acme.com>' --owner 'PurchaseOrderDetail=John Doe <john.doe@acme.com>' --owner 'PurchaseOrderHeader=John Doe <john.doe@acme.com>' --owner 'ShipMethod=John Doe <john.doe@acme.com>' --owner 'Vendor=John Doe <john.doe@acme.com>' --accept"
+  ],
+  "checkpoints": [
+    {
+      "phase": "resolution",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T234118699534Z --accept"
+    },
+    {
+      "phase": "signoff",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T234118699534Z --owner 'ProductVendor=John Doe <john.doe@acme.com>' --owner 'PurchaseOrderDetail=John Doe <john.doe@acme.com>' --owner 'PurchaseOrderHeader=John Doe <john.doe@acme.com>' --owner 'ShipMethod=John Doe <john.doe@acme.com>' --owner 'Vendor=John Doe <john.doe@acme.com>' --accept"
+    }
+  ]
+}

@@ -1,0 +1,62 @@
+spec-version: 1.0.0
+name: ProductModelProductDescriptionCulture
+namespace: source
+dataAssetResourceName: datastore://source/ProductModelProductDescriptionCulture
+doc: Association between a product model, a product description, and a culture, indicating
+  which localized description applies to a product model for a given culture. The
+  contract enforces the declared schema and key fields; no value-level thresholds
+  are stated in the requirements. Ownership and agreement are to be resolved at the
+  human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductModelID
+  description: Identifier of the product model this localized description applies
+    to; references ProductModel.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductDescriptionID
+  description: Identifier of the product description; references ProductDescription.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CultureID
+  description: Identifier of the culture (locale) of the description; references Culture.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

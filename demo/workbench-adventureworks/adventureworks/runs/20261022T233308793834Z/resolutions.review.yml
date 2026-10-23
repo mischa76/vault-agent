@@ -1,0 +1,238 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: product::ProductNumber
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Product.ProductNumber ('Unique product identification number') is an alternate
+    key of Product; no existing hub models products (existing hubs cover business
+    entity, address, department, shift, etc.).
+  confidence: 0.9
+  ratification_status: accepted
+- concept: product::ProductID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Product.ProductID is the primary key of Product; no existing hub has a product
+    key. Referenced by many new tables as FK to Product.ProductID.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: product::Name
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Product.Name is a descriptive attribute of the product concept; no existing hub
+    models product.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: product category::Name
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductCategory.Name is a descriptive attribute of a category; no category hub
+    exists in the vault.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: product category::ProductCategoryID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductCategory.ProductCategoryID primary key; no existing hub has this key or
+    concept.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: product subcategory::Name
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductSubcategory.Name is a descriptive attribute; no subcategory hub exists.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: product subcategory::ProductSubcategoryID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductSubcategory.ProductSubcategoryID primary key; no matching existing hub.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: product model::Name
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductModel.Name is a descriptive attribute; no product model hub exists.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: product model::ProductModelID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductModel.ProductModelID primary key; no matching existing hub.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: culture::CultureID
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - Culture.CultureID nchar(6) primary key; vault has no culture/language hub (hub_country_region
+    keyed by CountryRegionCode is a different concept, no cross-reference).
+  confidence: 0.9
+  ratification_status: accepted
+- concept: unit of measure::UnitMeasureCode
+  resolution: NEW
+  category: semantic
+  evidence:
+  - UnitMeasure.UnitMeasureCode nchar(3) primary key; no existing unit-of-measure
+    hub.
+  confidence: 0.92
+  ratification_status: accepted
+- concept: product description::ProductDescriptionID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductDescription.ProductDescriptionID primary key; nothing similar in vault.
+  confidence: 0.93
+  ratification_status: accepted
+- concept: product photograph::ProductPhotoID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductPhoto.ProductPhotoID primary key; nothing similar in vault.
+  confidence: 0.93
+  ratification_status: accepted
+- concept: illustration::IllustrationID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Illustration.IllustrationID primary key; no existing illustration hub.
+  confidence: 0.93
+  ratification_status: accepted
+- concept: document::DocumentNode
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - Document.DocumentNode hierarchyid primary key; no document hub exists. Document.Owner
+    references Employee.BusinessEntityID but that is only a relationship to hub_business_entity,
+    not the same concept.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: document::Title
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Document.Title is a descriptive attribute of document; no existing document hub.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: engineering change::ChangeNumber
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Document.ChangeNumber 'Engineering change approval number'; no existing construct
+    models engineering changes.
+  confidence: 0.7
+  ratification_status: accepted
+- concept: location::Name
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - Location.Name 'Location description' for a manufacturing location; descriptive
+    attribute. No existing location hub; hub_address (AddressID) is a postal address,
+    a different concept with no cross-reference.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: location::LocationID
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - Location.LocationID smallint, manufacturing/inventory location with CostRate and
+    Availability; not the postal address (hub_address, AddressID) and no cross-reference
+    given.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: work order::WorkOrderID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - WorkOrder.WorkOrderID; no existing work order hub.
+  confidence: 0.93
+  ratification_status: accepted
+- concept: work order operation::WorkOrderID + OperationSequence
+  resolution: NEW
+  category: semantic
+  evidence:
+  - WorkOrderRouting composite key WorkOrderID+OperationSequence; no existing construct
+    models routing operations.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: scrap reason::Name
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ScrapReason.Name 'Failure description'; descriptive attribute; no existing scrap
+    reason hub.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: scrap reason::ScrapReasonID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ScrapReason.ScrapReasonID primary key; no existing match.
+  confidence: 0.93
+  ratification_status: accepted
+- concept: inventory transaction::TransactionID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - TransactionHistory.TransactionID primary key (also in TransactionHistoryArchive,
+    same concept); no transaction hub exists.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: product inventory::ProductID + LocationID + Shelf + Bin
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductInventory composite key; no existing inventory construct.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: product review::ProductReviewID
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - ProductReview.ProductReviewID primary key; reviewer is identified only by name/email
+    text, with no BusinessEntityID cross-reference.
+  confidence: 0.92
+  ratification_status: accepted
+- concept: bill of materials::ProductAssemblyID + ComponentID + StartDate
+  resolution: NEW
+  category: semantic
+  evidence:
+  - BillOfMaterials natural composite key of assembly, component and start date; no
+    existing BOM construct.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: bill of materials::BillOfMaterialsID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - BillOfMaterials.BillOfMaterialsID surrogate primary key; no existing BOM construct.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: product cost history::ProductID + StartDate
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductCostHistory key ProductID+StartDate; history of product cost, no existing
+    construct.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: product list price history::ProductID + StartDate
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductListPriceHistory key ProductID+StartDate; no existing construct.
+  confidence: 0.88
+  ratification_status: accepted

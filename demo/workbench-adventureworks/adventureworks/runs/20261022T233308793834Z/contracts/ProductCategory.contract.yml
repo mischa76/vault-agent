@@ -1,0 +1,59 @@
+spec-version: 1.0.0
+name: ProductCategory
+namespace: source
+dataAssetResourceName: datastore://source/ProductCategory
+doc: High-level product category (top level of the product classification hierarchy)
+  staged from the source ProductCategory table. The contract enforces the declared
+  schema, a unique non-null ProductCategoryID business key, and the listed fields.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductCategoryID
+  description: Unique identifier of the product category; business key.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the product category.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) for the record.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

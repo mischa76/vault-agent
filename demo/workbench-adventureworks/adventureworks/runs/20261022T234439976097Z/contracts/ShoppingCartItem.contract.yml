@@ -1,0 +1,83 @@
+spec-version: 1.0.0
+name: ShoppingCartItem
+namespace: source
+dataAssetResourceName: datastore://source/ShoppingCartItem
+doc: Items a customer has added to an online shopping cart, as staged from the Sales.ShoppingCartItem
+  source table. The contract enforces the declared schema, primary key and not-null
+  rules. No value-level thresholds are stated in the requirements.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ShoppingCartItemID
+  description: Unique identifier for a shopping cart item row.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ShoppingCartID
+  description: Identifier of the shopping cart the item belongs to.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Quantity
+  description: Number of units of the product in the shopping cart.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductID
+  description: Identifier of the product added to the shopping cart.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: DateCreated
+  description: Date and time the item was added to the shopping cart.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source row was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

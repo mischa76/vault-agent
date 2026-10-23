@@ -1,0 +1,85 @@
+spec-version: 1.0.0
+name: ShipMethod
+namespace: source
+dataAssetResourceName: datastore://source/ShipMethod
+doc: Shipping method reference data (carriers/delivery options) used by purchase orders,
+  staged from the ShipMethod source table. The contract enforces the declared schema,
+  business key (ShipMethodID) uniqueness and not-null rules; ownership and agreement
+  are pending human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ShipMethodID
+  description: Unique identifier of the shipping method; business key referenced by
+    purchase order headers.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the shipping method.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ShipBase
+  description: Minimum shipping charge for the method.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ShipRate
+  description: Shipping charge per unit of measure (e.g. per weight) for the method.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) for the source record.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

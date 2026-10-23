@@ -1,0 +1,781 @@
+source_schemas:
+- table: BillOfMaterials
+  columns:
+  - name: BillOfMaterialsID
+    type: int
+  - name: ProductAssemblyID
+    type: int
+  - name: ComponentID
+    type: int
+  - name: StartDate
+    type: datetime
+  - name: EndDate
+    type: datetime
+  - name: UnitMeasureCode
+    type: nchar(3)
+  - name: BOMLevel
+    type: smallint
+  - name: PerAssemblyQty
+    type: decimal(8, 2)
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: Culture
+  columns:
+  - name: CultureID
+    type: nchar(6)
+  - name: Name
+    type: nvarchar(50)
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: Document
+  columns:
+  - name: DocumentNode
+    type: hierarchyid
+  - name: DocumentLevel
+    type: AS
+  - name: Title
+    type: nvarchar(50)
+  - name: Owner
+    type: int
+  - name: FolderFlag
+    type: bit
+  - name: FileName
+    type: nvarchar(400)
+  - name: FileExtension
+    type: nvarchar(8)
+  - name: Revision
+    type: nchar(5)
+  - name: ChangeNumber
+    type: int
+  - name: Status
+    type: tinyint
+  - name: DocumentSummary
+    type: nvarchar(max)
+  - name: Document
+    type: varbinary(max)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: Illustration
+  columns:
+  - name: IllustrationID
+    type: int
+  - name: Diagram
+    type: XML
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: Location
+  columns:
+  - name: LocationID
+    type: smallint
+  - name: Name
+    type: nvarchar(50)
+  - name: CostRate
+    type: smallmoney
+  - name: Availability
+    type: decimal(8, 2)
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: Product
+  columns:
+  - name: ProductID
+    type: int
+  - name: Name
+    type: nvarchar(50)
+  - name: ProductNumber
+    type: nvarchar(25)
+  - name: MakeFlag
+    type: bit
+  - name: FinishedGoodsFlag
+    type: bit
+  - name: Color
+    type: nvarchar(15)
+  - name: SafetyStockLevel
+    type: smallint
+  - name: ReorderPoint
+    type: smallint
+  - name: StandardCost
+    type: money
+  - name: ListPrice
+    type: money
+  - name: Size
+    type: nvarchar(5)
+  - name: SizeUnitMeasureCode
+    type: nchar(3)
+  - name: WeightUnitMeasureCode
+    type: nchar(3)
+  - name: Weight
+    type: decimal(8, 2)
+  - name: DaysToManufacture
+    type: int
+  - name: ProductLine
+    type: nchar(2)
+  - name: Class
+    type: nchar(2)
+  - name: Style
+    type: nchar(2)
+  - name: ProductSubcategoryID
+    type: int
+  - name: ProductModelID
+    type: int
+  - name: SellStartDate
+    type: datetime
+  - name: SellEndDate
+    type: datetime
+  - name: DiscontinuedDate
+    type: datetime
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductCategory
+  columns:
+  - name: ProductCategoryID
+    type: int
+  - name: Name
+    type: nvarchar(50)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductCostHistory
+  columns:
+  - name: ProductID
+    type: int
+  - name: StartDate
+    type: datetime
+  - name: EndDate
+    type: datetime
+  - name: StandardCost
+    type: money
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductDescription
+  columns:
+  - name: ProductDescriptionID
+    type: int
+  - name: Description
+    type: nvarchar(400)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductDocument
+  columns:
+  - name: ProductID
+    type: int
+  - name: DocumentNode
+    type: hierarchyid
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductInventory
+  columns:
+  - name: ProductID
+    type: int
+  - name: LocationID
+    type: smallint
+  - name: Shelf
+    type: nvarchar(10)
+  - name: Bin
+    type: tinyint
+  - name: Quantity
+    type: smallint
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductListPriceHistory
+  columns:
+  - name: ProductID
+    type: int
+  - name: StartDate
+    type: datetime
+  - name: EndDate
+    type: datetime
+  - name: ListPrice
+    type: money
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductModel
+  columns:
+  - name: ProductModelID
+    type: int
+  - name: Name
+    type: nvarchar(50)
+  - name: CatalogDescription
+    type: XML(Production.ProductDescriptionSchemaCollection)
+  - name: Instructions
+    type: XML(Production.ManuInstructionsSchemaCollection)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductModelIllustration
+  columns:
+  - name: ProductModelID
+    type: int
+  - name: IllustrationID
+    type: int
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductModelProductDescriptionCulture
+  columns:
+  - name: ProductModelID
+    type: int
+  - name: ProductDescriptionID
+    type: int
+  - name: CultureID
+    type: nchar(6)
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductPhoto
+  columns:
+  - name: ProductPhotoID
+    type: int
+  - name: ThumbNailPhoto
+    type: varbinary(max)
+  - name: ThumbnailPhotoFileName
+    type: nvarchar(50)
+  - name: LargePhoto
+    type: varbinary(max)
+  - name: LargePhotoFileName
+    type: nvarchar(50)
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductProductPhoto
+  columns:
+  - name: ProductID
+    type: int
+  - name: ProductPhotoID
+    type: int
+  - name: Primary
+    type: bit
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductReview
+  columns:
+  - name: ProductReviewID
+    type: int
+  - name: ProductID
+    type: int
+  - name: ReviewerName
+    type: nvarchar(50)
+  - name: ReviewDate
+    type: datetime
+  - name: EmailAddress
+    type: nvarchar(50)
+  - name: Rating
+    type: int
+  - name: Comments
+    type: nvarchar(3850)
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ProductSubcategory
+  columns:
+  - name: ProductSubcategoryID
+    type: int
+  - name: ProductCategoryID
+    type: int
+  - name: Name
+    type: nvarchar(50)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: ScrapReason
+  columns:
+  - name: ScrapReasonID
+    type: smallint
+  - name: Name
+    type: nvarchar(50)
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: TransactionHistory
+  columns:
+  - name: TransactionID
+    type: int
+  - name: ProductID
+    type: int
+  - name: ReferenceOrderID
+    type: int
+  - name: ReferenceOrderLineID
+    type: int
+  - name: TransactionDate
+    type: datetime
+  - name: TransactionType
+    type: nchar(1)
+  - name: Quantity
+    type: int
+  - name: ActualCost
+    type: money
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: TransactionHistoryArchive
+  columns:
+  - name: TransactionID
+    type: int
+  - name: ProductID
+    type: int
+  - name: ReferenceOrderID
+    type: int
+  - name: ReferenceOrderLineID
+    type: int
+  - name: TransactionDate
+    type: datetime
+  - name: TransactionType
+    type: nchar(1)
+  - name: Quantity
+    type: int
+  - name: ActualCost
+    type: money
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: UnitMeasure
+  columns:
+  - name: UnitMeasureCode
+    type: nchar(3)
+  - name: Name
+    type: nvarchar(50)
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: WorkOrder
+  columns:
+  - name: WorkOrderID
+    type: int
+  - name: ProductID
+    type: int
+  - name: OrderQty
+    type: int
+  - name: StockedQty
+    type: AS
+  - name: ScrappedQty
+    type: smallint
+  - name: StartDate
+    type: datetime
+  - name: EndDate
+    type: datetime
+  - name: DueDate
+    type: datetime
+  - name: ScrapReasonID
+    type: smallint
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: WorkOrderRouting
+  columns:
+  - name: WorkOrderID
+    type: int
+  - name: ProductID
+    type: int
+  - name: OperationSequence
+    type: smallint
+  - name: LocationID
+    type: smallint
+  - name: ScheduledStartDate
+    type: datetime
+  - name: ScheduledEndDate
+    type: datetime
+  - name: ActualStartDate
+    type: datetime
+  - name: ActualEndDate
+    type: datetime
+  - name: ActualResourceHrs
+    type: decimal(9, 4)
+  - name: PlannedCost
+    type: money
+  - name: ActualCost
+    type: money
+  - name: ModifiedDate
+    type: datetime
+  schema: Production
+- table: Department
+  columns:
+  - name: DepartmentID
+    type: smallint
+  - name: Name
+    type: nvarchar(50)
+  - name: GroupName
+    type: nvarchar(50)
+  - name: ModifiedDate
+    type: datetime
+  schema: HumanResources
+- table: Employee
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: NationalIDNumber
+    type: nvarchar(15)
+  - name: LoginID
+    type: nvarchar(256)
+  - name: OrganizationNode
+    type: hierarchyid
+  - name: OrganizationLevel
+    type: AS
+  - name: JobTitle
+    type: nvarchar(50)
+  - name: BirthDate
+    type: date
+  - name: MaritalStatus
+    type: nchar(1)
+  - name: Gender
+    type: nchar(1)
+  - name: HireDate
+    type: date
+  - name: SalariedFlag
+    type: bit
+  - name: VacationHours
+    type: smallint
+  - name: SickLeaveHours
+    type: smallint
+  - name: CurrentFlag
+    type: bit
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: HumanResources
+- table: EmployeeDepartmentHistory
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: DepartmentID
+    type: smallint
+  - name: ShiftID
+    type: tinyint
+  - name: StartDate
+    type: date
+  - name: EndDate
+    type: date
+  - name: ModifiedDate
+    type: datetime
+  schema: HumanResources
+- table: EmployeePayHistory
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: RateChangeDate
+    type: datetime
+  - name: Rate
+    type: money
+  - name: PayFrequency
+    type: tinyint
+  - name: ModifiedDate
+    type: datetime
+  schema: HumanResources
+- table: JobCandidate
+  columns:
+  - name: JobCandidateID
+    type: int
+  - name: BusinessEntityID
+    type: int
+  - name: Resume
+    type: XML(HumanResources.HRResumeSchemaCollection)
+  - name: ModifiedDate
+    type: datetime
+  schema: HumanResources
+- table: Shift
+  columns:
+  - name: ShiftID
+    type: tinyint
+  - name: Name
+    type: nvarchar(50)
+  - name: StartTime
+    type: time
+  - name: EndTime
+    type: time
+  - name: ModifiedDate
+    type: datetime
+  schema: HumanResources
+- table: Address
+  columns:
+  - name: AddressID
+    type: int
+  - name: AddressLine1
+    type: nvarchar(60)
+  - name: AddressLine2
+    type: nvarchar(60)
+  - name: City
+    type: nvarchar(30)
+  - name: StateProvinceID
+    type: int
+  - name: PostalCode
+    type: nvarchar(15)
+  - name: SpatialLocation
+    type: geography
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: AddressType
+  columns:
+  - name: AddressTypeID
+    type: int
+  - name: Name
+    type: nvarchar(50)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: BusinessEntity
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: BusinessEntityAddress
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: AddressID
+    type: int
+  - name: AddressTypeID
+    type: int
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: BusinessEntityContact
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: PersonID
+    type: int
+  - name: ContactTypeID
+    type: int
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: ContactType
+  columns:
+  - name: ContactTypeID
+    type: int
+  - name: Name
+    type: nvarchar(50)
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: CountryRegion
+  columns:
+  - name: CountryRegionCode
+    type: nvarchar(3)
+  - name: Name
+    type: nvarchar(50)
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: EmailAddress
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: EmailAddressID
+    type: int
+  - name: EmailAddress
+    type: nvarchar(50)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: Password
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: PasswordHash
+    type: varchar(128)
+  - name: PasswordSalt
+    type: varchar(10)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: Person
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: PersonType
+    type: nchar(2)
+  - name: NameStyle
+    type: bit
+  - name: Title
+    type: nvarchar(8)
+  - name: FirstName
+    type: nvarchar(50)
+  - name: MiddleName
+    type: nvarchar(50)
+  - name: LastName
+    type: nvarchar(50)
+  - name: Suffix
+    type: nvarchar(10)
+  - name: EmailPromotion
+    type: int
+  - name: AdditionalContactInfo
+    type: XML(Person.AdditionalContactInfoSchemaCollection)
+  - name: Demographics
+    type: XML(Person.IndividualSurveySchemaCollection)
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: PersonPhone
+  columns:
+  - name: BusinessEntityID
+    type: int
+  - name: PhoneNumber
+    type: nvarchar(25)
+  - name: PhoneNumberTypeID
+    type: int
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: PhoneNumberType
+  columns:
+  - name: PhoneNumberTypeID
+    type: int
+  - name: Name
+    type: nvarchar(50)
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+- table: StateProvince
+  columns:
+  - name: StateProvinceID
+    type: int
+  - name: StateProvinceCode
+    type: nchar(3)
+  - name: CountryRegionCode
+    type: nvarchar(3)
+  - name: IsOnlyStateProvinceFlag
+    type: bit
+  - name: Name
+    type: nvarchar(50)
+  - name: TerritoryID
+    type: int
+  - name: rowguid
+    type: uniqueidentifier
+  - name: ModifiedDate
+    type: datetime
+  schema: Person
+stage_bindings:
+  stg_address: Address
+  stg_address_details: Address
+  stg_address_location: Address
+  stg_address_state_province: Address
+  stg_address_type: AddressType
+  stg_address_type_details: AddressType
+  stg_bill_of_materials: BillOfMaterials
+  stg_bill_of_materials_details: BillOfMaterials
+  stg_business_entity_address: BusinessEntityAddress
+  stg_business_entity_address_details: BusinessEntityAddress
+  stg_business_entity_businessentity: BusinessEntity
+  stg_business_entity_department_shift: EmployeeDepartmentHistory
+  stg_business_entity_department_shift_details: EmployeeDepartmentHistory
+  stg_business_entity_emailaddress: EmailAddress
+  stg_business_entity_employee: Employee
+  stg_business_entity_employeepayhistory: EmployeePayHistory
+  stg_business_entity_password: Password
+  stg_business_entity_person: Person
+  stg_business_entity_personphone: PersonPhone
+  stg_contact_type: ContactType
+  stg_contact_type_details: ContactType
+  stg_country_region: CountryRegion
+  stg_country_region_details: CountryRegion
+  stg_culture: Culture
+  stg_culture_details: Culture
+  stg_department: Department
+  stg_department_details: Department
+  stg_document: Document
+  stg_document_business_entity: Document
+  stg_document_content: Document
+  stg_document_details: Document
+  stg_illustration: Illustration
+  stg_illustration_details: Illustration
+  stg_inventory_transaction_product: TransactionHistory
+  stg_inventory_transaction_transactionhistory: TransactionHistory
+  stg_inventory_transaction_transactionhistoryarchive: TransactionHistoryArchive
+  stg_job_candidate: JobCandidate
+  stg_job_candidate_business_entity: JobCandidate
+  stg_job_candidate_resume: JobCandidate
+  stg_location: Location
+  stg_location_details: Location
+  stg_phone_number_type: PhoneNumberType
+  stg_phone_number_type_details: PhoneNumberType
+  stg_product: Product
+  stg_product_category: ProductCategory
+  stg_product_category_details: ProductCategory
+  stg_product_cost_history: ProductCostHistory
+  stg_product_description: ProductDescription
+  stg_product_description_details: ProductDescription
+  stg_product_details: Product
+  stg_product_document: ProductDocument
+  stg_product_inventory_policy: Product
+  stg_product_lifecycle: Product
+  stg_product_list_price_history: ProductListPriceHistory
+  stg_product_location: ProductInventory
+  stg_product_location_inventory: ProductInventory
+  stg_product_model_content: ProductModel
+  stg_product_model_description_culture: ProductModelProductDescriptionCulture
+  stg_product_model_details: ProductModel
+  stg_product_model_illustration: ProductModelIllustration
+  stg_product_photo: ProductPhoto
+  stg_product_photo_details: ProductPhoto
+  stg_product_photo_image: ProductPhoto
+  stg_product_pricing: Product
+  stg_product_product_photo: ProductProductPhoto
+  stg_product_product_photo_details: ProductProductPhoto
+  stg_product_review: ProductReview
+  stg_product_review_details: ProductReview
+  stg_product_review_product: ProductReview
+  stg_product_review_reviewer_pii: ProductReview
+  stg_product_subcategory_category: ProductSubcategory
+  stg_product_subcategory_details: ProductSubcategory
+  stg_product_unit_measure: Product
+  stg_scrap_reason: ScrapReason
+  stg_scrap_reason_details: ScrapReason
+  stg_shift: Shift
+  stg_shift_details: Shift
+  stg_state_province: StateProvince
+  stg_state_province_country_region: StateProvince
+  stg_state_province_details: StateProvince
+  stg_state_province_territory: StateProvince
+  stg_unit_measure: UnitMeasure
+  stg_unit_measure_details: UnitMeasure
+  stg_work_order: WorkOrder
+  stg_work_order_details: WorkOrder
+  stg_work_order_operation_details: WorkOrderRouting
+  stg_work_order_product: WorkOrder
+  stg_work_order_routing: WorkOrderRouting
+  stg_work_order_scrap_reason: WorkOrder

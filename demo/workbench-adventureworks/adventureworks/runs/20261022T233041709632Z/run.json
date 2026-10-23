@@ -1,0 +1,28 @@
+{
+  "id": "adventureworks:20261022T233041709632Z",
+  "project": "adventureworks",
+  "status": "finished",
+  "thread_id": "aaa1436d7fc74ab188a24a8ccff15843",
+  "out_dir": "demo/workbench-adventureworks/adventureworks/runs/20261022T233041709632Z",
+  "requirements": "hr_requirements.md",
+  "schema": "hr_source_schema.yml",
+  "existing_run": "adventureworks:20261022T232630984833Z",
+  "started": "2026-10-22T23:30:41+00:00",
+  "finished": "2026-10-22T23:33:08+00:00",
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run demo/workbench-adventureworks/adventureworks/inputs/hr_requirements.md --out demo/workbench-adventureworks/adventureworks/runs/20261022T233041709632Z --source-schema demo/workbench-adventureworks/adventureworks/inputs/hr_source_schema.yml --existing demo/workbench-adventureworks/adventureworks/runs/20261022T232630984833Z",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T233041709632Z --accept",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T233041709632Z --owner 'Department=John Doe <john.doe@acme.com>' --owner 'Employee=John Doe <john.doe@acme.com>' --owner 'EmployeeDepartmentHistory=John Doe <john.doe@acme.com>' --owner 'EmployeePayHistory=John Doe <john.doe@acme.com>' --owner 'JobCandidate=John Doe <john.doe@acme.com>' --owner 'Shift=John Doe <john.doe@acme.com>' --accept"
+  ],
+  "checkpoints": [
+    {
+      "phase": "resolution",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T233041709632Z --accept"
+    },
+    {
+      "phase": "signoff",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T233041709632Z --owner 'Department=John Doe <john.doe@acme.com>' --owner 'Employee=John Doe <john.doe@acme.com>' --owner 'EmployeeDepartmentHistory=John Doe <john.doe@acme.com>' --owner 'EmployeePayHistory=John Doe <john.doe@acme.com>' --owner 'JobCandidate=John Doe <john.doe@acme.com>' --owner 'Shift=John Doe <john.doe@acme.com>' --accept"
+    }
+  ]
+}

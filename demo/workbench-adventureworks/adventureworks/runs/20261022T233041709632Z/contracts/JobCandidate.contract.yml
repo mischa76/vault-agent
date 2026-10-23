@@ -1,0 +1,63 @@
+spec-version: 1.0.0
+name: JobCandidate
+namespace: source
+dataAssetResourceName: datastore://source/JobCandidate
+doc: "Source-to-staging asset for job candidates (applicants) from the HumanResources\
+  \ domain. Each record represents a candidate with a r\xE9sum\xE9, optionally linked\
+  \ to an employee via BusinessEntityID. The contract enforces the declared schema,\
+  \ business key identity and not-null rules; value-level semantics are advisory pending\
+  \ producer/consumer review."
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: JobCandidateID
+  description: Identifier of the job candidate record; business key of the asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: BusinessEntityID
+  description: Identifier of the employee the candidate was hired as, referencing
+    Employee.BusinessEntityID. Not populated for candidates who were not hired.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Resume
+  description: "Candidate r\xE9sum\xE9 content. Format (e.g., XML/text document) is\
+    \ not specified in the requirements."
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

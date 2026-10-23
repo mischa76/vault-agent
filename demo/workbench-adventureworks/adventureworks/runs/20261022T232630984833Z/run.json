@@ -1,0 +1,28 @@
+{
+  "id": "adventureworks:20261022T232630984833Z",
+  "project": "adventureworks",
+  "status": "finished",
+  "thread_id": "b168b5dd069f4029b2f188fa86ded5f6",
+  "out_dir": "demo/workbench-adventureworks/adventureworks/runs/20261022T232630984833Z",
+  "requirements": "person_requirements.md",
+  "schema": "person_source_schema.yml",
+  "existing_run": null,
+  "started": "2026-10-22T23:26:30+00:00",
+  "finished": "2026-10-22T23:30:40+00:00",
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run demo/workbench-adventureworks/adventureworks/inputs/person_requirements.md --out demo/workbench-adventureworks/adventureworks/runs/20261022T232630984833Z --source-schema demo/workbench-adventureworks/adventureworks/inputs/person_source_schema.yml",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T232630984833Z --accept",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T232630984833Z --owner 'Address=John Doe <john.doe@acme.com>' --owner 'AddressType=John Doe <john.doe@acme.com>' --owner 'BusinessEntity=John Doe <john.doe@acme.com>' --owner 'BusinessEntityAddress=John Doe <john.doe@acme.com>' --owner 'BusinessEntityContact=John Doe <john.doe@acme.com>' --owner 'ContactType=John Doe <john.doe@acme.com>' --owner 'CountryRegion=John Doe <john.doe@acme.com>' --owner 'EmailAddress=John Doe <john.doe@acme.com>' --owner 'Password=John Doe <john.doe@acme.com>' --owner 'Person=John Doe <john.doe@acme.com>' --owner 'PersonPhone=John Doe <john.doe@acme.com>' --owner 'PhoneNumberType=John Doe <john.doe@acme.com>' --owner 'StateProvince=John Doe <john.doe@acme.com>' --accept"
+  ],
+  "checkpoints": [
+    {
+      "phase": "resolution",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T232630984833Z --accept"
+    },
+    {
+      "phase": "signoff",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261022T232630984833Z --owner 'Address=John Doe <john.doe@acme.com>' --owner 'AddressType=John Doe <john.doe@acme.com>' --owner 'BusinessEntity=John Doe <john.doe@acme.com>' --owner 'BusinessEntityAddress=John Doe <john.doe@acme.com>' --owner 'BusinessEntityContact=John Doe <john.doe@acme.com>' --owner 'ContactType=John Doe <john.doe@acme.com>' --owner 'CountryRegion=John Doe <john.doe@acme.com>' --owner 'EmailAddress=John Doe <john.doe@acme.com>' --owner 'Password=John Doe <john.doe@acme.com>' --owner 'Person=John Doe <john.doe@acme.com>' --owner 'PersonPhone=John Doe <john.doe@acme.com>' --owner 'PhoneNumberType=John Doe <john.doe@acme.com>' --owner 'StateProvince=John Doe <john.doe@acme.com>' --accept"
+    }
+  ]
+}

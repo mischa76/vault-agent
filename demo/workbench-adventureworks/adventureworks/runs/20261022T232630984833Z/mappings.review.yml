@@ -1,0 +1,398 @@
+# Business↔source mapping — review & ratify (WP9, ADR-0008).
+# Edit table/column below, then: vault-agent resume --mappings <this file>
+# Or override one concept:      vault-agent resume --map "concept=TABLE.COLUMN"
+# gaps have no in-scope source (Business Vault/marts); unresolved need your decision.
+proposals:
+- key: BusinessEntity::BusinessEntityID
+  concept: BusinessEntityID
+  entity: BusinessEntity
+  table: BusinessEntity
+  column: BusinessEntityID
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - 'Anchor table; comment: ''Primary key for all customers, vendors, and employees.'''
+  - Other BusinessEntityID occurrences are FKs/subtypes
+- key: Address::AddressID
+  concept: AddressID
+  entity: Address
+  table: Address
+  column: AddressID
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - '''Primary key for Address records.'''
+- key: AddressType::AddressTypeID
+  concept: AddressTypeID
+  entity: AddressType
+  table: AddressType
+  column: AddressTypeID
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - '''Primary key for AddressType records.'''
+- key: ContactType::ContactTypeID
+  concept: ContactTypeID
+  entity: ContactType
+  table: ContactType
+  column: ContactTypeID
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - '''Primary key for ContactType records.'''
+- key: PhoneNumberType::PhoneNumberTypeID
+  concept: PhoneNumberTypeID
+  entity: PhoneNumberType
+  table: PhoneNumberType
+  column: PhoneNumberTypeID
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - '''Primary key for telephone number type records.'''
+- key: CountryRegion::CountryRegionCode
+  concept: CountryRegionCode
+  entity: CountryRegion
+  table: CountryRegion
+  column: CountryRegionCode
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - '''ISO standard code for countries and regions.'' in anchor table CountryRegion'
+- key: StateProvince::StateProvinceID
+  concept: StateProvinceID
+  entity: StateProvince
+  table: StateProvince
+  column: StateProvinceID
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - '''Primary key for StateProvince records.'''
+- key: hub_business_entity::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_business_entity
+  table: BusinessEntity
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.6
+  ratification_status: accepted
+  evidence:
+  - Hub anchored on BusinessEntity; Person.ModifiedDate is an alternative
+- key: hub_business_entity::NameStyle
+  concept: NameStyle
+  entity: hub_business_entity
+  table: Person
+  column: NameStyle
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - Eastern/western name order flag
+- key: hub_business_entity::Title
+  concept: Title
+  entity: hub_business_entity
+  table: Person
+  column: Title
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - '''A courtesy title.'''
+- key: hub_business_entity::FirstName
+  concept: FirstName
+  entity: hub_business_entity
+  table: Person
+  column: FirstName
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''First name of the person.'''
+- key: hub_business_entity::MiddleName
+  concept: MiddleName
+  entity: hub_business_entity
+  table: Person
+  column: MiddleName
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Middle name or middle initial of the person.'''
+- key: hub_business_entity::LastName
+  concept: LastName
+  entity: hub_business_entity
+  table: Person
+  column: LastName
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Last name of the person.'''
+- key: hub_business_entity::Suffix
+  concept: Suffix
+  entity: hub_business_entity
+  table: Person
+  column: Suffix
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - '''Surname suffix.'''
+- key: hub_business_entity::PersonType
+  concept: PersonType
+  entity: hub_business_entity
+  table: Person
+  column: PersonType
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Primary type of person: SC = Store Contact...'''
+- key: hub_business_entity::EmailPromotion
+  concept: EmailPromotion
+  entity: hub_business_entity
+  table: Person
+  column: EmailPromotion
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''0 = Contact does not wish to receive e-mail promotions...'''
+- key: hub_business_entity::AdditionalContactInfo
+  concept: AdditionalContactInfo
+  entity: hub_business_entity
+  table: Person
+  column: AdditionalContactInfo
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Additional contact information about the person stored in xml format.'''
+- key: hub_business_entity::Demographics
+  concept: Demographics
+  entity: hub_business_entity
+  table: Person
+  column: Demographics
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Personal information such as hobbies, and income...'''
+- key: hub_business_entity::EmailAddress
+  concept: EmailAddress
+  entity: hub_business_entity
+  table: EmailAddress
+  column: EmailAddress
+  category: exact_name
+  confidence: 0.93
+  ratification_status: accepted
+  evidence:
+  - '''E-mail address for the person.'''
+- key: hub_address::AddressLine1
+  concept: AddressLine1
+  entity: hub_address
+  table: Address
+  column: AddressLine1
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''First street address line.'''
+- key: hub_address::AddressLine2
+  concept: AddressLine2
+  entity: hub_address
+  table: Address
+  column: AddressLine2
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Second street address line.'''
+- key: hub_address::City
+  concept: City
+  entity: hub_address
+  table: Address
+  column: City
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Name of the city.'''
+- key: hub_address::PostalCode
+  concept: PostalCode
+  entity: hub_address
+  table: Address
+  column: PostalCode
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Postal code for the street address.'''
+- key: hub_address::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_address
+  table: Address
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - '''Date and time the record was last updated.'''
+- key: hub_address::SpatialLocation
+  concept: SpatialLocation
+  entity: hub_address
+  table: Address
+  column: SpatialLocation
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Latitude and longitude of this address.'''
+- key: hub_address_type::Name
+  concept: Name
+  entity: hub_address_type
+  table: AddressType
+  column: Name
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Address type description.'''
+- key: hub_address_type::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_address_type
+  table: AddressType
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - last updated timestamp
+- key: hub_contact_type::Name
+  concept: Name
+  entity: hub_contact_type
+  table: ContactType
+  column: Name
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Contact type description.'''
+- key: hub_contact_type::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_contact_type
+  table: ContactType
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - last updated timestamp
+- key: hub_phone_number_type::Name
+  concept: Name
+  entity: hub_phone_number_type
+  table: PhoneNumberType
+  column: Name
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Name of the telephone number type'''
+- key: hub_phone_number_type::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_phone_number_type
+  table: PhoneNumberType
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - last updated timestamp
+- key: hub_country_region::Name
+  concept: Name
+  entity: hub_country_region
+  table: CountryRegion
+  column: Name
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''Country or region name.'''
+- key: hub_country_region::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_country_region
+  table: CountryRegion
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - last updated timestamp
+- key: hub_state_province::StateProvinceCode
+  concept: StateProvinceCode
+  entity: hub_state_province
+  table: StateProvince
+  column: StateProvinceCode
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''ISO standard state or province code.'''
+- key: hub_state_province::IsOnlyStateProvinceFlag
+  concept: IsOnlyStateProvinceFlag
+  entity: hub_state_province
+  table: StateProvince
+  column: IsOnlyStateProvinceFlag
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''0 = StateProvinceCode exists...'''
+- key: hub_state_province::Name
+  concept: Name
+  entity: hub_state_province
+  table: StateProvince
+  column: Name
+  category: exact_name
+  confidence: 0.97
+  ratification_status: accepted
+  evidence:
+  - '''State or province description.'''
+- key: hub_state_province::ModifiedDate
+  concept: ModifiedDate
+  entity: hub_state_province
+  table: StateProvince
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - last updated timestamp
+- key: hub_state_province::TerritoryID
+  concept: TerritoryID
+  entity: hub_state_province
+  table: StateProvince
+  column: TerritoryID
+  category: exact_name
+  confidence: 0.95
+  ratification_status: accepted
+  evidence:
+  - '''ID of the territory in which the state or province is located.'''
+- key: link_business_entity_address::ModifiedDate
+  concept: ModifiedDate
+  entity: link_business_entity_address
+  table: BusinessEntityAddress
+  column: ModifiedDate
+  category: exact_name
+  confidence: 0.9
+  ratification_status: accepted
+  evidence:
+  - Link between BusinessEntity, Address, AddressType is BusinessEntityAddress
+gaps: []
+unresolved: []

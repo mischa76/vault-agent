@@ -1,0 +1,238 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Vault-Agent run report</title><style>
+:root { color-scheme: light; }
+* { box-sizing: border-box; }
+body { margin: 0; padding: 2rem; color: #0b1324; background: #f8fafc;
+  font: 15px/1.55 -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+main { max-width: 1100px; margin: 0 auto; }
+header h1 { margin: 0 0 .5rem; font-size: 1.6rem; }
+h2 { margin-top: 2rem; border-bottom: 2px solid #e2e8f0; padding-bottom: .3rem; }
+h3 { margin: 1.2rem 0 .4rem; font-size: 1rem; color: #334155; }
+.badges { margin: .3rem 0 .6rem; }
+.badge { display: inline-block; padding: .15rem .55rem; border-radius: 999px;
+  font-size: .8rem; font-weight: 600; margin-right: .4rem; }
+.badge.ok { background: #dcfce7; color: #166534; }
+.badge.err { background: #fee2e2; color: #991b1b; }
+.badge.muted { background: #e2e8f0; color: #334155; }
+.chips .chip { display: inline-block; background: #eef2ff; color: #3730a3;
+  border-radius: 6px; padding: .1rem .5rem; margin: .15rem .3rem .15rem 0; font-size: .82rem; }
+table { border-collapse: collapse; width: 100%; margin: .4rem 0 1rem; font-size: .88rem; }
+th, td { border: 1px solid #e2e8f0; padding: .35rem .55rem; text-align: left; vertical-align: top; }
+th { background: #f1f5f9; }
+tr:nth-child(even) td { background: #fafcff; }
+ul { margin: .3rem 0 1rem; }
+code { background: #f1f5f9; padding: .05rem .3rem; border-radius: 4px; font-size: .85em; }
+pre.mermaid { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px;
+  padding: 1rem; overflow-x: auto; }
+details { margin: .6rem 0; }
+summary { cursor: pointer; font-weight: 600; color: #334155; }
+.hint { color: #475569; font-size: .85rem; }
+.files { columns: 2; font-size: .82rem; }
+</style></head><body><main><header><h1>Vault-Agent run report</h1><div class='badges'><span class="badge ok">validation passed</span><span class="badge ok">no sign-off needed</span><span class='badge muted'>grounding: on</span></div><div class='chips'><span class="chip">7 hubs</span><span class="chip">4 links</span><span class="chip">17 satellites</span><span class="chip">28 raw-vault models</span><span class="chip">24 staging models</span><span class="chip">13 contracts</span><span class="chip">1 ADRs</span></div></header><section><h2>Model graph</h2><pre class="mermaid">flowchart LR
+  classDef hub fill:#dbeafe,stroke:#1e40af,color:#0b1324;
+  classDef hubsource fill:#eff6ff,stroke:#93c5fd,color:#0b1324;
+  classDef link fill:#dcfce7,stroke:#166534,color:#0b1324;
+  classDef sat_standard fill:#fef9c3,stroke:#a16207,color:#0b1324;
+  classDef sat_multi_active fill:#fed7aa,stroke:#c2410c,color:#0b1324;
+  classDef sat_effectivity fill:#e9d5ff,stroke:#7e22ce,color:#0b1324;
+  HUB_BUSINESS_ENTITY[&quot;hub_business_entity&lt;br/&gt;BK: BusinessEntityID&quot;]
+  class HUB_BUSINESS_ENTITY hub;
+  HUB_BUSINESS_ENTITY__SRC0[(&quot;BusinessEntity.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC0 hubsource;
+  HUB_BUSINESS_ENTITY__SRC0 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC1[(&quot;Person.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC1 hubsource;
+  HUB_BUSINESS_ENTITY__SRC1 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC2[(&quot;EmailAddress.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC2 hubsource;
+  HUB_BUSINESS_ENTITY__SRC2 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC3[(&quot;PersonPhone.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC3 hubsource;
+  HUB_BUSINESS_ENTITY__SRC3 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC4[(&quot;Password.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC4 hubsource;
+  HUB_BUSINESS_ENTITY__SRC4 --&gt; HUB_BUSINESS_ENTITY
+  HUB_ADDRESS[&quot;hub_address&lt;br/&gt;BK: AddressID&quot;]
+  class HUB_ADDRESS hub;
+  HUB_ADDRESS_TYPE[&quot;hub_address_type&lt;br/&gt;BK: AddressTypeID&quot;]
+  class HUB_ADDRESS_TYPE hub;
+  HUB_CONTACT_TYPE[&quot;hub_contact_type&lt;br/&gt;BK: ContactTypeID&quot;]
+  class HUB_CONTACT_TYPE hub;
+  HUB_PHONE_NUMBER_TYPE[&quot;hub_phone_number_type&lt;br/&gt;BK: PhoneNumberTypeID&quot;]
+  class HUB_PHONE_NUMBER_TYPE hub;
+  HUB_COUNTRY_REGION[&quot;hub_country_region&lt;br/&gt;BK: CountryRegionCode&quot;]
+  class HUB_COUNTRY_REGION hub;
+  HUB_STATE_PROVINCE[&quot;hub_state_province&lt;br/&gt;BK: StateProvinceID&quot;]
+  class HUB_STATE_PROVINCE hub;
+  LINK_ADDRESS_STATE_PROVINCE{{&quot;link_address_state_province&quot;}}
+  class LINK_ADDRESS_STATE_PROVINCE link;
+  LINK_ADDRESS_STATE_PROVINCE --&gt; HUB_ADDRESS
+  LINK_ADDRESS_STATE_PROVINCE --&gt; HUB_STATE_PROVINCE
+  LINK_STATE_PROVINCE_COUNTRY_REGION{{&quot;link_state_province_country_region&quot;}}
+  class LINK_STATE_PROVINCE_COUNTRY_REGION link;
+  LINK_STATE_PROVINCE_COUNTRY_REGION --&gt; HUB_STATE_PROVINCE
+  LINK_STATE_PROVINCE_COUNTRY_REGION --&gt; HUB_COUNTRY_REGION
+  LINK_BUSINESS_ENTITY_ADDRESS{{&quot;link_business_entity_address&quot;}}
+  class LINK_BUSINESS_ENTITY_ADDRESS link;
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_ADDRESS
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_ADDRESS_TYPE
+  LINK_BUSINESS_ENTITY_CONTACT{{&quot;link_business_entity_contact&quot;}}
+  class LINK_BUSINESS_ENTITY_CONTACT link;
+  LINK_BUSINESS_ENTITY_CONTACT --&gt;|&quot;organisation&quot;| HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_CONTACT --&gt;|&quot;contact_person&quot;| HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_CONTACT --&gt; HUB_CONTACT_TYPE
+  SAT_BUSINESS_ENTITY_DETAILS(&quot;sat_business_entity_details&lt;br/&gt;src: BusinessEntity&quot;)
+  class SAT_BUSINESS_ENTITY_DETAILS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_DETAILS
+  SAT_BUSINESS_ENTITY_PERSON_NAME(&quot;sat_business_entity_person_name&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_NAME sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_NAME
+  SAT_BUSINESS_ENTITY_PERSON_TYPE(&quot;sat_business_entity_person_type&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_TYPE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_TYPE
+  SAT_BUSINESS_ENTITY_PERSON_CONSENT(&quot;sat_business_entity_person_consent&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_CONSENT sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_CONSENT
+  SAT_BUSINESS_ENTITY_PERSON_SENSITIVE(&quot;sat_business_entity_person_sensitive&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_SENSITIVE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_SENSITIVE
+  SAT_BUSINESS_ENTITY_EMAIL(&quot;sat_business_entity_email&lt;br/&gt;src: EmailAddress&quot;)
+  class SAT_BUSINESS_ENTITY_EMAIL sat_multi_active;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMAIL
+  SAT_BUSINESS_ENTITY_PHONE(&quot;sat_business_entity_phone&lt;br/&gt;src: PersonPhone&quot;)
+  class SAT_BUSINESS_ENTITY_PHONE sat_multi_active;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PHONE
+  SAT_BUSINESS_ENTITY_CREDENTIAL(&quot;sat_business_entity_credential&lt;br/&gt;src: Password&quot;)
+  class SAT_BUSINESS_ENTITY_CREDENTIAL sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_CREDENTIAL
+  SAT_ADDRESS_DETAILS(&quot;sat_address_details&lt;br/&gt;src: Address&quot;)
+  class SAT_ADDRESS_DETAILS sat_standard;
+  HUB_ADDRESS --- SAT_ADDRESS_DETAILS
+  SAT_ADDRESS_LOCATION(&quot;sat_address_location&lt;br/&gt;src: Address&quot;)
+  class SAT_ADDRESS_LOCATION sat_standard;
+  HUB_ADDRESS --- SAT_ADDRESS_LOCATION
+  SAT_ADDRESS_TYPE_DETAILS(&quot;sat_address_type_details&lt;br/&gt;src: AddressType&quot;)
+  class SAT_ADDRESS_TYPE_DETAILS sat_standard;
+  HUB_ADDRESS_TYPE --- SAT_ADDRESS_TYPE_DETAILS
+  SAT_CONTACT_TYPE_DETAILS(&quot;sat_contact_type_details&lt;br/&gt;src: ContactType&quot;)
+  class SAT_CONTACT_TYPE_DETAILS sat_standard;
+  HUB_CONTACT_TYPE --- SAT_CONTACT_TYPE_DETAILS
+  SAT_PHONE_NUMBER_TYPE_DETAILS(&quot;sat_phone_number_type_details&lt;br/&gt;src: PhoneNumberType&quot;)
+  class SAT_PHONE_NUMBER_TYPE_DETAILS sat_standard;
+  HUB_PHONE_NUMBER_TYPE --- SAT_PHONE_NUMBER_TYPE_DETAILS
+  SAT_COUNTRY_REGION_DETAILS(&quot;sat_country_region_details&lt;br/&gt;src: CountryRegion&quot;)
+  class SAT_COUNTRY_REGION_DETAILS sat_standard;
+  HUB_COUNTRY_REGION --- SAT_COUNTRY_REGION_DETAILS
+  SAT_STATE_PROVINCE_DETAILS(&quot;sat_state_province_details&lt;br/&gt;src: StateProvince&quot;)
+  class SAT_STATE_PROVINCE_DETAILS sat_standard;
+  HUB_STATE_PROVINCE --- SAT_STATE_PROVINCE_DETAILS
+  SAT_STATE_PROVINCE_TERRITORY(&quot;sat_state_province_territory&lt;br/&gt;src: StateProvince&quot;)
+  class SAT_STATE_PROVINCE_TERRITORY sat_standard;
+  HUB_STATE_PROVINCE --- SAT_STATE_PROVINCE_TERRITORY
+  SAT_BUSINESS_ENTITY_ADDRESS_DETAILS(&quot;sat_business_entity_address_details&lt;br/&gt;src: BusinessEntityAddress&quot;)
+  class SAT_BUSINESS_ENTITY_ADDRESS_DETAILS sat_standard;
+  LINK_BUSINESS_ENTITY_ADDRESS --- SAT_BUSINESS_ENTITY_ADDRESS_DETAILS</pre><details class="graph-source"><summary>Graph source (renders on GitHub / mermaid.live if the diagram did not load)</summary><pre>flowchart LR
+  classDef hub fill:#dbeafe,stroke:#1e40af,color:#0b1324;
+  classDef hubsource fill:#eff6ff,stroke:#93c5fd,color:#0b1324;
+  classDef link fill:#dcfce7,stroke:#166534,color:#0b1324;
+  classDef sat_standard fill:#fef9c3,stroke:#a16207,color:#0b1324;
+  classDef sat_multi_active fill:#fed7aa,stroke:#c2410c,color:#0b1324;
+  classDef sat_effectivity fill:#e9d5ff,stroke:#7e22ce,color:#0b1324;
+  HUB_BUSINESS_ENTITY[&quot;hub_business_entity&lt;br/&gt;BK: BusinessEntityID&quot;]
+  class HUB_BUSINESS_ENTITY hub;
+  HUB_BUSINESS_ENTITY__SRC0[(&quot;BusinessEntity.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC0 hubsource;
+  HUB_BUSINESS_ENTITY__SRC0 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC1[(&quot;Person.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC1 hubsource;
+  HUB_BUSINESS_ENTITY__SRC1 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC2[(&quot;EmailAddress.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC2 hubsource;
+  HUB_BUSINESS_ENTITY__SRC2 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC3[(&quot;PersonPhone.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC3 hubsource;
+  HUB_BUSINESS_ENTITY__SRC3 --&gt; HUB_BUSINESS_ENTITY
+  HUB_BUSINESS_ENTITY__SRC4[(&quot;Password.BusinessEntityID&quot;)]
+  class HUB_BUSINESS_ENTITY__SRC4 hubsource;
+  HUB_BUSINESS_ENTITY__SRC4 --&gt; HUB_BUSINESS_ENTITY
+  HUB_ADDRESS[&quot;hub_address&lt;br/&gt;BK: AddressID&quot;]
+  class HUB_ADDRESS hub;
+  HUB_ADDRESS_TYPE[&quot;hub_address_type&lt;br/&gt;BK: AddressTypeID&quot;]
+  class HUB_ADDRESS_TYPE hub;
+  HUB_CONTACT_TYPE[&quot;hub_contact_type&lt;br/&gt;BK: ContactTypeID&quot;]
+  class HUB_CONTACT_TYPE hub;
+  HUB_PHONE_NUMBER_TYPE[&quot;hub_phone_number_type&lt;br/&gt;BK: PhoneNumberTypeID&quot;]
+  class HUB_PHONE_NUMBER_TYPE hub;
+  HUB_COUNTRY_REGION[&quot;hub_country_region&lt;br/&gt;BK: CountryRegionCode&quot;]
+  class HUB_COUNTRY_REGION hub;
+  HUB_STATE_PROVINCE[&quot;hub_state_province&lt;br/&gt;BK: StateProvinceID&quot;]
+  class HUB_STATE_PROVINCE hub;
+  LINK_ADDRESS_STATE_PROVINCE{{&quot;link_address_state_province&quot;}}
+  class LINK_ADDRESS_STATE_PROVINCE link;
+  LINK_ADDRESS_STATE_PROVINCE --&gt; HUB_ADDRESS
+  LINK_ADDRESS_STATE_PROVINCE --&gt; HUB_STATE_PROVINCE
+  LINK_STATE_PROVINCE_COUNTRY_REGION{{&quot;link_state_province_country_region&quot;}}
+  class LINK_STATE_PROVINCE_COUNTRY_REGION link;
+  LINK_STATE_PROVINCE_COUNTRY_REGION --&gt; HUB_STATE_PROVINCE
+  LINK_STATE_PROVINCE_COUNTRY_REGION --&gt; HUB_COUNTRY_REGION
+  LINK_BUSINESS_ENTITY_ADDRESS{{&quot;link_business_entity_address&quot;}}
+  class LINK_BUSINESS_ENTITY_ADDRESS link;
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_ADDRESS
+  LINK_BUSINESS_ENTITY_ADDRESS --&gt; HUB_ADDRESS_TYPE
+  LINK_BUSINESS_ENTITY_CONTACT{{&quot;link_business_entity_contact&quot;}}
+  class LINK_BUSINESS_ENTITY_CONTACT link;
+  LINK_BUSINESS_ENTITY_CONTACT --&gt;|&quot;organisation&quot;| HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_CONTACT --&gt;|&quot;contact_person&quot;| HUB_BUSINESS_ENTITY
+  LINK_BUSINESS_ENTITY_CONTACT --&gt; HUB_CONTACT_TYPE
+  SAT_BUSINESS_ENTITY_DETAILS(&quot;sat_business_entity_details&lt;br/&gt;src: BusinessEntity&quot;)
+  class SAT_BUSINESS_ENTITY_DETAILS sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_DETAILS
+  SAT_BUSINESS_ENTITY_PERSON_NAME(&quot;sat_business_entity_person_name&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_NAME sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_NAME
+  SAT_BUSINESS_ENTITY_PERSON_TYPE(&quot;sat_business_entity_person_type&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_TYPE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_TYPE
+  SAT_BUSINESS_ENTITY_PERSON_CONSENT(&quot;sat_business_entity_person_consent&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_CONSENT sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_CONSENT
+  SAT_BUSINESS_ENTITY_PERSON_SENSITIVE(&quot;sat_business_entity_person_sensitive&lt;br/&gt;src: Person&quot;)
+  class SAT_BUSINESS_ENTITY_PERSON_SENSITIVE sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PERSON_SENSITIVE
+  SAT_BUSINESS_ENTITY_EMAIL(&quot;sat_business_entity_email&lt;br/&gt;src: EmailAddress&quot;)
+  class SAT_BUSINESS_ENTITY_EMAIL sat_multi_active;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_EMAIL
+  SAT_BUSINESS_ENTITY_PHONE(&quot;sat_business_entity_phone&lt;br/&gt;src: PersonPhone&quot;)
+  class SAT_BUSINESS_ENTITY_PHONE sat_multi_active;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_PHONE
+  SAT_BUSINESS_ENTITY_CREDENTIAL(&quot;sat_business_entity_credential&lt;br/&gt;src: Password&quot;)
+  class SAT_BUSINESS_ENTITY_CREDENTIAL sat_standard;
+  HUB_BUSINESS_ENTITY --- SAT_BUSINESS_ENTITY_CREDENTIAL
+  SAT_ADDRESS_DETAILS(&quot;sat_address_details&lt;br/&gt;src: Address&quot;)
+  class SAT_ADDRESS_DETAILS sat_standard;
+  HUB_ADDRESS --- SAT_ADDRESS_DETAILS
+  SAT_ADDRESS_LOCATION(&quot;sat_address_location&lt;br/&gt;src: Address&quot;)
+  class SAT_ADDRESS_LOCATION sat_standard;
+  HUB_ADDRESS --- SAT_ADDRESS_LOCATION
+  SAT_ADDRESS_TYPE_DETAILS(&quot;sat_address_type_details&lt;br/&gt;src: AddressType&quot;)
+  class SAT_ADDRESS_TYPE_DETAILS sat_standard;
+  HUB_ADDRESS_TYPE --- SAT_ADDRESS_TYPE_DETAILS
+  SAT_CONTACT_TYPE_DETAILS(&quot;sat_contact_type_details&lt;br/&gt;src: ContactType&quot;)
+  class SAT_CONTACT_TYPE_DETAILS sat_standard;
+  HUB_CONTACT_TYPE --- SAT_CONTACT_TYPE_DETAILS
+  SAT_PHONE_NUMBER_TYPE_DETAILS(&quot;sat_phone_number_type_details&lt;br/&gt;src: PhoneNumberType&quot;)
+  class SAT_PHONE_NUMBER_TYPE_DETAILS sat_standard;
+  HUB_PHONE_NUMBER_TYPE --- SAT_PHONE_NUMBER_TYPE_DETAILS
+  SAT_COUNTRY_REGION_DETAILS(&quot;sat_country_region_details&lt;br/&gt;src: CountryRegion&quot;)
+  class SAT_COUNTRY_REGION_DETAILS sat_standard;
+  HUB_COUNTRY_REGION --- SAT_COUNTRY_REGION_DETAILS
+  SAT_STATE_PROVINCE_DETAILS(&quot;sat_state_province_details&lt;br/&gt;src: StateProvince&quot;)
+  class SAT_STATE_PROVINCE_DETAILS sat_standard;
+  HUB_STATE_PROVINCE --- SAT_STATE_PROVINCE_DETAILS
+  SAT_STATE_PROVINCE_TERRITORY(&quot;sat_state_province_territory&lt;br/&gt;src: StateProvince&quot;)
+  class SAT_STATE_PROVINCE_TERRITORY sat_standard;
+  HUB_STATE_PROVINCE --- SAT_STATE_PROVINCE_TERRITORY
+  SAT_BUSINESS_ENTITY_ADDRESS_DETAILS(&quot;sat_business_entity_address_details&lt;br/&gt;src: BusinessEntityAddress&quot;)
+  class SAT_BUSINESS_ENTITY_ADDRESS_DETAILS sat_standard;
+  LINK_BUSINESS_ENTITY_ADDRESS --- SAT_BUSINESS_ENTITY_ADDRESS_DETAILS</pre></details></section><section><h2>Constructs</h2><h3>Hubs</h3><table><thead><tr><th>Hub</th><th>Business key</th><th>Source entity</th><th>Sources</th><th>Description</th></tr></thead><tbody><tr><td>hub_business_entity</td><td>BusinessEntityID</td><td>BusinessEntity</td><td>BusinessEntity.BusinessEntityID, Person.BusinessEntityID, EmailAddress.BusinessEntityID, PersonPhone.BusinessEntityID, Password.BusinessEntityID</td><td>Company-wide party register (customers, vendors, employees, persons). A person is a business entity with no separate identifier, so persons share this hub rather than getting a hub of their own. Email, phone and credential relations are also keyed by BusinessEntityID and feed this hub.</td></tr><tr><td>hub_address</td><td>AddressID</td><td>Address</td><td>—</td><td>Postal address, recorded once and shareable by many parties.</td></tr><tr><td>hub_address_type</td><td>AddressTypeID</td><td>AddressType</td><td>—</td><td>Reference list of address types (Billing, Home, Shipping).</td></tr><tr><td>hub_contact_type</td><td>ContactTypeID</td><td>ContactType</td><td>—</td><td>Reference list of contact roles a person plays for an organisation.</td></tr><tr><td>hub_phone_number_type</td><td>PhoneNumberTypeID</td><td>PhoneNumberType</td><td>—</td><td>Reference list of phone number kinds (home, work, mobile).</td></tr><tr><td>hub_country_region</td><td>CountryRegionCode</td><td>CountryRegion</td><td>—</td><td>Country or region identified by ISO code.</td></tr><tr><td>hub_state_province</td><td>StateProvinceID</td><td>StateProvince</td><td>—</td><td>State or province identified by its own number.</td></tr></tbody></table><h3>Links</h3><table><thead><tr><th>Link</th><th>Type</th><th>Participations</th><th>Driving key</th><th>Unit of work</th><th>Payload</th></tr></thead><tbody><tr><td>link_address_state_province</td><td>standard</td><td>hub_address, hub_state_province</td><td>—</td><td>AddressID + StateProvinceID from Address</td><td>0</td></tr><tr><td>link_state_province_country_region</td><td>standard</td><td>hub_state_province, hub_country_region</td><td>—</td><td>StateProvinceID + CountryRegionCode from StateProvince</td><td>0</td></tr><tr><td>link_business_entity_address</td><td>standard</td><td>hub_business_entity, hub_address, hub_address_type</td><td>—</td><td>BusinessEntityID + AddressID + AddressTypeID from BusinessEntityAddress</td><td>0</td></tr><tr><td>link_business_entity_contact</td><td>standard</td><td>hub_business_entity (organisation), hub_business_entity (contact_person), hub_contact_type</td><td>—</td><td>BusinessEntityID + PersonID + ContactTypeID from BusinessEntityContact</td><td>0</td></tr></tbody></table><h3>Satellites</h3><table><thead><tr><th>Satellite</th><th>Type</th><th>Parent</th><th>Attrs</th><th>CDK</th><th>Source table</th><th>Split rationale</th></tr></thead><tbody><tr><td>sat_business_entity_details</td><td>standard</td><td>hub_business_entity</td><td>1</td><td>—</td><td>BusinessEntity</td><td>—</td></tr><tr><td>sat_business_entity_person_name</td><td>standard</td><td>hub_business_entity</td><td>7</td><td>—</td><td>Person</td><td>Ordinary personal name data; carries the Person last-modified timestamp (held in this satellite only).</td></tr><tr><td>sat_business_entity_person_type</td><td>standard</td><td>hub_business_entity</td><td>1</td><td>—</td><td>Person</td><td>Classification used for wide aggregated reporting; changes at a different rate from names.</td></tr><tr><td>sat_business_entity_person_consent</td><td>standard</td><td>hub_business_entity</td><td>1</td><td>—</td><td>Person</td><td>Compliance-sensitive consent tracked independently of name changes.</td></tr><tr><td>sat_business_entity_person_sensitive</td><td>standard</td><td>hub_business_entity</td><td>2</td><td>—</td><td>Person</td><td>Data classification: sensitive personal data restricted separately; XML data type.</td></tr><tr><td>sat_business_entity_email</td><td>multi_active</td><td>hub_business_entity</td><td>2</td><td>EmailAddressID</td><td>EmailAddress</td><td>Own source relation at finer grain (several per person).</td></tr><tr><td>sat_business_entity_phone</td><td>multi_active</td><td>hub_business_entity</td><td>1</td><td>PhoneNumberTypeID, PhoneNumber</td><td>PersonPhone</td><td>Own source relation at finer grain (several per person).</td></tr><tr><td>sat_business_entity_credential</td><td>standard</td><td>hub_business_entity</td><td>1</td><td>—</td><td>Password</td><td>Separate source; credential values excluded for security.</td></tr><tr><td>sat_address_details</td><td>standard</td><td>hub_address</td><td>5</td><td>—</td><td>Address</td><td>—</td></tr><tr><td>sat_address_location</td><td>standard</td><td>hub_address</td><td>1</td><td>—</td><td>Address</td><td>Spatial data type and personal-data classification differ from street details.</td></tr><tr><td>sat_address_type_details</td><td>standard</td><td>hub_address_type</td><td>2</td><td>—</td><td>AddressType</td><td>—</td></tr><tr><td>sat_contact_type_details</td><td>standard</td><td>hub_contact_type</td><td>2</td><td>—</td><td>ContactType</td><td>—</td></tr><tr><td>sat_phone_number_type_details</td><td>standard</td><td>hub_phone_number_type</td><td>2</td><td>—</td><td>PhoneNumberType</td><td>—</td></tr><tr><td>sat_country_region_details</td><td>standard</td><td>hub_country_region</td><td>2</td><td>—</td><td>CountryRegion</td><td>—</td></tr><tr><td>sat_state_province_details</td><td>standard</td><td>hub_state_province</td><td>4</td><td>—</td><td>StateProvince</td><td>—</td></tr><tr><td>sat_state_province_territory</td><td>standard</td><td>hub_state_province</td><td>1</td><td>—</td><td>StateProvince</td><td>Territory reassignment changes at a different rate and drives historical roll-ups.</td></tr><tr><td>sat_business_entity_address_details</td><td>standard</td><td>link_business_entity_address</td><td>1</td><td>—</td><td>BusinessEntityAddress</td><td>—</td></tr></tbody></table></section><section><h2>Validation — PASSED</h2><table><thead><tr><th>Severity</th><th>Code</th><th>Construct</th><th>Message</th></tr></thead><tbody><tr><td>warning</td><td>W_SAT_ATTR_OVERLAP_CROSS_SOURCE</td><td>hub_business_entity</td><td>attribute &#x27;ModifiedDate&#x27; appears in several satellites of &#x27;hub_business_entity&#x27; fed by different source relations (sat_business_entity_credential &lt;- PASSWORD, sat_business_entity_details &lt;- BUSINESSENTITY, sat_business_entity_email &lt;- EMAILADDRESS, sat_business_entity_person_name &lt;- PERSON, sat_business_entity_phone &lt;- PERSONPHONE); same-named columns of different relations are different attributes, but check they are not one measure historised twice</td></tr><tr><td>warning</td><td>W_ROLE_BK_NOT_IN_SOURCE</td><td>link_business_entity_contact</td><td>role-qualified participation hub_business_entity (role &#x27;organisation&#x27;) expects a source column &#x27;ORGANISATION_BUSINESSENTITYID&#x27;, which matches no column in the declared source schema; verify the source or complete the schema</td></tr><tr><td>warning</td><td>W_ROLE_BK_NOT_IN_SOURCE</td><td>link_business_entity_contact</td><td>role-qualified participation hub_business_entity (role &#x27;contact_person&#x27;) expects a source column &#x27;CONTACT_PERSON_BUSINESSENTITYID&#x27;, which matches no column in the declared source schema; verify the source or complete the schema</td></tr></tbody></table></section><section><h2>Review queue</h2><p><strong>Status:</strong> advisory only — 4 decision(s), 4 disclosure(s).</p><h3>Decisions</h3><h4>Review flags (advisory)</h4><ul><li><strong>code_generator: satellite &#x27;sat_business_entity_email&#x27; of type &#x27;multi_active&#x27; on multi-source hub &#x27;hub_business_entity&#x27; is not supported; flagged for human review</strong> <em>(code_generator)</em></li><li><strong>code_generator: satellite &#x27;sat_business_entity_phone&#x27; of type &#x27;multi_active&#x27; on multi-source hub &#x27;hub_business_entity&#x27; is not supported; flagged for human review</strong> <em>(code_generator)</em></li><li><strong>code_generator: satellite &#x27;sat_business_entity_credential&#x27; declares source_table &#x27;Password&#x27;, which is not one of the feeds of its multi-source parent &#x27;hub_business_entity&#x27; (BusinessEntity, Person); a finer-grain relation under one feed cannot say which feed it belongs to (ADR-0011), so this is flagged for human review</strong> <em>(code_generator)</em></li><li><strong>code_generator: staging model &#x27;stg_business_entity_contact&#x27; was bound to &#x27;BusinessEntityContact&#x27;, which declares none of ORGANISATION_BUSINESSENTITYID, CONTACT_PERSON_BUSINESSENTITYID that the stage hashes or derives; the binding is refused and the stage reads &#x27;raw_business_entity_contact&#x27; until a human maps the relation</strong> <em>(code_generator)</em></li></ul><h3>Disclosures (no answer needed)</h3><h4>Validation warnings (advisory)</h4><ul><li><strong>W_SAT_ATTR_OVERLAP_CROSS_SOURCE on hub_business_entity</strong> — attribute &#x27;ModifiedDate&#x27; appears in several satellites of &#x27;hub_business_entity&#x27; fed by different source relations (sat_business_entity_credential &lt;- PASSWORD, sat_business_entity_details &lt;- BUSINESSENTITY, sat_business_entity_email &lt;- EMAILADDRESS, sat_business_entity_person_name &lt;- PERSON, sat_business_entity_phone &lt;- PERSONPHONE); same-named columns of different relations are different attributes, but check they are not one measure historised twice <em>(validator)</em></li><li><strong>W_ROLE_BK_NOT_IN_SOURCE on link_business_entity_contact</strong> — role-qualified participation hub_business_entity (role &#x27;organisation&#x27;) expects a source column &#x27;ORGANISATION_BUSINESSENTITYID&#x27;, which matches no column in the declared source schema; verify the source or complete the schema <em>(validator)</em></li><li><strong>W_ROLE_BK_NOT_IN_SOURCE on link_business_entity_contact</strong> — role-qualified participation hub_business_entity (role &#x27;contact_person&#x27;) expects a source column &#x27;CONTACT_PERSON_BUSINESSENTITYID&#x27;, which matches no column in the declared source schema; verify the source or complete the schema <em>(validator)</em></li></ul><h4>Review flags (advisory)</h4><ul><li><strong>requirements_parser: document &#x27;demo/workbench-adventureworks/adventureworks/inputs/person_requirements.md&#x27; did not fit one model response and was extracted over 2 segment(s) split on section boundaries; requirement ids are per-segment and were de-collided — review the extracted set for completeness</strong> <em>(requirements_parser)</em></li></ul></section><section><h2>Source mappings</h2><table><thead><tr><th>Concept</th><th>Source</th><th>Category</th><th>Confidence</th><th>Status</th></tr></thead><tbody><tr><td>BusinessEntityID</td><td>BusinessEntity.BusinessEntityID</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>AddressID</td><td>Address.AddressID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>AddressTypeID</td><td>AddressType.AddressTypeID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ContactTypeID</td><td>ContactType.ContactTypeID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>PhoneNumberTypeID</td><td>PhoneNumberType.PhoneNumberTypeID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>CountryRegionCode</td><td>CountryRegion.CountryRegionCode</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>StateProvinceID</td><td>StateProvince.StateProvinceID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>BusinessEntity.ModifiedDate</td><td>exact_name</td><td>0.600</td><td>accepted</td></tr><tr><td>NameStyle</td><td>Person.NameStyle</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Title</td><td>Person.Title</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>FirstName</td><td>Person.FirstName</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>MiddleName</td><td>Person.MiddleName</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>LastName</td><td>Person.LastName</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>Suffix</td><td>Person.Suffix</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>PersonType</td><td>Person.PersonType</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>EmailPromotion</td><td>Person.EmailPromotion</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>AdditionalContactInfo</td><td>Person.AdditionalContactInfo</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>Demographics</td><td>Person.Demographics</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>EmailAddress</td><td>EmailAddress.EmailAddress</td><td>exact_name</td><td>0.930</td><td>accepted</td></tr><tr><td>AddressLine1</td><td>Address.AddressLine1</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>AddressLine2</td><td>Address.AddressLine2</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>City</td><td>Address.City</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>PostalCode</td><td>Address.PostalCode</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>Address.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>SpatialLocation</td><td>Address.SpatialLocation</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>Name</td><td>AddressType.Name</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>AddressType.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Name</td><td>ContactType.Name</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>ContactType.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Name</td><td>PhoneNumberType.Name</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>PhoneNumberType.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>Name</td><td>CountryRegion.Name</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>CountryRegion.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>StateProvinceCode</td><td>StateProvince.StateProvinceCode</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>IsOnlyStateProvinceFlag</td><td>StateProvince.IsOnlyStateProvinceFlag</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>Name</td><td>StateProvince.Name</td><td>exact_name</td><td>0.970</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>StateProvince.ModifiedDate</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>TerritoryID</td><td>StateProvince.TerritoryID</td><td>exact_name</td><td>0.950</td><td>accepted</td></tr><tr><td>ModifiedDate</td><td>BusinessEntityAddress.ModifiedDate</td><td>exact_name</td><td>0.900</td><td>accepted</td></tr></tbody></table><p class='hint'>Ratify in <code>mappings.review.yml</code> (<code>vault-agent resume --mappings &lt;file&gt;</code>).</p></section><section><h2>Data contracts</h2><table><thead><tr><th>Contract</th><th>Owner</th><th>Fields</th></tr></thead><tbody><tr><td>Address</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>9</td></tr><tr><td>AddressType</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>4</td></tr><tr><td>BusinessEntity</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>3</td></tr><tr><td>BusinessEntityAddress</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>5</td></tr><tr><td>BusinessEntityContact</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>5</td></tr><tr><td>ContactType</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>3</td></tr><tr><td>CountryRegion</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>3</td></tr><tr><td>EmailAddress</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>5</td></tr><tr><td>Password</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>5</td></tr><tr><td>Person</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>13</td></tr><tr><td>PersonPhone</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>4</td></tr><tr><td>PhoneNumberType</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>3</td></tr><tr><td>StateProvince</td><td>John Doe &lt;john.doe@acme.com&gt;</td><td>8</td></tr></tbody></table></section><section><details><summary>Generated files</summary><ul class='files'><li><code>models/raw_vault/hub_business_entity.sql</code></li><li><code>models/raw_vault/hub_address.sql</code></li><li><code>models/raw_vault/hub_address_type.sql</code></li><li><code>models/raw_vault/hub_contact_type.sql</code></li><li><code>models/raw_vault/hub_phone_number_type.sql</code></li><li><code>models/raw_vault/hub_country_region.sql</code></li><li><code>models/raw_vault/hub_state_province.sql</code></li><li><code>models/raw_vault/link_address_state_province.sql</code></li><li><code>models/raw_vault/link_state_province_country_region.sql</code></li><li><code>models/raw_vault/link_business_entity_address.sql</code></li><li><code>models/raw_vault/link_business_entity_contact.sql</code></li><li><code>models/raw_vault/sat_business_entity_details.sql</code></li><li><code>models/raw_vault/sat_business_entity_person_name.sql</code></li><li><code>models/raw_vault/sat_business_entity_person_type.sql</code></li><li><code>models/raw_vault/sat_business_entity_person_consent.sql</code></li><li><code>models/raw_vault/sat_business_entity_person_sensitive.sql</code></li><li><code>models/raw_vault/sat_business_entity_email.sql</code></li><li><code>models/raw_vault/sat_business_entity_phone.sql</code></li><li><code>models/raw_vault/sat_business_entity_credential.sql</code></li><li><code>models/raw_vault/sat_address_details.sql</code></li><li><code>models/raw_vault/sat_address_location.sql</code></li><li><code>models/raw_vault/sat_address_type_details.sql</code></li><li><code>models/raw_vault/sat_contact_type_details.sql</code></li><li><code>models/raw_vault/sat_phone_number_type_details.sql</code></li><li><code>models/raw_vault/sat_country_region_details.sql</code></li><li><code>models/raw_vault/sat_state_province_details.sql</code></li><li><code>models/raw_vault/sat_state_province_territory.sql</code></li><li><code>models/raw_vault/sat_business_entity_address_details.sql</code></li><li><code>models/staging/stg_business_entity_businessentity.sql</code></li><li><code>models/staging/stg_business_entity_person.sql</code></li><li><code>models/staging/stg_business_entity_emailaddress.sql</code></li><li><code>models/staging/stg_business_entity_personphone.sql</code></li><li><code>models/staging/stg_business_entity_password.sql</code></li><li><code>models/staging/stg_address.sql</code></li><li><code>models/staging/stg_address_type.sql</code></li><li><code>models/staging/stg_contact_type.sql</code></li><li><code>models/staging/stg_phone_number_type.sql</code></li><li><code>models/staging/stg_country_region.sql</code></li><li><code>models/staging/stg_state_province.sql</code></li><li><code>models/staging/stg_address_state_province.sql</code></li><li><code>models/staging/stg_state_province_country_region.sql</code></li><li><code>models/staging/stg_business_entity_address.sql</code></li><li><code>models/staging/stg_business_entity_contact.sql</code></li><li><code>models/staging/stg_address_details.sql</code></li><li><code>models/staging/stg_address_location.sql</code></li><li><code>models/staging/stg_address_type_details.sql</code></li><li><code>models/staging/stg_contact_type_details.sql</code></li><li><code>models/staging/stg_phone_number_type_details.sql</code></li><li><code>models/staging/stg_country_region_details.sql</code></li><li><code>models/staging/stg_state_province_details.sql</code></li><li><code>models/staging/stg_state_province_territory.sql</code></li><li><code>models/staging/stg_business_entity_address_details.sql</code></li><li><code>dbt_project.yml</code></li><li><code>packages.yml</code></li><li><code>models/staging/sources.yml</code></li><li><code>README.md</code></li><li><code>contracts/Address.contract.yml</code></li><li><code>contracts/AddressType.contract.yml</code></li><li><code>contracts/BusinessEntity.contract.yml</code></li><li><code>contracts/BusinessEntityAddress.contract.yml</code></li><li><code>contracts/BusinessEntityContact.contract.yml</code></li><li><code>contracts/ContactType.contract.yml</code></li><li><code>contracts/CountryRegion.contract.yml</code></li><li><code>contracts/EmailAddress.contract.yml</code></li><li><code>contracts/Password.contract.yml</code></li><li><code>contracts/Person.contract.yml</code></li><li><code>contracts/PersonPhone.contract.yml</code></li><li><code>contracts/PhoneNumberType.contract.yml</code></li><li><code>contracts/StateProvince.contract.yml</code></li><li><code>adrs/ (1 ADR file(s))</code></li></ul></details></section></main><script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js" onload="mermaid.initialize({securityLevel:'strict'}); mermaid.run();" onerror="document.querySelectorAll('details.graph-source').forEach(function(d){d.open=true;});"></script></body></html>

@@ -1,0 +1,50 @@
+spec-version: 1.0.0
+name: CountryRegionCurrency
+namespace: source
+dataAssetResourceName: datastore://source/CountryRegionCurrency
+doc: Mapping of country/region codes to the currency codes used in each, staged from
+  the Sales.CountryRegionCurrency source table. The contract enforces the declared
+  schema and business-key uniqueness/not-null; ownership and agreement are to be confirmed
+  at the human review checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: CountryRegionCode
+  description: Code identifying the country or region. Part of the business key; relates
+    to the country/region reference data.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CurrencyCode
+  description: Code identifying the currency used in the country or region. Part of
+    the business key; relates to the Currency asset's CurrencyCode.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

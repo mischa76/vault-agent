@@ -1,0 +1,16 @@
+version: 2
+models:
+- name: stg_ProductSubcategory
+  columns:
+  - name: PRODUCTSUBCATEGORYID
+    tests:
+    - unique
+    - not_null
+  - name: PRODUCTCATEGORYID
+    tests:
+    - unique
+    - not_null
+  - name: NAME
+    tests:
+    - unique
+    - not_null

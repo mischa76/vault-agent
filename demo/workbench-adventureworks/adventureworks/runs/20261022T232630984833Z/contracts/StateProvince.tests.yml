@@ -1,0 +1,20 @@
+version: 2
+models:
+- name: stg_StateProvince
+  columns:
+  - name: STATEPROVINCEID
+    tests:
+    - unique
+    - not_null
+  - name: COUNTRYREGIONCODE
+    tests:
+    - unique
+    - not_null
+  - name: NAME
+    tests:
+    - unique
+    - not_null
+  - name: ROWGUID
+    tests:
+    - unique
+    - not_null

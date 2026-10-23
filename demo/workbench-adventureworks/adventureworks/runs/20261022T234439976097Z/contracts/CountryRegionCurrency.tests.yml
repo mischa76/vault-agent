@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_CountryRegionCurrency
+  columns:
+  - name: COUNTRYREGIONCODE
+    tests:
+    - unique
+    - not_null
+  - name: CURRENCYCODE
+    tests:
+    - unique
+    - not_null
