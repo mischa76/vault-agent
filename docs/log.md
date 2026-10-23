@@ -10492,3 +10492,17 @@ calls the warning. There is one dispatcher per macro — `pit` in `macros/tables
 `macros/tables/snowflake/bridge.sql` — and it `adapter.dispatch`es to `postgres__pit`, `databricks__pit` and the
 rest; every platform's call passes the warning. **Überprüft.** `grep -rln "pit_bridge_deprecation_warning()"` over the
 installed `macros/tables/`: exactly those two files.
+
+## [2026-10-23] Pushed; `aw_chain` dropped; the owner's `aw` rebuilt a fourth time, with WP89 and WP90 — PASS=407, 180 of 180 idempotent, three hand views left
+
+**Autor:** Claude Code
+
+The owner: „push it, aw neu aufbauen, aw_chain löschen, C22 -> go". Pushed `cfd8dea..f6e8eaa`. `aw_chain` checked first
+(177 tables, 169 views: the chain's vault and its ten `raw_` views, nothing else) and dropped. The Sales run regenerated
+as for WP90's P3 (WP85's remedies; the key repair re-applied to this step's own constructs) into
+`workbench/adventureworks/rebuild-20261023/` (replacing the WP86 rebuild); `aw` checked (180 tables, 227 views, nothing
+outside the vault and the seven `raw_` views), dropped, **only three hand views re-applied**
+(`raw_work_order_product_location`, `raw_sales_order_currency_rate`, `raw_business_entity_store_sales_person`), built
+twice: **PASS=407 both times, 180 of 180 incremental models `INSERT 0 0`**; `link_sales_order_customer` 0 rows without
+a customer (was 31 465). The four other hand views are gone: their links bind by evidence (four `link_binding_evidence`
+decisions). **Überprüft.** Build logs, counts by `psql`. C22: see the correction above — paused for the owner.
