@@ -10463,3 +10463,22 @@ unit links, `SpecialOfferProduct` over `SalesOrderDetail`), and `Person` over `B
 `link_person_business_entity` is a reading either way — the review decision is there for that. **Bewusst nicht
 getan.** C18's second half (a binding field at sign-off, C4/WP82); the store role's column choice (a model matter);
 `aw` not rebuilt with WP90; `aw_wp90` dropped.
+
+## [2026-10-23] Correction: AutomateDV 0.11.4 deprecates `pit()` and `bridge()` — C22 paused before its spec
+
+**Autor:** Claude Code
+
+The owner: „C22 -> go". Before specifying, the installed package was read further than on 2026-10-22: every
+platform's `pit`/`bridge` dispatcher calls `automate_dv.pit_bridge_deprecation_warning()`
+(`macros/internal/helpers/logging/error_messages.sql:86`): „DEPRECATED: Since AutomateDV v0.11.0, the pit() and
+bridge() macros are now deprecated. This is because they are not currently fit-for-purpose and need significant
+usability and performance improvements, as well as a design overhaul. Improved implementations will be released in a
+future version of AutomateDV." The log entry of 2026-10-22 (C22), `backlog-2026-10-candidates-3.md` C22 („AutomateDV
+0.11.4 ships `pit` and `bridge` for all five platforms") and my answer to the owner's question whether AutomateDV could
+build PIT/Bridge read the signatures and materialisations but **not** this warning — the claim „ships" is true, the
+implied „fit to build on" is not. Also read: the PostgreSQL `pit` tests `enable_ghost_record`, which it never sets
+(sat.sql sets it from `var('enable_ghost_records')`), so a PIT always takes the zero-key/`1900-01-01` path for a
+missing satellite row. **Consequence:** building on the deprecated macros, writing PIT SQL outside AutomateDV (the
+locked stack forbids bypassing it without an ADR), or waiting for AutomateDV's redesign is the owner's decision; no
+spec, no code written. **Überprüft.** The warning text and its call in `macros/tables/snowflake/pit.sql:12` and the
+other dispatchers (installed 0.11.4, `demo/bank_postgres/dbt_packages/automate_dv`).
