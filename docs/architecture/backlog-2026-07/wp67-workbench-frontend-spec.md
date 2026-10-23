@@ -6,7 +6,7 @@ updated: 2026-10-11
 
 # WP67 — Workbench frontend: the three-pane shell and the perspectives over the WP66 API
 
-Status: **Approved and in progress** (2026-10-11, user: „go, bau WP67“; ADR-0014 accepted,
+Status: **Approved and in progress** (2026-10-11, the owner's go for WP67; ADR-0014 accepted,
 frontend B) · Owner: Mischa Eismann · Author: Claude. WP65 phases 2 and 3 plus the Artefacts
 perspective of phase 4; the chat console stays WP68. No change to any agent, gate or prompt;
 the suite stays keyless; the Python package gains three small API additions, each guarded.

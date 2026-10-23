@@ -7,7 +7,7 @@ updated: 2026-09-11
 # Kick-off WP35 — Databricks as a selectable target platform
 
 You are adding the first non-Postgres target the generator knows by name. Keyless: no workspace
-exists on this machine, and the user asked for the code first („erstmal keyless").
+exists on this machine, and the user asked for the code first (the owner's go for the keyless part first).
 
 ## Read first
 1. `CLAUDE.md` — the invariants on verifying against the installed thing and writing the guard

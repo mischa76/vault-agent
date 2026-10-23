@@ -6,7 +6,7 @@ updated: 2026-09-14
 
 # WP38 — Translated subtype feeds: a table keyed on a surrogate feeds satellites on the hub keyed on the natural key
 
-Status: **Planned** (2026-09-14, user: „plane 2 als nächstes WP") · Owner: Mischa Eismann ·
+Status: **Planned** (2026-09-14, the owner's go for item 2 as the next WP) · Owner: Mischa Eismann ·
 Author: Claude. Depends on WP29 (resolver, resolution checkpoint, prompt section), WP36
 (`KeyTranslation`, the translation view), WP7 §7.1 (`Satellite.source_table`).
 

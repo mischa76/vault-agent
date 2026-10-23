@@ -6,7 +6,7 @@ updated: 2026-10-06
 
 # WP52 — Three small corrections before the next run: honest chain metrics, the refused satellite's home, and a conflict that is a decision
 
-Status: **Approved and in progress** (2026-10-06, user: „1 + 2 + 3 umsetzen", and on 3: „wenn es
+Status: **Approved and in progress** (2026-10-06, the owner's go for all three, and on 3: „wenn es
 keinen Fehler für das generierte Model erzeugt, aber eine Entscheidung benötigt um zu vermeiden
 dass etwas verlorengeht dann ist es kein Fehler sondern eine Entscheidung") · Owner: Mischa
 Eismann · Author: Claude. Touches `eval/run.py` (WP30 §2.7 scoring), the repair memory (WP46,

@@ -8,7 +8,7 @@ updated: 2026-10-21
 
 Status: **Proposed, not prioritised** (2026-10-21) · Owner: Mischa Eismann · Author: Claude.
 Collected during the owner's own end-to-end run of AdventureWorks in the workbench (started
-2026-10-19). Each entry needs its own „go"; the order below is the order they came up, not a
+2026-10-19). Each entry needs its own go; the order below is the order they came up, not a
 priority. Nothing here is built.
 
 ## C1 — ADR candidate: a source-driven mode (a run without a requirements document)

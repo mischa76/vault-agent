@@ -6,7 +6,7 @@ updated: 2026-10-03
 
 # WP43 — Decisions and disclosures: the review queue counts answers, not signals
 
-Status: **Approved and in progress** (2026-10-03, user: „sehr gut, mach es so" on the analysis
+Status: **Approved and in progress** (2026-10-03, the owner's go on the analysis
 below; „triff Entscheidungen insofern selbst solange sie nicht gegen definierte Paradigmen
 verstossen") · Owner: Mischa Eismann · Author: Claude. Touches ADR-0006 (the queue), WP5 §5.1
 (one presentation source for three renderers), WP23 (the extension inventory), WP30 §2.7 and

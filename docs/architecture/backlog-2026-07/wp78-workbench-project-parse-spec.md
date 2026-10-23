@@ -6,7 +6,7 @@ updated: 2026-10-17
 
 # WP78 — The workbench says whether a run's project resolves and parses: the deterministic resolution check always, `dbt parse` when dbt is installed, no warehouse
 
-Status: **Approved and in progress** (2026-10-17, user: „go, bau Stufe 1 als WP78“) · Owner:
+Status: **Approved and in progress** (2026-10-17, the owner's go for stage 1 as WP78) · Owner:
 Mischa Eismann · Author: Claude. From the question of 2026-10-17 whether the build is shown in
 the UI: it is not — the workbench ends where the pipeline ends, at the written dbt project, and
 the only evidence of buildability a reviewer sees is the `source_binding` flags. Stage 2 (a

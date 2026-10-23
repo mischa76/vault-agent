@@ -6,7 +6,7 @@ updated: 2026-10-04
 
 # WP45 — Composite business keys, typed from the modeler to the hash
 
-Status: **Approved and in progress** (2026-10-04, user: „Ok, leg los" on the analysis of the two
+Status: **Approved and in progress** (2026-10-04, the owner's go on the analysis of the two
 Sales failures; this is the second of the two) · Owner: Mischa Eismann · Author: Claude. Touches
 `Hub`, `rules.canonical_hub_key_column` and its callers, the staging generator, the hub renderer,
 `E_SAT_KEY_NOT_IN_SOURCE`, `W_BK_NOT_IN_SOURCE`, `E_HUB_HK_COLLISION`, the modeler's tool schema,

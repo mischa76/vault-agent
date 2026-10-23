@@ -6,7 +6,7 @@ updated: 2026-09-15
 
 # WP39 — Two-hop translation: a key into a hub-less subtype reaches the supertype hub
 
-Status: **Approved and in progress** (2026-09-15, user: „dann im Anschluss 2") · Owner: Mischa
+Status: **Approved and in progress** (2026-09-15, the owner's go for item 2 next) · Owner: Mischa
 Eismann · Author: Claude. Depends on WP36 (`KeyTranslation`, `_translation_target`, the
 translation view), WP37 (`resolve_fk_target`, the applier), WP38 (subtype feeds), and the
 widened `E_SAT_KEY_NOT_IN_SOURCE` of 2026-09-15.

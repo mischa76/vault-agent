@@ -6,7 +6,7 @@ updated: 2026-10-07
 
 # WP54 — A gate for the lost payload: a hub whose table no satellite reads
 
-Status: **Approved and in progress** (2026-10-07, user: „bau das Gate für die verlorene Payload“)
+Status: **Approved and in progress** (2026-10-07, the owner's go for the lost-payload gate)
 · Owner: Mischa Eismann · Author: Claude. Touches the validator and `rules/`; no prompt change,
 no model call. A gate, not a backstop: it refuses and feeds the re-model loop with a remedy.
 

@@ -6,7 +6,7 @@ updated: 2026-10-07
 
 # WP55 — A link with one hub is that hub's satellite feed
 
-Status: **Approved and in progress** (2026-10-07, user: „Remedy für Links mit nur einem Hub“)
+Status: **Approved and in progress** (2026-10-07, the owner's choice of the remedy for one-hub links)
 · Owner: Mischa Eismann · Author: Claude. Touches the modeler's parser (`_parse`), a flag kind
 and its review role. A **backstop**, not a gate: the shape never reaches the validator — the
 parser drops it today — so the repair happens where the drop happens, deterministically, with

@@ -6,7 +6,7 @@ updated: 2026-10-23
 
 # WP89 — Homonym keys: a ratified foreign key's translation wins over a same-named column that means something else (C26)
 
-Status: **Approved and in progress** (2026-10-23, owner: „3. ja" — C26 as a work package, before C22) · Owner:
+Status: **Approved and in progress** (2026-10-23, the owner's yes to the third — C26 as a work package, before C22) · Owner:
 Mischa Eismann · Author: Claude. Found by WP86's measurement (`docs/log.md`, 2026-10-23, P3).
 
 ## 1 What is wrong, in one paragraph

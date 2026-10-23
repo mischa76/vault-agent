@@ -6,7 +6,7 @@ updated: 2026-10-23
 
 # Spike results — a PIT on the owner's vault: AutomateDV's deprecated `pit()` against plain SQL (C22)
 
-Charter: the owner's word of 2026-10-23, „Probelauf und ADR", after the correction that AutomateDV 0.11.4
+Charter: the owner's go of 2026-10-23 for a trial and an ADR, after the correction that AutomateDV 0.11.4
 deprecates `pit()` and `bridge()` (`docs/log.md`, 2026-10-23). Measured keyless on PostgreSQL in a throwaway
 schema `aw_pit_trial` beside the owner's `aw` (rebuilt the same day with WP89/WP90), dropped afterwards. Decision:
 `adrs/ADR-0016-business-vault-pit-bridge.md`.

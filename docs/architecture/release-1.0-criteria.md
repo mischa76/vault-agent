@@ -6,7 +6,7 @@ updated: 2026-10-23
 
 # What 1.0 waits for — the criteria, replacing „the first live Databricks build"
 
-Status: **Agreed** (2026-10-23, owner: „ok, kriterien eintragen und 0.11.0 schneiden") · Owner: Mischa Eismann ·
+Status: **Agreed** (2026-10-23, the owner's go to record the criteria and cut 0.11.0) · Owner: Mischa Eismann ·
 Author: Claude. Supersedes the rule in the CHANGELOG header since 0.9.0 (2026-09-12): „versions stay below 1.0 until
 the first live Databricks build". That build happened on 2026-10-16/17 (WP72), and the week after it the owner's own
 hands-on build found three classes of wrong data in the generated vault (C11–C13) and this week's corrections (WP86,

@@ -6,7 +6,7 @@ updated: 2026-09-12
 
 # WP37 — Relationship-table links: a hub-less table with two keys is a link between their targets
 
-Status: **Approved and in progress** (2026-09-12, user: „mach WP37") · Owner: Mischa Eismann ·
+Status: **Approved and in progress** (2026-09-12, the owner's go for WP37) · Owner: Mischa Eismann ·
 Author: Claude. Depends on WP34 (proposer, checkpoint, applier), WP36 (translation), and the
 extractor fix of 2026-09-12 (90 foreign keys; without it the second key of every relationship
 table is missing and this WP has nothing to work on).

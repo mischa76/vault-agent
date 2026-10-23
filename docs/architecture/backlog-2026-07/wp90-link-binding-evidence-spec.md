@@ -6,7 +6,7 @@ updated: 2026-10-23
 
 # WP90 — An evidence tier for link bindings: a link several relations offer binds to the one its satellites' payload or its participations' key singles out (C18, first half)
 
-Status: **Approved and in progress** (2026-10-23, owner: „2. ja" to „allow the evidence-based third binding tier,
+Status: **Approved and in progress** (2026-10-23, the owner's yes to the second to „allow the evidence-based third binding tier,
 which overrides WP42's decision") · Owner: Mischa Eismann · Author: Claude. Backlog C18
 (`backlog-2026-10-candidates-2.md`); the second half — a binding field for link stages at sign-off — belongs to C4
 (WP82, reserved) and is not this WP.

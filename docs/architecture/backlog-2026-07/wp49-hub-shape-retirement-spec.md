@@ -6,7 +6,7 @@ updated: 2026-10-06
 
 # WP49 — The repair memory retires a hub by its shape, not only its name
 
-Status: **Approved and in progress** (2026-10-06, user: „ok, bau die Form-Retirierung für Hubs") ·
+Status: **Approved and in progress** (2026-10-06, the owner's go for the shape retirement of hubs) ·
 Owner: Mischa Eismann · Author: Claude. Extends WP44 §2.1 the way WP46 §2.2 extended it for
 satellites. No prompt change; no model call.
 

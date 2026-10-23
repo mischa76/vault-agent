@@ -6,7 +6,7 @@ updated: 2026-10-11
 
 # WP68 — Workbench console: explanations from the state, no model call
 
-Status: **Approved and in progress** (2026-10-11, user: „go, bau WP68“; ADR-0014 §4 phase 1,
+Status: **Approved and in progress** (2026-10-11, the owner's go for WP68; ADR-0014 §4 phase 1,
 WP65 §2 „Chat“) · Owner: Mischa Eismann · Author: Claude. The right pane's console answers
 questions about a run from its state, the gate and flag catalogues, the steering registry and
 the CLI's own help — deterministically. No agent, gate or prompt changes; the suite stays

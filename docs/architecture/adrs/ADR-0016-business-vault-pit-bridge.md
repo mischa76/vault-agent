@@ -9,7 +9,7 @@
 ADR-0007's layer table puts „Business Vault — PIT / Bridge" on the **Generate** side and names PIT/Bridge generation
 as the next step of its roadmap gradient; backlog C22 (`backlog-2026-10-candidates-3.md`) shapes the work package:
 an as-of-dates model, a PIT per hub with two or more satellites — deterministic from the model — and bridges along
-link paths, which need a path choice from the requirements, ratified by a human. The owner said „go" on 2026-10-23.
+link paths, which need a path choice from the requirements, ratified by a human. The owner gave the go on 2026-10-23.
 
 Two facts stand in the way, both read in the installed AutomateDV 0.11.4 the same day (`docs/log.md`, 2026-10-23,
 the correction entry) and measured in `backlog-2026-07/spike-pit-trial-results.md`:
@@ -76,7 +76,7 @@ positioning (ADR-0015) names PIT/Bridge among the honest limits today.
   PostgreSQL before any live run; Databricks verified separately, as WP72 did for the raw vault.
 - `docs/operations/09-warehouse.md` gains a Business Vault section; ADR-0007's layer table is not edited (records are
   append-only) — this ADR is the dated record that PIT/Bridge generation starts.
-- The honest limit in the README and the wiki page („Business Vault (PIT/Bridge) … noch nicht generiert") changes only
+- The honest limit in the README and the wiki page („Business Vault (PIT/Bridge) … not generated yet“) changes only
   when the first PIT has built on the owner's vault, not when this ADR is accepted.
 
 ## What this ADR does not decide

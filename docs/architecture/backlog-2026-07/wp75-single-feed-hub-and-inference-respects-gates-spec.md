@@ -6,7 +6,7 @@ updated: 2026-10-17
 
 # WP75 — A hub with exactly one feed is not multi-source; the WP56 inference never sets a relation a gate would refuse; one refusal is one review item
 
-Status: **Approved and in progress** (2026-10-17, user: „ok, go“) · Owner: Mischa Eismann
+Status: **Approved and in progress** (2026-10-17, the owner's go) · Owner: Mischa Eismann
 · Author: Claude. From the nineteenth chain (`docs/log.md`, 2026-10-17): step 3 red after three
 attempts on `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB`, refusing two history satellites on a hub
 whose `sources` list held a single feed; the modeler followed the remedy (dropped

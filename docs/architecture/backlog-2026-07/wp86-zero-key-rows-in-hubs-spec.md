@@ -6,7 +6,7 @@ updated: 2026-10-23
 
 # WP86 — Zero-key rows in the hubs: a link's zero key points at a hub row (C25, C12 phase 2)
 
-Status: **Approved and in progress** (2026-10-23, owner: „ok ziehs durch in der reihenfolge" — the order: the paid
+Status: **Approved and in progress** (2026-10-23, the owner's go for the whole order — the order: the paid
 chain, then C25, C18, C22) · Owner: Mischa Eismann · Author: Claude. Backlog C25.
 
 ## 1 What is missing

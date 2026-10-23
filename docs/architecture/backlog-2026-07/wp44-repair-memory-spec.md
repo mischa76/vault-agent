@@ -6,7 +6,7 @@ updated: 2026-10-04
 
 # WP44 — Repair memory: a hub the remedy retired does not come back in a later attempt
 
-Status: **Approved and in progress** (2026-10-04, user: „Ok, leg los" on the analysis of the two
+Status: **Approved and in progress** (2026-10-04, the owner's go on the analysis of the two
 Sales failures) · Owner: Mischa Eismann · Author: Claude. Touches the re-model loop (WP3,
 `route_after_validation`), `E_HUB_HK_COLLISION` and `rules.hub_collision_remedy` (2026-09-13),
 WP16 (backstop telemetry), WP43 (the role of the new flag kinds). No prompt change, no new model

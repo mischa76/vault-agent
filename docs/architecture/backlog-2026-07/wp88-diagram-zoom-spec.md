@@ -6,8 +6,8 @@ updated: 2026-10-23
 
 # WP88 — Zoom, scrolling and full screen for the workbench's diagrams (C5)
 
-Status: **Approved and in progress** (2026-10-23, owner: „zieh C9 und C5 vor") · Owner: Mischa Eismann · Author:
-Claude. Backlog C5, the owner's wish of 2026-10-21: „zoom in/out … mit eigenen scrollbars pro kachel".
+Status: **Approved and in progress** (2026-10-23, the owner's go to pull C9 and C5 forward) · Owner: Mischa Eismann · Author:
+Claude. Backlog C5, the owner's wish of 2026-10-21: zoom in and out with scrollbars per tile.
 
 ## 1 What is missing
 

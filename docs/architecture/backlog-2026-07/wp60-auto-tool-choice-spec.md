@@ -7,7 +7,7 @@ updated: 2026-10-09
 # WP60 — A tool-call mode for models that refuse forced tool use
 
 Status: **Approved and in progress** (2026-10-09, a prerequisite of WP59, the model-switch
-experiment the user approved: „das experiment mit modellwechsel mit Neumessung im vergleich“) ·
+experiment the user approved: the model-switch experiment with a comparative re-measurement) ·
 Owner: Mischa Eismann · Author: Claude. Touches `llm.ForcedToolCaller` and one setting. No prompt
 change in the default mode; the default mode's request is byte-identical.
 

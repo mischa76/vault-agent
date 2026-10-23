@@ -6,7 +6,7 @@ updated: 2026-10-13
 
 # WP71 — Workbench: the resolution checkpoint, shown and answered as the CLI does
 
-Status: **Approved and in progress** (2026-10-13, user: „go, bau WP71“, after the demo
+Status: **Approved and in progress** (2026-10-13, the owner's go for WP71, after the demo
 rehearsal's finding of the same day) · Owner: Mischa Eismann · Author: Claude. Closes the gap
 `docs/log.md` 2026-10-13 „Finding — the workbench is blind to the resolution checkpoint“
 records. No agent, gate or prompt changes; the CLI's predicate and appliers are reused, never

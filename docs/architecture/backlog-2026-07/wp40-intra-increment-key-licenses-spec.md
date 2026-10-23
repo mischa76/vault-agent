@@ -6,7 +6,7 @@ updated: 2026-09-15
 
 # WP40 — Key licenses: a ratified foreign key repairs the staging of what the modeler built
 
-Status: **Approved and in progress** (2026-09-15, user: „ok, gehen wir es an und machen weiter") ·
+Status: **Approved and in progress** (2026-09-15, the owner's go to carry on) ·
 Owner: Mischa Eismann · Author: Claude. Depends on WP34 (proposer, checkpoint), WP36/ADR-0013
 (translation), WP37 (pending resolution after the modeler, `resolved_by_applier`), WP38/WP39
 (satellite translation), and the widened `E_SAT_KEY_NOT_IN_SOURCE` of 2026-09-15.

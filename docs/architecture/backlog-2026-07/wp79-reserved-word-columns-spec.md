@@ -6,7 +6,7 @@ updated: 2026-10-18
 
 # WP79 — A source column named like a reserved word is escaped and aliased in the stage, per target platform, so the same project builds on PostgreSQL, Snowflake and Databricks
 
-Status: **Approved and in progress** (2026-10-18, user: „go, bau WP79“) · Owner: Mischa Eismann
+Status: **Approved and in progress** (2026-10-18, the owner's go for WP79) · Owner: Mischa Eismann
 · Author: Claude. From the twenty-first chain's PostgreSQL build (`docs/log.md`, 2026-10-18): six
 staging views failed with `syntax error at or near "group"` / `"primary"` — `SalesTerritory.Group`,
 `ProductProductPhoto.Primary` — on a project that had built on Databricks. No prompt change; the

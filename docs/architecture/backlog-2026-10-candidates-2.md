@@ -11,7 +11,7 @@ Continues `backlog-2026-10-candidates.md` (C1–C7, append-only). Two sources: t
 five AdventureWorks domains into PostgreSQL (2026-10-19 → 22; C8–C13 were first recorded in `docs/log.md`
 the same days and are gathered here), and the owner's maturity analysis
 `docs/handover/261022_vault-agent_Reifegradanalyse.pdf` (2026-10-22, judged on `main` at `d18b8d7`; C14–C21).
-Each entry needs its own „go"; nothing here is built.
+Each entry needs its own go; nothing here is built.
 
 Every claim taken from the analysis was checked against the repo on 2026-10-22 unless marked
 **(from the analysis, not re-measured)**.

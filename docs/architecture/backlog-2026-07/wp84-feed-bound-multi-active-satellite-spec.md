@@ -6,7 +6,7 @@ updated: 2026-10-22
 
 # WP84 — A multi-active satellite bound to one feed of a multi-source hub is generated as `ma_sat` (C11)
 
-Status: **Approved and in progress** (2026-10-22, owner: „… danach soweit wie du alleine kommst", the order
+Status: **Approved and in progress** (2026-10-22, the owner's go to continue on my own as far as I could, the order
 I proposed: C12, then C11) · Owner: Mischa Eismann · Author: Claude. Backlog C11
 (`backlog-2026-10-candidates-2.md`), found in the owner's build (`docs/log.md`, 2026-10-22, steps 5–8).
 

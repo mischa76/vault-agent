@@ -6,7 +6,7 @@ updated: 2026-10-17
 
 # WP74 — A brownfield step's project is self-contained: the source catalogue travels with the model, and the harness checks that every stage resolves
 
-Status: **Approved and in progress** (2026-10-17, user: „go, bau WP74“) · Owner: Mischa Eismann
+Status: **Approved and in progress** (2026-10-17, the owner's go for WP74) · Owner: Mischa Eismann
 · Author: Claude. From WP72 stage 3's first finding: the fifth step's project declared one
 source block and degraded every earlier construct's staging to names dbt cannot resolve, so
 the whole-vault project failed at parse. No prompt change; the suite stays keyless.

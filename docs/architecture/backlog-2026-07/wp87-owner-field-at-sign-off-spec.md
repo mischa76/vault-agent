@@ -6,7 +6,7 @@ updated: 2026-10-23
 
 # WP87 — The owner field at sign-off: a bare email is accepted and stored as name and address; what is wrong is said at the field (C9)
 
-Status: **Approved and in progress** (2026-10-23, owner: „zieh C9 und C5 vor") · Owner: Mischa Eismann · Author:
+Status: **Approved and in progress** (2026-10-23, the owner's go to pull C9 and C5 forward) · Owner: Mischa Eismann · Author:
 Claude. Backlog C9, from the owner's run of 2026-10-21.
 
 ## 1 What is wrong

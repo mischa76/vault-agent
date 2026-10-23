@@ -7,8 +7,8 @@ updated: 2026-09-15
 # WP41 — Role columns from declared keys, and key licenses in greenfield
 
 Status: **Approved and in progress** (2026-09-15, user: „mach 2, Rollenspalten aus deklarierten
-Fremdschlüsseln"; ratification path chosen the same day: „Lizenzen auch in Greenfield" over
-„nur Erweiterungsläufe" and „deterministisch, ohne Checkpoint") · Owner: Mischa Eismann ·
+Fremdschlüsseln"; ratification path chosen the same day: licenses in greenfield runs too over
+extension runs only and deterministic, without a checkpoint) · Owner: Mischa Eismann ·
 Author: Claude. Depends on WP8/ADR-0009 (roles), WP34 (proposer, checkpoint), WP36/ADR-0013
 (translation), WP40 (key licenses), and `E_LINK_KEY_WRONG_COLUMN` of 2026-09-15.
 

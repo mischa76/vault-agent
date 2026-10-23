@@ -6,7 +6,7 @@ updated: 2026-10-17
 
 # WP76 — Inferred relations are declared: an `inferred` source block in the target schema, so a grounded project parses whole and only the unprovided stages fail at build
 
-Status: **Approved and in progress** (2026-10-17, user: „ok, go“) · Owner: Mischa Eismann
+Status: **Approved and in progress** (2026-10-17, the owner's go) · Owner: Mischa Eismann
 · Author: Claude. From the nineteenth chain's Databricks build (`docs/log.md`, 2026-10-17):
 the fifth project failed `dbt parse` on `ref('raw_sales_order')` — one inferred binding made
 the whole project unparseable; with the 50 inferred relations declared by hand as a source

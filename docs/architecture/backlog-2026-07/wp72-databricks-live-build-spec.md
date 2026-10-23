@@ -10,7 +10,7 @@ Status: **Approved and in progress** (2026-10-16, user: „für databricks wurde
 ja bereits gelegt, wie wäre es wenn man hier mal die volle Kette als Beweis dazu nimmt?“, the
 workspace created the same day) · Owner: Mischa Eismann · Author: Claude. Takes WP35's open
 acceptance 7–10 and its §6 questions to a real build. Stages 2 (the person step) and 3 (the
-five-step chain) follow on their own „go“ and their own entries.
+five-step chain) follow on their own go and their own entries.
 
 ## 1 Scope
 

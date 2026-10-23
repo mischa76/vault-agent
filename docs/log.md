@@ -5111,7 +5111,7 @@ updated with WP38's close.
 
 ## [2026-09-14] WP38 built — translated subtype feeds, keyless and on Postgres; the next chain measures three changes at once
 
-**What changed** (user: „ja, hau rein"). A ratified same-as whose join the source schema DECLARES
+**What changed** (the owner's go). A ratified same-as whose join the source schema DECLARES
 is a *subtype feed* (`src/vault_agent/subtype_feed.py`): exactly one declared table carries a
 single-column foreign key on the concept's field into the table the target hub binds, does not
 carry the hub's key itself, and WP36's `_translation_target` yields the join. Then the WP29 prompt
@@ -5157,7 +5157,7 @@ pre-registration in wp38 §8 says what each would have to show.
 
 ## [2026-09-15] Paid chain with the parser fix, WP38 and the remedy: WP34 §6 held as written — and a satellite no gate refuses
 
-**The run** (user: „Go für eine bezahlte Kette"), `20260914T213855724138Z` at `5f32bdd`: 40 min,
+**The run** (the owner's go for a paid chain), `20260914T213855724138Z` at `5f32bdd`: 40 min,
 104 calls, 531k prompt tokens (28 % cache), 263k out, **$6.13**; per step $0.92 / 0.61 / 1.76 /
 0.75 / 2.09. `validation_gate`, `pipeline_health` and `existing_construct_preservation` 1.000.
 `eval.wp34_check`:
@@ -5250,7 +5250,7 @@ chain will show whether it can, and it may fail steps that passed before.
 
 ## [2026-09-15] WP39 built — two-hop translation; keyless, replayed, on Postgres
 
-**What changed** (user: „dann im Anschluss 2"). `_translation_target` follows one declared foreign
+**What changed** (the owner's go for item 2 next). `_translation_target` follows one declared foreign
 key further when no hub is built from the referenced table: `A.c → B.k` with `B.k → C.x` is read
 as `A.c → C.x` (`_onward_key`: `B` declared in this increment, exactly one single-column key on
 `k` itself). One hop, no recursion; the nearest hub always wins because a hub bound to `B`, and
@@ -5288,7 +5288,7 @@ nothing repairs yet (candidate WP40).
 
 ## [2026-09-15] WP40 built — key licenses repair what the modeler built; keyless, replayed, on Postgres
 
-**What changed** (user: „ok, gehen wir es an und machen weiter"). A declared single-column foreign key
+**What changed** (the owner's go to carry on). A declared single-column foreign key
 into a different table of the same increment that no existing hub binds is no longer a skip but a
 `KeyLicense`, decided at the link checkpoint by its `Table.Column` key. After the modeler, every
 attempt, `apply_key_licenses` resolves each ratified license against the merged model through
@@ -5322,7 +5322,7 @@ proposals when no per-key proposal is ratified. Recorded in wp40 §6 as a candid
 
 ## [2026-09-15] Paid chain with the widened gate, WP39 and WP40: §6 held at 23 links, licenses live — and a link that joins the wrong entity
 
-**The run** (user: „go!"), `20260915T013719090467Z` at `d4ee1ed`: 43 min, 103 calls, 557k prompt
+**The run** (the owner's go), `20260915T013719090467Z` at `d4ee1ed`: 43 min, 103 calls, 557k prompt
 tokens (30 % cache), 263k out, **$6.50**. `eval.wp34_check`, unmodified:
 
 ```
@@ -5376,7 +5376,7 @@ checkpoint to ratify an alias, so (1) and (3) refuse, and (2) would need its own
 
 ## [2026-09-15] E_LINK_KEY_WRONG_COLUMN — a participation hashed from a column its relation declares as another key is refused
 
-**What changed** (user: „mach 1, das Gate zuerst"). Candidate (1) of the entry above, built as
+**What changed** (the owner's go for item 1, the gate first). Candidate (1) of the entry above, built as
 written. In grounded runs, for a link that binds by name to exactly one declared relation with
 declared foreign keys: an unqualified participation without alias or translation is refused when its
 stage would hash the hub's canonical key column K from that relation (K present), while the relation
@@ -5429,8 +5429,8 @@ staging, no `dbt build` loaded it. Candidates (2) and (3) are untouched and rema
 
 ## [2026-09-15] WP41 built — role columns from declared keys, key licenses in greenfield; keyless, replayed, on Postgres
 
-**What changed** (user: „mach 2, Rollenspalten aus deklarierten Fremdschlüsseln"; asked how a role
-column is ratified, the user chose „Lizenzen auch in Greenfield" over extension runs only and over a
+**What changed** (the owner's go for item 2, role columns from declared keys; asked how a role
+column is ratified, the user chose licenses in greenfield runs too over extension runs only and over a
 deterministic derivation without a checkpoint). The link proposer runs in every grounded run; in
 greenfield it keeps only key licenses, and the modeler applies them against an empty vault. The
 license applier groups ratified keys per relation and hub and pairs them with participations: one
@@ -5703,7 +5703,7 @@ met by this commit**, deliberately and with the evidence above standing in its p
 **Autor:** Claude Code
 
 **What changed** (user, asked whether to start the staging binding the WP42 entry of 2026-09-16
-deferred: „zuerst a dann b" — a being the push of `ef77fbd`, b this). `link_source_overrides` now
+deferred: the owner's go for a first, then b — a being the push of `ef77fbd`, b this). `link_source_overrides` now
 also binds the stage of every link the modeler built whose relation `resolve_link_relation`
 resolved with reason `offer`, through the override path `bind_sources` already had — so no
 `raw_<name>` is inferred and no `SOURCE_BINDING` flag is raised for it. Only that reason: a
@@ -6058,7 +6058,7 @@ warnings, 68 placeholder owners, 42 translations and 76 others. Three classes ma
 is a modelling decision. The count measured emitted signals, summed over five checkpoints; the
 aggregation of WP5 collapsed lines, never counts. Spec, with the pre-registration, in
 `wp43-decisions-and-disclosures-spec.md` (`48ff900`); the user approved the three-lever analysis
-(„sehr gut, mach es so") and asked for autonomous execution with a commit per milestone.
+(the owner's go) and asked for autonomous execution with a commit per milestone.
 
 **What changed** (`25de63c` guards first, failing; `402f422` the change).
 - `ReviewItem.role` ∈ {`decision`, `disclosure`}, derived from typed fields only: severity
@@ -6312,7 +6312,7 @@ on record for when that day comes. **Bewusst nicht getan:** nothing in code or A
 **Why.** Twice the material a question needed was gone: on 2026-09-13 a chain's queue vanished
 with its tempdir, and on 2026-10-03 WP43's pre-registration had to be arithmetic over the saved
 `flag_kinds` / `validation_codes` because no run's flags were on disk. The user chose this as the
-step before the next paid chain („leg los mit der Queue-Persistenz"), so that run is re-analysable
+step before the next paid chain (the owner's go for the queue persistence), so that run is re-analysable
 for levers 3–5 of the review analysis without paying again.
 
 **What changed** (`9d62b63` guards first, failing; the change in the following commit).
@@ -6342,7 +6342,7 @@ to the CLI's own `review-queue.md`; no paid run.
 
 **Autor:** Claude Code
 
-The user, after topping up: „du hast mein go!". One repeat of `adventureworks_incremental`
+The user, after topping up gave the go. One repeat of `adventureworks_incremental`
 (five steps, person → sales), at this commit, with the default models (Sonnet 4.6 primary, Opus
 4.8 heavy). Expected cost and time from the 2026-09-17 chain: about 100 calls, ≈ 6 USD, ≈ 40 min.
 The predictions below are those of the three specs, gathered so the result is read against
@@ -6475,7 +6475,7 @@ design the 2026-09-15 entry asked for.
 
 **Why.** The chain of 2026-10-04 left two steps red on one class: a link satellite whose relation
 carries `hub_product`'s surrogate but declares no single-column key to license a translation
-from. The user chose, from four alternatives, the two deterministic ones („mach 2 und 3"):
+from. The user chose, from four alternatives, the two deterministic ones (the owner's go for items 2 and 3):
 read composite keys per component, and give the gate a remedy the loop remembers. Spec
 `wp46-composite-fk-components-and-sat-key-remedy-spec.md` (`9f94b44`).
 
@@ -6530,7 +6530,7 @@ owner.
 
 **Autor:** Claude Code
 
-The user: „Go!". One repeat of `adventureworks_incremental` at this commit, default models.
+The user gave the go. One repeat of `adventureworks_incremental` at this commit, default models.
 Expected from the two previous chains: ≈ 100 calls, ≈ 6.5 USD, ≈ 42 min. Read against:
 
 **P1 — step 5 green on the composite class.** `E_SAT_KEY_NOT_IN_SOURCE` in step 5: 1 → 0, the
@@ -6614,7 +6614,7 @@ steering ledger rows still proposed, not written.
 
 **Autor:** Claude Code
 
-The user, after the explanation of what the clause measured and what re-basing means: „ok, go!".
+The user, after the explanation of what the clause measured and what re-basing means, gave the go.
 **Why.** The clause read `review_items_total` against 619; since WP43 (2026-10-03) that count
 falls by construction — the extension inventory left the queue — and the clause reported HELD on
 both October chains while saying nothing about the model (warned in WP43 §4 P2 and both chain
@@ -6634,7 +6634,7 @@ guard for the chain, not yet the arm comparison the charter claim needs (spec §
 
 **Autor:** Claude Code
 
-The user: „go". One repeat of `adventureworks_full` (WP30 arm A: the whole landscape in one pass,
+The user gave the go. One repeat of `adventureworks_full` (WP30 arm A: the whole landscape in one pass,
 68 tables, ≈ 131 KB of requirements) at this commit, default models. The two previous arm A runs
 (2026-08-01, 2026-08-09) took 93–96 calls, 46–49 min, 576–671k uncached input, and reported 160
 and 152 review items at their one checkpoint, gate green. Expected: ≈ 7–8 USD, ≈ 50 min.
@@ -6851,7 +6851,7 @@ inherited (spec §5); the mapper's deterministic re-bind on the failed path (sam
 
 **Autor:** Claude Code
 
-The user: „go". One repeat of `adventureworks_incremental` (the normal chain, each step its own
+The user gave the go. One repeat of `adventureworks_incremental` (the normal chain, each step its own
 schema) at this commit — the first live run since WP47 (the binding reason, `f73817f`) and WP48
 (the overlap remedy, `d792d46`). It answers two questions: does the chain still run green after
 the two changes, and does the modeler follow the overlap remedy if it produces the shape again.
@@ -6939,7 +6939,7 @@ owner as the next small WP; the `extension_conflict` severity not revisited.
 hub as `hub_person_customer`; the name-keyed memory — instruction and refusal alike — did not
 recognise it, the gate fired on the last attempt, the step ended red. The user, after the
 explanation that a hub's identity is its entity and key and that the modeler had followed every
-precise remedy: „ok, bau die Form-Retirierung für Hubs". Spec `wp49-hub-shape-retirement-spec.md`
+precise remedy: the owner's go for the shape retirement of hubs. Spec `wp49-hub-shape-retirement-spec.md`
 (`2ce5e08`).
 
 **What changed** (`65cace3` guards first, failing; `e1d46d4` the change; this commit the docs).
@@ -6968,7 +6968,7 @@ live run; retirements still live within one step's run, not across the chain (WP
 
 **Autor:** Claude Code
 
-The user: „ok, go!". One repeat of `adventureworks_incremental` at this commit — the first live run
+The user gave the go. One repeat of `adventureworks_incremental` at this commit — the first live run
 since WP49 (hubs retired by shape, `e1d46d4`). Against the third chain (`20261005T160357535338Z`:
 steps 1–4 green, step 5 red on a renamed duplicate hub; 387 items / 142 decisions; 21 cross-domain
 links; 6.50 USD) and the second (`20261004T140130528908Z`: all green).
@@ -7096,7 +7096,7 @@ against the merged model) not built; retirements still live within one step's ru
 
 **Autor:** Claude Code
 
-The user: „ok, lets go!". One repeat of `adventureworks_incremental` at this commit — the first live
+The user gave the go. One repeat of `adventureworks_incremental` at this commit — the first live
 run since WP50 (the second-hub remedy, `0d5e0b9`). Every class that has made a step red since
 2026-09-17 now carries a deterministic remedy the loop remembers: collision (WP44, by name;
 WP49, by shape), satellite key (WP46), attribute overlap (WP48), second hub (WP50). Against the
@@ -7178,7 +7178,7 @@ re-emission.
 **Why.** The fifth chain's step 2 (today's entry above): the memory dropped two re-emitted hubs and
 sent seven payloads to decisions; the kept twin `hub_candidate_business_entity` ended without a
 satellite and the invention clause counted it. WP44 §5 had deferred re-parenting as „one case is
-not a rule"; this was the second. The user: „ok, bau das Umhängen der Payload an den Zwilling".
+not a rule"; this was the second. The user gave the go for moving a dropped hub's payload to its twin.
 Spec `wp51-reparent-to-kept-twin-spec.md` (`1bcd52d`).
 
 **What changed** (`ce0c16b` guards first, failing; `d7bb1d1` the change; this commit the docs).
@@ -7213,7 +7213,7 @@ self-relationship); retirements still live within one step's run.
 
 **Autor:** Claude Code
 
-The user, on the quick wins offered after WP51: „1 + 2 + 3 umsetzen“, and on the third:
+The user, on the quick wins offered after WP51 asked for all three, and on the third:
 „wenn es keinen Fehler für das generierte Model erzeugt, aber eine Entscheidung benötigt um zu
 vermeiden dass etwas verlorengeht dann ist es kein Fehler sondern eine Entscheidung“. Spec
 `29dac22`, guards red `063b96e` (four of five), change `ed3f4df`, docs in the commit carrying this
@@ -7352,7 +7352,7 @@ count, 134), and any re-telling of the sixth chain's verdict — it failed then 
 
 **Autor:** Claude Code
 
-The user: „go, starte die siebte Kette“. One repeat of `adventureworks_incremental` at the commit
+The user gave the go for the seventh chain. One repeat of `adventureworks_incremental` at the commit
 carrying this entry — the first live run since WP53 (`40b18ab`); the pipeline itself is unchanged
 since the sixth chain (`8b6e9e4`, WP52). Against the sixth (`20261006T172859787765Z`: all five steps
 green, 156 decisions, 6.46 USD).
@@ -7463,7 +7463,7 @@ is not rewritten; it stays as the run wrote it, with this entry as its correctio
 
 **Autor:** Claude Code
 
-The user: „go“, after the seventh chain's report, read as the next chain. One repeat of
+The user gave the go, after the seventh chain's report, read as the next chain. One repeat of
 `adventureworks_incremental` at the commit carrying this entry; the pipeline is unchanged since the
 sixth chain except for the transport retry (`9c06005`) and the resume scoring (`93a6f23`), neither
 of which touches modelling. Against the seventh chain (127 decisions, all green, WP34 §6 met).
@@ -7567,7 +7567,7 @@ against 159.1 (eight chains, mean 138.9, sd 10.1).
 
 **Autor:** Claude Code
 
-The user, on the eighth chain's finding: „bau das Gate für die verlorene Payload“. Spec
+The user, on the eighth chain's finding gave the go for the lost-payload gate. Spec
 `0ad3250`, guards red `6c93cb6`, change `1a7bddc`, docs (and a mypy name clash) in the commit
 carrying this entry. Spec: `docs/architecture/backlog-2026-07/wp54-lost-payload-gate-spec.md`.
 
@@ -7604,7 +7604,7 @@ coverage; no live run.
 
 **Autor:** Claude Code
 
-The user: „Remedy für Links mit nur einem Hub“. Spec `2c82af7`, guards red `e18d114`, change
+The user chose the remedy for one-hub links. Spec `2c82af7`, guards red `e18d114`, change
 `ffd848c`, the old single-hub guard re-based `c4561c5`, docs in the commit carrying this entry.
 Spec: `docs/architecture/backlog-2026-07/wp55-one-hub-link-collapse-spec.md`.
 
@@ -7631,7 +7631,7 @@ nicht getan.** No grain inference; no steering line; no live run.
 
 **Autor:** Claude Code
 
-The user: „go“. One repeat of `adventureworks_incremental` at the commit carrying this entry — the
+The user gave the go. One repeat of `adventureworks_incremental` at the commit carrying this entry — the
 first live run since WP54 (`E_HUB_PAYLOAD_UNREAD`, `1a7bddc`) and WP55 (`one_hub_link_collapsed`,
 `ffd848c`). Against the eighth chain (126 decisions, all green, WP34 §6 failed on invention with 4
 zero-satellite hubs, two of them unread tables).
@@ -7746,7 +7746,7 @@ run — that is the tenth chain, next.
 
 **Autor:** Claude Code
 
-The user, with WP56: „… und lassen im Anschluss die zehnte Kette laufen“. One repeat of
+The user, with WP56 asked for the tenth chain afterwards. One repeat of
 `adventureworks_incremental` at the commit carrying this entry — the first live run since WP56
 (`58f4fad`). Against the ninth chain (143 decisions, all green, WP34 §6 met with 0 zero-satellite
 hubs, 6.96 USD).
@@ -7868,7 +7868,7 @@ no model change.
 
 **Autor:** Claude Code
 
-The user: „… und lassen die 11. kette drüber rattern“. One repeat of `adventureworks_incremental`
+The user asked for the eleventh chain over it. One repeat of `adventureworks_incremental`
 at the commit carrying this entry — the first live run since WP57 and WP58 (`64b2143`), models
 unchanged (Sonnet 4.6, Opus 4.8). Against the tenth chain (step 3 red on the payload gate, 137
 decisions, 6.63 USD).
@@ -7968,7 +7968,7 @@ condensed — the log holds it.
 
 **Autor:** Claude Code
 
-The user: „du hast mein go für 1.: das experiment mit modellwechsel mit Neumessung im vergleich“.
+The user gave the go for item 1, the model-switch experiment with a comparative re-measurement.
 WP59 (`docs/architecture/backlog-2026-07/wp59-model-switch-experiment-spec.md`): one repeat of
 `adventureworks_incremental` with `PRIMARY_MODEL=claude-sonnet-5-5 HEAVY_MODEL=claude-opus-5-5`,
 code at the commit carrying this entry (the eleventh chain's code plus the budget decision). Prices
@@ -8191,7 +8191,7 @@ gates handle it; a steering line would need the ledger's protocol); no repeat.
 
 **Autor:** Claude Code
 
-The user: „go, starte die vierzehnte Kette“. One repeat of `adventureworks_incremental` at the
+The user gave the go for the fourteenth chain. One repeat of `adventureworks_incremental` at the
 commit carrying this entry (WP63 `c04607f` in place), the 5.5 defaults, auto tool-call mode.
 Against the thirteenth chain (157 decisions, 68 of them undetermined types; 4.87 USD; 23.3 min).
 
@@ -8283,7 +8283,7 @@ any OAuth use in `src/`, not by a scan of the connector. **Bewusst nicht getan:*
 **Autor:** Claude Code
 
 The user, after the explanation that `Name`, `Flag` and the rest are SQL Server alias types of the
-sample database and no modelling-language construct: „ok, go, bau WP64“. Spec `12e4dcb`,
+sample database and no modelling-language construct: the owner's go for WP64. Spec `12e4dcb`,
 guards red `f5dc40f`, change `f4c8315`, docs in the commit carrying this entry. **What changed.**
 The extractor transcribes the six `CREATE TYPE [X] FROM <base> [NOT] NULL` statements
 (`instawdb.sql` lines 331–336) into `user_defined_types`; the derivation resolves a column's alias
@@ -8303,7 +8303,7 @@ sources (a connector's job, WP64 §5); the computed columns stay the model's.
 
 **Autor:** Claude Code
 
-The user: „go, starte die fünfzehnte Kette“. One repeat of `adventureworks_incremental` at the
+The user gave the go for the fifteenth chain. One repeat of `adventureworks_incremental` at the
 commit carrying this entry (WP64 `f4c8315` in place: the derived schemas carry base types for the
 42 alias columns), the 5.5 defaults, auto tool-call mode. Against the fourteenth chain (84
 decisions, 7 undetermined types, 20.8 min, 4.38 USD).
@@ -8369,7 +8369,7 @@ no base type exists to resolve. **Bewusst nicht getan.** No repeat; no map for c
 
 **Autor:** Claude Code
 
-The user: „go, starte die sechzehnte Kette“. One repeat of `adventureworks_incremental` at the
+The user gave the go for the sixteenth chain. One repeat of `adventureworks_incremental` at the
 commit carrying this entry, the 5.5 defaults, no code change since the fifteenth chain. Against
 the fourteenth and fifteenth (84 and 83 decisions).
 
@@ -8559,7 +8559,7 @@ brownfield run.
 
 **Autor:** Claude Code
 
-The user: „go, starte die siebzehnte Kette“. One repeat of `adventureworks_incremental` at the
+The user gave the go for the seventeenth chain. One repeat of `adventureworks_incremental` at the
 commit carrying this entry, the 5.5 defaults. Code since the sixteenth (`e9878f0`): the
 workbench (WP66–WP68, `vault_agent.ui`, `rules/catalogue.py`), the CI workflows, and one field
 on a review item — the contract-owner decision now carries its contract as `asset` (WP67); no
@@ -8680,7 +8680,7 @@ getan.** A change to the record or to the minimum; any re-telling of a 4.x verdi
 
 **Autor:** Claude Code
 
-The user: „go, starte die achtzehnte Kette“. One repeat of `adventureworks_incremental` at the
+The user gave the go for the eighteenth chain. One repeat of `adventureworks_incremental` at the
 commit carrying this entry, the 5.5 defaults. Code since the seventeenth (`6051ee4`): WP69 (the
 workbench's cancel and restart paths; `_run_pipeline` gained an optional `thread_id` with the
 same default) and WP70 (the checker's floor); no agent, gate, prompt or rule changed, the eval
@@ -8839,14 +8839,14 @@ is verified for the bank demo on this date; the chain is not.
 counts, the BALANCE and ownership queries and the seed types through the SQL statements API,
 the merge statement in `target/run/`. **Nur angenommen.** That the Free Edition's fair-use
 quota tolerates stage 2 (13 tables of AdventureWorks data) — not tried. **Bewusst nicht
-getan.** Stages 2 and 3 (own „go“); any change to `rules/platforms.py` (the dialect held);
+getan.** Stages 2 and 3 (own go); any change to `rules/platforms.py` (the dialect held);
 Snowflake or Fabric.
 
 ## [2026-10-16] Pre-registration for WP72 stage 2 — the person step's generated project built on Databricks, written before the run
 
 **Autor:** Claude Code
 
-The user: „ok, go!“. One grounded run of `adventureworks_person` (requirements and declared
+The user gave the go. One grounded run of `adventureworks_person` (requirements and declared
 schema) with `--target-platform databricks` through the CLI, both pauses accepted
 (`resume --accept`), the output kept; then the 13 tables' AdventureWorks data (Microsoft's
 sample CSVs, MIT) loaded into `workspace.person` on the Free Edition workspace with the two
@@ -8868,7 +8868,7 @@ whether the Free Edition's fair-use quota is hit.
 
 **Autor:** Claude Code
 
-Pre-registered the same day (`63d8446`), on „ok, go!“. **The run** (paid): `adventureworks_person`
+Pre-registered the same day (`63d8446`), on the owner's go. **The run** (paid): `adventureworks_person`
 with its declared schema and `--target-platform databricks` through the CLI, both pauses
 accepted with `resume --accept` — 20 calls, 0.78 USD, two modeler attempts, 16 decisions / 2
 disclosures, 7 hubs / 5 links / 18 satellites. **The data:** Microsoft's 13 person-schema CSVs
@@ -8893,13 +8893,13 @@ distinct keys. **Nur angenommen.** That the Free Edition's quota also carries th
 chain's 44 tables (stage 3) — one step of 13 tables cost nothing noticeable. **Bewusst nicht
 getan.** A second build for idempotency at this size (stage 1 showed the mechanism); loading
 the data through the repo (the loader is a session script, the data is Microsoft's — nothing
-to check in); stage 3 without „go“.
+to check in); stage 3 without a go.
 
 ## [2026-10-16] Pre-registration for WP72 stage 3 — the five-step chain generated for Databricks and its final vault built against all 55 AdventureWorks tables, written before the run
 
 **Autor:** Claude Code
 
-The user: „go, starte Stufe 3“. The chain as the eval harness runs it — person → humanresources
+The user gave the go for stage 3. The chain as the eval harness runs it — person → humanresources
 → production → purchasing → sales, each step `--existing` the previous step's output — but
 through the CLI with `--target-platform databricks`, every pause answered by `resume --accept`,
 every output kept; then the remaining 42 tables of the four schemas (55 in all across the five
@@ -8979,7 +8979,7 @@ five projects' model files, the six build logs, the row-count queries through th
 API, the dropped and failed lists. **Nur angenommen.** That the binder's tier, not the mapper's
 re-bind, chose the mis-bound relations — to be read from the code before the WP. **Bewusst
 nicht getan.** Any hand repair of a binding to make a model build; the translation views'
-measurement; stage 3b's idempotency at this size; the WP (own „go").
+measurement; stage 3b's idempotency at this size; the WP (own go).
 
 ## [2026-10-17] Correction — the 13 mis-bound stagings are deterministic, come from `link_source_overrides`' ratified-proposal loop meeting multi-source hubs, and were in every chain
 
@@ -9011,7 +9011,7 @@ WP candidate narrows: (1) the gate that refuses a staging whose relation lacks a
 dropped for multi-source hubs; (3) the eval harness building at least one step's output, so a
 green chain means a buildable vault. **Überprüft.** The replay over two archived chains, the
 loop's code, the hubs' feeds in the three steps' models, the HR step's mapping file. **Nur
-angenommen.** Nothing. **Bewusst nicht getan.** The fix (own „go").
+angenommen.** Nothing. **Bewusst nicht getan.** The fix (own go).
 
 ## [2026-10-17] WP73 — a stage whose relation lacks a key it hashes is refused: the gate, the binder's refusal, the override loop fixed
 
@@ -9101,7 +9101,7 @@ rebuild until the nineteenth chain.
 
 **Autor:** Claude Code
 
-The user: „go, starte die neunzehnte Kette“. One repeat of `adventureworks_incremental` at the
+The user gave the go for the nineteenth chain. One repeat of `adventureworks_incremental` at the
 commit carrying this entry, the 5.5 defaults, through the eval harness with the new
 `--keep-outputs` (this commit: each step's full output directory written beside the temp
 workdir's model, so the fifth step's project can be built). Code since the eighteenth
@@ -9191,14 +9191,14 @@ modeler payloads of step 3's attempts, the issues in each retry's input), the fi
 `review.json` files (issues, flags, decisions by kind), the kept projects, three `dbt parse` and
 two `dbt build` logs, the row counts; results mirrored to tank. **Nur angenommen.** That the
 WP56 inference is the only writer of a satellite's `source_table` after the modeler (the flag
-says so for these two). **Bewusst nicht getan.** WP75 and WP76 (own „go"); entering 125 into
+says so for these two). **Bewusst nicht getan.** WP75 and WP76 (own go); entering 125 into
 the record; a second build after dropping the inferred stages.
 
 ## [2026-10-17] WP75 and WP76 built — a one-feed hub is not multi-source, the inference asks the gate, a re-bind replaces its refusals; inferred relations declared under an `inferred` block: the nineteenth's fifth project parses and builds on Databricks without a hand patch
 
 **Autor:** Claude Code
 
-The user: „ok, go“ on both candidates of the nineteenth chain's entry (above). Specs and red
+The user gave the go on both candidates of the nineteenth chain's entry (above). Specs and red
 guards `b02749e`, the change `579c0eb`. **WP75:** `rules.hub_is_multi_source` (two or more
 feeds) narrows `source_table_on_multi_source_hub`, so `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB`,
 the raw-vault generator's defense in depth and the staging generator agree that a hub written
@@ -9251,7 +9251,7 @@ three before); the spec files' §6 (the hook; results live here).
 
 **Autor:** Claude Code
 
-The user's „ok, go“ covered „beide zusammen bauen, danach die zwanzigste Kette als Nachweis“.
+The user's go covered both together, then the twentieth chain as the proof.
 One repeat of `adventureworks_incremental` at the commit carrying this entry, the 5.5 defaults,
 `--keep-outputs`. Code since the nineteenth (`308b534`): the three WP74 scorer corrections
 (`7d207b2`, `d87e19b`, `83d21d1`), WP75, WP76. The 5.5 record holds five samples (84, 83, 83,
@@ -9316,7 +9316,7 @@ the owner's word on dropping it); a twenty-first chain.
 
 **Autor:** Claude Code
 
-The user: „ok, altes löschen und dann kompletter Neubau des 20 Projekts auf Databricks“. **Dropped
+The user asked for the old schemas dropped and the twentieth project rebuilt whole on Databricks. **Dropped
 on his word:** `workspace.vault19` (123 managed tables) and `workspace.vault19_stg` (97 views),
 looked at before dropping (`information_schema.tables`), `DROP SCHEMA … CASCADE`; 303 → 83 user
 objects. The kept projects under `--keep-outputs` are the only other copies of what they held,
@@ -9359,7 +9359,7 @@ path; another chain.
 
 **Autor:** Claude Code
 
-The user: „nein, wir machen jetzt weiter bis der Fehler ausgeräumt ist“. Spec and red guards
+The user decided to continue until the error was cleared. Spec and red guards
 `7fa893b`, the change `d4e5458`. **The defect, measured first:** of the twentieth chain's 34
 inferred-bound stages, 24 had been bound to a declared table in an earlier step —
 `stg_address_state_province` in step 1 (offer), `hub_purchase_order`'s stage from
@@ -9404,13 +9404,13 @@ WP77 recovered), **`link_product_work_order` 72 591 = `WorkOrder` rows,
 source row). **Nur angenommen.** That a live chain under WP77 writes and carries the bindings
 exactly as the replay did (the twenty-first measures it). **Bewusst nicht getan.** The ten: six
 `ambiguous` belong to the review (`--map`, the workbench), four need a relation nobody
-declares; a twenty-first chain (own „go"); the spec's §6 (the hook; results live here).
+declares; a twenty-first chain (own go); the spec's §6 (the hook; results live here).
 
 ## [2026-10-17] WP78 built — the workbench says whether a run's project resolves and parses: the deterministic check always, `dbt parse` on request, no build
 
 **Autor:** Claude Code
 
-The user: „go, bau Stufe 1 als WP78“, after the question whether the build is shown in the UI
+The user gave the go for stage 1 as WP78, after the question whether the build is shown in the UI
 (it was not — the workbench ended at the written project). Spec and red guards `fa3e585`, the
 change in this commit. **Built:** `vault_agent.ui.project_check` — `project_check(out_dir)`
 reads the written project (`models/staging/**/*.sql`, `sources.yml`, `metadata/automatedv.yml`)
@@ -9442,7 +9442,7 @@ profile and its log in the UI — the build belongs to the customer's CI); the s
 
 **Autor:** Claude Code
 
-The user: „ich hätte nun gerne mal einen kompletten Lauf von A bis Z für AdventureWorks“, with the
+The user asked for one complete AdventureWorks run from start to finish, with the
 standing instruction to drop the previous vault schemas on Databricks before the next build so
 the Unity Catalog quota is never hit again (today's in-place rebuild was refused at 111 views —
 replacing a view counts as creating one). One repeat of `adventureworks_incremental` at the
@@ -9546,7 +9546,7 @@ day (the docs call it periodic and give no interval). **Bewusst nicht getan.** B
 
 **Autor:** Claude Code
 
-Looked, as asked („schau mal nach“). The `table-quota` GET at 00:17 UTC refreshed the estimate
+Looked, as asked. The `table-quota` GET at 00:17 UTC refreshed the estimate
 (`last_refreshed_at` = now) and it still read **754 / 500** against 83 live objects; a probe
 `CREATE TABLE workspace.vault21.quota_probe (x int)` was refused with the same 754 — creation is
 the only operation that recounts (docs: „Unity Catalog updates the quota count only during
@@ -9617,13 +9617,13 @@ Snowflake for a column called `Group`. The other keyword-named columns loaded (`
 (every error's SQL line), the counts by SQL, `information_schema`. **Nur angenommen.** Snowflake's
 reserved-word list from memory (GROUP and PRIMARY are in it); that the sniffed types match what
 the contracts would pin (not compared). **Bewusst nicht getan.** Fixing the two columns by hand
-to make the build whole (the finding is the point); WP79 (own „go"); a Databricks retry.
+to make the build whole (the finding is the point); WP79 (own go); a Databricks retry.
 
 ## [2026-10-18] WP79 built — reserved-word source columns escaped and aliased in the stage per platform; the twenty-first's project rebuilt on PostgreSQL: PASS=322 of 340, the eight failures exactly the eight inferred stages
 
 **Autor:** Claude Code
 
-The user: „go, bau WP79“. Spec and red guards `7f4cc79`, the change in this commit. **Built:**
+The user gave the go for WP79. Spec and red guards `7f4cc79`, the change in this commit. **Built:**
 `rules.RESERVED_COLUMN_WORDS` — PostgreSQL 16.15's 101 reserved keywords (`pg_get_keywords()`,
 categories R and T, read from the installed server), the strictest of the target platforms;
 `is_reserved_column`, `stage_column_name` (the normalised identifier with a trailing underscore
@@ -9663,7 +9663,7 @@ platform list; a reviewer flag for the alias; the Databricks rebuild (the quota 
 
 **Autor:** Claude Code
 
-The user: „ok, bau die Fachgebiets-Sicht in der Workbench als WP80“, after the DBeaver session of
+The user gave the go for the subject-area view in the workbench as WP80, after the DBeaver session of
 today had shown that one ER diagram of 340 relations is unreadable and the readable cut is the
 five AdventureWorks schemas. Spec and red guards `c68de0a`, the change in this commit. **Built:**
 `src/vault_agent/subject_areas.py` — `subject_areas(model, source_schemas, carried, staging,
@@ -9712,7 +9712,7 @@ grouping the whole-model inventory by area; a frontend test for the Mermaid rend
 
 **Autor:** Claude Code
 
-The user: „Notiere den adr fürs backlog", after asking what a run with an input model and no
+The user asked for the ADR to be noted in the backlog, after asking what a run with an input model and no
 requirements document does today. Recorded in `docs/architecture/backlog-2026-10-candidates.md`
 (new, append-only), together with the wishes of 2026-10-19 to 2026-10-21 that had only been
 discussed: deleting in the workbench, a project settings tab with a naming profile, CLI/workbench
@@ -9799,7 +9799,7 @@ idempotent while all 80 other models are. The sign-off showed a `code_generator`
 generated — the flag belongs to the split branch, so it is either from an earlier shape of the
 model (C8's class) or the sat passed through both; not traced.
 
-**Backlog candidates (each needs the owner's „go"; continuing `backlog-2026-10-candidates.md`,
+**Backlog candidates (each needs the owner's go; continuing `backlog-2026-10-candidates.md`,
 which is append-only):**
 
 - **C8 — stale code-generator flags.** Flags from a modeler attempt survive a re-model and reach the
@@ -9817,7 +9817,7 @@ which is append-only):**
 **Überprüft.** Both build logs as pasted by the owner; the counts against the sources and the vault
 by `psql` (read-only); the satellite's model entry and SQL; the generator branch; the installed
 AutomateDV macro. **Nur angenommen.** Where the stale-looking flag came from. **Bewusst nicht
-getan.** No fix (C11 needs a guard and a „go"); the pay-history rows left as they are — the owner's
+getan.** No fix (C11 needs a guard and a go); the pay-history rows left as they are — the owner's
 vault, a `--full-refresh` of that model would reset it; Production, Purchasing and Sales not yet run.
 
 ## [2026-10-22] The owner's hands-on run, step 6: Production brownfield built — PASS=177, 13 of 15 pre-registered counts held; the two misses are one finding: a link with a nullable participant drops the row while its satellite keeps it (C12); C11 confirmed on a second satellite; `--map` cannot bind a link stage (C4 corrected)
@@ -9866,7 +9866,7 @@ prediction assumed the link hashes NULL participants as the satellite does; it d
 `var('null_key_required', '-1')` / `var('null_key_optional', '-2')`); the generator passes none. Candidate:
 stage a nullable foreign key of a link participant as `optional` (and a hub's own key as `required`), so the
 link row exists with the zero key and no satellite is orphaned; plus a ghost hub row to land on. Guard first;
-needs the owner's „go".
+needs the owner's go.
 
 **Überprüft.** The build log as pasted; the counts and the orphans by `psql` (read-only); the generated SQL
 of all multi-active satellites; `source_overrides` and `link_source_overrides`; the installed AutomateDV
@@ -9902,7 +9902,7 @@ keys exactly, the same mechanism as C11 but a *modelling* choice, not the genera
 parent key does not cover a unique key of its relation:** deterministic from the catalogue when the relation
 declares its unique keys (here the `AK_` index WP30's extract reads); a warning or a gate asking for a
 child-dependent key (`ma_sat`) or an effectivity shape. I predicted 0 because I checked only multi-active
-satellites for this property. Needs the owner's „go".
+satellites for this property. Needs the owner's go.
 
 **Überprüft.** The build log; the 195 by `psql` (read-only); the model diff against step 6; the generated SQL
 (five `ma_sat`, vendor satellites plain). **Nur angenommen.** That the catalogue carries `BillOfMaterials`'
@@ -9937,7 +9937,7 @@ full count table before the build and did not send it; the predictions above wer
 **The end state.** All five AdventureWorks domains built by the owner, each a brownfield step on the last,
 without `--full-refresh`: 39 hubs (536 076 rows), 49 links (836 173), 92 satellites (952 017), 7 hand-made views
 for inferred link stages. Every step's earlier models stayed `INSERT 0 0` except the two defect classes found
-(C11, C13). Backlog from the run: C8–C13 and C4's correction — each needs the owner's „go".
+(C11, C13). Backlog from the run: C8–C13 and C4's correction — each needs the owner's go.
 
 **Überprüft.** The build log; the C12 counts against the sources by `psql`; the model diff against step 7; the
 views in a rolled-back transaction; table counts by `pg_stat_user_tables` after `ANALYZE` (estimates of live
@@ -9989,7 +9989,7 @@ neither (no `pit`/`bridge` in `src/`). Shape of the WP, to be specified: an as-o
 `dbt_utils` is already a dependency), a PIT per hub with two or more satellites — deterministic from the model —
 and bridges along link paths, which need a choice of path (from the requirements, proposed for ratification).
 Interplay to settle first: PITs over C11's and C13's non-idempotent satellites pick an arbitrary row per load
-date; AutomateDV's handling of ghost records for PIT lookups to be read before specifying. Needs the owner's „go".
+date; AutomateDV's handling of ghost records for PIT lookups to be read before specifying. Needs the owner's go.
 
 **Überprüft.** ADR-0007 lines 47–53 and 85; the installed macros' signatures; `rg -i "pit|bridge" src/`.
 **Nur angenommen.** Nothing about AutomateDV's PIT/ghost-record semantics — explicitly left to read.
@@ -10000,7 +10000,7 @@ date; AutomateDV's handling of ghost records for PIT lookups to be read before s
 **Autor:** Claude Code
 
 Follows „Backlog candidates C8–C21 recorded" (today, `bc23030`), which noted seven eval files renamed in the
-working tree. On the owner's word („stell die alten Dateinamen der Eval-Dateien wieder her") the originals were
+working tree. On the owner's word the originals were
 restored from `HEAD` (`git checkout --`) and the renamed copies deleted after `cmp` showed all seven
 byte-identical. `git status` lists no `eval/` change any more. **Überprüft.** `cmp` per pair; `pytest -k "dataset or
 eval"` 110 passed. **Nur angenommen.** That the renames came from preparing workbench uploads; the workbench keeps
@@ -10011,7 +10011,7 @@ its own copies under `workbench/adventureworks/inputs/`, untouched. **Bewusst ni
 **Autor:** Claude Code
 
 The owner asked whether the AdventureWorks build should ship as the workbench's demo, and decided the owner
-identity: „ersetze name und email durch "John Doe <john.doe@acme.com>"". Done together with C14
+identity: name and email replaced by "John Doe <john.doe@acme.com>". Done together with C14
 (`backlog-2026-10-candidates-2.md`).
 
 **Changed.** `.gitignore` ignores `workbench/` and `workbench-demo*/`; the 36 files under `workbench/myproject/`
@@ -10042,13 +10042,13 @@ Microsoft's CSVs loaded with `load_datetime`/`record_source`; the loader so far 
 **C24 — relocatable runs**: `run.json` stores `out_dir` relative to the directory the workbench was started in
 (`runs.py`: `Path(meta["out_dir"])`), so a project root cannot be moved or copied, and the demo works only
 started from the repo root with exactly that `--root`; resolving the run folder from the store
-(`ProjectStore.run_dir`) instead would make roots portable. Both need the owner's „go".
+(`ProjectStore.run_dir`) instead would make roots portable. Both need the owner's go.
 
 ## [2026-10-22] C16 built: documentation drift corrected — README, reference architecture, ADR-0004/-0005/-0007 accepted
 
 **Autor:** Claude Code
 
-The owner: „… danach C16 und C15". **README:** 35 `E_` gates (was 33; counted in `validator.py`), Databricks
+The owner asked for C16 and C15 next. **README:** 35 `E_` gates (was 33; counted in `validator.py`), Databricks
 described as built since WP72 (was „keyless-only so far, no workspace build recorded"), the status paragraph
 and roadmap brought from WP10 („Polish — next") to today — brownfield, FK-derived links, composite keys, the
 AdventureWorks chain, the 5.5 models, Databricks, the self-contained project, the workbench as done; the data
@@ -10074,7 +10074,7 @@ at budget).
 
 **Autor:** Claude Code
 
-On the owner's go („… danach C16 und C15"). `uv version 0.10.0`, `uv lock`, the `[Unreleased]` entries
+On the owner's go for C16 and C15. `uv version 0.10.0`, `uv lock`, the `[Unreleased]` entries
 become `## [0.10.0] - 2026-10-22` with a summary paragraph (WP11–WP80; open defects pointed to C11–C13);
 tag `0.10.0` pushed, the release workflow builds and publishes. **Überprüft.** Definition of done before the tag:
 `pytest` 1259 passed, 2 skipped (incl. `tests/test_release.py`: pyproject, `__version__`, lock and changelog
@@ -10086,7 +10086,7 @@ Nothing. **Bewusst nicht getan.** No PyPI (the project publishes GitHub releases
 **Autor:** Claude Code
 
 Spec and pre-registration `8ef4347` (red guards), feature `bd785f9`, catalogue amendment `1984009`; on the
-owner's „… danach soweit wie du alleine kommst" after my proposed order (data defects next, C12 first).
+owner's the owner's go to continue on my own as far as I could after my proposed order (data defects next, C12 first).
 **What changed.** `StagingSpec.null_groups` records, per link participation, the stage columns its hash is
 taken over and the relation columns they come from — in the link's own stage and in a link satellite's
 dedicated stage, translated participations excluded. `build_staging` declares a group's stage columns as
@@ -10155,7 +10155,7 @@ pushed.
 
 **Autor:** Claude Code
 
-The owner: „push it, dann aw neu aufbauen". WP83/WP84 pushed (`095c139` on `origin/main`). Schema `aw` held only the
+The owner asked for a push and a rebuild of aw. WP83/WP84 pushed (`095c139` on `origin/main`). Schema `aw` held only the
 vault (180 tables, 148 staging views) and the seven inferred-stage views — checked before dropping it whole
 (`DROP SCHEMA aw CASCADE`, recreated, `inferred_views.sql` re-applied). Built from the Sales run regenerated with
 the new generator (as for WP84), saved for the owner as `workbench/adventureworks/rebuild-20261022/` (git-ignored).
@@ -10242,7 +10242,7 @@ now „the first".
 
 **Autor:** Claude Code
 
-The owner: „1. und 2. go" (push; rebuild `aw` with the remedy for the four satellites WP85 refuses). Pushed
+The owner gave the go for both (push; rebuild `aw` with the remedy for the four satellites WP85 refuses). Pushed
 (`1d47ab0`). The Sales run regenerated with today's generator and the keyed catalogue; the four satellites made
 multi-active as `E_SAT_GRAIN_NOT_UNIQUE`'s remedy says — `sat_business_entity_department_shift_audit`,
 `sat_product_assembly_component_details`, `sat_business_entity_sales_territory_assignment_details` on `StartDate`,
@@ -10274,7 +10274,7 @@ and C25 (zero-key rows in the hubs, C12 phase 2); it also states what „C" mean
 
 **Autor:** Claude Code
 
-The owner: „ok ziehs durch in der reihenfolge" — first the paid chain (~5 USD) that verifies WP83–WP85 in a real run,
+The owner gave the go for the whole order — first the paid chain (~5 USD) that verifies WP83–WP85 in a real run,
 then C25, C18, C22, a draft for C20. Written before the run. **The run:** a fresh workbench (today's code) on port
 8766, root `workbench/chain-20261023/` (git-ignored), project `adventureworks`, the five eval cases' requirements and
 re-derived schemas (with keys, WP85) uploaded, five runs person → sales, each extending the previous one. The
@@ -10326,7 +10326,7 @@ the summary: 13/17, 6/8, 25/29, 6/9, 20/33).
 
 **Autor:** Claude Code
 
-The owner: „lass es so laufen und zieh C9 und C5 vor". **WP87** (`ef5c32f` red, `cf5a756`): `cli._parse_owner` stores a
+The owner let the run continue and pulled C9 and C5 forward. **WP87** (`ef5c32f` red, `cf5a756`): `cli._parse_owner` stores a
 bare address as email with its local part as name — the workbench sends the same text, so both front ends agree;
 the Review perspective accepts `Name <email>` or a bare address (`ownerValid`), shows „Name <email> or an email
 address" under an invalid field, and the record button says whether the run stays paused or finishes. **WP88**
@@ -10378,7 +10378,7 @@ with WP86; the test schema dropped; nothing pushed.
 
 **Autor:** Claude Code
 
-The owner: „1. ja, 2. ja, 3. ja, 4. ja" (push; C18 with an evidence-based third binding tier; C26 as a work package
+The owner answered yes to all four (push; C18 with an evidence-based third binding tier; C26 as a work package
 before C22; rebuild `aw` with WP86). Pushed `b77ea94..cfd8dea`. The Sales run regenerated as for the WP86 measurement
 (keyed catalogue, WP85's four multi-active remedies) into `workbench/adventureworks/rebuild-20261023/` (git-ignored;
 replaces `rebuild-20261022`). `aw` checked before dropping — 180 tables, 155 views, nothing outside the vault and its
@@ -10392,7 +10392,7 @@ next); schema `aw_chain` (today's paid chain's build) left in place for the owne
 
 **Autor:** Claude Code
 
-The owner: „3. ja" (C26 as a work package, before C22). Spec and guards `e24e6bb` (red, 4 of 5). **Cause:**
+The owner said yes to the third (C26 as a work package, before C22). Spec and guards `e24e6bb` (red, 4 of 5). **Cause:**
 `link_proposal._pair_participations` dropped a ratified key's translation whenever the relation carried a column
 named like the hub's key — WP41 §2 rule 1, „repaired only by an alias, never a translation", on the reasoning that
 such a column may be a legitimate copy. `SalesOrderHeader.AccountNumber` is a financial account, not
@@ -10424,7 +10424,7 @@ WP89 (asked for WP86 only); no gate for a homonym without a ratified key (spec �
 
 **Autor:** Claude Code
 
-The owner: „2. ja" (allow the evidence-based third binding tier, overriding WP42 §2's „deliberately no third tier").
+The owner said yes to the second (allow the evidence-based third binding tier, overriding WP42 §2's „deliberately no third tier").
 Spec and guards `ff6f03d` (red, 6 of 9). **Rule** (`rules/dv2_rules.link_binding_by_evidence`, called by
 `resolve_link_relation` only when two or more relations fit the offer): the relation declaring every attribute of the
 link's satellites (`payload`), else the one whose primary key the participations cover (`key`; a single-source hub
@@ -10468,7 +10468,7 @@ getan.** C18's second half (a binding field at sign-off, C4/WP82); the store rol
 
 **Autor:** Claude Code
 
-The owner: „C22 -> go". Before specifying, the installed package was read further than on 2026-10-22: every
+The owner gave the go for C22. Before specifying, the installed package was read further than on 2026-10-22: every
 platform's `pit`/`bridge` dispatcher calls `automate_dv.pit_bridge_deprecation_warning()`
 (`macros/internal/helpers/logging/error_messages.sql:86`): „DEPRECATED: Since AutomateDV v0.11.0, the pit() and
 bridge() macros are now deprecated. This is because they are not currently fit-for-purpose and need significant
@@ -10497,7 +10497,7 @@ installed `macros/tables/`: exactly those two files.
 
 **Autor:** Claude Code
 
-The owner: „push it, aw neu aufbauen, aw_chain löschen, C22 -> go". Pushed `cfd8dea..f6e8eaa`. `aw_chain` checked first
+The owner asked for a push, a rebuild of aw, aw_chain dropped, and gave the go for C22. Pushed `cfd8dea..f6e8eaa`. `aw_chain` checked first
 (177 tables, 169 views: the chain's vault and its ten `raw_` views, nothing else) and dropped. The Sales run regenerated
 as for WP90's P3 (WP85's remedies; the key repair re-applied to this step's own constructs) into
 `workbench/adventureworks/rebuild-20261023/` (replacing the WP86 rebuild); `aw` checked (180 tables, 227 views, nothing
@@ -10511,7 +10511,7 @@ decisions). **Überprüft.** Build logs, counts by `psql`. C22: see the correcti
 
 **Autor:** Claude Code
 
-The owner: „1. push; 2. in diesem Fall ausnahmsweise tun; 3. Probelauf und ADR". Pushed `f6e8eaa..d6ec550`; the wiki
+The owner asked for a push, the exception for the wiki entry, and the trial plus ADR. Pushed `f6e8eaa..d6ec550`; the wiki
 entry's missing „Nur angenommen" line added in place on that word (wiki `d19484d`, lint 0). **Trial** (keyless, a copy
 of `rebuild-20261023` with a `business_vault` folder, schema `aw_pit_trial`, dropped afterwards): `hub_sales_order` ×
 11 as-of dates. A (`automate_dv.pit`, `pit_incremental`): 346 115 rows, 4.67 s, second run `INSERT 0 346115` in 7.85 s
@@ -10531,7 +10531,7 @@ nicht getan.** No generator code; the bridge macro not run; Databricks not touch
 
 **Autor:** Claude Code
 
-The owner: „1. ok, 2. option B" (push `cffc34d`; ADR-0016 decided for option B). Pushed. The ADR file keeps its
+The owner gave the go for the push and chose option B (push `cffc34d`; ADR-0016 decided for option B). Pushed. The ADR file keeps its
 drafted text (records are append-only); the acceptance is this entry and the index row. Consequence taken up now:
 **WP91 — a PIT per hub as a bounded `table`**, the ghost question settled in its spec first. **Überprüft.** The push.
 
@@ -10583,3 +10583,24 @@ done; an outside evaluator run), the CHANGELOG header points there; index row. *
 `0.11.0` pushed with the commits, the release workflow builds and publishes. **Überprüft.** Before the tag:
 `tests/test_release.py` and the suite, `ruff`, bare `mypy`; the workflow's result checked after the push (below, if
 it differs). **Nur angenommen.** Nothing. **Bewusst nicht getan.** No PyPI; `aw` not rebuilt with PITs.
+
+## [2026-10-23] Correction: the owner's verbatim words replaced by paraphrases throughout the public docs
+
+**Autor:** Claude Code
+
+The owner saw that this log and the specs quoted his chat messages verbatim (German, informal: a go, an order of
+work, a decision) and asked whether that belongs in public. It does not: the quotes were my evidence of who
+authorised what, and a dated paraphrase carries that evidence without his wording. Of three options — stop quoting
+from now on; also replace the existing quotes in the current files; also rewrite the git history — the owner chose
+the second. **Done:** 130 quotes in 42 files (`docs/log.md`, specs and kick-offs under `backlog-2026-07/`, the
+backlog records, ADR-0016, the index, the spike memo, the demo README) replaced by English paraphrases of the same
+meaning and date — „the owner gave the go for WP64", „the owner's go for item 2, role columns from declared keys",
+„the owner chose option B"; quotes of error messages, source code, documents and the tool's own output were left.
+This edits existing records under `docs/architecture/`, a deliberate exception to append-only, made for the owner's
+privacy and recorded here; the git history and the releases 0.9.x–0.11.0 keep the earlier wording (rewriting the
+history of a public repository was weighed and declined: every commit id this log cites would stop resolving).
+**Rule from now on:** CLAUDE.md, „Paraphrase the owner, never quote him". **Überprüft.** A scan for German or
+chat-shaped text inside „…" over `docs/`, README, CHANGELOG and `demo/` finds nothing; the suite, which reads
+several of these files, stays green (below). **Nur angenommen.** That no owner wording survives in a form the scan
+cannot see (an English sentence of his quoted as a term) — a reader who finds one may replace it the same way.
+**Bewusst nicht getan.** The history; the private wiki, which keeps its chronicle as written.

@@ -117,6 +117,12 @@ fresh clone does not lose them.
   *Action:* put it behind an injectable seam and test the deterministic core keylessly. *Evidence:*
   `uv run pytest` is green with no key set. Live measurement is a separate, paid, recorded activity.
 
+- **Paraphrase the owner, never quote him.** *Trigger:* you record a go, a decision or an instruction
+  from the chat in a public file (`docs/`, README, CHANGELOG, demo). *Action:* write it as a dated
+  paraphrase in English — „on the owner's go (2026-10-23)", „the owner chose option B" — and quote only
+  error messages, source code and documents. *Evidence:* no „…" in a public file holds the owner's own
+  words; 130 such quotes were replaced on 2026-10-23 (`docs/log.md`), his choice.
+
 - **Records are append-only.** *Trigger:* a new finding contradicts an ADR, spec or log entry.
   *Action:* add a dated entry that says so; never edit the old text. *Evidence:* the correction is
   findable by date, and the original reasoning is still readable.

@@ -6,7 +6,7 @@ updated: 2026-10-17
 
 # WP73 — A staging model is refused when its relation lacks a column it hashes; the override loop stops binding multi-source hubs' links
 
-Status: **Approved and in progress** (2026-10-17, user: „go, bau WP73“) · Owner: Mischa Eismann
+Status: **Approved and in progress** (2026-10-17, the owner's go for WP73) · Owner: Mischa Eismann
 · Author: Claude. From WP72 stage 3 and the correction of 2026-10-17 (`docs/log.md`): 13 link
 stagings bound to relations lacking a hashed participation column, deterministic, in every
 chain, invisible without a build. No prompt change; the suite stays keyless.

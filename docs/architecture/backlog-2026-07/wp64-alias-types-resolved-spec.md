@@ -6,7 +6,7 @@ updated: 2026-10-10
 
 # WP64 — AdventureWorks' alias types are resolved to their base types in the schema derivation
 
-Status: **Approved and in progress** (2026-10-10, user: „ok, go, bau WP64“) · Owner: Mischa
+Status: **Approved and in progress** (2026-10-10, the owner's go for WP64) · Owner: Mischa
 Eismann · Author: Claude. Touches `eval/adventureworks/extract.py`, `derive.py`, the checked-in
 extract and the derived `source_schema.yml` files. Transcription, not interpretation (WP30 §2.3):
 the alias definitions stand in the same install script.

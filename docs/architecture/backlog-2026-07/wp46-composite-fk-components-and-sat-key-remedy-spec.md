@@ -6,7 +6,7 @@ updated: 2026-10-04
 
 # WP46 — Composite foreign keys read per component, and a remedy for a satellite whose relation lacks its parent's key
 
-Status: **Approved and in progress** (2026-10-04, user: „ok, mach 2 und 3, leg los" on the four
+Status: **Approved and in progress** (2026-10-04, the owner's go for items 2 and 3 on the four
 alternatives to a ratified translation WP) · Owner: Mischa Eismann · Author: Claude. Touches the
 link proposer (WP34, WP36, WP39, WP40/41), `E_SAT_KEY_NOT_IN_SOURCE` (2026-09-15), the repair
 memory (WP44), the FK-links Postgres demo. No prompt change; no new model call; no ratification

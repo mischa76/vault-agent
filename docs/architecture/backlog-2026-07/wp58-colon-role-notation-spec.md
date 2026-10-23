@@ -6,7 +6,7 @@ updated: 2026-10-09
 
 # WP58 — `hub:role` in `connected_hubs` is a role-qualified participation
 
-Status: **Approved and in progress** (2026-10-09, user: „super, machen wir 1,2 …“) · Owner:
+Status: **Approved and in progress** (2026-10-09, the owner's go for items 1 and 2) · Owner:
 Mischa Eismann · Author: Claude. Touches `Link`'s hub-reference coercion in `state.py`. A parser
 widening to the project's own notation; no prompt change, no model call.
 

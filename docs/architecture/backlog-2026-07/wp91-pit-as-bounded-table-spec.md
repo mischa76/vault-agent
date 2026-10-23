@@ -6,7 +6,7 @@ updated: 2026-10-23
 
 # WP91 — A point-in-time table per hub, generated as a bounded `table` in vault-agent's own SQL (ADR-0016 option B, first increment)
 
-Status: **Approved and in progress** (2026-10-23, owner: „option B" on ADR-0016) · Owner: Mischa Eismann · Author:
+Status: **Approved and in progress** (2026-10-23, the owner's choice of option B on ADR-0016) · Owner: Mischa Eismann · Author:
 Claude. Backlog C22 (`backlog-2026-10-candidates-3.md`); the trial `spike-pit-trial-results.md`; the decision
 `adrs/ADR-0016-business-vault-pit-bridge.md`. Bridges are not this WP.
 
