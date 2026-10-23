@@ -31,8 +31,11 @@ async def test_a_zero_keyed_hub_gets_typed_zero_rows_and_a_stage() -> None:
     state = await _state()
     models = state.artifacts.staging_models
     sql = models["zero_keys_business_entity"]
-    assert "CAST('-1' AS bigint) AS BUSINESSENTITYID" in sql
-    assert "CAST('-2' AS bigint) AS BUSINESSENTITYID" in sql
+    # The warehouse's type of the hub stage's key, the declared class only as the fallback.
+    assert "adapter.get_columns_in_relation(ref('stg_business_entity'))" in sql
+    assert "-- depends_on: {{ ref('stg_business_entity') }}" in sql
+    assert "CAST('-1' AS {{ types.get('BUSINESSENTITYID', 'bigint') }}) AS BUSINESSENTITYID" in sql
+    assert "CAST('-2' AS {{ types.get('BUSINESSENTITYID', 'bigint') }}) AS BUSINESSENTITYID" in sql
     assert "AS LOAD_DATETIME" in sql and "'SYSTEM'" in sql
     stage = models["stg_business_entity_zero_keys"]
     assert "source_model: 'zero_keys_business_entity'" in stage

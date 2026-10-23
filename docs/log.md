@@ -10340,3 +10340,36 @@ paths (owners were `John Doe` already), `state.json` only from `.vault-agent/`, 
 README rewritten; every workbench view answers through the API on it (model 7 … 40 hubs, 2 … 6 subject areas,
 project check, report). **Überprüft.** Suites green (Python 1282, frontend 16), ruff, mypy; the API on the demo.
 **Nur angenommen.** That the zoom feels right in a real browser (jsdom only). **Bewusst nicht getan.** The vitest pool.
+
+## [2026-10-23] WP86 built and measured: zero-key rows in the hubs — PASS=406, 180 of 180 idempotent, 36 hubs exactly +2; the measurement found two defects first, and a pre-existing homonym (C26)
+
+**Autor:** Claude Code
+
+Spec and guards `c3c1fc2` (red), feature `b472502`, final cast in this commit. `StagingSpec.null_groups` names the hub
+each participation hashes into; `zero_key_hubs` collects the hubs a zero-keyed participation reaches; per hub a view
+`zero_keys_<base>` (two rows, keys `-1`/`-2`, `LOAD_DATETIME` 1900-01-01, `RECORD_SOURCE` `SYSTEM`) and a stage
+`stg_<base>_zero_keys` (metadata `source_binding: generated`); `code_generator.apply_zero_key_hubs` re-renders every hub
+with or without it after the code generator's staging pass and again after the mapper's re-bind (link stages bind by
+offer only there). The WP86 test fixture got declared foreign keys after its red commit, so its customer link binds by
+offer as in a grounded run (the red reason stayed the same). `demo/mapping_postgres` regenerated — both hubs zero-keyed,
+its test's expected staging set updated deliberately — built PASS=16, second build `INSERT 0 0`, `hub_account` holds
+`-1`, `-2` from `SYSTEM` beside its four accounts.
+
+**Measured** on the owner's Sales vault with WP85's remedy, regenerated, fresh schema, built twice. **First build: two
+errors** — `hub_product_review` and `hub_shopping_cart` could not union text with bigint: the zero keys were cast to the
+*declared* class (`ShoppingCartID` is `nvarchar(50)` in Microsoft's DDL, the CSV loader typed it `bigint`). Fix: the
+view reads the hub stage's columns through `adapter.get_columns_in_relation` at run time and casts to the warehouse's
+type, the declared class only as fallback. **Second attempt: 36 errors** — dbt cannot see a `ref()` inside
+`{% if execute %}`; fix: a `-- depends_on: {{ ref(...) }}` hint. Then: **P1 ✔** PASS=406 both builds, 180 of 180
+incremental models `INSERT 0 0`. **P2 ✔** 36 of 39 hubs zero-keyed, each exactly two rows more than the owner's `aw`,
+keys `-1`/`-2`. **P3 ✗** 113 of 114 link foreign-key columns have every row joined to its hub; the one that does not —
+`link_sales_order_customer.CUSTOMER_HK`, all 31 465 rows — is **not WP86's**: its stage hashes
+`SalesOrderHeader.AccountNumber`, a financial account (`10-4020-000676`), while `hub_customer` is keyed on
+`Customer.AccountNumber` (`AW00000001`). Same name, different meaning; the owner's `aw` has the same 31 465 unjoined rows,
+and today's paid chain the same class (`link_sales_order`, every row). **New candidate C26 — homonym keys:** a link
+participation read from a column that shares the hub key's name while the relation declares a *different* foreign key
+to the hub's table (`SalesOrderHeader.CustomerID → Customer.CustomerID`); the translation (WP36) is the right reading. A
+deterministic warning or gate is possible from the catalogue. **Überprüft.** Suites green (1286), ruff, mypy; the build
+logs; the join counts per link column by `psql`. **Nur angenommen.** That `adapter.get_columns_in_relation` behaves
+alike on Databricks (dbt's adapter API; built on PostgreSQL only). **Bewusst nicht getan.** The owner's `aw` not rebuilt
+with WP86; the test schema dropped; nothing pushed.

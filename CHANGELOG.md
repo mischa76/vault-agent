@@ -13,6 +13,9 @@ is not the project's.
 ## [Unreleased]
 
 ### Fixed
+- A link's zero key now points at a hub row: every hub a zero-keyed participation reaches gets `-1`/`-2`
+  rows through a generated view (keys cast to the hub stage's warehouse type at run time) and stage in its
+  `source_model` list (WP86, backlog C25).
 - A link no longer drops a source row whose participant key is NULL, and a satellite on it no longer
   orphans that row: every stage that hashes a link key declares the participant columns as
   AutomateDV `null_columns: optional` (zero key `-2`) when the bound relation types them integer or

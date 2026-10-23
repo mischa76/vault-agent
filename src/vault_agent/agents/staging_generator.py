@@ -555,14 +555,19 @@ def zero_key_stage_name(hub: Hub) -> str:
 
 
 def render_zero_key_model(
-    hub: Hub, columns: list[tuple[str, str]], profile: PlatformProfile
+    hub: Hub, columns: list[tuple[str, str]], profile: PlatformProfile, type_stage: str
 ) -> str:
     """WP86: the hub's two zero-key rows — every key column `-1` (required, missing) and `-2`
-    (optional, not applicable) — at AutomateDV's ghost-record date, from the system."""
+    (optional, not applicable) — at AutomateDV's ghost-record date, from the system. Each key is
+    cast to the type the hub's own stage (``type_stage``) has in the warehouse, read at run time
+    through the adapter: the declared source types are only the fallback, because a warehouse may
+    type a column otherwise (the first build found `ShoppingCartID` declared `nvarchar`, loaded
+    `bigint` — a hub cannot union text with bigint)."""
+    def cast(value: str, col: str, kind: str) -> str:
+        return f"CAST('{value}' AS {{{{ types.get('{col}', '{profile.seed_type(kind)}') }}}})"
+
     def row(value: str) -> str:
-        keys = ", ".join(
-            f"CAST('{value}' AS {profile.seed_type(kind)}) AS {col}" for col, kind in columns
-        )
+        keys = ", ".join(f"{cast(value, col, kind)} AS {col}" for col, kind in columns)
         return (
             f"SELECT {keys}, CAST('1900-01-01' AS {profile.seed_type('timestamp')}) AS "
             f"{LOAD_DATETIME_COLUMN}, CAST('SYSTEM' AS {profile.seed_type('varchar')}) AS "
@@ -572,7 +577,15 @@ def render_zero_key_model(
     return (
         f"-- Generated zero-key rows for {hub.name} (WP86): a link whose participant is missing\n"
         "-- carries the zero key; these rows give it a hub row to join.\n"
+        # dbt cannot see a ref() inside `if execute`; the hint declares the dependency.
+        f"-- depends_on: {{{{ ref('{type_stage}') }}}}\n"
         "{{ config(materialized='view') }}\n"
+        "{%- set types = {} -%}\n"
+        "{%- if execute -%}\n"
+        f"{{%- for c in adapter.get_columns_in_relation(ref('{type_stage}')) -%}}\n"
+        "{%- do types.update({c.name | upper: c.data_type}) -%}\n"
+        "{%- endfor -%}\n"
+        "{%- endif %}\n"
         f"{row('-1')}\nUNION ALL\n{row('-2')}\n"
     )
 
@@ -1401,7 +1414,8 @@ def build_staging(
     ``target_platform`` (WP35) selects the seed-type dialect and the README's profile
     hint; the rendered models are identical across platforms. The default is the
     byte-identity baseline."""
-    specs = collect_staging_specs(model, legacy_feeds(existing))
+    legacy = legacy_feeds(existing)
+    specs = collect_staging_specs(model, legacy)
     # WP74: an existing construct's stage binds against the catalogue earlier increments
     # carried in (schema, database, full columns), the increment's own tables first. The
     # carried tables reach nothing else — the contract agent, the proposer and the modeler
@@ -1497,7 +1511,11 @@ def build_staging(
             stage.add_source_column(col)
         stage.add_source_column(LOAD_DATETIME_COLUMN)
         stage.add_source_column(RECORD_SOURCE_COLUMN)
-        models[view] = render_zero_key_model(hub, columns, profile)
+        type_stage = (
+            multi_source_staging_name(hub, hub.sources[0], legacy) if hub.sources
+            else _staging_name(hub.name)
+        )
+        models[view] = render_zero_key_model(hub, columns, profile, type_stage)
         models[stage.name] = render_stage_model(stage, profile).replace(
             "(source binding: inferred — see review queue)",
             f"(source binding: generated — {view}, WP86)",
