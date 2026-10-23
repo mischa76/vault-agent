@@ -1,8 +1,10 @@
 # Changelog
 
 All notable changes to vault-agent. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
-versions follow [Semantic Versioning](https://semver.org/) and stay below 1.0 until the first live
-Databricks build (see the 0.9.0 release notes). The detailed, dated record of every work package,
+versions follow [Semantic Versioning](https://semver.org/) and stay below 1.0 until the five criteria in
+`docs/architecture/release-1.0-criteria.md` are met (2026-10-23; they replace „the first live Databricks
+build“, met on 2026-10-16 and overtaken by what the owner's own build found a week later). An
+output-changing correction is a minor release, never a patch. The detailed, dated record of every work package,
 measurement and correction is `docs/log.md`; this file is the summary a user of the tool reads.
 
 **One version, three places that must agree:** `pyproject.toml` (the source, bumped with
@@ -11,6 +13,18 @@ measurement and correction is `docs/log.md`; this file is the summary a user of 
 is not the project's.
 
 ## [Unreleased]
+
+## [0.11.0] - 2026-10-23
+
+One day after 0.10.0 in calendar time, a week in work: the data defects the owner's hands-on build of the
+whole AdventureWorks vault found are closed and measured (zero keys for nullable link participants and the hub
+rows they point at, multi-active satellites on multi-source hubs, a satellite-grain gate, homonym keys), link
+stages that several relations offer bind from the catalogue's evidence instead of staying inferred, and the
+Business Vault starts: point-in-time tables in vault-agent's own SQL, because AutomateDV 0.11.4 deprecates its
+`pit()`/`bridge()` (ADR-0016). The owner's vault builds PASS=421 with PITs, 180 of 180 incremental models
+idempotent, three hand-made views left of seven. Verified keyless on PostgreSQL throughout; one paid chain
+(2026-10-23) all green with the new grain gate firing and followed live. Releases stay below 1.0 — the
+criteria are now written down (`docs/architecture/release-1.0-criteria.md`).
 
 ### Fixed
 - A link no longer hashes a same-named column that means something else: a ratified foreign key's

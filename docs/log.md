@@ -10568,3 +10568,18 @@ and a daily spine is a table to bound deliberately, which is why the bounds are 
 test failed); build logs; counts and joins by `psql`. **Nur angenommen.** That `binary_ghost`/`date_ghost` render
 alike on Databricks (default dispatch read, not built). **Bewusst nicht getan.** Bridges; an incremental PIT; per-hub
 selection; `aw` not rebuilt with PITs; nothing pushed.
+
+## [2026-10-23] Release 0.11.0, and the 1.0 criteria written down
+
+**Autor:** Claude Code
+
+The owner asked whether 0.11.0 does the software's state justice; my answer: yes as a minor, and the CHANGELOG's own
+1.0 rule („the first live Databricks build", 0.9.0) is met since WP72 and overtaken — this week changed the generated
+output for unchanged inputs three times (WP86, WP89, WP90), which is 0.x by definition. The owner: „ok, kriterien
+eintragen und 0.11.0 schneiden". **Criteria:** `docs/architecture/release-1.0-criteria.md` (five, each a recorded
+measurement: a second real domain; two minors without a wrong-data fix; AdventureWorks without hand views; ADR-0015
+done; an outside evaluator run), the CHANGELOG header points there; index row. **Release:** `uv version 0.11.0`,
+`uv lock`, the `[Unreleased]` entries become `## [0.11.0] - 2026-10-23` with a summary paragraph (WP83–WP91), tag
+`0.11.0` pushed with the commits, the release workflow builds and publishes. **Überprüft.** Before the tag:
+`tests/test_release.py` and the suite, `ruff`, bare `mypy`; the workflow's result checked after the push (below, if
+it differs). **Nur angenommen.** Nothing. **Bewusst nicht getan.** No PyPI; `aw` not rebuilt with PITs.
