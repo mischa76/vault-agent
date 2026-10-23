@@ -10373,3 +10373,17 @@ deterministic warning or gate is possible from the catalogue. **Überprüft.** S
 logs; the join counts per link column by `psql`. **Nur angenommen.** That `adapter.get_columns_in_relation` behaves
 alike on Databricks (dbt's adapter API; built on PostgreSQL only). **Bewusst nicht getan.** The owner's `aw` not rebuilt
 with WP86; the test schema dropped; nothing pushed.
+
+## [2026-10-23] Pushed; the owner's `aw` rebuilt a third time, with WP86 — PASS=406, 180 of 180 idempotent, 36 hubs carry zero-key rows
+
+**Autor:** Claude Code
+
+The owner: „1. ja, 2. ja, 3. ja, 4. ja" (push; C18 with an evidence-based third binding tier; C26 as a work package
+before C22; rebuild `aw` with WP86). Pushed `b77ea94..cfd8dea`. The Sales run regenerated as for the WP86 measurement
+(keyed catalogue, WP85's four multi-active remedies) into `workbench/adventureworks/rebuild-20261023/` (git-ignored;
+replaces `rebuild-20261022`). `aw` checked before dropping — 180 tables, 155 views, nothing outside the vault and its
+seven `raw_` views — dropped, the seven views re-applied (`fa02862:demo/workbench-adventureworks/inferred_views.sql`),
+built twice: **PASS=406 both times; second build 180 of 180 incremental models `INSERT 0 0`**; 36 of 39 hubs zero-keyed,
+`hub_customer` two `SYSTEM` rows, `link_customer_business_entity` 19 820. **Überprüft.** Build logs, counts by `psql`.
+**Bewusst nicht getan.** `link_sales_order_customer` still hashes the homonym `SalesOrderHeader.AccountNumber` (C26,
+next); schema `aw_chain` (today's paid chain's build) left in place for the owner.
