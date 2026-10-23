@@ -10506,3 +10506,23 @@ outside the vault and the seven `raw_` views), dropped, **only three hand views 
 twice: **PASS=407 both times, 180 of 180 incremental models `INSERT 0 0`**; `link_sales_order_customer` 0 rows without
 a customer (was 31 465). The four other hand views are gone: their links bind by evidence (four `link_binding_evidence`
 decisions). **Überprüft.** Build logs, counts by `psql`. C22: see the correction above — paused for the owner.
+
+## [2026-10-23] C22 trial: a PIT on the owner's vault with AutomateDV's deprecated `pit()` and in plain SQL — same rows, the macro's ghost key is 32 ASCII zeros, no incremental benefit measured; ADR-0016 drafted
+
+**Autor:** Claude Code
+
+The owner: „1. push; 2. in diesem Fall ausnahmsweise tun; 3. Probelauf und ADR". Pushed `f6e8eaa..d6ec550`; the wiki
+entry's missing „Nur angenommen" line added in place on that word (wiki `d19484d`, lint 0). **Trial** (keyless, a copy
+of `rebuild-20261023` with a `business_vault` folder, schema `aw_pit_trial`, dropped afterwards): `hub_sales_order` ×
+11 as-of dates. A (`automate_dv.pit`, `pit_incremental`): 346 115 rows, 4.67 s, second run `INSERT 0 346115` in 7.85 s
+— the whole PIT recomputed, because the window counts every hub row loaded at or after the stages' minimum load date as
+new, which on a one-load vault is all of them. B (plain SQL, `table`): 346 115 rows, 7.24 s / 8.04 s. EXCEPT each way:
+94 395 rows = exactly the three ghost dates, differing in the ghost key alone — the macro writes
+`CAST('000…0' AS BYTEA)`, 32 bytes 0x30, into a column of 16-byte MD5s; B wrote 16 zero bytes. Load dates identical.
+The deprecation warning printed on every run. Memo `backlog-2026-07/spike-pit-trial-results.md` (both models' SQL in
+it); **ADR-0016** (Proposed) with options A/B/C and the recommendation **B** — our own PIT/bridge SQL as a scoped,
+dated exception to the no-bypass rule, PIT first as a bounded `table`, ghost handling decided before the spec,
+re-evaluated when AutomateDV's redesign ships; index rows for both. **Überprüft.** Build logs; counts, EXCEPTs and the
+ghost bytes by `psql`; the compiled SQL of A. **Nur angenommen.** That the macro's incremental path would behave
+differently on a vault with several load dates (not measured); that a multi-active satellite behaves as read. **Bewusst
+nicht getan.** No generator code; the bridge macro not run; Databricks not touched; the decision is the owner's.

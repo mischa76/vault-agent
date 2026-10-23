@@ -71,6 +71,7 @@ Append-only. Status is the ADR's own header, not this table's opinion.
 | [0013](architecture/adrs/ADR-0013-surrogate-to-natural-key-translation.md) | Surrogate→natural-key translation for FK-derived link proposals | Accepted 2026-09-12 → WP36 |
 | [ADR-0014](architecture/adrs/ADR-0014-workbench-ui.md) | A workbench UI as a local web application over the pipeline's internals; browser-first, Vite + React + TypeScript + Tailwind, a state-driven console first — **Accepted 2026-10-11** |
 | [0015](architecture/adrs/ADR-0015-positioning-single-user-or-team.md) | Positioning: the consultant's single-user tool, or a team tool with auth and a shared checkpointer (backlog C20) | Proposed — a draft by Claude, the owner decides |
+| [0016](architecture/adrs/ADR-0016-business-vault-pit-bridge.md) | Business Vault PIT and bridge generation: on AutomateDV's deprecated `pit()`/`bridge()`, in our own SQL as a scoped exception to the stack rule (recommended), or later (backlog C22) | Proposed — a draft by Claude after the PIT trial, the owner decides |
 | [template](architecture/adrs/ADR-template.md) | The shape a new ADR takes | — |
 
 ## Charters and spikes
@@ -83,6 +84,7 @@ the eval assets survive.
 | [incremental-extension-charter.md](architecture/backlog-2026-07/incremental-extension-charter.md) | Brownfield mode: extend an existing vault instead of modelling into an empty one |
 | [spike-mapping-charter.md](architecture/backlog-2026-07/spike-mapping-charter.md) → [results](architecture/backlog-2026-07/spike-mapping-results.md) | LLM-first business↔source mapping beats a deterministic-first hybrid; became WP9/WP10 |
 | [spike-entity-resolution-charter.md](architecture/backlog-2026-07/spike-entity-resolution-charter.md) → [results](architecture/backlog-2026-07/spike-entity-resolution-results.md) | Entity resolution is not symmetric — zero false merges is the primary metric; became WP29 |
+| [spike-pit-trial-results.md](architecture/backlog-2026-07/spike-pit-trial-results.md) | AutomateDV's deprecated `pit()` against plain SQL on the owner's vault: same 346 115 rows, the macro's ghost key is 32 ASCII zeros in a 16-byte MD5 column, no incremental benefit measured; fed ADR-0016 |
 | [roadmap-2026-07-productization.md](architecture/roadmap-2026-07-productization.md) | UI track and productization readiness |
 | [deployment-residency.md](architecture/deployment-residency.md) | Deployment and data residency (Charter B) |
 | [backlog-2026-10-candidates.md](architecture/backlog-2026-10-candidates.md) | Candidates from the owner's hands-on run, unprioritised: a source-driven mode (ADR candidate), deleting, project settings with a naming profile, CLI/workbench parity (WP82), diagram zoom, `W_UNTRACED_CONSTRUCT`, the Phase 3 foreign-vault spike |
