@@ -363,8 +363,10 @@ Workbench         browser UI over the same pipeline, CLI equivalent per action
                   (ADR-0014, WP66–WP71, WP78, WP80)                            ✅ done
 Data defects      found in the owner's build and fixed: zero keys for nullable link
                   participants, multi-active on multi-source hubs, satellite-grain
-                  gate (WP83–WP85; hub zero-key rows still open)               ✅ done
-Business Vault    PIT / Bridge generation on AutomateDV's macros (ADR-0007)    🔜 next
+                  gate, hub zero-key rows, homonym keys, evidence-bound link
+                  stages (WP83–WP86, WP89, WP90)                               ✅ done
+Business Vault    point-in-time tables in our own SQL — AutomateDV deprecates
+                  its pit()/bridge() (ADR-0016, WP91); bridges                 ✅ PIT · 🔜 bridge
 Second domain     a non-AdventureWorks landscape (bank / insurance)            ⏳ planned
 Snowflake         platform profile and a recorded build                       ⏳ planned
 ```
