@@ -10769,3 +10769,15 @@ the owner opens the workbench. That `uv sync` without `--extra dev --extra ui --
 `pytest` were missing for one call (it uninstalled them; restored with the three extras CI and the demo use).
 **Bewusst nicht getan.** No `oauthlib` override; no bump of the report's CDN pin; no switch of the workbench to ELK —
 the owner may want it, it is a one-word change, and it should be looked at, not assumed.
+
+## [2026-10-24] Correction to the entry above: the 18-of-29 vitest run was started from the repository root, not from `frontend/`
+
+**Autor:** Claude Code
+
+The entry above calls the one failing `vitest run` (18 of 29 failed in 359 ms) not reproducible. It is explained: a
+`node_modules/` appeared at the repository root holding only `.vite/vitest` and `.vitest-cache`, created 22:24:51 Z —
+the second the failing run started. Three shell calls were issued at once and share one working directory, so a `cd`
+in one moved the others; that vitest ran at the root, without `frontend/vite.config.ts` and its jsdom setup, and failed
+on environment, not on Mermaid 12. The directory is removed; the two sequential runs from `frontend/` (29 of 29) and
+CI stand. Lesson for this container: parallel shell calls take absolute paths or a subshell `(cd … && …)`, never a
+bare `cd`. **Überprüft.** The directory's timestamp against the run's start time; its contents (caches only).
