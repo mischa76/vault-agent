@@ -6277,7 +6277,7 @@ datavault4dbt still has its Fabric adapter at HEAD (read on 2026-09-22, not re-c
 
 **Autor:** Claude Code
 
-Follow-up to today's „Finding — the README deviations of 2026-09-22 re-checked"; the the owner asked for the two README wordings to be changed as proposed. **Changed, README only:** (1) „Ten specialized agents"
+Follow-up to today's „Finding — the README deviations of 2026-09-22 re-checked"; the owner asked for the two README wordings to be changed as proposed. **Changed, README only:** (1) „Ten specialized agents"
 → 13 graph nodes, six model-calling agents and seven deterministic stages, with the three missing
 rows (Entity Resolver, Link Proposer, Resolution Checkpoint) and `graph.py` named as the owner of
 the list; (2) the targets banner and the warehouse bullet now say strategic targets Snowflake and
@@ -6716,7 +6716,7 @@ measurement.
 
 **Autor:** Claude Code
 
-The the owner's go: a typed reason first, then option 2 as an eval variant and comparison. WP47 is built (`ec30d9a` guards first, failing; `f73817f` the change; spec
+The owner's go: a typed reason first, then option 2 as an eval variant and comparison. WP47 is built (`ec30d9a` guards first, failing; `f73817f` the change; spec
 `c6a51da`). One repeat of `adventureworks_incremental_cumulative` at this commit — the 2026-10-05
 chain's steps with the catalogue of steps 1 … N−1 handed to step N — against that chain
 (`20261004T140130528908Z`: 353 items, 135 decisions, 218 disclosures, `source_binding` 154, 22
@@ -7365,7 +7365,7 @@ report. Cost ≈ 6.5 USD, ≈ 45 min.
 The seventh chain (`20261007T001520705532Z`) ended in step 5 with `BATCH INCOMPLETE … (ReadError: )`
 after the requirements parser's answer (trace: last event 00:49:47, no `llm_error` for the
 failure — it escaped the client untraced). Steps 1–4 were persisted; the chain was resumed with
-`--resume-chain` (only step 5 paid again). The the owner's go to add the ReadError retry right away.
+`--resume-chain` (only step 5 paid again). The owner's go to add the ReadError retry right away.
 
 **Cause, verified on the installed SDK (anthropic 0.107.0).** `_base_client` wraps transport errors
 into `APIConnectionError` around the initial request only; `_streaming.py` iterates the body with
@@ -7940,7 +7940,7 @@ twelfth), which is the clause working, not the guard failing.
 
 **Autor:** Claude Code
 
-The the owner raised the budget to 250: cutting would lose essential knowledge, and 50 more lines cost little. The
+The owner raised the budget to 250: cutting would lose essential knowledge, and 50 more lines cost little. The
 file had been condensed back to 200 four times in three days (2026-10-06 → 2026-10-09), each time
 by compressing the chain paragraph. Budget raised to 250 in `CLAUDE.md` and the project-docs
 skill; the eviction rule stands at the new limit. **Überprüft:** the two files; no lint carries
@@ -8238,7 +8238,7 @@ this corpus's, not the rule's).
 
 **Autor:** Claude Code
 
-The the owner noticed one open pull request and three security issues on GitHub and asked whether they had been looked at Read today via `gh`: PR #34 (Dependabot, `langgraph-sdk` 0.4.2 → 0.4.4, CI green)
+The owner noticed one open pull request and three security issues on GitHub and asked whether they had been looked at Read today via `gh`: PR #34 (Dependabot, `langgraph-sdk` 0.4.2 → 0.4.4, CI green)
 and three open alerts. **#42 (high)** `langgraph-sdk` ≤ 0.4.3, „custom auth silently ignores
 `actions=` on resource decorators“ — a LangGraph Platform server feature this project never uses
 (`langgraph-sdk` is `langgraph`'s transitive dependency); taken anyway: `uv lock --upgrade-package
@@ -8790,7 +8790,7 @@ resolutions.
 
 **Autor:** Claude Code
 
-The the owner proposed to take the full chain as the proof on Databricks, since the groundwork was laid — stage 1 of three; the user created a Free Edition
+The owner proposed to take the full chain as the proof on Databricks, since the groundwork was laid — stage 1 of three; the user created a Free Edition
 workspace the same day and put host, HTTP path and token into `.env`. Guards `47e9192`, the twin
 `05405ba`, docs here. **What exists now:** `demo/bank_databricks/` — the Postgres bank demo's
 twin: the same model (imported, regenerated with `target_platform="databricks"`), the same
@@ -9064,7 +9064,7 @@ Databricks mailed three Unity Catalog warnings during WP72 stage 3 (2026-10-16, 
 21:21 CEST): 100 % of the 100-tables-per-schema quota on `vault_aw`, then 80 % and 85 % of the
 500-per-metastore quota. Counted today: 425 objects, views included — 342 of them the build
 artefacts of stages 2 and 3 (`vault_person` 48, `vault_aw` 276, `vault_aw2` 18), the rest the 68
-source tables in five schemas, the bank demo's 15 objects and the volume. The the owner's go to drop the three vault schemas. Dropped with `DROP SCHEMA … CASCADE`; 83 objects remain (default 15,
+source tables in five schemas, the bank demo's 15 objects and the volume. The owner's go to drop the three vault schemas. Dropped with `DROP SCHEMA … CASCADE`; 83 objects remain (default 15,
 person 13, humanresources 6, production 25, purchasing 5, sales 19), the source data and the
 bank demo untouched. The dropped vaults are reproducible from the five step projects kept out
 of the repo and are recorded in the WP72 entries. Chapter 9.6 carries both quotas since
@@ -9551,7 +9551,7 @@ listable — `SHOW SCHEMAS DROPPED` is unsupported — so their retention is rea
 
 **Autor:** Claude Code
 
-The the owner asked whether the current state could be copied and built on Postgres — the platform-neutral proof offered on 2026-10-17, now that Databricks' quota window is
+The owner asked whether the current state could be copied and built on Postgres — the platform-neutral proof offered on 2026-10-17, now that Databricks' quota window is
 spent. **The data:** the 68 AdventureWorks tables loaded from the CSVs into the local PostgreSQL 16
 (`vault` database) as `"Person"`, `"HumanResources"`, `"Production"`, `"Purchasing"`, `"Sales"` —
 the schema names the generated `sources.yml` declares, quoted as dbt-postgres quotes them — with
@@ -9922,7 +9922,7 @@ rows, not `count(*)`). **Nur angenommen.** That the quota satellite is non-idemp
 
 **Autor:** Claude Code
 
-The the owner asked to go through the maturity analysis under `handover` and take relevant points into the backlog before prioritising. Read `docs/handover/261022_vault-agent_Reifegradanalyse.pdf`
+The owner asked to go through the maturity analysis under `handover` and take relevant points into the backlog before prioritising. Read `docs/handover/261022_vault-agent_Reifegradanalyse.pdf`
 (five pages, judged on `d18b8d7`: TRL 6, pilot-ready in code, architecture, functions and docs, below in
 security 3.5, result quality 3, operations 2.5, market 2). New record `docs/architecture/backlog-2026-10-candidates-2.md`
 (part 1 is append-only): C8–C13 gathered from this week's log entries, C14–C21 from the analysis — repo
@@ -10185,7 +10185,7 @@ bill-of-materials satellite keeps the 195 duplicates; applying the remedy there 
 
 **Autor:** Claude Code
 
-The the owner asked to comb the README for contradictory or false statements, to make the platform-specific quick-start sections recognisable by headings, and noted that the backlog-2026-07 link led nowhere. **Found and corrected in README:** the architecture
+The owner asked to comb the README for contradictory or false statements, to make the platform-specific quick-start sections recognisable by headings, and noted that the backlog-2026-07 link led nowhere. **Found and corrected in README:** the architecture
 diagram still said „Databricks (keyless)" and listed nine of thirteen nodes (now all, plus CLI/workbench); the
 Databricks paragraph said „Keyless-only so far … what the first live build must check" (built since WP72); the
 roadmap named `nh_link`, a macro AutomateDV does not have (`t_link`, CLAUDE.md's first invariant) and listed the
@@ -10613,3 +10613,32 @@ und Tücken" (`ireb-mapping.md`) and the thesis label „Domäne für Domäne �
 assumed: an English sentence of the owner's, quoted as a term, is not something this scan can tell from a quoted
 document title. **Bewusst nicht getan.** The history and the releases keep the wording, as decided yesterday;
 the private wiki as well. The lesson for the next pass of this kind: scan wrapped prose flattened, never by line.
+
+## [2026-10-24] Dependabot: 15 open alerts read — eleven from the advisory wave of 2026-10-23; pypdf, certifi, dompurify and undici upgraded, sqlparse stays dismissed
+
+**Autor:** Claude Code
+
+The push of `4c1964d` reported 15 open alerts (2 critical, 1 high) where the 2026-10-10 entry had left three. The
+owner suspected the move to the `vault-dev` container; it is not that — Dependabot reads the manifests on `main`,
+and the move's only commit (`14c0fbd`) touched this log. **Read via the API** (`gh` installed on the container
+today, scopes `repo`, `workflow`): #25/#26 `oauthlib` (unchanged, pinned by the Databricks connector), #43
+`katex` low (since WP67's lockfile, 2026-10-11), #44–#46 `dompurify` 3.4.16 (low, high, **critical** — the
+SAFE_FOR_TEMPLATES bypass), #47 `certifi` 2026.5.20 (**critical** on GitHub's scale, the compromised emSign
+intermediate CAs), #48–#55 `pypdf` 6.19.0 (seven medium, one low; long runtimes and memory on malformed PDFs).
+Eleven of the fifteen were created on 2026-10-23 against packages unchanged in the locks since June (`pypdf`,
+`certifi`) or since 2026-10-11 (`dompurify`): a dense advisory week, nothing else. **Five more are on the way:**
+three `pypdf` highs (GHSA-gmh7-3g9r-mjh5, GHSA-jr96-gvgh-j3r4, GHSA-6c7f-9265-g8fw) and two `undici` (one high),
+published by GitHub on 2026-10-23 between 20:54 and 22:14 Z, after the newest alert's creation (18:40 Z). The
+five `sqlparse` advisories the offline audit also showed are alerts #9–#12 and #16, dismissed by the owner as
+not reachable (2026-08-24, 2026-09-12; dbt-core 1.9.10 calls sqlparse only at `compilation.py:606`, no
+`format()`), and stay so — dbt-core 1.9 pins `sqlparse<0.6.0`, so a lock upgrade would move only the Databricks
+line. **Done:** `uv lock --upgrade-package pypdf --upgrade-package certifi` → pypdf **6.21.2**, certifi
+**2026.10.23**, the lock the only Python change; `npm audit fix` in `frontend/` → dompurify **3.4.17**, undici
+**8.12.3** (no major). Left open with reason: `katex` #43 needs `mermaid` 12, a major, a separate decision;
+`oauthlib` as before. **Überprüft.** The alerts and the five pending advisories via the GitHub API; the offline
+audit first (`pip-audit` over both exported lock resolutions, `npm audit`, OSV for dates); after the upgrade
+`uv run pytest` 1310 passed / 5 skipped, `ruff`, bare `mypy`, `vitest run` 26 of 26. The suite exercises
+pypdf's reader through the requirements parser's PDF test, not the changed parsing paths on malformed input —
+vault-agent reads the owner's own requirement documents, not hostile PDFs. **Nur angenommen.** That Dependabot
+closes #44–#55 on its next graph update and creates and closes the five pending ones in one go; read back below
+if it does not. **Bewusst nicht getan.** No `sqlparse` move, no `mermaid` 12, no `oauthlib` override.
