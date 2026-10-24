@@ -10642,3 +10642,16 @@ pypdf's reader through the requirements parser's PDF test, not the changed parsi
 vault-agent reads the owner's own requirement documents, not hostile PDFs. **Nur angenommen.** That Dependabot
 closes #44–#55 on its next graph update and creates and closes the five pending ones in one go; read back below
 if it does not. **Bewusst nicht getan.** No `sqlparse` move, no `mermaid` 12, no `oauthlib` override.
+
+## [2026-10-24] Backlog: C26 recorded in part 3, C27 — source catalogue and profiling read from the source system
+
+**Autor:** Claude Code
+
+The owner noticed from the container that his idea of 2026-10-24 — reading the source catalogue and a profiling
+straight from the source database as the basis of the three inputs — was discussed but never written down; true, I had
+proposed the entry and not made it. Appended to `backlog-2026-10-candidates-3.md`: **C26** (homonym keys, closed by
+WP89, so the numbering is complete in one place) and **C27** in four stages (catalogue via SQLAlchemy Inspector or
+per-vendor queries, with verification tiers A/B/C and SAP's ABAP Dictionary as its own package; profiling as a
+selectable list of checks with consent and sampling; key inference as a ratified class of its own; requirements from
+the catalogue under C1's ADR). Index row updated. **Überprüft.** The appended text against the conversation's
+conclusions of 2026-10-24. **Bewusst nicht getan.** No spec, no code, no ADR — a candidate needs the owner's go.

@@ -50,3 +50,41 @@ DV2.0 puts `-1` (required, missing) and `-2` (optional, not applicable) records 
 ghost records for satellites only. Candidate: a small generated zero-key model per hub, typed like the hub's key,
 added to the hub's `source_model` list — or a documented post-hook; the hub-key type is the open design question
 (the contracts carry declared types; the warehouse's may differ).
+
+## C26 — Homonym keys (recorded here for completeness; closed by WP89, 2026-10-23)
+
+Found by WP86's measurement (`docs/log.md`, 2026-10-23): a link participation read from a column that shares the hub
+key's name while the relation declares a *different* foreign key to the hub's table (`SalesOrderHeader.AccountNumber`,
+a financial account, beside `CustomerID → Customer`); all 31 465 rows of `link_sales_order_customer` joined no
+customer. WP89 lets the ratified key's translation win and projects the translated key beside the homonym.
+
+## C27 — Source catalogue and profiling read directly from the source system (the owner's idea, 2026-10-24)
+
+Today the three inputs — requirements, declared source schema, profiling — are YAML someone writes; for AdventureWorks
+the schema was parsed from Microsoft's DDL script (`eval/adventureworks/extract.py`), which a customer does not have.
+Candidate, in four stages of rising risk:
+
+1. **Catalogue** (deterministic, metadata only): connect to the source database and read tables, columns with types,
+   primary and unique keys, declared foreign keys and column comments into the house `source_schema.yml`, which the
+   loader already validates. Implementation question for an ADR: SQLAlchemy's `Inspector` (one reader, dialects for
+   PostgreSQL, SQL Server, Oracle, DB2 via `ibm_db_sa`, HANA via `sqlalchemy-hana`, Snowflake, Databricks, BigQuery)
+   against hand-written catalogue queries per vendor (`information_schema`; Oracle `ALL_*`; DB2 `SYSCAT.*`; HANA
+   `SYS.*`). Verification tiers: A — PostgreSQL, SQL Server, Oracle XE, run as containers in a dedicated small VM on the
+   home server (Docker belongs in a VM there, not in the dev LXC); B — DB2, HANA, Snowflake, BigQuery written from
+   documentation and marked unverified until a system is at hand; C — SAP ERP/S/4, a package of its own: the metadata
+   lives in the ABAP Dictionary (`DD02L`, `DD03L`, `DD08L`/`DD05S`, texts in `DD02T`/`DD04T`), foreign keys are
+   dictionary relationships, not database constraints, and the text tables would give the modeler descriptions the
+   cryptic field names lack.
+2. **Profiling as a selectable list of deterministic checks** — row count, null and distinct ratios, min/max, lengths,
+   value patterns, candidate keys by uniqueness — into the profiling format the WP9 mapper reads. Touches data, not
+   only metadata: sampling, no raw values in artefacts beyond patterns, an explicit per-run consent; belongs in
+   `deployment-residency.md`.
+3. **Key inference** from uniqueness and inclusion dependencies (every value of A occurs in B) — the `none` cases of
+   C18. An inference, not a declaration: its own class („inferred key"), ratified at the checkpoint, never binding
+   on its own (WP34's inertness stays).
+4. **Requirements from the catalogue** — a drafted requirements skeleton, LLM text marked as such: C1's source-driven
+   mode and its ADR.
+
+Order proposed: stage 1 after the data packages and before C23 (the AdventureWorks loader is its natural
+cross-check); stages 3 and 4 need the ADR together with C1; the source-system VM is a server task
+(`home-server-eigenbau`, `PLAN_vault-dev_Container.md` §2).
