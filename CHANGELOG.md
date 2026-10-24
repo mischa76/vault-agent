@@ -14,6 +14,20 @@ is not the project's.
 
 ## [Unreleased]
 
+### Added
+- Bindings at sign-off: a staging model no rule could bind is bound by the human — `resume --bind
+  "STAGE=RELATION"` or `--bind "STAGE=RELATION(STAGE_COLUMN=column, …)"` with aliases where the relation
+  carries a key under another name; the workbench's checkpoint lists every such stage with what a
+  binding must carry, and the interactive prompt asks. Checked before anything resumes (the relation
+  must carry every hashed column after the aliases); applied last among the binding rules; the
+  binding and its aliases travel to the next increment with the catalogue (WP82, backlog C18's
+  second half). On the paid chain's last step, seven of the eight stages that still needed a
+  hand-made view bind this way; the eighth is a join (backlog C28).
+- CLI/workbench parity (WP82, backlog C4): the workbench takes `--map` (`mappings`), the edited
+  mapping file's multi-source answers (`mapping_sources`), `--profiling` and `--target-platform`;
+  a test holds every option of `run` and `resume` against the API's request models, in both
+  directions, so the next CLI option cannot bypass the workbench silently.
+
 ## [0.11.0] - 2026-10-23
 
 One day after 0.10.0 in calendar time, a week in work: the data defects the owner's hands-on build of the

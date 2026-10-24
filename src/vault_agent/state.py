@@ -18,6 +18,16 @@ FlagSeverity = Literal["error", "advisory"]
 SourceBindingReason = Literal["none", "ambiguous", "shared"]
 
 
+class StageBinding(BaseModel):
+    """WP82: one stage's binding as a human ratifies it at sign-off — the declared relation the
+    stage reads and, where the relation carries a key under another name, the aliases
+    ``{STAGE_COLUMN: relation_column}`` (rendered as derived columns, WP41's mechanism). What a
+    hand-made view said until now: ``SELECT businessentityid AS storeid … FROM Store``."""
+
+    relation: str
+    columns: dict[str, str] = Field(default_factory=dict)
+
+
 class FlagKind:
     """Stable, machine-readable categories for :class:`PipelineFlag`.
 
@@ -998,6 +1008,14 @@ class VaultAgentState(BaseModel):
     # (a ratified mapping, a ratified proposal, the offer) says nothing about the stage. The
     # twentieth chain lost 24 of 34 link and hub bindings step by step for want of it.
     carried_bindings: dict[str, str] = Field(default_factory=dict)
+    # WP82: the aliases a human ratified with a carried binding (`stage_aliases` in the
+    # catalogue, ``{stage: {STAGE_COLUMN: relation_column}}``) — without them the next increment
+    # would refuse the carried relation for the very column the alias supplied.
+    carried_aliases: dict[str, dict[str, str]] = Field(default_factory=dict)
+    # WP82: the bindings a human ratified at sign-off, by stage model name. Applied last — a
+    # decision overwrites the name rule, the offer, the evidence tier and a ratified proposal.
+    # Empty on every run no human bound a stage in (byte-identity).
+    ratified_bindings: dict[str, StageBinding] = Field(default_factory=dict)
     # WP35: the warehouse the generated dbt project is aimed at (`run --target-platform`).
     # Read by the staging pass for seed column types and the README's profile hint —
     # nothing else branches on it, the vault SQL is platform-neutral (AutomateDV dispatches

@@ -169,7 +169,11 @@ def render_extension_prompt_section(existing: DVModel | None) -> str:
     return "\n" + "\n".join(lines) + "\n"
 
 
-def dump_source_catalogue(tables: list[Any], bindings: dict[str, str] | None = None) -> str:
+def dump_source_catalogue(
+    tables: list[Any],
+    bindings: dict[str, str] | None = None,
+    aliases: dict[str, dict[str, str]] | None = None,
+) -> str:
     """Render the source catalogue (WP74): table, schema, database and the declared columns (with
     their types where declared, WP83),
     deduplicated by (schema, table), first occurrence wins — so a caller passes the
@@ -197,6 +201,12 @@ def dump_source_catalogue(tables: list[Any], bindings: dict[str, str] | None = N
     document: dict[str, Any] = {"source_schemas": entries}
     if bindings:
         document["stage_bindings"] = dict(sorted(bindings.items()))
+    if aliases:
+        # WP82: the aliases a human ratified with a binding, so the next increment can apply
+        # them with it — the relation alone would be refused for the aliased column.
+        document["stage_aliases"] = {
+            stage: dict(columns) for stage, columns in sorted(aliases.items()) if columns
+        }
     return yaml.safe_dump(document, sort_keys=False, allow_unicode=True)
 
 
@@ -219,6 +229,37 @@ def stage_bindings(staging_metadata: dict[str, Any]) -> dict[str, str]:
         elif isinstance(source, str) and source:
             out[name] = source
     return out
+
+
+def stage_aliases(staging_metadata: dict[str, Any]) -> dict[str, dict[str, str]]:
+    """WP82: ``{stage model: {STAGE_COLUMN: relation_column}}`` for every declared stage whose
+    binding a human ratified with aliases (``ratified_columns`` in the staging metadata)."""
+    out: dict[str, dict[str, str]] = {}
+    for name, meta in staging_metadata.items():
+        if not isinstance(meta, dict) or meta.get("source_binding") != "declared":
+            continue
+        columns = meta.get("ratified_columns")
+        if isinstance(columns, dict) and columns:
+            out[name] = {str(k): str(v) for k, v in columns.items()}
+    return out
+
+
+def load_carried_aliases(path: Path) -> dict[str, dict[str, str]]:
+    """WP82: the ``stage_aliases`` of an existing output's catalogue, ``{}`` when the output
+    predates WP82 or ``path`` does not exist. Same path rule as ``load_existing_catalogue``."""
+    candidate = _catalogue_path(path)
+    if not candidate.is_file():
+        return {}
+    document: Any = yaml.safe_load(candidate.read_text(encoding="utf-8"))
+    if not isinstance(document, dict):
+        return {}
+    aliases = document.get("stage_aliases")
+    if not isinstance(aliases, dict):
+        return {}
+    return {
+        str(stage): {str(k): str(v) for k, v in columns.items()}
+        for stage, columns in aliases.items() if isinstance(columns, dict)
+    }
 
 
 def _catalogue_path(path: Path) -> Path:

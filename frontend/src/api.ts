@@ -1,6 +1,6 @@
 // A thin typed client over the WP66 API. Every call here is one the CLI could make; the run
 // records the equivalent (`cli_equivalents`).
-import type { Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, ParseResult, Project, ProjectCheck, ProjectFile, ProjectSummary, Run } from "./types";
+import type { Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, ParseResult, Project, ProjectCheck, ProjectFile, ProjectSummary, Run, StartRunBody } from "./types";
 
 // WP91: the CLI's --pit / --as-of-* on the run start; the server validates the bounds.
 export type BusinessVault = { pit: boolean; as_of_start: string; as_of_end: string; as_of_grain: "day" | "month" };
@@ -38,8 +38,9 @@ export const api = {
   createProject: (name: string) => call<ProjectSummary>("/api/projects", json({ name })),
   addFile: (id: string, kind: ProjectFile["kind"], name: string, content: string) =>
     call<ProjectFile>(`/api/projects/${encodeURIComponent(id)}/files`, json({ kind, name, content })),
-  startRun: (id: string, requirements: string, schema: string | null, existing_run: string | null, business?: BusinessVault) =>
-    call<Run>(`/api/projects/${encodeURIComponent(id)}/runs`, json({ requirements, schema, existing_run, ...(business ?? {}) })),
+  // WP82: one body, the CLI's `run` options (profiling and the platform included).
+  startRun: (id: string, body: StartRunBody) =>
+    call<Run>(`/api/projects/${encodeURIComponent(id)}/runs`, json(body)),
   run: (id: string) => call<Run>(`/api/runs/${encodeURIComponent(id)}`),
   cancel: (id: string) => call<Run>(`/api/runs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   continueRun: (id: string) => call<Run>(`/api/runs/${encodeURIComponent(id)}/continue`, { method: "POST" }),

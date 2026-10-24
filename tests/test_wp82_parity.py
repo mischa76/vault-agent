@@ -67,7 +67,9 @@ def test_every_run_option_has_a_row_and_every_startrun_field_is_reached() -> Non
 
 
 def test_every_resume_option_has_a_row_and_every_decision_field_is_reached() -> None:
-    assert _params("resume") == set(RESUME), "a new `resume` option: add it to Decision or name it PROCESS"
+    assert _params("resume") == set(RESUME), (
+        "a new `resume` option: add it to Decision or name it PROCESS"
+    )
     mapped = {f for v in RESUME.values() if v != PROCESS for f in v}
     assert mapped <= _api_names(Decision), mapped - _api_names(Decision)
     assert _api_names(Decision) <= mapped, "an API field no CLI option reaches"

@@ -181,6 +181,7 @@ def test_build_decision_collects_owners() -> None:
         "mapping_sources": {},
         "resolutions": {},
         "links": {},
+        "bindings": {},  # WP82: the stages a human bound at sign-off
     }
 
 

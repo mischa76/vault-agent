@@ -88,3 +88,27 @@ Candidate, in four stages of rising risk:
 Order proposed: stage 1 after the data packages and before C23 (the AdventureWorks loader is its natural
 cross-check); stages 3 and 4 need the ADR together with C1; the source-system VM is a server task
 (`home-server-eigenbau`, `PLAN_vault-dev_Container.md` §2).
+
+## C28 — A hub-and-link stage whose participation key lives a join away (found by WP82, 2026-10-24)
+
+The one hand view the paid chain's last step still needs after WP82, and the owner's `raw_sales_order_currency_rate`:
+`stg_sales_order` serves `hub_sales_order` and `link_sales_order`, and the link's currency-rate participation is keyed
+on `CurrencyRate`'s natural key (`CurrencyRateDate`, `FromCurrencyCode`, `ToCurrencyCode`) while `SalesOrderHeader`
+carries only the surrogate `CurrencyRateID` — a translation (WP36, ADR-0013) the generator does not derive for a stage
+a hub shares (`shared`, WP42), so WP73 refuses `SalesOrderHeader` for the three key columns and the stage stays inferred.
+The hand view is the join: `SalesOrderHeader LEFT JOIN CurrencyRate ON CurrencyRateID`. Candidate: derive the
+translation for the link's participation on a shared stage as for a link of its own (the hub's own key columns are
+untouched), or split the link's stage from the hub's where a participation is translated. Release criterion 3 waits
+for exactly this shape; a binding cannot express a join and should not.
+
+## C29 — A role-qualified participation with no declared source column names an invented column (found by WP82)
+
+Five of the eight stages WP82 had to alias needed it for one reason: a role-qualified participation whose model names
+no `source_key_column` is staged under `<role>_<key>` (`SALES_PERSON_BUSINESSENTITYID`, `ORGANISATION_BUSINESSENTITYID`),
+a column no relation carries, so the relation the offer or the evidence tier found is refused by WP73 and the stage
+stays inferred (`stg_sales_person_sales_territory`, `stg_sales_person_territory_history`, `stg_business_entity_contact`,
+`stg_store_sales_person`; WP90 declined the last for the same reason). The catalogue knows the column: the relation's
+one foreign-key column resolving to that hub (two roles of one hub through one relation have two such columns, one
+each — `BusinessEntityContact.BusinessEntityID` and `.PersonID`). Candidate: a rule that reads it as the participation's
+source column where it is unambiguous, so the alias a human types today is derived; the alias field stays for the rest.
+

@@ -478,6 +478,8 @@ def apply_human_decision(state: VaultAgentState, decision: Any) -> list[str]:
             if not (flag.kind == FlagKind.OWNER_PLACEHOLDER and flag.asset in resolved)
         ]
 
+    # WP82: bind the stages a human bound at sign-off (relation and aliases); re-binds staging.
+    _apply_binding_decision(state, decision.get("bindings") if isinstance(decision, dict) else None)
     # WP9: ratify / override business↔source mappings, then re-bind staging to them.
     mappings = decision.get("mappings", {}) if isinstance(decision, dict) else {}
     accept = bool(decision.get("accept")) if isinstance(decision, dict) else False
@@ -491,6 +493,30 @@ def apply_human_decision(state: VaultAgentState, decision: Any) -> list[str]:
         state, resolutions if isinstance(resolutions, dict) else {}, accept
     )
     return assigned
+
+
+def _apply_binding_decision(state: VaultAgentState, raw: Any) -> None:
+    """WP82: ``{stage: {"relation": R, "columns": {STAGE_COLUMN: column}}}`` — the stages a human
+    bound at sign-off. A decision, not a proposal: applied whether or not the human accepts, last
+    among the binding rules (``build_staging``), and re-binding staging as a mapping does. Every
+    path checks the bindings before resuming (CLI, API, prompt); an entry that still fails the
+    check here is skipped with a warning and its stage keeps its flag — never a guess."""
+    from vault_agent.bindings import check_stage_bindings, coerce_bindings
+
+    bindings = coerce_bindings(raw)
+    if not bindings:
+        return
+    errors = check_stage_bindings(state, bindings)
+    failed = {message.split(":", 1)[0] for message in errors}
+    for message in errors:
+        logger.warning("stage binding ignored — %s", message)
+    accepted = {stage: b for stage, b in bindings.items() if stage not in failed}
+    if not accepted:
+        return
+    state.ratified_bindings.update(accepted)
+    from vault_agent.agents.source_mapper import rebind_staging
+
+    rebind_staging(state)
 
 
 def apply_resolution_decision(state: VaultAgentState, decision: Any) -> list[str]:

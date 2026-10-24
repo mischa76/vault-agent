@@ -18,16 +18,21 @@ from uuid import uuid4
 from vault_agent import cli
 from vault_agent.agents.entity_resolver import pending_resolution_decisions
 from vault_agent.agents.orchestrator import assemble_review_queue
+from vault_agent.bindings import check_stage_bindings, format_bind, pending_stage_bindings
 from vault_agent.existing_model import (
+    load_carried_aliases,
     load_carried_bindings,
     load_existing_catalogue,
     load_existing_model,
 )
 from vault_agent.link_proposal import pending_link_decisions, proposal_key
+from vault_agent.profiling import load_profiling
+from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import (
     RESOLUTION_SAME_AS,
     BusinessVaultOptions,
+    StageBinding,
     VaultAgentState,
     split_concept_key,
 )
@@ -154,12 +159,15 @@ class RunManager:
         *,
         wait: bool,
         business_vault: BusinessVaultOptions | None = None,
+        profiling: str | None = None,
+        target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
     ) -> dict[str, Any]:
         business_vault = business_vault or BusinessVaultOptions()
         if self._active and self.read(self._active)["status"] == "running":
             raise RunConflictError(f"run {self._active!r} is still running")
         input_doc = self.store.input_path(project_id, requirements)
         schema_path = self.store.input_path(project_id, schema) if schema else None
+        profiling_path = self.store.input_path(project_id, profiling) if profiling else None  # WP82
         stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
         run_id = f"{project_id}:{stamp}"
         thread_id = uuid4().hex  # known before the task starts (WP69 §2.2)
@@ -168,8 +176,12 @@ class RunManager:
         equivalent = ["vault-agent", "run", str(input_doc), "--out", str(out_dir)]
         if schema_path:
             equivalent += ["--source-schema", str(schema_path)]
+        if profiling_path:  # WP82: the CLI's --profiling
+            equivalent += ["--profiling", str(profiling_path)]
         if existing_dir:
             equivalent += ["--existing", str(existing_dir)]
+        if target_platform != DEFAULT_TARGET_PLATFORM:  # WP82: the CLI's --target-platform
+            equivalent += ["--target-platform", target_platform]
         if business_vault.pit:  # WP91
             equivalent += [
                 "--pit", "--as-of-start", str(business_vault.as_of_start),
@@ -185,6 +197,8 @@ class RunManager:
             "requirements": requirements,
             "schema": schema,
             "existing_run": existing_run,
+            "profiling": profiling,  # WP82
+            "target_platform": target_platform,  # WP82
             "business_vault": business_vault.model_dump(mode="json"),
             "started": datetime.now(UTC).isoformat(timespec="seconds"),
             "finished": None,
@@ -195,7 +209,7 @@ class RunManager:
         self._active = run_id
         self._tasks[run_id] = asyncio.create_task(
             self._run(run_id, input_doc, out_dir, schema_path, existing_dir, thread_id,
-                      business_vault)
+                      business_vault, profiling_path, target_platform)
         )
         if wait:
             await self._tasks[run_id]
@@ -210,18 +224,23 @@ class RunManager:
         existing_dir: Path | None,
         thread_id: str,
         business_vault: BusinessVaultOptions | None = None,
+        profiling_path: Path | None = None,
+        target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
     ) -> None:
         try:
             schemas = load_source_schemas(schema_path) if schema_path else []
             existing = load_existing_model(existing_dir) if existing_dir else None
             state, paused, _thread = await cli._run_pipeline(
                 input_doc, out_dir, schemas,
+                profiling=load_profiling(profiling_path) if profiling_path else None,  # WP82
                 existing_model=existing,
                 existing_source=str(existing_dir) if existing_dir else None,
+                target_platform=target_platform,  # WP82
                 thread_id=thread_id,
                 carried_schemas=load_existing_catalogue(existing_dir) if existing_dir else [],
                 carried_bindings=load_carried_bindings(existing_dir) if existing_dir else {},
                 business_vault=business_vault,  # WP91
+                carried_aliases=load_carried_aliases(existing_dir) if existing_dir else {},  # WP82
             )
             self._finish(run_id, state, paused, input_doc, thread_id)
         except asyncio.CancelledError:
@@ -351,6 +370,8 @@ class RunManager:
             "decisions": len(queue.decisions),
             "disclosures": len(queue.disclosures),
             "items": [item.model_dump(mode="json") for item in queue.items],
+            # WP82: the stages no rule could bind, with what a binding must say.
+            "bindings": [] if at_resolution else pending_stage_bindings(state),
             "unresolved": [
                 {"concept": c, "evidence": cli._unresolved_evidence(state, c)} for c in unresolved
             ],
@@ -367,6 +388,9 @@ class RunManager:
         owners: dict[str, str],
         wait: bool,
         links: dict[str, bool] | None = None,
+        bindings: dict[str, StageBinding] | None = None,
+        mappings: dict[str, str] | None = None,
+        mapping_sources: dict[str, list[dict[str, str]]] | None = None,
     ) -> dict[str, Any]:
         meta = self.read(run_id)
         allowed = {"paused"} | (CONTINUABLE if discard else set())
@@ -391,12 +415,24 @@ class RunManager:
             equivalent += ["--resolve", f"{concept}={answer}"]
         for key, build in (links or {}).items():
             equivalent += ["--link" if build else "--no-link", key]
+        for concept, target in (mappings or {}).items():  # WP82: the CLI's --map
+            spec = f"{concept}={target}"
+            cli._parse_map(spec)  # the CLI's validation, before anything runs
+            equivalent += ["--map", spec]
+        state = await self.state(run_id)
+        if bindings:  # WP82: the CLI's --bind, checked against the paused state first
+            errors = check_stage_bindings(state, bindings)
+            if errors:
+                raise ValueError("cannot bind: " + "; ".join(errors))
+            for stage, binding in bindings.items():
+                equivalent += ["--bind", format_bind(stage, binding)]
         if accept:
             equivalent.append("--accept")
         decision = cli._build_decision(
-            owner_specs, accept, resolutions=resolutions or None, links=links or None
+            owner_specs, accept, mappings=mappings or None,
+            mapping_sources=mapping_sources or None, resolutions=resolutions or None,
+            links=links or None, bindings=bindings or None,
         )
-        state = await self.state(run_id)
         phase = "resolution" if cli._paused_at_resolution(state) else "signoff"
         command = shlex.join(equivalent)
         self._update(

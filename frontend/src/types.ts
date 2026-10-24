@@ -13,6 +13,11 @@ export interface ProjectFile {
   bytes: number;
 }
 
+// WP82: the CLI's --target-platform choices — `TargetPlatform` in src/vault_agent/rules/platforms.py;
+// tests/test_wp82_parity.py holds this list against it.
+export const PLATFORMS = ["postgres", "databricks"] as const;
+export type Platform = (typeof PLATFORMS)[number];
+
 export interface RunSummary {
   id: string;
   status: RunStatus;
@@ -22,6 +27,21 @@ export interface RunSummary {
   schema: string | null;
   existing_run: string | null;
   error: string | null;
+  profiling?: string | null; // WP82
+  target_platform?: string; // WP82
+}
+
+// WP82: what `POST /api/projects/{id}/runs` takes — the CLI's `run` options.
+export interface StartRunBody {
+  requirements: string;
+  schema: string | null;
+  existing_run: string | null;
+  profiling: string | null;
+  target_platform: Platform;
+  pit?: boolean;
+  as_of_start?: string;
+  as_of_end?: string;
+  as_of_grain?: "day" | "month";
 }
 
 export interface ProjectSummary {
@@ -103,6 +123,16 @@ export interface ResolutionDecision {
   evidence: string[];
 }
 
+// WP82: a stage no rule could bind — what the human needs to bind it.
+export interface PendingBinding {
+  stage: string;
+  reads: string;
+  reason: "rejected" | "none" | "ambiguous" | "shared" | string;
+  tried: string | null;
+  expected_columns: string[];
+  role: "decision" | "disclosure";
+}
+
 export interface Checkpoint {
   run: string;
   phase: CheckpointPhase;
@@ -114,6 +144,13 @@ export interface Checkpoint {
   links: LinkDecision[];
   resolutions: ResolutionDecision[];
   answers: string[];
+  bindings?: PendingBinding[]; // WP82
+}
+
+// WP82: a stage's binding as the API takes it — the CLI's --bind "STAGE=RELATION(STAGE_COLUMN=column)".
+export interface StageBinding {
+  relation: string;
+  columns: Record<string, string>;
 }
 
 export interface Decision {
@@ -122,6 +159,8 @@ export interface Decision {
   resolutions?: Record<string, string>;
   owners?: Record<string, string>;
   links?: Record<string, boolean>;
+  bindings?: Record<string, StageBinding>; // WP82: --bind
+  mappings?: Record<string, string>; // WP82: --map "concept=TABLE.COLUMN"
 }
 
 export interface CheckpointRecord {

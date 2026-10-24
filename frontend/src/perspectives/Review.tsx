@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { Checkpoint, Decision, ReviewItem, Run } from "../types";
+import type { Checkpoint, Decision, ReviewItem, Run, StageBinding } from "../types";
 import { Button, Empty, ErrorNote, Pill, Section } from "../components/ui";
 
 const FALLBACK_ANSWERS = ["NEW", "same_as_candidate", "unresolved"];
@@ -21,12 +21,27 @@ export function ownerValid(value: string): boolean {
   return BARE_EMAIL.test(v) || /^[^<>]+<[^<>@\s]+@[^<>\s]+>$/.test(v);
 }
 
+// WP82: the aliases field — `STAGE_COLUMN=column, …`, the CLI's `--bind "STAGE=RELATION(…)"` inside the
+// parentheses. `null` when a part is not `a=b`; the field says so and sends nothing for the stage.
+export function parseAliases(text: string): Record<string, string> | null {
+  const columns: Record<string, string> = {};
+  for (const part of text.split(",")) {
+    if (!part.trim()) continue;
+    const m = /^\s*([^=\s,]+)\s*=\s*([^=\s,]+)\s*$/.exec(part);
+    if (!m) return null;
+    columns[m[1]!] = m[2]!;
+  }
+  return columns;
+}
+
 export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   run: Run; checkpoint: Checkpoint | null; onDecide: (d: Decision) => void; busy: boolean; error: string | null;
 }) {
   const [owners, setOwners] = useState<Record<string, string>>({});
   const [resolutions, setResolutions] = useState<Record<string, string>>({});
   const [links, setLinks] = useState<Record<string, boolean>>({});
+  const [bindings, setBindings] = useState<Record<string, { relation: string; aliases: string }>>({}); // WP82
+  const [mappings, setMappings] = useState<Record<string, string>>({}); // WP82: --map
   const [showDisclosures, setShowDisclosures] = useState(false);
   const groups = useMemo(() => groupItems(checkpoint?.items ?? []), [checkpoint]);
 
@@ -40,11 +55,24 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   const ownerItems = atResolution ? [] : checkpoint.items.filter((i) => i.kind === "contract_owner" && i.asset);
   const ownersFilled = ownerItems.every((i) => ownerValid(owners[i.asset!] ?? ""));
   const declined = Object.values(links).filter((v) => v === false).length;
+  const pendingBindings = atResolution ? [] : (checkpoint.bindings ?? []);
+  const boundStages = (): Record<string, StageBinding> => {
+    const out: Record<string, StageBinding> = {};
+    for (const [stage, b] of Object.entries(bindings)) {
+      if (!b.relation.trim()) continue;
+      const columns = parseAliases(b.aliases);
+      if (columns === null) continue; // the field says it is malformed; nothing is sent for it
+      out[stage] = { relation: b.relation.trim(), columns };
+    }
+    return out;
+  };
   const decision = (accept: boolean): Decision => ({
     accept,
     owners: atResolution ? {} : Object.fromEntries(Object.entries(owners).filter(([, v]) => v.trim())),
     resolutions: Object.fromEntries(Object.entries(resolutions).filter(([, v]) => v.trim())),
     links: atResolution ? links : {},
+    bindings: atResolution ? {} : boundStages(),
+    mappings: atResolution ? {} : Object.fromEntries(Object.entries(mappings).filter(([, v]) => v.trim())),
   });
 
   return (
@@ -133,6 +161,47 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
         </Section>
       ) : null}
 
+      {pendingBindings.length > 0 ? (
+        <Section title="Stage bindings — relations no rule could bind">
+          <p className="text-xs text-ink-dim">Each stage below reads a relation that does not exist until someone provides it. Name the declared relation it should read — the CLI's <code className="font-mono">--bind</code> — and, where the relation carries a key under another name, the alias <code className="font-mono">STAGE_COLUMN=column</code>. Left empty, the stage stays inferred and the review queue says so.</p>
+          <ul className="mt-2 grid gap-2">
+            {pendingBindings.map((b) => {
+              const value = bindings[b.stage] ?? { relation: "", aliases: "" };
+              const malformed = value.aliases.trim() !== "" && parseAliases(value.aliases) === null;
+              return (
+                <li key={b.stage} className="rounded-md border border-line bg-pane-2 p-3 text-sm">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <code className="font-mono text-xs text-accent">{b.stage}</code>
+                    <span>reads</span>
+                    <code className="font-mono text-xs">{b.reads}</code>
+                    <Pill tone={b.role === "decision" ? "warn" : "line"}>{b.reason}</Pill>
+                  </div>
+                  <p className="mt-1 text-xs text-ink-dim">
+                    {b.reason === "rejected" && b.tried ? `the rule tried ${b.tried} and was refused: it lacks a column the stage hashes. ` : null}
+                    the relation must carry: {b.expected_columns.join(", ")}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
+                    <label className="flex items-center gap-2">
+                      <span className="text-ink-faint">relation</span>
+                      <input value={value.relation} placeholder="declared relation" aria-label={`relation for ${b.stage}`}
+                        onChange={(e) => setBindings({ ...bindings, [b.stage]: { ...value, relation: e.target.value } })}
+                        className="w-56 rounded-md border border-line bg-pane px-2 py-1 font-mono" />
+                    </label>
+                    <label className="flex items-center gap-2">
+                      <span className="text-ink-faint">aliases</span>
+                      <input value={value.aliases} placeholder="STAGE_COLUMN=column, …" aria-label={`column aliases for ${b.stage}`}
+                        onChange={(e) => setBindings({ ...bindings, [b.stage]: { ...value, aliases: e.target.value } })}
+                        className="w-96 rounded-md border border-line bg-pane px-2 py-1 font-mono" />
+                    </label>
+                    {malformed ? <span className="text-bad">STAGE_COLUMN=column, separated by commas</span> : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
+      ) : null}
+
       {groups.filter((g) => !atResolution || g.role === "disclosure").map((g) => (
         <Section key={g.role} title={g.role === "decision" ? "Decisions — these need an answer" : "Disclosures — what was assumed, inferred, dropped or declined"}
           aside={g.role === "disclosure" ? <button type="button" className="text-xs text-ink-dim underline" onClick={() => setShowDisclosures(!showDisclosures)}>{showDisclosures ? "hide" : "show"}</button> : null}>
@@ -150,6 +219,15 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
                       {item.group && item.group !== "general" ? <Pill>{item.group}</Pill> : null}
                     </div>
                     {item.detail ? <p className="mt-1 text-xs text-ink-dim whitespace-pre-wrap">{item.detail}</p> : null}
+                    {!atResolution && item.kind === "mapping_unresolved" && item.asset ? (
+                      <label className="mt-2 flex items-center gap-2 text-xs">
+                        <span className="text-ink-faint">reads</span>
+                        <input value={mappings[item.asset] ?? ""} placeholder="TABLE.COLUMN" aria-label={`source for ${item.asset}`}
+                          onChange={(e) => setMappings({ ...mappings, [item.asset!]: e.target.value })}
+                          className="w-72 rounded-md border border-line bg-pane px-2 py-1 font-mono" />
+                        <span className="text-ink-faint">the CLI's --map</span>
+                      </label>
+                    ) : null}
                     {!atResolution && item.kind === "contract_owner" && item.asset ? (
                       <label className="mt-2 flex items-center gap-2 text-xs">
                         <span className="text-ink-faint">owner</span>

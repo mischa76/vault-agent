@@ -10676,3 +10676,60 @@ alerts closed with the graph update itself; the alert state is evidently a separ
 and unresolved incidents. **Nur angenommen.** That the alerts close without further action — a later entry says
 whether they did. **Bewusst nicht getan.** No re-push to provoke another graph update; no manual dismissal of
 alerts whose dependency is already fixed, which would misstate the reason.
+
+## [2026-10-24] WP82 built and measured: bindings at sign-off — the paid chain's last step binds 7 of its 8 inferred stages by the human's word, built with one hand view instead of eight, PASS=410 both builds, 177 of 177 idempotent
+
+**Autor:** Claude Code
+
+The owner's go to the recommendation (C18's second half together with C4/WP82). Spec and guards `531b892` (red, 19
+Python and 3 frontend tests). **What changed.** A `bindings` decision at sign-off — `{stage: {relation, columns}}` —
+in every path with one grammar, one check and one payload: `resume --bind "STAGE=RELATION"` and
+`--bind "STAGE=RELATION(STAGE_COLUMN=column, …)"`, the interactive prompt (`_collect_binding_decision`, re-asking with
+the refusal in the question), `Decision.bindings` and a *Stage bindings* section in the workbench listing every
+inferred stage with what it reads, why (`rejected` with the relation WP73 refused, else the WP47 reason) and the key
+columns the relation must carry (`bindings.pending_stage_bindings`). `check_stage_bindings` runs before anything resumes
+— stage of this run, declared relation, alias targets the relation declares, every hashed or derived column present
+after the aliases (`missing_stage_columns`' rule) — and the CLI exits 1, the API answers 400, the prompt asks again;
+`apply_human_decision` skips what still fails, with a warning. `VaultAgentState.ratified_bindings`; `bind_sources`
+applies them by stage name before every rule; `apply_stage_aliases` renders each alias as a derived column (WP41's
+mechanism), rewrites the null groups and expected columns to the relation's column and records `ratified_columns` in
+the stage's metadata; the catalogue carries them as `stage_aliases` (`dump_source_catalogue`, `load_carried_aliases`,
+`state.carried_aliases`), applied by `bind_sources` with the carried binding before the WP73 check. `--map` and the
+mapping file's multi-source answers reach the API (`Decision.mappings`, `mapping_sources`; a `TABLE.COLUMN` field on
+every `mapping_unresolved` item); `StartRun.profiling` and `StartRun.target_platform` with the two selectors on the
+start form, recorded in `run.json` and the equivalent. `tests/test_wp82_parity.py` holds every option of `run` and
+`resume` against `StartRun`/`Decision` in both directions, and the workbench's platform list against
+`TargetPlatform`. **The build found a defect first:** the first bound build failed on one node — `stg_store_sales_person`,
+`column "storeid" does not exist` — because the WP41 role column read the aliased stage column
+(`STORE_BUSINESSENTITYID: STOREID` beside `STOREID: BusinessEntityID`) and AutomateDV renders every derived column in
+ONE select over the source (read in the installed `macros/staging/derive_columns.sql`, 0.11.4), so a derived column
+cannot read another; `apply_stage_aliases` now points such a column at the relation's column directly (a test pins the
+chain).
+
+**Measured** (keyless, PostgreSQL 16 on `vault-dev`, the paid chain's last step `20261022T234439976097Z` regenerated
+from its stored state with today's generator — code generator, mapper re-bind, `write_outputs`). **P1 ✔ exactly:**
+baseline 191 stages, 8 inferred (6 refused, `stg_work_order_operation` `none`, `stg_store_sales_person` `ambiguous`);
+with the seven bindings the spec names, **7 bind and `stg_sales_order` stays** (192 stages: `hub_contact_type` gains
+a zero-key stage because the bound contact stage now declares WP83's optional columns). **P2 ✔:** baseline with eight
+hand views PASS=408 both builds, 177 of 177 incremental models `INSERT 0 0`; the bound project with **one** view
+(`raw_sales_order`) **PASS=410 both builds, 177 of 177 `INSERT 0 0`**; 177 tables in each schema; **four tables differ,
+each by the predicted class and nothing else:** `link_product_model` and `link_product_subcategory` 295 → 504 — the
+209 products with a NULL `ProductModelID` and the 209 with a NULL `ProductSubcategoryID` (counted in
+`Production.Product`, 504 rows) now carry the zero key instead of being dropped by the inferred view;
+`link_sales_person_sales_territory` 14 → 17 — the three sales persons without a territory (WP90's observation);
+`hub_contact_type` 20 → 22 — its two zero-key rows. `hub_work_order_operation` 67 133, `link_business_entity_contact`
+909, `link_store_sales_person` 701, `link_sales_person_territory_history` 17 and every other table: equal. AutomateDV
+applies `null_columns: optional` to a derived alias (the not-predicted question: yes — the zero keys above are the
+proof). **P3 ✔, P4 ✔** keyless (`tests/test_wp82_bindings_at_sign_off.py`: the API path with `--bind` and `--map` in
+the equivalents, a refused binding 400 naming `STOREID`, the alias carried to the next increment). **P5** by reading:
+the owner's `raw_work_order_product_location` is `WorkOrderRouting` plain and `raw_business_entity_store_sales_person`
+is `Store(STOREID=BusinessEntityID, SALES_PERSON_BUSINESSENTITYID=SalesPersonID)`; `raw_sales_order_currency_rate` is
+the join. **New candidates:** C28 (the join shape — a hub-and-link stage whose participation key lives a join away; the
+one view criterion 3 still waits for) and C29 (the invented role column — five of the eight aliases were needed for it
+alone), both in `backlog-2026-10-candidates-3.md`. **Überprüft.** Suites green (1330 passed, 5 skipped; vitest 29;
+tsc; ruff; mypy); the build logs; counts by `psql` on both schemas. **Nur angenommen.** That the workbench's section
+reads well in a browser — rendered in jsdom only; the frontend bundle is built by CI, not here. **Bewusst nicht getan.**
+The demo (`demo/workbench-adventureworks/`) not regenerated — its README still says ten views, its last run predates
+WP90 and WP82 alike; the owner's `aw` not rebuilt (its run state is not on this machine); no workbench field for
+multi-source keys (API and CLI file only); the two measurement schemas `aw_wp82_base` and `aw_wp82_bind` dropped after
+the counts above.

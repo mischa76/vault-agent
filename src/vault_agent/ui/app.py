@@ -11,7 +11,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
 from vault_agent.report import build_model_mermaid, build_report
-from vault_agent.state import BusinessVaultOptions
+from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
+from vault_agent.state import BusinessVaultOptions, StageBinding
 from vault_agent.ui.console import ConsoleAnswer, answer
 from vault_agent.ui.graphs import area_views, build_source_mermaid, node_catalogue
 from vault_agent.ui.projects import FileKind, ProjectError, ProjectStore
@@ -41,6 +42,9 @@ class StartRun(BaseModel):
     requirements: str
     schema_file: str | None = Field(default=None, alias="schema")
     existing_run: str | None = None
+    # WP82: the CLI's --profiling (a project file of kind `profiling`) and --target-platform.
+    profiling: str | None = None
+    target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM
     # WP91: Business Vault options, the CLI's --pit/--as-of-* (validated by the same model).
     pit: bool = False
     as_of_start: date | None = None
@@ -66,6 +70,11 @@ class Decision(BaseModel):
     resolutions: dict[str, str] = Field(default_factory=dict)
     owners: dict[str, str] = Field(default_factory=dict)
     links: dict[str, bool] = Field(default_factory=dict)  # WP71: --link / --no-link
+    # WP82: --bind (a stage's relation and column aliases), --map, and the multi-source answers
+    # an edited mappings.review.yml carries (--mappings).
+    bindings: dict[str, StageBinding] = Field(default_factory=dict)
+    mappings: dict[str, str] = Field(default_factory=dict)
+    mapping_sources: dict[str, list[dict[str, str]]] = Field(default_factory=dict)
 
 
 def create_app(root: Path, static: Path | None = None) -> FastAPI:
@@ -125,6 +134,7 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
             return await runs.start(
                 project_id, body.requirements, body.schema_file, body.existing_run, wait=wait,
                 business_vault=business_vault,
+                profiling=body.profiling, target_platform=body.target_platform,  # WP82
             )
         except (ProjectError, RunConflictError) as exc:
             raise _guard(exc) from exc
@@ -159,6 +169,8 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
                 run_id, accept=body.accept, discard=body.discard,
                 resolutions=body.resolutions, owners=body.owners, wait=wait,
                 links=body.links,
+                bindings=body.bindings, mappings=body.mappings,  # WP82
+                mapping_sources=body.mapping_sources,
             )
         except (ProjectError, ValueError) as exc:
             if isinstance(exc, ProjectError):

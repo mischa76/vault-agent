@@ -60,6 +60,7 @@ from vault_agent.state import (
     KeyTranslation,
     PipelineFlag,
     SourceTable,
+    StageBinding,
 )
 
 # dbt project/profile name used in the generated scaffolding.
@@ -109,6 +110,9 @@ class StagingSpec:
     # link row. Translated participations are not recorded (their key arrives through a view).
     # WP86: the third element names the hub the participation hashes into — its zero-key rows.
     null_groups: list[tuple[tuple[str, ...], tuple[str, ...], str]] = field(default_factory=list)
+    # WP82: the aliases a human ratified with this stage's binding — a subset of `derived`,
+    # recorded apart so the catalogue can carry them (`stage_aliases`) to the next increment.
+    ratified_columns: dict[str, str] = field(default_factory=dict)
 
     def add_hashed(self, name: str, value: str | list[str] | _HashDiff) -> None:
         if all(existing != name for existing, _ in self.hashed):
@@ -623,12 +627,45 @@ def missing_stage_columns(spec: StagingSpec, table: SourceTable) -> list[str]:
     return [c for c in stage_key_columns(spec) if c not in available]
 
 
+def apply_stage_aliases(spec: StagingSpec, columns: dict[str, str]) -> None:
+    """WP82: a human's aliases ``{STAGE_COLUMN: relation_column}`` on one stage — each becomes a
+    derived column (WP41's mechanism: AutomateDV derives before it hashes, so the hash reads the
+    alias), the null groups and the expected columns name the relation's column instead, and the
+    aliases are recorded for the metadata and the catalogue."""
+    if not columns:
+        return
+    alias = {normalize_identifier(k): v for k, v in columns.items()}
+    # AutomateDV renders every derived column in ONE select over the source (read in
+    # `macros/staging/derive_columns.sql`, 0.11.4: `<source> AS <derived>` per entry, all from
+    # `source_data`), so a derived column cannot read another. A WP41 role column that read the
+    # aliased stage column (`STORE_BUSINESSENTITYID: STOREID`) must read the relation's column
+    # directly once the alias says where STOREID comes from.
+    for derived_name, source in list(spec.derived.items()):
+        if normalize_identifier(source) in alias:
+            spec.derived[derived_name] = alias[normalize_identifier(source)]
+    for stage_column, relation_column in columns.items():
+        spec.derived[stage_column] = relation_column
+        spec.ratified_columns[stage_column] = relation_column
+    spec.null_groups = [
+        (stage_columns, tuple(alias.get(normalize_identifier(c), c) for c in relation_columns), hub)
+        for stage_columns, relation_columns, hub in spec.null_groups
+    ]
+    expected: list[str] = []
+    for column in spec.source_columns:
+        renamed = alias.get(normalize_identifier(column), column)
+        if renamed not in expected:
+            expected.append(renamed)
+    spec.source_columns = expected
+
+
 def bind_sources(
     specs: dict[str, StagingSpec],
     source_schemas: list[SourceTable],
     source_overrides: dict[str, str] | None = None,
     binding_reasons: dict[str, str] | None = None,
     carried_bindings: dict[str, str] | None = None,
+    ratified: dict[str, str] | None = None,
+    carried_aliases: dict[str, dict[str, str]] | None = None,
 ) -> list[PipelineFlag]:
     """Bind each staging model to its raw relation; flag every *inferred* binding.
 
@@ -646,6 +683,8 @@ def bind_sources(
     hashes — and raises no flag: it was reviewed when it was made."""
     overrides = source_overrides or {}
     carried = carried_bindings or {}
+    decided = ratified or {}  # WP82: by stage name, before every rule
+    aliases = carried_aliases or {}
     # WP47: why a binding is inferred, from the same resolution the overrides come from
     # (``link_proposal.link_binding_reasons``); a base with no entry is ``none``.
     reasons = binding_reasons or {}
@@ -682,17 +721,31 @@ def bind_sources(
             # Declared on the construct itself (Satellite.source_table, WP7 §7.1):
             # bound verbatim at collection time — no inference, no flag.
             continue
+        inferred = RAW_SOURCE_PREFIX + spec.base
+        # WP82: a binding a human ratified at sign-off is a decision and comes first — over the
+        # name rule, the offer, the evidence tier and a ratified proposal alike. Its aliases are
+        # already derived (build_staging), so the WP73 check judges the relation with them.
+        decided_relation = decided.get(spec.name)
+        if decided_relation:
+            if _rejected(spec, decided_relation):
+                spec.source_model = inferred
+            else:
+                spec.source_model = decided_relation
+                spec.bound = True
+            continue
         override = overrides.get(normalize_identifier(spec.base))
         if override and not _rejected(spec, override):
             spec.source_model = override
             spec.bound = True
             continue
-        inferred = RAW_SOURCE_PREFIX + spec.base
         if override:
             spec.source_model = inferred  # the override was refused above, with its flag
             continue
         kept = carried.get(spec.name)
         if kept and normalize_identifier(kept) in declared_tables:
+            # WP82: the aliases that travelled with the binding, applied before the check — the
+            # carried relation would otherwise be refused for the very column the alias supplied.
+            apply_stage_aliases(spec, aliases.get(spec.name) or {})
             if _rejected(spec, kept):
                 spec.source_model = inferred
                 continue
@@ -940,6 +993,8 @@ def _stage_metadata(
     }
     if derived_columns:
         meta["derived_columns"] = dict(derived_columns)
+    if spec.ratified_columns:
+        meta["ratified_columns"] = dict(spec.ratified_columns)  # WP82
     if null_columns:
         meta["null_columns"] = {"optional": [_reserved_alias(c) for c in null_columns]}
     if spec.translations and spec.stage_source:
@@ -1440,8 +1495,14 @@ def build_staging(
     carried: list[SourceTable] | None = None,
     carried_bindings: dict[str, str] | None = None,
     business_vault: BusinessVaultOptions | None = None,
+    ratified_bindings: dict[str, StageBinding] | None = None,
+    carried_aliases: dict[str, dict[str, str]] | None = None,
 ) -> StagingResult:
     """The full staging pass: specs -> bindings -> rendered models + scaffolding.
+
+    ``ratified_bindings`` (WP82) are the stages a human bound at sign-off, by stage name — the
+    relation and its aliases; ``carried_aliases`` the aliases earlier increments ratified, applied
+    with ``carried_bindings``. Both empty on every run no human bound a stage in.
 
     ``business_vault`` (WP91) adds to the scaffolding what a PIT needs — AutomateDV ghost records,
     the `business_vault` model block, `dbt_utils` — and nothing when it is off or ``None``.
@@ -1463,6 +1524,10 @@ def build_staging(
     byte-identity baseline."""
     legacy = legacy_feeds(existing)
     specs = collect_staging_specs(model, legacy)
+    # WP82: a human's aliases are part of the stage before anything judges its binding.
+    for stage_name, binding in (ratified_bindings or {}).items():
+        if stage_name in specs:
+            apply_stage_aliases(specs[stage_name], binding.columns)
     # WP74: an existing construct's stage binds against the catalogue earlier increments
     # carried in (schema, database, full columns), the increment's own tables first. The
     # carried tables reach nothing else — the contract agent, the proposer and the modeler
@@ -1476,7 +1541,9 @@ def build_staging(
     # run's own resolution binds the stage (the offer tier and the proposals see only the
     # increment's tables, so a link bound by offer in step 3 would otherwise infer in step 4).
     flags = bind_sources(
-        specs, binding_schemas, source_overrides, binding_reasons, carried_bindings
+        specs, binding_schemas, source_overrides, binding_reasons, carried_bindings,
+        ratified={name: b.relation for name, b in (ratified_bindings or {}).items()},
+        carried_aliases=carried_aliases,
     )
     # Grounded runs only (ungrounded: no blocks, no source_name — byte-identical output).
     blocks = group_sources(specs, binding_schemas)

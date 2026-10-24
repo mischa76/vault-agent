@@ -82,7 +82,7 @@ class ProjectStore:
             data = json.loads(meta.read_text(encoding="utf-8"))
             summaries.append({k: data.get(k) for k in (
                 "id", "status", "started", "finished", "requirements", "schema", "existing_run",
-                "error",
+                "error", "profiling", "target_platform",  # WP82
             )})
         return summaries
 

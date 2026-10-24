@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { api, ApiError } from "../api";
 import { formatBytes } from "../derive";
-import type { Project, ProjectFile, RunSummary } from "../types";
+import { PLATFORMS, type Platform, type Project, type ProjectFile, type RunSummary } from "../types";
 import { Button, Dot, Empty, ErrorNote, KV, Pill, Section } from "../components/ui";
 
 // A browser upload is text: .md/.txt requirements and .yml/.yaml/.json schemas. A PDF
@@ -16,10 +16,14 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, busy }: {
   const [error, setError] = useState<string | null>(null);
   const requirements = project.files.filter((f) => f.kind === "requirements");
   const schemas = project.files.filter((f) => f.kind === "schema");
+  const profilings = project.files.filter((f) => f.kind === "profiling");
   const finished = project.runs.filter((r) => r.status === "finished");
   const [req, setReq] = useState(requirements[0]?.name ?? "");
   const [schema, setSchema] = useState(schemas[0]?.name ?? "");
   const [existing, setExisting] = useState("");
+  // WP82: the CLI's --profiling and --target-platform, so a workbench run equals a CLI run.
+  const [profiling, setProfiling] = useState("");
+  const [platform, setPlatform] = useState<Platform>("postgres");
   // WP91: Business Vault — a PIT per hub with two or more descriptive satellites, over a bounded spine.
   const [pit, setPit] = useState(false);
   const [asOfStart, setAsOfStart] = useState("");
@@ -43,10 +47,11 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, busy }: {
   async function start() {
     setError(null);
     try {
-      const run = await api.startRun(
-        project.id, req, schema || null, existing || null,
-        pit ? { pit: true, as_of_start: asOfStart, as_of_end: asOfEnd, as_of_grain: grain } : undefined,
-      );
+      const run = await api.startRun(project.id, {
+        requirements: req, schema: schema || null, existing_run: existing || null,
+        profiling: profiling || null, target_platform: platform,
+        ...(pit ? { pit: true, as_of_start: asOfStart, as_of_end: asOfEnd, as_of_grain: grain } : {}),
+      });
       onChanged();
       onOpenRun(run.id);
     } catch (e) {
@@ -102,6 +107,19 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, busy }: {
             <select value={existing} onChange={(e) => setExisting(e.target.value)} className="rounded-md border border-line bg-pane-2 px-2 py-1.5" disabled={finished.length === 0}>
               <option value="">greenfield</option>
               {finished.map((r) => <option key={r.id} value={r.id}>{stamp(r)}</option>)}
+            </select>
+          </label>
+          <label className="grid gap-1">
+            <span className="text-xs text-ink-faint">profiling evidence (optional)</span>
+            <select aria-label="profiling" value={profiling} onChange={(e) => setProfiling(e.target.value)} className="rounded-md border border-line bg-pane-2 px-2 py-1.5" disabled={profilings.length === 0}>
+              <option value="">none</option>
+              {profilings.map((f) => <option key={f.name} value={f.name}>{f.name}</option>)}
+            </select>
+          </label>
+          <label className="grid gap-1">
+            <span className="text-xs text-ink-faint">target platform</span>
+            <select aria-label="target platform" value={platform} onChange={(e) => setPlatform(e.target.value as Platform)} className="rounded-md border border-line bg-pane-2 px-2 py-1.5">
+              {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
             </select>
           </label>
         </div>

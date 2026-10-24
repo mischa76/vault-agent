@@ -644,6 +644,8 @@ class CodeGeneratorAgent(BaseAgent):
             carried=state.carried_schemas,  # WP74
             carried_bindings=state.carried_bindings,  # WP77
             business_vault=state.business_vault,  # WP91
+            ratified_bindings=state.ratified_bindings,  # WP82
+            carried_aliases=state.carried_aliases,  # WP82
         )
         state.artifacts.staging_models = staging.models
         state.artifacts.scaffolding = staging.scaffolding

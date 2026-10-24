@@ -41,13 +41,16 @@ from vault_agent.agents.orchestrator import (
     review_queue_layout,
     status_line,
 )
+from vault_agent.bindings import check_stage_bindings, parse_bind, pending_stage_bindings
 from vault_agent.existing_model import (
     DV_MODEL_FILENAME,
     SOURCE_CATALOGUE_FILENAME,
     dump_source_catalogue,
+    load_carried_aliases,
     load_carried_bindings,
     load_existing_catalogue,
     load_existing_model,
+    stage_aliases,
     stage_bindings,
 )
 from vault_agent.extension_diff import DIFF_FILENAME, ExtensionDiff, render_extension_diff_md
@@ -72,6 +75,7 @@ from vault_agent.state import (
     RelationshipLinkProposal,
     ResolutionProposal,
     SourceTable,
+    StageBinding,
     VaultAgentState,
     split_concept_key,
 )
@@ -209,6 +213,8 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
                 [*state.source_schemas, *state.carried_schemas],
                 # WP77: every declared binding, this run's and the kept ones, travels on.
                 stage_bindings(state.artifacts.automatedv_yaml.get("staging", {}) or {}),
+                # WP82: the aliases a human ratified with a binding travel with it.
+                stage_aliases(state.artifacts.automatedv_yaml.get("staging", {}) or {}),
             ),
             encoding="utf-8",
         )
@@ -652,6 +658,7 @@ async def _run_pipeline(
     carried_schemas: list[SourceTable] | None = None,
     carried_bindings: dict[str, str] | None = None,
     business_vault: BusinessVaultOptions | None = None,
+    carried_aliases: dict[str, dict[str, str]] | None = None,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
@@ -682,6 +689,7 @@ async def _run_pipeline(
             carried_schemas=carried_schemas or [],  # WP74
             carried_bindings=carried_bindings or {},  # WP77
             business_vault=business_vault or BusinessVaultOptions(),  # WP91
+            carried_aliases=carried_aliases or {},  # WP82
         ),
         input_doc=input_doc,
         trace=trace,
@@ -855,6 +863,7 @@ def _build_decision(
     mapping_sources: dict[str, list[dict[str, str]]] | None = None,
     resolutions: dict[str, str] | None = None,
     links: dict[str, bool] | None = None,
+    bindings: dict[str, StageBinding] | None = None,
 ) -> dict[str, Any]:
     parsed: dict[str, dict[str, str | None]] = {}
     for spec in owners:
@@ -869,6 +878,9 @@ def _build_decision(
         # WP34: {"<Table>.<Column>": build it / decline it}. Same payload, same appliers, so
         # a flag and an interactive answer cannot mean different things.
         "links": links or {},
+        # WP82: {stage: {"relation": R, "columns": {STAGE_COLUMN: column}}} — the stages a human
+        # bound at sign-off; plain dicts, so the checkpointer's payload stays JSON.
+        "bindings": {stage: b.model_dump() for stage, b in (bindings or {}).items()},
     }
 
 
@@ -913,6 +925,7 @@ def _has_decision_flags(
     resolve: list[str] | None = None,
     link: list[str] | None = None,
     no_link: list[str] | None = None,
+    bind: list[str] | None = None,
 ) -> bool:
     """True when ``resume`` was given any explicit decision — flags win, no prompt is shown."""
     return (
@@ -924,6 +937,7 @@ def _has_decision_flags(
         or bool(resolve)
         or bool(link)
         or bool(no_link)
+        or bool(bind)
     )
 
 
@@ -1009,6 +1023,49 @@ def _collect_decision(
     return owners, overrides
 
 
+def _collect_binding_decision(
+    console: Console, state: VaultAgentState
+) -> dict[str, StageBinding]:
+    """WP82: walk the stages no rule could bind, collecting what ``resume --bind`` takes.
+
+    Capability parity with the flag, as :func:`_collect_decision`: the answer is parsed by the
+    flag's parser and checked by the flag's check, so the prompt cannot bind what the flag could
+    not. A refused answer is asked again with the refusal in the question; Enter skips the stage
+    (it stays inferred, as the review queue says)."""
+    answers: dict[str, StageBinding] = {}
+    for pending in pending_stage_bindings(state):
+        stage = pending["stage"]
+        why = (
+            f"{pending['tried']} was refused: it lacks a column the stage hashes"
+            if pending["reason"] == "rejected" else f"binding {pending['reason']}"
+        )
+        console.print(
+            f"  [yellow]{stage}[/yellow] reads [red]{pending['reads']}[/red] ({why}); "
+            f"the relation must carry: {', '.join(pending['expected_columns'])}"
+        )
+        question = (
+            f"Relation for stage {stage!r} (RELATION, or RELATION(STAGE_COLUMN=column, …), "
+            "Enter to skip)"
+        )
+        complaint = ""
+        while True:
+            answer = _prompter.text(console, f"{complaint}{question}").strip()
+            if not answer:
+                break
+            try:
+                _stage, binding = parse_bind(f"{stage}={answer}")
+            except ValueError as exc:
+                complaint = f"[red]{exc}[/red]\n"
+                continue
+            errors = check_stage_bindings(state, {stage: binding})
+            if errors:
+                complaint = "[red]" + "; ".join(errors) + "[/red]\n"
+                continue
+            answers[stage] = binding
+            break
+    return answers
+
+
 def _interactive_checkpoint(
     console: Console, out: Path, thread_id: str, state: VaultAgentState, trace: bool = True
 ) -> VaultAgentState:
@@ -1039,14 +1096,16 @@ def _interactive_checkpoint(
         overrides: dict[str, str]
         resolutions: dict[str, str]
         links: dict[str, bool]
+        bindings: dict[str, StageBinding]
         try:
             if at_resolution:
-                owners, overrides = [], {}
+                owners, overrides, bindings = [], {}, {}
                 resolutions = _collect_resolution_decision(console, state)
                 links = _collect_link_decision(console, state)
                 confirm = "Ratify the remaining proposal(s) as shown and build the model?"
             else:
                 owners, overrides = _collect_decision(console, state)
+                bindings = _collect_binding_decision(console, state)  # WP82
                 resolutions, links = {}, {}
                 confirm = "Accept and finalize?"
                 for issue in state.validation_report.issues:
@@ -1062,7 +1121,7 @@ def _interactive_checkpoint(
             _report_paused(console, out, state=state)
             return state
 
-        decision = _build_decision(owners, True, overrides, {}, resolutions, links)
+        decision = _build_decision(owners, True, overrides, {}, resolutions, links, bindings)
         state, paused = asyncio.run(_resume_pipeline(out, thread_id, decision, trace))
         _print_summary(console, state)
         counts = write_outputs(state, out)
@@ -1573,6 +1632,7 @@ def run(
         prior_model = load_existing_model(existing) if existing else None
         carried = load_existing_catalogue(existing) if existing else []  # WP74
         bindings = load_carried_bindings(existing) if existing else {}  # WP77
+        aliases = load_carried_aliases(existing) if existing else {}  # WP82
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]Could not load an input file:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
@@ -1585,6 +1645,7 @@ def run(
                 carried_schemas=carried,
                 carried_bindings=bindings,
                 business_vault=business_vault,
+                carried_aliases=aliases,
             )
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
@@ -1642,6 +1703,7 @@ def _resume_paused(
     resolve: list[str] | None = None,
     link: list[str] | None = None,
     no_link: list[str] | None = None,
+    bind: list[str] | None = None,
 ) -> None:
     """Answer the HITL checkpoint of a paused run — the flag path and the WP12 prompt.
 
@@ -1657,7 +1719,7 @@ def _resume_paused(
     # and a non-TTY keeps today's flag-based path byte-identical.
     if (
         not _has_decision_flags(
-            owner, accept, mappings, map_, resolutions, resolve, link, no_link
+            owner, accept, mappings, map_, resolutions, resolve, link, no_link, bind
         )
         and write
         and _is_interactive(interactive)
@@ -1689,8 +1751,15 @@ def _resume_paused(
         # deliberate refusal must never be overridden by a bulk answer given earlier.
         link_answers: dict[str, bool] = {spec: True for spec in link or []}
         link_answers.update({spec: False for spec in no_link or []})
+        # WP82: a binding is checked against the paused state before anything resumes — a
+        # relation that lacks a hashed column is refused here, named, not silently left inferred.
+        bindings = dict(parse_bind(spec) for spec in bind or [])
+        if bindings:
+            errors = check_stage_bindings(asyncio.run(_paused_state(out, thread_id)), bindings)
+            if errors:
+                raise ValueError("cannot bind:\n  " + "\n  ".join(errors))
         decision = _build_decision(
-            owner or [], accept, overrides, multi, ratified, link_answers
+            owner or [], accept, overrides, multi, ratified, link_answers, bindings
         )
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]{exc}[/bold red]")
@@ -1789,6 +1858,14 @@ def resume(
         typer.Option(
             "--no-link",
             help="Decline a proposed link: 'Table.Column' (WP34).",
+        ),
+    ] = None,
+    bind: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--bind",
+            help="Bind a staging model no rule could: 'STAGE=RELATION' or "
+                 "'STAGE=RELATION(STAGE_COLUMN=column, …)' (WP82).",
         ),
     ] = None,
     trace: Annotated[
@@ -1895,7 +1972,7 @@ def resume(
         _write_pending(out, thread_id, input_path)
         pending = {"thread_id": thread_id, "input": str(input_path)}
         if not _has_decision_flags(
-            owner, accept, mappings, map_, resolutions, resolve, link, no_link
+            owner, accept, mappings, map_, resolutions, resolve, link, no_link, bind
         ):
             if write and _is_interactive(interactive):
                 state = _interactive_checkpoint(console, out, thread_id, state, trace)
@@ -1907,7 +1984,7 @@ def resume(
     _resume_paused(
         console, out, pending,
         owner=owner, accept=accept, mappings=mappings, map_=map_,
-        resolutions=resolutions, resolve=resolve, link=link, no_link=no_link,
+        resolutions=resolutions, resolve=resolve, link=link, no_link=no_link, bind=bind,
         trace=trace, interactive=interactive, write=write,
     )
 

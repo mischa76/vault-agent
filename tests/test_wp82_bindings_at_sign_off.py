@@ -15,31 +15,35 @@ from tests.test_cli import _sqlite_stub_agents
 from vault_agent import cli
 from vault_agent.agents.code_generator import CodeGeneratorAgent
 from vault_agent.agents.orchestrator import apply_human_decision
+from vault_agent.agents.source_mapper import rebind_staging
 from vault_agent.graph import build_graph
-from vault_agent.state import DVModel, FlagKind, SourceTable, VaultAgentState
+from vault_agent.state import DVModel, FlagKind, LinkHubRef, SourceTable, VaultAgentState
 from vault_agent.ui.app import create_app
 
 # The owner's `raw_business_entity_store_sales_person` in miniature: the link's stage expects the
-# sales person's key under the hub's name (BUSINESSENTITYID) while the relation carries it as
-# SalesPersonID — WP73 refuses the offer, and only a hand view could say "that column, under this
-# name" until now.
+# store's key as STOREID and the sales person's as BUSINESSENTITYID, while `Store` carries them as
+# BusinessEntityID and SalesPersonID — the offer binds it, WP73 refuses it, and only a hand view
+# (`SELECT businessentityid AS storeid, salespersonid AS sales_person_businessentityid`) could say
+# "that column, under this name" until now.
 STORE = SourceTable.model_validate({
-    "table": "StoreMaster", "schema": "Sales",
-    "columns": [{"name": "StoreID", "type": "int"}, {"name": "SalesPersonID", "type": "int"},
-                {"name": "Name", "type": "nvarchar(50)"}],
-    "primary_key": ["StoreID"],
+    "table": "Store", "schema": "Sales",
+    "columns": [{"name": "BusinessEntityID", "type": "int"},
+                {"name": "SalesPersonID", "type": "int"}, {"name": "Name", "type": "nvarchar(50)"}],
+    "primary_key": ["BusinessEntityID"],
     "foreign_keys": [{"columns": ["SalesPersonID"], "references_table": "SalesPerson",
                       "references_columns": ["BusinessEntityID"]}],
 })
 SALES_PERSON = SourceTable.model_validate({
     "table": "SalesPerson", "schema": "Sales",
-    "columns": [{"name": "BusinessEntityID", "type": "int"}, {"name": "TerritoryID", "type": "int"}],
+    "columns": [{"name": "BusinessEntityID", "type": "int"},
+                {"name": "TerritoryID", "type": "int"}],
     "primary_key": ["BusinessEntityID"],
 })
 # A hub stage no rule binds (`none`): the composite key lives in a table named otherwise.
 ROUTING = SourceTable.model_validate({
     "table": "WorkOrderRouting", "schema": "Production",
-    "columns": [{"name": "WorkOrderID", "type": "int"}, {"name": "OperationSequence", "type": "smallint"},
+    "columns": [{"name": "WorkOrderID", "type": "int"},
+                {"name": "OperationSequence", "type": "smallint"},
                 {"name": "LocationID", "type": "smallint"}],
     "primary_key": ["WorkOrderID", "ProductID", "OperationSequence"],
 })
@@ -48,7 +52,7 @@ ROUTING = SourceTable.model_validate({
 def _model() -> DVModel:
     return DVModel.model_validate({
         "hubs": [
-            {"name": "hub_store", "business_key": "StoreID", "source_entity": "store",
+            {"name": "hub_store", "business_key": "StoreID", "source_entity": "Store",
              "description": "x"},
             {"name": "hub_sales_person", "business_key": "BusinessEntityID",
              "source_entity": "SalesPerson", "description": "x"},
@@ -62,9 +66,15 @@ def _model() -> DVModel:
     })
 
 
-async def _generated() -> VaultAgentState:
-    state = VaultAgentState(dv_model=_model(), source_schemas=[STORE, SALES_PERSON, ROUTING])
-    return await CodeGeneratorAgent().run(state)
+async def _generated(schemas: list[SourceTable] | None = None) -> VaultAgentState:
+    """The pipeline's deterministic part: the code generator, then the mapper's re-bind (a
+    link's stage binds by offer only there — and is refused there, WP73)."""
+    state = VaultAgentState(
+        dv_model=_model(), source_schemas=schemas or [STORE, SALES_PERSON, ROUTING]
+    )
+    state = await CodeGeneratorAgent().run(state)
+    rebind_staging(state)
+    return state
 
 
 def _staging(state: VaultAgentState) -> dict[str, Any]:
@@ -79,16 +89,18 @@ def test_parse_bind_plain_and_with_aliases() -> None:
 
     assert parse_bind("stg_work_order_operation=WorkOrderRouting") == (
         "stg_work_order_operation", StageBinding(relation="WorkOrderRouting"),
-    )
+    )  # noqa: E501 — the spec strings below are the grammar itself, kept whole
     stage, binding = parse_bind(
-        "stg_store_sales_person=StoreMaster(BUSINESSENTITYID=SalesPersonID, STOREID = StoreID)"
+        "stg_store_sales_person=Store(STOREID=BusinessEntityID, BUSINESSENTITYID = SalesPersonID)"
     )
     assert stage == "stg_store_sales_person"
     assert binding == StageBinding(
-        relation="StoreMaster", columns={"BUSINESSENTITYID": "SalesPersonID", "STOREID": "StoreID"}
+        relation="Store",
+        columns={"STOREID": "BusinessEntityID", "BUSINESSENTITYID": "SalesPersonID"},
     )
     assert parse_bind(format_bind(stage, binding)) == (stage, binding)
-    for bad in ("stg_x", "=Rel", "stg_x=", "stg_x=Rel(BUSINESSENTITYID)", "stg_x=Rel(=a)"):
+    bad_specs = ("stg_x", "=Rel", "stg_x=", "stg_x=Rel(BUSINESSENTITYID)", "stg_x=Rel(=a)")
+    for bad in bad_specs:
         with pytest.raises(ValueError, match="--bind"):
             parse_bind(bad)
 
@@ -107,14 +119,15 @@ async def test_check_names_the_stage_the_relation_and_the_missing_columns() -> N
             state, {stage: StageBinding(relation=relation, columns=dict(columns))}
         )
 
-    assert errors("stg_nope", "StoreMaster") and "stg_nope" in errors("stg_nope", "StoreMaster")[0]
+    assert errors("stg_nope", "Store") and "stg_nope" in errors("stg_nope", "Store")[0]
     [undeclared] = errors("stg_store_sales_person", "Shop")
     assert "Shop" in undeclared
-    [missing] = errors("stg_store_sales_person", "StoreMaster")
-    assert "BUSINESSENTITYID" in missing and "StoreMaster" in missing
-    [alias_target] = errors("stg_store_sales_person", "StoreMaster", BUSINESSENTITYID="SellerID")
-    assert "SellerID" in alias_target
-    assert errors("stg_store_sales_person", "StoreMaster", BUSINESSENTITYID="SalesPersonID") == []
+    [missing] = errors("stg_store_sales_person", "Store")
+    assert "STOREID" in missing and "Store" in missing
+    [alias_target] = errors("stg_store_sales_person", "Store", STOREID="ShopID")
+    assert "ShopID" in alias_target
+    assert errors("stg_store_sales_person", "Store",
+                  STOREID="BusinessEntityID", BUSINESSENTITYID="SalesPersonID") == []
     assert errors("stg_work_order_operation", "WorkOrderRouting") == []
 
 
@@ -127,20 +140,23 @@ async def test_a_ratified_binding_with_an_alias_binds_the_refused_link_stage() -
     assert "stg_store_sales_person" in before  # WP73's refusal is the starting point
 
     apply_human_decision(state, {"bindings": {
-        "stg_store_sales_person": {"relation": "StoreMaster",
-                                   "columns": {"BUSINESSENTITYID": "SalesPersonID"}},
+        "stg_store_sales_person": {"relation": "Store",
+                                   "columns": {"STOREID": "BusinessEntityID",
+                                               "BUSINESSENTITYID": "SalesPersonID"}},
     }})
 
     meta = _staging(state)["stg_store_sales_person"]
     assert meta["source_binding"] == "declared"
-    assert list(meta["source_model"].values()) == ["StoreMaster"]
+    assert list(meta["source_model"].values()) == ["Store"]
     assert meta["derived_columns"]["BUSINESSENTITYID"] == "SalesPersonID"
-    assert meta["ratified_columns"] == {"BUSINESSENTITYID": "SalesPersonID"}
+    assert meta["derived_columns"]["STOREID"] == "BusinessEntityID"
+    assert meta["ratified_columns"] == {"STOREID": "BusinessEntityID",
+                                        "BUSINESSENTITYID": "SalesPersonID"}
     assert "SalesPersonID" in state.artifacts.staging_models["stg_store_sales_person"]
     assert not [f for f in state.flags
                 if f.kind in (FlagKind.BINDING_REJECTED, FlagKind.SOURCE_BINDING)
                 and f.asset == "stg_store_sales_person"]
-    assert state.ratified_bindings["stg_store_sales_person"].relation == "StoreMaster"
+    assert state.ratified_bindings["stg_store_sales_person"].relation == "Store"
 
 
 async def test_a_ratified_binding_binds_a_hub_stage_no_rule_could() -> None:
@@ -167,10 +183,10 @@ async def test_a_ratified_binding_overrides_a_rule_binding() -> None:
     another declared relation that carries the key, and that one is read."""
     other = SourceTable.model_validate({
         "table": "SalesPersonQuotaHistory", "schema": "Sales",
-        "columns": [{"name": "BusinessEntityID", "type": "int"}, {"name": "QuotaDate", "type": "datetime"}],
+        "columns": [{"name": "BusinessEntityID", "type": "int"},
+                    {"name": "QuotaDate", "type": "datetime"}],
     })
-    state = VaultAgentState(dv_model=_model(), source_schemas=[STORE, SALES_PERSON, ROUTING, other])
-    state = await CodeGeneratorAgent().run(state)
+    state = await _generated([STORE, SALES_PERSON, ROUTING, other])
     assert list(_staging(state)["stg_sales_person"]["source_model"].values()) == ["SalesPerson"]
     apply_human_decision(
         state, {"bindings": {"stg_sales_person": {"relation": "SalesPersonQuotaHistory"}}}
@@ -178,6 +194,36 @@ async def test_a_ratified_binding_overrides_a_rule_binding() -> None:
     assert list(_staging(state)["stg_sales_person"]["source_model"].values()) == [
         "SalesPersonQuotaHistory"
     ]
+
+
+async def test_an_alias_feeding_a_role_column_rewrites_the_derived_chain() -> None:
+    """AutomateDV renders every derived column in one select over the source (read in the
+    installed `derive_columns.sql`), so a WP41 role column that read the aliased stage column
+    (`CONTACT_BUSINESSENTITYID: CONTACTID`) must read the relation's column directly once the
+    alias says where CONTACTID comes from — the paid chain's `stg_store_sales_person` shape."""
+    model = _model()
+    model.links[0].connected_hubs = [
+        "hub_store",
+        LinkHubRef(hub="hub_sales_person", role="contact", source_key_column="ContactID"),
+    ]
+    state = VaultAgentState(dv_model=model, source_schemas=[STORE, SALES_PERSON, ROUTING])
+    state = await CodeGeneratorAgent().run(state)
+    rebind_staging(state)
+    meta = _staging(state)["stg_store_sales_person"]
+    assert meta["derived_columns"]["CONTACT_BUSINESSENTITYID"] == "CONTACTID"  # WP41, before
+
+    apply_human_decision(state, {"bindings": {"stg_store_sales_person": {
+        "relation": "Store",
+        "columns": {"STOREID": "BusinessEntityID", "CONTACTID": "SalesPersonID"},
+    }}})
+
+    meta = _staging(state)["stg_store_sales_person"]
+    assert meta["source_binding"] == "declared"
+    assert meta["derived_columns"]["CONTACT_BUSINESSENTITYID"] == "SalesPersonID"
+    assert meta["derived_columns"]["CONTACTID"] == "SalesPersonID"
+    # no derived column reads another derived column: every source is a column of Store
+    derived_sources = set(meta["derived_columns"].values())
+    assert derived_sources <= {"BusinessEntityID", "SalesPersonID"}
 
 
 # ── it travels: the aliases in the catalogue, applied by the next increment ───────────────
@@ -191,16 +237,14 @@ async def test_the_alias_travels_with_the_catalogue_to_the_next_increment(tmp_pa
     )
 
     state = await _generated()
+    aliases = {"STOREID": "BusinessEntityID", "BUSINESSENTITYID": "SalesPersonID"}
     apply_human_decision(state, {"bindings": {
-        "stg_store_sales_person": {"relation": "StoreMaster",
-                                   "columns": {"BUSINESSENTITYID": "SalesPersonID"}},
+        "stg_store_sales_person": {"relation": "Store", "columns": aliases},
     }})
     cli.write_outputs(state, tmp_path)
     catalogue = yaml.safe_load((tmp_path / "metadata" / "source_catalogue.yml").read_text())
-    assert catalogue["stage_bindings"]["stg_store_sales_person"] == "StoreMaster"
-    assert catalogue["stage_aliases"] == {
-        "stg_store_sales_person": {"BUSINESSENTITYID": "SalesPersonID"}
-    }
+    assert catalogue["stage_bindings"]["stg_store_sales_person"] == "Store"
+    assert catalogue["stage_aliases"] == {"stg_store_sales_person": aliases}
     assert load_carried_aliases(tmp_path) == catalogue["stage_aliases"]
 
     # The next increment: the same constructs exist already, the increment declares nothing of
@@ -215,7 +259,8 @@ async def test_the_alias_travels_with_the_catalogue_to_the_next_increment(tmp_pa
     meta = _staging(following)["stg_store_sales_person"]
     assert meta["source_binding"] == "declared"
     assert meta["derived_columns"]["BUSINESSENTITYID"] == "SalesPersonID"
-    assert not [f for f in following.flags if f.kind == FlagKind.BINDING_REJECTED]
+    assert not [f for f in following.flags
+                if f.kind == FlagKind.BINDING_REJECTED and f.asset == "stg_store_sales_person"]
 
 
 def test_a_catalogue_without_the_block_loads_as_before(tmp_path: Path) -> None:
@@ -223,7 +268,7 @@ def test_a_catalogue_without_the_block_loads_as_before(tmp_path: Path) -> None:
 
     (tmp_path / "metadata").mkdir()
     (tmp_path / "metadata" / "source_catalogue.yml").write_text(
-        dump_source_catalogue([STORE], {"stg_store": "StoreMaster"}), encoding="utf-8"
+        dump_source_catalogue([STORE], {"stg_store": "Store"}), encoding="utf-8"
     )
     assert load_carried_aliases(tmp_path) == {}
     assert load_carried_aliases(tmp_path / "nowhere") == {}
@@ -267,14 +312,19 @@ async def test_the_prompt_asks_for_each_pending_stage_and_yields_the_flags_paylo
     state = await _generated()
     pending = {f.asset for f in state.flags
                if f.kind in (FlagKind.BINDING_REJECTED, FlagKind.SOURCE_BINDING)}
-    scripted = _Prompter(["StoreMaster(BUSINESSENTITYID=SalesPersonID)", "Shop", "", ""])
+    # sorted: stg_store (skipped), stg_store_sales_person (bound), stg_work_order_operation
+    # ("Shop" refused by the check, asked again, skipped)
+    scripted = _Prompter(["", "Store(STOREID=BusinessEntityID, BUSINESSENTITYID=SalesPersonID)",
+                          "Shop", ""])
     monkeypatch.setattr("vault_agent.cli._prompter", scripted)
 
     answers = cli._collect_binding_decision(Console(), state)
 
     asked_for = {m.split("'")[1] for m in scripted.asked if m.startswith("Relation for stage")}
     assert asked_for == pending  # every inferred or refused stage, once each
-    stage, binding = parse_bind("stg_store_sales_person=StoreMaster(BUSINESSENTITYID=SalesPersonID)")
+    stage, binding = parse_bind(
+        "stg_store_sales_person=Store(STOREID=BusinessEntityID, BUSINESSENTITYID=SalesPersonID)"
+    )
     assert answers == {stage: binding}  # "Shop" was refused by the check and re-asked, then skipped
     assert any("Shop" in m for m in scripted.asked)  # the refusal was shown at the prompt
 
@@ -287,8 +337,8 @@ _SCHEMA = yaml.safe_dump({"source_schemas": [
     SALES_PERSON.model_dump(by_alias=True, exclude_none=True),
     ROUTING.model_dump(by_alias=True, exclude_none=True),
 ]}, sort_keys=False)
-_PROFILING = yaml.safe_dump({"tables": [{"table": "StoreMaster", "columns": [
-    {"name": "StoreID", "uniqueness_ratio": 1.0, "null_ratio": 0.0, "distinct_count": 701},
+_PROFILING = yaml.safe_dump({"tables": [{"table": "Store", "columns": [
+    {"name": "BusinessEntityID", "uniqueness_ratio": 1.0, "null_ratio": 0.0, "distinct_count": 701},
 ]}]})
 
 
@@ -306,8 +356,16 @@ def _modelled_stub_agents() -> dict[str, object]:
             state.dv_model = _model()
             return state
 
+    class _Rebind(BaseAgent):
+        name = "source_mapper"
+
+        async def run(self, state: VaultAgentState) -> VaultAgentState:
+            rebind_staging(state)  # the mapper's deterministic part, no model call
+            return state
+
     agents["dv2_modeler"] = _Modeler()
     agents["code_generator"] = CodeGeneratorAgent()
+    agents["source_mapper"] = _Rebind()
     return agents
 
 
@@ -322,7 +380,8 @@ def _paused_run(client: TestClient, **start: Any) -> tuple[str, dict[str, Any]]:
     for kind, name, content in (("requirements", "req.md", _REQUIREMENTS),
                                 ("schema", "schema.yml", _SCHEMA),
                                 ("profiling", "prof.yml", _PROFILING)):
-        r = client.post(f"/api/projects/{pid}/files", json={"kind": kind, "name": name, "content": content})
+        r = client.post(f"/api/projects/{pid}/files",
+                        json={"kind": kind, "name": name, "content": content})
         assert r.status_code == 201, r.text
     r = client.post(f"/api/projects/{pid}/runs?wait=true",
                     json={"requirements": "req.md", "schema": "schema.yml", **start})
@@ -340,25 +399,27 @@ def test_the_checkpoint_lists_the_pending_stages_and_a_binding_is_applied_and_re
     pending = {b["stage"]: b for b in cp["bindings"]}
     assert set(pending) >= {"stg_store_sales_person", "stg_work_order_operation"}
     store = pending["stg_store_sales_person"]
-    assert store["reason"] == "rejected" and store["tried"] == "StoreMaster"
-    assert "BUSINESSENTITYID" in store["expected_columns"]
+    assert store["reason"] == "rejected" and store["tried"] == "Store"
+    assert "STOREID" in store["expected_columns"]
     assert pending["stg_work_order_operation"]["reason"] == "none"
 
     r = client.post(f"/api/runs/{run['id']}/checkpoint?wait=true", json={
         "accept": True, "owners": {"customer": "jane@example.com"},
         "bindings": {
-            "stg_store_sales_person": {"relation": "StoreMaster",
-                                       "columns": {"BUSINESSENTITYID": "SalesPersonID"}},
+            "stg_store_sales_person": {"relation": "Store",
+                                       "columns": {"STOREID": "BusinessEntityID",
+                                                   "BUSINESSENTITYID": "SalesPersonID"}},
             "stg_work_order_operation": {"relation": "WorkOrderRouting"},
         },
-        "mappings": {"store": "StoreMaster.StoreID"},
+        "mappings": {"store": "Store.BusinessEntityID"},
     })
     assert r.status_code == 200, r.text
     assert r.json()["status"] == "finished"
     equivalent = r.json()["cli_equivalents"][-1]
-    assert "--bind 'stg_store_sales_person=StoreMaster(BUSINESSENTITYID=SalesPersonID)'" in equivalent
+    assert ("--bind 'stg_store_sales_person=Store(STOREID=BusinessEntityID, "
+            "BUSINESSENTITYID=SalesPersonID)'") in equivalent
     assert "--bind stg_work_order_operation=WorkOrderRouting" in equivalent
-    assert "--map store=StoreMaster.StoreID" in equivalent
+    assert "--map store=Store.BusinessEntityID" in equivalent
     meta = yaml.safe_load((Path(run["out_dir"]) / "metadata" / "automatedv.yml").read_text())
     assert meta["staging"]["stg_store_sales_person"]["source_binding"] == "declared"
     assert meta["staging"]["stg_work_order_operation"]["source_binding"] == "declared"
@@ -369,10 +430,10 @@ def test_a_binding_the_relation_cannot_carry_is_refused_with_400_before_anything
 ) -> None:
     _pid, run = _paused_run(client)
     r = client.post(f"/api/runs/{run['id']}/checkpoint", json={
-        "accept": True, "bindings": {"stg_store_sales_person": {"relation": "StoreMaster"}},
+        "accept": True, "bindings": {"stg_store_sales_person": {"relation": "Store"}},
     })
     assert r.status_code == 400, r.text
-    assert "BUSINESSENTITYID" in r.json()["detail"] and "StoreMaster" in r.json()["detail"]
+    assert "STOREID" in r.json()["detail"] and "Store" in r.json()["detail"]
     assert client.get(f"/api/runs/{run['id']}").json()["status"] == "paused"
 
 

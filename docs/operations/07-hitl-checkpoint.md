@@ -87,6 +87,7 @@ vault-agent resume --owner "customer=Jane Doe <jane@bank.example>" \
 | `--owner "asset=Name <email>"` | yes | Assigns the contract owner; prunes exactly that asset's owner flag |
 | `--map "concept=TABLE.COLUMN"` | yes | Ratifies/overrides one mapping |
 | `--mappings <file>` | no | Ratifies an edited `mappings.review.yml` wholesale |
+| `--bind "STAGE=RELATION"` / `--bind "STAGE=RELATION(STAGE_COLUMN=column, …)"` | yes | Binds a staging model no rule could (`source_binding` or `binding_rejected` in the review queue) to a declared relation, with aliases where the relation carries a key under another name — what a hand-made view said until WP82. Checked before anything resumes: the relation must carry every column the stage hashes after the aliases, else the flag is refused with the columns named. The binding and its aliases travel to the next increment with the catalogue |
 | `--link "Table.Column"` | yes | Builds one link proposed from a declared foreign key (WP34); for a key license (WP40) allows the repair it licenses |
 | `--no-link "Table.Column"` | yes | Declines one proposed link; wins over `--link` for the same one |
 | `--link "Table.*"` / `--no-link "Table.*"` | yes | Ratifies or declines the **relationship-table** link proposed for a whole table (WP37) — one decision per table, not per key |

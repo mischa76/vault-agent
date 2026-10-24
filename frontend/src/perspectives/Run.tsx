@@ -61,7 +61,7 @@ export function RunPerspective({ run, events, nodes, onReview, onCancel, onConti
           <KV rows={[
             ["Id", <code key="id" className="font-mono text-xs">{run.id}</code>],
             ["Thread", <code key="t" className="font-mono text-xs">{run.thread_id ?? "–"}</code>],
-            ["Inputs", <span key="i" className="flex flex-wrap gap-1"><Pill>{run.requirements ?? "–"}</Pill>{run.schema ? <Pill>{run.schema}</Pill> : <Pill tone="warn">ungrounded</Pill>}{run.existing_run ? <Pill tone="info">extends {run.existing_run}</Pill> : null}</span>],
+            ["Inputs", <span key="i" className="flex flex-wrap gap-1"><Pill>{run.requirements ?? "–"}</Pill>{run.schema ? <Pill>{run.schema}</Pill> : <Pill tone="warn">ungrounded</Pill>}{run.existing_run ? <Pill tone="info">extends {run.existing_run}</Pill> : null}{run.profiling ? <Pill>{run.profiling}</Pill> : null}{run.target_platform && run.target_platform !== "postgres" ? <Pill tone="info">{run.target_platform}</Pill> : null}</span>],
             ["Started", run.started ?? "–"], ["Finished", run.finished ?? "–"],
             ["Output", <code key="o" className="font-mono text-xs break-all">{run.out_dir}</code>],
           ]} />

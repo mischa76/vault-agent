@@ -538,7 +538,7 @@ def rebind_staging(state: VaultAgentState) -> None:
     hub key resolved (so an ungrounded/unmapped run stays byte-identical). Reused by the
     source_mapper (initial pass) and by the HITL resume (after a human edits a binding)."""
     overrides = source_overrides(state)
-    if not overrides:
+    if not overrides and not state.ratified_bindings:
         return
     from vault_agent.agents.staging_generator import build_staging
 
@@ -555,6 +555,8 @@ def rebind_staging(state: VaultAgentState) -> None:
         carried=state.carried_schemas,  # WP74
         carried_bindings=state.carried_bindings,  # WP77
         business_vault=state.business_vault,  # WP91
+        ratified_bindings=state.ratified_bindings,  # WP82: a human's decision, applied last
+        carried_aliases=state.carried_aliases,  # WP82
     )
     # Apply the FULL result (WP9.1 F2) — mirror code_generator so metadata and scaffolding
     # don't keep the pre-rebind bindings. models + scaffolding + the staging metadata block.
