@@ -63,3 +63,50 @@ describe("Review at the resolution checkpoint", () => {
     expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ accept: true, links: { "Account.CustomerID": false }, owners: {} }));
   });
 });
+
+// WP82: bindings at sign-off — a relation and its column aliases for every stage no rule could bind,
+// and the `--map` field on an unresolved mapping; both reach the decision the API takes.
+const withBindings: Checkpoint = {
+  ...checkpoint,
+  items: [
+    ...checkpoint.items,
+    { kind: "mapping_unresolved", summary: "concept 'partner number' could not be resolved", detail: "", source: "source_mapper", group: "general", asset: "partner number", role: "decision" },
+  ],
+  bindings: [
+    { stage: "stg_store_sales_person", reads: "raw_store_sales_person", reason: "rejected", tried: "StoreMaster", expected_columns: ["STOREID", "BUSINESSENTITYID"], role: "decision" },
+    { stage: "stg_work_order_operation", reads: "raw_work_order_operation", reason: "none", tried: null, expected_columns: ["WORKORDERID", "OPERATIONSEQUENCE"], role: "disclosure" },
+  ],
+};
+
+describe("Review — bindings at sign-off (WP82)", () => {
+  it("offers a relation and an aliases field per pending stage and sends them as bindings", () => {
+    const onDecide = vi.fn();
+    render(<ReviewPerspective run={run} checkpoint={withBindings} onDecide={onDecide} busy={false} error={null} />);
+    expect(screen.getByText("raw_store_sales_person")).toBeInTheDocument();
+    expect(screen.getByText(/StoreMaster/)).toBeInTheDocument(); // what the rule tried, and was refused
+    fireEvent.change(screen.getByLabelText("relation for stg_store_sales_person"), { target: { value: "StoreMaster" } });
+    fireEvent.change(screen.getByLabelText("column aliases for stg_store_sales_person"), { target: { value: "BUSINESSENTITYID=SalesPersonID, STOREID = StoreID" } });
+    fireEvent.change(screen.getByLabelText("relation for stg_work_order_operation"), { target: { value: "WorkOrderRouting" } });
+    fireEvent.change(screen.getByLabelText("source for partner number"), { target: { value: "VICTOR_PARTNER.PARTN_NR" } });
+    fireEvent.change(screen.getByLabelText("owner for customer"), { target: { value: "jane@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Accept and continue" }));
+    expect(onDecide).toHaveBeenCalledTimes(1);
+    const decision = onDecide.mock.calls[0]![0];
+    expect(decision.bindings).toEqual({
+      stg_store_sales_person: { relation: "StoreMaster", columns: { BUSINESSENTITYID: "SalesPersonID", STOREID: "StoreID" } },
+      stg_work_order_operation: { relation: "WorkOrderRouting", columns: {} },
+    });
+    expect(decision.mappings).toEqual({ "partner number": "VICTOR_PARTNER.PARTN_NR" });
+  });
+  it("sends no bindings when the fields stay empty, and says at the field when an alias is malformed", () => {
+    const onDecide = vi.fn();
+    render(<ReviewPerspective run={run} checkpoint={withBindings} onDecide={onDecide} busy={false} error={null} />);
+    fireEvent.change(screen.getByLabelText("column aliases for stg_store_sales_person"), { target: { value: "BUSINESSENTITYID" } });
+    expect(screen.getByText("STAGE_COLUMN=column, separated by commas")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("column aliases for stg_store_sales_person"), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText("owner for customer"), { target: { value: "jane@example.com" } });
+    fireEvent.click(screen.getByRole("button", { name: "Accept and continue" }));
+    expect(onDecide.mock.calls[0]![0].bindings).toEqual({});
+    expect(onDecide.mock.calls[0]![0].mappings).toEqual({});
+  });
+});
