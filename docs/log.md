@@ -10604,3 +10604,21 @@ chat-shaped text inside „…" over `docs/`, README, CHANGELOG and `demo/` find
 several of these files, stays green (below). **Nur angenommen.** That no owner wording survives in a form the scan
 cannot see (an English sentence of his quoted as a term) — a reader who finds one may replace it the same way.
 **Bewusst nicht getan.** The history; the private wiki, which keeps its chronicle as written.
+
+## [2026-10-24] Development moves to a container on the home server: the suite in 14 s, the whole vault built in 29 s
+
+**Autor:** Claude Code
+
+The owner decided to develop on his Proxmox host instead of the Windows workstation's WSL (8 vCPU, 7 GB; the
+repository on an NTFS mount). A Debian 13 LXC `vault-dev` (8 cores, 16 GB, PostgreSQL 16 from PGDG, Node 22,
+uv-managed Python 3.12) now holds a clone of this repository, the AdventureWorks source schemas and the owner's
+vault `aw`, transferred with `pg_dump` and compared table by table: 248 tables, 3 203 702 rows, identical.
+**Measured there against the workstation:** `uv run pytest` 13.95 s (1310 passed, 5 skipped — the skips are the
+keyless-only cases) against 56–90 s; `vitest run` 4.6 s for 26 tests against 457 s with one worker-start timeout;
+`dbt build` of the regenerated owner vault (`rebuild-20261023`, 407 nodes) 29 s per build against ~99 s, second
+build 180 of 180 incremental models `INSERT 0 0`. One collection defect on the way: `fastapi` lives in the `ui`
+extra, which the first `uv sync` left out — seven workbench test modules failed to import; `--extra ui` fixes it
+(the setup script in the server repository now syncs `dev`, `demo` and `ui`). Nothing in this repository changes;
+builds and measurements from here on may come from either machine and say which. **Überprüft.** Row counts by a
+`query_to_xml` count over every table on both sides; the timings from `time` and dbt's log. **Nur angenommen.**
+Nothing. **Bewusst nicht getan.** The Cowork checkout stays on the workstation; no Docker in the container.
