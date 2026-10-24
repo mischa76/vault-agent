@@ -10655,3 +10655,24 @@ per-vendor queries, with verification tiers A/B/C and SAP's ABAP Dictionary as i
 selectable list of checks with consent and sampling; key inference as a ratified class of its own; requirements from
 the catalogue under C1's ADR). Index row updated. **Überprüft.** The appended text against the conversation's
 conclusions of 2026-10-24. **Bewusst nicht getan.** No spec, no code, no ADR — a candidate needs the owner's go.
+
+## [2026-10-24] Read-back: Dependabot's own jobs confirmed the upgrades within two minutes; the alerts stayed open for at least 204 minutes
+
+**Autor:** Claude Code
+
+Follow-up to today's Dependabot entry, which assumed the alerts would close on the next graph update. **What
+happened on `abff3cd`** (pushed 05:31 Z): Dependabot's `Graph Update: uv` ran at 05:31 Z and the SBOM and the
+graph compare `4c1964d…abff3cd` show pypdf 6.21.2, certifi 2026.10.23, dompurify 3.4.17, undici 8.12.3; its
+security-update jobs for certifi, pypdf and dompurify ran at 05:33 Z, logged „No longer vulnerable certifi
+2026.10.23" and closed their own pull requests **#35–#37** (opened by Dependabot on 2026-10-23 at 18:41 Z, targets
+3.4.17 / 6.21.1 / 2026.10.19, all at or below what the lock now carries) as `up_to_date`. **The alerts #44–#55
+were still open at 06:57 Z, 07:56 Z and 08:55 Z**, 204 minutes after the push, with no incident on GitHub's status
+page, although every view GitHub has of the repository already carries the new versions — the SBOM, the graph
+compare, and the parsed manifests themselves (GraphQL `dependencyGraphManifests`: `uv.lock` certifi `= 2026.10.23`,
+pypdf `= 6.21.2`; `frontend/package-lock.json` dompurify `= 3.4.17`); the five advisories published after
+18:40 Z yesterday had not yet appeared as alerts either. On 2026-09-12 the thrift
+alerts closed with the graph update itself; the alert state is evidently a separate, slower pass this time.
+**Überprüft.** The job logs via `gh run view --log`, the alerts and PRs via the API, the status page's components
+and unresolved incidents. **Nur angenommen.** That the alerts close without further action — a later entry says
+whether they did. **Bewusst nicht getan.** No re-push to provoke another graph update; no manual dismissal of
+alerts whose dependency is already fixed, which would misstate the reason.
