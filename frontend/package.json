@@ -12,7 +12,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "mermaid": "^11",
+    "mermaid": "^12",
     "react": "^19",
     "react-dom": "^19"
   },
