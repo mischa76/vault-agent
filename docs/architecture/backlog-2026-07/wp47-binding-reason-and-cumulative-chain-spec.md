@@ -6,8 +6,7 @@ updated: 2026-10-05
 
 # WP47 — A typed reason on every inferred binding, and a chain variant that sees the whole catalogue
 
-Status: **Approved and in progress** (2026-10-05, user: „alright, so machen wir es: typisierte
-Begründung gefolgt von Option 2 als Eval-Variante und Vergleich") · Owner: Mischa Eismann ·
+Status: **Approved and in progress** (2026-10-05, the owner's go: a typed reason first, then option 2 as an eval variant and comparison) · Owner: Mischa Eismann ·
 Author: Claude. Touches `bind_sources` (WP7), `link_source_overrides` (WP34 §3.5, WP42), the WP43
 role table, the eval's chain runner (WP30 §2.7) and its metrics. No prompt change; no model
 call; the existing chain case is untouched.

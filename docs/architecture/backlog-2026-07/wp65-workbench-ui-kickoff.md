@@ -6,8 +6,7 @@ updated: 2026-10-11
 
 # WP65 — Workbench UI: kick-off, perspectives, API and phases
 
-Status: **Proposed** (2026-10-11, user: „ich möchte gerne eine GUI-Komponente für vault-agent
-bauen die vom design her ein mix von claude desktop und proxmox environment ist …“) · Owner:
+Status: **Proposed** (2026-10-11, the owner wanted a GUI component for vault-agent whose design mixes Claude Desktop and the Proxmox environment) · Owner:
 Mischa Eismann · Author: Claude. Depends on ADR-0014 (proposed) and on the owner's three
 decisions in §6. Nothing here is built.
 

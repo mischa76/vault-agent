@@ -6,8 +6,7 @@ updated: 2026-09-16
 
 # WP42 — A link's relation, resolved by more than its name
 
-Status: **Approved and in progress** (2026-09-16, user: „fahre fort mit dem topic 'Links nicht nur
-über den Namen an ihre Relation binden'", then the owner's go) · Owner: Mischa Eismann · Author: Claude.
+Status: **Approved and in progress** (2026-09-16, the owner's go to continue with the topic of binding links to their relation by more than the name, then the owner's go) · Owner: Mischa Eismann · Author: Claude.
 Depends on WP34 (proposer, `construct_binds_to_source_table`), WP36/ADR-0013 (translation), WP40/WP41
 (key licenses, pairing per relation and hub), and `E_LINK_KEY_WRONG_COLUMN` of 2026-09-15.
 

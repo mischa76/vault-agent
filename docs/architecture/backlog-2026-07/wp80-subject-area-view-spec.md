@@ -6,8 +6,7 @@ updated: 2026-10-18
 
 # WP80 — The Model perspective shows the vault by subject area: one diagram per source schema, with the neighbouring hubs it reaches into, derived from what each construct reads
 
-Status: **Approved and in progress** (2026-10-18, user: „ok, bau die Fachgebiets-Sicht in der
-Workbench als WP80“) · Owner: Mischa Eismann · Author: Claude. From the DBeaver session of
+Status: **Approved and in progress** (2026-10-18, the owner's go to build the subject-area view in the workbench as WP80) · Owner: Mischa Eismann · Author: Claude. From the DBeaver session of
 2026-10-18 on the twenty-first chain's PostgreSQL build: one ER diagram of 340 relations is
 unreadable, and the readable cut turned out to be the five AdventureWorks schemas — the owner's
 observation „vermutlich muss man diagramme nach subject areas aufgliedern“. The workbench

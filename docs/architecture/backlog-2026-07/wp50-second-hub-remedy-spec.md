@@ -6,8 +6,7 @@ updated: 2026-10-06
 
 # WP50 — A remedy with memory against the second hub of one person
 
-Status: **Approved and in progress** (2026-10-06, user: „ok, bau Variante 2, die Remedy gegen den
-zweiten Hub") · Owner: Mischa Eismann · Author: Claude. Touches `E_LINK_KEY_WRONG_COLUMN`
+Status: **Approved and in progress** (2026-10-06, the owner's go for variant 2, the remedy against the second hub) · Owner: Mischa Eismann · Author: Claude. Touches `E_LINK_KEY_WRONG_COLUMN`
 (2026-09-15), the repair memory (WP44, WP49), the modeler's `drop_retired`; relies on WP38's
 subtype feeds and WP39's two-hop translation for the shape it points the modeler to. No prompt
 change; no model call.

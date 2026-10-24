@@ -6,8 +6,7 @@ updated: 2026-10-22
 
 # WP83 — Zero keys for nullable link participants: a link keeps the row whose participant is missing, and its satellites stop orphaning (C12, phase 1)
 
-Status: **Approved and in progress** (2026-10-22, owner: „… danach C16 und C15 und danach soweit wie
-du alleine kommst" — after the priority order I proposed, data defects next and C12 first) · Owner:
+Status: **Approved and in progress** (2026-10-22, the owner's order of work: then C16 and C15, then as far as it goes alone — after the priority order I proposed, data defects next and C12 first) · Owner:
 Mischa Eismann · Author: Claude. Backlog C12 (`backlog-2026-10-candidates-2.md`); found in the owner's
 build of AdventureWorks (`docs/log.md`, 2026-10-22, steps 6 and 8). WP81 was a dropped sketch, WP82 is
 reserved for CLI/workbench parity (C4).

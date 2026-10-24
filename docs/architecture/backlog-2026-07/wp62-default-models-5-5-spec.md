@@ -6,9 +6,7 @@ updated: 2026-10-09
 
 # WP62 — The default models are Sonnet 5.5 and Opus 5.5
 
-Status: **Approved and in progress** (2026-10-09, user: „ich sehe keinen grund wieso wir noch auf
-den alten Modellen bleiben sollten. Es ist schneller, zuverlässiger und unterm Strich sogar noch
-günstiger“) · Owner: Mischa Eismann · Author: Claude. Configuration defaults, the review record
+Status: **Approved and in progress** (2026-10-09, the owner saw no reason to stay on the old models: the new ones are faster, more reliable and cheaper — unless there was a reason against) · Owner: Mischa Eismann · Author: Claude. Configuration defaults, the review record
 per model generation, documentation. No pipeline logic changes.
 
 ## 1 Basis, measured

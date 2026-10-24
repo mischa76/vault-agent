@@ -6,8 +6,7 @@ updated: 2026-10-09
 
 # WP59 — The model switch as a pre-registered experiment: Sonnet 5.5 / Opus 5.5 against the 4.x record
 
-Status: **Approved and in progress** (2026-10-09, user: „du hast mein go für 1.: das experiment mit
-modellwechsel mit Neumessung im vergleich“) · Owner: Mischa Eismann · Author: Claude. No code
+Status: **Approved and in progress** (2026-10-09, the owner's go for item 1: the model-switch experiment with re-measurement in comparison) · Owner: Mischa Eismann · Author: Claude. No code
 change: the models are configuration (`PRIMARY_MODEL`, `HEAVY_MODEL`), the measurement is the
 chain and the steering ledger's release protocol. Nothing is switched by default until §6 says
 what the switch does.

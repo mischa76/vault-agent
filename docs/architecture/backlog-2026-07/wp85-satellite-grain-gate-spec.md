@@ -6,9 +6,7 @@ updated: 2026-10-22
 
 # WP85 — A satellite whose key does not cover a unique key of its relation is refused (`E_SAT_GRAIN_NOT_UNIQUE`, C13)
 
-Status: **Approved and in progress** (2026-10-22, owner: „wichtig ist, dass die software mit dem change nun
-korrekt arbeitet. eine vergleichbarkeit mit vorherigen tests ist nur in sofern wichtig, dass die software jetzt
-die fehler der vorgängerversionen nicht mehr wiederholt.") · Owner: Mischa Eismann · Author: Claude. Backlog C13.
+Status: **Approved and in progress** (2026-10-22, the owner's word: what matters is that the software now works correctly; comparability with earlier tests matters only in that the software no longer repeats its predecessors' errors) · Owner: Mischa Eismann · Author: Claude. Backlog C13.
 
 ## 1 What is wrong
 

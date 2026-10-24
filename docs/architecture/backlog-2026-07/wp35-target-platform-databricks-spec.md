@@ -6,8 +6,7 @@ updated: 2026-09-11
 
 # WP35 — Databricks as a selectable target platform
 
-Status: **Built, keyless-only** (2026-09-11, Claude) · Requested 2026-09-11 (Mischa: „bau die
-Databricks-Unterstützung ein, erstmal keyless") · Owner: Mischa Eismann
+Status: **Built, keyless-only** (2026-09-11, Claude) · Requested 2026-09-11 (the owner's request: build Databricks support, keyless first) · Owner: Mischa Eismann
 Depends on: WP7 (seed column types from contracts — the only platform-specific output the
 generator has), ADR-0003 (AutomateDV as the backend; its platform list already names
 Databricks). Supersedes nothing. No ADR: the platform decision is ADR-0003's, this WP makes one

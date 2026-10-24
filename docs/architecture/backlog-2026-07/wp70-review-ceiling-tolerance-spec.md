@@ -6,8 +6,7 @@ updated: 2026-10-12
 
 # WP70 — The review ceiling gets a floor: mean plus a tolerance of five decisions
 
-Status: **Approved and in progress** (2026-10-12, user: „go, bau WP70 mit der Toleranz von
-fünf“, after the question what `MIN_REVIEW_SAMPLES` rested on) · Owner: Mischa Eismann · Author:
+Status: **Approved and in progress** (2026-10-12, the owner's go for WP70 with a tolerance of five, after the question what `MIN_REVIEW_SAMPLES` rested on) · Owner: Mischa Eismann · Author:
 Claude. Changes WP53's rule, not its record; WP34 §6's review clause keeps its letter — a chain
 is judged against the chains before it — and gains a floor. No agent, gate or prompt changes.
 

@@ -6,8 +6,7 @@ updated: 2026-10-05
 
 # WP48 — A remedy with memory for `E_SAT_ATTR_OVERLAP`
 
-Status: **Approved and in progress** (2026-10-05, user: „ok, dann bau die Remedy mit Gedächtnis für
-E_SAT_ATTR_OVERLAP") · Owner: Mischa Eismann · Author: Claude. Touches the gate (WP20, ADR-0012),
+Status: **Approved and in progress** (2026-10-05, the owner's go to build the remedy with memory for `E_SAT_ATTR_OVERLAP`) · Owner: Mischa Eismann · Author: Claude. Touches the gate (WP20, ADR-0012),
 the repair memory (WP44, WP46), the modeler's `drop_retired`. No prompt change; no model call.
 
 ## 1 Problem, measured

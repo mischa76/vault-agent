@@ -5618,8 +5618,7 @@ user's.
 
 ## [2026-09-16] WP42 built — a link's relation resolved by more than its name; keyless and replayed, no Postgres build
 
-**What changed** (user: „fahre fort mit dem topic 'Links nicht nur über den Namen an ihre Relation
-binden'", then „ago!"). One helper in `rules/` — `resolve_link_relation` — and three call sites, no
+**What changed** (the owner's go to continue with the topic of binding links to their relation by more than the name, then „ago!"). One helper in `rules/` — `resolve_link_relation` — and three call sites, no
 fourth: the key-license repair (`apply_key_licenses`), `E_LINK_KEY_NOT_IN_SOURCE` and
 `E_LINK_KEY_WRONG_COLUMN`. Two tiers and deliberately no third. **Name:** exactly one declared table
 the link's construct name binds — unchanged, tried first, so every binding that held before holds
@@ -5773,8 +5772,7 @@ this change and needs its own brownfield test first. No edit to the WP42 spec or
 
 **Autor:** Claude Code
 
-**What changed** (user: „überprüfen und korrigieren wir die sache mit dem rebind_staging und dem
-aufruf von build_staging ohne existing="). `rebind_staging` now passes
+**What changed** (the owner asked to check and fix the `rebind_staging` matter and the `build_staging` call without `existing=`). `rebind_staging` now passes
 `existing=state.existing_model` to `build_staging`, as `code_generator` always did. One line; the
 function serves the source mapper and the HITL resume (`orchestrator.apply_human_decision`), so both
 paths are covered. Guard first at `788bfae`, pinning the defect; flipped here. 1050 passed,
@@ -5841,8 +5839,7 @@ alone and is the same on every run.
 
 **Autor:** Claude Code
 
-**What this run measures** (user: „danach machen wir einen kompletten bezahlten lauf inkl brownfield
-dann haben wir ein aussagekräftiges ergebnis mit zahlen"; scope chosen from four offered options).
+**What this run measures** (the owner's plan: a complete paid run including brownfield afterwards, for a meaningful result with numbers; scope chosen from four offered options).
 Three cases on the committed state of this entry's commit, one invocation each:
 
 * `python -m eval.run --dataset adventureworks_incremental --repeat 1` — five steps, four of them
@@ -6050,8 +6047,7 @@ not built, as before.
 
 **Autor:** Claude Code
 
-**Why.** The user, on reading the 2026-09-17 result: „die hohe Zahl an Review-Fällen … man könnte
-schnell zum Schluss kommen, dass man es dann gleich komplett selbst erledigen könnte." The 532
+**Why.** The user, on reading the 2026-09-17 result: the owner found the high number of review cases a negative — one might quickly conclude it is easier to do the whole thing by hand. The 532
 review items of that chain decompose, from the saved per-step `flag_kinds` and
 `validation_codes`, into 187 inferred staging bindings, 159 `W_EXISTING_EXTENDED` inventory
 warnings, 68 placeholder owners, 42 translations and 76 others. Three classes make 78 %, and none
@@ -6281,8 +6277,7 @@ datavault4dbt still has its Fabric adapter at HEAD (read on 2026-09-22, not re-c
 
 **Autor:** Claude Code
 
-Follow-up to today's „Finding — the README deviations of 2026-09-22 re-checked"; the user: „setz
-die beiden README-Formulierungen so um". **Changed, README only:** (1) „Ten specialized agents"
+Follow-up to today's „Finding — the README deviations of 2026-09-22 re-checked"; the the owner asked for the two README wordings to be changed as proposed. **Changed, README only:** (1) „Ten specialized agents"
 → 13 graph nodes, six model-calling agents and seven deterministic stages, with the three missing
 rows (Entity Resolver, Link Proposer, Resolution Checkpoint) and `graph.py` named as the owner of
 the list; (2) the targets banner and the warehouse bullet now say strategic targets Snowflake and
@@ -6296,9 +6291,7 @@ because it says strategic.
 
 **Autor:** Claude Code
 
-The user, after the Fabric question: „jetzt machen wir eines nach dem anderen, zuerst schauen wir
-mal dass wir es mit AutomateDV sauber zum laufen kriegen, dann können wir uns immer noch überlegen
-datavault4dbt einzubinden". Recorded so it is not re-opened by accident: ADR-0003 stands; no spike,
+The user, after the Fabric question: the owner's decision: one thing at a time — AutomateDV runs clean first, datavault4dbt can be considered afterwards. Recorded so it is not re-opened by accident: ADR-0003 stands; no spike,
 no second backend, no Fabric dialect until the AutomateDV line is clean end to end. „Clean" today
 means the open items in CLAUDE.md — the first green sales step (WP44/WP45, unmeasured live),
 `link_store_sales_representative`, scale above ~30 tables. The datavault4dbt comparison of
@@ -6723,8 +6716,7 @@ measurement.
 
 **Autor:** Claude Code
 
-The user: „alright, so machen wir es: typisierte Begründung gefolgt von Option 2 als Eval-Variante
-und Vergleich". WP47 is built (`ec30d9a` guards first, failing; `f73817f` the change; spec
+The the owner's go: a typed reason first, then option 2 as an eval variant and comparison. WP47 is built (`ec30d9a` guards first, failing; `f73817f` the change; spec
 `c6a51da`). One repeat of `adventureworks_incremental_cumulative` at this commit — the 2026-10-05
 chain's steps with the catalogue of steps 1 … N−1 handed to step N — against that chain
 (`20261004T140130528908Z`: 353 items, 135 decisions, 218 disclosures, `source_binding` 154, 22
@@ -6822,8 +6814,7 @@ typed split is a design decision for the owner, like the remedy for `E_SAT_ATTR_
 satellites of `hub_employee`, both from `Employee`) went unrepaired for three attempts — the
 diagnosis carried no typed remedy — and, accepted unattended, was inherited by every later
 step, which the additivity rule forbade to change: four red steps, no mapper in any of them.
-The user, after the explanation of what an inherited error is: „ok, dann bau die Remedy mit
-Gedächtnis für E_SAT_ATTR_OVERLAP". Spec `wp48-attribute-overlap-remedy-spec.md` (`ca5c826`).
+The user, after the explanation of what an inherited error is: the owner's go to build the remedy with memory for `E_SAT_ATTR_OVERLAP`. Spec `wp48-attribute-overlap-remedy-spec.md` (`ca5c826`).
 
 **What changed** (`7552935` guards first, failing; `d792d46` the change; this commit the mypy
 renames and docs). `rules.satellite_attribute_remedy`: an inherited pair retires nothing and
@@ -7055,8 +7046,7 @@ loop could not finish within three attempts, each time a different one.
 **Why.** The fourth chain's step 5 (today's entry above): `hub_sales_person` on `SalesPerson` beside
 `hub_employee`, `link_store_sales_person` hashing it from the wrong column, the ratified key for
 `Store.SalesPersonID` targeting `hub_employee` and repairing nothing on the new hub; three
-attempts red. The user chose variant 2 of the two deterministic answers: „ok, bau Variante 2, die
-Remedy gegen den zweiten Hub". Spec `wp50-second-hub-remedy-spec.md` (`3154826`).
+attempts red. The user chose variant 2 of the two deterministic answers: the owner's go for variant 2, the remedy against the second hub. Spec `wp50-second-hub-remedy-spec.md` (`3154826`).
 
 **What changed** (`09685c7` guards first, failing; `0d5e0b9` the change; this commit the docs).
 `rules.second_hub_remedy(hub, model, ratified_target, key_table)`: the hub is the second hub of
@@ -7214,8 +7204,7 @@ self-relationship); retirements still live within one step's run.
 **Autor:** Claude Code
 
 The user, on the quick wins offered after WP51 asked for all three, and on the third:
-„wenn es keinen Fehler für das generierte Model erzeugt, aber eine Entscheidung benötigt um zu
-vermeiden dass etwas verlorengeht dann ist es kein Fehler sondern eine Entscheidung“. Spec
+the owner's rule: what produces no error in the generated model but needs a decision to avoid losing something is not an error but a decision. Spec
 `29dac22`, guards red `063b96e` (four of five), change `ed3f4df`, docs in the commit carrying this
 entry. Spec: `docs/architecture/backlog-2026-07/wp52-three-quick-wins-spec.md`.
 
@@ -7244,8 +7233,7 @@ path stay open.
 
 **Autor:** Claude Code
 
-The user, leaving: „kannst du dann bitte nach dem Umbau gleich noch einen live run über die
-gesamten Kette machen?“. One repeat of `adventureworks_incremental` at the commit carrying this
+The user, leaving: the owner asked for a live run over the whole chain right after the rebuild. One repeat of `adventureworks_incremental` at the commit carrying this
 entry — the first live run since WP51 (`d7bb1d1`) and WP52 (`ed3f4df`). Against the fifth chain
 (`20261006T032619166848Z`: all five steps green, WP34 §6 not met on the invention clause with 3
 zero-satellite hubs, 139 decisions, 6.79 USD).
@@ -7320,8 +7308,7 @@ chains since 2026-10-04: red / green / red / red / green / **green**.
 
 **Autor:** Claude Code
 
-The user, on the sixth chain's failed review clause: „ok, stell die Review-Decke auf eine
-Verteilung um“. Spec `1a6dba0`, guards red `a8fd638`, change `40b18ab`, docs in the commit
+The user, on the sixth chain's failed review clause: the owner's go to turn the review ceiling into a distribution. Spec `1a6dba0`, guards red `a8fd638`, change `40b18ab`, docs in the commit
 carrying this entry. Spec: `docs/architecture/backlog-2026-07/wp53-review-ceiling-distribution-spec.md`;
 WP34 spec §14 points to it.
 
@@ -7378,8 +7365,7 @@ report. Cost ≈ 6.5 USD, ≈ 45 min.
 The seventh chain (`20261007T001520705532Z`) ended in step 5 with `BATCH INCOMPLETE … (ReadError: )`
 after the requirements parser's answer (trace: last event 00:49:47, no `llm_error` for the
 failure — it escaped the client untraced). Steps 1–4 were persisted; the chain was resumed with
-`--resume-chain` (only step 5 paid again). The user: „ja, bau den ReadError-Retry gleich noch
-ein“.
+`--resume-chain` (only step 5 paid again). The the owner's go to add the ReadError retry right away.
 
 **Cause, verified on the installed SDK (anthropic 0.107.0).** `_base_client` wraps transport errors
 into `APIConnectionError` around the initial request only; `_streaming.py` iterates the body with
@@ -7718,8 +7704,7 @@ grounding then warns). Proposed for the owner; not built.
 
 **Autor:** Claude Code
 
-The user, after the ninth chain's finding was explained: „Dann bauen wir doch zunächst die
-Relationsableitung und lassen im Anschluss die zehnte Kette laufen“. Spec `c9b9e77`, guards red
+The user, after the ninth chain's finding was explained: the owner's decision: build the relation inference first, then run the tenth chain. Spec `c9b9e77`, guards red
 `b4a40b4`, change `58f4fad`, docs in the commit carrying this entry. Spec:
 `docs/architecture/backlog-2026-07/wp56-satellite-relation-inference-spec.md`.
 
@@ -7828,8 +7813,7 @@ getan.** Neither proposal built; no repeat; the tenth chain enters the record as
 
 **Autor:** Claude Code
 
-The user, on the tenth chain's two findings: „super, machen wir 1,2 und lassen die 11. kette
-drüber rattern“. Specs `1aee040`, guards red `5b64d32`, change `64b2143`, docs in the commit
+The user, on the tenth chain's two findings: the owner's go for items 1 and 2, then the eleventh chain. Specs `1aee040`, guards red `5b64d32`, change `64b2143`, docs in the commit
 carrying this entry. Specs: `wp57-repair-not-redraft-spec.md`, `wp58-colon-role-notation-spec.md`.
 
 **WP57.** The retry payload carried requirements, business keys, `previous_validation_issues`
@@ -7956,8 +7940,7 @@ twelfth), which is the clause working, not the guard failing.
 
 **Autor:** Claude Code
 
-The user: „in CLAUDE.md erlauben wir neu 250; ich glaube dass sonst essentielles wissen verloren
-geht wenn wir jetzt anfangen zu streichen und 50 mehr machen den kohl auch nicht mehr fett“. The
+The the owner raised the budget to 250: cutting would lose essential knowledge, and 50 more lines cost little. The
 file had been condensed back to 200 four times in three days (2026-10-06 → 2026-10-09), each time
 by compressing the chain paragraph. Budget raised to 250 in `CLAUDE.md` and the project-docs
 skill; the eviction rule stands at the new limit. **Überprüft:** the two files; no lint carries
@@ -8088,8 +8071,7 @@ not run.
 
 **Autor:** Claude Code
 
-The user, on the matrix's candidate-delete: „ich denke die steuerzeile mal vorübergehend noch
-drin zu lassen schadet zumindest nicht und macht es vermutlich auch nicht viel teuerer oder?“
+The user, on the matrix's candidate-delete: the owner preferred to keep the steering line for now — it does no harm and costs little
 Cost of the line, from the trace: it lives in the modeler's system prompt only — 9 of the twelfth
 chain's 114 calls — about 40 tokens, read from the prompt cache at 0.20 USD per million on Opus
 5.5: under 0.001 USD per chain. Verdict recorded in the ledger as **keep (owner's decision)** on
@@ -8101,9 +8083,7 @@ nicht getan:** no deletion; the row keeps the ablation numbers so the decision c
 
 **Autor:** Claude Code
 
-The user, after WP59: „ich sehe keinen grund wieso wir noch auf den alten Modellen bleiben
-sollten. Es ist schneller, zuverlässiger und unterm Strich sogar noch günstiger wenn wir auf die
-neueren Modelle umsteigen, oder siehst du einen Grund?“ — no reason against, two things to carry:
+The user, after WP59: the owner saw no reason to stay on the old models: the new ones are faster, more reliable and cheaper — unless there was a reason against — no reason against, two things to carry:
 one chain is a shape (the thirteenth measures WP61 and starts the 5.5 record), and the review
 record is per model generation. Spec `c054c7e`, guards red `f5b87ac`, change in the commit carrying
 this entry. **Changed:** `Settings` defaults `claude-sonnet-5-5` / `claude-opus-5-5` /
@@ -8258,8 +8238,7 @@ this corpus's, not the rule's).
 
 **Autor:** Claude Code
 
-The user: „ich sehe auf github 1 offenen pull request und 3 security issues, hast du dir die schon
-mal angesehen?“ Read today via `gh`: PR #34 (Dependabot, `langgraph-sdk` 0.4.2 → 0.4.4, CI green)
+The the owner noticed one open pull request and three security issues on GitHub and asked whether they had been looked at Read today via `gh`: PR #34 (Dependabot, `langgraph-sdk` 0.4.2 → 0.4.4, CI green)
 and three open alerts. **#42 (high)** `langgraph-sdk` ≤ 0.4.3, „custom auth silently ignores
 `actions=` on resource decorators“ — a LangGraph Platform server feature this project never uses
 (`langgraph-sdk` is `langgraph`'s transitive dependency); taken anyway: `uv lock --upgrade-package
@@ -8318,8 +8297,7 @@ hold; WP61 repairs reported.** **P5 — cost ≤ 5 USD, wall ≤ 30 min; WP57 ca
 
 **Autor:** Claude Code
 
-The user, on where the non-product artefacts live: „ja, sichere eval/results nach tank und
-ergänze den Skill“. `eval/results/` (695 files, 135 MB: every chain's result, step files,
+The user, on where the non-product artefacts live: the owner's go to back up `eval/results` to tank and extend the skill. `eval/results/` (695 files, 135 MB: every chain's result, step files,
 `review.json` siblings, transcripts, the ablation comparisons) is git-ignored and existed only on
 ZEUS while every measurement entry here cites it by stamp. Mirrored with `rsync -a` to
 `tank:/tank/git/vault-agent-eval-results/` — the SSH identity on tank is the `git` user, which may
@@ -8659,8 +8637,7 @@ t-bound describe a spread at all (df 2, t 2.92). It held on the 4.x record, whos
 16–22 decisions above a mean of about 140 and settled after the sixth chain. **What changed:**
 the 5.5 record — 84, 83, 83, 83, sd 0.5 — gave a bound of 84.6, one decision above the mean: not
 a prediction but a demand that the next chain equal the last four; a fifth at 86 would have
-failed and then lifted the bound to 86.8. The owner's decision: „go, bau WP70 mit der Toleranz
-von fünf“. Guards `32111a1`, the change and docs in the commit carrying this entry.
+failed and then lifted the bound to 86.8. The owner's decision: the owner's go for WP70 with a tolerance of five. Guards `32111a1`, the change and docs in the commit carrying this entry.
 
 **The rule now.** `review_ceiling = max(t-bound, mean + REVIEW_TOLERANCE)`, tolerance 5 — about
 6 % of the 5.5 mean, under the 12–15 % the 4.x bound carried, so a rise like the sixth chain's
@@ -8813,8 +8790,7 @@ resolutions.
 
 **Autor:** Claude Code
 
-The user: „für databricks wurde der Grundstein ja bereits gelegt, wie wäre es wenn man hier mal
-die volle Kette als Beweis dazu nimmt?“ — stage 1 of three; the user created a Free Edition
+The the owner proposed to take the full chain as the proof on Databricks, since the groundwork was laid — stage 1 of three; the user created a Free Edition
 workspace the same day and put host, HTTP path and token into `.env`. Guards `47e9192`, the twin
 `05405ba`, docs here. **What exists now:** `demo/bank_databricks/` — the Postgres bank demo's
 twin: the same model (imported, regenerated with `target_platform="databricks"`), the same
@@ -9088,8 +9064,7 @@ Databricks mailed three Unity Catalog warnings during WP72 stage 3 (2026-10-16, 
 21:21 CEST): 100 % of the 100-tables-per-schema quota on `vault_aw`, then 80 % and 85 % of the
 500-per-metastore quota. Counted today: 425 objects, views included — 342 of them the build
 artefacts of stages 2 and 3 (`vault_person` 48, `vault_aw` 276, `vault_aw2` 18), the rest the 68
-source tables in five schemas, the bank demo's 15 objects and the volume. The user: „ok, lösch
-die drei Vault-Schemas". Dropped with `DROP SCHEMA … CASCADE`; 83 objects remain (default 15,
+source tables in five schemas, the bank demo's 15 objects and the volume. The the owner's go to drop the three vault schemas. Dropped with `DROP SCHEMA … CASCADE`; 83 objects remain (default 15,
 person 13, humanresources 6, production 25, purchasing 5, sales 19), the source data and the
 bank demo untouched. The dropped vaults are reproducible from the five step projects kept out
 of the repo and are recorded in the WP72 entries. Chapter 9.6 carries both quotas since
@@ -9576,8 +9551,7 @@ listable — `SHOW SCHEMAS DROPPED` is unsupported — so their retention is rea
 
 **Autor:** Claude Code
 
-The user: „könnten wir dann den jetzigen Stand kopieren und den Build daraus auf Postgres laufen
-lassen?“ — the platform-neutral proof offered on 2026-10-17, now that Databricks' quota window is
+The the owner asked whether the current state could be copied and built on Postgres — the platform-neutral proof offered on 2026-10-17, now that Databricks' quota window is
 spent. **The data:** the 68 AdventureWorks tables loaded from the CSVs into the local PostgreSQL 16
 (`vault` database) as `"Person"`, `"HumanResources"`, `"Production"`, `"Purchasing"`, `"Sales"` —
 the schema names the generated `sources.yml` declares, quoted as dbt-postgres quotes them — with
@@ -9948,8 +9922,7 @@ rows, not `count(*)`). **Nur angenommen.** That the quota satellite is non-idemp
 
 **Autor:** Claude Code
 
-The owner: „kannst du mal im lokalen repo unter handover die reifegradanalyse durchsehen und relevante punkte
-in den backlog aufnehmen bevor wir die priorisierung machen". Read `docs/handover/261022_vault-agent_Reifegradanalyse.pdf`
+The the owner asked to go through the maturity analysis under `handover` and take relevant points into the backlog before prioritising. Read `docs/handover/261022_vault-agent_Reifegradanalyse.pdf`
 (five pages, judged on `d18b8d7`: TRL 6, pilot-ready in code, architecture, functions and docs, below in
 security 3.5, result quality 3, operations 2.5, market 2). New record `docs/architecture/backlog-2026-10-candidates-2.md`
 (part 1 is append-only): C8–C13 gathered from this week's log entries, C14–C21 from the analysis — repo
@@ -10172,9 +10145,7 @@ unchanged (they show the build as it was, findings included).
 
 **Autor:** Claude Code
 
-On the owner's word: „wichtig ist, dass die software mit dem change nun korrekt arbeitet. eine vergleichbarkeit mit
-vorherigen tests ist nur in sofern wichtig, dass die software jetzt die fehler der vorgängerversionen nicht mehr
-wiederholt." Spec and guards `932a51e` (red), feature `23cd439`, extract fix `ef5e380` (guard `ca2c743`).
+On the owner's word: the owner's word: what matters is that the software now works correctly; comparability with earlier tests matters only in that the software no longer repeats its predecessors' errors Spec and guards `932a51e` (red), feature `23cd439`, extract fix `ef5e380` (guard `ca2c743`).
 **A correction of mine first:** I had told the owner that re-deriving the datasets changes what the modeler sees.
 It does not — the schema section renders table and column names only (`grounding.render_schema_prompt_section`),
 the mapper types and comments; keys reach no prompt.
@@ -10214,9 +10185,7 @@ bill-of-materials satellite keeps the 195 duplicates; applying the remedy there 
 
 **Autor:** Claude Code
 
-The owner: „durchkämme mal noch die README.md … nach widersprüchlichen / falschen aussagen … im unterkapitel
-Quickstart die plattformspezifischen abschnitte durch abschnittsüberschriften besser erkenntlich machen. der
-index unter dem link backlog-2026-07 … führt ins leere". **Found and corrected in README:** the architecture
+The the owner asked to comb the README for contradictory or false statements, to make the platform-specific quick-start sections recognisable by headings, and noted that the backlog-2026-07 link led nowhere. **Found and corrected in README:** the architecture
 diagram still said „Databricks (keyless)" and listed nine of thirteen nodes (now all, plus CLI/workbench); the
 Databricks paragraph said „Keyless-only so far … what the first live build must check" (built since WP72); the
 roadmap named `nh_link`, a macro AutomateDV does not have (`t_link`, CLAUDE.md's first invariant) and listed the
@@ -10575,8 +10544,8 @@ selection; `aw` not rebuilt with PITs; nothing pushed.
 
 The owner asked whether 0.11.0 does the software's state justice; my answer: yes as a minor, and the CHANGELOG's own
 1.0 rule („the first live Databricks build", 0.9.0) is met since WP72 and overtaken — this week changed the generated
-output for unchanged inputs three times (WP86, WP89, WP90), which is 0.x by definition. The owner: „ok, kriterien
-eintragen und 0.11.0 schneiden". **Criteria:** `docs/architecture/release-1.0-criteria.md` (five, each a recorded
+output for unchanged inputs three times (WP86, WP89, WP90), which is 0.x by definition. The owner gave the go
+to record the criteria and cut 0.11.0. **Criteria:** `docs/architecture/release-1.0-criteria.md` (five, each a recorded
 measurement: a second real domain; two minors without a wrong-data fix; AdventureWorks without hand views; ADR-0015
 done; an outside evaluator run), the CHANGELOG header points there; index row. **Release:** `uv version 0.11.0`,
 `uv lock`, the `[Unreleased]` entries become `## [0.11.0] - 2026-10-23` with a summary paragraph (WP83–WP91), tag
@@ -10622,3 +10591,25 @@ extra, which the first `uv sync` left out — seven workbench test modules faile
 builds and measurements from here on may come from either machine and say which. **Überprüft.** Row counts by a
 `query_to_xml` count over every table on both sides; the timings from `time` and dbt's log. **Nur angenommen.**
 Nothing. **Bewusst nicht getan.** The Cowork checkout stays on the workstation; no Docker in the container.
+
+## [2026-10-24] Correction to 2026-10-23: 48 more owner quotes replaced — the first scan was line-based and missed every quote that wrapped
+
+**Autor:** Claude Code
+
+Yesterday's correction claimed that a scan for the owner's chat-shaped words inside „…" found nothing more.
+Reading the release entry this morning showed one survivor in the 0.11.0 entry itself; the quote ran over a line
+break, which is why the scan had not seen it — it matched line by line, and these files are wrapped at about 115
+characters, so every quote longer than the rest of its line was invisible to it. The owner's word (2026-10-24):
+replace it and repeat the scan. **Repeated on the flattened text** (newlines folded before matching, German
+function words or umlauts inside the quote as the signal): 49 survivors, every one of them wrapped — 29 in this
+log, 20 in the specs and kick-offs under `backlog-2026-07/` (WP35, 41, 42, 43, 47, 48, 50–53, 56, 57, 59, 62,
+65, 70, 72, 77, 80, 83, 85). All replaced by dated paraphrases of the same meaning and lead, under
+`VAULT_AGENT_ALLOW_RECORD_EDIT=1` for the specs, the same deliberate exception as yesterday and for the same
+reason; the lead-ins „user: the owner's go …" tidied to „the owner's go …" (31 places, some of them yesterday's).
+**Überprüft.** The flattened scan over `docs/`, README, CHANGELOG and `demo/` leaves four hits, none the
+owner's: the Swiss DSG term „besonders schützenswerte Daten" (`reality-test.md`), the IREB heading „Nachteile
+und Tücken" (`ireb-mapping.md`) and the thesis label „Domäne für Domäne …" twice in the 2026-10-05 WP34 entry;
+`uv run pytest` 1310 passed / 5 skipped, `ruff` and bare `mypy` clean. **Nur angenommen.** Still what yesterday
+assumed: an English sentence of the owner's, quoted as a term, is not something this scan can tell from a quoted
+document title. **Bewusst nicht getan.** The history and the releases keep the wording, as decided yesterday;
+the private wiki as well. The lesson for the next pass of this kind: scan wrapped prose flattened, never by line.

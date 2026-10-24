@@ -6,8 +6,7 @@ updated: 2026-10-17
 
 # WP77 — A stage's binding travels with the model: the catalogue carries every declared binding, and a later increment keeps it unless its own resolution says otherwise
 
-Status: **Approved and in progress** (2026-10-17, user: „nein, wir machen jetzt weiter bis der
-Fehler ausgeräumt ist“) · Owner: Mischa Eismann · Author: Claude. From the twentieth chain's
+Status: **Approved and in progress** (2026-10-17, the owner's decision: carry on until the error is cleared) · Owner: Mischa Eismann · Author: Claude. From the twentieth chain's
 whole-vault build (`docs/log.md`, 2026-10-17): of its 34 inferred-bound stages, 24 had been
 bound to a declared table in an earlier step and lost that binding in a later one. No prompt
 change; the suite stays keyless.

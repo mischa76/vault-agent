@@ -6,8 +6,7 @@ updated: 2026-10-06
 
 # WP51 — A dropped hub's payload moves to its kept twin
 
-Status: **Approved and in progress** (2026-10-06, user: „ok, bau das Umhängen der Payload an den
-Zwilling") · Owner: Mischa Eismann · Author: Claude. Extends the repair memory (WP44, WP49, WP50)
+Status: **Approved and in progress** (2026-10-06, the owner's go to build the re-parenting of the payload onto the twin) · Owner: Mischa Eismann · Author: Claude. Extends the repair memory (WP44, WP49, WP50)
 at the point WP44 §5 deferred: „one case is not a rule". No prompt change; no model call.
 
 ## 1 Problem, measured

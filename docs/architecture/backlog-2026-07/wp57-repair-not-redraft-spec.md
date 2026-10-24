@@ -6,8 +6,7 @@ updated: 2026-10-09
 
 # WP57 — The retry is a repair, not a new draft: the previous model travels with the issues
 
-Status: **Approved and in progress** (2026-10-09, user: „super, machen wir 1,2 und lassen die 11.
-kette drüber rattern“) · Owner: Mischa Eismann · Author: Claude. Touches the modeler's retry
+Status: **Approved and in progress** (2026-10-09, the owner's go for items 1 and 2, then the eleventh chain) · Owner: Mischa Eismann · Author: Claude. Touches the modeler's retry
 payload, a state field and one steering line (WP16 registry + ledger). A **prompt and payload
 change**, re-tested per model release like every steering line; no gate, no backstop.
 

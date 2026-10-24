@@ -14,9 +14,7 @@ WP34 §6 (the review-load clause). No prompt change, no new model call.
 
 ## 1 Problem, measured
 
-The user's words (2026-10-03): „was mir noch negativ auffällt ist die hohe Zahl an Review-Fällen
-… man könnte schnell zum Schluss kommen, dass man es dann gleich komplett selbst erledigen
-könnte." The number in question is `review_items_total` = **532** on the last AdventureWorks
+The user's observation (2026-10-03): the high number of review cases stands out as a negative — one might quickly conclude it is easier to do the whole thing by hand. The number in question is `review_items_total` = **532** on the last AdventureWorks
 chain (`20260917T181755061438Z`, `docs/log.md` 2026-09-17).
 
 The queue is a flat list: one item per validation issue and one per agent flag, summed over the

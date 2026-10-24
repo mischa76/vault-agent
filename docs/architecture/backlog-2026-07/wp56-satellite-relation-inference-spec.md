@@ -6,8 +6,7 @@ updated: 2026-10-09
 
 # WP56 — A relation-less satellite whose attributes name exactly one declared table reads that table
 
-Status: **Approved and in progress** (2026-10-09, user: „Dann bauen wir doch zunächst die
-Relationsableitung und lassen im Anschluss die zehnte Kette laufen“) · Owner: Mischa Eismann ·
+Status: **Approved and in progress** (2026-10-09, the owner's decision: build the relation inference first, then run the tenth chain) · Owner: Mischa Eismann ·
 Author: Claude. Touches the modeler's parser (`_parse`, the WP55 collapse and the hub-parent path)
 and `rules/`. A **backstop** with telemetry, like WP55; no prompt change, no model call.
 

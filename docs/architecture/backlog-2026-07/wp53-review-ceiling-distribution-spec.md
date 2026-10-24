@@ -6,8 +6,7 @@ updated: 2026-10-07
 
 # WP53 — The review ceiling becomes a distribution
 
-Status: **Approved and in progress** (2026-10-07, user: „ok, stell die Review-Decke auf eine
-Verteilung um“) · Owner: Mischa Eismann · Author: Claude. Touches `eval/wp34_check.py` only (the
+Status: **Approved and in progress** (2026-10-07, the owner's go to turn the review ceiling into a distribution) · Owner: Mischa Eismann · Author: Claude. Touches `eval/wp34_check.py` only (the
 WP34 §6 review clause, re-based on decisions on 2026-10-05). No pipeline change; no model call.
 
 ## 1 Problem, measured
