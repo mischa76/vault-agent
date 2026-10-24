@@ -27,7 +27,9 @@ export function Mermaid({ source, title }: { source: string; title: string }) {
     (async () => {
       try {
         const mermaid = (await import("mermaid")).default;
-        mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "dark", fontFamily: "inherit" });
+        // Mermaid 12 lays out with ELK by default (a 456 kB gzip chunk, fetched on first render); dagre is what
+        // Mermaid 11 drew these diagrams with — pinned so the upgrade of 2026-10-24 changes no picture.
+        mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "dark", fontFamily: "inherit", layout: "dagre" });
         const { svg } = await mermaid.render(`m${id}`, source);
         if (!cancelled && host.current) {
           host.current.innerHTML = svg;

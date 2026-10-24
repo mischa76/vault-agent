@@ -10733,3 +10733,39 @@ The demo (`demo/workbench-adventureworks/`) not regenerated — its README still
 WP90 and WP82 alike; the owner's `aw` not rebuilt (its run state is not on this machine); no workbench field for
 multi-source keys (API and CLI file only); the two measurement schemas `aw_wp82_base` and `aw_wp82_bind` dropped after
 the counts above.
+
+## [2026-10-24] Dependabot read-back closed: the eleven alerts fixed at 10:24 Z, 292 minutes after the push; alert 56 and the katex alert closed — langgraph-checkpoint-sqlite 3.1.2, mermaid 12 with dagre pinned
+
+**Autor:** Claude Code
+
+Closes today's two Dependabot entries. **The eleven alerts #44–#55 closed at 10:23:58–10:24:00 Z**, 292 minutes
+after `abff3cd` was pushed, with `fixed_at` stamps one second apart — and one second before alert **#56** was created
+(10:24:01 Z) and Dependabot's own `uv` update job ran (10:24:08 Z, opening PR #39). The alert pass evidently ran when
+the new advisory arrived, not with the graph update of the push; the earlier entry's „separate, slower pass" is what
+it was. The five advisories published late on 2026-10-23 (three `pypdf` highs, two `undici`) never became alerts: the
+lock already carried the fixed versions when the pass ran. The push of WP82 (`1bdc746`, 17:22 Z) reported four open:
+#25/#26 `oauthlib`, #43 `katex`, #56 `langgraph-checkpoint-sqlite` 3.1.1 (GHSA-6hmw-9432-67qq, medium: namespace
+labels containing `.` reach other namespaces in the Postgres and SQLite stores; fixed in 3.1.2). vault-agent's
+checkpointer is that package's `SqliteSaver`, one local file per run, one user — not reachable, but the fix is a patch.
+**Done, on the owner's go:** `uv lock --upgrade-package langgraph-checkpoint-sqlite` → **3.1.2**, pulling
+`langgraph-checkpoint` 4.1.1 → **4.3.0**; `pyproject.toml` (`>=3.1.1`) unchanged. And the major the 05:31 entry left
+as a separate decision: `frontend/package.json` `mermaid` `^11` → `^12` → **mermaid 12.2.0, katex 0.18.10** (the lock
+now equal to Dependabot's PR #38 in both), closing #43 (GHSA-238p-pmpm-9mq7). **Mermaid 12 is a breaking release**
+(ES2024, Safari 17.4+, Node 22.12+; the container runs Node 22.23.4, CI `setup-node` 22) **and lays out with ELK by
+default** (`dist/config.type.d.ts`: „Defaults to `elk`, which is bundled with mermaid"; the ELK chunk is 1.46 MB,
+456 kB gzip, imported only by the `elk` layout loader in `chunk-EJLWFMJV.mjs`). The workbench's `Mermaid.tsx` now passes
+`layout: "dagre"` — what Mermaid 11 drew the ER, class and flowchart diagrams with — so the upgrade changes no picture
+and the ELK chunk is never requested. The HTML report (`report.py`, `_MERMAID_CDN`) still loads `mermaid@11` from the
+CDN; it is not in any lockfile and not this alert's subject. Dependabot's PRs **#38** (katex and mermaid) and **#39**
+(langgraph-checkpoint-sqlite) are superseded by this commit and closed by hand right after its push, with the reason.
+CHANGELOG: a `### Security` block under Unreleased for both days' closures. **Überprüft.** The alert states and
+`fixed_at` via the API; the advisory text; the installed versions (`importlib.metadata`, `package-lock.json`);
+`uv run pytest` 1330 passed / 5 skipped, `ruff`, bare `mypy`; `tsc --noEmit`, `vite build` (the bundle now lists an
+`elk-*` chunk beside `katex-*`), `vitest run` 29 of 29 — twice in sequence; one run between them, started while two
+other shells were syncing the Python environment, reported 18 of 29 failed in 359 ms and was not reproducible; CI's
+run on this commit is the arbiter. **Nur angenommen.** That the diagrams render identically under Mermaid 12 with
+dagre — no browser on the container, the component test mocks Mermaid (WP88), so the real render is unverified until
+the owner opens the workbench. That `uv sync` without `--extra dev --extra ui --extra demo` was why `ruff`, `mypy` and
+`pytest` were missing for one call (it uninstalled them; restored with the three extras CI and the demo use).
+**Bewusst nicht getan.** No `oauthlib` override; no bump of the report's CDN pin; no switch of the workbench to ELK —
+the owner may want it, it is a one-word change, and it should be looked at, not assumed.

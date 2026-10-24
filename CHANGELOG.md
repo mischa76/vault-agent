@@ -28,6 +28,18 @@ is not the project's.
   a test holds every option of `run` and `resume` against the API's request models, in both
   directions, so the next CLI option cannot bypass the workbench silently.
 
+### Security
+- Dependabot alerts 44–46 (`dompurify` 3.4.16, one critical), 47 (`certifi` 2026.5.20, critical),
+  48–55 (`pypdf` 6.19.0) closed on 2026-10-24 by lock-only upgrades: pypdf 6.21.2, certifi 2026.10.23,
+  dompurify 3.4.17, undici 8.12.3 — the last pre-empting two `undici` advisories and three `pypdf` highs
+  published the same evening, which never became alerts.
+- Dependabot alert 56 (`langgraph-checkpoint-sqlite` 3.1.1, GHSA-6hmw-9432-67qq: namespace labels
+  containing `.` reach other namespaces in the SQLite store) closed by a lock-only upgrade to 3.1.2
+  (`langgraph-checkpoint` 4.3.0 came with it); alert 43 (`katex` < 0.18.2, prototype pollution
+  bypassing trust restrictions) closed by moving the workbench to `mermaid` 12 (katex 0.18.10). Mermaid 12
+  lays out with ELK by default; the workbench pins `layout: "dagre"`, so every diagram is drawn as before
+  and the ELK chunk is never fetched. Alerts 25 and 26 (`oauthlib`) stay as before.
+
 ## [0.11.0] - 2026-10-23
 
 One day after 0.10.0 in calendar time, a week in work: the data defects the owner's hands-on build of the
