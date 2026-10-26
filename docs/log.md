@@ -10827,3 +10827,45 @@ one person, the server keeps no network listener — the same security property 
 is needed; VS Code Remote-SSH forwards the port by itself. 15.3 points there. **Überprüft.** The binding and the
 absence of `--host` by WP92's P4 and the live probe of 2026-10-26 (LAN address refused). **Nur angenommen.** The tunnel
 itself was not exercised in this session — it is SSH's standard local forward, nothing of ours.
+
+## [2026-10-26] WP93 built and measured: composite-key translation — the paid chain's last step builds with zero hand views, PASS=417 both builds, 177 of 177 idempotent; `link_sales_order` 1 177 → 13 976 rows, explained; C30 found
+
+**Autor:** Claude Code
+
+C28, on the owner's go to proceed as recommended. Spec and guards `3132831` (red, 7 of 8); the spec's §6 revised P4
+before the build. **What changed.** `KeyTranslation.natural_key_columns` (a composite hub's key columns in hashing
+order; `natural_keys`/`natural_key_label` for every reader); `_translation_target` keys on `hub_key_columns(hub)` and
+demands every column on a declared through relation; `E_HUB_COMPOSITE_UNSUPPORTED` admits a translation over the
+hub's whole key and still refuses roles, aliases and a translation over anything else; `E_LINK_KEY_NOT_IN_SOURCE`
+checks every projected column. Staging: the composite participation through a translation hashes over the hub's
+columns, the view projects each under the hub's name (one LEFT JOIN), a stage a hub shares reads it as a link's own
+would; **a NULL surrogate is a NULL participant** — the view's `not_null` tests carry `where: "<surrogate> is not null"`
+(every translation, WP36's included: `test_translation_build_guard.py` and `test_demo_fk_links_postgres.py` updated for
+it in this commit), and a translated participation records its null group with the surrogate as relation column, zero-keyed
+when the surrogate's type and the projected key's types are all null-safe (`_group_types`; the datetime case is not —
+§6). Manual: 8 (both gates), 9.3; CHANGELOG; index. **Measured, keyless, on this container.** P1/P2 by the guards
+(9 of 9). **P3:** the demo's stored last step replayed through `apply_key_licenses` — the license
+`SalesOrderHeader.CurrencyRateID`, ratified in the paid run and left unresolved by it, resolves to `hub_currency_rate`
+with the three columns and repairs `link_sales_order`; regenerated with WP82's seven bindings: **192 stages, 0
+inferred** (WP82: 1), `stg_sales_order` declared, reading `stg_sales_order_via_customer_and_currencyrate` (the Customer
+translation WP89 had already granted the same license path, now rendered because the stage is bound). **P4:** built
+on local PostgreSQL **with no hand view at all** — PASS=417 both builds, 177 of 177 `INSERT 0 0`; the reference (WP82's
+bound project with its one view, rebuilt) PASS=410; the seven more are the view and its six tests (four `not_null`,
+all passing although 17 489 of 31 465 orders have no currency rate — the `where`; two `relationships`). **Row counts:
+177 tables each, 176 equal, one not as predicted** — `link_sales_order` **1 177 → 13 976**. Explained at the source:
+1 177 is the number of orders with all nine participants present (27 659 lack a sales person, 1 131 a credit card,
+17 489 a currency rate), which is what an *inferred* stage without null handling gives, since AutomateDV's link macro
+drops every row with a NULL foreign-key hash; 13 976 is the number of orders with a currency rate — the bound stage
+now zero-keys the integer participants (WP83), and the currency rate cannot be zero-keyed because the hub's key holds
+a `timestamp` (`hub_currency_rate.currencyratedate: timestamp without time zone`). So the prediction „equal" was
+wrong in the right direction, and the 17 489 orders without a rate are the new candidate **C30** (a zero key for a
+non-character key column, or an optional participation as a link of its own — the owner's model has
+`link_sales_order_currency_rate`). `hub_currency_rate` 13 532 both, no zero-key row, as §6 said. **Überprüft.** The
+guards (red on `3132831`, green now), `uv run pytest` 1343 passed / 5 skipped, `ruff`, bare `mypy`; both build logs;
+counts by `psql` on both schemas and on `Sales.SalesOrderHeader`; the view's SQL as generated. Both measurement schemas
+dropped afterwards. **Nur angenommen.** That dbt's `config: where:` on a generic test behaves the same on Databricks
+(dbt-core 1.11 line) as on this PostgreSQL build (1.9). **Bewusst nicht getan.** No zero key for the datetime-keyed hub
+(C30, a decision); the two-hop composite case unmeasured; the owner's own build not rebuilt (not on this machine);
+the demo (`demo/workbench-adventureworks/`) not regenerated — its README and `inferred_views.sql` still describe ten
+views; the chain-level claim of criterion 3 („on the five-domain chain and on the owner's build") is met for the
+chain's last step by this entry and waits for the owner's build.

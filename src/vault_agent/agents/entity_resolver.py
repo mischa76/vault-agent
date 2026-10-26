@@ -263,7 +263,7 @@ def render_resolution_prompt_section(
                 f"- `{label}`{origin} IS **{feed.hub}**, reached through a declared key: "
                 f"`{feed.table}.{t.referencing_column}` references "
                 f"`{t.through_table}.{t.surrogate_column}`, and {feed.hub} is keyed on "
-                f"`{t.natural_key_column}`. Do not create a hub for it: put its descriptive "
+                f"`{t.natural_key_label}`. Do not create a hub for it: put its descriptive "
                 f"attributes in satellites on **{feed.hub}** with `source_table: {feed.table}` "
                 f"— the pipeline joins the key in. "
                 + (

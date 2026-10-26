@@ -101,13 +101,16 @@ class StagingSpec:
     # WP41: parallel to `translations` — the column each one projects the natural key AS. The
     # natural key's own name for an unqualified participation (today's bytes); the role column
     # for a role-qualified one, which two roles of one hub through one table cannot do without.
-    translation_columns: list[str] = field(default_factory=list)
+    # WP93: a list for a composite hub — every key column projected under the hub's own name.
+    translation_columns: list[str | list[str]] = field(default_factory=list)
     stage_source: str | None = None
     # WP83: one entry per link participation this stage hashes — (the stage columns the hash
     # is taken over, the relation columns they come from). `build_staging` declares the stage
     # columns as AutomateDV `null_columns: optional` when every relation column is typed
     # integer or character, so a NULL participant becomes the zero key instead of dropping the
-    # link row. Translated participations are not recorded (their key arrives through a view).
+    # link row. A translated participation is recorded with the SURROGATE as its relation column
+    # (WP93): a NULL surrogate is a NULL participant, zero-keyed when the surrogate's type and the
+    # projected key's types are all null-safe (`null_optional_columns`, `zero_key_hubs`).
     # WP86: the third element names the hub the participation hashes into — its zero-key rows.
     null_groups: list[tuple[tuple[str, ...], tuple[str, ...], str]] = field(default_factory=list)
     # WP82: the aliases a human ratified with this stage's binding — a subset of `derived`,
@@ -129,12 +132,24 @@ class StagingSpec:
         if group not in self.null_groups:
             self.null_groups.append(group)
 
-    def add_translation(self, translation: KeyTranslation, column: str) -> None:
+    def add_translation(self, translation: KeyTranslation, column: str | list[str]) -> None:
         if (translation, column) not in zip(
             self.translations, self.translation_columns, strict=True
         ):
             self.translations.append(translation)
             self.translation_columns.append(column)
+
+    def translated_groups(self) -> dict[tuple[str, ...], KeyTranslation]:
+        """WP93: the null groups whose key arrives through a translation, by stage columns."""
+        return {
+            tuple(_projected(column)): t
+            for t, column in zip(self.translations, self.translation_columns, strict=True)
+        }
+
+
+def _projected(column: str | list[str]) -> list[str]:
+    """The column(s) a translation projects: one for a single key, the list for a composite."""
+    return list(column) if isinstance(column, list) else [column]
 
 
 @dataclass
@@ -313,16 +328,24 @@ def collect_staging_specs(
             # cannot join the hub's own hash key when a multi-source hub's feeds agree on
             # a physical name differing from the business-key label.
             hub = hub_by_name[ref.hub]
-            if is_composite_key(hub) and ref.role is None and ref.key_translation is None and (
-                ref.source_key_column is None
-            ):
+            if is_composite_key(hub) and ref.role is None and ref.source_key_column is None:
                 # WP45: an unqualified participation of a composite hub hashes over the
                 # hub's column list, exactly as the hub's own stage does; the link's hash
-                # key takes every column. Role, alias and translation shapes are refused
-                # by E_HUB_COMPOSITE_UNSUPPORTED before generation.
+                # key takes every column. Role and alias shapes are refused by
+                # E_HUB_COMPOSITE_UNSUPPORTED before generation.
                 cols = hub_key_columns(hub)
                 bk_cols.extend(cols)
                 spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), cols)
+                if ref.key_translation is not None:
+                    # WP93: the key arrives through the translation view, every column projected
+                    # under the hub's own name (the gate holds them to the hub's). What THIS
+                    # relation carries is the surrogate; a NULL surrogate is a NULL participant.
+                    t = ref.key_translation
+                    surrogate = _to_column(t.referencing_column)
+                    spec.add_translation(t, cols)
+                    spec.add_source_column(surrogate)
+                    spec.add_null_group(cols, [surrogate], hub.name)
+                    continue
                 for col in cols:
                     spec.add_source_column(col)
                 spec.add_null_group(cols, cols, hub.name)
@@ -341,7 +364,9 @@ def collect_staging_specs(
                 # canonical column. What THIS relation must carry is the surrogate. WP41: the view
                 # projects it as the column hashed here — a role's own column for a role.
                 spec.add_translation(ref.key_translation, bk_col)
-                spec.add_source_column(_to_column(ref.key_translation.referencing_column))
+                surrogate = _to_column(ref.key_translation.referencing_column)
+                spec.add_source_column(surrogate)
+                spec.add_null_group([bk_col], [surrogate], hub.name)  # WP93: NULL = no participant
                 continue
             src_col = _to_column(ref.source_key_column) if ref.source_key_column else bk_col
             if src_col != bk_col:
@@ -494,16 +519,46 @@ def _null_safe_type(declared: str) -> bool:
     return base in _NULL_SAFE_TYPES
 
 
-def null_optional_columns(spec: StagingSpec, relation: SourceTable | None) -> list[str]:
+def _group_types(
+    spec: StagingSpec,
+    stage_columns: tuple[str, ...],
+    relation_columns: tuple[str, ...],
+    types: dict[str, str],
+    declared: dict[str, SourceTable] | None,
+) -> list[str] | None:
+    """WP83/WP93: the declared types a null group's zero key must be safe for — the relation
+    columns' own; for a translated group (WP93) the surrogate's AND the projected key columns'
+    in the through relation, since the stage column that is replaced is the projected one.
+    ``None`` when a type is unknown or not null-safe: no null handling, today's behaviour."""
+    own = [types.get(normalize_identifier(c), "") for c in relation_columns]
+    if not all(_null_safe_type(t) for t in own):
+        return None
+    translation = spec.translated_groups().get(tuple(stage_columns))
+    if translation is None:
+        return own
+    through = (declared or {}).get(normalize_identifier(translation.through_table))
+    if through is None:
+        return None
+    through_types = {normalize_identifier(c.name): c.type for c in through.column_refs}
+    projected = [through_types.get(normalize_identifier(c), "") for c in translation.natural_keys]
+    return projected if all(_null_safe_type(t) for t in projected) else None
+
+
+def null_optional_columns(
+    spec: StagingSpec,
+    relation: SourceTable | None,
+    declared: dict[str, SourceTable] | None = None,
+) -> list[str]:
     """WP83: the stage columns to declare as AutomateDV ``null_columns: optional`` — every
     participation whose relation columns are all typed integer or character in the bound
-    relation. An inferred stage or an unknown relation: none (today's behaviour)."""
+    relation (a translated one: its surrogate and its projected key, WP93). An inferred stage or
+    an unknown relation: none (today's behaviour)."""
     if not spec.bound or relation is None or not spec.null_groups:
         return []
     types = {normalize_identifier(c.name): c.type for c in relation.column_refs}
     columns: list[str] = []
     for stage_columns, relation_columns, _hub in spec.null_groups:
-        if all(_null_safe_type(types.get(normalize_identifier(c), "")) for c in relation_columns):
+        if _group_types(spec, stage_columns, relation_columns, types, declared) is not None:
             columns.extend(c for c in stage_columns if c not in columns)
     return columns
 
@@ -525,12 +580,13 @@ def zero_key_hubs(
         if relation is None:
             continue
         types = {normalize_identifier(c.name): c.type for c in relation.column_refs}
-        for _stage_columns, relation_columns, hub_name in spec.null_groups:
+        for stage_columns, relation_columns, hub_name in spec.null_groups:
             hub = hubs.get(hub_name)
             if hub is None or hub_name in out:
                 continue
-            declared_types = [types.get(normalize_identifier(c), "") for c in relation_columns]
-            if not all(_null_safe_type(t) for t in declared_types):
+            # WP93: a translated group's row is typed by the projected key's columns.
+            declared_types = _group_types(spec, stage_columns, relation_columns, types, declared)
+            if declared_types is None:
                 continue
             key_columns = hub_stage_key_columns(hub)
             if len(key_columns) != len(declared_types):
@@ -1039,18 +1095,27 @@ def _project_homonyms_apart(spec: StagingSpec, relation_columns: list[str]) -> N
     as ``<KEY>_VIA_<THROUGH>`` and every hash key taken over it follows; the relation's own column
     stays what it is, payload included. The hash value does not depend on the column's name."""
     present = {normalize_identifier(c) for c in relation_columns}
-    for i, (t, column) in enumerate(
+    for i, (t, columns) in enumerate(
         zip(spec.translations, spec.translation_columns, strict=True)
     ):
-        if normalize_identifier(column) not in present:
-            continue
-        renamed = f"{column}_VIA_{_to_column(t.through_table)}"
-        spec.translation_columns[i] = renamed
-        for j, (name, value) in enumerate(spec.hashed):
-            if isinstance(value, str) and value == column:
-                spec.hashed[j] = (name, renamed)
-            elif isinstance(value, list) and column in value:
-                spec.hashed[j] = (name, [renamed if v == column else v for v in value])
+        renamed_all = list(_projected(columns))
+        for k, column in enumerate(_projected(columns)):
+            if normalize_identifier(column) not in present:
+                continue
+            renamed = f"{column}_VIA_{_to_column(t.through_table)}"
+            renamed_all[k] = renamed
+            for j, (name, value) in enumerate(spec.hashed):
+                if isinstance(value, str) and value == column:
+                    spec.hashed[j] = (name, renamed)
+                elif isinstance(value, list) and column in value:
+                    spec.hashed[j] = (name, [renamed if v == column else v for v in value])
+            spec.null_groups = [
+                (tuple(renamed if c == column else c for c in stage), rel, hub)
+                for stage, rel, hub in spec.null_groups
+            ]
+        spec.translation_columns[i] = (
+            renamed_all if isinstance(columns, list) else renamed_all[0]
+        )
 
 
 def translation_model_name(spec: StagingSpec) -> str:
@@ -1093,8 +1158,9 @@ def render_translation_model(
     # its own role column, so two roles of one hub through one table stay two columns.
     assert len(spec.translation_columns) == len(spec.translations)
     projected = ", ".join(
-        f"{alias}.{_to_column(t.natural_key_column)} as {column}"
-        for (alias, t, _, _), column in zip(joins, spec.translation_columns, strict=True)
+        f"{alias}.{_to_column(natural)} as {column}"
+        for (alias, t, _, _), columns in zip(joins, spec.translation_columns, strict=True)
+        for natural, column in zip(t.natural_keys, _projected(columns), strict=True)
     )
     sql_lines = [
         "-- Generated by vault-agent (WP36, ADR-0013): surrogate→natural-key translation for",
@@ -1103,7 +1169,7 @@ def render_translation_model(
     for _, t, _, _ in joins:
         sql_lines.append(
             f"-- '{spec.source_model}' references '{t.through_table}.{t.surrogate_column}', a "
-            f"surrogate; the hub is keyed on '{t.natural_key_column}', the natural key."
+            f"surrogate; the hub is keyed on '{t.natural_key_label}', the natural key."
         )
     sql_lines += [
         "-- This view joins the natural key(s) in so the stage model can hash the link from",
@@ -1123,7 +1189,7 @@ def render_translation_model(
     description = "; ".join(
         f"{spec.source_model} joined to {t.through_table} on "
         f"{_to_column(t.referencing_column)} = {_to_column(t.surrogate_column)}, projecting "
-        f"{_to_column(t.natural_key_column)}"
+        f"{', '.join(_to_column(c) for c in t.natural_keys)}"
         for _, t, _, _ in joins
     )
     test_lines = [
@@ -1137,11 +1203,18 @@ def render_translation_model(
         f"    description: \"{description} for the link's hash (ADR-0013).\"",
         "    columns:",
     ]
-    for (_, t, _, r_test), column in zip(joins, spec.translation_columns, strict=True):
+    for (_, t, _, r_test), columns in zip(joins, spec.translation_columns, strict=True):
+        # WP93: a NULL surrogate is a NULL participant, not a dangling reference — the key may
+        # be NULL exactly where the surrogate is; `relationships` ignores NULL by itself.
+        for column in _projected(columns):
+            test_lines += [
+                f"      - name: {column}",
+                "        tests:",
+                "          - not_null:",
+                "              config:",
+                f"                where: \"{_to_column(t.referencing_column)} is not null\"",
+            ]
         test_lines += [
-            f"      - name: {column}",
-            "        tests:",
-            "          - not_null",
             f"      - name: {_to_column(t.referencing_column)}",
             "        tests:",
             "          - relationships:",
@@ -1601,7 +1674,7 @@ def build_staging(
 
     def null_columns(spec: StagingSpec) -> list[str]:
         return null_optional_columns(
-            spec, declared_tables.get(normalize_identifier(spec.source_model))
+            spec, declared_tables.get(normalize_identifier(spec.source_model)), declared_tables
         )
 
     models = {

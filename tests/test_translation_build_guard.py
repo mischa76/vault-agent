@@ -32,8 +32,12 @@ def test_the_translation_tests_yml_is_yaml_dbt_can_parse() -> None:
     result = build_staging(state.dv_model, state.source_schemas)
     via = next(n for n in result.models if n.endswith("_via_product"))
     yml = yaml.safe_load(result.scaffolding[f"models/staging/{via}.yml"])
-    [rel] = [t for c in yml["models"][0]["columns"] for t in c["tests"] if isinstance(t, dict)]
+    tests = [t for c in yml["models"][0]["columns"] for t in c["tests"]]
+    [rel] = [t for t in tests if isinstance(t, dict) and "relationships" in t]
     assert rel["relationships"] == {"to": "source('raw', 'Product')", "field": "PRODUCTID"}
+    # WP93: the not_null test is configured — a NULL surrogate is a NULL participant.
+    [nn] = [t for t in tests if isinstance(t, dict) and "not_null" in t]
+    assert nn == {"not_null": {"config": {"where": "PRODUCTID is not null"}}}
 
 
 def test_a_link_with_two_translated_participations_projects_both_keys() -> None:
@@ -51,10 +55,15 @@ def test_a_link_with_two_translated_participations_projects_both_keys() -> None:
     assert sql.count("left join") == 2
     yml = yaml.safe_load(result.scaffolding[f"models/staging/{via}.yml"])
     columns = {c["name"]: c["tests"] for c in yml["models"][0]["columns"]}
-    assert columns["PRODUCTNUMBER"] == ["not_null"]
-    assert columns["ACCOUNTNUMBER"] == ["not_null"]
+    # WP93: each projected key's not_null holds where its own surrogate is not NULL.
+    assert columns["PRODUCTNUMBER"] == [
+        {"not_null": {"config": {"where": "PRODUCTID is not null"}}}
+    ]
+    assert columns["ACCOUNTNUMBER"] == [
+        {"not_null": {"config": {"where": "BUSINESSENTITYID is not null"}}}
+    ]
     assert [t["relationships"]["to"] for c in ("PRODUCTID", "BUSINESSENTITYID")
-            for t in columns[c] if isinstance(t, dict)] == [
+            for t in columns[c] if isinstance(t, dict) and "relationships" in t] == [
         "ref('Product')",  # not declared in the miniature: the hub's provenance stands for it
         "source('raw', 'Vendor')",  # declared with a schema: the hub's own source() binding
     ]

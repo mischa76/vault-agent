@@ -133,7 +133,7 @@ def test_a_declared_through_relation_missing_one_key_column_is_the_typed_skip() 
     proposals, skipped = propose_links(DVModel(hubs=[_rate_hub()]), [_header_table(), rate])
     assert proposals.proposals == []
     [s] = skipped
-    assert s.reason == "translation_key_missing" and "ToCurrencyCode" in s.message
+    assert s.reason == "translation_key_missing" and "TOCURRENCYCODE" in s.message
 
 
 def test_the_ratified_license_resolves_and_repairs_the_modeler_s_link() -> None:
@@ -165,23 +165,37 @@ async def test_the_gate_admits_the_translation_and_still_refuses_a_role() -> Non
 
 # --- P2: staging ---------------------------------------------------------------------------
 
+def _header_hub() -> Hub:
+    """Named after its relation so `build_staging` alone binds its stage (no mapper offers here)."""
+    return Hub(name="hub_sales_order_header", business_key="SalesOrderNumber",
+               source_entity="SalesOrderHeader", description="A sales order.")
+
+
+def _header_link(ref: LinkHubRef) -> Link:
+    return Link(name="link_sales_order_header", description="The order with its currency rate.",
+                connected_hubs=["hub_sales_order_header", ref])
+
+
 def _model() -> DVModel:
     ref = LinkHubRef(hub="hub_currency_rate", key_translation=_translation())
-    return DVModel(hubs=[_order_hub(), _rate_hub()], links=[_link(ref)])
+    return DVModel(hubs=[_header_hub(), _rate_hub()], links=[_header_link(ref)])
 
 
 def test_the_translation_view_projects_every_key_column_and_the_stage_hashes_them() -> None:
     result = build_staging(_model(), [_header_table(), _rate_table()])
-    via = "stg_sales_order_via_currencyrate"
+    via = "stg_sales_order_header_via_currencyrate"
     assert via in result.models, sorted(result.models)
     sql = result.models[via]
     assert sql.count("left join") == 1
     for column in RATE_NORMALISED:
         assert f"r.{column} as {column}" in sql
     assert "on t.CURRENCYRATEID = r.CURRENCYRATEID" in sql
-    stage = result.models["stg_sales_order"]
+    assert "{{ source('raw', 'SalesOrderHeader') }} t" in sql  # bound, not inferred
+    stage = result.models["stg_sales_order_header"]
     assert f"source_model: '{via}'" in stage
-    hashed = result.metadata["stg_sales_order"]["hashed_columns"]
+    meta = result.metadata["stg_sales_order_header"]
+    assert meta["source_binding"] == "declared"
+    hashed = meta["hashed_columns"]
     assert isinstance(hashed, dict)
     assert hashed["CURRENCYRATE_HK"] == RATE_NORMALISED
     assert hashed["SALESORDERHEADER_HK"] == "SALESORDERNUMBER"  # the hub's own key, untouched
@@ -192,30 +206,69 @@ def test_the_translation_view_projects_every_key_column_and_the_stage_hashes_the
 
 def test_a_null_surrogate_is_a_null_participant_not_a_dangling_reference() -> None:
     result = build_staging(_model(), [_header_table(), _rate_table()])
-    yml = result.scaffolding["models/staging/stg_sales_order_via_currencyrate.yml"]
+    yml = result.scaffolding["models/staging/stg_sales_order_header_via_currencyrate.yml"]
     assert yml.count("- not_null") == 3 and "relationships" in yml
-    assert "CURRENCYRATEID is not null" in yml
-    meta = result.metadata["stg_sales_order"]
+    assert yml.count("CURRENCYRATEID is not null") == 3
+    # The rate's key holds a datetime: no zero key can be cast into it (WP83 §2.2, the spec's
+    # addendum of 2026-10-26), so the NULL participant stays NULL — the build passes, the hub
+    # gets no zero-key row. The order's own participation (nvarchar) is optional as before.
+    meta = result.metadata["stg_sales_order_header"]
     optional = meta.get("null_columns", {})
     assert isinstance(optional, dict)
-    assert set(RATE_NORMALISED) <= set(optional.get("optional", [])), meta.get("null_columns")
-    assert "hub_currency_rate" in result.zero_key_hubs
+    assert optional.get("optional") == ["SALESORDERNUMBER"], optional
+    assert "hub_currency_rate" not in result.zero_key_hubs
+
+
+def _pair_hub() -> Hub:
+    return Hub(name="hub_currency_pair", business_key="currency pair",
+               business_key_columns=["FromCurrencyCode", "ToCurrencyCode"],
+               source_entity="CurrencyPair", description="A pair of currencies.")
+
+
+def _pair_table() -> SourceTable:
+    return SourceTable(table="CurrencyPair", schema="Sales", columns=[
+        {"name": "CurrencyPairID", "type": "int"},
+        {"name": "FromCurrencyCode", "type": "nchar(3)"},
+        {"name": "ToCurrencyCode", "type": "nchar(3)"},
+    ])
+
+
+def _pair_model() -> DVModel:
+    t = KeyTranslation(referencing_column="CurrencyPairID", through_table="CurrencyPair",
+                       through_schema="Sales", surrogate_column="CurrencyPairID",
+                       natural_key_column="FROMCURRENCYCODE",
+                       natural_key_columns=["FROMCURRENCYCODE", "TOCURRENCYCODE"])
+    header = SourceTable(table="SalesOrderHeader", schema="Sales", columns=[
+        {"name": "SalesOrderNumber", "type": "nvarchar(25)"},
+        {"name": "CurrencyPairID", "type": "int"},
+    ])
+    link = _header_link(LinkHubRef(hub="hub_currency_pair", key_translation=t))
+    return DVModel(hubs=[_header_hub(), _pair_hub()], links=[link]), [header, _pair_table()]
+
+
+def test_a_character_keyed_composite_hub_gets_its_zero_key_through_the_translation() -> None:
+    model, schemas = _pair_model()
+    result = build_staging(model, schemas)
+    meta = result.metadata["stg_sales_order_header"]
+    optional = meta.get("null_columns")
+    assert isinstance(optional, dict)
+    assert optional.get("optional") == ["SALESORDERNUMBER", "FROMCURRENCYCODE", "TOCURRENCYCODE"], (
+        optional
+    )
+    assert "hub_currency_pair" in result.zero_key_hubs
+    assert "stg_currency_pair_zero_keys" in result.models
 
 
 def test_zero_key_types_for_a_translated_participation_come_from_the_through_relation() -> None:
-    from vault_agent.agents.staging_generator import collect_staging_specs
+    from vault_agent.agents.staging_generator import bind_sources, collect_staging_specs
 
-    model = _model()
-    schemas = [_header_table(), _rate_table()]
-    result = build_staging(model, schemas)
-    assert "stg_currency_rate_zero_keys" in result.models
+    model, schemas = _pair_model()
     specs = collect_staging_specs(model)
     declared = {normalize_identifier(t.table): t for t in schemas}
-    from vault_agent.agents.staging_generator import bind_sources
     bind_sources(specs, schemas)
     typed = zero_key_hubs(model, specs, declared)
-    assert [c for c, _ in typed["hub_currency_rate"]] == RATE_NORMALISED
-    assert [t for _, t in typed["hub_currency_rate"]] == ["varchar", "varchar", "varchar"]
+    assert [c for c, _ in typed["hub_currency_pair"]] == ["FROMCURRENCYCODE", "TOCURRENCYCODE"]
+    assert [t for _, t in typed["hub_currency_pair"]] == ["varchar", "varchar"]
 
 
 # --- P3: the paid chain's last step, replayed ------------------------------------------------
@@ -249,4 +302,10 @@ async def test_the_demo_s_last_step_needs_no_hand_view_any_more() -> None:
     staging = state.artifacts.automatedv_yaml["staging"]
     inferred = sorted(n for n, m in staging.items() if m.get("source_binding") == "inferred")
     assert inferred == [], inferred
-    assert "stg_sales_order_via_currencyrate" in state.artifacts.staging_models
+    # The stage is bound now, and its view joins CurrencyRate — beside the Customer translation
+    # the same license path had resolved before (the view name carries both).
+    meta = staging["stg_sales_order"]
+    assert meta["source_binding"] == "declared"
+    joins = {j["through_table"]: j["projects"] for j in meta["key_translation"]["joins"]}
+    assert joins["CurrencyRate"] == RATE_NORMALISED
+    assert meta["key_translation"]["model"] in state.artifacts.staging_models

@@ -73,12 +73,16 @@ because the offer tier sees only the increment's tables (the twentieth chain los
 surrogate while the hub is keyed on the natural key gets a second staging model,
 `stg_<link>_via_<relation>` — a view that LEFT JOINs the referencing relation to the
 referenced one on the surrogate and projects the natural key under the hub's canonical
-column name. The link's ordinary `stage` model reads that view instead of the raw relation;
+column name — every column of it for a hub keyed on several (WP93, 2026-10-26: one LEFT JOIN,
+the columns projected in the hub's order, the link's hash taken over them exactly as the hub's own
+stage does). The link's ordinary `stage` model reads that view instead of the raw relation;
 its hashes are unchanged. Every row of the referencing relation survives the join; an
 unmatched surrogate becomes a NULL key that the model's own `schema.yml` refuses at
-`dbt build` (`not_null` on the projected key, `relationships` from the surrogate to the
-referenced relation). The translation is therefore visible SQL and a failing test, never a
-hidden mapping. When the referencing relation carries a column of the natural key's name that
+`dbt build` (`not_null` on each projected column where the surrogate is not NULL,
+`relationships` from the surrogate to the referenced relation). A NULL surrogate is a NULL
+participant, not a dangling reference (WP93): the row loads, and when the surrogate and the
+projected key are both of null-safe types the participation is zero-keyed like any other (WP83,
+WP86). The translation is therefore visible SQL and a failing test, never a hidden mapping. When the referencing relation carries a column of the natural key's name that
 means something else (`SalesOrderHeader.AccountNumber`, a financial account), the key is projected
 as `<KEY>_VIA_<RELATION>` (`ACCOUNTNUMBER_VIA_CUSTOMER`) and the relation's own column stays payload
 (WP89, 2026-10-23). `metadata/automatedv.yml` records it under the link's staging entry as

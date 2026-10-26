@@ -1149,7 +1149,7 @@ def _subtype_note(proposal: ResolutionProposal, state: VaultAgentState) -> str:
     )
     return (
         f"; a subtype feed — accepted, {feed.table} gets no hub and its satellites on "
-        f"{feed.hub} join {t.natural_key_column} through {t.through_table}{also}"
+        f"{feed.hub} join {t.natural_key_label} through {t.through_table}{also}"
     )
 
 
@@ -1277,7 +1277,7 @@ def _link_category_note(proposal: LinkProposal | RelationshipLinkProposal | KeyL
         return proposal.category
     through = f"{t.through_schema}.{t.through_table}" if t.through_schema else t.through_table
     return (
-        f"{proposal.category}: {t.referencing_column} → {t.natural_key_column} "
+        f"{proposal.category}: {t.referencing_column} → {t.natural_key_label} "
         f"through {through}"
     )
 

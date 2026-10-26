@@ -212,10 +212,18 @@ class ValidatorAgent(BaseAgent):
                 ref_hub = next((h for h in model.hubs if h.name == ref.hub), None)
                 if ref_hub is None or not is_composite_key(ref_hub):
                     continue
+                t = ref.key_translation
+                # WP93: a translation that projects the hub's key columns, all of them in the
+                # hub's order, is generated (one join, every column); any other translation, a
+                # role or an alias on a composite hub still is not.
+                over_the_key = t is not None and (
+                    [normalize_identifier(c) for c in t.natural_keys] == hub_key_columns(ref_hub)
+                )
                 shape = (
                     "a role" if ref.role is not None
                     else "an alias (source_key_column)" if ref.source_key_column is not None
-                    else "a translation" if ref.key_translation is not None
+                    else "a translation not over the hub's key columns"
+                    if t is not None and not over_the_key
                     else None
                 )
                 if shape is None:
@@ -224,8 +232,9 @@ class ValidatorAgent(BaseAgent):
                     _issue(
                         "error", "E_HUB_COMPOSITE_UNSUPPORTED", link.name,
                         f"link {link.name!r} takes the composite-keyed hub {ref_hub.name!r} "
-                        f"with {shape}; per-column roles, aliases and translations are not "
-                        f"generated yet — take it unqualified, or key the hub on one column",
+                        f"with {shape}; per-column roles and aliases are not generated yet — "
+                        f"take it unqualified (or through a translation of its whole key), or "
+                        f"key the hub on one column",
                     )
                 )
 
@@ -1044,7 +1053,7 @@ class ValidatorAgent(BaseAgent):
                     ]
                     if through:
                         r_cols = {normalize_identifier(c) for c in through[0].column_names}
-                        for needed in (t.surrogate_column, t.natural_key_column):
+                        for needed in (t.surrogate_column, *t.natural_keys):  # WP93
                             if normalize_identifier(needed) not in r_cols:
                                 issues.append(
                                     _issue(

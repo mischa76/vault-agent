@@ -494,6 +494,19 @@ class KeyTranslation(BaseModel):
     through_schema: str | None = None
     surrogate_column: str  # R's own name for the surrogate (R.Xref)
     natural_key_column: str  # the hub's canonical key column, projected from R (R.Y)
+    # WP93: a composite hub's key columns in hashing order, each projected from R; empty for a
+    # single key, where `natural_key_column` is the whole key. Readers take `natural_keys`.
+    natural_key_columns: list[str] = Field(default_factory=list)
+
+    @property
+    def natural_keys(self) -> list[str]:
+        """The projected key columns — one for a single key, all of them for a composite."""
+        return list(self.natural_key_columns) or [self.natural_key_column]
+
+    @property
+    def natural_key_label(self) -> str:
+        """The key as a message shows it: `PRODUCTNUMBER`, or `A, B, C` for a composite."""
+        return ", ".join(self.natural_keys)
 
 # Why the proposer declined to answer for a declared foreign key. A CODE, not the sentence:
 # the 2026-08-12 run left 10 of 11 viable cross-schema foreign keys unaccounted for, and the

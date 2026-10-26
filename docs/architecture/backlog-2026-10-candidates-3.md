@@ -112,3 +112,16 @@ one foreign-key column resolving to that hub (two roles of one hub through one r
 each — `BusinessEntityContact.BusinessEntityID` and `.PersonID`). Candidate: a rule that reads it as the participation's
 source column where it is unambiguous, so the alias a human types today is derived; the alias field stays for the rest.
 
+## C30 — A zero key for a hub whose key column is not integer or character (found by WP93, 2026-10-26)
+
+WP93 binds `stg_sales_order` through a composite translation, and the link grew from 1 177 rows (every one of nine
+participants present) to 13 976 (every order with a currency rate): the bound stage zero-keys its integer and
+character participants (WP83), but the 17 489 orders without a currency rate stay outside `link_sales_order`, because
+`hub_currency_rate`'s key holds a `timestamp` and WP83 §2.2 admits no zero key that cannot be cast into the column —
+AutomateDV's `null_columns` writes `'-2'` into the stage column, WP86's row casts `'-1'` into the hub's. Two ways, both
+a decision: hash a text form of the key column (the hub's own stage and every participation would derive
+`CAST(col AS VARCHAR)` and hash that — the hash value is unchanged, the hub's key column becomes text), or treat an
+optional participation as a link of its own (the owner's model has `link_sales_order_currency_rate` beside the order
+link — a gate could say that a link with nine participants, three of them NULL in most rows, is the wrong unit of
+work). The AutomateDV link macro drops every row whose foreign-key hash is NULL, so this is a rows question, not a
+cosmetic one. Needs the owner's go.

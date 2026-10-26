@@ -30,6 +30,7 @@ from vault_agent.rules.dv2_rules import (
     construct_base_from_table,
     construct_base_name,
     hub_binds_to_source_table,
+    hub_key_columns,
     link_relation_candidates,
     normalize_identifier,
     participation_key,
@@ -192,20 +193,25 @@ def _translation_target(
     if len(bound) != 1:
         return None, None, None, ""
     hub = bound[0]
-    natural = canonical_hub_key_column(hub)
+    # WP93: the hub's key COLUMNS — one for a single key (as before), all of them for a composite
+    # hub, whose canonical column is a label and never a column of R.
+    natural_keys = hub_key_columns(hub)
     surrogate = fk.references_columns[0]
-    if normalize_identifier(natural) == normalize_identifier(surrogate):
+    if len(natural_keys) == 1 and (
+        normalize_identifier(natural_keys[0]) == normalize_identifier(surrogate)
+    ):
         return None, None, None, ""  # cannot happen after _target_hub declined, kept explicit
+    label = ", ".join(natural_keys)
     relation = declared.get(normalize_identifier(fk.references_table))
     if relation is not None:
         present = {normalize_identifier(c) for c in relation.column_names}
         missing = [
-            c for c in (surrogate, natural) if normalize_identifier(c) not in present
+            c for c in (surrogate, *natural_keys) if normalize_identifier(c) not in present
         ]
         if missing:
             return None, None, "translation_key_missing", (
                 f"{fk.references_table!r} is declared without {', '.join(repr(m) for m in missing)}"
-                f" — translating {fk.columns[0]!r} to {hub.name}'s key {natural!r} would join on "
+                f" — translating {fk.columns[0]!r} to {hub.name}'s key {label!r} would join on "
                 f"a column that is not there"
             )
     return hub, KeyTranslation(
@@ -213,7 +219,8 @@ def _translation_target(
         through_table=fk.references_table,
         through_schema=fk.references_schema,
         surrogate_column=surrogate,
-        natural_key_column=natural,
+        natural_key_column=natural_keys[0],
+        natural_key_columns=natural_keys if len(natural_keys) > 1 else [],
     ), None, ""
 
 
@@ -411,7 +418,7 @@ def _propose_for_key(
                             source_table=table.table,
                             source_column=fk.columns[0],
                             target_hub=t_hub.name,
-                            target_business_key=translation.natural_key_column,
+                            target_business_key=translation.natural_key_label,
                             category="declared_fk_translated",
                             translation=translation,
                             evidence=[
@@ -432,11 +439,11 @@ def _propose_for_key(
                             )
                             + [
                                 f"{t_hub.name} is built from {translation.through_table} and "
-                                f"keyed on {translation.natural_key_column}, not on "
+                                f"keyed on {translation.natural_key_label}, not on "
                                 f"{translation.surrogate_column}",
                                 f"staging must join {table.table} to {translation.through_table} "
                                 f"on {translation.surrogate_column} and hash the link from "
-                                f"{translation.natural_key_column} — a translation, not an alias",
+                                f"{translation.natural_key_label} — a translation, not an alias",
                             ],
                         )
                     )
@@ -625,7 +632,7 @@ def apply_ratified_link_proposals(
                 f"surrogate→natural-key translation through "
                 f"{proposal.translation.through_table} "
                 f"({proposal.translation.surrogate_column} → "
-                f"{proposal.translation.natural_key_column}); review the translation model",
+                f"{proposal.translation.natural_key_label}); review the translation model",
                 kind=FlagKind.LINK_TRANSLATION,
                 asset=f"{proposal.source_table}.{proposal.source_column}",
             )
@@ -936,7 +943,7 @@ def apply_key_licenses(
                         "link_proposer",
                         f"link {link.name}, built by the modeler from {table}, requires "
                         f"surrogate→natural-key translation through {t.through_table} for "
-                        f"{ref} ({t.referencing_column} → {t.natural_key_column}); repaired under "
+                        f"{ref} ({t.referencing_column} → {t.natural_key_label}); repaired under "
                         f"a ratified key; review the translation model{homonym}",
                         kind=FlagKind.LINK_TRANSLATION,
                         asset=f"{table}.{t.referencing_column}",
@@ -964,7 +971,7 @@ def apply_key_licenses(
                     "link_proposer",
                     f"satellite {sat.name} reads {table}, which carries "
                     f"{t.referencing_column} but not {hub.name}'s key "
-                    f"{t.natural_key_column}: joined in through "
+                    f"{t.natural_key_label}: joined in through "
                     f"{t.through_table} under a ratified key; review the translation model"
                     f"{homonym}",
                     kind=FlagKind.SAT_TRANSLATION,
@@ -994,7 +1001,7 @@ def apply_key_licenses(
                     "link_proposer",
                     f"satellite {sat.name} reads {table}, which carries "
                     f"{t.referencing_column} but not {hub.name}'s key "
-                    f"{t.natural_key_column}: joined in through "
+                    f"{t.natural_key_label}: joined in through "
                     f"{t.through_table} under a ratified key; review the translation model"
                     f"{homonym}",
                     kind=FlagKind.SAT_TRANSLATION,

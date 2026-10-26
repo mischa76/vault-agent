@@ -111,9 +111,13 @@ async def test_the_translation_views_ship_parseable_data_time_gates() -> None:
     for content in ymls.values():
         [model] = yaml.safe_load(content)["models"]  # the 2026-09-13 finding: must parse
         tests = [t for c in model["columns"] for t in c["tests"]]
-        assert "not_null" in tests
+        # WP93: `not_null` carries `where: "<surrogate> is not null"` — a NULL surrogate is a
+        # NULL participant, not a dangling reference (the dict form of a configured test).
+        not_nulls = [t for t in tests if isinstance(t, dict) and "not_null" in t]
+        assert not_nulls, tests
+        assert all("is not null" in t["not_null"]["config"]["where"] for t in not_nulls)
         assert all(t["relationships"]["to"].startswith("ref('") for t in tests
-                   if isinstance(t, dict))
+                   if isinstance(t, dict) and "relationships" in t)
 
 
 async def test_builder_is_idempotent() -> None:

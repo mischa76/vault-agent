@@ -175,7 +175,7 @@ def apply_subtype_feeds(
             state.flag(
                 "subtype_feed",
                 f"satellite {sat.name} on {feed.hub} reads {sat.source_table}, keyed on "
-                f"{t.referencing_column}: {feed.hub}'s key {t.natural_key_column} is joined in "
+                f"{t.referencing_column}: {feed.hub}'s key {t.natural_key_label} is joined in "
                 f"through {t.through_table} ({t.referencing_column} → {t.surrogate_column}); "
                 f"review the translation model",
                 kind=FlagKind.SAT_TRANSLATION,

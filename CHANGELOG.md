@@ -35,6 +35,14 @@ is not the project's.
   repository root as working directory); the loopback-only binding is pinned by a test; a handover
   chapter in the operations manual (15) says what the customer receives, what stays, and what the
   checkpoint's owner field proves.
+- Composite-key translation (WP93, backlog C28): a foreign key on a surrogate now reaches a hub
+  keyed on several columns through one LEFT JOIN that projects every key column — the proposer's
+  trigger reads the hub's key columns, the gate admits a translation over the whole key, the stage
+  hashes the projected columns in the hub's order. A NULL surrogate is a NULL participant, not a
+  dangling reference: the translation view's `not_null` tests hold `where "<surrogate> is not null"`
+  (every translation, WP36's included), and a translated participation is zero-keyed when both the
+  surrogate and the projected key are of null-safe types. The paid chain's last step builds without
+  any hand-made view (release criterion 3's AdventureWorks clause).
 
 ### Security
 - Dependabot alerts 44–46 (`dompurify` 3.4.16, one critical), 47 (`certifi` 2026.5.20, critical),

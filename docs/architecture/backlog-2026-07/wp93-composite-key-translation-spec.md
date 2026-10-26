@@ -76,3 +76,16 @@ this machine. C29.
 ## 5 Guards
 
 `tests/test_wp93_composite_translation.py` (P1–P3), committed red before the change.
+
+## 6 Addendum 2026-10-26, before the build — P4 revised: no zero key into a datetime-keyed hub
+
+Rule 4 as written assumed the zero key reaches `hub_currency_rate`. It cannot: WP83 §2.2 admits null handling only
+where `COALESCE(col, '-2')` is type-safe — integer and character columns — and `CurrencyRateDate` is a datetime; WP86's
+zero-key row would cast `'-1'` into the hub's timestamp column. The rule is therefore: a translated participation is
+zero-keyed when the surrogate's type **and every projected key column's type in the through relation** are null-safe
+(`_group_types`); otherwise the NULL participant stays NULL, exactly as before, and the `where` on the view's
+`not_null` tests is what lets the build pass. The guard changed accordingly in the WP's own commit: the datetime case
+asserts no null handling and no zero-key hub; a character-keyed composite hub (`CurrencyPair`) asserts both. **P4
+revised:** against WP82's bound build every table equal, `hub_currency_rate` included (no zero-key row);
+`link_sales_order` equal in rows; PASS grows by the view and its tests. P3 holds as registered: the demo's stage is
+bound and inferred stages are zero.
