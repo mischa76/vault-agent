@@ -245,14 +245,19 @@ def stage_bindings(staging_metadata: dict[str, Any]) -> dict[str, str]:
 
 def stage_aliases(staging_metadata: dict[str, Any]) -> dict[str, dict[str, str]]:
     """WP82: ``{stage model: {STAGE_COLUMN: relation_column}}`` for every declared stage whose
-    binding a human ratified with aliases (``ratified_columns`` in the staging metadata)."""
+    binding a human ratified with aliases (``ratified_columns`` in the staging metadata) — and,
+    since WP95, the role columns the binding rule derived (``role_columns``)."""
     out: dict[str, dict[str, str]] = {}
     for name, meta in staging_metadata.items():
         if not isinstance(meta, dict) or meta.get("source_binding") != "declared":
             continue
-        columns = meta.get("ratified_columns")
-        if isinstance(columns, dict) and columns:
-            out[name] = {str(k): str(v) for k, v in columns.items()}
+        columns: dict[str, str] = {}
+        for key in ("role_columns", "ratified_columns"):  # WP95 rule-derived, WP82 typed wins
+            value = meta.get(key)
+            if isinstance(value, dict):
+                columns.update({str(k): str(v) for k, v in value.items()})
+        if columns:
+            out[name] = columns
     return out
 
 

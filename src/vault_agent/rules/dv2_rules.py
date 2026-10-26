@@ -798,8 +798,25 @@ def link_binding_by_evidence(
         for ref in link.hub_refs if getattr(ref, "source_key_column", None)
     }
 
+    hubs = {hub.name: hub for hub in getattr(model, "hubs", None) or []}
+
     def tragbar(relation: Any) -> bool:
-        return benannt <= {normalize_identifier(c) for c in relation.column_names}
+        missing = benannt - {normalize_identifier(c) for c in relation.column_names}
+        if not missing:
+            return True
+        # WP95: an alias the relation lacks is no better than none when the relation's foreign
+        # keys say which column the role means — the stage derives that column (the owner's
+        # `StoreID` on `Store`), so the alias does not decline the relation.
+        refs = [ref for ref in link.hub_refs if ref.hub in hubs]
+        participants = [role_participant(ref, hubs[ref.hub]) for ref in refs]
+        aliases = {
+            p.stage_column: normalize_identifier(ref.source_key_column)
+            for p, ref in zip(participants, refs, strict=True)
+            if getattr(ref, "source_key_column", None)
+        }
+        derivable = role_columns_from_foreign_keys(participants, relation, aliases)
+        excused = {aliases[stage] for stage in derivable if stage in aliases}
+        return missing <= excused
 
     attributes: set[str] = set()
     for sat in getattr(model, "satellites", None) or []:
@@ -811,7 +828,6 @@ def link_binding_by_evidence(
     ]
     if len(tragend) == 1:
         return (tragend[0], "payload") if tragbar(tragend[0]) else (None, "ambiguous")
-    hubs = {hub.name: hub for hub in getattr(model, "hubs", None) or []}
     schluessig = []
     for relation in tragend or candidates:
         primary = {normalize_identifier(c) for c in getattr(relation, "primary_key", None) or []}
@@ -1404,3 +1420,101 @@ def optional_participant_remedy(link: str, anchor_hub: str, hub: str) -> str:
         f"read from the same relation; {link} keeps its other participants, so a row without "
         f"a {construct_base_name(hub)} keeps them too"
     )
+
+
+# --- WP95 (C29): a role's column from the relation's foreign keys ---------------------------
+
+@dataclass(frozen=True)
+class RoleParticipant:
+    """One link participation as the binding rule sees it (WP95): the stage column it hashes,
+    the hub, the role, and what identifies the hub to a foreign key — its tables and its key."""
+
+    stage_column: str
+    hub: str
+    role: str | None
+    key: str  # the hub's canonical key column, normalised
+    tables: tuple[str, ...]  # normalised: the hub's source entity and its feeds' tables
+
+
+def role_participant(ref: Any, hub: Any) -> RoleParticipant:
+    """The participation ``ref`` (a ``LinkHubRef``) of ``hub``, as the rule reads it."""
+    return RoleParticipant(
+        stage_column=role_bk_column(canonical_hub_key_column(hub), ref.role),
+        hub=hub.name,
+        role=ref.role,
+        key=normalize_identifier(canonical_hub_key_column(hub)),
+        tables=tuple(
+            normalize_identifier(t) for t in (
+                getattr(hub, "source_entity", None) or "",
+                *(src.source_table for src in (getattr(hub, "sources", None) or [])),
+            ) if t
+        ),
+    )
+
+
+def _fk_resolves_to(p: RoleParticipant, fk: Any) -> bool:
+    """WP95 §2.2: a single-column foreign key means the participation's hub when the hub binds
+    the referenced table — by provenance or by name — or is keyed on the referenced column."""
+    if not getattr(fk, "is_single_column", False):
+        return False
+    referenced = normalize_identifier(fk.references_table)
+    if referenced in p.tables or construct_binds_to_source_table(
+        construct_base_name(p.hub), fk.references_table
+    ):
+        return True
+    return normalize_identifier(fk.references_columns[0]) == p.key
+
+
+def role_columns_from_foreign_keys(
+    participants: list[RoleParticipant], table: Any, derived: dict[str, str] | None = None
+) -> dict[str, str]:
+    """WP95 (C29): the alias a human typed at sign-off, read from the catalogue instead — for
+    every role-qualified participation whose column the relation does not carry (an invented
+    alias counts as none), the relation's single-column foreign key that resolves to its hub,
+    paired as WP41 pairs: one and one; else the column the role names, unique both ways; else
+    the last participation with the last column. Anything else derives nothing and WP73 refuses
+    as before. ``derived`` is what the stage reads today for a stage column (its aliases).
+    Returns ``{STAGE_COLUMN: RELATION_COLUMN}`` normalised; applies nothing itself."""
+    aliases = derived or {}
+    available = {normalize_identifier(c) for c in table.column_names}
+    pending: dict[str, list[RoleParticipant]] = {}
+    consumed: dict[str, set[str]] = {}
+    for p in participants:
+        source = normalize_identifier(aliases.get(p.stage_column, p.stage_column))
+        if source in available:
+            consumed.setdefault(p.hub, set()).add(source)
+            continue
+        if p.role is None:
+            continue  # WP41 rule 3: an unqualified participation says nothing about which key
+        pending.setdefault(p.hub, []).append(p)
+    out: dict[str, str] = {}
+    for hub, parts in pending.items():
+        candidates = list(dict.fromkeys(
+            normalize_identifier(fk.columns[0])
+            for fk in (getattr(table, "foreign_keys", None) or [])
+            if _fk_resolves_to(parts[0], fk)
+            and normalize_identifier(fk.columns[0]) in available
+            and normalize_identifier(fk.columns[0]) not in consumed.get(hub, set())
+        ))
+        if not candidates:
+            continue
+        pairs: dict[str, str] = {}
+        if len(parts) == 1 and len(candidates) == 1:
+            pairs[parts[0].stage_column] = candidates[0]
+        else:
+            left_parts, left_cols = list(parts), list(candidates)
+            for p in parts:
+                assert p.role is not None
+                named = [c for c in candidates if role_names_column(p.role, c)]
+                rivals = [
+                    q for q in parts
+                    if q.role is not None and named and role_names_column(q.role, named[0])
+                ]
+                if len(named) == 1 and len(rivals) == 1:
+                    pairs[p.stage_column] = named[0]
+                    left_parts.remove(p)
+                    left_cols.remove(named[0])
+            if len(left_parts) == 1 and len(left_cols) == 1:
+                pairs[left_parts[0].stage_column] = left_cols[0]
+        out.update(pairs)
+    return out

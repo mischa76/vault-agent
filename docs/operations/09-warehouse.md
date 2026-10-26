@@ -94,6 +94,17 @@ participation's key — through the same override path a ratified mapping uses, 
 `SOURCE_BINDING` flag is raised for it. Translated participations read their translation
 views as above. Built on PostgreSQL in the same demo since 2026-09-13.
 
+**A role's column by rule** (WP95, 2026-10-26): a role-qualified participation with no declared
+source column is staged under `<ROLE>_<KEY>` (`SALES_PERSON_BUSINESSENTITYID`), a column no
+relation carries. Before WP73 judges a candidate relation, the stage reads that column from the
+relation's single-column foreign key that resolves to the participation's hub — one key and one
+participation pair outright; several pair by the column the role names (`sales_person` →
+`SalesPersonID`), unique both ways, and the last participation with the last column. An alias the
+modeler invented (`StoreID` on `Store`) counts as none and is replaced. What the rule derived is
+listed as `role_columns` in `metadata/automatedv.yml` beside the human's `ratified_columns`, and
+both travel in the catalogue as `stage_aliases`. What it cannot derive — a relation without
+foreign keys, two unnamed keys for two roles — stays the sign-off's (`--bind`, 7.5).
+
 **Link bound by its offer** (WP42): a link the modeler named freely — `link_bom` from
 `BillOfMaterials` — matches no table by name. When exactly one declared relation offers all its
 participations (`rules.resolve_link_relation`, reason `offer`; see `E_LINK_KEY_WRONG_COLUMN` in

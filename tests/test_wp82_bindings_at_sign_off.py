@@ -17,6 +17,7 @@ from vault_agent.agents.code_generator import CodeGeneratorAgent
 from vault_agent.agents.orchestrator import apply_human_decision
 from vault_agent.agents.source_mapper import rebind_staging
 from vault_agent.graph import build_graph
+from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import DVModel, FlagKind, LinkHubRef, SourceTable, VaultAgentState
 from vault_agent.ui.app import create_app
 
@@ -210,20 +211,24 @@ async def test_an_alias_feeding_a_role_column_rewrites_the_derived_chain() -> No
     state = await CodeGeneratorAgent().run(state)
     rebind_staging(state)
     meta = _staging(state)["stg_store_sales_person"]
-    assert meta["derived_columns"]["CONTACT_BUSINESSENTITYID"] == "CONTACTID"  # WP41, before
+    # Updated 2026-10-26 (WP95): the role's column is read from Store's foreign key at binding
+    # time — the invented `CONTACTID` is gone before any human types an alias; what the human
+    # still supplies is STOREID, the hub's own key under another name (no foreign key says it).
+    assert meta["derived_columns"]["CONTACT_BUSINESSENTITYID"] == "SALESPERSONID"
+    assert meta["role_columns"] == {"CONTACT_BUSINESSENTITYID": "SALESPERSONID"}
 
     apply_human_decision(state, {"bindings": {"stg_store_sales_person": {
         "relation": "Store",
-        "columns": {"STOREID": "BusinessEntityID", "CONTACTID": "SalesPersonID"},
+        "columns": {"STOREID": "BusinessEntityID"},
     }}})
 
     meta = _staging(state)["stg_store_sales_person"]
     assert meta["source_binding"] == "declared"
-    assert meta["derived_columns"]["CONTACT_BUSINESSENTITYID"] == "SalesPersonID"
-    assert meta["derived_columns"]["CONTACTID"] == "SalesPersonID"
+    assert meta["derived_columns"]["CONTACT_BUSINESSENTITYID"] == "SALESPERSONID"
+    assert meta["derived_columns"]["STOREID"] == "BusinessEntityID"
     # no derived column reads another derived column: every source is a column of Store
-    derived_sources = set(meta["derived_columns"].values())
-    assert derived_sources <= {"BusinessEntityID", "SalesPersonID"}
+    derived_sources = {normalize_identifier(v) for v in meta["derived_columns"].values()}
+    assert derived_sources <= {"BUSINESSENTITYID", "SALESPERSONID"}
 
 
 # ── it travels: the aliases in the catalogue, applied by the next increment ───────────────

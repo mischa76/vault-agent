@@ -50,6 +50,13 @@ is not the project's.
   its remedy names `link_<anchor>_<hub>`; without evidence of nullability the same finding is the
   warning `W_LINK_OPTIONAL_PARTICIPANT`. The catalogue can now say that a column is `nullable`
   (`SourceColumn.nullable`, carried by `metadata/source_catalogue.yml`).
+- A role-qualified participation reads the relation's foreign-key column that resolves to its hub
+  (WP95, backlog C29): the alias a human typed at sign-off (`SALES_PERSON_BUSINESSENTITYID=
+  SalesPersonID`) is derived from the catalogue — one key into the hub, or the column the role names,
+  or the last role with the last column — before WP73 judges the relation, and the evidence tier no
+  longer declines a relation for an alias the modeler invented (`StoreID` on `Store`). Recorded as
+  `role_columns` in the staging metadata and carried as `stage_aliases`. The chain's last step needs
+  four sign-off bindings instead of seven; none of them an alias for a role.
 
 ### Security
 - Dependabot alerts 44–46 (`dompurify` 3.4.16, one critical), 47 (`certifi` 2026.5.20, critical),

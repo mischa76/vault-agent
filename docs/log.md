@@ -10905,3 +10905,41 @@ counts by `psql`; the gate's findings on the replayed model printed and read. Bo
 by hand — no paid run today; the prompt reads remedies (WP46's path), the shape is the owner's own model's. **Bewusst
 nicht getan.** No automatic split (ADR-0007: the modeler decides, the gate refuses); no nullability read from a source
 system (C27); the demo not regenerated; the owner's build not rebuilt.
+
+## [2026-10-26] WP95 built and measured: a role's column from the relation's foreign key — the sign-off alias derived by rule; the chain's last step needs four bindings instead of seven, built equal to WP94 (PASS=420, 178 of 178 idempotent)
+
+**Autor:** Claude Code
+
+C29, on the owner's go to continue after C30. Spec and guards `(the WP95 guard commit)` — see below; the guards' first
+red run corrected the spec's „before": **5** inferred stages without a sign-off binding, not 7 (§6): WP41's applier
+already aliases two of WP82's four role cases from their ratified licenses, and `Store` never reached WP73 at all — the
+evidence tier (WP90) had declined it as `ambiguous` because the `store` participation names `StoreID` explicitly and
+`Store` lacks it. **What changed.** `rules.role_columns_from_foreign_keys` (with `RoleParticipant`, `role_participant`):
+for every role-qualified participation whose column the relation does not carry — an invented alias counts as none —
+the relation's single-column foreign key that resolves to its hub (the hub binds the referenced table, or is keyed on
+the referenced column), paired as WP41 pairs: one and one; else the column the role names, unique both ways; else the
+last participation with the last column. The staging generator records each link participation on its spec
+(`participations`) and runs the rule inside WP73's judgement (`_rejected`) for every candidate relation — decided,
+override, carried, name-bound alike — applying what it derives through WP82's alias path (`apply_stage_aliases`,
+`ratified=False`): a derived column, the null group and the expected columns renamed, the invented alias's name gone;
+recorded as `role_columns` in the staging metadata, carried by the catalogue as `stage_aliases` beside the human's
+`ratified_columns`. The evidence tier excuses an explicit alias the relation lacks when the rule derives that
+participation's column on it (`link_binding_by_evidence`), so `Store` is chosen by its key. WP82's chain test updated
+in this commit (the rule pre-empts the alias it exercised; what the human still types is `STOREID`, the hub's own key
+under another name, which no foreign key says). Manual 9.3, CHANGELOG, index. **Measured, keyless.** P1 by the guards
+(6 of 6). **P2:** the demo's last step replayed as WP94 measured it, no sign-off binding: **4 inferred stages**
+(`stg_work_order_operation`, `stg_product_model`, `stg_product_subcategory`, `stg_business_entity_contact` — three
+relation choices and one relation without foreign keys in the catalogue; before: 5), with those four bound: 0;
+`stg_store_sales_person`'s `role_columns` `STORE_BUSINESSENTITYID: BUSINESSENTITYID`, the sales person's column from
+the license as before. **P3, local PostgreSQL:** the WP94 project regenerated with **four** bindings instead of
+seven, built with zero hand views: PASS=420 both builds, 178 of 178 `INSERT 0 0`; against WP94's build (rebuilt as the
+reference) **178 tables, no difference in any row count** — `link_store_sales_person` 701, the two sales-person links
+17 and 17, `link_business_entity_contact` 909. **Überprüft.** The guards (red before, green now), `uv run pytest` 1356
+passed / 5 skipped, `ruff`, bare `mypy`; both build logs; counts by `psql`; the generated stage's `derived_columns`
+and the catalogue's `stage_aliases` read from the output. Both measurement schemas dropped. **Nur angenommen.** That a
+relation arriving through `carried_schemas` in a later increment is served by the carried `stage_aliases` (the
+catalogue carries no foreign keys, so the rule cannot run there) — keyless by WP82's carry test, not re-measured
+here. **Bewusst nicht getan.** No foreign keys in the catalogue; no pairing of unqualified participations (WP41 rule
+3); the demo not regenerated; the owner's build not rebuilt. **Release criterion 3:** the chain's last step builds
+without a hand-made view with four sign-off bindings, none of them an alias — the criterion's chain clause is met
+since WP93; its „on the owner's build" clause waits for his machine.

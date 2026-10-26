@@ -30,6 +30,7 @@ from vault_agent.rules.dv2_rules import (
     RAW_SOURCE_PREFIX,
     RECORD_SOURCE_COLUMN,
     STAGING_PREFIX,
+    RoleParticipant,
     canonical_hub_key_column,
     construct_base_name,
     construct_binds_to_source_table,
@@ -40,7 +41,9 @@ from vault_agent.rules.dv2_rules import (
     null_safe_type,
     participation_key,
     role_bk_column,
+    role_columns_from_foreign_keys,
     role_fk_column,
+    role_participant,
     satellite_feed,
     satellite_participation_column,
     source_table_on_multi_source_hub,
@@ -117,6 +120,11 @@ class StagingSpec:
     # WP82: the aliases a human ratified with this stage's binding — a subset of `derived`,
     # recorded apart so the catalogue can carry them (`stage_aliases`) to the next increment.
     ratified_columns: dict[str, str] = field(default_factory=dict)
+    # WP95: the link participations this stage hashes, for the rule that reads a role's column
+    # from the relation's foreign keys at binding time; and what that rule derived — a subset of
+    # `derived` like the ratified aliases, carried the same way.
+    participations: list[RoleParticipant] = field(default_factory=list)
+    role_columns: dict[str, str] = field(default_factory=dict)
 
     def add_hashed(self, name: str, value: str | list[str] | _HashDiff) -> None:
         if all(existing != name for existing, _ in self.hashed):
@@ -354,6 +362,8 @@ def collect_staging_specs(
             bk_col = role_bk_column(canonical_hub_key_column(hub), ref.role)
             bk_cols.append(bk_col)
             spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), bk_col)
+            if ref.key_translation is None:
+                spec.participations.append(role_participant(ref, hub))  # WP95
             # WP34 §3.4: when the relation feeding this link calls the hub's key something
             # else, alias it to the canonical name FIRST — the same mechanism a multi-source
             # hub's feed uses above, and for the same reason: the hash must be taken over the
@@ -677,14 +687,24 @@ def missing_stage_columns(spec: StagingSpec, table: SourceTable) -> list[str]:
     return [c for c in stage_key_columns(spec) if c not in available]
 
 
-def apply_stage_aliases(spec: StagingSpec, columns: dict[str, str]) -> None:
+def apply_stage_aliases(
+    spec: StagingSpec, columns: dict[str, str], *, ratified: bool = True
+) -> None:
     """WP82: a human's aliases ``{STAGE_COLUMN: relation_column}`` on one stage — each becomes a
     derived column (WP41's mechanism: AutomateDV derives before it hashes, so the hash reads the
     alias), the null groups and the expected columns name the relation's column instead, and the
-    aliases are recorded for the metadata and the catalogue."""
+    aliases are recorded for the metadata and the catalogue. WP95 applies the rule-derived role
+    columns through the same path (``ratified=False``: recorded as ``role_columns``)."""
     if not columns:
         return
     alias = {normalize_identifier(k): v for k, v in columns.items()}
+    # WP95: a stage column that already read an alias the relation lacks (the modeler's
+    # `StoreID`) reads the relation's column now; the old name leaves the expected columns.
+    previous = {
+        normalize_identifier(spec.derived[k]): v
+        for k, v in columns.items() if k in spec.derived
+    }
+    alias = {**previous, **alias}
     # AutomateDV renders every derived column in ONE select over the source (read in
     # `macros/staging/derive_columns.sql`, 0.11.4: `<source> AS <derived>` per entry, all from
     # `source_data`), so a derived column cannot read another. A WP41 role column that read the
@@ -695,7 +715,10 @@ def apply_stage_aliases(spec: StagingSpec, columns: dict[str, str]) -> None:
             spec.derived[derived_name] = alias[normalize_identifier(source)]
     for stage_column, relation_column in columns.items():
         spec.derived[stage_column] = relation_column
-        spec.ratified_columns[stage_column] = relation_column
+        if ratified:
+            spec.ratified_columns[stage_column] = relation_column
+        else:
+            spec.role_columns[stage_column] = relation_column
     spec.null_groups = [
         (stage_columns, tuple(alias.get(normalize_identifier(c), c) for c in relation_columns), hub)
         for stage_columns, relation_columns, hub in spec.null_groups
@@ -747,6 +770,12 @@ def bind_sources(
         table = declared_tables.get(normalize_identifier(table_name))
         if table is None or spec.translations:
             return False
+        # WP95: a role's column the relation carries under its foreign key's name is derived
+        # first, so the relation is judged with it — the alias a human typed before.
+        apply_stage_aliases(
+            spec, role_columns_from_foreign_keys(spec.participations, table, spec.derived),
+            ratified=False,
+        )
         missing = missing_stage_columns(spec, table)
         if not missing:
             return False
@@ -1045,6 +1074,8 @@ def _stage_metadata(
         meta["derived_columns"] = dict(derived_columns)
     if spec.ratified_columns:
         meta["ratified_columns"] = dict(spec.ratified_columns)  # WP82
+    if spec.role_columns:
+        meta["role_columns"] = dict(spec.role_columns)  # WP95: derived by rule, not typed
     if null_columns:
         meta["null_columns"] = {"optional": [_reserved_alias(c) for c in null_columns]}
     if spec.translations and spec.stage_source:
