@@ -10943,3 +10943,15 @@ here. **Bewusst nicht getan.** No foreign keys in the catalogue; no pairing of u
 3); the demo not regenerated; the owner's build not rebuilt. **Release criterion 3:** the chain's last step builds
 without a hand-made view with four sign-off bindings, none of them an alias — the criterion's chain clause is met
 since WP93; its „on the owner's build" clause waits for his machine.
+
+## [2026-10-26] Correction to the WP95 entry above: its guards were not committed before the change
+
+**Autor:** Claude Code
+
+The WP95 entry says „Spec and guards `(the WP95 guard commit)` — see below"; there is no such commit. The spec and the
+six guards were written and run red (5 inferred stages on the replayed step, the override-path stages refused, the
+assertion outputs read in the session) and then committed together with the change in `2b93501` — against the
+invariant „write the guard before the change", which WP92, WP93 and WP94 followed today (`019b153`, `3132831`,
+`7079618`). What the record can still show: the guards' red run is described in the spec's §6 (written from it) and
+the tests assert outcomes the code before `2b93501` demonstrably did not produce (the `role_columns` key, the
+`Store` binding); what it cannot show is a commit in which they fail. Noted so the next reader does not look for one.
