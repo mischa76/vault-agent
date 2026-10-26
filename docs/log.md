@@ -10781,3 +10781,37 @@ in one moved the others; that vitest ran at the root, without `frontend/vite.con
 on environment, not on Mermaid 12. The directory is removed; the two sequential runs from `frontend/` (29 of 29) and
 CI stand. Lesson for this container: parallel shell calls take absolute paths or a subshell `(cd … && …)`, never a
 bare `cd`. **Überprüft.** The directory's timestamp against the run's start time; its contents (caches only).
+
+## [2026-10-26] ADR-0015 accepted (Option C) and WP92 built: a workbench root moves whole, the loopback binding pinned, a handover chapter — release criterion 4 met
+
+**Autor:** Claude Code
+
+The owner chose **Option C** on ADR-0015 today (the consultant's single-user tool now; a team tool as its own ADR when a
+customer asks) and gave the go to proceed as recommended. The ADR's status moved Proposed → Accepted with a dated
+Decision section (`VAULT_AGENT_ALLOW_RECORD_EDIT=1`, `019b153`, together with WP92's spec and its guards, red 3 of 4).
+**What changed.** `RunManager.read` reports a run's `out_dir` as the store locates it now — `<root>/<project>/runs/<stamp>`,
+the folder `run.json` sits in — instead of the string the file recorded at start, and `_reconcile` works on the file's own
+folder; every other reader (`continue_`, `_state`, `decide`, `artefacts`, `events`) takes its meta from `read`. The file
+keeps the recorded path as a record. That is C24 whole: a root copied or moved to another path or machine, or opened
+from another working directory, lists the same runs, serves a paused run's checkpoint and takes its decision, and reads a
+finished run's artefacts, model and report. The shipped demo no longer needs the repository root as working directory
+(14.1 corrected). `tests/test_wp92_relocatable_root.py`: P1 a paused run under root A, A moved to B, decided and
+finished under B; P2 a relative root, the app restarted from another directory with the absolute one; P3 the shipped
+demo opened from a temporary directory, five runs with `run.json` and `dbt_project.yml` among their artefacts; P4
+`vault-agent ui` passes `host="127.0.0.1"` and refuses `--host` (a pin, green by construction, recorded as such in
+the spec). New chapter `docs/operations/15-handover.md`: the root is the engagement; what the customer receives (the
+run folder's deliverables, named as 6.4 names them); what stays (`.vault-agent/`, the key, the workbench); the root
+travels whole; residency per engagement; what the owner field proves — a name typed, not an identity (ADR-0015's
+neutral consequence). Contents table (which had no row for chapter 14 either — added), `docs/index.md` (chapter, spec,
+the ADR's row now Accepted), CHANGELOG under Unreleased. **Überprüft.** Keyless: the four guards (P1–P3 red on
+`019b153`, green now), `uv run pytest` 1334 passed / 5 skipped, `ruff`, bare `mypy`. **Live, on this container:** the
+workbench started from `/tmp` with `--root <absolute demo path>` on port 8766 answered over the API with the demo's
+five finished runs, every `out_dir` under the demo root, 389 / 253 / 262 / 104 / 90 artefacts and 40 / 29 / 26 / 10 / 7
+hubs per run, and a TCP connect to the container's LAN address (192.168.1.27:8766) was refused while 127.0.0.1
+answered; the demo folder unchanged afterwards (`git status`). **Nur angenommen.** That a root moved to another
+*machine* behaves as one moved to another path — the test moves a directory, the mechanism (locate by place under the
+root) does not distinguish the two; and that the frontend's Run perspective, which shows `out_dir`, needs nothing
+(it shows what the API reports — jsdom only). **Bewusst nicht getan.** No rewrite of `cli_equivalents`, `pending.json`
+or trace paths inside a moved run (a record of what was run where); no `--host` option, no authentication, no shared
+checkpointer (Option B's ADR). **Release criterion 4 is met by this entry** — decided (ADR-0015 Accepted) and its
+consequences built and measured as above; criteria 1, 2, 3 (C28 open), 5 remain.

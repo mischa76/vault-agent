@@ -17,8 +17,8 @@ uv run vault-agent ui --root ~/vault-agent-workbench --port 8765
 Binds to `127.0.0.1` only. `--root` is the folder holding the projects; it is created. Keep it
 **outside the repository**: a run holds the requirements, contracts and models of whoever started it,
 and `workbench/` is git-ignored since 2026-10-22 (C14) because earlier runs had been committed. The
-shipped demo is the exception — `--root demo/workbench-adventureworks`, started from the repo root
-(a run's `out_dir` is stored relative to the directory the workbench was started in). Open
+shipped demo is the exception — `--root demo/workbench-adventureworks`, from any working directory
+(since WP92 a run is located by its place under the root, not by the path `run.json` recorded). Open
 `http://127.0.0.1:8765/` — without a built bundle the page says so and names the build command;
 the API (`/docs`) works either way.
 

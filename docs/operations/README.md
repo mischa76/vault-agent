@@ -24,6 +24,8 @@ textbook, and it explains code internals only where they matter for operations
 | 11 | [Evaluation & release operations](11-evaluation.md) | Eval harness, gates, ablation, model-release protocol |
 | 12 | [Troubleshooting & FAQ](12-troubleshooting.md) | Common failure modes, exit codes |
 | 13 | [Glossary](13-glossary.md) | Short definitions, linked from all chapters |
+| 14 | [The workbench](14-workbench.md) | The pipeline as a local web application: API, frontend, console |
+| 15 | [Handover](15-handover.md) | What the customer receives at the end of an engagement, what stays, how a project root moves, residency per engagement (ADR-0015) |
 
 ## Conventions
 

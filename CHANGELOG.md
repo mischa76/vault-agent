@@ -27,6 +27,14 @@ is not the project's.
   mapping file's multi-source answers (`mapping_sources`), `--profiling` and `--target-platform`;
   a test holds every option of `run` and `resume` against the API's request models, in both
   directions, so the next CLI option cannot bypass the workbench silently.
+- Positioning decided (ADR-0015, accepted 2026-10-26, Option C): vault-agent is the consultant's
+  single-user tool, run inside an engagement; a team tool with logins and a shared checkpointer is a
+  later ADR of its own. Its consequences (WP92): a workbench root can be copied or moved to another
+  path or machine and opened there from any working directory — a run is located by its place under
+  the root, never by the path `run.json` recorded (backlog C24; the shipped demo no longer needs the
+  repository root as working directory); the loopback-only binding is pinned by a test; a handover
+  chapter in the operations manual (15) says what the customer receives, what stays, and what the
+  checkpoint's owner field proves.
 
 ### Security
 - Dependabot alerts 44–46 (`dompurify` 3.4.16, one critical), 47 (`certifi` 2026.5.20, critical),

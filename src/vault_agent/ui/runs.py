@@ -104,7 +104,7 @@ class RunManager:
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
             if meta.get("status") != "running":
                 continue
-            out_dir = Path(meta["out_dir"])
+            out_dir = meta_path.parent  # WP92: the file's own folder, never the recorded path
             thread_id = meta.get("thread_id")
             stamp = datetime.now(UTC).isoformat(timespec="seconds")
             if thread_id and Path(cli._checkpoint_db(out_dir)).exists():
@@ -135,10 +135,16 @@ class RunManager:
         return self.store.run_dir(project_id, stamp) / "run.json"
 
     def read(self, run_id: str) -> dict[str, Any]:
+        """The run's ``run.json`` — with ``out_dir`` as the store locates the run *now* (WP92
+        §2.1): the file keeps the path recorded at start as a record, but a root that was moved,
+        copied or opened from another working directory would otherwise point at a folder that
+        is not there. The store's place under the root is the one location a run has."""
         path = self._meta_path(run_id)
         if not path.is_file():
             raise ProjectError(f"no run {run_id!r}")
-        return cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
+        meta = cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
+        meta["out_dir"] = str(path.parent)
+        return meta
 
     def _update(self, run_id: str, **fields: Any) -> dict[str, Any]:
         data = self.read(run_id)
