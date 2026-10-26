@@ -45,7 +45,7 @@ history, not the run folder, says who changed what.
 - The workbench itself. It listens on `127.0.0.1` only and has no option to change that (pinned by
   `tests/test_wp92_relocatable_root.py`); customer staff take part at the checkpoints in a joint
   session, on the consultant's screen or a workstation the customer provides, not through logins of
-  their own.
+  their own. On a server without a browser the consultant reaches it through an SSH tunnel (14.1).
 
 ## 15.4 The root travels whole
 

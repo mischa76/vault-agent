@@ -14,7 +14,12 @@ uv sync --extra dev --extra demo --extra ui   # fastapi + uvicorn
 uv run vault-agent ui --root ~/vault-agent-workbench --port 8765
 ```
 
-Binds to `127.0.0.1` only. `--root` is the folder holding the projects; it is created. Keep it
+Binds to `127.0.0.1` only — and has no option to change that (ADR-0015; pinned by
+`tests/test_wp92_relocatable_root.py`). On a machine without a browser — a container, a server — reach
+it through an SSH tunnel from the workstation: `ssh -L 8765:127.0.0.1:8765 <host>` and open
+`http://127.0.0.1:8765/` locally. The tunnel is authenticated by SSH and open to one person, and the
+server still has no listener on the network. VS Code's Remote-SSH forwards the port by itself when the
+server starts. `--root` is the folder holding the projects; it is created. Keep it
 **outside the repository**: a run holds the requirements, contracts and models of whoever started it,
 and `workbench/` is git-ignored since 2026-10-22 (C14) because earlier runs had been committed. The
 shipped demo is the exception — `--root demo/workbench-adventureworks`, from any working directory

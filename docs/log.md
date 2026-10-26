@@ -10815,3 +10815,15 @@ root) does not distinguish the two; and that the frontend's Run perspective, whi
 or trace paths inside a moved run (a record of what was run where); no `--host` option, no authentication, no shared
 checkpointer (Option B's ADR). **Release criterion 4 is met by this entry** — decided (ADR-0015 Accepted) and its
 consequences built and measured as above; criteria 1, 2, 3 (C28 open), 5 remain.
+
+## [2026-10-26] Manual: how the workbench is reached on a machine without a browser — an SSH tunnel, in 14.1 and 15.3
+
+**Autor:** Claude Code
+
+The owner asked how the workbench is used when the server it runs on has no GUI — `vault-dev` has none. The answer
+was nowhere in the manual: 14.1 said only „binds to 127.0.0.1". Added to 14.1: `ssh -L 8765:127.0.0.1:8765 <host>`
+from the workstation and the local browser on `http://127.0.0.1:8765/`; the tunnel is authenticated by SSH and open to
+one person, the server keeps no network listener — the same security property ADR-0015 keeps, which is why no `--host`
+is needed; VS Code Remote-SSH forwards the port by itself. 15.3 points there. **Überprüft.** The binding and the
+absence of `--host` by WP92's P4 and the live probe of 2026-10-26 (LAN address refused). **Nur angenommen.** The tunnel
+itself was not exercised in this session — it is SSH's standard local forward, nothing of ours.
