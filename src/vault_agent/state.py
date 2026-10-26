@@ -168,6 +168,9 @@ class SourceColumn(BaseModel):
     name: str
     type: str = ""
     comment: str | None = None
+    # WP94: whether the source allows NULL here — `None` when the catalogue does not say (every
+    # catalogue before 2026-10-26). Read by the optional-participant gate; carried by the catalogue.
+    nullable: bool | None = None
 
 
 class ForeignKeyRef(BaseModel):

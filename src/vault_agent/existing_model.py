@@ -24,7 +24,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
-from vault_agent.state import DVModel
+from vault_agent.state import DVModel, SourceColumn
 
 # The logical model a run writes under its output ``metadata/`` directory, and the file a
 # later extension run reads back. One definition, imported by the writer and the loader.
@@ -169,6 +169,18 @@ def render_extension_prompt_section(existing: DVModel | None) -> str:
     return "\n" + "\n".join(lines) + "\n"
 
 
+def _column_entry(column: SourceColumn) -> str | dict[str, Any]:
+    """A bare name when nothing else is known; else name, type and (WP94) nullability."""
+    if not column.type and column.nullable is None:
+        return column.name
+    entry: dict[str, Any] = {"name": column.name}
+    if column.type:
+        entry["type"] = column.type
+    if column.nullable is not None:
+        entry["nullable"] = column.nullable
+    return entry
+
+
 def dump_source_catalogue(
     tables: list[Any],
     bindings: dict[str, str] | None = None,
@@ -190,7 +202,7 @@ def dump_source_catalogue(
         # WP83: a column keeps its declared type, so a later increment's zero-key rule can read
         # it; an untyped column stays a bare name — untyped catalogues are byte-identical.
         columns: list[Any] = [
-            {"name": c.name, "type": c.type} if c.type else c.name for c in table.column_refs
+            _column_entry(c) for c in table.column_refs
         ]
         entry: dict[str, Any] = {"table": table.table, "columns": columns}
         if table.schema_name is not None:

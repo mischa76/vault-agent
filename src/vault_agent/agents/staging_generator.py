@@ -37,6 +37,7 @@ from vault_agent.rules.dv2_rules import (
     is_composite_key,
     is_reserved_column,
     normalize_identifier,
+    null_safe_type,
     participation_key,
     role_bk_column,
     role_fk_column,
@@ -508,15 +509,8 @@ def collect_staging_specs(
 # WP83: the declared types `COALESCE(col, '-2')` accepts on every platform — integers and
 # character strings. A date, a boolean, a UUID would fail at build, so they keep today's
 # behaviour; so does an untyped column.
-_NULL_SAFE_TYPES = frozenset({
-    "int", "integer", "bigint", "smallint", "tinyint",
-    "char", "nchar", "varchar", "nvarchar", "text", "string",
-})
-
-
 def _null_safe_type(declared: str) -> bool:
-    base = re.split(r"[\s(]", declared.strip().lower(), maxsplit=1)[0] if declared else ""
-    return base in _NULL_SAFE_TYPES
+    return null_safe_type(declared)  # the rule lives in rules/ since WP94 (the gate reads it too)
 
 
 def _group_types(

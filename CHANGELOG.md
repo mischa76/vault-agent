@@ -43,6 +43,13 @@ is not the project's.
   (every translation, WP36's included), and a translated participation is zero-keyed when both the
   surrogate and the projected key are of null-safe types. The paid chain's last step builds without
   any hand-made view (release criterion 3's AdventureWorks clause).
+- An optional participation whose hub cannot be zero-keyed is a link of its own (WP94, backlog
+  C30, the owner's choice): `E_LINK_OPTIONAL_PARTICIPANT` refuses a link of three or more
+  participations that takes such a hub through a column declared nullable or profiled with NULLs —
+  AutomateDV drops every row with a NULL foreign-key hash, with all its other relationships — and
+  its remedy names `link_<anchor>_<hub>`; without evidence of nullability the same finding is the
+  warning `W_LINK_OPTIONAL_PARTICIPANT`. The catalogue can now say that a column is `nullable`
+  (`SourceColumn.nullable`, carried by `metadata/source_catalogue.yml`).
 
 ### Security
 - Dependabot alerts 44–46 (`dompurify` 3.4.16, one critical), 47 (`certifi` 2026.5.20, critical),

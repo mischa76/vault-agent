@@ -1353,3 +1353,54 @@ def hub_collision_remedy(
             + _link_hint(drop)
         ),
     )
+
+
+# WP83 §2.2 / WP94: the declared types a zero key can be written into — AutomateDV's
+# `null_columns` puts '-1'/'-2' into the stage column, WP86's row casts them into the hub's.
+# A date, a boolean, a UUID cannot hold them; an untyped column is not evidence either way.
+NULL_SAFE_TYPES = frozenset({
+    "int", "integer", "bigint", "smallint", "tinyint",
+    "char", "nchar", "varchar", "nvarchar", "text", "string",
+})
+
+
+# WP94: the declared types a zero key can NOT be written into — named, so that a type the
+# catalogue could not classify (AdventureWorks stores `AS` for a computed column) is no evidence.
+ZERO_KEY_INCAPABLE_TYPES = frozenset({
+    "date", "time", "datetime", "datetime2", "smalldatetime", "datetimeoffset", "timestamp",
+    "bit", "boolean", "bool", "uniqueidentifier", "uuid", "decimal", "numeric", "money",
+    "smallmoney", "float", "real", "double", "binary", "varbinary", "bytea", "xml", "json",
+})
+
+
+def _type_base(declared: str) -> str:
+    return re.split(r"[\s(]", declared.strip().lower(), maxsplit=1)[0] if declared else ""
+
+
+def null_safe_type(declared: str) -> bool:
+    """True when a declared type (with or without a length) is integer or character."""
+    return _type_base(declared) in NULL_SAFE_TYPES
+
+
+def zero_key_incapable_type(declared: str) -> bool:
+    """True when a declared type is one a zero key cannot be cast into (WP94's gate reads
+    this, never the negation of `null_safe_type`: an unknown word is no evidence)."""
+    return _type_base(declared) in ZERO_KEY_INCAPABLE_TYPES
+
+
+def own_link_name(anchor_hub: str, hub: str) -> str:
+    """WP94: the link of its own an optional participation moves into — `link_<anchor>_<hub>`."""
+    return f"link_{construct_base_name(anchor_hub)}_{construct_base_name(hub)}"
+
+
+def optional_participant_remedy(link: str, anchor_hub: str, hub: str) -> str:
+    """WP94 (C30, the owner's choice): a participation that can be NULL, into a hub whose key
+    cannot hold a zero key, drops the whole row from the link — so it becomes a link of its own
+    between the anchor (the hub bound to the relation the link reads) and that hub, and the big
+    link keeps its other participants whether or not this one is present."""
+    own = own_link_name(anchor_hub, hub)
+    return (
+        f"take {hub} out of {link}: model {own}({anchor_hub}, {hub}) as a link of its own, "
+        f"read from the same relation; {link} keeps its other participants, so a row without "
+        f"a {construct_base_name(hub)} keeps them too"
+    )

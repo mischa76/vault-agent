@@ -45,6 +45,8 @@ from vault_agent.rules.dv2_rules import (
     is_composite_key,
     is_valid_construct_name,
     normalize_identifier,
+    null_safe_type,
+    optional_participant_remedy,
     participation_key,
     resolve_link_relation,
     role_bk_column,
@@ -57,12 +59,14 @@ from vault_agent.rules.dv2_rules import (
     second_hub_remedy,
     source_table_on_multi_source_hub,
     unread_payload,
+    zero_key_incapable_type,
 )
 from vault_agent.state import (
     Hub,
     IssueSeverity,
     Link,
     RetiredConstruct,
+    SourceTable,
     ValidationIssue,
     ValidationReport,
     VaultAgentState,
@@ -118,6 +122,89 @@ def _shares_payload_namespace(
             return True
         seen |= own
     return False
+
+
+def _optional_participants(
+    link: Link,
+    hubs: dict[str, Hub],
+    state: VaultAgentState,
+    bound: list[SourceTable],
+    declared: dict[str, SourceTable],
+) -> list[ValidationIssue]:
+    """WP94 (C30): a participation that can be NULL, into a hub whose key cannot hold a zero key
+    (WP83's types), drops the whole row from a link of three or more — with every other
+    relationship the row carried, since AutomateDV keeps only rows whose FK hashes are all
+    non-NULL. Evidence of NULLs (the column's ``nullable``, a profile's ``null_ratio``) makes it
+    an error with the own-link remedy; no evidence either way, a warning with the same remedy;
+    a column declared not nullable, an untyped key, or an unknown relation: nothing."""
+    if len(link.hub_refs) < 3 or not bound:
+        return []
+    relation = bound[0]
+    columns = {normalize_identifier(c.name): c for c in relation.column_refs}
+    profiles = {
+        normalize_identifier(table): {normalize_identifier(c): p for c, p in cols.items()}
+        for table, cols in state.profiling.items()
+    }.get(normalize_identifier(relation.table), {})
+    anchor = next(
+        (ref for ref in link.hub_refs
+         if ref.hub in hubs and hub_binds_to_source_table(hubs[ref.hub], relation.table)),
+        link.hub_refs[0],
+    )
+    issues: list[ValidationIssue] = []
+    for ref in link.hub_refs:
+        hub = hubs.get(ref.hub)
+        if hub is None or ref is anchor:
+            continue
+        t = ref.key_translation
+        if t is not None:
+            through = declared.get(normalize_identifier(t.through_table))
+            if through is None:
+                continue
+            through_types = {normalize_identifier(c.name): c.type for c in through.column_refs}
+            key_columns = [normalize_identifier(c) for c in t.natural_keys]
+            key_types = [through_types.get(c, "") for c in key_columns]
+            read = [normalize_identifier(t.referencing_column)]
+        else:
+            if is_composite_key(hub):
+                key_columns = hub_key_columns(hub)
+            elif ref.source_key_column is not None:
+                key_columns = [normalize_identifier(ref.source_key_column)]
+            else:
+                key_columns = [role_bk_column(canonical_hub_key_column(hub), ref.role)]
+            key_types = [
+                columns[c].type if c in columns else "" for c in key_columns
+            ]
+            read = key_columns
+        if not key_types or any(not kt for kt in key_types):
+            continue  # an untyped column is no evidence either way
+        if all(null_safe_type(kt) for kt in key_types):
+            continue  # a NULL here becomes the zero key (WP83/WP86)
+        if not any(zero_key_incapable_type(kt) for kt in key_types):
+            continue  # an unclassified type (`AS`, a computed column) is no evidence
+        evidence: bool | None = None
+        for column in read:
+            declared_column = columns.get(column)
+            if declared_column is not None and declared_column.nullable is not None:
+                evidence = bool(evidence) or declared_column.nullable
+            profile = profiles.get(column)
+            if profile is not None:
+                evidence = bool(evidence) or profile.null_ratio > 0
+        if evidence is False:
+            continue
+        key_label = ", ".join(f"{c} {kt}" for c, kt in zip(key_columns, key_types, strict=True))
+        issues.append(_issue(
+            "error" if evidence else "warning",
+            "E_LINK_OPTIONAL_PARTICIPANT" if evidence else "W_LINK_OPTIONAL_PARTICIPANT",
+            link.name,
+            f"participation {ref.hub} of link {link.name!r} reads "
+            f"{relation.table}.{', '.join(read)} — "
+            f"{'nullable' if evidence else 'of unknown nullability'} — into a hub whose key "
+            f"({key_label}) cannot hold a zero key; a NULL there drops the row with its "
+            f"{len(link.hub_refs) - 1} other participants, since the link keeps only rows "
+            f"whose foreign-key hashes are all present",
+            remedy=optional_participant_remedy(link.name, anchor.hub, ref.hub),
+        ))
+    return issues
 
 
 def _issue(
@@ -996,6 +1083,7 @@ class ValidatorAgent(BaseAgent):
             for lic in state.link_proposals.ratified_licenses()
             if lic.key_translation is not None
         }
+        hubs_by_name = {hub.name: hub for hub in state.dv_model.hubs}  # WP94
         for link in state.dv_model.links:
             if link.name in pre_existing:
                 continue
@@ -1012,6 +1100,8 @@ class ValidatorAgent(BaseAgent):
                 else columns
             )
             where = bound[0].table if bound else "the declared source schema"
+            # WP94: an optional participation whose hub cannot be zero-keyed — a link of its own.
+            issues.extend(_optional_participants(link, hubs_by_name, state, bound, declared_tables))
             for ref in link.hub_refs:
                 if ref.key_translation is not None and (
                     ref.hub, normalize_identifier(ref.key_translation.referencing_column)

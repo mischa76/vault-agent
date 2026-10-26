@@ -43,6 +43,10 @@ GATES: dict[str, str] = {
     "W_HUB_NO_SAT": (
         "A hub has no satellite: no descriptive data captured; fine for a pure reference hub."
     ),
+    "W_LINK_OPTIONAL_PARTICIPANT": (
+        "E_LINK_OPTIONAL_PARTICIPANT's shape when nothing says whether the column can be NULL; "
+        "same remedy, advisory (WP94)."
+    ),
     "W_BK_COLLISION_RISK": (
         "Different source entities share one business-key name across hubs; a collision code "
         "may be needed before their values merge."
@@ -55,6 +59,11 @@ GATES: dict[str, str] = {
     "E_LINK_DUP_ROLE": (
         "The same hub participates twice with the same (or no) role; qualify each repeat with "
         "a distinct role."
+    ),
+    "E_LINK_OPTIONAL_PARTICIPANT": (
+        "A link of three or more takes a hub whose key cannot hold a zero key (a timestamp, say) "
+        "through a column that can be NULL; such a row drops with all its other relationships. "
+        "The remedy names the link of its own (WP94)."
     ),
     "E_DRIVING_KEY_NOT_IN_LINK": (
         "The declared driving key names participations the link does not have."

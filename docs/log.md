@@ -10869,3 +10869,39 @@ dropped afterwards. **Nur angenommen.** That dbt's `config: where:` on a generic
 the demo (`demo/workbench-adventureworks/`) not regenerated — its README and `inferred_views.sql` still describe ten
 views; the chain-level claim of criterion 3 („on the five-domain chain and on the owner's build") is met for the
 chain's last step by this entry and waits for the owner's build.
+
+## [2026-10-26] WP94 built and measured: an optional participation whose hub cannot be zero-keyed is a link of its own — the gate and its remedy; the remedy applied to the chain's last step gives `link_sales_order` all 31 465 orders, PASS=420 both builds, 178 of 178 idempotent
+
+**Autor:** Claude Code
+
+C30, the owner's decision of today („as a link of its own") and his go to continue. Spec and guards `7079618` (red 4 of 7,
+three pins). **What changed.** `SourceColumn.nullable: bool | None` (the catalogue carries it when known —
+`dump_source_catalogue`; every catalogue before today says nothing); `rules.null_safe_type` (WP83's set, moved out of
+the staging generator because a second reader appeared), `rules.zero_key_incapable_type` (a named set: date/time,
+boolean, uuid, decimal/money/float, binary, xml/json — **not** the negation of null-safe, because AdventureWorks'
+catalogue stores `AS` as the type of a computed column (`Customer.AccountNumber`, `SalesOrderHeader.SalesOrderNumber`),
+and the first run of the gate named `hub_customer` and `hub_sales_order` for it: an unclassified type is no evidence),
+`rules.own_link_name`/`optional_participant_remedy`. The gate, in the validator's per-link loop after WP42 has said
+which relation the link reads: a link of three or more participations; a participation whose hub's key columns are of
+a declared, zero-key-incapable type — a translated one judged by the through relation's projected key, a plain one by
+the relation's columns; the relation column's `nullable` or a profile's `null_ratio > 0` →
+**`E_LINK_OPTIONAL_PARTICIPANT`** with the remedy `link_<anchor>_<hub>` (the anchor is the hub bound to the relation
+the link reads); no evidence either way → **`W_LINK_OPTIONAL_PARTICIPANT`**, same remedy; declared not nullable, or
+profiled without NULLs, or untyped → nothing. The console's catalogue, chapter 8, CHANGELOG, index. **Measured,
+keyless.** P1 by the guards (7 of 7). **P2:** the demo's last step replayed as WP93 did — the warning on
+`link_sales_order` naming `hub_currency_rate` and `link_sales_order_currency_rate`, the error once
+`SalesOrderHeader.CurrencyRateID` is marked nullable; no other finding on the whole model after the `AS` correction.
+**P3, local PostgreSQL:** the remedy applied by hand to the replayed state (`regen94.py`: the rate out of
+`link_sales_order`, `link_sales_order_currency_rate(hub_sales_order, hub_currency_rate)` with WP93's translation),
+regenerated with WP82's seven bindings — **193 stages, 0 inferred; the new link's stage bound by rule** (the offer
+tier, `SalesOrderHeader`, no sign-off needed) — built with zero hand views: **PASS=420 both builds, 178 of 178
+`INSERT 0 0`** (WP93: 417/177 — one link, one stage, one translation view more; ten tests both, the rate's four moved to
+the new view). **Rows exactly as pre-registered:** `link_sales_order` **13 976 → 31 465**, every order, 27 659 of them
+with the zero-keyed sales person; `link_sales_order_currency_rate` **13 976** (one row per order with a rate);
+`hub_currency_rate` 13 532 both; every other table equal (177 shared tables, one difference). **Überprüft.** The
+guards (red on `7079618`, green now), `uv run pytest` 1350 passed / 5 skipped, `ruff`, bare `mypy`; both build logs;
+counts by `psql`; the gate's findings on the replayed model printed and read. Both measurement schemas dropped.
+**Nur angenommen.** That the modeler, handed the remedy in the re-model loop, returns the split the measurement applied
+by hand — no paid run today; the prompt reads remedies (WP46's path), the shape is the owner's own model's. **Bewusst
+nicht getan.** No automatic split (ADR-0007: the modeler decides, the gate refuses); no nullability read from a source
+system (C27); the demo not regenerated; the owner's build not rebuilt.
