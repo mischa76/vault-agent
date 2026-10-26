@@ -1,6 +1,6 @@
 # ADR-0015: Positioning — the consultant's single-user tool, or a team tool
 
-**Status:** Proposed (draft by Claude, 2026-10-23 — the decision is the owner's)
+**Status:** Accepted (2026-10-26 — the owner chose Option C; draft by Claude, 2026-10-23; consequences built as WP92)
 **Date:** 2026-10-23
 **Decision makers:** Mischa Eismann
 
@@ -74,3 +74,12 @@ C24 becomes part of it.
 - ADR-0014 — the workbench as a local, single-process application.
 - `docs/architecture/deployment-residency.md` — the Bedrock/Vertex routes.
 - Backlog `backlog-2026-10-candidates-2.md` (C20), `backlog-2026-10-candidates-3.md` (C24).
+
+## Decision (2026-10-26)
+
+The owner chose **Option C** on 2026-10-26: vault-agent stays the consultant's single-user tool now, run by him
+inside an engagement; the team tool (Option B) is a later ADR of its own, opened when a customer asks to run it
+themselves, with that customer's constraints (IdP, hosting, residency). The consequences of A are built as **WP92**
+(`backlog-2026-07/wp92-positioning-consequences-spec.md`): relocatable project roots (C24), the local-only binding
+pinned by a test, and a handover chapter in the operations manual. Release criterion 4
+(`release-1.0-criteria.md`) is met when WP92's log entry records them.
