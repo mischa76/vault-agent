@@ -11295,3 +11295,62 @@ That no agent needed the removed numbers to act correctly — the admission rule
 2026-10-09 (raised so that condensing stops costing knowledge) stands, which is why „Open items" was otherwise left
 whole. **Bewusst nicht getan.** No further trim of „Open items"; the health check's other changes were to the
 owner's user settings, not to this repository.
+
+## [2026-10-30] The C1 experiment, measured: requirements drafted from the catalogue against the analyst's documents, two chains on one commit — the draft keeps Microsoft's natural keys the prose had lost (14 of 39 hubs on an ID column against 29 of 40), builds fewer constructs, costs 60 % more review decisions, and both arms end green; the control is the twenty-second chain and fails the review ceiling by product change
+
+**Autor:** Claude Code
+
+On the owner's commission of today („mach das experiment aus C1 mit abgeleiteten anforderungen"), after ADR-0018's
+acceptance. **The instrument** (`eval/adventureworks/draft_requirements.py`, committed with the pre-registration
+`5d29d73`): a deterministic draft per subject area from the extract — a table is a *relationship* when two or more
+foreign keys cover its primary key (12 across the five areas), a *subtype* when exactly one does (6: `Person`,
+`Employee`, `SalesPerson`, `Vendor`, `Store`, `Password`), else an *entity* identified by Microsoft's `AK_*`
+natural key where one exists and is not the GUID, else by the primary key; columns in words, never by physical
+name; one requirement per described column, one per foreign key, no analyst's sentence anywhere. Six cases
+`adventureworks_drafted_*` that are the authored ones with exactly the requirements exchanged, and their chain.
+**The design**: arm A, the authored chain, re-run on the same commit as the control (the generator had changed
+since the twenty-first chain, WP79–WP99); arm T, the drafted chain; both unattended with `--keep-outputs`; seven
+predictions and their falsifiers in `c1-experiment-drafted-requirements.md` §3 before the run, the comparison
+`eval/c1_compare.py` before the result. **Measured, live** (both results and the kept outputs mirrored to `tank`,
+48 files): arm A `20261030T184653194084Z` — 40 hubs / 50 links / 87 satellites, decisions 16, 8, 27, 8, 32 = 91,
+159 review items, every gate 1.0 on every step, `mapping_coverage` 0.75 on step 2, 23.0 min, 109 calls, 477k
+uncached input, 257k output; arm T `20261030T184653223619Z` — 39 / 46 / 84, decisions 21, 12, 49, 16, 48 = 146,
+215 items, every gate 1.0, `mapping_coverage` 1.0 on every step, 18.5 min, 104 calls, 394k uncached input, 205k
+output (USD not computed here; the earlier entries' rate puts each arm near 4–5 USD). **Against the predictions.**
+P1 held for T (no own hub for any subtype; all six feed `hub_business_entity`); arm A built one, `hub_national_id`
+on `Employee.NationalIDNumber`, zero satellites — WP34's invention symptom, 1 against the baseline of 2, a hub a
+human declines. P2 held in both arms: no relationship table has a hub, all 12 are read by a link; the two C1 tables
+are a link in both (`BusinessEntityAddress` with a satellite in T, without in A). **P3 falsified and inverted:** T
+keys 14 of 39 hubs on an `…ID` column, A 29 of 40 — the draft names the catalogue's natural keys (`ProductNumber`,
+`CardNumber`, the `Name` of every reference table) and the modeler keyed 21 hubs on them (`hub_product`,
+`hub_credit_card`, `hub_department`, `hub_currency`, `hub_location`, …) where the analyst's prose led to the
+surrogate; C1's warning ran the other way. The consequence shows in the proposals: 7 `declared_fk_translated` in T
+(hubs on natural keys make the surrogate-referencing foreign keys WP36's case), 0 in A — the translation path's
+first seven live cases in one chain. **P4 falsified:** T has one hub, four links and three satellites fewer; the
+hubs only in A are `hub_national_id`, `hub_inventory_transaction`, and the two order-line hubs named differently
+in T (`hub_sales_order_detail`, `hub_purchase_order_detail`, `hub_transaction_history`); the satellites differ in
+cut, not in coverage. **P5 held:** 146 against 91 decisions, +60 %, on every step — the per-column requirements
+become mapping and contract questions. P6 held (both green), P7 held (T's coverage 1.0 everywhere). Reported: 24
+against 22 cross-domain links; 292 `exact_name` mappings in both, A's other 4 `comment_grounded`, T's
+`llm_semantic`. **What it says for C1:** a deterministic draft does not make the vault take the source's shape
+in the way C1 feared — subtypes stay subtypes, relationships stay links, and the keys get *better* — but it is
+read by a modeler that models everything the draft lists, at 60 % more review; a human-corrected draft (option 3)
+was not measured, and one chain per arm is a shape, not a distribution. The memo's §6 carries the table.
+**The twenty-second chain, and the review clause.** Arm A is the twenty-second normal chain: green, and 91
+decisions against the record's ceiling of 89.7 (mean 84.7 over seven chains from 2026-10-09 to 2026-10-17) —
+**the first 5.5 chain to fail the review clause**, entered into the record as the sixth was (`eval/wp34_check.py`).
+The cause, split against the twenty-first's result file (`20261017T203103850712Z`, fetched from `tank`): decisions
+per step 16, 7, 30, 8, 26 → 16, 8, 27, 8, 32, +4 in all; the final state's flags `source_binding` 8 → 2
+(`ambiguous` 5 → 0) and **`link_binding_evidence` 0 → 8** (WP90, 2026-10-24: one decision per link staging
+bound by evidence, in place of the ambiguous binding flag), **`link_translation` 0 → 4** (WP40's licences
+resolving by translation, now flagged for review), `W_LINK_OPTIONAL_PARTICIPANT` 1 (WP94, new),
+`W_HUB_NO_SAT` 1 (`hub_national_id`); proposals and licences identical (18 and 16, same categories). The rise is
+product change — decision classes that did not exist when the record was written — not model drift, and the
+record it is judged against predates WP79. Not weakened: the clause stands, the sample is in, and the next
+chains say whether 91 is the new level. **Überprüft.** The guards of the instrument's cases (`load_all_cases`,
+the two name pins); `uv run pytest`, `ruff`, bare `mypy`; the comparison recomputed from the files, the model
+diff by script (hubs, keys, link grains, satellites); the record's new sample by reading `wp34_check` on the
+control. **Nur angenommen.** That the per-column requirements are what drove the decisions (the kinds per step
+were not counted per source line); the USD figure. **Bewusst nicht getan.** Option 3 (a corrected draft); a
+second landscape; any change to the product from this — the experiment is C1's evidence, and C1 keeps its ADR;
+`CLAUDE.md` unchanged.

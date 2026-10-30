@@ -15,6 +15,11 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- The C1 experiment's instrument and cases (`eval.adventureworks.draft_requirements`, six
+  `adventureworks_drafted_*` cases, `eval.c1_compare`): requirements drafted deterministically from the
+  catalogue, run as a chain against the analyst's documents on one commit (2026-10-30). The draft kept
+  Microsoft's natural keys where the prose had lost them and cost 60 % more review decisions; the memo
+  under `docs/architecture/backlog-2026-07/` has the predictions and the results.
 - Keys inferred from data (ADR-0018 accepted 2026-10-30, Option B; WP99, backlog C27 stage 3): `vault-agent infer-keys
   --source-schema FILE --out FILE [--candidates name|type]` reflects the tables a declared schema
   names and writes, beside the declarations under their own `inferred_keys` key, the columns

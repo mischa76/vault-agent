@@ -76,3 +76,42 @@ C1; it is the evidence C1 asked for before deciding.
 Results: `eval/results/<stamp>` for both arms, mirrored to `tank`; the comparison in `docs/log.md` with the counts
 per prediction and the associative tables construct by construct. The instrument and the drafted cases are
 committed before the run — this memo's commit is the pre-registration's date.
+
+## 6 Results (2026-10-30, appended after the run — the predictions above are unedited)
+
+Both arms ran on commit `9ce7a87`, in parallel, unattended. Arm A: stamp `20261030T184653194084Z`, 23.0 min, 109
+calls. Arm T: stamp `20261030T184653223619Z`, 18.5 min, 104 calls. Computed by `eval/c1_compare.py`; the kept
+outputs and both result files are mirrored to `tank`.
+
+| | arm A (authored) | arm T (drafted) | prediction |
+|---|---|---|---|
+| step-5 hubs / links / satellites | 40 / 50 / 87 | 39 / 46 / 84 | **P4 falsified** — T has fewer of each |
+| review decisions per step, sum | 16, 8, 27, 8, 32 = **91** | 21, 12, 49, 16, 48 = **146** | P5 held (+60 %) |
+| review items, sum | 159 | 215 | — |
+| gates, every step | all 1.0 | all 1.0 | P6 held |
+| `mapping_coverage` per step | 1.0, 0.75, 1.0, 1.0, 1.0 | 1.0 on every step | P7 held |
+| own hubs for the six subtypes | `hub_national_id` from `Employee` | none | P1 held for T; A's extra hub is a finding |
+| relationship tables with an own hub / read by a link | 0 / 12 of 12 | 0 / 12 of 12 | P2 held |
+| hubs keyed on an `…ID` column | **29 of 40** | **14 of 39** | **P3 falsified, inverted** |
+| cross-domain links | 24 | 22 | reported |
+| mapping categories | 292 exact_name, 4 comment_grounded | 292 exact_name, 4 llm_semantic | reported |
+| link proposals by category | 12 same_name, 6 renamed, 8 relationship | 5 same_name, 6 renamed, **7 translated**, 8 relationship | reported |
+| `BusinessEntityAddress` | one link, no satellite | one link, one satellite | reported |
+| `ProductProductPhoto` | one link | one link | reported |
+
+**The inversion of P3 is the result.** C1 warned that a draft from the catalogue would make surrogate keys
+business keys. The opposite happened: the draft names Microsoft's own `AK_*` natural keys as identifiers
+(`ProductNumber`, `CardNumber`, the `Name` of every reference table), and arm T keyed 21 hubs on them where arm A,
+from the analyst's prose, keyed the same hubs on `ProductID`, `CreditCardID`, `DepartmentID`, … The catalogue's
+declarations carried the natural keys; the analyst's documents lost them. The 7 translated proposals in arm T are
+the consequence: with hubs keyed on natural keys, the declared foreign keys that reference surrogates need WP36's
+translation — the drafted arm exercised that path seven times live, the authored arm never.
+
+**P4 and P5 together say what a draft costs:** not more constructs — fewer, by one hub, four links and three
+satellites — but more review: 55 more decisions, mostly the per-column requirements becoming mapping and
+contract questions. Arm A built one hub arm T did not, `hub_national_id` on `Employee.NationalIDNumber`, with zero
+satellites — WP34's invention symptom, within the baseline of 2, and the kind of construct a human would decline.
+
+What this does not say: anything about a human-corrected draft (nobody corrected), or about a second landscape.
+One chain per arm — a shape, not a distribution. The control arm is the twenty-second normal chain and **fails the
+review clause of the record** (91 against a ceiling of 89.7); the cause split is in `docs/log.md` of this date.
