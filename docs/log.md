@@ -11274,3 +11274,24 @@ WP99 spec's header still says „proposed", left as the record it is, this entry
 four files by diff; `rg ADR-0018` outside the records finds no other „proposed". **Nur angenommen:** nothing.
 **Bewusst nicht getan:** no code change — the acceptance changes no behaviour; the type tier live, composite
 inferences and the gates' reading of inferred unique keys stay later increments; C1 untouched.
+
+## [2026-10-30] CLAUDE.md trimmed by 23 lines on the owner's word: the chronicle summary in „Current state" and the Databricks measurements now live only where they are kept, the log and manual 9.6
+
+**Autor:** Claude Code
+
+Found by `/doctor` (the setup health check), applied on the owner's word of today. **What changed.** Two cuts in
+`CLAUDE.md`, 241 → 218 lines, about 900 estimated tokens less in every session: „Current state" keeps the
+pipeline's node order, the output list and brownfield mode, and replaces the paragraph of chain counts, dates and
+AdventureWorks results with one sentence pointing at `docs/log.md` and `docs/index.md` — the paragraph had ended on
+that pointer anyway, and the file's own rule says counts and dates are the log's. The Databricks bullet in „Open
+items" keeps the two instructions an agent must not miss (drop the previous vault schemas before every build, the
+owner's standing word of 2026-10-17; probe with one `CREATE TABLE` before a build because the metastore quota
+counts dropped objects for seven days) and the extras conflict, and drops the PASS counts, the failure lists and
+the quota numbers, which stand in manual 9.6 and the log entries of 2026-10-16 to 2026-10-18 verbatim. Nothing was
+removed that is not recorded elsewhere; the removed text is quoted in the session's health report. **Überprüft.**
+The five tests guarding `CLAUDE.md` and the log's completeness (`-k "claude_md or budget or log_completeness"`)
+green after the cut; the invariants, the admission rule and the 250-line budget untouched. **Nur angenommen.**
+That no agent needed the removed numbers to act correctly — the admission rule's test; the budget decision of
+2026-10-09 (raised so that condensing stops costing knowledge) stands, which is why „Open items" was otherwise left
+whole. **Bewusst nicht getan.** No further trim of „Open items"; the health check's other changes were to the
+owner's user settings, not to this repository.

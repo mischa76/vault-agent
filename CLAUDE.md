@@ -137,13 +137,10 @@ fresh clone does not lose them.
 
 The pipeline runs end-to-end: orchestrator → requirements parser → business keys → data contracts
 → entity resolver + link proposer → resolution checkpoint → modeler → code generator → validator
-(bounded re-model loop) → source mapper → HITL checkpoint → ADR author. Output is a runnable dbt project (staging + raw vault + scaffolding), data
-contracts, a review queue, an HTML report, and a proposed ADR. Brownfield mode (`run --existing`)
-extends an existing vault instead of modelling into an empty one. Verified on real PostgreSQL
-several times, most recently for composite keys (2026-10-05). The five-step AdventureWorks chain
-(person → sales) ran all-green seven times between 2026-10-05 and 2026-10-09. WP29 §4 (entity-resolution safety) is
-met: `false_merge_rate` 1.000 over 5 clean repeats, zero blinded merges (2026-08-08; trap 5 is
-blinded-untestable by design). Details and dates: `docs/log.md`.
+(bounded re-model loop) → source mapper → HITL checkpoint → ADR author. Output is a runnable dbt
+project (staging + raw vault + scaffolding), data contracts, a review queue, an HTML report, and a
+proposed ADR. Brownfield mode (`run --existing`) extends an existing vault. What has run live, on which
+platform and when: `docs/log.md` and `docs/index.md` — never from memory.
 
 ## Open items — do not assume these work
 
@@ -206,31 +203,11 @@ blinded-untestable by design). Details and dates: `docs/log.md`.
   no satellite read them) — **WP54 (2026-10-07) refuses that** (`E_HUB_PAYLOAD_UNREAD`); live on the
   ninth to eleventh chains, followed within the attempts except the tenth's step 3.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
-- **Databricks is verified** (WP72, 2026-10-16): the bank demo (PASS=36, idempotent, end-dating,
-  `BALANCE` intact), the person step's output against the real tables (PASS=48), and the chain's
-  increments across all 68 AdventureWorks tables (37/39 hubs, 32/51 links, 92/96 satellites) —
-  nothing failed for a platform reason; **the twentieth chain's whole vault built on 2026-10-17**
-  (PASS=260, the 34 failures exactly the inferred-bound stages, five hubs equal to their sources' keys —
-  the first green chain's output ever built); **the twenty-first's built on local PostgreSQL too**
-  (2026-10-18, PASS=318 of 340 in under a minute, the same eight inferred stages failing on both
-  platforms — and six Postgres-only failures on reserved-word columns `Group`/`Primary`, which
-  AutomateDV renders unquoted — **closed by WP79 the same day**: escaped via AutomateDV's `escape:
-  true` and aliased `GROUP_`, the list is PostgreSQL's 101 reserved words). **What the chain's build
-  found, and no chain could:** a
-  brownfield step's project declares only its own increment's sources and degrades earlier
-  staging to unresolvable names — build each step's new models, never the last project whole; and
-  13 link stagings were bound to relations lacking a hashed column with no gate naming it —
-  both closed: WP73 (the gate and the binder's refusal), WP74/WP76 (the catalogue travels, inferred
-  relations are declared under an `inferred` block, a step's project parses whole; 2026-10-17);
-  **a one-feed hub is not multi-source since WP75** (the nineteenth chain's red). Its extra `demo-databricks`
-  (dbt-core 1.11) **conflicts with `demo`** (dbt-core 1.9, the line verified on Postgres since
-  2026-06-23) — `uv sync` installs one or the other, never both (`tool.uv.conflicts`, 2026-09-12).
-  **Drop the previous vault schemas before every Databricks build** (the owner's standing word,
-  2026-10-17): the Free Edition's 100-objects-per-schema quota counts replacing a view as creating
-  one, so a rebuild in place fails whole; split staging over two schemas by `+schema` (9.6). **And
-  the metastore quota (500) counts dropped objects for their seven-day UNDROP retention** — about
-  500 creations per week, one whole AdventureWorks vault (340); four builds in one day exhausted it
-  (2026-10-18). Probe with one `CREATE TABLE` before a build; the quota API's estimate says the rest.
+- **Databricks builds (manual 9.6, log 2026-10-16 → 2026-10-18).** `demo-databricks` (dbt-core 1.11)
+  conflicts with `demo` (dbt-core 1.9): `uv sync` installs one or the other, never both. **Drop the
+  previous vault schemas before every Databricks build** (the owner's standing word, 2026-10-17): the
+  Free Edition's per-schema object quota counts a replaced view as created. **Probe with one `CREATE
+  TABLE` before a build**: the metastore quota counts dropped objects for seven days (2026-10-18).
 
 ## How this file is maintained
 
