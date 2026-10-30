@@ -11396,3 +11396,67 @@ that a build of arm T with C33 fixed would pass elsewhere. **Bewusst nicht getan
 are candidates with the evidence named, the owner's call on order; `dbt parse` in the eval (WP78 can run it) is
 C34's second half; schemas dropped; the kept outputs stay in the scratchpad until the session ends and on `tank`
 as the mirrored results.
+
+## [2026-10-30] WP100 — two translations in one stage whose natural keys share a name are projected apart (C33): arm T's fifth project, regenerated keylessly, parses and builds PASS=484 of 514, and the pushed-apart links that built join every hub row; the build finds C36, translation names beyond PostgreSQL's 63 characters
+
+**Autor:** Claude Code
+
+On the owner's go (2026-10-30: C33 first, the one of the three build findings that produces wrong data). **What was
+wrong.** A link staged through two translations (WP36) whose hubs are keyed alike — `hub_department` on
+`Department.Name`, `hub_shift` on `Shift.Name` — projected both natural keys under the hubs' canonical column: the
+view read `select t.*, r1.NAME as NAME, r2.NAME as NAME`, its `schema.yml` declared `not_null` on `NAME` twice, dbt
+refused the project; and built, `DEPARTMENT_HK`, `SHIFT_HK` and the link's key would all have been hashed from one
+column. WP89 had solved the same collision between a translated key and the relation's own homonym, in a pass over
+the finished spec that replaces every hashed `NAME` — which cannot tell the second translation's `NAME` from the
+first's. **The change** (`staging_generator.py`, spec
+`backlog-2026-07/wp100-translation-collision-spec.md`): `StagingSpec.projected_apart` decides the projected column
+at the moment the participation is staged — the hub's canonical key column, or `<KEY>_VIA_<THROUGH>` (WP89's form,
+now the shared `_via_column`) when an earlier translation of the same stage already projects that name — before the
+hub's hash key, the link's key list and the null group are recorded over it; three sites (the link's own stage,
+single and composite participations; the link satellite's dedicated stage). WP89's pass runs after and leaves the
+renamed column alone. `render_translation_model` asserts the projected aliases are distinct: a duplicate projection
+is a generator defect and stops the run rather than reaching a warehouse. No flag, no gate: the model was right,
+the naming was not. **Guards** (`tests/test_wp100_translation_collision.py`, committed red at `4164c69`): the view
+projects `NAME, NAME_VIA_SHIFT`; `SHIFT_HK` over `NAME_VIA_SHIFT`, `DEPARTMENT_HK` over `NAME`, the link key over
+both; each projected column declared once; the satellite's stage follows; the metadata records both; with the
+relation's own `Name` beside them, WP89 and WP100 together yield `NAME_VIA_DEPARTMENT, NAME_VIA_SHIFT`; no rendered
+translation view projects an alias twice.
+
+**Measured** (keyless, PostgreSQL 16.15, the local data copy in `vault`, dbt 1.9.10, AutomateDV 0.11.4, fresh
+schema `c1_t_wp100`, dropped afterwards). Arm T's fifth project (`20261030T184653223619Z`, step 5) regenerated from
+its kept artefacts: the step's `dv_model.yml`, the sales increment's declared schema, the fourth step's model and
+catalogue as `--existing` reads them (`load_existing_model`, `load_existing_catalogue`, `load_carried_bindings`,
+`load_carried_aliases`), the step's mapping proposals from the result JSON, then `rebind_staging` — the contracts
+not reconstructed. **P1 ✔ exactly:** 272 staging files on both sides, none missing on either, **15 differ** — the
+five colliding views, their five `schema.yml` and the five stages reading them (`stg_business_entity_department`,
+`…_details`, `stg_country_region_currency`, `stg_culture_product_description_product_model`,
+`stg_sales_order_customer`), nothing else; the diff is the renamed alias, the renamed hash column and the renamed
+test (`NAME_VIA_SHIFT`, `NAME_VIA_CURRENCY`, `NAME_VIA_CULTURE`, `NAME_VIA_SALESTERRITORY` beside WP89's
+`ACCOUNTNUMBER_VIA_CUSTOMER`). **P2 ✔:** every view's aliases distinct; `dbt parse` succeeds (it refused the kept
+project). **P3 ✘ as worded, and the reason is not the collision:** `dbt build` **PASS=484 WARN=0 ERROR=4 SKIP=26
+TOTAL=514** in 23.65 s (169 incremental models, 116 tests, 229 views); of the four errors two name translation
+views — `Relation name … is longer than 63 characters`: the culture view's name is 74 characters, the sales-order
+view's 103, PostgreSQL's identifiers end at 63, and the collision had hidden it because the project never parsed
+before — **C36**, new in the backlog; the third is `stg_location_product_work_order`, the inferred stage the run
+disclosed (C18's class: AutomateDV's `inferred:` mapping form renders an empty select); the fourth is
+`stg_product_product_review_via_product`, `operator does not exist: text = bigint` — the data copy types
+`ProductReview.productid` as `text` where `Product.productid` is `bigint` and the catalogue declares `int`, the
+copy's artefact, as WP99's two. The 26 skips are their dependents. **P4 ✔ for the three pushed-apart stages that
+built:** `link_business_entity_department` 296 rows = `EmployeeDepartmentHistory`'s 296, **0** `department_hk`
+orphans against `hub_department`, **0** `shift_hk` orphans against `hub_shift`, 16 distinct department keys and 3
+distinct shift keys = the relations' 16 and 3 rows, **0** rows whose two hashes are equal (the collision would have
+made all 296 equal); `sat_business_entity_department_details` 296; `link_country_region_currency` 109 = 109, 0 and
+0 orphans, 96 and 97 distinct keys, 0 equal. The culture and sales-order links are unmeasured at the row level —
+C36 stops their views. **P5 ✔:** 1415 passed, 5 skipped, no fixture updated; ruff and mypy clean.
+
+**Überprüft.** The 15-file diff by script over both staging directories; the parse and build logs
+(`scratchpad/c1/build/T100/build.log`, this session); the counts by `psql` against `c1_t_wp100` and the copy's
+relations; `information_schema` for the two `productid` types; the suite. **Nur angenommen.** That the two
+C36-blocked links behave as the three measured ones (same code path, same guard); that `hub_shift`'s 5 rows for 3
+shifts and `hub_department`'s 18 for 16 are WP86's two zero-key rows each, as `hub_contact_type` showed on
+2026-10-22 (not re-derived today); that the 484 passing models produce right rows beyond AutomateDV's own tests.
+**Bewusst nicht getan.** No fix for C36, C34 or C35 — each is in the backlog with its evidence; WP89's replace-all
+pass not rewritten (reached only where a relation's own homonym exists, and it now sees distinct names); no `dbt
+parse` in the eval (C34's second half); no paid rerun — the regeneration is the measurement; the regenerated
+project and its log stay in the scratchpad, nothing of it is a dataset; the spec's frontmatter untouched, this
+entry is its measurement, as for WP98 and WP99.

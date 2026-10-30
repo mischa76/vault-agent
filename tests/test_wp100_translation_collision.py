@@ -1,8 +1,8 @@
 """WP100 — two translations in one stage whose natural keys share a name (C33). Committed before the
 change, failing. The shape is arm T's fifth project (the C1 experiment, 2026-10-30):
-`EmployeeDepartmentHistory` references `Department.DepartmentID` and `Shift.ShiftID`, and both hubs are
-keyed on their `Name`. The translation view read `r1.NAME as NAME, r2.NAME as NAME`, dbt refused the
-duplicate test, and built, the link would have hashed both hubs from one column."""
+`EmployeeDepartmentHistory` references `Department.DepartmentID` and `Shift.ShiftID`, and both hubs
+are keyed on their `Name`. The translation view read `r1.NAME as NAME, r2.NAME as NAME`, dbt refused
+the duplicate test, and built, the link would have hashed both hubs from one column."""
 from __future__ import annotations
 
 import re

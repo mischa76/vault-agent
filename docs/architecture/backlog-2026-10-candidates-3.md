@@ -184,3 +184,23 @@ belongs to the legacy feed (ADR-0011: a satellite is bound to one feed); its has
 feed's stage. WP73's gate refuses a *link* staging bound to a relation lacking a hashed column; the hub feed stage
 has no such gate. Candidate: the gate for feed stages, and the generator rendering a satellite's hashdiff only
 in the stage of the feed the satellite is bound to.
+
+## C33 — closed by WP100 (2026-10-30)
+
+The second and every later translation of a stage projecting a name an earlier one took is projected as
+`<KEY>_VIA_<THROUGH>` at the moment the participation is staged (`wp100-translation-collision-spec.md`); arm T's
+fifth project, regenerated keylessly, parses and builds, and the two pushed-apart links that built join every hub
+row (`docs/log.md`, 2026-10-30). The same build found C36.
+
+## C36 — A translation model's name exceeds the platform's identifier limit (found by WP100's build, 2026-10-30)
+
+`translation_model_name` joins every translated relation into `stg_<link>_via_<a>_and_<b>…`; arm T's fifth
+project names one view 74 and one 103 characters long, and PostgreSQL's identifiers end at 63 — dbt refuses the
+relation (`Relation name … is longer than 63 characters`) and the stage reading it, its tests and its link are
+skipped (`stg_culture_product_description_product_model_via_productmodel_and_culture`,
+`stg_sales_order_customer_via_customer_and_creditcard_and_currencyrate_and_shipmethod_and_salesterritory`). The
+platform profile (`rules/platforms.py`) carries no identifier length; Snowflake and Databricks allow 255, Fabric
+128. The collision had hidden it: before WP100 the project did not parse. Candidate: an identifier limit per
+platform in the profile, a translation name that stays under it — the link's name with a short deterministic
+suffix when the joined list would exceed the limit; the list is already in the view's header and in
+`key_translation` — and a render-time check of every generated relation name against the limit.

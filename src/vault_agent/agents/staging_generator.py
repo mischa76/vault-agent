@@ -148,6 +148,23 @@ class StagingSpec:
             self.translations.append(translation)
             self.translation_columns.append(column)
 
+    def projected_apart(self, translation: KeyTranslation, column: str) -> str:
+        """WP100: the column ``translation`` projects — ``column`` unless an EARLIER translation
+        of this stage already projects that name, then ``<KEY>_VIA_<THROUGH>`` (WP89's form).
+        Two hubs keyed alike (`Department.Name`, `Shift.Name`) in one link once rendered
+        `r1.NAME as NAME, r2.NAME as NAME`: dbt refused the view, and built, the stage would have
+        hashed both hubs from one column. Decided here, BEFORE the hash key, the link key and the
+        null group are recorded over it, so the second `NAME` is never confused with the first."""
+        taken = {
+            normalize_identifier(c)
+            for t, cols in zip(self.translations, self.translation_columns, strict=True)
+            if t != translation
+            for c in _projected(cols)
+        }
+        if normalize_identifier(column) in taken:
+            return _via_column(column, translation.through_table)
+        return column
+
     def translated_groups(self) -> dict[tuple[str, ...], KeyTranslation]:
         """WP93: the null groups whose key arrives through a translation, by stage columns."""
         return {
@@ -159,6 +176,13 @@ class StagingSpec:
 def _projected(column: str | list[str]) -> list[str]:
     """The column(s) a translation projects: one for a single key, the list for a composite."""
     return list(column) if isinstance(column, list) else [column]
+
+
+def _via_column(column: str, through_table: str) -> str:
+    """``<KEY>_VIA_<THROUGH>``: a translated key projected apart from a same-named column — the
+    relation's own (WP89) or an earlier translation's (WP100). The hash value does not depend
+    on the column's name."""
+    return f"{column}_VIA_{_to_column(through_table)}"
 
 
 @dataclass
@@ -343,6 +367,10 @@ def collect_staging_specs(
                 # key takes every column. Role and alias shapes are refused by
                 # E_HUB_COMPOSITE_UNSUPPORTED before generation.
                 cols = hub_key_columns(hub)
+                if ref.key_translation is not None:
+                    # WP100: each column apart from an earlier translation's, before anything
+                    # is recorded over it.
+                    cols = [spec.projected_apart(ref.key_translation, c) for c in cols]
                 bk_cols.extend(cols)
                 spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), cols)
                 if ref.key_translation is not None:
@@ -360,6 +388,10 @@ def collect_staging_specs(
                 spec.add_null_group(cols, cols, hub.name)
                 continue
             bk_col = role_bk_column(canonical_hub_key_column(hub), ref.role)
+            if ref.key_translation is not None:
+                # WP100: apart from a column an earlier translation of this stage projects
+                # (two hubs keyed alike), before the hash key and the link key are recorded.
+                bk_col = spec.projected_apart(ref.key_translation, bk_col)
             bk_cols.append(bk_col)
             spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), bk_col)
             if ref.key_translation is None:
@@ -465,11 +497,13 @@ def collect_staging_specs(
                         spec.add_null_group(cols, cols, ref_hub.name)
                         continue
                     bk_col = role_bk_column(canonical_hub_key_column(ref_hub), ref.role)
-                    bk_cols.append(bk_col)
-                    src_col = _to_column(satellite_participation_column(sat, ref, ref_hub))
                     translated = sat.participation_translations.get(
                         participation_key(ref.hub, ref.role)
                     )
+                    if translated is not None:
+                        bk_col = spec.projected_apart(translated, bk_col)  # WP100, as above
+                    bk_cols.append(bk_col)
+                    src_col = _to_column(satellite_participation_column(sat, ref, ref_hub))
                     if translated is not None:
                         # WP40: this participation's key arrives through the translation view,
                         # projected as the column hashed here (WP41: a role's own column).
@@ -1127,7 +1161,7 @@ def _project_homonyms_apart(spec: StagingSpec, relation_columns: list[str]) -> N
         for k, column in enumerate(_projected(columns)):
             if normalize_identifier(column) not in present:
                 continue
-            renamed = f"{column}_VIA_{_to_column(t.through_table)}"
+            renamed = _via_column(column, t.through_table)
             renamed_all[k] = renamed
             for j, (name, value) in enumerate(spec.hashed):
                 if isinstance(value, str) and value == column:
@@ -1182,6 +1216,14 @@ def render_translation_model(
     # WP41: parallel to the translations — a role-qualified participation's key is projected as
     # its own role column, so two roles of one hub through one table stay two columns.
     assert len(spec.translation_columns) == len(spec.translations)
+    aliases = [
+        column
+        for columns in spec.translation_columns
+        for column in _projected(columns)
+    ]
+    # WP100: a view projecting one name twice is refused by dbt and by the warehouse — and
+    # accepted, it would hash two hubs from one column. Reaching this is a generator defect.
+    assert len(set(aliases)) == len(aliases), f"{name} projects a column twice: {aliases}"
     projected = ", ".join(
         f"{alias}.{_to_column(natural)} as {column}"
         for (alias, t, _, _), columns in zip(joins, spec.translation_columns, strict=True)

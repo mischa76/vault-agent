@@ -95,6 +95,14 @@ is not the project's.
   of C23): 68 tables, 465 columns, 90 foreign keys, 440 comments, every key equal to the extract's; a
   PostgreSQL `xml` column is spelled `xml`, which SQLAlchemy's dialect alone did not.
 
+### Fixed
+- Two surrogate→natural-key translations in one stage whose hubs are keyed alike (`Department.Name` and
+  `Shift.Name` in one link) rendered a view projecting `NAME` twice, which dbt and the warehouse refuse —
+  and which, accepted, would have hashed both hubs from one column. The second and every later translation
+  projecting a name an earlier one took is now projected as `<KEY>_VIA_<THROUGH>` (`NAME_VIA_SHIFT`), the hash
+  keys, the link key and the tests following; the renderer refuses a duplicate projection outright (WP100,
+  2026-10-30, found by the C1 experiment's build).
+
 ### Security
 - Dependabot alerts 44–46 (`dompurify` 3.4.16, one critical), 47 (`certifi` 2026.5.20, critical),
   48–55 (`pypdf` 6.19.0) closed on 2026-10-24 by lock-only upgrades: pypdf 6.21.2, certifi 2026.10.23,

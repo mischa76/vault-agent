@@ -85,7 +85,7 @@ projected key are both of null-safe types the participation is zero-keyed like a
 WP86). The translation is therefore visible SQL and a failing test, never a hidden mapping. When the referencing relation carries a column of the natural key's name that
 means something else (`SalesOrderHeader.AccountNumber`, a financial account), the key is projected
 as `<KEY>_VIA_<RELATION>` (`ACCOUNTNUMBER_VIA_CUSTOMER`) and the relation's own column stays payload
-(WP89, 2026-10-23). `metadata/automatedv.yml` records it under the link's staging entry as
+(WP89, 2026-10-23); when two translations of one stage project the same key name — two hubs keyed on their `Name` in one link — the second and every later one is projected apart the same way (`NAME`, `NAME_VIA_SHIFT`; WP100, 2026-10-30). `metadata/automatedv.yml` records it under the link's staging entry as
 `key_translation`, one entry per join. Since WP39 the join may go one table further than the relation the foreign key names — when that relation has no hub and its key is itself a declared foreign key — and the view is still one LEFT JOIN, to the end table. **Built on PostgreSQL since 2026-09-13** (`demo/fk_links_postgres`); that first build fixed the view's `schema.yml` (not valid YAML before) and the case of two translations in one link (one view, one LEFT JOIN each, `_via_<a>_and_<b>`).
 
 **Relationship-table link** (WP37): a link ratified for a whole table (`Table.*`, 7.5) is
