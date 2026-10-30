@@ -4,6 +4,8 @@
 source_schemas:
 - table: BillOfMaterials
   schema: Production
+  comment: Items required to make bicycles and bicycle subassemblies. It identifies
+    the heirarchical relationship between a parent product and its components.
   columns:
   - name: BillOfMaterialsID
     type: int
@@ -59,6 +61,8 @@ source_schemas:
     - StartDate
 - table: Culture
   schema: Production
+  comment: Lookup table containing the languages in which some AdventureWorks data
+    is stored.
   columns:
   - name: CultureID
     type: nchar(6)
@@ -75,6 +79,7 @@ source_schemas:
   - - Name
 - table: Document
   schema: Production
+  comment: Product maintenance documents.
   columns:
   - name: DocumentNode
     type: hierarchyid
@@ -129,6 +134,7 @@ source_schemas:
   - DocumentNode
 - table: Illustration
   schema: Production
+  comment: Bicycle assembly diagrams.
   columns:
   - name: IllustrationID
     type: int
@@ -143,6 +149,7 @@ source_schemas:
   - IllustrationID
 - table: Location
   schema: Production
+  comment: Product inventory and manufacturing locations.
   columns:
   - name: LocationID
     type: smallint
@@ -165,6 +172,7 @@ source_schemas:
   - - Name
 - table: Product
   schema: Production
+  comment: Products sold or used in the manfacturing of sold products.
   columns:
   - name: ProductID
     type: int
@@ -274,6 +282,7 @@ source_schemas:
   - - Name
 - table: ProductCategory
   schema: Production
+  comment: High-level product categorization.
   columns:
   - name: ProductCategoryID
     type: int
@@ -294,6 +303,7 @@ source_schemas:
   - - Name
 - table: ProductCostHistory
   schema: Production
+  comment: Changes in the cost of a product over time.
   columns:
   - name: ProductID
     type: int
@@ -322,6 +332,7 @@ source_schemas:
   - StartDate
 - table: ProductDescription
   schema: Production
+  comment: Product descriptions in several languages.
   columns:
   - name: ProductDescriptionID
     type: int
@@ -340,6 +351,7 @@ source_schemas:
   - ProductDescriptionID
 - table: ProductDocument
   schema: Production
+  comment: Cross-reference table mapping products to related product documents.
   columns:
   - name: ProductID
     type: int
@@ -368,6 +380,7 @@ source_schemas:
   - DocumentNode
 - table: ProductInventory
   schema: Production
+  comment: Product inventory information.
   columns:
   - name: ProductID
     type: int
@@ -409,6 +422,7 @@ source_schemas:
   - LocationID
 - table: ProductListPriceHistory
   schema: Production
+  comment: Changes in the list price of a product over time.
   columns:
   - name: ProductID
     type: int
@@ -437,6 +451,7 @@ source_schemas:
   - StartDate
 - table: ProductModel
   schema: Production
+  comment: Product model classification.
   columns:
   - name: ProductModelID
     type: int
@@ -463,6 +478,7 @@ source_schemas:
   - - Name
 - table: ProductModelIllustration
   schema: Production
+  comment: Cross-reference table mapping product models and illustrations.
   columns:
   - name: ProductModelID
     type: int
@@ -491,6 +507,8 @@ source_schemas:
   - IllustrationID
 - table: ProductModelProductDescriptionCulture
   schema: Production
+  comment: Cross-reference table mapping product descriptions and the language the
+    description is written in.
   columns:
   - name: ProductModelID
     type: int
@@ -529,6 +547,7 @@ source_schemas:
   - CultureID
 - table: ProductPhoto
   schema: Production
+  comment: Product images.
   columns:
   - name: ProductPhotoID
     type: int
@@ -552,6 +571,7 @@ source_schemas:
   - ProductPhotoID
 - table: ProductProductPhoto
   schema: Production
+  comment: Cross-reference table mapping products and product photos.
   columns:
   - name: ProductID
     type: int
@@ -583,6 +603,7 @@ source_schemas:
   - ProductPhotoID
 - table: ProductReview
   schema: Production
+  comment: Customer reviews of products they have purchased.
   columns:
   - name: ProductReviewID
     type: int
@@ -620,6 +641,7 @@ source_schemas:
   - ProductReviewID
 - table: ProductSubcategory
   schema: Production
+  comment: Product subcategories. See ProductCategory table.
   columns:
   - name: ProductSubcategoryID
     type: int
@@ -650,6 +672,7 @@ source_schemas:
   - - Name
 - table: ScrapReason
   schema: Production
+  comment: Manufacturing failure reasons lookup table.
   columns:
   - name: ScrapReasonID
     type: smallint
@@ -666,6 +689,8 @@ source_schemas:
   - - Name
 - table: TransactionHistory
   schema: Production
+  comment: Record of each purchase order, sales order, or work order transaction year
+    to date.
   columns:
   - name: TransactionID
     type: int
@@ -706,6 +731,7 @@ source_schemas:
   - TransactionID
 - table: TransactionHistoryArchive
   schema: Production
+  comment: Transactions for previous years.
   columns:
   - name: TransactionID
     type: int
@@ -739,6 +765,7 @@ source_schemas:
   - TransactionID
 - table: UnitMeasure
   schema: Production
+  comment: Unit of measure lookup table.
   columns:
   - name: UnitMeasureCode
     type: nchar(3)

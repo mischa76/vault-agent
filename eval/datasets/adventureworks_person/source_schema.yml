@@ -4,6 +4,7 @@
 source_schemas:
 - table: Address
   schema: Person
+  comment: Street address information for customers, employees, and vendors.
   columns:
   - name: AddressID
     type: int
@@ -45,6 +46,7 @@ source_schemas:
   - AddressID
 - table: AddressType
   schema: Person
+  comment: Types of addresses stored in the Address table.
   columns:
   - name: AddressTypeID
     type: int
@@ -65,6 +67,8 @@ source_schemas:
   - - Name
 - table: BusinessEntity
   schema: Person
+  comment: Source of the ID that connects vendors, customers, and employees with address
+    and contact information.
   columns:
   - name: BusinessEntityID
     type: int
@@ -80,6 +84,8 @@ source_schemas:
   - BusinessEntityID
 - table: BusinessEntityAddress
   schema: Person
+  comment: Cross-reference table mapping customers, vendors, and employees to their
+    addresses.
   columns:
   - name: BusinessEntityID
     type: int
@@ -122,6 +128,7 @@ source_schemas:
   - AddressTypeID
 - table: BusinessEntityContact
   schema: Person
+  comment: Cross-reference table mapping stores, vendors, and employees to people
   columns:
   - name: BusinessEntityID
     type: int
@@ -164,6 +171,7 @@ source_schemas:
   - ContactTypeID
 - table: ContactType
   schema: Person
+  comment: Lookup table containing the types of business entity contacts.
   columns:
   - name: ContactTypeID
     type: int
@@ -180,6 +188,7 @@ source_schemas:
   - - Name
 - table: CountryRegion
   schema: Person
+  comment: Lookup table containing the ISO standard codes for countries and regions.
   columns:
   - name: CountryRegionCode
     type: nvarchar(3)
@@ -196,6 +205,7 @@ source_schemas:
   - - Name
 - table: EmailAddress
   schema: Person
+  comment: Where to send a person email.
   columns:
   - name: BusinessEntityID
     type: int
@@ -226,6 +236,7 @@ source_schemas:
   - EmailAddressID
 - table: Password
   schema: Person
+  comment: One way hashed authentication information
   columns:
   - name: BusinessEntityID
     type: int
@@ -254,6 +265,8 @@ source_schemas:
   - BusinessEntityID
 - table: Person
   schema: Person
+  comment: 'Human beings involved with AdventureWorks: employees, customer contacts,
+    and vendor contacts.'
   columns:
   - name: BusinessEntityID
     type: int
@@ -312,6 +325,7 @@ source_schemas:
   - BusinessEntityID
 - table: PersonPhone
   schema: Person
+  comment: Telephone number and type of a person.
   columns:
   - name: BusinessEntityID
     type: int
@@ -344,6 +358,7 @@ source_schemas:
   - PhoneNumberTypeID
 - table: PhoneNumberType
   schema: Person
+  comment: Type of phone number of a person.
   columns:
   - name: PhoneNumberTypeID
     type: int
@@ -358,6 +373,7 @@ source_schemas:
   - PhoneNumberTypeID
 - table: StateProvince
   schema: Person
+  comment: State and province lookup table.
   columns:
   - name: StateProvinceID
     type: int

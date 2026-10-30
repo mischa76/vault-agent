@@ -57,6 +57,10 @@ is not the project's.
   longer declines a relation for an alias the modeler invented (`StoreID` on `Store`). Recorded as
   `role_columns` in the staging metadata and carried as `stage_aliases`. The chain's last step needs
   four sign-off bindings instead of seven; none of them an alias for a role.
+- A table's own comment in the declared source schema (WP97, backlog C31): `comment:` on a table entry,
+  read verbatim from the catalogue by `source-schema`, carried by the AdventureWorks derivation (66 of 68
+  tables), shown to the entity resolver and the source mapper beside the column comments — and to no other
+  agent, because a change to the modeler's input is a measured change. Absent, nothing changes.
 - The declared source schema read from the source system's catalogue (WP96, backlog C27 stage 1,
   ADR-0017 accepted 2026-10-30, Option A): `vault-agent source-schema --schema S --out FILE` with the SQLAlchemy URL in
   `VAULT_AGENT_SOURCE_URL` transcribes tables, columns in order with the vendor's type spelling and

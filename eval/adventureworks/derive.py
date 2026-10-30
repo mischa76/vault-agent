@@ -90,8 +90,12 @@ def build_source_schema(extract: dict[str, Any], schema: str) -> dict[str, Any]:
         declared: dict[str, Any] = {
             "table": table["name"],
             "schema": table["schema"],
-            "columns": columns,
         }
+        # WP97 (C31): the table's own description, verbatim, where Microsoft wrote one — the
+        # extract has carried it since WP30; the house format had no field for it until now.
+        if table["description"]:
+            declared["comment"] = table["description"]
+        declared["columns"] = columns
         # WP34 §3.1: the foreign keys extract.py already parses, which this function used to
         # drop. They were never visible to any agent, which is what WP30.1-30.3 spent ~$46
         # discovering the hard way. Emitted only when the table declares some, so a table

@@ -246,6 +246,15 @@ class SourceMapperAgent(BaseAgent):
             ],
             "schema": schema,
         }
+        # WP97 (C31): the tables' own comments, where the column comments already are; the key
+        # is absent when no table has one, so every earlier payload is byte-identical.
+        tables = [
+            {"table": t.table, "comment": " ".join(t.comment.split())}
+            for t in state.source_schemas
+            if t.comment
+        ]
+        if tables:
+            payload["source_tables"] = tables
         return json.dumps(payload, ensure_ascii=False, indent=2)
 
     @staticmethod

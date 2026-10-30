@@ -13,9 +13,10 @@ checkpoint.
 **Declared source schema (optional, recommended).** `--source-schema <file.yml|json>`
 activates grounding (2.3): a top-level `source_schemas:` key or a bare list of tables,
 each with `table`, `columns` (plain names or objects with `name`/`type`/`comment`),
-and optionally `schema`/`database` for physical `source()` binding (9.3). Columns with
-types and comments are what the source mapper feeds on — the richer the declaration,
-the better the mapping. Malformed entries fail fast with an error naming file and
+optionally `schema`/`database` for physical `source()` binding (9.3), and optionally the
+table's own `comment` (WP97). Columns with types and comments, and the table's comment, are
+what the source mapper and the entity resolver feed on — the richer the declaration, the
+better the mapping; the modeler's prompt shows table and column names only. Malformed entries fail fast with an error naming file and
 problem.
 
 **Reading the declared schema from the source database (WP96, C27 stage 1).** Instead
@@ -28,7 +29,7 @@ uv run vault-agent source-schema --schema Sales --schema Person --out inputs/sou
 
 needs `--extra catalogue` and the dialect's driver (4.2). It transcribes what the
 catalogue says about the named schemas — every table (views with `--views`), every
-column in order with the vendor's type spelling and `nullable`, column comments verbatim,
+column in order with the vendor's type spelling and `nullable`, table and column comments verbatim,
 the primary key, unique constraints and unique indexes, foreign keys with their schema —
 into exactly the file `--source-schema` reads, with a header naming the connection
 (password hidden). Nothing is inferred and no row is read (10.7); the file is yours to

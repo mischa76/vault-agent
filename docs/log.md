@@ -11075,3 +11075,41 @@ bullet say „accepted" now; the WP96 spec's header still says „proposed", lef
 corrects it. **Überprüft:** the three files by diff; nothing else referenced the status (`rg ADR-0017`).
 **Nur angenommen:** nothing. **Bewusst nicht getan:** no code change — the acceptance changes no behaviour;
 Option C's hand-written reader stays a later increment behind the protocol; nothing pushed.
+
+## [2026-10-30] WP97 built and measured: a table's own comment in the house format — read from the catalogue, carried by the derivation, shown where column comments are shown; 66 AdventureWorks table comments read back from a real PostgreSQL catalogue equal to the extract (C31 closed)
+
+**Autor:** Claude Code
+
+C31, on the owner's go of today. **What changed.** `SourceTable.comment: str | None` (default `None`); the loader
+accepts `comment:` on a table entry; the catalogue reader's protocol grows by `table_comment(table, schema)`
+(`InspectorReader` reads `Inspector.get_table_comment(...)["text"]`, `sqlalchemy/engine/reflection.py` 1330,
+`ReflectedTableComment` in `engine/interfaces.py` 566; `NotImplementedError` is „no comment", SQLite says nothing);
+the written file carries `comment` after `schema`/`database` and before `columns`, only when present; the
+derivation carries the extract's table description (`derive.py`), and the six AdventureWorks `source_schema.yml`
+files are regenerated — only they changed, the goldens and requirements are byte-identical; the entity resolver's
+and the source mapper's payloads gain a `source_tables: [{table, comment}]` list (whitespace collapsed, as the
+column comments are there), present only when a table has a comment. **Where it does not go, pinned:**
+`render_schema_prompt_section` (the business-key, contract and modeler prompts) and the travelling catalogue
+(`dump_source_catalogue`) are byte-identical with and without table comments — a change to the modeler's input is
+a measured change (WP34 §3.8, the WP30.2 lesson); if the owner wants the modeler to read table comments, that is a
+WP of its own with a live run. **A correction to C31's text:** it said column comments are rendered in „the
+grounding prompt, the contracts"; they are not — they reach the resolver's and the mapper's payloads only (WP9
+§3.1, WP32), and the modeler's grounding section lists names. The spec (§3) says so; WP97 follows the real
+paths. Manual 6.1 (the format and the command), CHANGELOG, index rows (the spec; the candidates row names C31
+closed). **Measured, keyless.** `tests/test_wp97_table_comment.py` (8, red at `e51e999` 7 of 8 — the inertness
+pin was green before the field existed and has its teeth now that the commented schemas differ), WP96's stub
+reader given the new method with the change (the protocol grew; same commit), the AdventureWorks verbatim guard
+extended to tables (66 of 68 described). **P4's blank tables are `Production.WorkOrder` and
+`Production.WorkOrderRouting`**, not the two the spec guessed — the spec said „counted, not assumed", and the
+count is 66 + 2. **P5, local PostgreSQL 16.15:** `aw_ddl` rebuilt from the DDL instrument (the same one notice
+on the truncated index name); `pg_description` with `objsubid = 0` holds 66 table comments; the command on the
+five schemas, twice, byte-identical, 0 stderr lines; the file loads: 68 tables, 66 table comments, equal to the
+extract on 68 of 68 tables (the two blanks `None`), 440 column comments as in WP96; the header's URL reads
+`vault:***@localhost:5432/aw_ddl`, no credential token in the body; `aw_ddl` dropped afterwards. **Überprüft.**
+The guards; `uv run pytest` 1375 passed / 5 skipped; `ruff`; bare `mypy`; the P5 file read back by script; the
+dataset diff by `git status` (six files). **Nur angenommen.** SQL Server (`MS_Description` on the table) and
+Oracle (`ALL_TAB_COMMENTS`) — read in SQLAlchemy's dialects, not run; that the resolver and the mapper read the new
+key as evidence — the payload carries it, no live run has shown an answer citing it (the next paid chain on the
+regenerated datasets will). **Bewusst nicht getan.** The modeler's prompt (above); the table comment as evidence in
+the mapper's offer tier or the resolver's `comment_grounded` category; the comment in the travelling catalogue;
+nothing pushed.

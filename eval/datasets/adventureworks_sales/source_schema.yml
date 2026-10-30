@@ -4,6 +4,7 @@
 source_schemas:
 - table: CountryRegionCurrency
   schema: Sales
+  comment: Cross-reference table mapping ISO currency codes to a country or region.
   columns:
   - name: CountryRegionCode
     type: nvarchar(3)
@@ -32,6 +33,7 @@ source_schemas:
   - CurrencyCode
 - table: CreditCard
   schema: Sales
+  comment: Customer credit card information.
   columns:
   - name: CreditCardID
     type: int
@@ -57,6 +59,7 @@ source_schemas:
   - - CardNumber
 - table: Currency
   schema: Sales
+  comment: Lookup table containing standard ISO currencies.
   columns:
   - name: CurrencyCode
     type: nchar(3)
@@ -73,6 +76,7 @@ source_schemas:
   - - Name
 - table: CurrencyRate
   schema: Sales
+  comment: Currency exchange rates.
   columns:
   - name: CurrencyRateID
     type: int
@@ -116,6 +120,7 @@ source_schemas:
     - ToCurrencyCode
 - table: Customer
   schema: Sales
+  comment: Current customer information. Also see the Person and Store tables.
   columns:
   - name: CustomerID
     type: int
@@ -165,6 +170,8 @@ source_schemas:
   - - AccountNumber
 - table: PersonCreditCard
   schema: Sales
+  comment: Cross-reference table mapping people to their credit card information in
+    the CreditCard table.
   columns:
   - name: BusinessEntityID
     type: int
@@ -193,6 +200,7 @@ source_schemas:
   - CreditCardID
 - table: SalesOrderDetail
   schema: Sales
+  comment: Individual products associated with a specific sales order. See SalesOrderHeader.
   columns:
   - name: SalesOrderID
     type: int
@@ -249,6 +257,7 @@ source_schemas:
   - SalesOrderDetailID
 - table: SalesOrderHeader
   schema: Sales
+  comment: General sales order information.
   columns:
   - name: SalesOrderID
     type: int
@@ -386,6 +395,7 @@ source_schemas:
   - - SalesOrderNumber
 - table: SalesOrderHeaderSalesReason
   schema: Sales
+  comment: Cross-reference table mapping sales orders to sales reason codes.
   columns:
   - name: SalesOrderID
     type: int
@@ -414,6 +424,7 @@ source_schemas:
   - SalesReasonID
 - table: SalesPerson
   schema: Sales
+  comment: Sales representative current information.
   columns:
   - name: BusinessEntityID
     type: int
@@ -460,6 +471,7 @@ source_schemas:
   - BusinessEntityID
 - table: SalesPersonQuotaHistory
   schema: Sales
+  comment: Sales performance tracking.
   columns:
   - name: BusinessEntityID
     type: int
@@ -489,6 +501,7 @@ source_schemas:
   - QuotaDate
 - table: SalesReason
   schema: Sales
+  comment: Lookup table of customer purchase reasons.
   columns:
   - name: SalesReasonID
     type: int
@@ -506,6 +519,7 @@ source_schemas:
   - SalesReasonID
 - table: SalesTaxRate
   schema: Sales
+  comment: Tax rate lookup table.
   columns:
   - name: SalesTaxRateID
     type: int
@@ -544,6 +558,7 @@ source_schemas:
     - TaxType
 - table: SalesTerritory
   schema: Sales
+  comment: Sales territory lookup table.
   columns:
   - name: TerritoryID
     type: int
@@ -589,6 +604,7 @@ source_schemas:
   - - Name
 - table: SalesTerritoryHistory
   schema: Sales
+  comment: Sales representative transfers to other sales territories.
   columns:
   - name: BusinessEntityID
     type: int
@@ -628,6 +644,7 @@ source_schemas:
   - TerritoryID
 - table: ShoppingCartItem
   schema: Sales
+  comment: Contains online customer orders until the order is submitted or cancelled.
   columns:
   - name: ShoppingCartItemID
     type: int
@@ -658,6 +675,7 @@ source_schemas:
   - ShoppingCartItemID
 - table: SpecialOffer
   schema: Sales
+  comment: Sale discounts lookup table.
   columns:
   - name: SpecialOfferID
     type: int
@@ -697,6 +715,7 @@ source_schemas:
   - SpecialOfferID
 - table: SpecialOfferProduct
   schema: Sales
+  comment: Cross-reference table mapping products to special offer discounts.
   columns:
   - name: SpecialOfferID
     type: int
@@ -729,6 +748,7 @@ source_schemas:
   - ProductID
 - table: Store
   schema: Sales
+  comment: Customers (resellers) of Adventure Works products.
   columns:
   - name: BusinessEntityID
     type: int

@@ -334,7 +334,7 @@ class EntityResolverAgent(BaseAgent):
             for table in state.source_schemas
             for col in table.column_refs
         ]
-        payload = {
+        payload: dict[str, Any] = {
             "existing_vault": _inventory(state.existing_model),
             "new_source_schema": schema,
             # The key is SENT, never composed by the model (WP32): a label carrying
@@ -343,6 +343,15 @@ class EntityResolverAgent(BaseAgent):
                 {"key": c.key, "concept": c.concept, "entity": c.entity} for c in concepts
             ],
         }
+        # WP97 (C31): the tables' own comments, where the column comments already are; the key
+        # is absent when no table has one, so every earlier payload is byte-identical.
+        tables = [
+            {"table": t.table, "comment": " ".join(t.comment.split())}
+            for t in state.source_schemas
+            if t.comment
+        ]
+        if tables:
+            payload["source_tables"] = tables
         return json.dumps(payload, ensure_ascii=False, indent=2)
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:

@@ -185,6 +185,9 @@ class _StubReader:
     def foreign_keys(self, table: str, schema: str) -> list[ReadForeignKey]:
         return []
 
+    def table_comment(self, table: str, schema: str) -> str | None:
+        raise NotImplementedError  # WP97: the protocol grew; this stub cannot say
+
 
 def test_p1_comments_verbatim_and_a_dialect_that_cannot_say_records_nothing() -> None:
     [person] = read_source_schema(_StubReader(), schemas=["dbo"], database=None)

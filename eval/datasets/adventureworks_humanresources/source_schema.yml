@@ -4,6 +4,8 @@
 source_schemas:
 - table: Department
   schema: HumanResources
+  comment: Lookup table containing the departments within the Adventure Works Cycles
+    company.
   columns:
   - name: DepartmentID
     type: smallint
@@ -23,6 +25,7 @@ source_schemas:
   - - Name
 - table: Employee
   schema: HumanResources
+  comment: Employee information such as salary, department, and title.
   columns:
   - name: BusinessEntityID
     type: int
@@ -88,6 +91,7 @@ source_schemas:
   - - NationalIDNumber
 - table: EmployeeDepartmentHistory
   schema: HumanResources
+  comment: Employee department transfers.
   columns:
   - name: BusinessEntityID
     type: int
@@ -134,6 +138,7 @@ source_schemas:
   - ShiftID
 - table: EmployeePayHistory
   schema: HumanResources
+  comment: Employee pay history.
   columns:
   - name: BusinessEntityID
     type: int
@@ -162,6 +167,7 @@ source_schemas:
   - RateChangeDate
 - table: JobCandidate
   schema: HumanResources
+  comment: Résumés submitted to Human Resources by job applicants.
   columns:
   - name: JobCandidateID
     type: int
@@ -187,6 +193,7 @@ source_schemas:
   - JobCandidateID
 - table: Shift
   schema: HumanResources
+  comment: Work shift lookup table.
   columns:
   - name: ShiftID
     type: tinyint

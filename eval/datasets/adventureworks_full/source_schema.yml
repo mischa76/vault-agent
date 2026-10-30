@@ -4,6 +4,7 @@
 source_schemas:
 - table: Address
   schema: Person
+  comment: Street address information for customers, employees, and vendors.
   columns:
   - name: AddressID
     type: int
@@ -45,6 +46,7 @@ source_schemas:
   - AddressID
 - table: AddressType
   schema: Person
+  comment: Types of addresses stored in the Address table.
   columns:
   - name: AddressTypeID
     type: int
@@ -65,6 +67,8 @@ source_schemas:
   - - Name
 - table: BusinessEntity
   schema: Person
+  comment: Source of the ID that connects vendors, customers, and employees with address
+    and contact information.
   columns:
   - name: BusinessEntityID
     type: int
@@ -80,6 +84,8 @@ source_schemas:
   - BusinessEntityID
 - table: BusinessEntityAddress
   schema: Person
+  comment: Cross-reference table mapping customers, vendors, and employees to their
+    addresses.
   columns:
   - name: BusinessEntityID
     type: int
@@ -122,6 +128,7 @@ source_schemas:
   - AddressTypeID
 - table: BusinessEntityContact
   schema: Person
+  comment: Cross-reference table mapping stores, vendors, and employees to people
   columns:
   - name: BusinessEntityID
     type: int
@@ -164,6 +171,7 @@ source_schemas:
   - ContactTypeID
 - table: ContactType
   schema: Person
+  comment: Lookup table containing the types of business entity contacts.
   columns:
   - name: ContactTypeID
     type: int
@@ -180,6 +188,7 @@ source_schemas:
   - - Name
 - table: CountryRegion
   schema: Person
+  comment: Lookup table containing the ISO standard codes for countries and regions.
   columns:
   - name: CountryRegionCode
     type: nvarchar(3)
@@ -196,6 +205,7 @@ source_schemas:
   - - Name
 - table: EmailAddress
   schema: Person
+  comment: Where to send a person email.
   columns:
   - name: BusinessEntityID
     type: int
@@ -226,6 +236,7 @@ source_schemas:
   - EmailAddressID
 - table: Password
   schema: Person
+  comment: One way hashed authentication information
   columns:
   - name: BusinessEntityID
     type: int
@@ -254,6 +265,8 @@ source_schemas:
   - BusinessEntityID
 - table: Person
   schema: Person
+  comment: 'Human beings involved with AdventureWorks: employees, customer contacts,
+    and vendor contacts.'
   columns:
   - name: BusinessEntityID
     type: int
@@ -312,6 +325,7 @@ source_schemas:
   - BusinessEntityID
 - table: PersonPhone
   schema: Person
+  comment: Telephone number and type of a person.
   columns:
   - name: BusinessEntityID
     type: int
@@ -344,6 +358,7 @@ source_schemas:
   - PhoneNumberTypeID
 - table: PhoneNumberType
   schema: Person
+  comment: Type of phone number of a person.
   columns:
   - name: PhoneNumberTypeID
     type: int
@@ -358,6 +373,7 @@ source_schemas:
   - PhoneNumberTypeID
 - table: StateProvince
   schema: Person
+  comment: State and province lookup table.
   columns:
   - name: StateProvinceID
     type: int
@@ -407,6 +423,8 @@ source_schemas:
     - CountryRegionCode
 - table: Department
   schema: HumanResources
+  comment: Lookup table containing the departments within the Adventure Works Cycles
+    company.
   columns:
   - name: DepartmentID
     type: smallint
@@ -426,6 +444,7 @@ source_schemas:
   - - Name
 - table: Employee
   schema: HumanResources
+  comment: Employee information such as salary, department, and title.
   columns:
   - name: BusinessEntityID
     type: int
@@ -491,6 +510,7 @@ source_schemas:
   - - NationalIDNumber
 - table: EmployeeDepartmentHistory
   schema: HumanResources
+  comment: Employee department transfers.
   columns:
   - name: BusinessEntityID
     type: int
@@ -537,6 +557,7 @@ source_schemas:
   - ShiftID
 - table: EmployeePayHistory
   schema: HumanResources
+  comment: Employee pay history.
   columns:
   - name: BusinessEntityID
     type: int
@@ -565,6 +586,7 @@ source_schemas:
   - RateChangeDate
 - table: JobCandidate
   schema: HumanResources
+  comment: Résumés submitted to Human Resources by job applicants.
   columns:
   - name: JobCandidateID
     type: int
@@ -590,6 +612,7 @@ source_schemas:
   - JobCandidateID
 - table: Shift
   schema: HumanResources
+  comment: Work shift lookup table.
   columns:
   - name: ShiftID
     type: tinyint
@@ -614,6 +637,8 @@ source_schemas:
     - EndTime
 - table: BillOfMaterials
   schema: Production
+  comment: Items required to make bicycles and bicycle subassemblies. It identifies
+    the heirarchical relationship between a parent product and its components.
   columns:
   - name: BillOfMaterialsID
     type: int
@@ -669,6 +694,8 @@ source_schemas:
     - StartDate
 - table: Culture
   schema: Production
+  comment: Lookup table containing the languages in which some AdventureWorks data
+    is stored.
   columns:
   - name: CultureID
     type: nchar(6)
@@ -685,6 +712,7 @@ source_schemas:
   - - Name
 - table: Document
   schema: Production
+  comment: Product maintenance documents.
   columns:
   - name: DocumentNode
     type: hierarchyid
@@ -739,6 +767,7 @@ source_schemas:
   - DocumentNode
 - table: Illustration
   schema: Production
+  comment: Bicycle assembly diagrams.
   columns:
   - name: IllustrationID
     type: int
@@ -753,6 +782,7 @@ source_schemas:
   - IllustrationID
 - table: Location
   schema: Production
+  comment: Product inventory and manufacturing locations.
   columns:
   - name: LocationID
     type: smallint
@@ -775,6 +805,7 @@ source_schemas:
   - - Name
 - table: Product
   schema: Production
+  comment: Products sold or used in the manfacturing of sold products.
   columns:
   - name: ProductID
     type: int
@@ -884,6 +915,7 @@ source_schemas:
   - - Name
 - table: ProductCategory
   schema: Production
+  comment: High-level product categorization.
   columns:
   - name: ProductCategoryID
     type: int
@@ -904,6 +936,7 @@ source_schemas:
   - - Name
 - table: ProductCostHistory
   schema: Production
+  comment: Changes in the cost of a product over time.
   columns:
   - name: ProductID
     type: int
@@ -932,6 +965,7 @@ source_schemas:
   - StartDate
 - table: ProductDescription
   schema: Production
+  comment: Product descriptions in several languages.
   columns:
   - name: ProductDescriptionID
     type: int
@@ -950,6 +984,7 @@ source_schemas:
   - ProductDescriptionID
 - table: ProductDocument
   schema: Production
+  comment: Cross-reference table mapping products to related product documents.
   columns:
   - name: ProductID
     type: int
@@ -978,6 +1013,7 @@ source_schemas:
   - DocumentNode
 - table: ProductInventory
   schema: Production
+  comment: Product inventory information.
   columns:
   - name: ProductID
     type: int
@@ -1019,6 +1055,7 @@ source_schemas:
   - LocationID
 - table: ProductListPriceHistory
   schema: Production
+  comment: Changes in the list price of a product over time.
   columns:
   - name: ProductID
     type: int
@@ -1047,6 +1084,7 @@ source_schemas:
   - StartDate
 - table: ProductModel
   schema: Production
+  comment: Product model classification.
   columns:
   - name: ProductModelID
     type: int
@@ -1073,6 +1111,7 @@ source_schemas:
   - - Name
 - table: ProductModelIllustration
   schema: Production
+  comment: Cross-reference table mapping product models and illustrations.
   columns:
   - name: ProductModelID
     type: int
@@ -1101,6 +1140,8 @@ source_schemas:
   - IllustrationID
 - table: ProductModelProductDescriptionCulture
   schema: Production
+  comment: Cross-reference table mapping product descriptions and the language the
+    description is written in.
   columns:
   - name: ProductModelID
     type: int
@@ -1139,6 +1180,7 @@ source_schemas:
   - CultureID
 - table: ProductPhoto
   schema: Production
+  comment: Product images.
   columns:
   - name: ProductPhotoID
     type: int
@@ -1162,6 +1204,7 @@ source_schemas:
   - ProductPhotoID
 - table: ProductProductPhoto
   schema: Production
+  comment: Cross-reference table mapping products and product photos.
   columns:
   - name: ProductID
     type: int
@@ -1193,6 +1236,7 @@ source_schemas:
   - ProductPhotoID
 - table: ProductReview
   schema: Production
+  comment: Customer reviews of products they have purchased.
   columns:
   - name: ProductReviewID
     type: int
@@ -1230,6 +1274,7 @@ source_schemas:
   - ProductReviewID
 - table: ProductSubcategory
   schema: Production
+  comment: Product subcategories. See ProductCategory table.
   columns:
   - name: ProductSubcategoryID
     type: int
@@ -1260,6 +1305,7 @@ source_schemas:
   - - Name
 - table: ScrapReason
   schema: Production
+  comment: Manufacturing failure reasons lookup table.
   columns:
   - name: ScrapReasonID
     type: smallint
@@ -1276,6 +1322,8 @@ source_schemas:
   - - Name
 - table: TransactionHistory
   schema: Production
+  comment: Record of each purchase order, sales order, or work order transaction year
+    to date.
   columns:
   - name: TransactionID
     type: int
@@ -1316,6 +1364,7 @@ source_schemas:
   - TransactionID
 - table: TransactionHistoryArchive
   schema: Production
+  comment: Transactions for previous years.
   columns:
   - name: TransactionID
     type: int
@@ -1349,6 +1398,7 @@ source_schemas:
   - TransactionID
 - table: UnitMeasure
   schema: Production
+  comment: Unit of measure lookup table.
   columns:
   - name: UnitMeasureCode
     type: nchar(3)
@@ -1447,6 +1497,7 @@ source_schemas:
   - OperationSequence
 - table: ProductVendor
   schema: Purchasing
+  comment: Cross-reference table mapping vendors with the products they supply.
   columns:
   - name: ProductID
     type: int
@@ -1506,6 +1557,7 @@ source_schemas:
   - BusinessEntityID
 - table: PurchaseOrderDetail
   schema: Purchasing
+  comment: Individual products associated with a specific purchase order. See PurchaseOrderHeader.
   columns:
   - name: PurchaseOrderID
     type: int
@@ -1558,6 +1610,7 @@ source_schemas:
   - PurchaseOrderDetailID
 - table: PurchaseOrderHeader
   schema: Purchasing
+  comment: General purchase order information. See PurchaseOrderDetail.
   columns:
   - name: PurchaseOrderID
     type: int
@@ -1622,6 +1675,7 @@ source_schemas:
   - PurchaseOrderID
 - table: ShipMethod
   schema: Purchasing
+  comment: Shipping company lookup table.
   columns:
   - name: ShipMethodID
     type: int
@@ -1648,6 +1702,7 @@ source_schemas:
   - - Name
 - table: Vendor
   schema: Purchasing
+  comment: Companies from whom Adventure Works Cycles purchases parts or other goods.
   columns:
   - name: BusinessEntityID
     type: int
@@ -1686,6 +1741,7 @@ source_schemas:
   - - AccountNumber
 - table: CountryRegionCurrency
   schema: Sales
+  comment: Cross-reference table mapping ISO currency codes to a country or region.
   columns:
   - name: CountryRegionCode
     type: nvarchar(3)
@@ -1714,6 +1770,7 @@ source_schemas:
   - CurrencyCode
 - table: CreditCard
   schema: Sales
+  comment: Customer credit card information.
   columns:
   - name: CreditCardID
     type: int
@@ -1739,6 +1796,7 @@ source_schemas:
   - - CardNumber
 - table: Currency
   schema: Sales
+  comment: Lookup table containing standard ISO currencies.
   columns:
   - name: CurrencyCode
     type: nchar(3)
@@ -1755,6 +1813,7 @@ source_schemas:
   - - Name
 - table: CurrencyRate
   schema: Sales
+  comment: Currency exchange rates.
   columns:
   - name: CurrencyRateID
     type: int
@@ -1798,6 +1857,7 @@ source_schemas:
     - ToCurrencyCode
 - table: Customer
   schema: Sales
+  comment: Current customer information. Also see the Person and Store tables.
   columns:
   - name: CustomerID
     type: int
@@ -1847,6 +1907,8 @@ source_schemas:
   - - AccountNumber
 - table: PersonCreditCard
   schema: Sales
+  comment: Cross-reference table mapping people to their credit card information in
+    the CreditCard table.
   columns:
   - name: BusinessEntityID
     type: int
@@ -1875,6 +1937,7 @@ source_schemas:
   - CreditCardID
 - table: SalesOrderDetail
   schema: Sales
+  comment: Individual products associated with a specific sales order. See SalesOrderHeader.
   columns:
   - name: SalesOrderID
     type: int
@@ -1931,6 +1994,7 @@ source_schemas:
   - SalesOrderDetailID
 - table: SalesOrderHeader
   schema: Sales
+  comment: General sales order information.
   columns:
   - name: SalesOrderID
     type: int
@@ -2068,6 +2132,7 @@ source_schemas:
   - - SalesOrderNumber
 - table: SalesOrderHeaderSalesReason
   schema: Sales
+  comment: Cross-reference table mapping sales orders to sales reason codes.
   columns:
   - name: SalesOrderID
     type: int
@@ -2096,6 +2161,7 @@ source_schemas:
   - SalesReasonID
 - table: SalesPerson
   schema: Sales
+  comment: Sales representative current information.
   columns:
   - name: BusinessEntityID
     type: int
@@ -2142,6 +2208,7 @@ source_schemas:
   - BusinessEntityID
 - table: SalesPersonQuotaHistory
   schema: Sales
+  comment: Sales performance tracking.
   columns:
   - name: BusinessEntityID
     type: int
@@ -2171,6 +2238,7 @@ source_schemas:
   - QuotaDate
 - table: SalesReason
   schema: Sales
+  comment: Lookup table of customer purchase reasons.
   columns:
   - name: SalesReasonID
     type: int
@@ -2188,6 +2256,7 @@ source_schemas:
   - SalesReasonID
 - table: SalesTaxRate
   schema: Sales
+  comment: Tax rate lookup table.
   columns:
   - name: SalesTaxRateID
     type: int
@@ -2226,6 +2295,7 @@ source_schemas:
     - TaxType
 - table: SalesTerritory
   schema: Sales
+  comment: Sales territory lookup table.
   columns:
   - name: TerritoryID
     type: int
@@ -2271,6 +2341,7 @@ source_schemas:
   - - Name
 - table: SalesTerritoryHistory
   schema: Sales
+  comment: Sales representative transfers to other sales territories.
   columns:
   - name: BusinessEntityID
     type: int
@@ -2310,6 +2381,7 @@ source_schemas:
   - TerritoryID
 - table: ShoppingCartItem
   schema: Sales
+  comment: Contains online customer orders until the order is submitted or cancelled.
   columns:
   - name: ShoppingCartItemID
     type: int
@@ -2340,6 +2412,7 @@ source_schemas:
   - ShoppingCartItemID
 - table: SpecialOffer
   schema: Sales
+  comment: Sale discounts lookup table.
   columns:
   - name: SpecialOfferID
     type: int
@@ -2379,6 +2452,7 @@ source_schemas:
   - SpecialOfferID
 - table: SpecialOfferProduct
   schema: Sales
+  comment: Cross-reference table mapping products to special offer discounts.
   columns:
   - name: SpecialOfferID
     type: int
@@ -2411,6 +2485,7 @@ source_schemas:
   - ProductID
 - table: Store
   schema: Sales
+  comment: Customers (resellers) of Adventure Works products.
   columns:
   - name: BusinessEntityID
     type: int

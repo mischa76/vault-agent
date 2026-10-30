@@ -7,7 +7,7 @@ and write the house ``source_schemas:`` file the loader validates. Transcription
 interpretation (spec §2 rule 1): no key is inferred, no GUID excluded, no name normalised.
 
 One seam (ADR-0017): :func:`read_source_schema` takes a :class:`CatalogueReader`, a protocol of
-seven methods; :class:`InspectorReader` is SQLAlchemy's ``Inspector`` behind it, which is what the
+eight methods; :class:`InspectorReader` is SQLAlchemy's ``Inspector`` behind it, which is what the
 command uses and what the keyless tests run on SQLite. A reader that is not a database reflection
 (SAP's dictionary, C27 tier C) implements the same protocol later. Metadata only: nothing here
 reads a row, and the protocol has no method that could."""
@@ -71,6 +71,8 @@ class CatalogueReader(Protocol):
     def unique_keys(self, table: str, schema: str) -> list[list[str]]: ...
 
     def foreign_keys(self, table: str, schema: str) -> list[ReadForeignKey]: ...
+
+    def table_comment(self, table: str, schema: str) -> str | None: ...
 
 
 class InspectorReader:
@@ -143,6 +145,12 @@ class InspectorReader:
             )
             for fk in self._inspector.get_foreign_keys(table, schema=schema)
         ]
+
+    def table_comment(self, table: str, schema: str) -> str | None:
+        """WP97: the table's own comment (``get_table_comment``, ``reflection.py`` 1330 —
+        ``ReflectedTableComment.text``); a dialect without comments raises, the caller records
+        nothing."""
+        return self._inspector.get_table_comment(table, schema=schema)["text"] or None
 
 
 class CatalogueType(UserDefinedType[Any]):
@@ -257,6 +265,7 @@ def read_source_schema(
                 foreign_keys=foreign_keys,
                 primary_key=primary_key,
                 unique_keys=unique_keys,
+                comment=_nothing_on(reader.table_comment, name, schema) or None,
             )
         )
     return tables
@@ -276,6 +285,8 @@ def _entry(table: SourceTable) -> dict[str, Any]:
     declared: dict[str, Any] = {"table": table.table, "schema": table.schema_name}
     if table.database:
         declared["database"] = table.database
+    if table.comment:
+        declared["comment"] = table.comment
     declared["columns"] = columns
     if table.primary_key:
         declared["primary_key"] = list(table.primary_key)

@@ -248,6 +248,10 @@ class SourceTable(BaseModel):
     # not declared; read only by `E_SAT_GRAIN_NOT_UNIQUE` — never rendered to an agent.
     primary_key: list[str] = Field(default_factory=list)
     unique_keys: list[list[str]] = Field(default_factory=list)
+    # WP97 (C31): the table's own comment as the catalogue states it — verbatim, never authored.
+    # Read where column comments are read (the resolver's and the mapper's payloads); never
+    # rendered to the modeler (spec §2 rule 2) and not carried in the travelling catalogue.
+    comment: str | None = None
 
     @field_validator("columns", mode="before")
     @classmethod
