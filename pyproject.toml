@@ -70,6 +70,9 @@ ui = [
     "fastapi>=0.115",
     "uvicorn>=0.30",
 ]
+catalogue = [
+    "sqlalchemy>=2.0",
+]
 
 [tool.uv]
 # The two dbt extras pin different dbt-core lines (see the demo-databricks comment) and
