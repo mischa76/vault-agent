@@ -1,6 +1,6 @@
 # ADR-0017: Reading the source catalogue from the source system — one reflection library, or catalogue queries per vendor
 
-**Status:** Proposed (draft by Claude, 2026-10-30, on the owner's go for C27 — the decision is the owner's; WP96 is built on the recommendation and swaps behind one seam if he decides otherwise)
+**Status:** Accepted (2026-10-30 — the owner accepted Option A; draft by Claude the same day, on the owner's go for C27; built as WP96)
 **Date:** 2026-10-30
 **Decision makers:** Mischa Eismann
 
@@ -71,6 +71,15 @@ later. The library is an optional extra (`catalogue`), the vendor driver is the 
   This is Option A with the protocol taken seriously: SAP's dictionary reader (tier C) is a
   hand-written reader behind the same protocol, and nothing else is written by hand until a vendor's
   reflection is measurably wrong. Recorded here so the SAP package has its place; not a separate choice.
+
+## Decision (2026-10-30)
+
+The owner accepted **Option A** on 2026-10-30, after WP96 was built and measured on it (`docs/log.md`, 2026-10-30:
+AdventureWorks read back from a real PostgreSQL catalogue equal to the DDL extract on every axis). SQLAlchemy's
+`Inspector` behind the `CatalogueReader` protocol is the reader; a catalogue type the dialect lacks is registered
+per vendor on the dialect instance (PostgreSQL `xml`, found by that measurement); Option C's place for a
+hand-written reader stays open behind the same protocol and is taken only when a vendor's reflection is
+measurably wrong or no dialect exists (SAP's dictionary). Verification tiers as C27 lists them.
 
 ## Consequences
 

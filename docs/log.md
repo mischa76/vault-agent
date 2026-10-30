@@ -11061,3 +11061,17 @@ candidates file (which also now names C30, closed by WP94, and C31). **Überprü
 files named and the API responses, today. **Nur angenommen:** what TurboVault Studio can do (one docstring, no
 public artefact); that the ten tools are all there is (the docs and `mcp.py` agree). **Bewusst nicht getan:**
 nothing installed or run; no line of code changed; no contact with Scalefree; no decision on C32 — the owner's.
+
+## [2026-10-30] ADR-0017 accepted — Option A, SQLAlchemy's Inspector behind the reader protocol
+
+**Autor:** Claude Code
+
+The owner accepted ADR-0017 today, on Option A as recommended and as WP96 is built (`51a4217`; the measurement in
+the WP96 entry above). **What changed.** The ADR's status line moved Proposed → Accepted with the date, and a dated
+`## Decision (2026-10-30)` section was added before the consequences, as ADR-0015 was accepted on 2026-10-26; the
+„Decision (proposed)" section stays as drafted. Done by shell on a record under `docs/architecture/` — the status
+move the records rule allows, a deliberate act on the owner's word. The index row and the CHANGELOG's Unreleased
+bullet say „accepted" now; the WP96 spec's header still says „proposed", left as the record it is, this entry
+corrects it. **Überprüft:** the three files by diff; nothing else referenced the status (`rg ADR-0017`).
+**Nur angenommen:** nothing. **Bewusst nicht getan:** no code change — the acceptance changes no behaviour;
+Option C's hand-written reader stays a later increment behind the protocol; nothing pushed.

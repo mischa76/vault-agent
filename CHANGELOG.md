@@ -58,7 +58,7 @@ is not the project's.
   `role_columns` in the staging metadata and carried as `stage_aliases`. The chain's last step needs
   four sign-off bindings instead of seven; none of them an alias for a role.
 - The declared source schema read from the source system's catalogue (WP96, backlog C27 stage 1,
-  ADR-0017 proposed): `vault-agent source-schema --schema S --out FILE` with the SQLAlchemy URL in
+  ADR-0017 accepted 2026-10-30, Option A): `vault-agent source-schema --schema S --out FILE` with the SQLAlchemy URL in
   `VAULT_AGENT_SOURCE_URL` transcribes tables, columns in order with the vendor's type spelling and
   nullability, column comments verbatim, primary and unique keys and foreign keys into the file
   `run --source-schema` reads — deterministic, metadata only, no row read, the password never in the
