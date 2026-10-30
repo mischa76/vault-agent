@@ -311,6 +311,9 @@ def _entry(table: SourceTable) -> dict[str, Any]:
             }
             for fk in table.foreign_keys
         ]
+    if table.inferred_keys is not None:
+        # WP99: after the declarations, under its own key — a reader always tells them apart.
+        declared["inferred_keys"] = table.inferred_keys.model_dump()
     return declared
 
 

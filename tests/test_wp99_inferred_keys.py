@@ -12,7 +12,6 @@ import sqlalchemy as sa
 import yaml
 from rich.console import Console
 from typer.testing import CliRunner
-from vault_agent.key_inference import compact, infer_keys, is_name_candidate
 
 from tests.test_link_proposal import _vault
 from vault_agent import cli
@@ -20,6 +19,7 @@ from vault_agent.agents.orchestrator import apply_link_decision
 from vault_agent.cli import app
 from vault_agent.existing_model import dump_source_catalogue
 from vault_agent.grounding import render_schema_prompt_section
+from vault_agent.key_inference import compact, infer_keys, is_name_candidate
 from vault_agent.link_proposal import collect_link_proposals, propose_links
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.source_schema_reader import render_source_schema
@@ -36,6 +36,7 @@ _DDL = [
     'CREATE TABLE "Person" ("BusinessEntityID" INTEGER NOT NULL, "Name" VARCHAR(20))',
     'CREATE TABLE "Employee" ("BusinessEntityID" INTEGER NOT NULL, "Title" VARCHAR(20))',
     'CREATE TABLE "SalesPerson" ("BusinessEntityID" INTEGER NOT NULL)',
+    'CREATE TABLE "EmailAddress" ("BusinessEntityID" INTEGER NOT NULL, "EmailAddressID" INTEGER)',
     'CREATE TABLE "Customer" ("CustomerID" INTEGER NOT NULL, "PersonID" INTEGER)',
     'CREATE TABLE "SalesOrderHeader" ("SalesOrderID" INTEGER NOT NULL, "SalesPersonID" INTEGER, '
     '"CustomerID" INTEGER, "Status" INTEGER)',
@@ -45,6 +46,7 @@ _ROWS: dict[str, list[tuple[Any, ...]]] = {
     "Person": [(1, "A"), (2, "B"), (3, "A"), (4, "C"), (5, "D")],
     "Employee": [(1, "Eng"), (2, "Eng"), (3, "Ops")],
     "SalesPerson": [(1,), (2,)],
+    "EmailAddress": [(i, i) for i in range(1, 6)],
     "Customer": [(1, 2), (2, 3), (3, None)],
     "SalesOrderHeader": [(1, 1, 1, 1), (2, 2, 99, 2), (3, None, 1, 1), (4, None, 99, 2)],
 }
@@ -53,6 +55,7 @@ _COLUMNS = {
     "Person": ["BusinessEntityID", "Name"],
     "Employee": ["BusinessEntityID", "Title"],
     "SalesPerson": ["BusinessEntityID"],
+    "EmailAddress": ["BusinessEntityID", "EmailAddressID"],
     "Customer": ["CustomerID", "PersonID"],
     "SalesOrderHeader": ["SalesOrderID", "SalesPersonID", "CustomerID", "Status"],
 }
@@ -89,11 +92,12 @@ def _by_table(tables: list[SourceTable]) -> dict[str, SourceTable]:
 
 
 def _fk(table: str, column: str, ref_table: str, *, rows: int, distinct: int,
-        referenced: int, wider: list[str], candidate: str = "name") -> InferredForeignKey:
+        referenced: int, wider: list[str], candidate: str = "name",
+        tied: list[str] | None = None) -> InferredForeignKey:
     return InferredForeignKey(
         columns=[column], references_table=ref_table, references_columns=["BusinessEntityID"],
         references_schema="main", rows=rows, distinct=distinct, referenced_distinct=referenced,
-        candidate=candidate, wider=wider,
+        candidate=candidate, tied=tied or [], wider=wider,
     )
 
 
@@ -104,19 +108,24 @@ def test_p1_the_name_tier_infers_exactly_the_inclusions_the_data_holds(engine: s
     tables = _by_table(infer_keys(engine, _tables(), candidates="name"))
     assert tables["Employee"].inferred_keys is not None
     assert tables["Employee"].inferred_keys.foreign == [_fk(
-        "Employee", "BusinessEntityID", "Person", rows=3, distinct=3, referenced=5,
-        wider=["BusinessEntity.BusinessEntityID"],
-    )]
+        "Employee", "BusinessEntityID", "EmailAddress", rows=3, distinct=3, referenced=5,
+        tied=["Person.BusinessEntityID"], wider=["BusinessEntity.BusinessEntityID"],
+    )], "Person and EmailAddress have equal domains: one inference, the tie recorded"
     assert tables["SalesPerson"].inferred_keys is not None
     assert tables["SalesPerson"].inferred_keys.foreign == [_fk(
         "SalesPerson", "BusinessEntityID", "Employee", rows=2, distinct=2, referenced=3,
-        wider=["Person.BusinessEntityID", "BusinessEntity.BusinessEntityID"],
+        wider=["EmailAddress.BusinessEntityID", "Person.BusinessEntityID",
+               "BusinessEntity.BusinessEntityID"],
     )]
     assert tables["Person"].inferred_keys is not None
     assert tables["Person"].inferred_keys.foreign == [
-        _fk("Person", "BusinessEntityID", "BusinessEntity", rows=5, distinct=5, referenced=6,
-            wider=[])
+        _fk("Person", "BusinessEntityID", "EmailAddress", rows=5, distinct=5, referenced=5,
+            tied=[], wider=["BusinessEntity.BusinessEntityID"])
     ]
+    assert tables["EmailAddress"].inferred_keys is not None
+    assert [fk.references_table for fk in tables["EmailAddress"].inferred_keys.foreign] == [
+        "Person", "EmailAddress"
+    ], "BusinessEntityID → Person (tied domain), EmailAddressID → its own BusinessEntityID"
     header = tables["SalesOrderHeader"].inferred_keys
     assert header is not None
     assert header.foreign == [_fk(
@@ -155,7 +164,8 @@ def test_p1_the_type_tier_is_complete_and_noisy_and_says_which_tier_paired_it(
     assert (status.references_table, status.candidate) == ("SalesPerson", "type")
     assert status.wider == [
         "Customer.CustomerID", "Employee.BusinessEntityID", "SalesOrderHeader.SalesOrderID",
-        "Person.BusinessEntityID", "BusinessEntity.BusinessEntityID",
+        "EmailAddress.BusinessEntityID", "EmailAddress.EmailAddressID", "Person.BusinessEntityID",
+        "BusinessEntity.BusinessEntityID",
     ]
     sales_person = next(
         fk for fk in header.inferred_keys.foreign if fk.columns == ["SalesPersonID"]
@@ -169,7 +179,8 @@ def test_p1_the_name_rules() -> None:
     assert is_name_candidate("ShipToAddressID", "Address", "AddressID")
     assert is_name_candidate("SalesPersonID", "SalesPerson", "BusinessEntityID")
     assert not is_name_candidate("Status", "SalesPerson", "BusinessEntityID")
-    assert not is_name_candidate("AddressID", "Address", "ShipToAddressID"), "longer, not shorter"
+    assert not is_name_candidate("AddressID", "Location", "ShipToAddressID"), "ends-with is one way"
+    assert is_name_candidate("AddressID", "Address", "ShipToAddressID"), "the table-name rule"
 
 
 # ── P2 the proposer, the applier, the prompt ────────────────────────────────────────────
@@ -177,8 +188,8 @@ def test_p1_the_name_rules() -> None:
 
 def _employee(*, inferred: bool = True, declared: bool = False) -> SourceTable:
     keys = InferredKeys(foreign=[_fk(
-        "Employee", "BusinessEntityID", "Person", rows=3, distinct=3, referenced=5,
-        wider=["BusinessEntity.BusinessEntityID"],
+        "Employee", "BusinessEntityID", "EmailAddress", rows=3, distinct=3, referenced=5,
+        tied=["Person.BusinessEntityID"], wider=["BusinessEntity.BusinessEntityID"],
     )])
     return SourceTable(
         table="Employee", schema="HumanResources", columns=["BusinessEntityID", "Title"],
@@ -204,6 +215,10 @@ def test_p2_an_inferred_key_to_an_existing_hub_is_a_proposal_with_its_provenance
     assert "inferred from data, not declared" in proposal.evidence[0]
     assert "3 non-null rows" in proposal.evidence[0] and "5 distinct" in proposal.evidence[0]
     assert "BusinessEntity.BusinessEntityID" in proposal.evidence[0]
+    assert "proposed through Person.BusinessEntityID" in proposal.evidence[0], (
+        "EmailAddress has no hub; the tied Person does — the vault breaks the data's tie"
+    )
+    assert proposal.source_column == "BusinessEntityID"
 
 
 def test_p2_a_declared_key_wins_over_the_same_inferred_pair() -> None:
@@ -320,9 +335,11 @@ def test_p3_the_command_writes_the_file_with_the_inferences(
     assert result.exit_code == 0, result.output
     loaded = _by_table(load_source_schemas(out))
     assert loaded["Employee"].inferred_keys is not None
-    assert loaded["Employee"].inferred_keys.foreign[0].references_table == "Person"
+    assert loaded["Employee"].inferred_keys.foreign[0].references_table == "EmailAddress"
+    assert loaded["Employee"].inferred_keys.foreign[0].tied == ["Person.BusinessEntityID"]
     assert loaded["Customer"].foreign_keys[0].references_table == "Person", "declarations kept"
-    assert "4 inferred foreign keys" in result.output
+    flat = " ".join(result.output.split())
+    assert "7 of 7 tables read" in flat and "6 inferred foreign keys" in flat, flat
     first = out.read_text(encoding="utf-8")
     CliRunner().invoke(app, ["infer-keys", "--source-schema", str(schema), "--out", str(out)])
     assert out.read_text(encoding="utf-8") == first, "two reads of one database, one file"

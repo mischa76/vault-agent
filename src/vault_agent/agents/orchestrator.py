@@ -573,7 +573,13 @@ def apply_link_decision(state: VaultAgentState, decision: Any) -> list[str]:
             proposal.ratification_status = "accepted" if links[key] else "overridden"
             decided.append(key)
         elif accept:
-            proposal.ratification_status = "accepted"
+            # WP99 (ADR-0018 §4): an inferred proposal or licence is never bound by the bulk
+            # key — it is declined on the record, and built only when a human names it above.
+            inferred = (
+                isinstance(proposal, LinkProposal | KeyLicense)
+                and proposal.provenance == "inferred"
+            )
+            proposal.ratification_status = "overridden" if inferred else "accepted"
             decided.append(key)
     return decided
 

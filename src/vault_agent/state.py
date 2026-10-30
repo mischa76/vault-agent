@@ -214,6 +214,53 @@ class ForeignKeyRef(BaseModel):
         return len(self.columns) == 1
 
 
+# WP99 (ADR-0018): which candidate tier paired an inferred foreign key — `name` (the columns
+# spell the same compact name, the referencing one ends in the key's, or it is the key table's
+# name plus ID) or `type` (every type-compatible pair: complete and noisy, never the default).
+CandidateTier = Literal["name", "type"]
+# Where a proposal or licence comes from: the catalogue's declaration, or an inference from
+# data. `declared` is the default, so every pre-WP99 shape is byte-identical; `inferred` is what
+# `--accept` declines and only an explicit answer builds (ADR-0018 §4).
+Provenance = Literal["declared", "inferred"]
+
+
+class InferredUniqueKey(BaseModel):
+    """WP99: a column unique and non-null over every one of ``rows`` rows — an inference from
+    data, never a declaration. Read by the key inference itself (the referenced side of an
+    inclusion) and by nothing else (ADR-0018 §3)."""
+
+    columns: list[str]
+    rows: int
+
+
+class InferredForeignKey(ForeignKeyRef):
+    """WP99: an inclusion dependency — every non-null value of the referencing column occurs in
+    the referenced key column — with the evidence a human decides on: the ``rows`` checked, the
+    ``distinct`` referencing values, the key's ``referenced_distinct`` values, the ``candidate``
+    tier that paired the columns, the ``tied`` key columns (``Table.column``) with exactly the
+    same number of distinct values — equal domains, which data alone cannot tell apart (the
+    first measurement's finding: tables keyed 1:1 on one id) — and the ``wider`` ones that
+    contain every value with more. One inference per referencing column: the tightest domain,
+    a tie broken by a stated preference (a key named after its own table, then the table the
+    referencing column names, then the name). The proposer tries the tied and the wider ones
+    for an existing hub. Read by the proposer after the declared keys, with
+    ``provenance="inferred"``; by nothing else."""
+
+    rows: int
+    distinct: int
+    referenced_distinct: int
+    candidate: CandidateTier
+    tied: list[str] = Field(default_factory=list)
+    wider: list[str] = Field(default_factory=list)
+
+
+class InferredKeys(BaseModel):
+    """WP99: what `vault-agent infer-keys` found for one table; absent when it never ran."""
+
+    unique: list[InferredUniqueKey] = Field(default_factory=list)
+    foreign: list[InferredForeignKey] = Field(default_factory=list)
+
+
 class SourceTable(BaseModel):
     """A declared source table the model can be grounded against (ADR-0004).
 
@@ -252,6 +299,10 @@ class SourceTable(BaseModel):
     # Read where column comments are read (the resolver's and the mapper's payloads); never
     # rendered to the modeler (spec §2 rule 2) and not carried in the travelling catalogue.
     comment: str | None = None
+    # WP99 (ADR-0018): keys inferred from data by `vault-agent infer-keys` — their own class,
+    # beside the declarations and never inside them. Read by the proposer only; never rendered
+    # to the modeler, never carried in the travelling catalogue (test_wp34_fk_inertness.py).
+    inferred_keys: InferredKeys | None = None
 
     @field_validator("columns", mode="before")
     @classmethod
@@ -585,6 +636,9 @@ class LinkProposal(BaseModel):
     # WP36: set exactly when category is declared_fk_translated — the join the staging layer
     # must render for this link. None for the two WP34 categories (byte-identity).
     translation: KeyTranslation | None = None
+    # WP99: `inferred` when the key behind this proposal came from data (ADR-0018 §3); `accept`
+    # declines such a proposal, an explicit answer builds it (§4).
+    provenance: Provenance = "declared"
 
     @property
     def needs_alias(self) -> bool:
@@ -651,6 +705,7 @@ class KeyLicense(BaseModel):
     references_column: str
     references_schema: str | None = None
     category: Literal["declared_fk_pending"] = "declared_fk_pending"
+    provenance: Provenance = "declared"  # WP99, as on LinkProposal
     evidence: list[str] = Field(default_factory=list)
     ratification_status: RatificationStatus = "proposed"
     target_hub: str | None = None

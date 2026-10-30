@@ -43,6 +43,7 @@ from vault_agent.state import (
     FlagKind,
     ForeignKeyRef,
     Hub,
+    InferredForeignKey,
     KeyLicense,
     KeyTranslation,
     Link,
@@ -53,6 +54,7 @@ from vault_agent.state import (
     LinkSkipReason,
     Participation,
     PipelineFlag,
+    Provenance,
     RelationshipLinkProposal,
     SourceTable,
     VaultAgentState,
@@ -378,12 +380,93 @@ def propose_links(
                     )
                 continue
             _propose_for_key(existing, declared, table, fk, asset, proposals, skipped, licenses)
+        # WP99 (ADR-0018 §3): the inferred keys after the declared ones, on the same path, with
+        # their provenance. A pair the catalogue declares is the declaration's to propose.
+        declared_pairs = {
+            _pair(fk) for fk in table.foreign_keys if fk.is_single_column
+        }
+        for inferred in (table.inferred_keys.foreign if table.inferred_keys else []):
+            views = _views(inferred)
+            if any(_pair(view) in declared_pairs for view in views):
+                continue
+            _propose_for_key(
+                existing, declared, table, _resolving_view(existing, declared, views),
+                f"{table.table}.{inferred.columns[0]}", proposals, skipped, licenses,
+                inferred=inferred,
+            )
     return (
         LinkProposals(
             proposals=proposals, skipped=skipped, relationships=relationships, licenses=licenses
         ),
         skipped,
     )
+
+
+def _pair(fk: ForeignKeyRef) -> tuple[str, str, str]:
+    return (
+        normalize_identifier(fk.columns[0]), normalize_identifier(fk.references_table),
+        normalize_identifier(fk.references_columns[0]),
+    )
+
+
+def _inferred_sentence(
+    table: SourceTable, inferred: InferredForeignKey, fk: ForeignKeyRef
+) -> str:
+    """The first evidence line of an inferred proposal: the numbers, that no declaration
+    exists, and — when the proposer resolved through a tied or wider key column rather than
+    the inferred target — which one (ADR-0018 §3)."""
+    tied = f"; ties with {', '.join(inferred.tied)} (equal domains)" if inferred.tied else ""
+    wider = f"; also contained in {', '.join(inferred.wider)} (wider)" if inferred.wider else ""
+    via = ""
+    if (fk.references_table, fk.references_columns[0]) != (
+        inferred.references_table, inferred.references_columns[0]
+    ):
+        via = (
+            f"; proposed through {fk.references_table}.{fk.references_columns[0]}, the first of "
+            f"these with an existing hub"
+        )
+    return (
+        f"{table.table}.{inferred.columns[0]} → {inferred.references_table}."
+        f"{inferred.references_columns[0]} is inferred from data, not declared: every one of "
+        f"{inferred.rows} non-null rows ({inferred.distinct} distinct values) occurs in "
+        f"{inferred.references_table}.{inferred.references_columns[0]} "
+        f"({inferred.referenced_distinct} distinct values; candidate by {inferred.candidate})"
+        f"{tied}{wider}{via} (WP99)"
+    )
+
+
+def _views(inferred: InferredForeignKey) -> list[ForeignKeyRef]:
+    """The inferred target first, then the tied, then the wider key columns, each as the plain
+    key the per-key path reads."""
+    views = [ForeignKeyRef(
+        columns=list(inferred.columns), references_table=inferred.references_table,
+        references_columns=list(inferred.references_columns),
+        references_schema=inferred.references_schema,
+    )]
+    for handle in [*inferred.tied, *inferred.wider]:
+        ref_table, _, ref_column = handle.rpartition(".")
+        views.append(ForeignKeyRef(
+            columns=list(inferred.columns), references_table=ref_table,
+            references_columns=[ref_column], references_schema=inferred.references_schema,
+        ))
+    return views
+
+
+def _resolving_view(
+    existing: DVModel, declared: dict[str, SourceTable], views: list[ForeignKeyRef]
+) -> ForeignKeyRef:
+    """The key the per-key path runs on: the first of the views whose referenced table an
+    existing hub binds; else the first whose referenced table this increment declares (a
+    licence needs that); else the inferred target. Equal domains are the data's tie, and the
+    vault — or the increment — breaks it (ADR-0018 §3)."""
+    for view in views:
+        hub = _target_hub(existing, view)[0]
+        if hub is not None and hub_binds_to_source_table(hub, view.references_table):
+            return view
+    for view in views:
+        if normalize_identifier(view.references_table) in declared:
+            return view
+    return views[0]
 
 
 def _propose_for_key(
@@ -395,10 +478,19 @@ def _propose_for_key(
     proposals: list[LinkProposal],
     skipped: list[LinkSkip],
     licenses: list[KeyLicense],
+    inferred: InferredForeignKey | None = None,
 ) -> None:
     """The per-key path of :func:`propose_links` for one single-column key: target hub, else
     translation (WP36/WP39), else licence (WP40), else a typed skip. Lifted unchanged out of the
-    loop for WP46, which runs it on the components of a composite key as well."""
+    loop for WP46, which runs it on the components of a composite key as well. WP99 runs it on an
+    inferred key too: ``inferred`` sets the provenance and the first evidence line."""
+    provenance: Provenance = "inferred" if inferred is not None else "declared"
+    first = (
+        _inferred_sentence(table, inferred, fk) if inferred is not None else
+        f"{table.table}.{fk.columns[0]} references "
+        f"{fk.references_table}.{fk.references_columns[0]} (declared foreign key in the source "
+        "catalogue)"
+    )
     if True:  # the body keeps the indentation of the loop it was lifted from (two levels)
         if True:
             hub, reason_code, reason = _target_hub(existing, fk)
@@ -421,11 +513,8 @@ def _propose_for_key(
                             target_business_key=translation.natural_key_label,
                             category="declared_fk_translated",
                             translation=translation,
-                            evidence=[
-                                f"{table.table}.{fk.columns[0]} references "
-                                f"{fk.references_table}.{fk.references_columns[0]} (declared "
-                                f"foreign key in the source catalogue)",
-                            ]
+                            provenance=provenance,
+                            evidence=[first]
                             + (
                                 [
                                     f"{fk.references_table}.{fk.references_columns[0]} is itself "
@@ -457,7 +546,7 @@ def _propose_for_key(
                 ):
                     # WP40: the referenced table is this increment's own and has no hub yet —
                     # the hub, if the modeler builds one, is known only after modelling.
-                    licenses.append(_license(table, fk))
+                    licenses.append(_license(table, fk, provenance=provenance, first=first))
                     return
                 skipped.append(LinkSkip(asset=asset, reason=reason_code, message=reason))
                 return
@@ -473,12 +562,8 @@ def _propose_for_key(
                     category=(
                         "declared_fk_same_name" if same_name else "declared_fk_renamed"
                     ),
-                    evidence=[
-                        f"{table.table}.{fk.columns[0]} references "
-                        f"{fk.references_table}.{fk.references_columns[0]} (declared foreign "
-                        f"key in the source catalogue)",
-                        f"{hub.name} is keyed on {canonical}",
-                    ]
+                    provenance=provenance,
+                    evidence=[first, f"{hub.name} is keyed on {canonical}"]
                     + (
                         []
                         if same_name
@@ -504,16 +589,22 @@ def _licensable(
     )
 
 
-def _license(table: SourceTable, fk: ForeignKeyRef) -> KeyLicense:
+def _license(
+    table: SourceTable, fk: ForeignKeyRef, *, provenance: Provenance = "declared",
+    first: str | None = None,
+) -> KeyLicense:
     return KeyLicense(
         source_table=table.table,
         source_column=fk.columns[0],
         references_table=fk.references_table,
         references_column=fk.references_columns[0],
         references_schema=fk.references_schema,
+        provenance=provenance,
         evidence=[
-            f"{table.table}.{fk.columns[0]} references {fk.references_table}."
-            f"{fk.references_columns[0]} (declared foreign key in the source catalogue)",
+            first or (
+                f"{table.table}.{fk.columns[0]} references {fk.references_table}."
+                f"{fk.references_columns[0]} (declared foreign key in the source catalogue)"
+            ),
             f"{fk.references_table} is declared in this increment and has no hub yet; the hub, "
             f"if the modeler builds one, is resolved after modelling",
             f"licenses a translation or alias for links and satellites the modeler builds from "

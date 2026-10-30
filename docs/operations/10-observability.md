@@ -141,9 +141,11 @@ schema file. It issues no query against a user table and has no code path that c
 reader protocol has no method for rows); what it writes is the metadata the next paragraph
 already names as API-bound, nothing more.
 
-A second command reads **rows**, and says so in its first line: `vault-agent profile`
-(6.1, WP98) — the explicitly invoked, read-only, scoped step ADR-0008 #4 permits, run inside
-the customer's environment. What leaves that environment is its file: row counts, null and
+Two commands read **rows**, and say so in their first line: `vault-agent profile` (6.1,
+WP98) and `vault-agent infer-keys` (6.1, WP99) — the explicitly invoked, read-only, scoped step
+ADR-0008 #4 permits, run inside the customer's environment. What leaves that environment with
+the second is counts only: for each inferred key the rows checked and the distinct values on
+both sides, no value. What leaves it with the first is its file: row counts, null and
 distinct ratios, value lengths and value *shapes* (digits `9`, letters `A`) — and, with the
 default `range` check, the minimum and maximum of numeric and temporal columns, which are
 row values (a salary maximum, a birth date minimum). A data-sensitive context runs

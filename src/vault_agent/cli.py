@@ -1214,12 +1214,19 @@ def _collect_link_decision(console: Console, state: VaultAgentState) -> dict[str
         )
         for line in proposal.evidence:
             console.print(f"    [dim]{line}[/dim]")
-        if not _prompter.confirm(
-            console,
-            (f"Allow the key license {key!r}?" if isinstance(proposal, KeyLicense)
-             else f"Build the link for {key!r}?"),
-            default=True,
-        ):
+        # WP99 (ADR-0018 §4): an inferred proposal defaults to *no*, and its answer is recorded
+        # either way — the confirm that follows (`--accept`) would decline it otherwise.
+        inferred = (
+            isinstance(proposal, LinkProposal | KeyLicense) and proposal.provenance == "inferred"
+        )
+        question = (
+            f"Allow the key license {key!r}" if isinstance(proposal, KeyLicense)
+            else f"Build the link for {key!r}"
+        ) + (" (inferred from data, not declared)?" if inferred else "?")
+        answer = _prompter.confirm(console, question, default=not inferred)
+        if inferred:
+            answers[key] = answer
+        elif not answer:
             answers[key] = False
     return answers
 
@@ -1255,6 +1262,16 @@ def _link_target(proposal: LinkProposal | RelationshipLinkProposal | KeyLicense)
 
 
 def _link_category_note(proposal: LinkProposal | RelationshipLinkProposal | KeyLicense) -> str:
+    """The category note, prefixed with the provenance when the key was inferred from data
+    (WP99): every surface that shows a proposal — the prompt, the workbench, the console — must
+    show that before the decision (ADR-0018)."""
+    note = _category_note(proposal)
+    if isinstance(proposal, LinkProposal | KeyLicense) and proposal.provenance == "inferred":
+        return f"inferred from data, not declared — {note}"
+    return note
+
+
+def _category_note(proposal: LinkProposal | RelationshipLinkProposal | KeyLicense) -> str:
     """The category, and for a translation the join it implies — the reviewer must see that
     this link is reached through another relation, not by renaming a column (ADR-0013 §3).
     A relationship-table proposal (WP37) lists its participations and the condition."""
@@ -2082,6 +2099,103 @@ def source_schema_command(
         f"[bold]{out}[/bold]: {len(tables)} tables, {n_columns} columns "
         f"({n_comments} with a comment), {n_fks} foreign keys — from "
         f"{hidden_url(source_url)}, schemas {', '.join(schema)}."
+    )
+
+
+@app.command("infer-keys")
+def infer_keys_command(
+    source_schema: Annotated[
+        Path,
+        typer.Option(
+            "--source-schema", "-s", exists=True, dir_okay=False,
+            help="The declared source schema file whose tables are read from the database.",
+        ),
+    ],
+    out: Annotated[
+        Path, typer.Option("--out", "-o", help="The schema file to write, inferences attached."),
+    ] = Path("source_schema.yml"),
+    url: Annotated[
+        str | None,
+        typer.Option(
+            "--url",
+            help="SQLAlchemy URL of the source database (dialect+driver://user:pass@host/db); "
+                 f"default: ${SOURCE_URL_ENV}, where a password belongs.",
+        ),
+    ] = None,
+    candidates: Annotated[
+        str,
+        typer.Option(
+            "--candidates",
+            help="Which column pairs the inclusion check tries: `name` (the same name, a name "
+                 "ending in the key's, or the key table's name plus ID) or `type` (every pair "
+                 "of the same type family — complete, expensive, noisy).",
+        ),
+    ] = "name",
+) -> None:
+    """Infer keys from the data of the tables a declared schema names (WP99, C27 stage 3,
+    ADR-0018): unique columns, and inclusion dependencies — written beside the declared keys
+    under `inferred_keys`, never inside them.
+
+    This command reads rows. The proposer reads the inferences as proposals with provenance
+    `inferred`; `--accept` declines them, `--link Table.Column` builds one. Manual 6.1, 7."""
+    import sqlalchemy.exc
+
+    from vault_agent.key_inference import CANDIDATE_TIERS, infer_keys
+    from vault_agent.key_inference import provenance as infer_provenance
+    from vault_agent.source_schema_reader import hidden_url, render_source_schema, source_engine
+
+    console = Console()
+    source_url = url or os.environ.get(SOURCE_URL_ENV)
+    if not source_url:
+        console.print(
+            f"[bold red]No source database:[/bold red] pass --url or set {SOURCE_URL_ENV}."
+        )
+        raise typer.Exit(code=2)
+    if candidates not in CANDIDATE_TIERS:
+        console.print(
+            f"[bold red]Unknown candidate tier {candidates!r}.[/bold red] "
+            f"Known: {', '.join(CANDIDATE_TIERS)}."
+        )
+        raise typer.Exit(code=2)
+    try:
+        tables = load_source_schemas(source_schema)
+    except ValueError as exc:
+        console.print(f"[bold red]Cannot read {source_schema}:[/bold red] {exc}")
+        raise typer.Exit(code=2) from exc
+    header = source_schema.read_text(encoding="utf-8")
+    header = "\n".join(
+        line[2:] if line.startswith("# ") else line[1:]
+        for line in header.splitlines() if line.startswith("#")
+    )
+    try:
+        engine = source_engine(source_url)
+        inferred = infer_keys(engine, tables, candidates=candidates)
+    except ModuleNotFoundError as exc:
+        console.print(
+            f"[bold red]The driver for {hidden_url(source_url)} is not installed:[/bold red] "
+            f"{exc.name} — install it into this environment (manual 6.1)."
+        )
+        raise typer.Exit(code=1) from exc
+    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
+        console.print(
+            f"[bold red]Could not read {hidden_url(source_url)}:[/bold red] "
+            f"{type(exc).__name__}: {_without_password(str(exc), source_url)}"
+        )
+        raise typer.Exit(code=1) from exc
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        render_source_schema(
+            inferred, header=infer_provenance(source_url, header, candidates=candidates)
+        ),
+        encoding="utf-8",
+    )
+    n_unique = sum(len(t.inferred_keys.unique) for t in inferred if t.inferred_keys)
+    n_foreign = sum(len(t.inferred_keys.foreign) for t in inferred if t.inferred_keys)
+    n_tables = sum(1 for t in inferred if t.inferred_keys is not None)
+    console.print(
+        f"[bold]{out}[/bold]: {n_tables} of {len(tables)} tables read, {n_unique} inferred "
+        f"unique keys, {n_foreign} inferred foreign keys (candidates: {candidates}) — from "
+        f"{hidden_url(source_url)}. An inference, not a declaration: the checkpoint asks."
     )
 
 

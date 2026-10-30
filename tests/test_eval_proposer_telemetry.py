@@ -107,6 +107,8 @@ def test_the_metrics_separate_never_proposed_from_declined() -> None:
         # this fixture's referenced table is not declared, so nothing is licensed.
         "licenses": {},
         "licenses_resolved": 0,
+        # WP99 (2026-10-30): declared against inferred, proposals and licences together.
+        "by_provenance": {"declared": 2},
     }
 
 
@@ -121,6 +123,7 @@ def test_a_greenfield_run_reports_empty_counters_not_a_missing_key() -> None:
     assert metrics["link_proposals"] == {
         "by_category": {}, "by_status": {}, "skipped": {},
         "licenses": {}, "licenses_resolved": 0,  # WP40, additive
+        "by_provenance": {},  # WP99, additive
     }
 
 

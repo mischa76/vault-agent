@@ -90,8 +90,22 @@ def _delta() -> DVModel:
     )
 
 
+# WP99: the same key, inferred from data instead of declared — pinned to the same inertness.
+_INFERRED_KEYS: dict[str, Any] = {
+    "foreign": [{
+        "columns": ["PersonID"],
+        "references_table": "Person",
+        "references_columns": ["BusinessEntityID"],
+        "references_schema": "Person",
+        "rows": 19820, "distinct": 19119, "referenced_distinct": 19972, "candidate": "name",
+    }],
+    "unique": [{"columns": ["CustomerID"], "rows": 19820}],
+}
+
+
 def _schemas(
-    *, foreign_keys: bool, moved: bool = False, extra_column: bool = False
+    *, foreign_keys: bool, moved: bool = False, extra_column: bool = False,
+    inferred_keys: bool = False,
 ) -> list[SourceTable]:
     """The same declared schema, differing ONLY in whether foreign keys are declared.
 
@@ -107,6 +121,8 @@ def _schemas(
     }
     if foreign_keys:
         customer["foreign_keys"] = _FOREIGN_KEYS
+    if inferred_keys:
+        customer["inferred_keys"] = _INFERRED_KEYS
     return [
         SourceTable(**customer),
         SourceTable(table="Person", schema="Person",
@@ -301,3 +317,26 @@ async def test_the_gate_fires_when_an_alias_names_a_column_the_relation_does_not
 
     assert await _issues("NoSuchColumn") == ["E_LINK_KEY_NOT_IN_SOURCE"]
     assert await _issues("PersonID") == []
+
+
+# ── WP99: inferred keys are pinned to the same inertness as declared ones ──────────────
+
+
+def test_inferred_keys_do_not_change_staging() -> None:
+    assert _staging_fingerprint(_schemas(foreign_keys=False, inferred_keys=True)) == (
+        _staging_fingerprint(_schemas(foreign_keys=False))
+    ), "an inferred key changed the staging output with nothing ratified"
+
+
+async def test_inferred_keys_do_not_change_generated_artifacts() -> None:
+    assert await _artifact_fingerprint(_schemas(foreign_keys=False, inferred_keys=True)) == (
+        await _artifact_fingerprint(_schemas(foreign_keys=False))
+    ), "an inferred key changed the generated artifacts with nothing ratified"
+
+
+def test_inferred_keys_are_never_rendered_into_the_modeler_prompt() -> None:
+    with_, without = (
+        _schemas(foreign_keys=False, inferred_keys=True), _schemas(foreign_keys=False)
+    )
+    assert render_schema_prompt_section(with_) == render_schema_prompt_section(without)
+    assert "inferred" not in render_schema_prompt_section(with_)

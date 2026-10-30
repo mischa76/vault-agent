@@ -11179,3 +11179,80 @@ fields to any model (pinned, a measured change of its own); `row_count` in `stat
 the AdventureWorks eval cases (the chain does not pass `--profiling`); an `ORDER BY` on the sample; SAP (tier C);
 the workbench; SQL Server and Oracle measured (tier A waits for the source-system VM); CLAUDE.md unchanged
 (nothing an agent would do wrong without). Pushed with the project, on the owner's word of today.
+
+## [2026-10-30] WP99 built and measured, ADR-0018 proposed: keys inferred from data — unique columns and inclusion dependencies, their own class beside the declarations, proposed with provenance and never accepted by default; on the key-less AdventureWorks data copy 79 of 89 declared keys hit exactly, 5 more with the truth in the recorded wider list, 0 wrong targets (C27 stage 3 closed under the ADR's recommendation)
+
+**Autor:** Claude Code
+
+C27 stage 3, on the owner's go of today („weiter mit C27 stage 3"). The backlog said stages 3 and 4 need an ADR
+together with C1; **ADR-0018** (proposed) takes the part that does not depend on C1 — what an inferred key *is*
+and what it may *do* — and says so; C1 keeps its own ADR. Spec with guards `1e0b4a6` (red: no module, no class, no
+provenance). **What changed.** `state.py`: `InferredUniqueKey(columns, rows)`, `InferredForeignKey` — a
+`ForeignKeyRef` plus `rows`, `distinct`, `referenced_distinct`, `candidate` (`name`/`type`), `tied`, `wider` —
+`InferredKeys(unique, foreign)`, `SourceTable.inferred_keys` (absent by default), `LinkProposal.provenance` and
+`KeyLicense.provenance` (`declared` by default: every pre-WP99 shape byte-identical). `key_inference.py` — its first
+line says it reads rows: every table the declared schema names is reflected; a column is an inferred unique key over
+more than one row when `count(distinct c) = count(c) = count(*)` and it is not a declared key; a pair (R.c → T.k) is
+checked when T.k is a declared or inferred single-column key of the same type family and the pair is a *candidate* —
+tier `name` (the same compact name, R.c ending in T.k's name, or R.c being T's name plus `ID`; the default) or tier
+`type` (every pair of the family; complete, expensive, noisy; never the default) — and holds when the anti-join
+`count(*) FROM R WHERE R.c IS NOT NULL AND NOT EXISTS (SELECT 1 FROM T WHERE T.k = R.c)` is 0; a declared pair is
+never inferred. **One inference per referencing column:** the tightest domain (fewest distinct values); equal
+domains are a tie, broken by a stated preference (a key named after its own table, then the table the referencing
+column names, then the name) and recorded as `tied`; the strictly larger ones as `wider`. The renderer writes
+`inferred_keys` after the declared keys, the loader reads it. `cli.py`: `infer-keys --source-schema FILE --out FILE
+[--url] [--candidates name|type]`, the exits of `profile`. `link_proposal.py`: after a table's declared keys its
+inferred ones run the same per-key path (`_propose_for_key`, target hub → translation → licence → skip) with
+`provenance="inferred"` and a first evidence line that states the numbers, the tie, the wider domains and — when the
+inferred target binds no hub and a tied or wider key column does — which one the proposal was resolved through
+(`_resolving_view`: the first view an existing hub binds, else the first the increment declares, else the inferred
+target); a pair the catalogue declares, in any of its views, is the declaration's. `orchestrator.apply_link_decision`:
+`accept` ratifies the declared and **overrides** the inferred (on the record as offered and not built); an explicit
+`links[key]` decides either way. `cli._collect_link_decision`: the question for an inferred proposal ends „(inferred
+from data, not declared)?", its default is *no*, and its answer is recorded either way (the confirm that follows is
+`--accept`); `_link_category_note` is prefixed with the provenance, so the workbench's and the console's lists carry
+it. `eval/run.py`: `link_proposals.by_provenance`. Manual 6.1 (the command, the tiers, the tie), 7 (the flag table:
+`--link` the only way to build an inferred one, `--accept` declines them; a paragraph), 10.7 (two commands read rows);
+README; CHANGELOG; index rows (ADR-0018, the spec, C27 stage 3); a dated addendum to `deployment-residency.md`.
+**Measured, keyless.** `tests/test_wp99_inferred_keys.py` (16, red at `1e0b4a6`, green now): P1 the seven-table SQLite
+miniature with a declared key, a 1:1 tie (`Person` and `EmailAddress` on one domain), a subtype chain and a
+small-domain column — the name tier infers exactly the pre-registered set, the type tier adds the status column with
+its tier and its seven wider domains; P2 the proposal with provenance and the numbers, the declared pair winning over
+the same inferred one, the greenfield licence, `accept` accepting the declared and overriding the inferred, an
+explicit `links` building one, the prompt's default *no* and its recorded *yes*; P3 the file round trip, the
+modeler's schema section and the carried catalogue byte-identical, the command's exits and its file twice identical.
+`tests/test_wp34_fk_inertness.py` extended to inferred keys (staging, artifacts, prompt — deliberate update of an
+existing guard, with the change); `tests/test_eval_proposer_telemetry.py`'s two pinned dicts gain `by_provenance`
+(deliberate, same reason). **P4, local PostgreSQL 16.15, the ground truth:** the data copy's own schema file (68
+tables, 0 keys, from `source-schema`) through `infer-keys --candidates name`, twice, byte-identical, 0 stderr lines,
+6.4 s; 139 inferred unique keys on 68 tables — 44 of the extract's 45 single-column primary keys among them (the
+45th, `Document.DocumentNode`, is not unique in the copy: 12 rows, 11 distinct) and 95 other unique columns
+(`rowguid`, names, 1:1 ids); **95 inferred foreign keys against the extract's 89 single-column declared keys: 79 hit
+the declared target exactly, 5 carry it in `wider` (the `Person` group: the copy's `Person` has 19 973 rows against
+19 972 in `EmailAddress`, `Password`, `PersonPhone`, so the 1:1 tables tie as the tightest and `Person` is one row
+wider — the proposer resolves through `wider` to the hub, by design), 0 name a target the truth does not contain, 5
+are not inferred** — 3 as pre-registered (`Document.Owner`, `BillOfMaterials.ProductAssemblyID`, `…ComponentID`: no
+name path; the type tier's case) and 2 artefacts of the copy (`ProductReview.productid` is `text` there, a family
+apart from the integer key; `ProductDocument.DocumentNode` references a column not unique in the copy). The 11
+inferences with no single-column declaration, each named with its numbers: 2 are components of a declared composite
+key (`SalesOrderDetail.ProductID`, `…SpecialOfferID` — the WP46 reading, true), 2 are true relationships the
+catalogue never declared (`WorkOrderRouting.ProductID`, `TransactionHistoryArchive.ProductID` → `Product`), 4 are
+reverse inclusions into a 1:1 or child table (`Product.ProductID ⊆ ProductProductPhoto.ProductID`, `Address`,
+`CreditCard`, `ProductDescription` likewise — every parent row has a child row; labelled, the human declines), and 3
+are coincidences (`Department.GroupName ⊆ Department.Name`, `EmailAddress.EmailAddressID ⊆ …BusinessEntityID` in the
+same table, `ShoppingCartItem.ShoppingCartItemID ⊆ …Quantity` over 3 rows). **The first measurement changed the
+rule, and is kept here:** with „ties: all of them" (the spec's §4 wording) the same run gave 118 inferences, 79 hits
+and 39 false positives, 30 of them the 1:1 group and the `ProductProductPhoto` tie emitted once per tied member —
+equal domains are undecidable from data, and N proposals for one column are N decisions for one fact; hence one
+inference per column with `tied` recorded and the vault breaking the tie (the spec's §4 is overtaken here, the
+spec unedited). **Überprüft.** The guards; `uv run pytest` 1408 passed / 5 skipped; `ruff`; bare `mypy`; the P4
+files compared by `cmp` and scored by script against `schema_extract.json` (scratchpad, not kept — the command
+rebuilds the file in seconds); the copy's `Person` count, `ProductReview.productid` type and `Document.documentnode`
+distinctness by psql. **Nur angenommen.** Every dialect but PostgreSQL and SQLite (the anti-join compiles; not run);
+the type tier live (keyless only; its cost is one anti-join per type-compatible pair — on the copy roughly 171
+integer columns against some 70 integer keys); that the proposer's resolution through a tied or wider key column
+finds the right hub in a real chain (no paid run; the eval's unattended resume declines every inferred proposal, so a
+chain measures nothing from them until a human names one). **Bewusst nicht getan.** Composite inferences; a ranking
+beyond the tightest domain and the tie preference; the satellite-grain gate or the binder's offer tier reading
+inferred unique keys; C1 and a source-driven mode; SAP; ADR-0018's status not moved — the owner's decision; CLAUDE.md
+unchanged. Pushed with the project, on the owner's word of today.

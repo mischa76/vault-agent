@@ -15,6 +15,17 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- Keys inferred from data (ADR-0018, proposed; WP99, backlog C27 stage 3): `vault-agent infer-keys
+  --source-schema FILE --out FILE [--candidates name|type]` reflects the tables a declared schema
+  names and writes, beside the declarations under their own `inferred_keys` key, the columns
+  unique over every row and the inclusion dependencies the data holds — each with the rows
+  checked, the distinct values on both sides, the candidate tier, the tied key columns of equal
+  domain and the wider ones that also contain every value; one inference per column. The link
+  proposer offers them with `provenance: inferred`, resolving a tie through the key column an
+  existing hub binds; `--accept`
+  declines them on the record and only `--link Table.Column` (or a yes at the prompt, whose default
+  is no) builds one; the modeler's prompt and the travelling catalogue never see them. Measured on
+  the key-less AdventureWorks data copy against the extract's declared keys.
 - Profiling read from the source system: `vault-agent profile --schema S [--table T] --out
   profiling.yml` writes the file `run --profiling` reads — row counts, null and distinct ratios
   exact over all rows; `range` (numeric and temporal columns only), `lengths` and value `patterns`

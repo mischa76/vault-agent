@@ -367,6 +367,16 @@ def run_metrics(
             "skipped": dict(
                 sorted(Counter(s.reason for s in state.link_proposals.skipped).items())
             ),
+            # WP99: declared against inferred, proposals and licences together — an unattended
+            # resume declines every inferred one, and this is where a writeup reads that.
+            "by_provenance": dict(
+                sorted(
+                    Counter(
+                        [p.provenance for p in state.link_proposals.proposals]
+                        + [lic.provenance for lic in state.link_proposals.licenses]
+                    ).items()
+                )
+            ),
             # WP40: key licenses by status, and how many resolved to a hub after modelling.
             "licenses": dict(
                 sorted(

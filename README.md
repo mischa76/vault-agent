@@ -220,8 +220,13 @@ profiling statistics as evidence. Proposals land in `output/mappings.review.yml`
 That file too can be read from the source database — `vault-agent profile --schema Sales --out
 profiling.yml`: row counts, null and distinct ratios exact over all rows; ranges (numeric and
 temporal columns only), lengths and value shapes selectable; example values off by default. It is
-the one command that reads rows, explicitly invoked and scoped (ADR-0008 #4); the pipeline never
-does (measured on PostgreSQL, WP98).
+a command that reads rows, explicitly invoked and scoped (ADR-0008 #4); the pipeline never
+does (measured on PostgreSQL, WP98). For a source without declared keys, `vault-agent infer-keys
+--source-schema s.yml --out s.yml` adds what the data says — unique columns and inclusion
+dependencies with their evidence — under `inferred_keys`, beside the declarations and never
+inside them; the proposer offers them with provenance `inferred`, and `--accept` declines them:
+only an explicit `--link` builds one (WP99, ADR-0018; measured against AdventureWorks' own
+declarations).
 
 To **extend an existing vault** instead of modelling into an empty one, point the run at an earlier
 run's output: `vault-agent run … --existing <earlier output dir>` (brownfield, WP23/WP29).

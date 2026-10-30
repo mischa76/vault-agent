@@ -88,12 +88,12 @@ vault-agent resume --owner "customer=Jane Doe <jane@bank.example>" \
 | `--map "concept=TABLE.COLUMN"` | yes | Ratifies/overrides one mapping |
 | `--mappings <file>` | no | Ratifies an edited `mappings.review.yml` wholesale |
 | `--bind "STAGE=RELATION"` / `--bind "STAGE=RELATION(STAGE_COLUMN=column, …)"` | yes | Binds a staging model no rule could (`source_binding` or `binding_rejected` in the review queue) to a declared relation, with aliases where the relation carries a key under another name — what a hand-made view said until WP82. Checked before anything resumes: the relation must carry every column the stage hashes after the aliases, else the flag is refused with the columns named. The binding and its aliases travel to the next increment with the catalogue |
-| `--link "Table.Column"` | yes | Builds one link proposed from a declared foreign key (WP34); for a key license (WP40) allows the repair it licenses |
+| `--link "Table.Column"` | yes | Builds one link proposed from a declared foreign key (WP34); for a key license (WP40) allows the repair it licenses; for a proposal **inferred from data** (WP99) the only way to build it — `--accept` declines those |
 | `--no-link "Table.Column"` | yes | Declines one proposed link; wins over `--link` for the same one |
 | `--link "Table.*"` / `--no-link "Table.*"` | yes | Ratifies or declines the **relationship-table** link proposed for a whole table (WP37) — one decision per table, not per key |
 | `--resolve "concept=answer"` | yes | Ratifies one entity resolution (WP29): `answer` is an existing construct's name, `NEW`, `same_as_candidate` or `unresolved` |
 | `--resolutions <file>` | no | Ratifies an edited `resolutions.review.yml` wholesale (WP29) |
-| `--accept` | — | Signs off and proceeds past the checkpoint |
+| `--accept` | — | Signs off and proceeds past the checkpoint; ratifies every pending proposal and license whose key the catalogue **declares**, and declines (`overridden`, on the record) every one **inferred from data** that no `--link` named (WP99, ADR-0018 §4) |
 
 A link proposal's note names its category. `declared_fk_same_name` and
 `declared_fk_renamed` are WP34's two: the referencing column is, or is renamed to, the hub's
@@ -142,6 +142,17 @@ hub yet*, and the interactive prompt asks *Allow the key license …?*. Answerin
 translation or alias, resolved after modelling, that **repairs** the staging of links and
 satellites the modeler builds from that table; it never builds a link or a hub. `--link`,
 `--no-link` and `--accept` decide it like a link proposal.
+
+**Since WP99, a proposal or license may be inferred from data** (`vault-agent infer-keys`,
+6.1): its note begins *inferred from data, not declared*, its first evidence line carries the
+numbers (rows checked, distinct values on both sides, the candidate tier, the tied key columns of
+equal domain, the wider ones that also contain every value, and — where the inferred target has
+no hub and a tied or wider one has — which key column the proposal was resolved through), and it
+is never bound by the bulk key — `--accept` declines it,
+the interactive prompt defaults to *no* and asks *… (inferred from data, not declared)?*, and
+only `--link` or a *yes* builds it. The eval harness's unattended resume is `--accept`, so a
+measured chain builds nothing from an inference; its `link_proposals.by_provenance` says how
+many were offered.
 
 **Since WP41, key licenses appear in greenfield runs too.** With a declared schema and no
 `--existing` vault, every declared single-column key into another table of the same input is a key

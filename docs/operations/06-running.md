@@ -75,6 +75,35 @@ byte-identical file (measured on the AdventureWorks data copy, 68 tables, 2026-1
 What the file carries and when to drop `range`: 10.7. The new fields reach no model
 input; the mapper and the validator read what they read before.
 
+**Inferring keys from the data (WP99, C27 stage 3, ADR-0018).** A source without declared
+keys — a dump of data without its DDL, a lake — leaves the link proposer blind. The second
+command that reads rows writes what the data says beside the declarations, never inside them:
+
+```bash
+uv run vault-agent infer-keys --source-schema inputs/source_schema.yml --out inputs/source_schema.yml
+```
+
+reflects every table the file names and adds an `inferred_keys:` block per table: `unique` —
+the columns unique and non-null over every row (more than one row; never a declared key) —
+and `foreign` — inclusion dependencies, a column every non-null value of which occurs in a
+key column (declared or inferred unique) of the same type family, each with its evidence:
+the rows checked, the distinct values on both sides, the candidate tier, the `tied` key
+columns with exactly the same number of distinct values (equal domains — tables keyed 1:1 on
+one id — which data alone cannot tell apart; the tie is broken by a stated preference, a key
+named after its own table first, and the proposer tries the tied and the wider ones for an
+existing hub), and the `wider` key columns that contain every value with more (the inference
+is the tightest; an employee is a person before it is a business entity). One inference per
+column. Which pairs are checked, `--candidates`: `name`
+(default) — the same compact name, a name ending in the key's (`ShipToAddressID` →
+`AddressID`), or the key table's name plus `ID` (`SalesPersonID` → `SalesPerson`'s key);
+`type` — every pair of the same type family, complete and noisy (a two-valued status column is
+contained in every integer key) and expensive (one anti-join per pair). A pair the catalogue
+declares is never inferred. The proposer reads the block as proposals with provenance
+`inferred`, and **`--accept` declines them**: only `resume --link Table.Column` or a *yes* at
+the prompt (whose default for an inferred proposal is *no*) builds one (7). Two reads of one
+database give one byte-identical file; measured against AdventureWorks' own declarations on
+the key-less data copy (`docs/log.md`, 2026-10-30).
+
 Worked examples for all three live under `examples/inputs/` (bank and messy-insurance
 sets, including an enriched schema and profiling file).
 

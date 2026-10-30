@@ -98,3 +98,11 @@ already names as the one that can carry data-derived strings). Of all this, only
 the mapper and the validator read today reach a model (`uniqueness_ratio`, `null_ratio`,
 `distinct_count`, `example_values`); the WP98 fields are pinned out of every payload. The facts in the
 table above are still those of 2026-07-18.
+
+## Addendum 2026-10-30, later — a second command reads rows: `vault-agent infer-keys` (WP99)
+
+Same boundary as the addendum above: `vault-agent infer-keys` (manual 6.1) reads the rows of the
+tables a declared schema names, inside the customer's environment, to find unique columns and
+inclusion dependencies. What leaves it in the file is counts — per inferred key the rows checked
+and the distinct values on both sides — and names; no value of any row. The inferences reach the
+link proposer only, as proposals a human must name to build (ADR-0018 §4); no model sees them.
