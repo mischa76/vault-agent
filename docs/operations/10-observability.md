@@ -134,6 +134,13 @@ no warehouse connection in the pipeline to begin with, and it does not invoke db
 either), not a configuration promise. What it sees of your data is exactly what you put
 in front of it — which is the next paragraph.
 
+One command does connect to a database, and it is not the warehouse: `vault-agent
+source-schema` (6.1) opens the **source** database to read its catalogue — table and column
+names, types, nullability, comments, keys, foreign keys — and writes the declared source
+schema file. It issues no query against a user table and has no code path that could (the
+reader protocol has no method for rows); what it writes is the metadata the next paragraph
+already names as API-bound, nothing more.
+
 What **does** go to the Anthropic API is the pipeline's three inputs: the requirements
 document (in full — including any real data examples someone pasted into it), the
 declared source schema (metadata: table/column names, types, comments), and the

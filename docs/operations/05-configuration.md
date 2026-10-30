@@ -17,6 +17,7 @@ upper-case forms of the fields:
 | `LANGSMITH_API_KEY` | unset | eval upload only (11.5) | Pipeline never uses it |
 | `LANGSMITH_TRACING` | `false` | eval harness | |
 | `LANGSMITH_PROJECT` | `vault-agent-dev` | eval upload | Workspace name |
+| `VAULT_AGENT_SOURCE_URL` | unset | `vault-agent source-schema` only (6.1) | SQLAlchemy URL of the source database whose catalogue is read (`postgresql+psycopg2://user:pass@host/db`); the place for the password, which `--url` would put into the shell history. The pipeline never reads it |
 
 Unknown variables in the environment or `.env` are ignored (`extra="ignore"`) — a
 stale entry never crashes startup. There is deliberately no logging configuration

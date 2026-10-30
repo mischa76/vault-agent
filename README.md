@@ -206,6 +206,10 @@ uv run vault-agent run examples/inputs/bank_account_requirements.md \
   --source-schema examples/inputs/bank_source_schema.yml --out output
 ```
 
+The file can be read from the source database instead of written — `uv sync --extra catalogue`,
+then `vault-agent source-schema --schema Sales --out source_schema.yml` with the SQLAlchemy URL in
+`VAULT_AGENT_SOURCE_URL` (metadata only, no row is read; measured on PostgreSQL, WP96).
+
 With a schema the run reports `grounding: on`, emits one data contract per source table, and flags
 any key or attribute absent from the schema as a non-blocking `W_*_NOT_IN_SOURCE` warning; without
 `--source-schema`, grounding stays inert and the output is unchanged. Declared foreign keys become

@@ -18,11 +18,13 @@ from typer.testing import CliRunner
 from vault_agent.cli import app
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.source_schema_reader import (
+    CatalogueType,
     InspectorReader,
     ReadColumn,
     ReadForeignKey,
     hidden_url,
     read_source_schema,
+    register_catalogue_types,
     render_source_schema,
 )
 from vault_agent.state import ForeignKeyRef, SourceTable
@@ -42,17 +44,20 @@ _DDL = [
     'FOREIGN KEY ("CustomerID") REFERENCES "Customer"("CustomerID"))',
     'CREATE VIEW "v_orders" AS SELECT "SalesOrderID", "Total" FROM "SalesOrderHeader"',
 ]
-# A second, attached schema whose foreign key crosses into the first — SQLite names the referred
-# schema here; for a key inside the default schema it says nothing, and the reader fills it.
+# A second, attached schema: SQLite names the referred schema for a key inside an attachment and
+# says nothing for one inside the default schema — the reader fills the latter. (A key across the
+# two is not SQLite's to declare.)
 _DDL_OTHER = [
     'CREATE TABLE "Other"."Territory" ("TerritoryID" INTEGER NOT NULL PRIMARY KEY, '
     '"Name" VARCHAR(50) NOT NULL)',
+    'CREATE TABLE "Other"."OrderRevision" ("SalesOrderID" INTEGER NOT NULL, '
+    '"RevisionNumber" INTEGER NOT NULL, PRIMARY KEY ("SalesOrderID", "RevisionNumber"))',
     'CREATE TABLE "Other"."Assignment" ("SalesOrderID" INTEGER NOT NULL, '
     '"RevisionNumber" INTEGER NOT NULL, "TerritoryID" INTEGER, '
     'PRIMARY KEY ("SalesOrderID", "RevisionNumber"), '
     'FOREIGN KEY ("TerritoryID") REFERENCES "Territory"("TerritoryID"), '
     'FOREIGN KEY ("SalesOrderID", "RevisionNumber") '
-    'REFERENCES "main"."SalesOrderHeader"("SalesOrderID", "RevisionNumber"))',
+    'REFERENCES "OrderRevision"("SalesOrderID", "RevisionNumber"))',
 ]
 
 
@@ -83,10 +88,10 @@ def _read(engine: sa.Engine, schemas: list[str], *, views: bool = False) -> list
 def test_p1_tables_columns_keys_and_foreign_keys_are_transcribed(engine: sa.Engine) -> None:
     tables = _read(engine, ["main", "Other"])
     assert [(t.schema_name, t.table) for t in tables] == [
-        ("Other", "Assignment"), ("Other", "Territory"), ("main", "Customer"),
-        ("main", "SalesOrderHeader"),
+        ("Other", "Assignment"), ("Other", "OrderRevision"), ("Other", "Territory"),
+        ("main", "Customer"), ("main", "SalesOrderHeader"),
     ], "sorted by (schema, table); a view is not a table"
-    customer = tables[2]
+    customer = tables[3]
     assert customer.database == "main.db"
     assert [(c.name, c.type, c.nullable) for c in customer.column_refs] == [
         ("CustomerID", "integer", False), ("TerritoryID", "integer", True),
@@ -96,7 +101,7 @@ def test_p1_tables_columns_keys_and_foreign_keys_are_transcribed(engine: sa.Engi
     assert customer.unique_keys == [["AccountNumber"], ["rowguid"]], (
         "the unique constraint and the unique index, not the primary key"
     )
-    header = tables[3]
+    header = tables[4]
     assert header.primary_key == ["SalesOrderID", "RevisionNumber"]
     assert header.unique_keys == []
     assert header.foreign_keys == [
@@ -108,8 +113,8 @@ def test_p1_tables_columns_keys_and_foreign_keys_are_transcribed(engine: sa.Engi
     assignment = tables[0]
     assert assignment.foreign_keys == [
         ForeignKeyRef(
-            columns=["SalesOrderID", "RevisionNumber"], references_table="SalesOrderHeader",
-            references_columns=["SalesOrderID", "RevisionNumber"], references_schema="main",
+            columns=["SalesOrderID", "RevisionNumber"], references_table="OrderRevision",
+            references_columns=["SalesOrderID", "RevisionNumber"], references_schema="Other",
         ),
         ForeignKeyRef(
             columns=["TerritoryID"], references_table="Territory",
@@ -195,6 +200,21 @@ def test_p1_an_unknown_type_is_empty_never_guessed() -> None:
     dialect = sa.create_engine("sqlite://").dialect
     assert InspectorReader.type_name(sqltypes.NullType(), dialect) == ""
     assert InspectorReader.type_name(sqltypes.VARCHAR(50), dialect) == "varchar(50)"
+
+
+def test_p1_a_catalogue_type_the_dialect_lacks_is_spelled_as_the_catalogue_spells_it() -> None:
+    # Guard added with the change (2026-10-30): the measurement found PostgreSQL's `xml`
+    # reflected as NullType on seven AdventureWorks columns; registered per vendor since.
+    from sqlalchemy.dialects.postgresql.base import PGDialect
+
+    dialect = PGDialect()
+    assert "xml" not in dialect.ischema_names
+    register_catalogue_types(dialect)
+    assert InspectorReader.type_name(dialect.ischema_names["xml"](), dialect) == "xml"
+    assert "xml" not in PGDialect.ischema_names, "the instance, never the class"
+    sqlite = sa.create_engine("sqlite://").dialect
+    register_catalogue_types(sqlite)  # a dialect without extra types is left alone
+    assert InspectorReader.type_name(CatalogueType("geometry"), sqlite) == "geometry"
 
 
 # --- P2: the command --------------------------------------------------------------------------
@@ -285,7 +305,9 @@ def test_p3_the_instrument_renders_every_object_of_the_extract() -> None:
     assert '"FirstName" varchar(50) NOT NULL' in ddl, "the alias type Name resolves to its base"
     assert '"rowguid" uuid NOT NULL' in ddl
     assert '"TotalDue" text' in ddl, "a computed column is declared text (spec §4 P3)"
-    assert "COMMENT ON COLUMN \"Person\".\"Person\".\"FirstName\" IS 'First name of the person.'" in ddl
+    assert (
+        "COMMENT ON COLUMN \"Person\".\"Person\".\"FirstName\" IS 'First name of the person.'"
+    ) in ddl
     assert ddl.index("FOREIGN KEY (") > ddl.rindex("CREATE TABLE "), (
         "every foreign key after every table, so the DDL applies in one pass"
     )

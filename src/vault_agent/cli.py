@@ -10,6 +10,7 @@ without the graph or an API key; the ``run`` command wires the graph to it.
 import asyncio
 import json
 import logging
+import os
 import re
 import sys
 from collections.abc import Iterator
@@ -62,6 +63,7 @@ from vault_agent.report import build_report
 from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.source_schema import load_source_schemas
+from vault_agent.source_schema_reader import SOURCE_URL_ENV
 from vault_agent.state import (
     RESOLUTION_SAME_AS,
     BusinessVaultOptions,
@@ -1987,6 +1989,108 @@ def resume(
         resolutions=resolutions, resolve=resolve, link=link, no_link=no_link, bind=bind,
         trace=trace, interactive=interactive, write=write,
     )
+
+
+@app.command("source-schema")
+def source_schema_command(
+    schema: Annotated[
+        list[str] | None,
+        typer.Option("--schema", "-s", help="A schema of the source database to read (repeat)."),
+    ] = None,
+    out: Annotated[
+        Path, typer.Option("--out", "-o", help="The declared source schema file to write."),
+    ] = Path("source_schema.yml"),
+    url: Annotated[
+        str | None,
+        typer.Option(
+            "--url",
+            help="SQLAlchemy URL of the source database (dialect+driver://user:pass@host/db); "
+                 f"default: ${SOURCE_URL_ENV}, where a password belongs.",
+        ),
+    ] = None,
+    views: Annotated[
+        bool, typer.Option("--views/--no-views", help="Read views as well as tables."),
+    ] = False,
+) -> None:
+    """Read the declared source schema from the source system's catalogue (WP96, C27 stage 1).
+
+    Metadata only — tables, columns with type and nullability, comments, primary and unique
+    keys, foreign keys — transcribed into the file `run --source-schema` reads. No row is read.
+    The driver for the dialect is yours to install (manual 6.1)."""
+    import sqlalchemy.exc
+
+    from vault_agent.source_schema_reader import (
+        database_of,
+        hidden_url,
+        inspector_reader,
+        provenance,
+        read_source_schema,
+        render_source_schema,
+        warn_unknown_types,
+    )
+
+    console = Console()
+    source_url = url or os.environ.get(SOURCE_URL_ENV)
+    if not source_url:
+        console.print(
+            f"[bold red]No source database:[/bold red] pass --url or set {SOURCE_URL_ENV}."
+        )
+        raise typer.Exit(code=2)
+    try:
+        reader = inspector_reader(source_url)
+        available = reader.schema_names()
+    except ModuleNotFoundError as exc:
+        console.print(
+            f"[bold red]The driver for {hidden_url(source_url)} is not installed:[/bold red] "
+            f"{exc.name} — install it into this environment (manual 6.1)."
+        )
+        raise typer.Exit(code=1) from exc
+    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
+        console.print(
+            f"[bold red]Could not read the catalogue of {hidden_url(source_url)}:[/bold red] "
+            f"{type(exc).__name__}: {_without_password(str(exc), source_url)}"
+        )
+        raise typer.Exit(code=1) from exc
+    missing = [name for name in schema or [] if name not in available]
+    if not schema or missing:
+        what = (
+            f"schema(s) not in the catalogue: {', '.join(missing)}" if missing
+            else "pass --schema for each schema to read"
+        )
+        console.print(f"[bold red]{what}.[/bold red] This connection sees: {', '.join(available)}")
+        raise typer.Exit(code=2)
+    try:
+        tables = read_source_schema(
+            reader, schemas=schema, database=database_of(source_url), views=views
+        )
+    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
+        console.print(
+            f"[bold red]Could not read the catalogue of {hidden_url(source_url)}:[/bold red] "
+            f"{type(exc).__name__}: {_without_password(str(exc), source_url)}"
+        )
+        raise typer.Exit(code=1) from exc
+    warn_unknown_types(tables)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        render_source_schema(tables, header=provenance(source_url, schema, views=views)),
+        encoding="utf-8",
+    )
+    n_columns = sum(len(t.column_refs) for t in tables)
+    n_fks = sum(len(t.foreign_keys) for t in tables)
+    n_comments = sum(1 for t in tables for c in t.column_refs if c.comment)
+    console.print(
+        f"[bold]{out}[/bold]: {len(tables)} tables, {n_columns} columns "
+        f"({n_comments} with a comment), {n_fks} foreign keys — from "
+        f"{hidden_url(source_url)}, schemas {', '.join(schema)}."
+    )
+
+
+def _without_password(message: str, url: str) -> str:
+    """A dialect's message may echo the URL; the password never reaches the terminal."""
+    from sqlalchemy.engine import make_url
+
+    password = make_url(url).password
+    return message.replace(password, "***") if password else message
 
 
 if __name__ == "__main__":

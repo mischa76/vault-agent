@@ -27,14 +27,22 @@ cd vault-agent
 uv sync
 ```
 
-`uv sync` creates the virtualenv and installs the core package plus dev tooling. Two
+`uv sync` creates the virtualenv and installs the core package plus dev tooling. The
 optional extras exist and are needed only for what their names say:
 
 ```bash
 uv sync --extra demo    # dbt-core + dbt-postgres (~1.9) — for chapter 9 builds
 uv sync --extra demo-databricks   # dbt-core 1.11 + dbt-databricks 1.12 — a Databricks target (9.6). Conflicts with `demo`: one or the other, never both
 uv sync --extra eval    # langsmith — ONLY for the optional eval upload (11.5)
+uv sync --extra catalogue   # SQLAlchemy — `vault-agent source-schema`, the declared schema read from a source database (6.1)
 ```
+
+`catalogue` brings the reflection library, not the driver: `psycopg2` comes with `demo`
+(PostgreSQL); for another source install its SQLAlchemy driver into the same environment
+(`pyodbc` or `pymssql` for SQL Server, `oracledb`, `ibm_db_sa`, `sqlalchemy-hana`,
+`snowflake-sqlalchemy`, `databricks-sqlalchemy`, `sqlalchemy-bigquery`). The command names the
+missing driver when the URL asks for one that is not there. Only PostgreSQL is measured
+(WP96, 2026-10-30); every other dialect is SQLAlchemy's or its vendor's, unverified here.
 
 The CLI entry point is `vault-agent` (run through `uv run vault-agent …` or activate
 the venv). The eval harness has no entry point by design; it runs as

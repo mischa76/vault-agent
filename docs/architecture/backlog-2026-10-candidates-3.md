@@ -125,3 +125,13 @@ optional participation as a link of its own (the owner's model has `link_sales_o
 link — a gate could say that a link with nine participants, three of them NULL in most rows, is the wrong unit of
 work). The AutomateDV link macro drops every row whose foreign-key hash is NULL, so this is a rows question, not a
 cosmetic one. Needs the owner's go.
+
+## C31 — A table's own comment has no field in the house format (found by WP96, 2026-10-30)
+
+The source catalogue states a description per table (AdventureWorks: 66 of 68, verbatim in the extract;
+PostgreSQL `pg_description` with `objsubid = 0`, SQL Server's `MS_Description` on the table, Oracle's
+`ALL_TAB_COMMENTS`), and `SourceTable` has no field for it — the derivation drops it (`derive.py`) and WP96's
+reader reads it from no catalogue, because there is nowhere to put it. The modeler would read it where a
+cryptic table name says nothing (the SAP case of C27 tier C in miniature). A field `comment` on `SourceTable`,
+rendered where the column comments are rendered (the grounding prompt, the contracts), inert when absent, pinned
+byte-identical for every existing input. Small; needs the owner's go, because it changes what an agent sees.

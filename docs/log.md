@@ -10955,3 +10955,64 @@ invariant „write the guard before the change", which WP92, WP93 and WP94 follo
 `7079618`). What the record can still show: the guards' red run is described in the spec's §6 (written from it) and
 the tests assert outcomes the code before `2b93501` demonstrably did not produce (the `role_columns` key, the
 `Store` binding); what it cannot show is a commit in which they fail. Noted so the next reader does not look for one.
+
+## [2026-10-30] WP96 built and measured: the declared source schema read from the source system's catalogue — `vault-agent source-schema`, ADR-0017 proposed; AdventureWorks read back from a real PostgreSQL catalogue equal to the extract on every axis (68 tables, 465 columns, 90 foreign keys, 440 comments)
+
+**Autor:** Claude Code
+
+C27 stage 1, on the owner's go of today („weiter mit C27"). ADR-0017 (proposed: SQLAlchemy's `Inspector` behind a
+reader protocol of our own, against catalogue queries per vendor — the owner's decision pending; built on the
+recommendation, which swaps behind the protocol) and the spec with guards `09b7024` (red: the module absent; the
+`catalogue` extra added in that commit because the SQLite fixture needs it). **What changed.**
+`source_schema_reader.py`: `CatalogueReader`, a protocol of seven methods (schemas, tables, views, columns, primary
+key, unique keys, foreign keys) with no method that could read a row; `InspectorReader` over SQLAlchemy 2.1.6 as
+installed (`engine/reflection.py`); `read_source_schema` — transcription, never interpretation: tables by (schema,
+name), columns in ordinal order with the dialect's type spelling lowercased and `nullable` always, comments verbatim,
+the primary key, unique constraints and unique indexes that are neither the primary key nor a constraint's own index,
+foreign keys with the referred schema filled from the dialect's default when the catalogue omits it (PostgreSQL does
+for `public`, SQLite for `main`); `render_source_schema` — the house file with a provenance header (password hidden,
+no timestamp), empty lists omitted as `derive.py` omits them; `CatalogueType` and `register_catalogue_types` — a type
+the vendor's catalogue names and the dialect has no class for, registered per vendor on the dialect instance
+(`ischema_names`, the way GeoAlchemy2 registers geometry): PostgreSQL `xml`. `cli.py`: `source-schema --schema S
+--out FILE [--views]`, the URL from `--url` or `VAULT_AGENT_SOURCE_URL`; without a schema it lists what the
+connection sees and exits 2, a schema the catalogue lacks exits 2, no URL exits 2, a missing driver or a refused
+connection exits 1 with the password replaced in the dialect's message. The instrument `eval/adventureworks/
+postgres_ddl.py` renders the extract as PostgreSQL DDL (schemas, tables with keys, the 55 `AK_*` unique indexes
+`rowguid` ones included, 90 foreign keys after every table, 506 comments; SQL Server types mapped, the six alias
+types resolved, the ten computed columns declared `text`) — the schema half of C23. Manual 4.2, 5.1, 6.1, 10.7;
+README; CHANGELOG; index rows for the ADR and the spec; C31 appended to the backlog (a table's own comment has no
+field in the house format). **Measured, keyless.** P1, P2, P3 by the guards (12 of 12; the twelfth added with the
+change, see below). **P4, local PostgreSQL 16.15:** the DDL applied to a fresh database `aw_ddl` in one pass
+(`ON_ERROR_STOP`; one notice: PostgreSQL truncates the 64-character index name
+`AK_CurrencyRate_CurrencyRateDate_FromCurrencyCode_ToCurrencyCode` by one character); the command on its five
+schemas, twice, byte-identical; against `eval/datasets/adventureworks_full/source_schema.yml` and the extract: 68
+tables, the same set; column names in order equal for 68 tables (465 columns); `nullable` equal to the extract's for
+465 of 465; `primary_key` equal for 68; foreign-key sets equal for 68 tables (90 keys, `references_schema` on every
+one); unique keys 55, equal to the extract's alternate keys on every table — 26 of them `rowguid`, absent from the
+derived file by its design and present here by rule 1, the other 29 equal to the derived file's; comments: 440
+present, equal to the extract's on 465 of 465 columns (none where the extract has none); the type pairs form a
+function over 47 SQL Server spellings (`int → integer`, `nvarchar(n) → varchar(n)`, `datetime → timestamp without
+time zone`, `money → numeric(19, 4)`, `uniqueidentifier → uuid`, `AS → text`, the seven `XML…` spellings → `xml`);
+the file loads through `load_source_schemas` (68); the password appears nowhere in it, the masked URL once. **The
+first P4 run found what the pre-registration did not foresee:** SQLAlchemy's PostgreSQL dialect has no class for
+`xml` and reflects it as `NullType` — seven columns (`JobCandidate.Resume`, `Person.AdditionalContactInfo`,
+`Person.Demographics`, `Illustration.Diagram`, `ProductModel.CatalogDescription`, `ProductModel.Instructions`,
+`Store.Demographics`) came back with an empty type and a line on stderr, as rule 4 says. The catalogue knows the
+type; only the library lost it. Closed by the per-vendor registration above and a guard added with the change
+(deliberately after the finding, in the same commit): the second run has 0 empty types and 0 stderr lines. **P5,
+the data copy in `vault` (transferred 2026-10-24):** 68 tables, 601 columns, every name lowercase, every column
+nullable, 0 primary keys, 0 unique keys, 0 foreign keys, 0 comments, four types in all (`bigint`, `numeric`,
+`text`, `timestamp without time zone`) — what a `pg_dump` of data without its DDL leaves of a catalogue; recorded,
+not a target, and the reason the cross-check needed the DDL instrument. **Überprüft.** The guards (red at `09b7024`,
+green now), `uv run pytest` 1368 passed / 5 skipped, `ruff`, bare `mypy`; the two P4 files compared by script
+(scratchpad, not kept — the instrument and the command rebuild them in seconds); the DDL's object counts by
+`information_schema` and `pg_description` on `aw_ddl` before the read; the P5 file read back by script. **Nur
+angenommen.** Every dialect but PostgreSQL and SQLite (SQL Server's `MS_Description` and Oracle's comments are read
+in SQLAlchemy's source, not run); that the vendor's type spelling as SQLAlchemy compiles it keeps the families the
+gates read (`_type_base` takes the first word: `timestamp without time zone` → `timestamp`, `double precision` →
+`double`) — by reading, not by a run through a gate; that a referred schema SQLAlchemy omits is always the dialect's
+default schema (true for PostgreSQL and SQLite by their source). **Bewusst nicht getan.** C27 stages 2–4 (profiling
+touches data: residency first; key inference; requirements from the catalogue, with C1's ADR); a table comment
+(C31); the SAP dictionary reader (tier C); SQL Server and Oracle measured (tier A waits for the source-system VM);
+the workbench (ADR-0015 single-user, a later increment); `aw_ddl` dropped after the measurement, as the earlier
+measurement schemas were; nothing pushed; ADR-0017's status not moved — the owner's decision.

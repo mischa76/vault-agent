@@ -18,6 +18,28 @@ types and comments are what the source mapper feeds on — the richer the declar
 the better the mapping. Malformed entries fail fast with an error naming file and
 problem.
 
+**Reading the declared schema from the source database (WP96, C27 stage 1).** Instead
+of writing the file, read it from the catalogue:
+
+```bash
+export VAULT_AGENT_SOURCE_URL='postgresql+psycopg2://user:pass@host:5432/db'
+uv run vault-agent source-schema --schema Sales --schema Person --out inputs/source_schema.yml
+```
+
+needs `--extra catalogue` and the dialect's driver (4.2). It transcribes what the
+catalogue says about the named schemas — every table (views with `--views`), every
+column in order with the vendor's type spelling and `nullable`, column comments verbatim,
+the primary key, unique constraints and unique indexes, foreign keys with their schema —
+into exactly the file `--source-schema` reads, with a header naming the connection
+(password hidden). Nothing is inferred and no row is read (10.7); the file is yours to
+edit afterwards. Two reads of one catalogue give one byte-identical file. Without
+`--schema` the command lists the schemas the connection sees and exits 2; a missing driver
+or a refused connection exits 1. A type the dialect has no class for is declared empty
+and named on stderr, never guessed — except the ones the reader registers per vendor
+(PostgreSQL `xml`), spelled as the catalogue spells them. The source types of a
+customer's catalogue are the warehouse's problem only where a stage casts (9.3); the gates
+read type families, which the vendor spelling keeps.
+
 **Profiling evidence (optional).** `--profiling <file.yml|json>` adds per-column
 statistics (uniqueness, null rate, example values) as mapper evidence. Example values
 are the pipeline's one deliberate touchpoint with data *values* — see 10.7 for the

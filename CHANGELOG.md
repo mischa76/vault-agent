@@ -57,6 +57,15 @@ is not the project's.
   longer declines a relation for an alias the modeler invented (`StoreID` on `Store`). Recorded as
   `role_columns` in the staging metadata and carried as `stage_aliases`. The chain's last step needs
   four sign-off bindings instead of seven; none of them an alias for a role.
+- The declared source schema read from the source system's catalogue (WP96, backlog C27 stage 1,
+  ADR-0017 proposed): `vault-agent source-schema --schema S --out FILE` with the SQLAlchemy URL in
+  `VAULT_AGENT_SOURCE_URL` transcribes tables, columns in order with the vendor's type spelling and
+  nullability, column comments verbatim, primary and unique keys and foreign keys into the file
+  `run --source-schema` reads — deterministic, metadata only, no row read, the password never in the
+  file or a message. Extra `catalogue` (SQLAlchemy); the driver is the operator's. Measured on
+  PostgreSQL 16 against the AdventureWorks DDL (`eval/adventureworks/postgres_ddl.py`, the schema half
+  of C23): 68 tables, 465 columns, 90 foreign keys, 440 comments, every key equal to the extract's; a
+  PostgreSQL `xml` column is spelled `xml`, which SQLAlchemy's dialect alone did not.
 
 ### Security
 - Dependabot alerts 44–46 (`dompurify` 3.4.16, one critical), 47 (`certifi` 2026.5.20, critical),
