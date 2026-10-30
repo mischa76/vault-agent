@@ -115,3 +115,15 @@ satellites — WP34's invention symptom, within the baseline of 2, and the kind 
 What this does not say: anything about a human-corrected draft (nobody corrected), or about a second landscape.
 One chain per arm — a shape, not a distribution. The control arm is the twenty-second normal chain and **fails the
 review clause of the record** (91 against a ceiling of 89.7); the cause split is in `docs/log.md` of this date.
+
+## 7 The keyless builds (2026-10-30, appended after the run)
+
+Both fifth projects were built on local PostgreSQL 16 against the AdventureWorks data copy, in fresh schemas, with
+the generated projects unchanged. **Arm T does not parse:** five translation views project `NAME` twice (two hubs
+keyed on `Name` in one link; backlog C33) — the drafted keys, by exercising 51 translated participations, found a
+class the authored arm's three translation views never could. **Arm A does not parse either:** the carried
+`sat_unit_measure_details` reads a stage renamed when its hub became multi-source (C34); with one documented hand
+view of that name the project builds `PASS=389` of 396 in 27 s — the three errors are the two inferred stages the
+run disclosed (`stage_refs_inferred` 2, the known class) and one feed stage hashing a payload column its relation
+lacks (C35), the four skips their dependents. So: both arms green on every gate, neither buildable as written —
+what the twentieth and twenty-first chains' builds found in their generation, this one found in the next.

@@ -11354,3 +11354,45 @@ control. **Nur angenommen.** That the per-column requirements are what drove the
 were not counted per source line); the USD figure. **Bewusst nicht getan.** Option 3 (a corrected draft); a
 second landscape; any change to the product from this — the experiment is C1's evidence, and C1 keeps its ADR;
 `CLAUDE.md` unchanged.
+
+## [2026-10-30] The audit the plan put first, at zero LLM cost: WP97's assumption answered from the traces (the table comment is read, cited rarely and only where the name says nothing), arm T's 51 translations read right in the SQL — and the keyless PostgreSQL builds of both arms' fifth projects fail to parse on three new classes (C33, C34, C35); arm A builds PASS=389 of 396 with one hand view
+
+**Autor:** Claude Code
+
+On the owner's go for the plan's first point („Ok, go"). **WP97's „nur angenommen", answered.** Both chains' traces
+(`*-run1.trace.jsonl`, 128 calls each) read by script against the extract's descriptions (a five-word phrase of a
+table description or a column description inside an evidence line): every one of the 5 (A) / 8 (T) mapper calls and
+4 + 4 resolver calls carried `source_tables` (66, 135 and 53 entries); of the mapper's evidence lines 0 of 310 (A)
+and 6 of 316 (T) cite a table description — in T the cross-reference tables (`BusinessEntityAddress`,
+`BusinessEntityContact`, `PersonCreditCard`, `ProductDocument`, `ProductProductPhoto`,
+`SalesOrderHeaderSalesReason`, `SpecialOfferProduct`) and `TransactionHistory` — against 71 and 125 citing a column
+description; the resolver 1 of 105 (`ProductVendor`) and 1 of 93 (`Culture`). The final artefacts agree
+(`mappings.review.yml`, `resolutions.review.yml`: 0–3 table citations per step). So the comment reaches the models
+and is used where a name does not say what a table is; a lower bound (paraphrases are not matched). **Arm T's
+translations.** The proposals said 7; the fifth model carries **51 translated participations** on 42 views and 2
+translated satellites (`hub_product` on `ProductNumber` 13 times, the `Name`-keyed reference hubs the rest): the
+rendered views LEFT JOIN the referenced relation on the surrogate and project the natural key, as WP36 says; the
+gates green, `project_self_contained` 1.0. **The builds** (local PostgreSQL 16.15, the data copy in `vault`, dbt
+1.9.10, AutomateDV 0.11.4, fresh schemas `c1_t` and `c1_a`, dropped afterwards). **Arm T fails `dbt parse`**: five
+of the 42 translation views project `NAME` twice — `EmployeeDepartmentHistory` through `Department` and `Shift`,
+`SalesOrderHeader` through five tables, `CountryRegionCurrency`, `ProductModelProductDescriptionCulture`,
+`EmployeeDepartmentHistory` again for its satellite — `r1.NAME as NAME, r2.NAME as NAME` and the `not_null` test
+declared twice; built, the link would hash both hubs from one column. **C33**, a class the authored arm cannot show
+(its three translation views collide on nothing): the drafted keys found it. **Arm A fails `dbt parse` too**:
+`sat_unit_measure_details` (step 3) reads `stg_unit_measure`; step 4 made `hub_unit_measure` multi-source and
+kept that name for the legacy feed, step 5 renamed it `stg_unit_measure_unitmeasure` and the carried satellite did
+not follow — **C34**. With one hand view of the old name (five lines, documented as such) the project builds
+**PASS=389 of 396 in 27 s**: the three errors are the two inferred stages the run disclosed
+(`raw_business_entity_purchase_order_ship_method`, `raw_product_component_unit_measure` — `stage_refs_inferred` 2,
+the known class, C18) and `stg_unit_measure_productvendor` hashing `NAME` for a satellite bound to the other feed,
+which `ProductVendor` lacks — **C35**; the four skips are their dependents. **What this says.** Both arms green on
+every gate, neither buildable as rendered; the twentieth and twenty-first chains' builds found their generation's
+classes (WP73, WP74, WP79), this one found the next generation's — and two of the three are multi-source and
+translation paths the drafted keys exercise far more than the authored ones. The claim „the chain is green" still
+needs „and its project built". **Überprüft.** The trace counts by script; the SQL of two translation views read;
+both `dbt build` logs; the hand view's five lines; the per-step stage listings for `unit_measure`. **Nur
+angenommen.** That the 389 passing models produce right rows (no row-level check beyond AutomateDV's own tests);
+that a build of arm T with C33 fixed would pass elsewhere. **Bewusst nicht getan.** No fix today — C33, C34, C35
+are candidates with the evidence named, the owner's call on order; `dbt parse` in the eval (WP78 can run it) is
+C34's second half; schemas dropped; the kept outputs stay in the scratchpad until the session ends and on `tank`
+as the mirrored results.

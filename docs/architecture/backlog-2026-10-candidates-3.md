@@ -151,3 +151,36 @@ one backend until it runs clean, and holds until he lifts it). What it needs bef
 whether exporting into a competitor's format is wanted at all, an ADR under ADR-0007's layer scope, and a pinned
 fixture of the schema at the version read (0.21.0) — the schema is theirs and moves with their releases (their
 issues #214 and #215 touch exactly `commit_model` and `validate_model`). Needs the owner's go.
+
+## C33 — Two translations in one stage whose natural keys share a column name (found by the C1 experiment's build, 2026-10-30)
+
+A link staged through two or more surrogate→natural-key translations (WP36) projects each hub's natural key under
+its own name; when two hubs are keyed alike — `Department.Name` and `Shift.Name`, the `Name` of every AdventureWorks
+reference table once a hub is keyed on it — the view reads `r1.NAME as NAME, r2.NAME as NAME`, the schema.yml
+declares the `not_null` test twice on one column, dbt refuses to parse, and had it built, the link would hash both
+hubs from one column: wrong data. Found by the keyless PostgreSQL build of arm T's fifth project: 5 of its 42
+translation views collide, all on `NAME`; arm A has no two such hubs in one link. WP89 already projects a key apart
+from a *relation's own* homonym (`<KEY>_VIA_<THROUGH>`); the same rule between translations is the candidate — the
+second and every later translation projecting a name an earlier one took gets `_VIA_<THROUGH>`, and the stage's
+hash key follows, as WP89's does. Gate or guard: a stage must never project one column name twice.
+
+## C34 — A carried satellite still reads the stage its hub had before it became multi-source (found by the same build)
+
+`sat_unit_measure_details` (step 3, on the single-source `hub_unit_measure`) reads `stg_unit_measure`. Step 4 made
+the hub multi-source (`ProductVendor` as a second feed) and still rendered the legacy feed's stage under its old
+name beside `stg_unit_measure_productvendor`; step 5, carrying the hub, renamed the legacy feed's stage to
+`stg_unit_measure_unitmeasure` — and the carried satellite kept `stg_unit_measure`, which no longer exists. dbt
+refuses to parse the whole project on the missing node. Arm A's build went through with one hand view of that name
+(`PASS=389` of 396). Candidate: a carried satellite without a `source_table` binds to its hub's legacy feed
+through `satellite_feed` — the rule ADR-0011 states — on every step, not only on the one that materialised the feed;
+and `project_self_contained` (or a keyless `dbt parse`, which WP78 can run) should see a `ref()` to a stage the
+project does not render.
+
+## C35 — A feed stage hashes a satellite payload column its own relation lacks (found by the same build)
+
+`stg_unit_measure_productvendor`, the second feed of the multi-source `hub_unit_measure`, hashes `NAME` for
+`sat_unit_measure_details`' hashdiff — `ProductVendor` has no `Name`; PostgreSQL refuses the view. The satellite
+belongs to the legacy feed (ADR-0011: a satellite is bound to one feed); its hashdiff has no place in the other
+feed's stage. WP73's gate refuses a *link* staging bound to a relation lacking a hashed column; the hub feed stage
+has no such gate. Candidate: the gate for feed stages, and the generator rendering a satellite's hashdiff only
+in the stage of the feed the satellite is bound to.
