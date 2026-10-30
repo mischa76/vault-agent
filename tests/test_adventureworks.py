@@ -104,15 +104,20 @@ def test_comments_are_verbatim_and_never_authored(extract: dict) -> None:
         for t in extract["tables"]
         for c in t["columns"]
     }
-    checked = 0
+    table_described = {(t["schema"], t["name"]): t["description"] for t in extract["tables"]}
+    checked = tables_described = 0
     for schema in subject_areas(extract):
         for table in load_source_schemas(DATASETS_ROOT / case_dir_name(schema) /
                                          "source_schema.yml"):
+            # WP97 (C31): the table's own description travels the same way.
+            assert table.comment == (table_described[(schema, table.table)] or None)
+            tables_described += bool(table.comment)
             for column in table.columns:
                 upstream = described[(schema, table.table, column.name)]
                 assert column.comment == (upstream or None)
                 checked += 1
     assert checked == 465  # every column of the five business schemas
+    assert tables_described == 66  # of 68 tables; two Microsoft left undescribed
 
 
 def test_golden_holds_only_microsofts_own_natural_keys(extract: dict) -> None:
