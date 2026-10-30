@@ -209,6 +209,14 @@ def test_all_adventureworks_cases_load_with_their_gates() -> None:
         "adventureworks_production",
         "adventureworks_purchasing",
         "adventureworks_sales",
+        # The C1 experiment (2026-10-30): the five authored cases with their requirements
+        # exchanged for a deterministic draft from the catalogue, and their chain.
+        "adventureworks_drafted_humanresources",
+        "adventureworks_drafted_incremental",
+        "adventureworks_drafted_person",
+        "adventureworks_drafted_production",
+        "adventureworks_drafted_purchasing",
+        "adventureworks_drafted_sales",
     }
     # §2.5: the name-keyed scorers stay ungated; validation_gate is reported, not gated.
     for case in cases.values():

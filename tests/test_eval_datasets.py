@@ -152,6 +152,14 @@ def test_shipped_cases_load_with_unique_names() -> None:
     cases = load_all_cases()
     # Sorted by directory name; the WP13 scale cases join the original three.
     assert [case.name for case in cases] == [
+        # The C1 experiment (2026-10-30): the authored subject areas with their requirements
+        # exchanged for a deterministic draft from the catalogue, and the chain over them.
+        "adventureworks_drafted_humanresources",
+        "adventureworks_drafted_incremental",
+        "adventureworks_drafted_person",
+        "adventureworks_drafted_production",
+        "adventureworks_drafted_purchasing",
+        "adventureworks_drafted_sales",
         # WP30: the independent instrument — a schema, boundaries and documentation this
         # project did not author. `_full` and `_incremental` are the two arms of the
         # domain-partitioning experiment; the five others are its subject areas.
