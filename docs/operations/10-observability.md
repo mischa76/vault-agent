@@ -141,6 +141,18 @@ schema file. It issues no query against a user table and has no code path that c
 reader protocol has no method for rows); what it writes is the metadata the next paragraph
 already names as API-bound, nothing more.
 
+A second command reads **rows**, and says so in its first line: `vault-agent profile`
+(6.1, WP98) — the explicitly invoked, read-only, scoped step ADR-0008 #4 permits, run inside
+the customer's environment. What leaves that environment is its file: row counts, null and
+distinct ratios, value lengths and value *shapes* (digits `9`, letters `A`) — and, with the
+default `range` check, the minimum and maximum of numeric and temporal columns, which are
+row values (a salary maximum, a birth date minimum). A data-sensitive context runs
+`--check lengths --check patterns` or `--check none`, and never `--examples`, the one
+check that writes a character column's values. No row reaches the pipeline or the API
+through it: the file is what `--profiling` reads, and only the four statistics the mapper
+and the validator read today are shown to a model (`docs/architecture/deployment-residency.md`,
+addendum 2026-10-30).
+
 What **does** go to the Anthropic API is the pipeline's three inputs: the requirements
 document (in full — including any real data examples someone pasted into it), the
 declared source schema (metadata: table/column names, types, comments), and the

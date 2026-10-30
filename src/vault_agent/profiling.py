@@ -5,7 +5,9 @@ per-column statistics into ``dict[str, dict[str, ColumnProfile]]`` (table -> col
 profile), which the CLI sets on ``state.profiling`` for the business↔source mapper.
 
 Profiling is deliberately a **file** — produced ahead of time from a sanitised extract or a
-metadata export — never produced by the pipeline logging into a live source (ADR-0008 #4).
+metadata export, or by ``vault-agent profile`` (WP98: the explicitly invoked, read-only, scoped
+step ADR-0008 #4 permits; ``profiler.py``) — never produced by the pipeline logging into a live
+source.
 
 Loading is I/O + validation only; kept deterministic and key-free, in the
 :func:`vault_agent.source_schema.load_source_schemas` style: a malformed document raises a
@@ -17,6 +19,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
+from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import ColumnProfile
 
 
@@ -25,7 +28,8 @@ def load_profiling(path: Path) -> dict[str, dict[str, ColumnProfile]]:
 
     Accepts a top-level ``tables:`` key mapping to a list (or a bare list) of
     ``{table, columns: [{name, uniqueness_ratio, null_ratio, distinct_count,
-    example_values}]}`` entries; any extra per-table keys (e.g. ``row_count``) are ignored.
+    example_values, min, max, min_length, max_length, patterns}]}`` entries (the last five
+    optional, WP98); any extra per-table keys (``row_count``, ``schema``) are ignored.
 
     Raises ``FileNotFoundError`` if missing, and a clear, attributable ``ValueError`` on a
     malformed document or entry. An empty/``null`` document yields ``{}`` (inert)."""
@@ -79,3 +83,30 @@ def load_profiling(path: Path) -> dict[str, dict[str, ColumnProfile]]:
             columns[profile.name] = profile
         profiling[table] = columns
     return profiling
+
+
+def lookup_profile(
+    profiling: dict[str, dict[str, ColumnProfile]], table: str, column: str
+) -> ColumnProfile | None:
+    """The profile of ``table.column`` — by the exact spelling first, then by
+    :func:`normalize_identifier` on both names, as the validator already matches (WP94).
+
+    WP98 (spec §2 rule 7): a catalogue and its data share one spelling at a customer, but a
+    data copy may not — the house's own AdventureWorks copy spells ``salesorderid`` where the
+    declared schema says ``SalesOrderID``. Exact first keeps every existing fixture's answer."""
+    columns = profiling.get(table)
+    if columns is None:
+        wanted = normalize_identifier(table)
+        columns = next(
+            (cols for name, cols in profiling.items() if normalize_identifier(name) == wanted),
+            None,
+        )
+        if columns is None:
+            return None
+    profile = columns.get(column)
+    if profile is None:
+        wanted = normalize_identifier(column)
+        profile = next(
+            (p for name, p in columns.items() if normalize_identifier(name) == wanted), None
+        )
+    return profile

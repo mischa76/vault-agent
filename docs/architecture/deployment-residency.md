@@ -76,3 +76,25 @@ The switch described above as "already architected, not yet wired" exists:
 change: the model-ID nuance stays with the operator (IDs are passed as configured, not
 mapped), and the verification status is keyless-only — no pipeline run has crossed
 Bedrock or Vertex. The facts in the table above are still those of 2026-07-18.
+
+---
+
+## Addendum 2026-10-30 — one command reads rows: `vault-agent profile` (WP98)
+
+„No row-level data is read or transmitted by design" above is now two sentences. **Transmitted:**
+unchanged — the pipeline consumes documents and metadata, and the profiling file is still an input
+it never produces. **Read:** `vault-agent profile` (manual 6.1), the explicitly invoked, read-only,
+scoped step ADR-0008 #4 permits, reads the rows of the tables it is pointed at, inside the customer's
+environment, and writes the profiling file. What that file carries: per table the row count; per
+column the null ratio, the distinct count and the uniqueness ratio (always, exact over all rows); by
+selectable check the shortest and longest value of a character column (`lengths`), its five most
+frequent value *shapes* — digits `9`, letters `A`, the rest kept — with their share of a sample
+(`patterns`), and the minimum and maximum of **numeric and temporal** columns (`range`, on by default).
+A character column never gets a minimum or maximum: that is a row value. The numeric and temporal
+extremes are row values too — a salary maximum, a birth date minimum — so a data-sensitive deployment
+runs `--check lengths --check patterns` or `--check none`. `--examples`, the one check that writes a
+character column's values into `example_values`, is off by default (the field the paragraph above
+already names as the one that can carry data-derived strings). Of all this, only the four statistics
+the mapper and the validator read today reach a model (`uniqueness_ratio`, `null_ratio`,
+`distinct_count`, `example_values`); the WP98 fields are pinned out of every payload. The facts in the
+table above are still those of 2026-07-18.

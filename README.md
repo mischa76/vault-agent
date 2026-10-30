@@ -217,6 +217,11 @@ link proposals ratified at the first checkpoint (WP34). On a grounded run the **
 proposes, per business concept, the physical source column that feeds it (ADR-0008 — assist-level,
 evidence trail, coverage gaps reported, never guessed); `--profiling <file.yml>` adds column
 profiling statistics as evidence. Proposals land in `output/mappings.review.yml` for ratification.
+That file too can be read from the source database — `vault-agent profile --schema Sales --out
+profiling.yml`: row counts, null and distinct ratios exact over all rows; ranges (numeric and
+temporal columns only), lengths and value shapes selectable; example values off by default. It is
+the one command that reads rows, explicitly invoked and scoped (ADR-0008 #4); the pipeline never
+does (measured on PostgreSQL, WP98).
 
 To **extend an existing vault** instead of modelling into an empty one, point the run at an earlier
 run's output: `vault-agent run … --existing <earlier output dir>` (brownfield, WP23/WP29).

@@ -46,6 +46,35 @@ statistics (uniqueness, null rate, example values) as mapper evidence. Example v
 are the pipeline's one deliberate touchpoint with data *values* — see 10.7 for the
 data boundary and when to mask them.
 
+**Reading the profiling evidence from the source database (WP98, C27 stage 2).** The
+one command that reads rows — the explicitly invoked, read-only, scoped step ADR-0008 #4
+permits; the pipeline itself still reads none:
+
+```bash
+uv run vault-agent profile --schema Sales --table Sales.SalesOrderHeader --out inputs/profiling.yml
+```
+
+same URL and extras as `source-schema`. Per table the row count, per column the null
+ratio, the distinct count and the uniqueness ratio (distinct ÷ non-null) — exact over
+all rows, by SQL aggregates — into exactly the file `--profiling` reads. Beyond the
+counts, `--check` selects (repeat; default `range`, `lengths`, `patterns`; `none` for
+counts only): `range` writes `min`/`max` on numeric and temporal columns only — never on
+a character column, whose minimum is a row value; `lengths` the shortest and longest
+value of a character column; `patterns` its five most frequent value shapes (digits `9`,
+letters `A`, the rest kept) with their share, from a sample of the first `--sample` rows
+the database returns (10 000; the counts are never sampled); `--examples K` writes K
+example values per column and is off by default, because it is the one check that
+writes a character column's values. A column the database refuses — PostgreSQL has no
+equality operator for `xml` or `json`, so `count(distinct)` fails — is omitted and
+named on stderr, never written as zero; a statistic that could not be measured (the
+minimum of an empty table) is absent. `--table` narrows to a candidate set (ADR-0008 #2),
+`Schema.Table` or a bare name. Exit codes as `source-schema`: no `--schema` lists the
+schemas and exits 2, a schema or table the catalogue lacks and an unknown check exit 2,
+a missing driver or a refused connection exits 1. Two runs on one database give one
+byte-identical file (measured on the AdventureWorks data copy, 68 tables, 2026-10-30).
+What the file carries and when to drop `range`: 10.7. The new fields reach no model
+input; the mapper and the validator read what they read before.
+
 Worked examples for all three live under `examples/inputs/` (bank and messy-insurance
 sets, including an enriched schema and profiling file).
 

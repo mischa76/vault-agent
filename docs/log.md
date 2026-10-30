@@ -11113,3 +11113,69 @@ key as evidence — the payload carries it, no live run has shown an answer citi
 regenerated datasets will). **Bewusst nicht getan.** The modeler's prompt (above); the table comment as evidence in
 the mapper's offer tier or the resolver's `comment_grounded` category; the comment in the travelling catalogue;
 nothing pushed.
+
+## [2026-10-30] WP98 built and measured: profiling as a selectable list of deterministic checks, read from the source system — `vault-agent profile`, ADR-0008 #4's explicitly invoked step; the AdventureWorks data copy profiled on a real PostgreSQL in under four seconds, row counts equal to `count(*)` on 68 of 68 tables, byte-identical three times (C27 stage 2 closed)
+
+**Autor:** Claude Code
+
+C27 stage 2, on the owner's go of today („push beides, dann C27 stage 2"); spec with guards `6f7cb19` (red: no
+module, no lookup helper, no fields). **What changed.** `profiler.py`, a module whose first line says it reads rows
+— deliberately not a method of WP96's `CatalogueReader`, which stays row-less: for every selected table one SQL
+statement with `count(*)` and per column `count(c)`, `count(distinct c)` and, by check and by SQLAlchemy's reflected
+type class, `min`/`max` (`Integer`/`Numeric`/`Float`, `Date`/`DateTime`/`Time` — never a character column, whose
+minimum is a row value) and `min`/`max` of `char_length` (`String`; `func.char_length` renders `LEN` on SQL Server,
+`char_length` on PostgreSQL, `length` on SQLite, checked by compiling against the four dialects); a refused
+statement (`DBAPIError`) is retried column by column after a rollback, and a column still refused is omitted and
+named on stderr — never zeroed; shapes (`9` for a digit, `A` for a letter, the rest kept, cut at 32; the five most
+frequent with their share) and examples (off by default) from a sample of the first N rows the database returns,
+the counts never sampled; `render_profiling` writes the loader's shape with `schema` and `row_count` as per-table
+keys the loader ignores, a provenance header (hidden URL, scope, checks, sample, no timestamp), a statistic present
+only when measured. `cli.py`: `profile --schema S [--table T] --out FILE [--check C] [--sample N] [--examples K]`,
+the URL from `--url` or `VAULT_AGENT_SOURCE_URL`; `--check` from `range lengths patterns examples all none`, an
+unknown one exits 2; `--examples K` switches the check on, `--check examples` without K takes 3; the exit codes of
+`source-schema`. `state.py`: `ValuePattern(shape, share)`; `ColumnProfile` grows by `min`, `max`, `min_length`,
+`max_length`, `patterns`, all absent by default. `profiling.py`: `lookup_profile` — exact spelling first, then
+`normalize_identifier` on table and column, as the validator already matched (WP94) — and the mapper's two lookup
+sites use it (spec §2 rule 7: the house's data copy spells `salesorderid` where the declared schema says
+`SalesOrderID`). `source_schema_reader.py`: `source_engine(url)` factored out of `inspector_reader`, the one engine
+the profiler shares. Manual 4.2, 5, 6.1 (the command, the checks, the omission rule), 10.7 (the data boundary now
+has two sentences: nothing transmitted, one command reads); README; CHANGELOG; index rows (the spec; C27 stages 1
+and 2 closed); dated addendum to `deployment-residency.md` and dated note appended to ADR-0008 (the pipeline-invoked
+variant is still not built; the explicit command is the other thing #4 allows). **Measured, keyless.**
+`tests/test_wp98_profiling_from_source.py` (16, red at `6f7cb19` on the missing module, green now): P1 the hand-
+computed statistics on a six-column SQLite miniature, the type gating, the shapes, the empty table, examples off and
+on, `--check none`; P2 the ladder through a refusing fetch (one column omitted, one stderr line, the others intact);
+P3 the file through `load_profiling` with every value equal, byte-identical twice, the password absent, an old file
+loading with the defaults, **the mapper's payload and the validator's issues byte-identical with and without the new
+fields**, the normalised lookup; P4 the command's exits and its file through Typer's runner. One finding on the way:
+SQLAlchemy's reflected names are `quoted_name` objects, which `yaml.safe_dump` refuses — cast to `str` where the
+profile is built (two guards found it). **P5, local PostgreSQL 16.15, the data copy in `vault` (transferred
+2026-10-24; 68 tables, 601 columns, four types):** the command on the five schemas with the default checks, three
+times, byte-identical, 0 stderr lines, 3.8 s for 759 241 rows counted, the file 5 420 lines; loads through
+`load_profiling` (68 tables, 601 columns); `row_count` equal to `count(*)` by psql on 68 of 68 tables; on five named
+columns (`SalesOrderHeader.customerid`, `Person.lastname`, `Product.productnumber`, `SalesOrderDetail.unitprice`,
+`Employee.jobtitle`) distinct count, null ratio and uniqueness ratio equal to psql's `count`, `count(c)` and
+`count(distinct c)`; `salesorderid` uniqueness 1.0, distinct 31 465, null 0.0; `currencyrateid` null_ratio 0.555824 =
+1 − 13 976 ÷ 31 465; `salesordernumber` one shape `AA99999` with share 1.0, lengths 7 and 7; `orderdate` min
+`2022-05-30T00:00:00`, max `2025-06-29T00:00:00` (the copy's dates, not Microsoft's 2011–2014 — recorded, not
+judged); `subtotal` min `1.374`, max `163930.3943` (decimals without trailing zeros); 365 columns with a range (171
+`bigint` + 171 `timestamp` + 23 `numeric`), 234 with lengths and patterns, **0 columns with both** (no character
+column carries a range), 0 `example_values`; the two `text` columns without a length are `Product.discontinueddate`
+and `SalesOrderHeader.comment`, both all-null by psql (null_ratio 1.0) — absent, as rule 5 says; the password
+appears nowhere, the hidden URL once. **The ladder's live case, `aw_ddl` rebuilt from the DDL instrument (empty
+tables, the seven `xml` columns):** 68 tables, 458 columns written, `row_count: 0` on 68 of 68, every ratio 0.0, no
+range, length or pattern anywhere, and **exactly the seven `xml` columns omitted with seven stderr lines**
+(`UndefinedFunction` — PostgreSQL's „could not identify an equality operator for type xml" at planning), the other
+columns of those six tables intact — as pre-registered. `aw_ddl` dropped afterwards. **Überprüft.** The guards;
+`uv run pytest` 1391 passed / 5 skipped (the one warning is Starlette's test-client deprecation, present before);
+`ruff`; bare `mypy`; the P5 files compared by `cmp` and read back by script against psycopg2 (scratchpad, not
+kept — the command rebuilds them in seconds); the four dialects' rendering of `char_length` by compiling. **Nur
+angenommen.** Every dialect but PostgreSQL and SQLite (SQL Server, Oracle: the aggregate statement compiles, not
+run); that the first N rows a database returns are the same across two runs on a static table (true here three
+times, a property of the heap, not a guarantee — the header says „the first the database returns"); that a
+customer's catalogue and data share one spelling (the normalised lookup covers the case they do not). **Bewusst
+nicht getan.** Candidate keys and inclusion dependencies (stage 3, an inference with its own class); showing the new
+fields to any model (pinned, a measured change of its own); `row_count` in `state.profiling`; a profiling dataset for
+the AdventureWorks eval cases (the chain does not pass `--profiling`); an `ORDER BY` on the sample; SAP (tier C);
+the workbench; SQL Server and Oracle measured (tier A waits for the source-system VM); CLAUDE.md unchanged
+(nothing an agent would do wrong without). Pushed with the project, on the owner's word of today.

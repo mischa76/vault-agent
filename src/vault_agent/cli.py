@@ -2085,6 +2085,151 @@ def source_schema_command(
     )
 
 
+@app.command("profile")
+def profile_command(
+    schema: Annotated[
+        list[str] | None,
+        typer.Option("--schema", "-s", help="A schema of the source database to profile (repeat)."),
+    ] = None,
+    table: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--table", "-t",
+            help="Narrow to these tables (repeat; `Schema.Table` or a bare name in the schemas).",
+        ),
+    ] = None,
+    out: Annotated[
+        Path, typer.Option("--out", "-o", help="The profiling file to write (`run --profiling`)."),
+    ] = Path("profiling.yml"),
+    url: Annotated[
+        str | None,
+        typer.Option(
+            "--url",
+            help="SQLAlchemy URL of the source database (dialect+driver://user:pass@host/db); "
+                 f"default: ${SOURCE_URL_ENV}, where a password belongs.",
+        ),
+    ] = None,
+    check: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--check", "-c",
+            help="A check beyond the counts (repeat): range, lengths, patterns, examples; "
+                 "`all`, or `none` for counts only. Default: range, lengths, patterns.",
+        ),
+    ] = None,
+    sample: Annotated[
+        int,
+        typer.Option("--sample", help="Rows sampled for shapes and examples (never the counts)."),
+    ] = 10_000,
+    examples: Annotated[
+        int,
+        typer.Option(
+            "--examples",
+            help="Example values per column — the one check that writes a character column's "
+                 "values; 0 (the default) writes none.",
+        ),
+    ] = 0,
+) -> None:
+    """Profile the tables of the source database into the file `run --profiling` reads (WP98,
+    C27 stage 2 — ADR-0008 #4's explicitly invoked, read-only, scoped step).
+
+    This command reads rows; the pipeline never does. Counts, null and distinct ratios are exact
+    over all rows; `range` (numeric and temporal columns only), `lengths` and `patterns` (character
+    columns) are selectable; `--examples` is off by default. A column the database refuses is
+    omitted and named, never zeroed. The driver for the dialect is yours to install (manual 6.1);
+    the data boundary is manual 10.7."""
+    import sqlalchemy.exc
+
+    from vault_agent.profiler import (
+        CHECKS,
+        DEFAULT_CHECKS,
+        DEFAULT_EXAMPLES,
+        profile_tables,
+        provenance,
+        render_profiling,
+        select_tables,
+    )
+    from vault_agent.source_schema_reader import hidden_url, source_engine
+
+    console = Console()
+    source_url = url or os.environ.get(SOURCE_URL_ENV)
+    if not source_url:
+        console.print(
+            f"[bold red]No source database:[/bold red] pass --url or set {SOURCE_URL_ENV}."
+        )
+        raise typer.Exit(code=2)
+    chosen: list[str] = list(DEFAULT_CHECKS)
+    if check:
+        unknown = [c for c in check if c not in (*CHECKS, "all", "none")]
+        if unknown:
+            console.print(
+                f"[bold red]Unknown check(s): {', '.join(unknown)}.[/bold red] "
+                f"Known: {', '.join(CHECKS)}, all, none."
+            )
+            raise typer.Exit(code=2)
+        chosen = list(CHECKS) if "all" in check else [c for c in check if c != "none"]
+    if examples > 0 and "examples" not in chosen:
+        chosen.append("examples")
+    if "examples" in chosen and examples <= 0:
+        examples = DEFAULT_EXAMPLES
+    try:
+        engine = source_engine(source_url)
+        available = list(sqlalchemy.inspect(engine).get_schema_names())
+    except ModuleNotFoundError as exc:
+        console.print(
+            f"[bold red]The driver for {hidden_url(source_url)} is not installed:[/bold red] "
+            f"{exc.name} — install it into this environment (manual 6.1)."
+        )
+        raise typer.Exit(code=1) from exc
+    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
+        console.print(
+            f"[bold red]Could not read the catalogue of {hidden_url(source_url)}:[/bold red] "
+            f"{type(exc).__name__}: {_without_password(str(exc), source_url)}"
+        )
+        raise typer.Exit(code=1) from exc
+    missing = [name for name in schema or [] if name not in available]
+    if not schema or missing:
+        what = (
+            f"schema(s) not in the catalogue: {', '.join(missing)}" if missing
+            else "pass --schema for each schema to profile"
+        )
+        console.print(f"[bold red]{what}.[/bold red] This connection sees: {', '.join(available)}")
+        raise typer.Exit(code=2)
+    try:
+        selected, unknown_tables = select_tables(engine, schemas=schema, tables=table)
+        if unknown_tables:
+            console.print(
+                f"[bold red]table(s) not in the schemas: {', '.join(unknown_tables)}.[/bold red] "
+                f"The schemas hold: {', '.join(f'{s}.{t}' for s, t in selected) or 'nothing'}"
+            )
+            raise typer.Exit(code=2)
+        profiles = profile_tables(
+            engine, schemas=schema, tables=table, checks=chosen, sample=sample,
+            examples=examples,
+        )
+    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
+        console.print(
+            f"[bold red]Could not profile {hidden_url(source_url)}:[/bold red] "
+            f"{type(exc).__name__}: {_without_password(str(exc), source_url)}"
+        )
+        raise typer.Exit(code=1) from exc
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(
+        render_profiling(profiles, header=provenance(
+            source_url, schema, table or [], checks=chosen, sample=sample, examples=examples,
+        )),
+        encoding="utf-8",
+    )
+    n_columns = sum(len(p.columns) for p in profiles)
+    n_rows = sum(p.row_count for p in profiles)
+    tables_word = "table" if len(profiles) == 1 else "tables"
+    console.print(
+        f"[bold]{out}[/bold]: {len(profiles)} {tables_word}, {n_columns} columns, "
+        f"{n_rows} rows counted; checks {', '.join(chosen) or 'none'} — from "
+        f"{hidden_url(source_url)}, schemas {', '.join(schema)}."
+    )
+
+
 def _without_password(message: str, url: str) -> str:
     """A dialect's message may echo the URL; the password never reaches the terminal."""
     from sqlalchemy.engine import make_url

@@ -11,6 +11,11 @@ from typing import Any
 import pytest
 import sqlalchemy as sa
 from typer.testing import CliRunner
+
+from tests.test_wp94_optional_participant import _codes, _state
+from vault_agent.agents.source_mapper import SourceMapperAgent
+from vault_agent.agents.source_mapper import _Concept as _MapperConcept
+from vault_agent.cli import app
 from vault_agent.profiler import (
     DEFAULT_CHECKS,
     TableProfile,
@@ -20,11 +25,6 @@ from vault_agent.profiler import (
     render_profiling,
     value_shape,
 )
-
-from tests.test_wp94_optional_participant import _codes, _state
-from vault_agent.agents.source_mapper import SourceMapperAgent
-from vault_agent.agents.source_mapper import _Concept as _MapperConcept
-from vault_agent.cli import app
 from vault_agent.profiling import load_profiling, lookup_profile
 from vault_agent.state import ColumnProfile, SourceTable, ValuePattern, VaultAgentState
 

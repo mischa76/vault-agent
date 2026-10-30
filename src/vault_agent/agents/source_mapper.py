@@ -40,6 +40,7 @@ from vault_agent.llm import (
     decoded_field,
     emit_trace,
 )
+from vault_agent.profiling import lookup_profile
 from vault_agent.rules.dv2_rules import construct_base_name, normalize_identifier
 from vault_agent.state import (
     ColumnProfile,
@@ -259,7 +260,7 @@ class SourceMapperAgent(BaseAgent):
 
     @staticmethod
     def _profile_blurb(state: VaultAgentState, table: str, column: str) -> str:
-        profile = state.profiling.get(table, {}).get(column)
+        profile = lookup_profile(state.profiling, table, column)
         if profile is None:
             return ""
         return (
@@ -415,7 +416,7 @@ class SourceMapperAgent(BaseAgent):
         self, state: VaultAgentState, c: _Concept, table: str, column: str,
         confidence: Any, evidence: list[str],
     ) -> Proposal:
-        profile = state.profiling.get(table, {}).get(column)
+        profile = lookup_profile(state.profiling, table, column)
         column_ref = self._column_ref(state, table, column)
         conf = max(0.0, min(1.0, float(confidence)
                             if isinstance(confidence, (int, float)) else 0.5))

@@ -25,7 +25,7 @@ from sqlalchemy.types import UserDefinedType
 from vault_agent.state import ForeignKeyRef, SourceColumn, SourceTable
 
 if TYPE_CHECKING:
-    from sqlalchemy.engine import Dialect, Inspector
+    from sqlalchemy.engine import Dialect, Engine, Inspector
     from sqlalchemy.sql.type_api import TypeEngine
 
 SOURCE_URL_ENV = "VAULT_AGENT_SOURCE_URL"
@@ -183,15 +183,24 @@ def register_catalogue_types(dialect: Dialect) -> None:
             dialect.ischema_names = {**names, **extra}  # type: ignore[attr-defined]
 
 
-def inspector_reader(url: str) -> InspectorReader:
-    """Connect by SQLAlchemy URL. Raises what ``create_engine`` raises — ``ModuleNotFoundError``
-    for a driver that is not installed, ``NoSuchModuleError`` for a dialect SQLAlchemy does not
-    know — and the dialect's ``OperationalError`` on a refused connection, from the first read."""
-    from sqlalchemy import create_engine, inspect
+def source_engine(url: str) -> Engine:
+    """The engine for a source URL, its dialect given the catalogue types it lacks. Raises what
+    ``create_engine`` raises — ``ModuleNotFoundError`` for a driver that is not installed,
+    ``NoSuchModuleError`` for a dialect SQLAlchemy does not know; the dialect's
+    ``OperationalError`` on a refused connection comes from the first read. Shared with the
+    profiler (WP98), which is the one caller that reads rows through it."""
+    from sqlalchemy import create_engine
 
     engine = create_engine(url)
     register_catalogue_types(engine.dialect)
-    return InspectorReader(inspect(engine))
+    return engine
+
+
+def inspector_reader(url: str) -> InspectorReader:
+    """Connect by SQLAlchemy URL (see :func:`source_engine` for what it raises)."""
+    from sqlalchemy import inspect
+
+    return InspectorReader(inspect(source_engine(url)))
 
 
 def hidden_url(url: str) -> str:

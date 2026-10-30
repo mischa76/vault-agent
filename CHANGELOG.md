@@ -15,6 +15,14 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- Profiling read from the source system: `vault-agent profile --schema S [--table T] --out
+  profiling.yml` writes the file `run --profiling` reads — row counts, null and distinct ratios
+  exact over all rows; `range` (numeric and temporal columns only), `lengths` and value `patterns`
+  selectable by `--check`, `--examples` off by default; a column the database refuses is omitted
+  and named, never zeroed. The house format grows by `min`, `max`, `min_length`, `max_length` and
+  `patterns`, which reach no model input; the mapper finds a profile by normalised name as the
+  validator does. ADR-0008 #4's explicitly invoked, read-only, scoped step — the pipeline still
+  reads no row (WP98, backlog C27 stage 2; measured on the AdventureWorks data copy, PostgreSQL 16).
 - Bindings at sign-off: a staging model no rule could bind is bound by the human — `resume --bind
   "STAGE=RELATION"` or `--bind "STAGE=RELATION(STAGE_COLUMN=column, …)"` with aliases where the relation
   carries a key under another name; the workbench's checkpoint lists every such stage with what a

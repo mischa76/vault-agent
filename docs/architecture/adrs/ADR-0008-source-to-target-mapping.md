@@ -125,3 +125,16 @@ human-owned. *Value is speed + a prepared decision basis; authority stays with t
 - Data-contract gap-flagging (analogous honest-gap behaviour): [ADR-0005](./ADR-0005-data-contract-spec.md)
 - Methodology: Linstedt & Olschimke, *Building a Scalable Data Warehouse with Data Vault 2.0*;
   Roelant Vos, DSAF; Sanderson, Freeman & Schmidt, *Data Contracts* (O'Reilly, 2025).
+
+---
+
+## Note 2026-10-30 — #4's explicitly invoked step exists (WP98)
+
+The consequence marked *neutral* above was resolved on 2026-07-13 in favour of the pre-step file, and
+„the pipeline-invoked variant is not built". It still is not: WP98 (backlog C27 stage 2) builds the
+**other** thing #4 allows — an explicitly invoked, read-only, scoped command, `vault-agent profile`,
+that an operator runs inside the source's environment and that writes the pre-step file `--profiling`
+reads. No agent, node or tool gains a connection; the operating model of the *Alternatives* section
+(„a fully autonomous live-profiling agent — rejected") stands. What the command reads and what its file
+carries: `deployment-residency.md`, addendum of the same date; the spec:
+`../backlog-2026-07/wp98-profiling-from-source-spec.md`.

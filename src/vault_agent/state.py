@@ -276,20 +276,39 @@ class SourceTable(BaseModel):
         return [SourceColumn(name=c) if isinstance(c, str) else c for c in self.columns]
 
 
+class ValuePattern(BaseModel):
+    """WP98: one value shape of a character column — every digit ``9``, every letter ``A``,
+    every other character kept — with its share of the sampled non-null values."""
+
+    shape: str
+    share: float
+
+
 class ColumnProfile(BaseModel):
     """Per-column profiling statistics (WP9 §3.2 / ADR-0008 #4).
 
     A pre-step *input* artifact — produced ahead of time from a sanitised extract or a
-    metadata export, never by the pipeline logging into a live source. The mapper uses it
-    as BK-plausibility and post-validation evidence, never as the primary intent signal
-    (the spike found comments/names carry intent; statistics establish structure, not
-    intent)."""
+    metadata export, or by the explicitly invoked, scoped ``vault-agent profile`` (WP98,
+    ADR-0008 #4's read-only step) — never by the pipeline logging into a live source. The
+    mapper uses it as BK-plausibility and post-validation evidence, never as the primary
+    intent signal (the spike found comments/names carry intent; statistics establish
+    structure, not intent).
+
+    The first four fields are what the consumers read (the mapper's blurb, the validator's
+    nullability evidence). WP98's fields — ``min``/``max`` (numeric and temporal columns only,
+    rendered as text), ``min_length``/``max_length`` (character columns), ``patterns`` — reach
+    no model input (spec §2 rule 6); ``None``/empty means „not measured", never zero."""
 
     name: str
     uniqueness_ratio: float = 0.0
     null_ratio: float = 0.0
     distinct_count: int = 0
     example_values: list[str] = Field(default_factory=list)
+    min: str | None = None
+    max: str | None = None
+    min_length: int | None = None
+    max_length: int | None = None
+    patterns: list[ValuePattern] = Field(default_factory=list)
 
 
 # The evidence-derived confidence tier (WP9 §7): a deterministic category the review queue
