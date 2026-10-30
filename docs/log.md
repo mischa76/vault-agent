@@ -11016,3 +11016,48 @@ touches data: residency first; key inference; requirements from the catalogue, w
 (C31); the SAP dictionary reader (tier C); SQL Server and Oracle measured (tier A waits for the source-system VM);
 the workbench (ADR-0015 single-user, a later increment); `aw_ddl` dropped after the measurement, as the earlier
 measurement schemas were; nothing pushed; ADR-0017's status not moved — the owner's decision.
+
+## [2026-10-30] Finding — TurboVault Engine (Scalefree): a competitor at the exit and in the channel, not at the entry; recorded in the landscape, C32 added
+
+**What happened.** The owner pointed to `github.com/ScalefreeCOM/turbovault-engine` as strong new competition and,
+after the assessment, asked for it to be recorded and for the export idea to enter the backlog as C32. **Read
+today, at the repository and the GitHub API** (metadata, file tree, README, `backend/engine/mcp.py`,
+`backend/docs/04_import_flow_specification.md`, `.agent/rules/project-context.md`, the `source_metadata` and
+`sqlite` parsers, `model_import_schema.py`, CHANGELOG, open issues, PyPI). **What it is.** The successor of
+TurboVault4dbt: a Django-based, CLI-first generator (Typer, Pydantic, Jinja; 1.57 MB Python) that takes a finished
+Data Vault metamodel — hubs, links, satellites, PITs, prejoins, reference tables, snapshot controls — from an Excel
+workbook, from a SQLite file that mirrors the Excel sheets one-to-one, from its own JSON export or from IRiS
+workbooks, validates it for completeness (hashkey present, business key present, two hubs per link; modes strict,
+lenient, skip) and renders a dbt project on datavault4dbt from 16 SQL templates. Created 2025-12-21; 17 releases on
+PyPI from 0.12.2, 0.21.0 on 2026-10-04, pushed today; 28 stars, 2 forks, 23 open issues; AGPL-3.0 with a dual-licence
+offer and a CLA; two main authors (Tim Kirschke, Ole Bause) write about half of the last 100 commits; its own
+rules file calls the phase „Engine (Pre-MVP)" and names a future closed web application, TurboVault Studio, that
+will reuse the engine as a library. **The AI part.** Since 2026-04-29 (their #154) an MCP server embedded in
+`turbovault serve`, ten tools (`workspace_status`, `project_list`, `project_create`, `list_sources`,
+`create_source_metadata`, `list_entities`, `commit_model`, `validate_model`, `export_model_json`, `generate_dbt`),
+documented as „AI-Assisted Data Vault Modeling": Claude Code or Claude Desktop is to propose hubs, links and
+satellites from source table descriptions and write them in through `commit_model`. There is no proposal tool; the
+modelling is the connected assistant's, with no rule, no gate on Data Vault semantics, no evidence and no confidence
+in the engine — `ModelImportSchema` carries hubs, links, satellites and an optional free-text `reasoning`. **The
+„database catalog" of its README** is the SQLite mirror of the Excel format, not a source system's catalogue;
+the `source_metadata` JSON format (v1) is, by its own docstring, the contract for „the Studio's live-database
+connector subsystem", and „source metadata import" is their open issue #94 — what WP96 shipped today they have
+on the list. **Overlap with this project:** the exit (a dbt project for a Data Vault macro package) and the DACH
+channel, where Scalefree's name, training and reach are the real competition. **No overlap:** the entry
+(requirements parsing, business keys with evidence, entity resolution, data contracts), brownfield, the review
+queue and HITL checkpoint, the ADR trail, the gates that judge whether a model is right rather than complete
+(`E_HUB_PAYLOAD_UNREAD`, the satellite grain gate, the link key gates have no counterpart), the residency
+boundary (their MCP path sends the source descriptions into the customer's chat with nothing said about it), and
+measurement over chains. Backend datavault4dbt against AutomateDV here. **What I take from it.** The bet
+„modelling is the hard part, generation is a commodity" is confirmed from the other side: they have the
+generation and hand the modelling to the model without rules. Their import schema is also an interface — a
+ratified model exported into it would serve datavault4dbt customers without a second generator here; recorded as
+**C32** in `backlog-2026-10-candidates-3.md` (appended by shell, a deliberate act on a record under
+`docs/architecture/`; needs the owner's go, an ADR, and respects the 2026-10-04 decision that AutomateDV stays the
+one backend). Release criteria 2 (two demo datasets) and 5 gain weight: whoever compares, compares outputs, and
+TurboVault renders a runnable project from a workbook in minutes. **Recorded** in `docs/competitive-landscape.md`
+(a row in the comparison, a dated section, two sources; the snapshot line says so) and in the index row of the
+candidates file (which also now names C30, closed by WP94, and C31). **Überprüft:** every statement above at the
+files named and the API responses, today. **Nur angenommen:** what TurboVault Studio can do (one docstring, no
+public artefact); that the ten tools are all there is (the docs and `mcp.py` agree). **Bewusst nicht getan:**
+nothing installed or run; no line of code changed; no contact with Scalefree; no decision on C32 — the owner's.

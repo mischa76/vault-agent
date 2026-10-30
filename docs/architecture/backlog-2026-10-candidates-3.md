@@ -135,3 +135,19 @@ reader reads it from no catalogue, because there is nowhere to put it. The model
 cryptic table name says nothing (the SAP case of C27 tier C in miniature). A field `comment` on `SourceTable`,
 rendered where the column comments are rendered (the grounding prompt, the contracts), inert when absent, pinned
 byte-identical for every existing input. Small; needs the owner's go, because it changes what an agent sees.
+
+## C32 — A ratified model exported into TurboVault Engine's import schema (found by reading the competitor, 2026-10-30)
+
+Scalefree's `turbovault-engine` (read 2026-10-30, `docs/competitive-landscape.md`, `docs/log.md` under that date)
+takes a finished Data Vault metamodel and renders a dbt project on datavault4dbt. Since 2026-04-29 it embeds an MCP
+server whose `commit_model` tool accepts a `ModelImportSchema` — hubs, links, satellites with their source mappings,
+an optional free-text `reasoning` — and whose `generate_dbt` tool renders the project; its `export_model_json`
+documents the full shape. Vault-Agent's ratified model (the ADR, the review queue's decisions, the bindings) has
+everything that schema asks for, and more than it can hold (the evidence, the gates' verdicts). An exporter from
+`DVModel` plus bindings into that schema — a file, or the MCP calls — would serve a datavault4dbt customer with
+the modelling this project does and the generation theirs does, without a second generator in this repo. What it
+is not: a second code-generation backend (ADR-0003 names AutomateDV; the owner's decision of 2026-10-04 keeps it the
+one backend until it runs clean, and holds until he lifts it). What it needs before a line is written: a decision
+whether exporting into a competitor's format is wanted at all, an ADR under ADR-0007's layer scope, and a pinned
+fixture of the schema at the version read (0.21.0) — the schema is theirs and moves with their releases (their
+issues #214 and #215 touch exactly `commit_model` and `validate_model`). Needs the owner's go.

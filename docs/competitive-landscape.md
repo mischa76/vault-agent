@@ -3,7 +3,8 @@
 > **Purpose.** An honest map of where Vault-Agent sits relative to existing Data Vault
 > automation and the emerging "LLM-for-Data-Vault" work — what is already crowded, what is
 > emerging, and where the genuine niche is. Written to keep the project's positioning sharp.
-> Based on public information; **snapshot: summer 2026** — this space moves fast.
+> Based on public information; **snapshot: summer 2026**, TurboVault Engine added 2026-10-30 — this space
+> moves fast.
 
 ## TL;DR
 
@@ -45,12 +46,38 @@ no public equivalent surfaced in research. This is Vault-Agent's lane.
 | **Coalesce** | Source/columns | Column-aware GUI transforms; DV patterns | Proprietary → Snowflake et al. | Commercial | — | Pattern/tests | Production |
 | **biGENIUS-X** | Source metadata | DWA, AI-assisted, metadata-driven | Proprietary, multi-platform | Commercial | — | Built-in | Production (DACH) |
 | **Agnostic Data Labs** | Source-to-target mapping metadata (git-native) | Metadata + template-driven generation; non-opinionated (DV/ELM, Dimensional, Lakehouse) | Template-driven SQL, platform-agnostic | Free, closed-source | — | Metadata/schema validation | New; successor to the long-standing TEAM/VDW OSS line |
+| **TurboVault Engine** (Scalefree, 2026) | A finished Data Vault metamodel (Excel/SQLite/JSON/IRiS workbooks); an MCP server lets a chat client write one | Template-driven generation (Django, Jinja); completeness validation; the modelling itself is left to the connected assistant, no rules in the engine | dbt on datavault4dbt | AGPL-3.0, dual-licensed | `reasoning` free-text field, no record | Completeness rules (hashkey present, two hubs per link) | 0.21.0 on PyPI, pre-MVP by its own rules file; the successor of TurboVault4dbt |
 | **AutomateDV / datavault4dbt** | Hand-written staging metadata (YAML) | dbt macros/templates | dbt (you target the platform) | Open source | — | Macro contracts + dbt tests | Production (OSS) |
 | **Academic LLM-for-DV** (MDPI, Preprints 2025) | Source schema / metadata | LLM (ChatGPT) + prompt engineering | Varies / conceptual | Research | — | Validity-coefficient research | Research / PoC |
 | **Vault-Agent** (this project) | **Business requirements documents** (IREB-aligned) | **Multi-agent LLM** (LangGraph), rules-as-code | **AutomateDV / dbt** (open) | **Open source** | **Yes — ADR per decision** | **Independent validator gates + self-correcting loop** | Early / build-in-public |
 
 (Cells left as "—" mean the capability is not a public, advertised feature of that tool, not that
 it is impossible; some vendors are adding AI features quickly.)
+
+## Update 2026-10-30 — TurboVault Engine (Scalefree)
+
+Read at the repository on 2026-10-30 (the owner pointed to it; the finding is in `docs/log.md` under that date).
+Scalefree's `turbovault-engine` is the successor of TurboVault4dbt: a Django-based, CLI-first generator that
+takes a **finished** Data Vault metamodel — hubs, links, satellites, PITs, prejoins, reference tables in Excel,
+in a SQLite file that mirrors the Excel sheets, in its own JSON or in IRiS workbooks — validates it for
+completeness and renders a dbt project on datavault4dbt. Created 2025-12-21, 0.21.0 on PyPI (2026-10-04),
+AGPL-3.0 with a dual-licence offer, two main authors. Since 2026-04-29 it embeds an MCP server with ten tools
+(`project_create`, `create_source_metadata`, `list_entities`, `commit_model`, `validate_model`, `generate_dbt`,
+…) and documents it as „AI-assisted Data Vault modeling": Claude Code or Claude Desktop is to propose the
+model from table descriptions and write it in through `commit_model`. There is no proposal tool, no rule and no
+gate on Data Vault semantics in the engine; the proposal schema has a free-text `reasoning` field. The
+„database catalog" in its README is the SQLite mirror of the Excel format, not a source system's catalogue; the
+`source_metadata` JSON format is the contract of a closed „TurboVault Studio" live-database connector, and the
+source-metadata import is an open issue there.
+
+What this changes in the map above: layer 1 now has a player that hands the modelling to an LLM **without**
+rules — the opposite bet to this project's rules-as-code and measured gates — and it competes at the exit
+(a dbt project for a Data Vault macro package) and in the DACH channel, where Scalefree's name, training and
+reach are the real competition. It does not compete at the entry (requirements, business-key evidence, entity
+resolution, data contracts, brownfield, the review queue, the ADR trail) nor on measurement. Its MCP import
+schema is also an interface: a ratified model could be exported into it for datavault4dbt customers
+(candidate C32, `architecture/backlog-2026-10-candidates-3.md`; the 2026-10-04 decision that AutomateDV stays
+the one backend holds until the owner lifts it).
 
 ## Where Vault-Agent differentiates
 
@@ -103,5 +130,7 @@ This matters for credibility — overclaiming is the fastest way to lose a techn
 - [Preprints.org — AI-Powered Data Vault 2.0 Modeling (2025)](https://www.preprints.org/manuscript/202502.2012)
 - [Agnostic Data Labs](https://agnosticdatalabs.com)
 - [dbt Developer Blog — dbt Agent Skills](https://docs.getdbt.com/blog/dbt-agent-skills)
+- [ScalefreeCOM/turbovault-engine — GitHub](https://github.com/ScalefreeCOM/turbovault-engine) (read 2026-10-30)
+- [turbovault-engine — PyPI](https://pypi.org/project/turbovault-engine/)
 - [Datavault-UK/automate-dv — GitHub](https://github.com/Datavault-UK/automate-dv)
 - [AutomateDV — Platform Support](https://automate-dv.readthedocs.io/en/latest/platform_support/)
