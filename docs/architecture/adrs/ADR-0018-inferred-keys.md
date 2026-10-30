@@ -1,7 +1,7 @@
 # ADR-0018: Keys inferred from data — their own class in the house format, and how far an inference may act
 
-**Status:** Proposed (2026-10-30 — draft by Claude on the owner's go for C27 stage 3; built as WP99 on the
-recommendation, which the owner may overturn behind the same types)
+**Status:** Accepted (2026-10-30 — the owner accepted Option B; draft by Claude the same day, on the owner's go
+for C27 stage 3; built as WP99 on the recommendation)
 **Date:** 2026-10-30
 **Decision makers:** Mischa Eismann
 
@@ -82,6 +82,19 @@ proposer as a proposal nobody accepts by default.**
 - **Composite keys and inclusion over column sets.** Deferred: pairs only. A composite inclusion projects onto
   its components (the WP46 reading), so single-column inferences already serve the composite case partly;
   inferring the composite itself is combinatorial and waits for a case that needs it.
+
+## Decision (2026-10-30)
+
+The owner accepted **Option B** on 2026-10-30, after WP99 was built and measured on it (`docs/log.md`, 2026-10-30:
+on the key-less AdventureWorks data copy 79 of 89 declared single-column keys hit exactly, 5 more with the true
+target in the recorded wider list, 0 wrong targets). An inferred key is its own class beside the declarations
+(`SourceTable.inferred_keys`), produced by `vault-agent infer-keys`, proposed by the proposer with
+`provenance: inferred` and resolved through a tied or wider key column an existing hub binds, declined by
+`--accept` and built only by an explicit `--link` or a *yes* at the prompt. One refinement from the measurement
+is part of what was accepted: one inference per referencing column, equal domains recorded as `tied` and broken
+by a stated preference, the strictly larger ones as `wider` — the first run's „ties: all of them" produced 39
+false positives, 30 of them one 1:1 group emitted per member. C1 stays its own ADR; the type tier and the
+gates' reading of inferred unique keys stay later, measured increments.
 
 ## Consequences
 

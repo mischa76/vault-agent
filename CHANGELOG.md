@@ -15,7 +15,7 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
-- Keys inferred from data (ADR-0018, proposed; WP99, backlog C27 stage 3): `vault-agent infer-keys
+- Keys inferred from data (ADR-0018 accepted 2026-10-30, Option B; WP99, backlog C27 stage 3): `vault-agent infer-keys
   --source-schema FILE --out FILE [--candidates name|type]` reflects the tables a declared schema
   names and writes, beside the declarations under their own `inferred_keys` key, the columns
   unique over every row and the inclusion dependencies the data holds — each with the rows

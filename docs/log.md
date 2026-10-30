@@ -11256,3 +11256,21 @@ chain measures nothing from them until a human names one). **Bewusst nicht getan
 beyond the tightest domain and the tie preference; the satellite-grain gate or the binder's offer tier reading
 inferred unique keys; C1 and a source-driven mode; SAP; ADR-0018's status not moved — the owner's decision; CLAUDE.md
 unchanged. Pushed with the project, on the owner's word of today.
+
+## [2026-10-30] ADR-0018 accepted — Option B, keys inferred from data as their own class, proposed and never accepted by default
+
+**Autor:** Claude Code
+
+The owner accepted ADR-0018 today, on Option B as recommended and as WP99 is built (`ee81641`; the measurement in
+the WP99 entry above), with the words that the stage-4 comparison C1 names would in any case be an interesting
+experiment — noted, not commissioned. **What changed.** The ADR's status line moved Proposed → Accepted with the
+date, and a dated `## Decision (2026-10-30)` section was added before the consequences, as ADR-0017 was accepted
+earlier today; the „Decision (proposed)" section stays as drafted. The dated section names the one refinement the
+measurement brought into what was accepted — one inference per column, ties recorded and broken by a stated
+preference — because the spec's §4 and the ADR's draft had said „ties: all of them". Done by shell on a record
+under `docs/architecture/` — the status move the records rule allows, a deliberate act on the owner's word. The
+index rows (the ADR's, the candidates row for C27) and the CHANGELOG's Unreleased bullet say „accepted" now; the
+WP99 spec's header still says „proposed", left as the record it is, this entry corrects it. **Überprüft:** the
+four files by diff; `rg ADR-0018` outside the records finds no other „proposed". **Nur angenommen:** nothing.
+**Bewusst nicht getan:** no code change — the acceptance changes no behaviour; the type tier live, composite
+inferences and the gates' reading of inferred unique keys stay later increments; C1 untouched.
