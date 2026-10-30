@@ -164,3 +164,14 @@ declares. Rejected.
 - Brownfield charter §2 (extensions vs migrations):
   `docs/architecture/backlog-2026-07/incremental-extension-charter.md`
 - ADR-0007 (automation scope per layer — why the agent proposes and a human ratifies)
+
+## Addendum 2026-10-30 (WP101)
+
+Row 1 of the table above — no `source_table`, WP10 split — describes a satellite created on a multi-source hub. A
+satellite that existed while its hub was single-source is not split when the hub gains feeds (WP23 §2.6; the
+raw-vault generator has rendered it once, against the legacy stage, since then). WP101 makes staging follow the same
+rule: its payload and hashdiff go to the grandfathered feed's stage alone — the feed the carried catalogue binds
+`stg_<entity>` to, on every later step, not only the one that materialised the feed. When no such binding is carried
+the satellite is flagged and not rendered, and no stage carries its payload: rendering it against a feed would guess.
+The C1 experiment's build (`docs/log.md`, 2026-10-30) found both halves: `stg_unit_measure_productvendor` hashing a
+`NAME` that `ProductVendor` lacks, and `sat_unit_measure_details` reading a stage the fifth step had renamed.

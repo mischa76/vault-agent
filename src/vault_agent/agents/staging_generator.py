@@ -222,7 +222,9 @@ def construct_stage_name(construct_name: str) -> str:
     return _staging_name(construct_name)
 
 
-def legacy_feeds(existing: DVModel | None) -> set[tuple[str, str, str]]:
+def legacy_feeds(
+    existing: DVModel | None, carried_bindings: dict[str, str] | None = None
+) -> set[tuple[str, str, str]]:
     """The (hub, table, column) feeds that carry an UNSUFFIXED staging name (WP23 §2.6).
 
     Grandfathering needs exactly one fact: which feed is already materialised as
@@ -236,15 +238,42 @@ def legacy_feeds(existing: DVModel | None) -> set[tuple[str, str, str]]:
     models, and every one of them would collapse onto the same unsuffixed name.
 
     Derived from the existing model rather than stored on the state, so nothing new has to
-    survive the checkpointer and a greenfield run has nothing to derive."""
+    survive the checkpointer and a greenfield run has nothing to derive.
+
+    WP101 (C34): a hub that became multi-source on the PREVIOUS step is already multi-source
+    here, and the rule above would rename its grandfathered stage on this step — the rename it
+    exists to refuse. The carried catalogue (``stage_bindings``, WP77) records what is
+    materialised under which name: the feed whose table ``stg_<entity>`` is bound to is the
+    grandfathered one. The model alone cannot say it — a greenfield multi-source hub may have a
+    feed named like its entity — so without that binding nothing is grandfathered."""
     if existing is None:
         return set()
-    return {
+    legacy = {
         (hub.name, normalize_identifier(hub.source_entity),
          normalize_identifier(hub.business_key))
         for hub in existing.hubs
         if not hub.sources
     }
+    for hub in existing.hubs:
+        relation = (carried_bindings or {}).get(_staging_name(hub.name))
+        if not hub.sources or relation is None:
+            continue
+        matching = [
+            s for s in hub.sources
+            if normalize_identifier(s.source_table) == normalize_identifier(relation)
+        ]
+        if len(matching) == 1:
+            legacy.add((hub.name, normalize_identifier(matching[0].source_table),
+                        normalize_identifier(matching[0].business_key_column)))
+    return legacy
+
+
+def legacy_feed_of(hub: Hub, legacy: set[tuple[str, str, str]] | None) -> HubSource | None:
+    """WP101: the feed of ``hub`` grandfathered as ``stg_<entity>``, or None. The one answer the
+    raw-vault generator and the staging generator both take for an existing satellite."""
+    if not legacy:
+        return None
+    return next((s for s in hub.sources if is_legacy_feed(hub, s, legacy)), None)
 
 
 def is_legacy_feed(hub: Hub, source: HubSource, legacy: set[tuple[str, str, str]]) -> bool:
@@ -282,7 +311,8 @@ def multi_source_staging_name(
 
 
 def collect_staging_specs(
-    model: DVModel, legacy: set[tuple[str, str, str]] | None = None
+    model: DVModel, legacy: set[tuple[str, str, str]] | None = None,
+    existing_satellites: frozenset[str] = frozenset(),
 ) -> dict[str, StagingSpec]:
     """Group the raw-vault constructs by the staging model that feeds them.
 
@@ -520,12 +550,25 @@ def collect_staging_specs(
         else:
             sat_parent_hub = hub_by_name.get(sat.parent)
             if sat_parent_hub is not None and sat_parent_hub.sources:
-                # WP10: a satellite on a multi-source hub feeds each per-source staging (one
-                # satellite per source is emitted downstream, reading its own staging).
-                target_specs = [
-                    specs[multi_source_staging_name(sat_parent_hub, source, legacy)]
-                    for source in sat_parent_hub.sources
-                ]
+                if sat.name in existing_satellites:
+                    # WP101 (C35): an EXISTING satellite is not split when its hub gained feeds
+                    # (WP23 §2.6, the raw-vault generator renders it once against the legacy
+                    # stage) — so its payload belongs to the legacy feed's stage alone. Asking
+                    # every feed for it made `stg_unit_measure_productvendor` hash a `NAME` that
+                    # `ProductVendor` does not have. No identifiable legacy feed: the generator
+                    # flags the satellite instead of guessing, and no stage carries its payload.
+                    feed = legacy_feed_of(sat_parent_hub, legacy)
+                    target_specs = (
+                        [specs[multi_source_staging_name(sat_parent_hub, feed, legacy)]]
+                        if feed is not None else []
+                    )
+                else:
+                    # WP10: a satellite on a multi-source hub feeds each per-source staging (one
+                    # satellite per source is emitted downstream, reading its own staging).
+                    target_specs = [
+                        specs[multi_source_staging_name(sat_parent_hub, source, legacy)]
+                        for source in sat_parent_hub.sources
+                    ]
             else:
                 target_specs = [spec_for(sat.parent)]
         attr_cols = [_to_column(attr) for attr in sat.attributes]
@@ -1662,8 +1705,11 @@ def build_staging(
     ``target_platform`` (WP35) selects the seed-type dialect and the README's profile
     hint; the rendered models are identical across platforms. The default is the
     byte-identity baseline."""
-    legacy = legacy_feeds(existing)
-    specs = collect_staging_specs(model, legacy)
+    legacy = legacy_feeds(existing, carried_bindings)  # WP101: the carried catalogue too
+    specs = collect_staging_specs(
+        model, legacy,
+        frozenset(s.name for s in existing.satellites) if existing is not None else frozenset(),
+    )
     # WP82: a human's aliases are part of the stage before anything judges its binding.
     for stage_name, binding in (ratified_bindings or {}).items():
         if stage_name in specs:
@@ -1793,6 +1839,24 @@ def build_staging(
         models=models, metadata=metadata, scaffolding=scaffolding, flags=flags,
         zero_key_hubs=zero_hubs,
     )
+
+
+def unresolved_raw_vault_refs(models: dict[str, str], staging: dict[str, str]) -> list[str]:
+    """WP101 (C34): the raw-vault models whose ``source_model`` — a bare name or a list — or
+    whose ``ref()`` names no rendered staging or raw-vault model. Arm A's fifth project carried
+    `sat_unit_measure_details` reading `stg_unit_measure`, which that step no longer rendered;
+    `project_self_contained` had looked at the staging layer only. Pure; names out, sorted."""
+    known = set(models) | set(staging)
+    unresolved: list[str] = []
+    for name, sql in models.items():
+        named: list[str] = []
+        setting = re.search(r'set source_model = (\[[^\]]*\]|"[^"]+")', sql)
+        if setting:
+            named += re.findall(r'"(\w+)"', setting.group(1))
+        named += re.findall(r"ref\('(\w+)'\)", sql)
+        if any(ref not in known for ref in named):
+            unresolved.append(name)
+    return sorted(unresolved)
 
 
 def unresolved_stage_refs(models: dict[str, str], sources_yml: str) -> list[str]:

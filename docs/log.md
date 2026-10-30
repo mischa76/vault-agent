@@ -11460,3 +11460,67 @@ pass not rewritten (reached only where a relation's own homonym exists, and it n
 parse` in the eval (C34's second half); no paid rerun — the regeneration is the measurement; the regenerated
 project and its log stay in the scratchpad, nothing of it is a dataset; the spec's frontmatter untouched, this
 entry is its measurement, as for WP98 and WP99.
+
+## [2026-10-30] WP101 — the grandfathered feed stays grandfathered on every later step, and the satellite it carried stays with it (C34, C35): arm A's fifth project, regenerated keylessly, parses without the hand view and builds PASS=390 of 395 to the two known inferred-stage errors; the self-contained scorer now sees the raw vault and would have failed the kept step
+
+**Autor:** Claude Code
+
+On the owner's go (2026-10-30, after WP100: C34 and C35 together). **What was wrong.** `hub_unit_measure` was
+single-source in arm A's step 3 with `sat_unit_measure_details` (no `source_table`) reading `stg_unit_measure`; step 4
+added `ProductVendor` as a feed, the merger materialised the legacy feed and WP23 §2.6 grandfathered its stage under
+the old name; the existing satellite was not split and kept reading it — right. Step 5 lost it: `legacy_feeds`
+derived the grandfathered feeds from the immediately preceding model and excluded a hub already multi-source there
+(a greenfield multi-source hub must keep its symmetric names), so the legacy stage was renamed
+`stg_unit_measure_unitmeasure` — the rename of a materialised model §2.6 exists to refuse — while the raw-vault
+generator still emitted the bare `stg_unit_measure` for the existing satellite; dbt refused the project on the missing
+node (C34). And from step 4 on the staging generator, which never learned §2.6's satellite rule, put the satellite's
+payload into every feed's stage: `stg_unit_measure_productvendor` hashed `NAME`, which `ProductVendor` lacks (C35).
+Two generators disagreeing about where an existing satellite lives — the WP24 class. **The change** (spec
+`backlog-2026-07/wp101-legacy-feed-carried-spec.md`): `legacy_feeds(existing, carried_bindings)` also grandfathers,
+for a hub already multi-source in the existing model, the feed whose table the carried catalogue binds
+`stg_<entity>` to (`stage_bindings`, WP77 — the record of what is materialised under which name; the model alone
+cannot tell a grandfathered feed from a greenfield feed named like the entity); `legacy_feed_of(hub, legacy)` is the
+one answer both generators take: the staging generator puts an existing satellite's payload into that feed's stage
+alone (`collect_staging_specs(..., existing_satellites)`), the raw-vault generator renders the satellite against
+`multi_source_staging_name` of that feed; no identifiable legacy feed → `GENERATION_GAP` on the satellite, not
+rendered, no stage carries its payload (a guess or a split would be worse than a flag). `unresolved_raw_vault_refs`
+checks every raw-vault model's `source_model` (bare or list) and `ref()` against the rendered models, and
+`project_self_contained` fails on it — the eval would have caught C34 at step 5 without a build. ADR-0011 carries a
+dated addendum (row 1 is about satellites created on a multi-source hub); manual 6 says it in one sentence. **Guards**
+(`tests/test_wp101_legacy_feed_carried.py`, committed red at `9b1d5af`): the carried binding grandfathers an
+already-multi-source hub's feed and nothing else; on the step-after-next shape the legacy stage keeps its name, the
+satellite reads it, the hub lists it; the payload is in the legacy feed's stage and in no other, on step N+1 and N+2;
+without a binding the flag, not the satellite; the raw-vault check in all three forms; the scorer fails on it.
+`tests/test_brownfield_extension.py` unchanged.
+
+**Measured** (keyless, PostgreSQL 16.15, the local data copy in `vault`, dbt 1.9.10, AutomateDV 0.11.4, fresh schema
+`c1_a_wp101`, dropped afterwards). Arm A's fifth project (`20261030T184653194084Z`, step 5) regenerated from its kept
+artefacts as for WP100 — plus the code generator, since the raw vault changes — with the fourth step's catalogue
+carrying `stg_unit_measure: UnitMeasure`. **P1 ✔ with two differences the prediction did not list:** staging 212
+files on both sides, `stg_unit_measure_unitmeasure` gone, `stg_unit_measure` back, `stg_unit_measure_productvendor`
+without the hashdiff and `NAME`, and in addition `zero_keys_unit_measure.sql` (its `depends_on` and column
+introspection follow the legacy name) and `sources.yml` (the expected-columns comment of `ProductVendor` loses `NAME`)
+— the same change, not another; raw vault 177 files, exactly `hub_unit_measure.sql` differs (its list names
+`stg_unit_measure`), `sat_unit_measure_details.sql` byte-identical to the kept file. **P2 ✔ exactly:** `dbt parse`
+succeeds without the hand view; `dbt build` **PASS=390 WARN=0 ERROR=2 SKIP=3 TOTAL=395** in 22.07 s (177
+incremental, 10 tests, 208 views); the two errors are the inferred stages `stg_business_entity_purchase_order_ship_method`
+and `stg_product_component_unit_measure` (C18), the three skips their link and effectivity satellite;
+`stg_unit_measure_productvendor` builds with 14 columns and no `NAME`. **P3 ✔:** `sat_unit_measure_details` 38 rows =
+`UnitMeasure`'s 38, every `unitmeasure_hk` joins `hub_unit_measure` (0 orphans), `record_source`
+`AdventureWorks.Production` only; `hub_unit_measure` 40 rows = the 38 distinct codes of `UnitMeasure` ∪
+`ProductVendor` plus **2 zero-key rows** — which also verifies what WP100's entry left assumed about `hub_shift` and
+`hub_department`. **P4 ✔:** the scorer on the kept step-5 artefacts: 0.0, „1 of 177 raw-vault model(s) read a stage
+the project does not render: sat_unit_measure_details"; on the regenerated project 1.0 (208 staging, 177 raw-vault).
+**P5 ✔:** 1426 passed, 5 skipped, no fixture updated; ruff and mypy clean. Against the kept build of 2026-10-30
+(PASS=389 of 396 with the hand view, C35 among the errors): one model fewer, one error fewer, the hand view gone.
+
+**Überprüft.** The file-level diff of both layers by script; the parse and build logs
+(`scratchpad/c1/build/A101/build.log`, this session); the counts by `psql`; the scorer on both states; the suite.
+**Nur angenommen.** That the 390 passing models produce right rows beyond AutomateDV's tests and the counts above;
+that arm A's step 4, regenerated, would lose C35 the same way (same code path, not rebuilt). **Bewusst nicht
+getan.** No gate for a hub feed stage hashing a column its relation lacks (rule 2 leaves no producer; WP73's gate
+stays link-only); an inferred legacy feed (`raw_<entity>`, not in `stage_bindings`) stays unidentifiable on the step
+after next and lands in the flag; no paid rerun; **the eval instrument changed:** `project_self_contained` now judges
+the raw vault too, so the twenty-first chain's and both C1 arms' recorded 1.0 would not all hold re-scored (arm A's
+fifth step: 0.0) — recorded here, the record itself untouched; the regenerated project stays in the scratchpad; C36
+next, then the C1 ADR and the review record.

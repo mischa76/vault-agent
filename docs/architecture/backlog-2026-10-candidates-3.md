@@ -204,3 +204,12 @@ platform profile (`rules/platforms.py`) carries no identifier length; Snowflake 
 platform in the profile, a translation name that stays under it — the link's name with a short deterministic
 suffix when the joined list would exceed the limit; the list is already in the view's header and in
 `key_translation` — and a render-time check of every generated relation name against the limit.
+
+## C34 and C35 — closed by WP101 (2026-10-30)
+
+The carried catalogue's `stage_bindings` names the grandfathered feed of a hub that is already multi-source in the
+existing model, so its stage keeps `stg_<entity>` on every later step; an existing satellite without `source_table`
+puts its payload into that feed's stage alone, the raw-vault generator names the same stage through the same
+helper, and `project_self_contained` fails on a raw-vault model reading a stage the project does not render
+(`wp101-legacy-feed-carried-spec.md`). Arm A's fifth project, regenerated keylessly, parses without the hand view and
+builds to the two known inferred-stage errors (`docs/log.md`, 2026-10-30).

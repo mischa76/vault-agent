@@ -318,7 +318,10 @@ file.
 **Grandfathering.** When a single-source hub gains a feed, its original staging model keeps
 its name (`stg_<entity>`) and only the new feed gets the suffixed `stg_<entity>_<source>`;
 existing satellites keep their names and their binding. Renaming them would drop and rebuild
-tables that hold history.
+tables that hold history. On every later step the carried catalogue's `stage_bindings` says which
+feed is the grandfathered one, so the name holds beyond the step that added the feed; an existing
+satellite's payload is staged from that feed alone, and when no such binding is carried the
+satellite is flagged for review rather than bound to a guessed feed (WP101, 2026-10-30).
 
 **The ADR** documents only the delta, plus an *Extends* section naming the vault it extends
 and pointing at the diff.

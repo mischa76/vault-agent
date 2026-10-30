@@ -204,7 +204,7 @@ def apply_zero_key_hubs(state: VaultAgentState, zero_key_hubs: dict[str, str]) -
     re-bind, so the set of zero-keyed hubs is final only there."""
     from vault_agent.agents.staging_generator import legacy_feeds
 
-    legacy = legacy_feeds(state.existing_model)
+    legacy = legacy_feeds(state.existing_model, state.carried_bindings)  # WP101
     hub_metadata = state.artifacts.automatedv_yaml.setdefault("hubs", {})
     for hub in state.dv_model.hubs:
         if hub.name not in state.artifacts.dbt_models:
@@ -439,9 +439,9 @@ class CodeGeneratorAgent(BaseAgent):
         hub_by_name = {hub.name: hub for hub in model.hubs}
         # WP23 §2.6 grandfathering: feeds and satellites the extended vault already had.
         # Both are EMPTY on a greenfield run, which is what keeps its output identical.
-        from vault_agent.agents.staging_generator import legacy_feeds
+        from vault_agent.agents.staging_generator import legacy_feed_of, legacy_feeds
 
-        legacy = legacy_feeds(state.existing_model)
+        legacy = legacy_feeds(state.existing_model, state.carried_bindings)  # WP101
         existing_sats = (
             {sat.name for sat in state.existing_model.satellites}
             if state.existing_model is not None
@@ -591,14 +591,39 @@ class CodeGeneratorAgent(BaseAgent):
                     # the destructive migration this track refuses. It keeps its name and
                     # its binding to the legacy staging; only NEW satellites on this hub
                     # follow the WP10 per-source shape against the new feeds.
-                    rendered = self._render_satellite(
-                        sat, parent_hashkeys, link_fks, link_driving_fks,
-                        link_secondary_fks, state,
+                    # WP101 (C34): that staging is named through the same helper the staging
+                    # generator uses for the legacy feed — the bare `stg_<entity>` was still
+                    # emitted here on the step after next, when the feed had lost its
+                    # grandfathering and nothing rendered that name. No identifiable legacy
+                    # feed: flagged, not guessed, and not rendered.
+                    from vault_agent.agents.staging_generator import (
+                        _staging_name,
+                        multi_source_staging_name,
                     )
-                    if rendered is not None:
-                        sql, meta = rendered
-                        dbt_models[sat.name] = sql
-                        metadata["satellites"][sat.name] = meta
+
+                    feed = legacy_feed_of(parent_hub, legacy)
+                    if feed is None:
+                        state.flag(
+                            "code_generator",
+                            f"existing satellite {sat.name!r} read the legacy staging model "
+                            f"of hub {sat.parent!r}, which this step cannot identify among the "
+                            f"hub's feeds (the carried catalogue binds no "
+                            f"'{_staging_name(sat.parent)}'); rendering it against a feed would "
+                            f"guess and splitting it would rename a materialised model, so it "
+                            f"is flagged for human review",
+                            kind=FlagKind.GENERATION_GAP,
+                            asset=sat.name,
+                        )
+                        continue
+                    state.flags.extend(
+                        _collision_warnings(sat.attributes + sat.child_dependent_key, sat.name)
+                    )
+                    sql, meta = _render_sat(
+                        sat, parent_hashkeys[sat.parent],
+                        source_model=multi_source_staging_name(parent_hub, feed, legacy),
+                    )
+                    dbt_models[sat.name] = sql
+                    metadata["satellites"][sat.name] = meta
                     continue
                 from vault_agent.agents.staging_generator import multi_source_staging_name
 

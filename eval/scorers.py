@@ -313,7 +313,10 @@ def project_self_contained(state: VaultAgentState, case: EvalCase) -> ScorerResu
     day after the nineteenth chain: an inferred ``raw_*`` binding is a missing `ref()` to dbt
     and is counted too — the project does not parse with one. Vacuous when the run produced no
     staging (nothing to resolve)."""
-    from vault_agent.agents.staging_generator import unresolved_stage_refs
+    from vault_agent.agents.staging_generator import (
+        unresolved_raw_vault_refs,
+        unresolved_stage_refs,
+    )
 
     models = state.artifacts.staging_models
     if not models:
@@ -321,14 +324,24 @@ def project_self_contained(state: VaultAgentState, case: EvalCase) -> ScorerResu
                             details=VACUOUS_PREFIX + "no staging models to resolve")
     sources = state.artifacts.scaffolding.get("models/staging/sources.yml", "")
     unresolved = unresolved_stage_refs(models, sources)
-    if not unresolved:
-        return ScorerResult(name="project_self_contained", score=1.0,
-                            details=f"{len(models)} staging model(s), every relation resolves")
-    return ScorerResult(
-        name="project_self_contained", score=0.0,
-        details=f"{len(unresolved)} of {len(models)} staging model(s) read a relation dbt "
-                f"cannot resolve: {', '.join(unresolved[:8])}",
-    )
+    # WP101 (C34): the raw vault too — a carried satellite once read a stage this step no
+    # longer rendered, and the staging layer alone resolved.
+    raw_vault = state.artifacts.dbt_models
+    unresolved_raw = unresolved_raw_vault_refs(raw_vault, models)
+    if not unresolved and not unresolved_raw:
+        return ScorerResult(
+            name="project_self_contained", score=1.0,
+            details=f"{len(models)} staging model(s), every relation resolves; "
+                    f"{len(raw_vault)} raw-vault model(s), every stage read is rendered",
+        )
+    parts = []
+    if unresolved:
+        parts.append(f"{len(unresolved)} of {len(models)} staging model(s) read a relation dbt "
+                     f"cannot resolve: {', '.join(unresolved[:8])}")
+    if unresolved_raw:
+        parts.append(f"{len(unresolved_raw)} of {len(raw_vault)} raw-vault model(s) read a "
+                     f"stage the project does not render: {', '.join(unresolved_raw[:8])}")
+    return ScorerResult(name="project_self_contained", score=0.0, details="; ".join(parts))
 
 
 SCORERS: dict[str, Scorer] = {

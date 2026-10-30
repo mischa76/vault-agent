@@ -102,6 +102,14 @@ is not the project's.
   projecting a name an earlier one took is now projected as `<KEY>_VIA_<THROUGH>` (`NAME_VIA_SHIFT`), the hash
   keys, the link key and the tests following; the renderer refuses a duplicate projection outright (WP100,
   2026-10-30, found by the C1 experiment's build).
+- A hub that became multi-source on one step lost its grandfathered stage name on the next (`stg_unit_measure`
+  renamed `stg_unit_measure_unitmeasure` while the satellite it carried still read the old name — the project
+  did not parse), and from the first multi-source step on every feed's stage hashed that satellite's payload,
+  one of them a `NAME` its relation lacks. The carried catalogue's `stage_bindings` now says which feed is
+  grandfathered on every later step, an existing satellite's payload goes to that feed's stage alone, both
+  generators name that stage through one helper, a satellite whose legacy feed cannot be identified is flagged
+  instead of guessed, and `project_self_contained` also fails on a raw-vault model reading a stage the project
+  does not render (WP101, 2026-10-30, found by the same build).
 
 ### Security
 - Dependabot alerts 44–46 (`dompurify` 3.4.16, one critical), 47 (`certifi` 2026.5.20, critical),
