@@ -68,9 +68,11 @@ from vault_agent.existing_model import (
     DV_MODEL_FILENAME,
     SOURCE_CATALOGUE_FILENAME,
     dump_source_catalogue,
+    load_carried_aliases,
     load_carried_bindings,
     load_existing_catalogue,
     load_existing_model,
+    stage_aliases,
     stage_bindings,
 )
 from vault_agent.graph import build_graph
@@ -543,6 +545,7 @@ async def run_case_once(case: EvalCase) -> VaultAgentState:
             existing_source=str(case.existing) if case.existing else None,
             carried_schemas=load_existing_catalogue(case.existing) if case.existing else [],
             carried_bindings=load_carried_bindings(case.existing) if case.existing else {},
+            carried_aliases=load_carried_aliases(case.existing) if case.existing else {},  # WP106
         ),
         config=config,
     )
@@ -742,6 +745,9 @@ def write_step_vault(state: VaultAgentState, step_dir: Path) -> Path:
             dump_source_catalogue(
                 [*state.source_schemas, *state.carried_schemas],
                 stage_bindings(state.artifacts.automatedv_yaml.get("staging", {}) or {}),  # WP77
+                # WP106 (C40): the aliases too, as cli.write_outputs writes them — the harness had
+                # carried bindings without the aliases that made them pass WP73.
+                stage_aliases(state.artifacts.automatedv_yaml.get("staging", {}) or {}),
             ),
             encoding="utf-8",
         )
@@ -841,6 +847,7 @@ async def run_chain_once(
                 existing_source=str(previous) if previous else None,
                 carried_schemas=load_existing_catalogue(previous) if previous else [],
                 carried_bindings=load_carried_bindings(previous) if previous else {},
+                carried_aliases=load_carried_aliases(previous) if previous else {},  # WP106
             )
             runs.append((step_case, state))
             previous = write_step_vault(state, workdir / f"step{index}_{step_name}")

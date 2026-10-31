@@ -73,6 +73,9 @@ resolution answers the carried binding first, at every call site, so a later inc
 offer cannot re-point a stage an earlier step bound with the evidence in hand — the twenty-third
 chain's step 4 had re-pointed two product→unit-measure stages from `Product` to `ProductVendor`
 and loaded the vendor's purchasing unit as the product's size unit, every gate green.
+Since WP106 (2026-10-31) the catalogue also carries each table's primary key, unique keys and
+foreign keys, so a carried relation is judged like one of the increment, and the eval harness
+carries `stage_aliases` between steps as the CLI does.
 
 **Translation model** (WP36, ADR-0013): a link ratified from a foreign key that references a
 surrogate while the hub is keyed on the natural key gets a second staging model,

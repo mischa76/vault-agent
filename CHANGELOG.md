@@ -96,6 +96,10 @@ is not the project's.
   PostgreSQL `xml` column is spelled `xml`, which SQLAlchemy's dialect alone did not.
 
 ### Changed
+- `metadata/source_catalogue.yml` carries a table's primary key, unique keys and foreign keys in the
+  house shape where declared (WP106, 2026-10-31, backlog C41), so a relation carried into a later
+  increment can be judged by the same rules as one of the increment (WP95's role derivation at
+  binding time); a table without keys renders byte-identically.
 - The eval metric `stage_refs_inferred` counts every stage a human must still bind — inferred
   (`SOURCE_BINDING`) and refused (`BINDING_REJECTED`) alike, each once (WP105, 2026-10-31, backlog
   C39); it had read 0 for a project with two refused stages. Archived results keep their numbers.
@@ -107,6 +111,9 @@ is not the project's.
   seeds it; the seven chains before it close the first; no sample is pruned and no archived judgement
   of the first generation moves.
 ### Fixed
+- The eval harness carries a step's `stage_aliases` into the next step as `run --existing` and the
+  workbench do (WP106, 2026-10-31, backlog C40): a role column WP95 derived or a human typed had
+  travelled in the product and not in a measured chain, where WP73 then refused the carried relation.
 - A link's staging binding an earlier increment made is no longer overruled by a later increment's
   offer (WP105, 2026-10-31, backlog C38): the link's relation resolution answers the carried binding
   first, at every call site, so the gates and staging agree. The twenty-third chain's step 4 had

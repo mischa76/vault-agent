@@ -186,8 +186,8 @@ def dump_source_catalogue(
     bindings: dict[str, str] | None = None,
     aliases: dict[str, dict[str, str]] | None = None,
 ) -> str:
-    """Render the source catalogue (WP74): table, schema, database and the declared columns (with
-    their types where declared, WP83),
+    """Render the source catalogue (WP74): table, schema, database, the declared columns (with
+    their types where declared, WP83) and the declared keys (WP106),
     deduplicated by (schema, table), first occurrence wins — so a caller passes the
     increment's tables before the carried ones. ``bindings`` (WP77) adds ``stage_bindings``:
     every staging model's declared relation, so the next increment keeps a binding its own
@@ -209,6 +209,18 @@ def dump_source_catalogue(
             entry["schema"] = table.schema_name
         if table.database is not None:
             entry["database"] = table.database
+        # WP106 (C41): the declared keys, in the house shape and the derivation's order, only where
+        # declared — a relation carried without them could not be judged by WP95's role derivation
+        # at binding time (the twenty-third chain's step 5). The loader is the house-format reader.
+        if table.foreign_keys:
+            entry["foreign_keys"] = [
+                {k: v for k, v in fk.model_dump().items() if v is not None}
+                for fk in table.foreign_keys
+            ]
+        if table.primary_key:
+            entry["primary_key"] = list(table.primary_key)
+        if table.unique_keys:
+            entry["unique_keys"] = [list(k) for k in table.unique_keys]
         entries.append(entry)
     document: dict[str, Any] = {"source_schemas": entries}
     if bindings:

@@ -11921,3 +11921,51 @@ mirror by listing. **Nur angenommen.** That the carried tier is right for hub-sh
 re-pointed — WP82 is the way. **Bewusst nicht getan.** C40 (two lines in the harness) and C41 (keys in the carried
 catalogue) — recorded, the owner's go; no paid rerun — the regeneration is the measurement; the candidates file's
 C38 entry stands as written, corrected by the appended entry; no live measurement of the tier.
+
+## [2026-10-31] WP106 built and measured: the harness carries `stage_aliases` as the product does (C40), the carried catalogue carries the declared keys (C41) — the twenty-third chain re-chained keylessly through the harness writer, no refused stage on any step, the fifth project byte-identical to WP105's and PASS=421 of 421
+
+**Autor:** Claude Code
+
+On the owner's go (2026-10-31: C40 and C41; the same message queues the rest of the old backlog except C7, C17 and C21
+— recorded in the plan entry below). **Built** (`wp106-carried-keys-and-aliases-spec.md`, guards `76e2a6d` first, five of
+six red). `existing_model.dump_source_catalogue` writes `foreign_keys` (each `columns`, `references_table`,
+`references_columns`, `references_schema` when set), `primary_key` and `unique_keys` after the table's location, in the
+derivation's order and only where declared — keyless tables byte-identical (WP83's pin); the loader is the house-format
+reader and needed nothing. `eval/run.py`: `write_step_vault` passes `stage_aliases(staging metadata)` as
+`cli.write_outputs` does; `run_case_once` and the resumed-step branch set `carried_aliases=load_carried_aliases(...)`.
+Who reads the carried keys: `bind_sources` alone (WP73's check with WP95's derivation on a carried relation); the
+validator's gates and the evidence tier read the increment at both sites, so WP85 and the key clause are unchanged
+(spec §2.2). Manual 9, index row, CHANGELOG (Fixed C40, Changed C41), candidates file: C40/C41 closed.
+
+**Measured** (keyless; spec §5/§6). **P1 ✔:** the regenerated step 4's catalogue: 49 tables, 49 primary keys, 18 with
+unique keys, 31 with foreign keys (57); step 5: 68 tables, 90 foreign keys, and one alias travelling
+(`stg_business_entity_store_sales_person`, WP95's derived role column, dropped by the harness until now). **P2 ✔:** the
+chain re-chained from the kept step-1 model through `write_step_vault` — `stage_refs_inferred` 0 and no `binding_rejected`
+on any step, both product→unit-measure stages on `Product` from step 3 on, steps 1–3 byte-identical to the kept
+projects, steps 4 and 5 differing in WP105's three files only, the re-chained fifth project byte-identical to WP105's
+P3 regeneration, `dbt build` in `c38r` **PASS=421 of 421**, the links 504 / 176 and 504 / 205 as before. **P3 ✔:** step 5
+from the kept step 4 with its aliases: `ProductVendor` bound through the carried alias, zero refusals — the alias
+travels as in the CLI; the product no longer writes that binding (WP105). **P4 ✔:** 36 regenerated step directories of
+three kept chains byte-identical to WP105's regenerations. **P5 ✔:** suite 1459 passed, 5 skipped; ruff; bare mypy.
+Schema dropped; the re-chained steps mirrored to `tank:…/kept-outputs/adventureworks_incremental/20261031T032606335763Z-wp106-rechain/`.
+
+**Überprüft.** The re-chain by script (every step's catalogue counted, staging diffed against the kept projects and
+WP105's regenerations, the project diffed file by file), the build log, `psql` for the link rows, the guards red then
+green, suite, ruff, mypy, the mirror by listing. **Nur angenommen.** The resumed-step branch is covered by reading, not
+by a guard (a resumed chain needs persisted results; the loader call is one line beside the bindings'). **Bewusst
+nicht getan.** No helper unifying the four load sites (spec §3); no paid run; no re-scoring of archived chains; WP85 on
+carried relations left as drawn by WP74.
+
+## [2026-10-31] Plan — the old backlog, on the owner's word: everything open except C7, C17 and C21
+
+**Autor:** Claude Code
+
+The owner's word (2026-10-31, after WP105): build C40 and C41, then the whole old backlog except C7 (the foreign-vault
+spike), C17 (a second real domain) and C21 (Snowflake). Open after WP106, from the catalogue and the candidates files
+(status report of today): **C2** deleting in the workbench, **C3** project settings with a naming profile, **C6**
+`W_UNTRACED_CONSTRUCT`, **C8** stale flags from earlier attempts, **C10** seed config in grounded runs, **C19**
+workbench tests through the API with a coverage floor, **C22**'s open half (bridges), **C23**'s open half (the data
+loader). Order chosen, cheapest and most deterministic first, each with its own spec, pre-registration and guards:
+C10, C8, C6, C23, C19, C2, C3, C22. ADR-0019 and ADR-0020 stay with the owner; nothing in the queue depends on them.
+**Nur angenommen.** That „the whole old backlog" means the candidates list, not the WP29 remainder or the scale cases.
+**Bewusst nicht getan.** No WP number reserved ahead of its spec.

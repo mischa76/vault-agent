@@ -1,5 +1,6 @@
-"""WP106 — the eval harness carries `stage_aliases` as the CLI and the workbench do (C40), and the
-carried catalogue carries a table's declared keys (C41). Committed red before the change. Keyless."""
+"""WP106 — the eval harness carries `stage_aliases` as the CLI and the workbench do (C40), and
+the carried catalogue carries a table's declared keys (C41). Committed red before the change.
+Keyless."""
 from __future__ import annotations
 
 from pathlib import Path
@@ -27,7 +28,8 @@ ALIAS = {"SALES_PERSON_BUSINESSENTITYID": "BUSINESSENTITYID"}
 KEYED = SourceTable(table="BillOfMaterials", schema="Production", columns=[
     {"name": "BillOfMaterialsID", "type": "int"}, {"name": "ProductAssemblyID", "type": "int"},
     {"name": "ComponentID", "type": "int"}, {"name": "StartDate", "type": "datetime"},
-], primary_key=["BillOfMaterialsID"], unique_keys=[["ProductAssemblyID", "ComponentID", "StartDate"]],
+], primary_key=["BillOfMaterialsID"],
+    unique_keys=[["ProductAssemblyID", "ComponentID", "StartDate"]],
     foreign_keys=[
         {"columns": ["ProductAssemblyID"], "references_table": "Product",
          "references_columns": ["ProductID"], "references_schema": "Production"},
@@ -44,9 +46,12 @@ def test_the_catalogue_carries_primary_unique_and_foreign_keys_in_the_house_shap
     assert entry["foreign_keys"] == [
         {"columns": ["ProductAssemblyID"], "references_table": "Product",
          "references_columns": ["ProductID"], "references_schema": "Production"},
-        {"columns": ["ComponentID"], "references_table": "Product", "references_columns": ["ProductID"]},
+        {"columns": ["ComponentID"], "references_table": "Product",
+         "references_columns": ["ProductID"]},
     ]
-    assert list(entry) == ["table", "columns", "schema", "foreign_keys", "primary_key", "unique_keys"]
+    assert list(entry) == [
+        "table", "columns", "schema", "foreign_keys", "primary_key", "unique_keys",
+    ]
 
 
 def test_the_loader_reads_the_keys_back(tmp_path: Path) -> None:
@@ -54,13 +59,16 @@ def test_the_loader_reads_the_keys_back(tmp_path: Path) -> None:
     write_step_vault(state, tmp_path / "step1")
     [table] = load_existing_catalogue(tmp_path / "step1")
     assert table.primary_key == KEYED.primary_key and table.unique_keys == KEYED.unique_keys
-    assert [fk.model_dump() for fk in table.foreign_keys] == [fk.model_dump() for fk in KEYED.foreign_keys]
+    assert [fk.model_dump() for fk in table.foreign_keys] == [
+        fk.model_dump() for fk in KEYED.foreign_keys
+    ]
 
 
 def test_a_keyless_table_stays_byte_identical() -> None:
     plain = SourceTable(table="Customer", schema="Sales", columns=["CustomerID", "PersonID"])
     assert dump_source_catalogue([plain]) == (
-        "source_schemas:\n- table: Customer\n  columns:\n  - CustomerID\n  - PersonID\n  schema: Sales\n"
+        "source_schemas:\n- table: Customer\n  columns:\n  - CustomerID\n  - PersonID\n"
+        "  schema: Sales\n"
     )
 
 
@@ -83,7 +91,8 @@ def _step_with_alias(where: Path) -> Path:
     state = VaultAgentState(source_schemas=[_sales_person()],
                             dv_model=DVModel(hubs=_hubs(), links=[_territory_link()]))
     state.artifacts.automatedv_yaml = {"staging": {STAGE: {
-        "source_binding": "declared", "source_model": {"raw": "SalesPerson"}, "role_columns": dict(ALIAS),
+        "source_binding": "declared", "source_model": {"raw": "SalesPerson"},
+        "role_columns": dict(ALIAS),
     }}}
     write_step_vault(state, where)
     return where

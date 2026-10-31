@@ -316,3 +316,11 @@ derivation, WP85's grain gate or the evidence tier's key clause — the twenty-t
 `SIZE_UNITMEASURECODE` on the carried `ProductVendor` where step 4 could. The source schema reader (WP96) and the
 derivation (WP85) carry all three; the catalogue should carry them unchanged, byte-identical where a table declares
 none. Small; needs the owner's go because every brownfield step's catalogue changes shape.
+
+## C40 and C41 — closed by WP106 (2026-10-31)
+
+The harness writes and loads `stage_aliases` as the CLI and the workbench do (C40: `write_step_vault`, `run_case_once`,
+the resumed-step branch), and the catalogue carries a table's primary key, unique keys and foreign keys in the house
+shape where declared (C41; keyless tables byte-identical). Measured keyless by re-chaining the twenty-third chain
+through the harness writer: no refused stage on any step, the fifth project byte-identical to WP105's regeneration and
+PASS=421 of 421; one WP95 alias now travels into step 5. Spec `backlog-2026-07/wp106-carried-keys-and-aliases-spec.md`.

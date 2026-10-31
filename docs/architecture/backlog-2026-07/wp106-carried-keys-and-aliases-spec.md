@@ -76,3 +76,26 @@ reads; `run_case_once` on a stubbed graph hands the step the previous step's bin
 ## 6 Measured
 
 Appended after the run.
+
+## 6 Measured (2026-10-31, keyless; PostgreSQL 16, the local copy, dbt 1.9.10, AutomateDV 0.11.4)
+
+- **P1 ✔.** Step 4 written by `write_step_vault`: 49 tables, 49 with a primary key, 18 with unique keys, 31 with
+  foreign keys (57 keys); `stage_aliases` absent (nothing to carry). Steps 1–3: 13 / 19 / 44 tables, 8 / 12 / 27 with
+  foreign keys (14 / 20 / 48). Step 5: 68 tables, 46 with foreign keys (90), and **one alias travels** —
+  `stg_business_entity_store_sales_person`, WP95's derived role column, which the harness had dropped until now.
+- **P2 ✔.** The chain re-chained from the kept step-1 model: `stage_refs_inferred` 0 and no `binding_rejected` on any
+  step; both product→unit-measure stages on `Product` in steps 3, 4 and 5 (`raw_3`/`raw_4`/`raw_5: 'Product'`);
+  staging of steps 1–3 byte-identical to the kept projects, steps 4 and 5 differing from the kept ones in exactly the
+  three files WP105 P1 named; the re-chained step 5 **byte-identical to WP105's P3 regeneration** (`diff -rq` empty);
+  `dbt parse` 0, `dbt build` in `c38r` **PASS=421 WARN=0 ERROR=0 SKIP=0 TOTAL=421**; the links 504 rows each, 176 / 205
+  on real units, as WP105 measured. No further difference.
+- **P3 ✔.** Step 5 from the kept step 4 with its aliases loaded: both stages bind `ProductVendor` through the carried
+  alias (`SIZE_UNITMEASURECODE: 'UNITMEASURECODE'`), zero `binding_rejected` — the alias travels as in the CLI, and the
+  product's step 4 no longer writes that binding (P2).
+- **P4 ✔.** Arms A and T and the twenty-third's steps 2–5 regenerated from their kept directories: byte-identical to
+  WP105's regenerations (`diff -rq` empty over 36 directories).
+- **P5 ✔.** Suite 1459 passed, 5 skipped (6 new); ruff and bare mypy clean; WP83's byte pin and WP97's/WP99's „not
+  carried" pins unchanged; the six guards five red before (`76e2a6d`), all green after.
+
+Schema `c38r` dropped; the re-chained steps 1–5 and the fifth project mirrored to
+`tank:/tank/git/vault-agent-eval-results/kept-outputs/adventureworks_incremental/20261031T032606335763Z-wp106-rechain/`.
