@@ -344,3 +344,11 @@ declined unless answered — ADR-0007). Measured keyless: the bank demo builds o
 as-of date's pairs equal to the effectivity rows' validity and the seed's dates, the second build idempotent; the
 proposer yields 1, 9, 12, 24, 38 paths on the twenty-third chain's steps. Spec
 `backlog-2026-07/wp115-bridges-along-link-paths-spec.md`.
+
+## C32 — closed by ADR-0020's acceptance (2026-10-31)
+
+The owner accepted ADR-0020 on 2026-10-31: no exporter until a datavault4dbt customer asks or release criteria 2 and
+5 are met; the MCP proposal schema is ruled out as a target (it cannot hold a multi-source hub, a role, a key
+translation, an effectivity satellite or a binding's alias, and `commit_model` skips a known name silently); the
+round-trip project JSON is the target when the day comes, with the mapping the ADR records. C32 closes without code;
+a fixture of their format is pinned only when the exporter is built.

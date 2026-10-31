@@ -1,7 +1,7 @@
 # ADR-0020: Exporting a ratified model into TurboVault Engine's formats — not now; when a datavault4dbt customer asks, into the round-trip project JSON, never into the MCP proposal schema
 
-**Status:** Proposed (2026-10-31 — draft by Claude on the owner's go to continue the plan of 2026-10-30; the
-recommendation is Option 1 with Option 3 as the prepared path)
+**Status:** Accepted (2026-10-31 — the owner accepted Option 1 with Option 3 as the prepared path, the same day
+the draft was written by Claude on his go to continue the plan of 2026-10-30; nothing is built)
 **Date:** 2026-10-31
 **Decision makers:** Mischa Eismann
 

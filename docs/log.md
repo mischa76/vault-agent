@@ -12273,3 +12273,17 @@ that the seed's auto end-dating would be read correctly — the seed's one re-as
 rule and the seed agreed trivially. **Bewusst nicht getan.** A spine crossing that end-dating event; an incremental
 bridge; a path crossing a link twice; a cap or grouping for the proposal count on a large step (measured first, 38 on
 sales); no paid run; CLAUDE.md unchanged (the manual carries the construct).
+
+## [2026-10-31] ADR-0020 accepted: no TurboVault export now, never into the MCP proposal schema, the round-trip project JSON when a datavault4dbt customer asks (C32 closed without code)
+
+**Autor:** Claude Code
+
+The owner accepted ADR-0020 as drafted (2026-10-31), after asking what „pre-MVP" means (Scalefree's own rules file
+calls the engine's phase „Engine (Pre-MVP)", read 2026-10-30) and what the MCP proposal schema is (`ModelImportSchema`,
+the flat, „intentionally minimal" list `commit_model` takes: one source table per hub and satellite, keys matched by
+name, no role, no translation, no effectivity satellite, a known name skipped silently). Recorded: the status line
+moved Proposed → Accepted with the date (the allowed status path, `VAULT_AGENT_ALLOW_RECORD_EDIT=1`), the index row,
+C32's closure in candidates part 3. Nothing is built; the mapping in the ADR's point 3 is the durable part, the
+fixture of their format is pinned only with the exporter. **Überprüft:** the ADR's text against the owner's two
+questions; no code ran. **Nur angenommen:** nothing. **Bewusst nicht getan:** no exporter, no fixture, no contact
+with Scalefree's channel; ADR-0019 stays Proposed until the owner's corrected-draft measurement.
