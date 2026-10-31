@@ -12287,3 +12287,25 @@ C32's closure in candidates part 3. Nothing is built; the mapping in the ADR's p
 fixture of their format is pinned only with the exporter. **Überprüft:** the ADR's text against the owner's two
 questions; no code ran. **Nur angenommen:** nothing. **Bewusst nicht getan:** no exporter, no fixture, no contact
 with Scalefree's channel; ADR-0019 stays Proposed until the owner's corrected-draft measurement.
+
+## [2026-10-31] Dependabot: five of six vulnerable packages upgraded in the lock, the pypdf floor raised to 6.21.4; oauthlib stays at 3.3.1 behind dbt-databricks' connector pin
+
+**Autor:** Claude Code
+
+On the owner's go (2026-10-31), after he asked what the alerts were. GitHub listed 20 open Dependabot alerts over six
+packages, all in `uv.lock`, none in this code: pypdf (7 × high, a direct dependency — the requirements parser reads
+PDFs — infinite loops and memory growth on malformed files), pyasn1 (4 × high, via google-auth under `demo-databricks`
+and `vertex`), oauthlib (2 high, 2 medium, via databricks-sql-connector under `demo-databricks`, server-side OAuth
+issues), tornado (2 medium, 1 low, via ipykernel under `dev`), langgraph (medium, the SDK's streaming redirect — the
+platform SDK, which this project does not use), msgpack (high, via mashumaro under dbt-core). **Done:**
+`uv lock --upgrade-package` for the six — langgraph 1.2.4 → 1.2.19, msgpack 1.2.1 → 1.2.4, pyasn1 0.6.4 → 0.6.5,
+pypdf 6.21.2 → 6.21.4, tornado 6.5.10 → 6.6; `pyproject.toml` pins `pypdf>=6.21.4` so the next lock cannot fall back.
+**Not movable:** oauthlib 3.3.1 → 4.0.0 — dbt-databricks 1.12.x requires `databricks-sql-connector <4.4.1`, and
+4.4.0 requires `oauthlib <4`; the connector's 4.8.0 would allow `<5`, but the 1.12 line (pinned on purpose,
+2026-09-12) does not take it. Four alerts stay open until dbt-databricks lifts the pin; they concern the OAuth server
+side and the device flow, which this project does not run. **Überprüft:** suite 1560 passed, 5 skipped, ruff, bare
+mypy after `uv sync` with `dev`, `eval`, `demo`, `ui`, `catalogue` — a `uv sync` without extras had dropped the dev
+tools first, a false alarm. **Nur angenommen:** that langgraph 1.2.19 behaves as 1.2.4 on a live run — the suite's
+graph tests and the byte-identity fixtures are the keyless evidence; no paid run. **Bewusst nicht getan:** bumping
+dbt-databricks past 1.12 for oauthlib (a Databricks build this machine cannot verify); the frontend's npm tree is not
+among the alerts and was not touched.
