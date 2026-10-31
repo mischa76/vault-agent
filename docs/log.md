@@ -12097,3 +12097,37 @@ the two builds' logs and construct counts, the guards red then green, suite, ruf
 copy's id 20 778 is the owner's test row (its names and the 2026-10-21 timestamp say so; not asked). **Bewusst nicht
 getan.** Databricks as a target (spec §3); replacing the `vault` copy (the owner's standing database — the loader can,
 with `--replace`, on his word); the demo's frozen runs.
+
+## [2026-10-31] WP111 built and measured: the workbench tested through its API and a coverage floor for `vault_agent.ui` (C19) — 45 tests, the package from 82 % to 94 %, `console.py` from 70 % to 94 %, floor 85 in CI, the local suite unchanged
+
+**Autor:** Claude Code
+
+Fifth of the old backlog on the owner's word. **Measured first:** the whole suite with `--cov=vault_agent.ui` — 82 % of
+998 lines (`app.py` 82, `console.py` 70 as the analysis said, `runs.py` 88, `projects.py` 91, `project_check.py` 92);
+nine test files use the `TestClient`, none fetched an artefact by path, the report or a paged event read, and almost
+no error branch was answered through the API. **Built** (`wp111-workbench-api-coverage-spec.md`; tests and the floor
+guard committed first, `3f8dec0`, the guard red): `tests/test_wp111_workbench_api_coverage.py` — a project name
+without a slug and a duplicate (400), an unknown project (404); file names that are not plain names (`../`, a
+directory, empty, `.`) never reach the disk (400), a wrong suffix and an empty schema refused and the file removed; a
+run on a missing input or predecessor (404), a bad as-of grain (422); every one of the 13 run routes 404 for an unknown
+run; events paged past the end; artefacts by nested and top-level path, a missing one (404), the checkpoint's
+`state.json` served by path while unlisted; the report; a decision, a cancel and a continue on a finished run (400,
+409, 400 — pinned as found); `accept` and `discard` in one body discards (pinned as found, not changed); 30 console
+commands each answering and leaving the run paused; the default runner on a harmless command and the dbt probe; one
+constructed-state test for the console's link, satellite, item and `what if` branches. The floor: `[tool.coverage.report]
+fail_under = 85` in `pyproject.toml`, `--cov=vault_agent.ui --cov-report=term` on both workflows' `uv run pytest`, the
+guard pinning the number and both lines; manual 14, CLAUDE.md's definition of done, index row, CHANGELOG (Added),
+candidates part 2: C19 closed.
+
+**Measured.** **P1 ✔ with one test more than planned:** 91 % after the API tests (`console.py` 82 % — the stub run has
+no constructs, so `show`/`why`/`explain` on links, satellites and gate items cannot be reached through it), **94 %**
+after the constructed-state test (`app.py` 99, `console.py` 94, `runs.py` 90, `projects.py` 100, `project_check.py`
+94); what stays uncovered is named line by line in the spec (a cancelled or crashed continue, pending same-as
+resolutions, a failing resume, items the stub does not produce). **P2 ✔:** floor 85 (five under 91, rounded down);
+`uv run pytest` 29.4 s against 28.8 s before the 45 tests; with coverage 58.7 s, CI's cost. **P3 ✔:** suite 1530
+passed, 5 skipped; ruff; bare mypy; no behaviour changed.
+
+**Überprüft.** Both coverage runs' per-file reports, the plain suite's time, the guard red then green, ruff, mypy.
+**Nur angenommen.** That the release workflow's pytest line is the only one it runs (read, one line). **Bewusst nicht
+getan.** Changing the two behaviours the pins found (accept-and-discard; the 400/409 split) — recorded for the owner;
+branches that need a slow or failing agent; a floor for the whole tree.

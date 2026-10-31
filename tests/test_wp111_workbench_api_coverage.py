@@ -11,7 +11,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from tests.test_cli import _sqlite_stub_agents
-from tests.test_wp66_workbench_api import _REQUIREMENTS, _project_with_inputs
+from tests.test_wp66_workbench_api import _project_with_inputs
 from vault_agent import cli
 from vault_agent.graph import build_graph
 from vault_agent.ui import project_check
@@ -54,14 +54,15 @@ def _finished(client: TestClient) -> dict[str, object]:
 
 
 # ── projects and files: names become paths ────────────────────────────────────────────────
-def test_a_project_name_without_a_usable_slug_and_a_duplicate_are_refused(client: TestClient) -> None:
+def test_a_project_name_without_a_slug_and_a_duplicate_are_refused(client: TestClient) -> None:
     assert client.post("/api/projects", json={"name": "!!!"}).status_code == 400
     assert client.post("/api/projects", json={"name": "Bank demo"}).status_code == 201
     dup = client.post("/api/projects", json={"name": "bank  DEMO"})
     assert dup.status_code == 400 and "already exists" in dup.json()["detail"]
     assert client.get("/api/projects/nope").status_code == 404
-    assert client.post("/api/projects/nope/files",
-                       json={"kind": "requirements", "name": "r.md", "content": "x"}).status_code == 404
+    r = client.post("/api/projects/nope/files",
+                    json={"kind": "requirements", "name": "r.md", "content": "x"})
+    assert r.status_code == 404
 
 
 @pytest.mark.parametrize("name", ["../escape.md", "sub/dir.md", "", "."])
@@ -95,10 +96,12 @@ def test_a_run_on_a_missing_input_or_predecessor_is_a_404_and_a_bad_grain_a_422(
     client: TestClient,
 ) -> None:
     pid = _project_with_inputs(client)
-    assert client.post(f"/api/projects/{pid}/runs", json={"requirements": "nope.md"}).status_code == 404
+    missing = client.post(f"/api/projects/{pid}/runs", json={"requirements": "nope.md"})
+    assert missing.status_code == 404
     assert client.post("/api/projects/nope/runs", json={"requirements": "req.md"}).status_code == 404
-    r = client.post(f"/api/projects/{pid}/runs",
-                    json={"requirements": "req.md", "schema": "schema.yml", "existing_run": "ghost"})
+    r = client.post(f"/api/projects/{pid}/runs", json={
+        "requirements": "req.md", "schema": "schema.yml", "existing_run": "ghost",
+    })
     assert r.status_code == 404, r.text
     r = client.post(f"/api/projects/{pid}/runs",
                     json={"requirements": "req.md", "pit": True, "as_of_grain": "fortnight"})
@@ -172,7 +175,7 @@ COMMANDS = [
 
 
 @pytest.mark.parametrize("text", COMMANDS)
-def test_every_console_command_answers_without_changing_the_run(client: TestClient, text: str) -> None:
+def test_every_console_command_answers_and_changes_nothing(client: TestClient, text: str) -> None:
     run = _paused(client)
     rid = str(run["id"])
     r = client.post(f"/api/runs/{rid}/console", json={"text": text})
@@ -187,7 +190,8 @@ def test_the_console_names_what_it_does_not_know(client: TestClient) -> None:
     rid = str(run["id"])
     ask = lambda t: client.post(f"/api/runs/{rid}/console", json={"text": t}).json()  # noqa: E731
     assert ask("explain 999")["kind"] == "unknown"
-    assert ask("show nothing_here")["kind"] == "unknown" and "Hubs:" in ask("show nothing_here")["text"]
+    shown = ask("show nothing_here")
+    assert shown["kind"] == "unknown" and "Hubs:" in shown["text"]
     assert ask("why nothing_here")["kind"] == "unknown"
     assert ask("gibberish token")["kind"] == "unknown"
     assert "fire" in ask("explain W_HUB_NO_SAT")["text"]
@@ -212,3 +216,33 @@ def test_the_ci_measures_the_workbench_package_against_the_floor() -> None:
         text = (ROOT / ".github" / "workflows" / workflow).read_text(encoding="utf-8")
         lines = [ln for ln in text.splitlines() if re.search(r"uv run pytest", ln)]
         assert lines and all("--cov=vault_agent.ui" in ln for ln in lines), workflow
+
+
+# ── the console's construct, item and what-if branches on a constructed state ─────────────
+def test_the_console_shows_links_satellites_items_and_the_what_if_variants() -> None:
+    from tests.test_wp68_console import _state
+    from vault_agent.ui.console import Console, answer
+
+    state = _state()
+    console = Console(state, None)
+    link = state.dv_model.links[0].name
+    sat = state.dv_model.satellites[0].name
+    assert "participations" in answer(state, None, f"show {link}").text
+    assert "parent:" in answer(state, None, f"show {sat}").text
+    for n, item in enumerate(console.queue.items, 1):
+        text = answer(state, None, f"explain {n}").text
+        assert f"item {n}:" in text and item.kind in text
+        if item.asset:
+            assert item.asset in answer(state, None, f"explain {item.asset}").text
+    assert "one_hub_per_key:" in answer(state, None, "steering one_hub_per_key").text
+    assert answer(state, None, "steering nope").kind == "unknown"
+    assert "No run.json" in answer(state, None, "cli").text
+    meta = {"id": "r", "status": "paused", "out_dir": "/tmp/r",
+            "cli_equivalents": ["vault-agent run x"]}
+    assert "vault-agent run x" in answer(state, meta, "cli").text
+    owner = answer(state, meta, "what if owner customer=Jane Doe <jane@example.com>")
+    assert owner.command and "--owner" in owner.command
+    resolve = answer(state, meta, "what if resolve customer=hub_x")
+    assert resolve.command and "--resolve" in resolve.command
+    assert answer(state, meta, "what if dance").kind == "unknown"
+    assert "decisions" in answer(state, meta, "items decisions").text

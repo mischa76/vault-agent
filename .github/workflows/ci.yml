@@ -25,7 +25,7 @@ jobs:
       - name: Type-check
         run: uv run mypy
       - name: Test
-        run: uv run pytest -q
+        run: uv run pytest -q --cov=vault_agent.ui --cov-report=term
 
   # The frontend's own checks (WP67 §2.6): type-check, Vitest, and a build — the proof the bundle
   # the Python app serves can be produced from this commit. Node-free Python stays the test job.

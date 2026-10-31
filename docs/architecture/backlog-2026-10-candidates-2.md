@@ -152,3 +152,12 @@ recorded generator flags of the kinds `generation_gap`, `column_collision`, `mis
 the second attempt had repaired (7 of the twenty-third chain's 95 decisions); reconstructed from the traces, 19 of
 19, and 0 left under the rule. The modeler's own flags (`retired_*`, `dropped_record`) stay by design — they record
 what the memory did and cannot be re-derived from the final model. Spec `backlog-2026-07/wp108-attempt-scoped-flags-spec.md`.
+
+## C19 — closed by WP111 (2026-10-31)
+
+Forty-five tests through the workbench API: every action that hands a path to the disk or a subprocess (file names,
+suffixes, an empty schema, missing inputs and predecessors, artefacts by path, the report, the runner), every error
+branch with the code it answers today, every console command on the paused stub run, and the console's construct and
+item branches on a constructed state. `vault_agent.ui` from 82 % to 94 % line coverage; a floor of 85 in
+`[tool.coverage.report]`, enforced by CI's `--cov=vault_agent.ui` on both workflows and pinned by a guard; the local
+suite unchanged. Spec `backlog-2026-07/wp111-workbench-api-coverage-spec.md`.

@@ -86,6 +86,11 @@ restart robustness. Parallel runs remain out.
 `/api` proxied to a running `vault-agent ui`. Its own checks: `npm run check` (TypeScript),
 `npm test` (Vitest — the trace derivations, the router, the review grouping); CI runs them in a
 separate Node job, the Python suite stays Node-free.
+The Python side of the workbench has a coverage floor since WP111 (2026-10-31): CI runs the
+suite with `--cov=vault_agent.ui`, and `[tool.coverage.report] fail_under` in `pyproject.toml`
+fails the job when the package's lines drop under it — every action that hands a path to the
+disk or a subprocess, every error branch and every console command is tested through the API.
+A local `uv run pytest` is unchanged.
 
 **The build is a snapshot, and nothing tells you it is stale.** `npm ci` and `npm run build`
 run once and exit; no Node process stays behind — the only server is `vault-agent ui`

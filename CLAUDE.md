@@ -128,7 +128,8 @@ fresh clone does not lose them.
   findable by date, and the original reasoning is still readable.
 
 - **Definition of done.** `uv run pytest`, `uv run ruff check`, and a bare `uv run mypy` — no path
-  argument, it overrides `pyproject`'s file list and silently skips `eval/`. Then a `docs/log.md`
+  argument, it overrides `pyproject`'s file list and silently skips `eval/`. CI adds
+  `--cov=vault_agent.ui` with a floor of 85 (WP111): workbench code without tests through the API fails there. Then a `docs/log.md`
   entry. A live-verified claim names its evidence and says *which* live: a paid LLM run verifies
   modelling, a keyless `dbt build` verifies the warehouse output; a keyless-only claim says so.
   "No dbt build on either line" once erased months of Postgres builds (`docs/log.md`, 2026-09-12).

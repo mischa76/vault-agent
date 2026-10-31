@@ -69,3 +69,25 @@ found a gap in the fixture — none did) and the floor guard (red before the cha
 ## 6 Measured
 
 Appended after the run.
+
+## 6 Measured (2026-10-31, keyless)
+
+- **P1 ✔ after one more test than planned.** With the API tests alone the package rose from 82 % to **91 %**
+  (`app.py` 99 %, `console.py` 82 %, `runs.py` 90 %, `projects.py` 100 %, `project_check.py` 94 %) — `console.py`
+  under its prediction, because the stub run has no constructs: `show`, `why` and `explain` on links, satellites,
+  gate items and flag reasons cannot be reached through that run. One constructed-state test (WP68's state, every
+  queue item explained by number and by asset, a link and a satellite shown, steering by id, `cli` with and without
+  `run.json`, the four `what if` verbs) takes the package to **94 %**, `console.py` to **94 %**. What stays uncovered
+  and why: `runs.py` 70–75 (pending same-as resolutions at the resolution checkpoint, WP71's territory), 306–310 and
+  333–339 (a cancelled or crashed continue — needs a slow or failing agent, WP69's), 467–468 (a failing resume);
+  `console.py` 226–228, 265–268, 278–281 (several items on one asset; a validation item whose gate retires
+  constructs; a flag item with a reason — states the stub does not produce), 339–362 (a link's driving key and
+  event timestamp, a satellite's child-dependent key); `project_check.py` 49–57 (dbt importable without a known
+  adapter), 112, 118 (an error line beyond the cap); `app.py` 94 (a `RunConflictError` from a project route), 274
+  (a static file by path when the bundle is built).
+- **P2 ✔.** Floor 85 in `[tool.coverage.report]` (five under 91, rounded down); `ci.yml` and `release.yml` run
+  `uv run pytest -q --cov=vault_agent.ui --cov-report=term`; the guard pins both and the number; `uv run pytest`
+  without coverage: 29.4 s against 28.8 s before the 45 new tests (noise); with coverage 58.7 s.
+- **P3 ✔.** Suite 1530 passed, 5 skipped; ruff; bare mypy; no workbench behaviour changed. Two behaviours pinned
+  as found: a body with `accept` and `discard` both true discards; a decision or a continue in the wrong state is a
+  400 (`ProjectError`) while a cancel in the wrong state is a 409 (`RunConflictError`).

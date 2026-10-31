@@ -109,6 +109,12 @@ ignore_missing_imports = true
 # `uv run mypy` covers both. Explicit paths on the command line override this list.
 files = ["src/vault_agent", "eval"]
 
+# WP111 (C19): the floor for the workbench package. CI runs the suite with
+# `--cov=vault_agent.ui`, so this applies to that package alone; a local `uv run pytest`
+# without `--cov` is untouched. 85 = five under the first measurement, rounded down.
+[tool.coverage.report]
+fail_under = 85
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"

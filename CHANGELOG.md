@@ -15,6 +15,11 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- A coverage floor for the workbench package (WP111, 2026-10-31, backlog C19): CI runs the suite with
+  `--cov=vault_agent.ui` and `[tool.coverage.report] fail_under = 85` fails the job under it; 45 tests
+  through the API cover every action that hands a path to the disk or a subprocess, every error branch
+  and every console command — `vault_agent.ui` from 82 % to 94 % line coverage. A local `uv run pytest`
+  is unchanged.
 - An AdventureWorks data loader (WP110, 2026-10-31, backlog C23): `uv run python -m
   eval.adventureworks.load_postgres --url postgresql://… [--csv-dir DIR] [--replace]` fetches Microsoft's
   68 CSVs (MIT) into a cache, creates the schemas, tables, keys and unique indexes of the DDL instrument
