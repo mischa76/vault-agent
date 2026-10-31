@@ -12309,3 +12309,38 @@ tools first, a false alarm. **Nur angenommen:** that langgraph 1.2.19 behaves as
 graph tests and the byte-identity fixtures are the keyless evidence; no paid run. **Bewusst nicht getan:** bumping
 dbt-databricks past 1.12 for oauthlib (a Databricks build this machine cannot verify); the frontend's npm tree is not
 among the alerts and was not touched.
+
+## [2026-10-31] Finding — the C1 experiment's 55 extra review decisions are translation decisions, not per-column questions: owners are identical per step, and without the translation class the two arms tie (87 against 86); the planned corrected-draft measurement would not measure what ADR-0019 asks
+
+**Autor:** Claude Code
+
+On the owner's word to continue with ADR-0019 (2026-10-31), before he spends the hour the plan of 2026-10-31 asks of
+him, the kept review queues of both arms (`20261030T184653194084Z` authored, `20261030T184653223619Z` drafted; step
+files, decisions section only) were counted by kind. **What they say.** Contract-owner decisions are **identical** per
+step in both arms — 13, 6, 25, 5, 19 — because a contract is one per table in scope, not per requirement; the
+drafted arm's per-column requirements changed none of them. The difference is one class: `link_translation` and the
+satellite's translation flag (ADR-0013 §3, „its own review class"), **60 in the drafted arm against 4 in the
+authored** — 6, 4, 22, 7, 21 per step — and everything else is within one or two per step (a merger flag, a mapper
+flag, a multi-active flag more or less). Non-translation decisions: authored 87, drafted 86. **The diagnosis in the
+experiment's §6 and in ADR-0019's context and consequences — „the per-column requirements become mapping and
+contract questions" — is wrong**; this entry corrects it, the records stay. The extra review *is* the gain: the
+draft keyed 21 hubs on Microsoft's natural keys, every declared foreign key that references their surrogates then
+needs WP36's translation, and each translated link and each translated satellite feed is one decision. The 60 flags
+stand on 21 distinct relations over the chain (step 3: 22 flags on 8 relations, `Product` alone 8 times — six links
+and two satellites all translating `ProductID → ProductNumber`).
+
+**What follows for the plan.** A human-corrected draft cannot cut these decisions except by keying the hubs back on
+their surrogates, which throws away the experiment's one gain; it can cut owners only by cutting tables out of
+scope, which measures scope, not the draft. The measurement the entry of 2026-10-31 proposed („a corrected draft
+saves review") would therefore come back near 21 on the person step whatever the owner corrects, and say nothing
+about the command. The question underneath is a product question, keyless and answerable on the kept outputs:
+whether a translation is one decision **per link and satellite** (ADR-0013 §3 as built) or one ratification **per
+translated key** („`hub_product` is keyed on `ProductNumber`; every surrogate reference translates through
+`Product`"), with the per-construct flags as disclosures under it — 60 decisions would become 21 on this chain, the
+authored arm's 4 would become 4, and the review clause of the record (WP34 §6) would have to be re-read for the
+chains that carry translations (the twenty-second and later). **Überprüft:** the counts, from the kept step
+queues of both arms, by section and by the agent in the flag's suffix, with the translation flags matched on the
+word in their text for counting only (no code branches on it). **Nur angenommen:** that a reviewer confirms one
+key's translation once rather than once per link — the premise of the per-key reading, to be judged by the owner.
+**Bewusst nicht getan:** no change to ADR-0019 (Proposed), the experiment memo or ADR-0013; no run; the owner's
+correction not started.
