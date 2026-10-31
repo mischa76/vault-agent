@@ -352,3 +352,15 @@ The owner accepted ADR-0020 on 2026-10-31: no exporter until a datavault4dbt cus
 translation, an effectivity satellite or a binding's alias, and `commit_model` skips a known name silently); the
 round-trip project JSON is the target when the day comes, with the mapping the ADR records. C32 closes without code;
 a fixture of their format is pinned only when the exporter is built.
+
+## C42 — A translation is one decision per construct, not per key (found by the C1 finding, 2026-10-31)
+
+The review queue asks *review the translation model* once per translated link and once per translated satellite
+(`link_translation`, `sat_translation`, decisions since WP43, „never aggregated" by ADR-0013 §3), although every
+such translation already stands under a ratification — the gates `E_LINK_TRANSLATION_UNRATIFIED` and
+`E_SAT_TRANSLATION_UNRATIFIED` refuse any other. On the C1 experiment's drafted arm that was 60 decisions for 21
+relations (`Product` eight times on one step, every one `ProductID → ProductNumber`), the whole of the arm's „60 %
+more review"; the authored arm carried 4; without the class the arms tie 87 to 86 (`docs/log.md` 2026-10-31, the
+finding). Candidate: one decision per translated key (hub, through relation, natural key), the per-construct flags
+as disclosures grouped under it; the record's two second-generation samples re-read under the rule. Opened as WP116
+the same day on the owner's choice.
