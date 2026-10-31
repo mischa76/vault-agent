@@ -75,7 +75,7 @@ def test_decode_is_bom_aware_and_utf8_by_default() -> None:
     assert loader.decode(text.encode("utf-16")) == text  # BOM-led UTF-16
 
 
-def test_plus_pipe_records_keep_embedded_newlines_and_strip_the_crlf_after_the_terminator() -> None:
+def test_plus_pipe_records_keep_embedded_newlines_and_drop_the_crlf_after_them() -> None:
     text = "1+|first line\r\nsecond line+|x&|\r\n2+|+|y&|\r\n"
     rows = loader.read_records(text, field_terminator="+|", row_terminator="&|\n", width=3)
     assert rows == [["1", "first line\r\nsecond line", "x"], ["2", None, "y"]]
@@ -91,7 +91,8 @@ def test_tab_records_join_continuation_lines_until_the_width_is_reached() -> Non
 
 def test_a_nul_only_field_is_the_hierarchy_root() -> None:
     text = "\x00+|Doc&|\n"
-    assert loader.read_records(text, field_terminator="+|", row_terminator="&|\n", width=2) == [["/", "Doc"]]
+    rows = loader.read_records(text, field_terminator="+|", row_terminator="&|\n", width=2)
+    assert rows == [["/", "Doc"]]
 
 
 # ── types and the COPY ────────────────────────────────────────────────────────────────────
@@ -115,9 +116,14 @@ def test_the_ddl_instrument_splits_into_tables_then_foreign_keys_byte_identicall
     whole = render_ddl(EXTRACT)
     assert render_ddl(EXTRACT, foreign_keys=False) + render_foreign_keys(EXTRACT) != ""
     assert "ADD FOREIGN KEY" not in render_ddl(EXTRACT, foreign_keys=False)
-    assert render_foreign_keys(EXTRACT).count("ADD FOREIGN KEY") == whole.count("ADD FOREIGN KEY") == 90
+    keys = render_foreign_keys(EXTRACT).count("ADD FOREIGN KEY")
+    assert keys == whole.count("ADD FOREIGN KEY") == 90
+    folded = render_ddl(EXTRACT, fold_columns=True)
+    assert '"businessentityid"' in folded and '"BusinessEntityID"' not in folded
+    assert folded.count("\n") == whole.count("\n")  # the same statements, folded names only
     assert loader.audit_columns_sql(EXTRACT["tables"][0]).startswith(
-        'ALTER TABLE "HumanResources"."Department" ADD COLUMN "load_datetime" timestamp NOT NULL DEFAULT now(), '
+        'ALTER TABLE "HumanResources"."Department" ADD COLUMN "load_datetime" timestamp '
+        'NOT NULL DEFAULT now(), '
         'ADD COLUMN "record_source" text NOT NULL DEFAULT \'adventureworks\''
     )
 
@@ -161,10 +167,10 @@ def _mini_extract() -> dict[str, Any]:
     return {**EXTRACT, "tables": tables}
 
 
-def test_load_creates_the_catalogue_copies_every_table_and_adds_the_keys_last(tmp_path: Path) -> None:
+def test_load_creates_the_catalogue_copies_every_table_and_keys_last(tmp_path: Path) -> None:
     csvs = {
         "Product.csv": b"",  # nothing to load, still created
-        "ProductReview.csv": "1\t709\tJohn\t2013-09-18\tjohn@x\t5\tgreat\nbike\t2013-09-18\n".encode(),
+        "ProductReview.csv": b"1\t709\tJohn\t2013-09-18\tjohn@x\t5\tgreat\nbike\t2013-09-18\n",
     }
     fetched: list[str] = []
 
@@ -180,6 +186,9 @@ def test_load_creates_the_catalogue_copies_every_table_and_adds_the_keys_last(tm
     first_copy = kinds.index("copy")
     executed = [sql for kind, sql in conn.log if kind == "execute"]
     assert any(sql.startswith("CREATE SCHEMA") for sql in executed[:first_copy])
+    # the warehouse's column names are folded — what the generated references resolve to
+    assert any('"productreviewid" integer NOT NULL' in sql for sql in executed[:first_copy])
+    assert not any('"ProductReviewID"' in sql for sql in executed)
     assert any("ADD COLUMN \"load_datetime\"" in sql for sql in executed[:first_copy])
     assert all("ADD FOREIGN KEY" not in sql for sql in executed[:first_copy])
     assert any("ADD FOREIGN KEY" in sql for sql in executed[first_copy:])
@@ -193,5 +202,8 @@ def test_a_cached_csv_is_not_fetched_again(tmp_path: Path) -> None:
     (tmp_path / "Product.csv").write_bytes(b"")
     (tmp_path / "ProductReview.csv").write_bytes(b"")
     conn = _Connection()
-    loader.load(conn, _mini_extract(), tmp_path, fetch=lambda url: (_ for _ in ()).throw(AssertionError(url)))
+    def refuse(url: str) -> bytes:
+        raise AssertionError(url)
+
+    loader.load(conn, _mini_extract(), tmp_path, fetch=refuse)
     assert [k for k, _ in conn.log].count("copy") == 0

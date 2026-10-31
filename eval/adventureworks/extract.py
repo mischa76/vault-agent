@@ -118,6 +118,44 @@ class Table:
     # next to the true business key (the trap class messy_insurance had to synthesise).
     alternate_keys: list[dict[str, Any]] = field(default_factory=list)
     foreign_keys: list[dict[str, Any]] = field(default_factory=list)
+    # WP110 (C23): the script's BULK INSERT options for the table's CSV — field and row
+    # terminator (`0x0a` normalised to a line feed) and code page — read by the data loader.
+    bulk_insert: dict[str, str] | None = None
+
+
+_BULK_RE = re.compile(
+    r"BULK INSERT \[(?P<schema>\w+)\]\.\[(?P<table>\w+)\]"
+    r"[^;]*?WITH\s*\((?P<options>[^;]*?)\);",
+    re.S,
+)
+_OPTION_RE = re.compile(
+    r"(?P<key>FIELDTERMINATOR|ROWTERMINATOR|CODEPAGE)\s*=\s*'(?P<value>[^']*)'"
+)
+
+
+def _terminator(raw: str) -> str:
+    """The script's spelling of a terminator as the bytes it means: `\\t`, `\\n`, `0x0a`."""
+    value = raw.replace("\\t", "\t").replace("\\n", "\n")
+    if value.lower().startswith("0x"):
+        value = bytes.fromhex(value[2:]).decode("ascii")
+    return value
+
+
+def parse_bulk_insert_options(sql: str) -> dict[tuple[str, str], dict[str, str]]:
+    """WP110: ``{(schema, table): {field_terminator, row_terminator, codepage}}`` from every
+    ``BULK INSERT … WITH (…)`` of the install script. Transcribed, not interpreted."""
+    out: dict[tuple[str, str], dict[str, str]] = {}
+    for match in _BULK_RE.finditer(sql):
+        options = {
+            m.group("key"): m.group("value")
+            for m in _OPTION_RE.finditer(match.group("options"))
+        }
+        out[(match.group("schema"), match.group("table"))] = {
+            "field_terminator": _terminator(options.get("FIELDTERMINATOR", "\t")),
+            "row_terminator": _terminator(options.get("ROWTERMINATOR", "\n")),
+            "codepage": options.get("CODEPAGE", ""),
+        }
+    return out
 
 
 def _names(raw: str) -> list[str]:
@@ -219,6 +257,9 @@ def parse_user_defined_types(sql: str) -> dict[str, dict[str, Any]]:
 def build_extract(sql: str) -> dict[str, Any]:
     """The checked-in artifact: deterministic, sorted, no timestamps."""
     tables = parse(sql)
+    options = parse_bulk_insert_options(sql)  # WP110
+    for table in tables:
+        table.bulk_insert = options.get((table.schema, table.name))
     return {
         "source": (
             "microsoft/sql-server-samples — samples/databases/adventure-works/"

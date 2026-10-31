@@ -80,3 +80,33 @@ returned, a cached file not fetched again.
 ## 6 Measured
 
 Appended after the run.
+
+## 6 Measured (2026-10-31)
+
+- **P1 ✔.** `schema_extract.json` regenerated from `instawdb.sql` (`master`, 2026-10-31): 340 lines added, none
+  changed or removed — `bulk_insert` on all 68 tables, 14 `+|`/`&|\n`, 54 tab/line feed, all `65001`; the derived
+  cases byte-identical (`test_derivation_is_deterministic`).
+- **P2 ✔, and the reference corrected.** The loader fetched 64 files (three were in the cache from §1) and loaded
+  68 tables into the fresh `aw_loader` in 29 s: **759 239 rows**, all 90 foreign keys applied, ProductReview 4,
+  Document 12 with the root `/`. Two tables differ from the `vault` copy by one row each — `Person.BusinessEntity`
+  20 777 against 20 778, `Person.Person` 19 972 against 19 973 — and the CSVs say 20 777 and 19 972 records: the
+  copy's extra rows (id 20 778, modified 2026-10-21) are a test record the owner added by hand after the session
+  loader ran, not Microsoft's data. The loader is right; the pre-registered total of 759 241 was the copy's, not the
+  source's. No type refused a value: `uuid`, `boolean`, `bytea` (converted), `xml`, `timestamp`, `numeric` all took
+  the files as transcribed.
+- **A fold the spec did not name.** The DDL instrument quotes Microsoft's column spelling (`"DepartmentID"`), the
+  catalogue read-back (WP96) wants exactly that; the generated projects reference columns unquoted and PostgreSQL
+  folds them to lowercase. The first load failed on `"departmentid"` for that reason; `render_ddl(…,
+  fold_columns=True)` and `render_foreign_keys(…, fold_columns=True)` lowercase the column identifiers for the
+  loader's warehouse, the default rendering unchanged (guard: the folded DDL has the same statements, folded names
+  only). Rule 3 reads with that fold.
+- **P3 ✔ by the same two rows.** The twenty-third chain's fifth project built against `aw_loader` (schema `c23`)
+  and against `vault` (`c38v`): PASS=421 both; 40 hubs, 50 links, 87 satellites each. The counts differ exactly where
+  the data does: `hub_business_entity` and the three person satellites by the owner's test row (20 779 against
+  20 780; 19 972 against 19 973), and **`hub_document`, `link_document_business_entity` and the two document
+  satellites 12 against 11** — the session loader had lost Microsoft's root document to an empty key; the `/` root
+  keeps it. Everything else equal, table for table.
+- **P4 ✔.** Suite green (14 new guards), ruff, bare mypy; `render_ddl()` byte-identical; NOTICE and the demo README
+  name the loader.
+
+`aw_loader` and `c38v` dropped afterwards; the CSVs cached under `~/.cache/vault-agent/adventureworks/`.

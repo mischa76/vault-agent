@@ -36,7 +36,9 @@ inferred and need the views above (C18); a link's zero key points at a hub row o
 
 **Building it yourself** needs the AdventureWorks tables in PostgreSQL under the schemas the generated
 `sources.yml` names (`"Person"`, `"HumanResources"`, …) with `load_datetime` and `record_source` added. Microsoft's
-CSVs are MIT-licensed; a loader is not in the repo yet (C23). Then, after `inferred_views.sql`:
+CSVs are MIT-licensed; `uv run python -m eval.adventureworks.load_postgres --url postgresql://… ` fetches and
+loads them (WP110, 2026-10-31: 68 tables, 759 239 rows, the install script's own options). Then, after
+`inferred_views.sql`:
 `uv run dbt deps|build --project-dir demo/workbench-adventureworks/adventureworks/runs/20261022T234439976097Z`.
 
 **What was changed for publishing.** Contract owners were given as `John Doe <john.doe@acme.com>` at the

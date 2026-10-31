@@ -9,6 +9,11 @@ exactly this output. You supply two things: the **raw data** — either as dbt s
 (CSVs matching the expected columns documented in `models/staging/sources.yml`) or as
 real tables when the run was grounded with physical locations — and a
 **`profiles.yml`** with your warehouse connection.
+For AdventureWorks the repository loads the raw tables itself (WP110, 2026-10-31):
+`uv run python -m eval.adventureworks.load_postgres --url postgresql://… [--csv-dir DIR] [--replace]`
+fetches Microsoft's 68 CSVs into a cache and loads them under the schemas the generated
+`sources.yml` names, columns lowercase, `load_datetime` and `record_source` added, the foreign
+keys last — 759 239 rows in about half a minute on a local PostgreSQL.
 
 ## 9.2 Build workflow
 

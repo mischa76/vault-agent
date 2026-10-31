@@ -15,6 +15,13 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- An AdventureWorks data loader (WP110, 2026-10-31, backlog C23): `uv run python -m
+  eval.adventureworks.load_postgres --url postgresql://… [--csv-dir DIR] [--replace]` fetches Microsoft's
+  68 CSVs (MIT) into a cache, creates the schemas, tables, keys and unique indexes of the DDL instrument
+  (column names folded to lowercase, as the generated projects reference them), adds `load_datetime` and
+  `record_source`, copies each file as the install script's own `BULK INSERT` options say — now transcribed
+  into `schema_extract.json` as `bulk_insert` — and applies the 90 foreign keys last. 759 239 rows in 29 s,
+  Microsoft's counts to the row; the chain's fifth project builds PASS=421 against it.
 - `W_UNTRACED_CONSTRUCT` (WP109, 2026-10-31, backlog C6): a hub, link or satellite of this run that
   cites no requirement while requirements were parsed is a validation warning — a disclosure, never an
   error. The links the ratified-proposal appliers build are exempt (recognised by the appliers' own

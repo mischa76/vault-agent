@@ -33,3 +33,7 @@ The upstream work is licensed as follows:
     LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
     OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
     SOFTWARE.
+
+The data loader `eval/adventureworks/load_postgres.py` (WP110, 2026-10-31) fetches the upstream
+CSV files of the same install script (`oltp-install-script/*.csv`, MIT) into a local cache and
+loads them unchanged into PostgreSQL; the files are not redistributed by this repository.

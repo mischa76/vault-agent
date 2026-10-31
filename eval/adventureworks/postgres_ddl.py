@@ -61,12 +61,26 @@ def _lit(text: str) -> str:
     return "'" + text.replace("'", "''") + "'"
 
 
-def render_ddl(extract: dict[str, Any], *, schema_prefix: str = "") -> str:
+def _column_quoter(fold_columns: bool) -> Any:
+    """WP110: the loader's warehouse folds column names to lowercase — what the generated
+    projects' unquoted references resolve to on PostgreSQL — while the catalogue read-back
+    (WP96) keeps Microsoft's spelling. Tables and schemas keep theirs in both."""
+    return (lambda name: _q(name.lower())) if fold_columns else _q
+
+
+def render_ddl(
+    extract: dict[str, Any], *, schema_prefix: str = "", foreign_keys: bool = True,
+    fold_columns: bool = False,
+) -> str:
     """Schemas, tables with keys and unique indexes, then every foreign key, then every
-    comment — in the extract's (sorted) order, so two renderings are byte-identical."""
+    comment — in the extract's (sorted) order, so two renderings are byte-identical.
+    ``foreign_keys=False`` leaves the keys out (WP110: the loader applies them after the data,
+    through :func:`render_foreign_keys`, so load order needs no topology);
+    ``fold_columns=True`` lowercases the column identifiers (the loader's warehouse)."""
     aliases = extract.get("user_defined_types", {})
     tables = extract["tables"]
     schemas = sorted({t["schema"] for t in tables})
+    qc = _column_quoter(fold_columns)
     lines: list[str] = []
     for schema in schemas:
         lines.append(f"CREATE SCHEMA {_q(schema_prefix + schema)};")
@@ -74,13 +88,13 @@ def render_ddl(extract: dict[str, Any], *, schema_prefix: str = "") -> str:
     for table in tables:
         qualified = f"{_q(schema_prefix + table['schema'])}.{_q(table['name'])}"
         body = [
-            f"    {_q(col['name'])} {pg_type(col['type'], aliases)}"
+            f"    {qc(col['name'])} {pg_type(col['type'], aliases)}"
             + ("" if col["nullable"] else " NOT NULL")
             for col in table["columns"]
         ]
         if table["primary_key"]:
             body.append(
-                f"    PRIMARY KEY ({', '.join(_q(c) for c in table['primary_key'])})"
+                f"    PRIMARY KEY ({', '.join(qc(c) for c in table['primary_key'])})"
             )
         lines.append(f"CREATE TABLE {qualified} (")
         lines.append(",\n".join(body))
@@ -88,20 +102,11 @@ def render_ddl(extract: dict[str, Any], *, schema_prefix: str = "") -> str:
         for ak in table["alternate_keys"]:
             lines.append(
                 f"CREATE UNIQUE INDEX {_q(ak['name'])} ON {qualified} "
-                f"({', '.join(_q(c) for c in ak['columns'])});"
+                f"({', '.join(qc(c) for c in ak['columns'])});"
             )
         lines.append("")
-    for table in tables:
-        qualified = f"{_q(schema_prefix + table['schema'])}.{_q(table['name'])}"
-        for fk in table["foreign_keys"]:
-            referenced = (
-                f"{_q(schema_prefix + fk['references_schema'])}.{_q(fk['references_table'])}"
-            )
-            lines.append(
-                f"ALTER TABLE {qualified} ADD FOREIGN KEY "
-                f"({', '.join(_q(c) for c in fk['columns'])}) REFERENCES {referenced} "
-                f"({', '.join(_q(c) for c in fk['references_columns'])});"
-            )
+    if foreign_keys:
+        lines.extend(_foreign_key_lines(tables, schema_prefix, qc))
     lines.append("")
     for table in tables:
         qualified = f"{_q(schema_prefix + table['schema'])}.{_q(table['name'])}"
@@ -110,9 +115,35 @@ def render_ddl(extract: dict[str, Any], *, schema_prefix: str = "") -> str:
         for col in table["columns"]:
             if col["description"]:
                 lines.append(
-                    f"COMMENT ON COLUMN {qualified}.{_q(col['name'])} IS "
+                    f"COMMENT ON COLUMN {qualified}.{qc(col['name'])} IS "
                     f"{_lit(col['description'])};"
                 )
+    return "\n".join(lines) + "\n"
+
+
+def _foreign_key_lines(
+    tables: list[dict[str, Any]], schema_prefix: str, qc: Any = _q
+) -> list[str]:
+    lines: list[str] = []
+    for table in tables:
+        qualified = f"{_q(schema_prefix + table['schema'])}.{_q(table['name'])}"
+        for fk in table["foreign_keys"]:
+            referenced = (
+                f"{_q(schema_prefix + fk['references_schema'])}.{_q(fk['references_table'])}"
+            )
+            lines.append(
+                f"ALTER TABLE {qualified} ADD FOREIGN KEY "
+                f"({', '.join(qc(c) for c in fk['columns'])}) REFERENCES {referenced} "
+                f"({', '.join(qc(c) for c in fk['references_columns'])});"
+            )
+    return lines
+
+
+def render_foreign_keys(
+    extract: dict[str, Any], *, schema_prefix: str = "", fold_columns: bool = False
+) -> str:
+    """WP110: every foreign key as `render_ddl` renders it, alone — applied after the data."""
+    lines = _foreign_key_lines(extract["tables"], schema_prefix, _column_quoter(fold_columns))
     return "\n".join(lines) + "\n"
 
 

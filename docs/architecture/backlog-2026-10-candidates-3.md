@@ -324,3 +324,13 @@ the resumed-step branch), and the catalogue carries a table's primary key, uniqu
 shape where declared (C41; keyless tables byte-identical). Measured keyless by re-chaining the twenty-third chain
 through the harness writer: no refused stage on any step, the fifth project byte-identical to WP105's regeneration and
 PASS=421 of 421; one WP95 alias now travels into step 5. Spec `backlog-2026-07/wp106-carried-keys-and-aliases-spec.md`.
+
+## C23 — closed by WP110 (2026-10-31)
+
+`python -m eval.adventureworks.load_postgres --url … [--csv-dir DIR] [--replace]` fetches Microsoft's 68 CSVs (cached,
+MIT), creates the DDL instrument's catalogue with folded column names, adds `load_datetime` and `record_source`,
+copies every file as the install script's own `BULK INSERT` options say (`bulk_insert`, now in the extract) and
+applies the 90 foreign keys last. Measured: 759 239 rows in 29 s, Microsoft's counts to the row — the local copy's two
+extra rows were a hand-added test record; the chain's fifth project builds PASS=421 against it, and keeps the root
+document the session loader had lost. Databricks as a second target stays open (9.6). Spec
+`backlog-2026-07/wp110-adventureworks-loader-spec.md`.

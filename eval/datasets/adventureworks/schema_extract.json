@@ -18,6 +18,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for Department records.",
@@ -80,6 +85,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for Employee records.  Foreign key to BusinessEntity.BusinessEntityID.",
@@ -215,6 +225,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Employee identification number. Foreign key to Employee.BusinessEntityID.",
@@ -303,6 +318,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Employee identification number. Foreign key to Employee.BusinessEntityID.",
@@ -362,6 +382,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key for JobCandidate records.",
@@ -429,6 +454,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for Shift records.",
@@ -484,6 +514,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for Address records.",
@@ -585,6 +620,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for AddressType records.",
@@ -633,6 +673,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key for all customers, vendors, and employees.",
@@ -674,6 +719,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key. Foreign key to BusinessEntity.BusinessEntityID.",
@@ -762,6 +812,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key. Foreign key to BusinessEntity.BusinessEntityID.",
@@ -850,6 +905,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for ContactType records.",
@@ -891,6 +951,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "ISO standard code for countries and regions.",
@@ -924,6 +989,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key. Person associated with this email address.  Foreign key to Person.BusinessEntityID",
@@ -983,6 +1053,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": null,
@@ -1049,6 +1124,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key for Person records.",
@@ -1163,6 +1243,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Business entity identification number. Foreign key to Person.BusinessEntityID.",
@@ -1226,6 +1311,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key for telephone number type records.",
@@ -1282,6 +1372,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for StateProvince records.",
@@ -1381,6 +1476,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for BillOfMaterials records.",
@@ -1495,6 +1595,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for Culture records.",
@@ -1536,6 +1641,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key for Document records.",
@@ -1657,6 +1767,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key for Illustration records.",
@@ -1698,6 +1813,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for Location records.",
@@ -1767,6 +1887,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for Product records.",
@@ -2010,6 +2135,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for ProductCategory records.",
@@ -2050,6 +2180,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Product identification number. Foreign key to Product.ProductID",
@@ -2117,6 +2252,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for ProductDescription records.",
@@ -2157,6 +2297,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Product identification number. Foreign key to Product.ProductID.",
@@ -2212,6 +2357,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Product identification number. Foreign key to Product.ProductID.",
@@ -2295,6 +2445,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Product identification number. Foreign key to Product.ProductID",
@@ -2369,6 +2524,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key for ProductModel records.",
@@ -2423,6 +2583,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key. Foreign key to ProductModel.ProductModelID.",
@@ -2478,6 +2643,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key. Foreign key to ProductModel.ProductModelID.",
@@ -2551,6 +2721,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key for ProductPhoto records.",
@@ -2605,6 +2780,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Product identification number. Foreign key to Product.ProductID.",
@@ -2667,6 +2847,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for ProductReview records.",
@@ -2761,6 +2946,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for ProductSubcategory records.",
@@ -2827,6 +3017,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for ScrapReason records.",
@@ -2860,6 +3055,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for TransactionHistory records.",
@@ -2946,6 +3146,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for TransactionHistoryArchive records.",
@@ -3029,6 +3234,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key.",
@@ -3062,6 +3272,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": null,
@@ -3165,6 +3380,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": null,
@@ -3284,6 +3504,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key. Foreign key to Product.ProductID.",
@@ -3405,6 +3630,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key. Foreign key to PurchaseOrderHeader.PurchaseOrderID.",
@@ -3516,6 +3746,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key.",
@@ -3665,6 +3900,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for ShipMethod records.",
@@ -3727,6 +3967,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for Vendor records.  Foreign key to BusinessEntity.BusinessEntityID",
@@ -3806,6 +4051,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "ISO code for countries and regions. Foreign key to CountryRegion.CountryRegionCode.",
@@ -3869,6 +4119,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for CreditCard records.",
@@ -3931,6 +4186,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "The ISO code for the Currency.",
@@ -3974,6 +4234,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for CurrencyRate records.",
@@ -4071,6 +4336,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key.",
@@ -4163,6 +4433,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Business entity identification number. Foreign key to Person.BusinessEntityID.",
@@ -4226,6 +4501,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key. Foreign key to SalesOrderHeader.SalesOrderID.",
@@ -4354,6 +4634,11 @@
           "technical_guid": false
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key.",
@@ -4629,6 +4914,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key. Foreign key to SalesOrderHeader.SalesOrderID.",
@@ -4692,6 +4982,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for SalesPerson records. Foreign key to Employee.BusinessEntityID",
@@ -4796,6 +5091,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Sales person identification number. Foreign key to SalesPerson.BusinessEntityID.",
@@ -4855,6 +5155,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for SalesReason records.",
@@ -4911,6 +5216,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for SalesTaxRate records.",
@@ -4998,6 +5308,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for SalesTerritory records.",
@@ -5099,6 +5414,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key. The sales rep.  Foreign key to SalesPerson.BusinessEntityID.",
@@ -5176,6 +5496,11 @@
     },
     {
       "alternate_keys": [],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for ShoppingCartItem records.",
@@ -5249,6 +5574,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for SpecialOffer records.",
@@ -5346,6 +5676,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "\t",
+        "row_terminator": "\n"
+      },
       "columns": [
         {
           "description": "Primary key for SpecialOfferProduct records.",
@@ -5416,6 +5751,11 @@
           "technical_guid": true
         }
       ],
+      "bulk_insert": {
+        "codepage": "65001",
+        "field_terminator": "+|",
+        "row_terminator": "&|\n"
+      },
       "columns": [
         {
           "description": "Primary key. Foreign key to Customer.BusinessEntityID.",

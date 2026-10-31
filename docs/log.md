@@ -12060,3 +12060,40 @@ passed, 5 skipped; ruff; bare mypy; README's „36 `E_` gates" untouched.
 suite, ruff, mypy. **Nur angenommen.** That the Sales run's extra `E_LINK_KEY_NOT_IN_SOURCE` is drift (the gate's
 class changed in WP89–WP95; not bisected). **Bewusst nicht getan.** No check that cited ids exist among the parsed
 requirements; no `requirement_ids` on the appliers' links; no paid run.
+
+## [2026-10-31] WP110 built and measured: the AdventureWorks data loader (C23) — 68 CSVs fetched and loaded in 29 s, 759 239 rows, Microsoft's counts to the row; the local copy's two extra rows were a hand-added test record; the chain's fifth project PASS=421 against it, and the root document kept
+
+**Autor:** Claude Code
+
+Fourth of the old backlog on the owner's word. **Read first:** the install script's 68 `BULK INSERT`s (`master`,
+2026-10-31) — all UTF-8 (`CODEPAGE 65001`), 54 tables tab/line feed, 14 `+|`/`&|\n`; three files inspected:
+ProductReview (4 records, 34 line feeds — comments with embedded LF under a LF terminator), Document (rows ending
+`&|\r\n`, the hierarchy root exported as a NUL byte), CountryRegion (plain). **Built** (`wp110-adventureworks-loader-spec.md`,
+guards `5df06d1` first, red at import). `extract.py` transcribes each table's `bulk_insert` (field and row terminator,
+`0x0a` normalised, code page) — `schema_extract.json` regenerated, 340 lines added and none changed, the derived cases
+byte-identical. `postgres_ddl.render_ddl(…, foreign_keys=False)` and `render_foreign_keys(…)` split the instrument's
+DDL so the keys come after the data; `fold_columns=True` lowercases the column identifiers for the loader's warehouse
+(the first real load failed on `"departmentid"` against the instrument's `"DepartmentID"` — the read-back wants
+Microsoft's spelling, the generated projects' unquoted references fold; the default rendering is byte-identical).
+`eval/adventureworks/load_postgres.py`: fetch into a cache (never re-fetched), BOM-aware decode, records split as the
+options say with the three tolerances the files need (the line end after `&|`, a LF record continuing until the width
+is reached, a NUL-only field as the root `/`), `bytea` from `0x…` to `\x…`, `COPY … FORMAT csv, NULL ''` into the
+folded columns, `load_datetime`/`record_source` with defaults, the 90 keys last; `--replace` drops the five schemas
+first, never by default. NOTICE, the demo README, index row, CHANGELOG (Added), candidates part 3: C23 closed.
+
+**Measured.** **P1 ✔** (above). **P2 ✔ with the reference corrected:** fresh database `aw_loader`, 64 files fetched,
+68 tables, **759 239 rows**, 90 foreign keys applied, ProductReview 4, Document 12 with `/`; against the `vault` copy
+two tables differ by one row (`BusinessEntity` 20 777 vs 20 778, `Person` 19 972 vs 19 973) and the CSVs say 20 777
+and 19 972 — the copy's extra rows (id 20 778, modified 2026-10-21) are a test record added by hand after the session
+loader ran; the pre-registered 759 241 was the copy's number, not the source's. No type refused a value. **P3 ✔ by the
+same rows:** the twenty-third chain's fifth project (WP107's) built against `aw_loader` and against `vault`, PASS=421
+both, 40/50/87 constructs each; the counts differ only by the test row (`hub_business_entity`, three person
+satellites) and by **`hub_document` 12 against 11** with its link and two satellites — the session loader had lost
+Microsoft's root document to an empty key, the `/` root keeps it. **P4 ✔:** suite green (14 new), ruff, bare mypy.
+`aw_loader` and the build schemas dropped; the CSVs cached under `~/.cache/vault-agent/adventureworks/`.
+
+**Überprüft.** The extract diff (additive), the load log, `psql` counts table for table against the recorded copy,
+the two builds' logs and construct counts, the guards red then green, suite, ruff, mypy. **Nur angenommen.** That the
+copy's id 20 778 is the owner's test row (its names and the 2026-10-21 timestamp say so; not asked). **Bewusst nicht
+getan.** Databricks as a target (spec §3); replacing the `vault` copy (the owner's standing database — the loader can,
+with `--replace`, on his word); the demo's frozen runs.
