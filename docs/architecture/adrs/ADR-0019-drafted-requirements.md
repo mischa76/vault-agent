@@ -1,7 +1,9 @@
 # ADR-0019: Requirements drafted from the source catalogue — a command that writes a document a human corrects, not a source-driven mode
 
-**Status:** Proposed (2026-10-31 — draft by Claude on the owner's word, after the C1 experiment of 2026-10-30;
-the recommendation is Option 3 as refined below)
+**Status:** Accepted (2026-10-31 — the owner accepted Option 3 as refined below, on the corrected reading of the
+experiment's review numbers: the draft's extra review is 28 per-key translation confirmations on five steps, not
+60 % (the finding and WP116, `docs/log.md` 2026-10-31); draft by Claude the same day, after the C1 experiment of
+2026-10-30)
 **Date:** 2026-10-31
 **Decision makers:** Mischa Eismann
 

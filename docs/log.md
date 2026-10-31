@@ -12380,3 +12380,21 @@ decision, the conservative case). **Bewusst nicht getan.** No answer slot per ke
 rest; a `--confirm-translation` is WP82-parity work only if a decline is ever needed); the 4.8 record and the first
 5.5 generation untouched (no translation decisions there); no paid run; CLAUDE.md unchanged; the ADR-0013 file that
 `cat >>` had created under a wrong name was removed before the commit and the note appended to the right file.
+
+## [2026-10-31] ADR-0019 accepted: requirements drafted from the source catalogue as a command a human corrects, on the corrected review numbers (C1 answered, C27 stage 4 closes; the build is WP117)
+
+**Autor:** Claude Code
+
+The owner accepted ADR-0019 as drafted (2026-10-31), after the finding of the same day and WP116 had corrected the
+one number the ADR's case rested on: the drafted arm's surplus over the authored one is 28 per-key translation
+confirmations on five steps (90 against 118), not „60 % more review", and each confirms a natural key the catalogue
+carried and the analyst's prose had lost. The ADR's context and consequences still carry the old diagnosis; this
+entry, the finding and WP116's entry are the correction, the file stays as drafted but for the status line (the
+allowed status path, `VAULT_AGENT_ALLOW_RECORD_EDIT=1`). Recorded: the status, the index row, C1's closure in
+candidates part 1, C27 stage 4's closure in part 3. **What follows:** WP117 builds the command the ADR decides —
+`vault-agent draft-requirements` from the house-format schema, deterministic, the experiment's rules promoted into
+`src/` and read back by the eval so the six drafted documents regenerate byte-identically, the typed `unreviewed`
+header, the `requirements_unreviewed` flag in `run`, the GUID rule — guards first. The corrected-draft measurement
+(ADR rule 5) stays the owner's, and after WP116 it measures scope cutting, not review. **Überprüft:** the ADR text
+against the two correcting entries; no code ran. **Nur angenommen:** nothing. **Bewusst nicht getan:** no edit to
+the ADR's body; the measurement of rule 5 not started.

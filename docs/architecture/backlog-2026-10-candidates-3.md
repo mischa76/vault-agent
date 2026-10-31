@@ -372,3 +372,8 @@ One decision per translated key (`translation_key`: hub, relation joined through
 key stays a decision. Re-counted on the kept queues: the drafted arm 146 → 118, the twenty-second 91 → 90, the
 twenty-third 95 → 94 (both re-read in the record); the C1 arms stand 90 against 118. Spec
 `backlog-2026-07/wp116-translation-ratified-per-key-spec.md`.
+
+## C27 stage 4 — closes with ADR-0019's acceptance (2026-10-31)
+
+ADR-0019 accepted on 2026-10-31 on the corrected review numbers (WP116): a deterministic draft from the house-format
+catalogue in place of the stage's *LLM text marked as such*; the command that builds it is WP117.

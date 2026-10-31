@@ -146,3 +146,11 @@ the run (`state.naming`), threaded through the code generator, the staging gener
 extension diff, the subject areas and the resolution's carried tier; persisted as `metadata/naming.yml` when not the
 default and adopted by an extension (a different `--naming-profile` refused); the CLI flag, the project setting and the
 run's record. Construct prefixes and CamelCase stay deferred as C3 said. Spec `backlog-2026-07/wp114-naming-profile-spec.md`.
+
+## C1 — ADR-0019 accepted (2026-10-31)
+
+The owner accepted ADR-0019 on 2026-10-31, after the C1 finding and WP116 corrected the experiment's review reading:
+the drafted arm's surplus is 28 per-key translation confirmations on five steps (90 against 118 under WP116's rule),
+not „60 % more review", and every one of them confirms a natural key the catalogue carried and the prose had lost.
+What is built follows as WP117: `vault-agent draft-requirements`, deterministic from the house-format schema, typed as
+unreviewed, read by `run` with a flag, never a mode. C1's own question — a source-driven mode — is answered no.
