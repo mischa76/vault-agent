@@ -11773,3 +11773,36 @@ landscape page beyond what C32's annotation points to. **The plan of 2026-10-30 
 2026-10-30), ADR-0019 (proposed, on hold for the owner's measurement), the review record (WP104), C28/C29 (found
 closed), C32 (this ADR). What waits for the owner: ADR-0019 and ADR-0020, the corrected-draft measurement, the next
 live chain (WP94's remedy in the loop; the first of the second review generation).
+
+## [2026-10-31] Pre-registration for the twenty-third chain run — the first under WP100–WP104 and the first with the derived schemas' nullability (WP103), outputs kept, written before the run
+
+**Autor:** Claude Code
+
+On the owner's go (2026-10-31, after the plan of 2026-10-30 was worked through; the next live chain was the one
+item on the list that needs no decision of his). One repeat of `adventureworks_incremental` at the commit carrying
+this entry, the 5.5 defaults, `--keep-outputs` under the session's scratchpad, unattended; results and kept outputs
+mirrored to `tank` afterwards. Code since the twenty-second (the C1 control, 2026-10-30): WP100 (two translations
+on one natural-key name projected apart), WP101 (the grandfathered feed and its satellite carried on every later
+step; `project_self_contained` judges the raw vault too), WP102 (translation names within the identifier limit),
+WP103 (the six derived cases declare `nullable` for all 465 columns — WP94's gate can refuse where it only warned),
+WP104 (the review record per product generation: this chain is the second sample of the 5.5 record's second
+generation and is **not judged** by the review clause; it enters the record in its docs commit). Prices as verified
+2026-10-09: Opus 5.5 4 / 20 USD per million (cache write 5, read 0.20), Sonnet 5.5 2 / 10 (2.50, 0.10).
+
+**P1 — all five steps green** (`validation_gate` 1.0 each). **P2 — decisions recorded, not judged;** expected
+within 91 ± 5 (the twenty-second's level; WP103's refusal may add a link and its decisions, WP101 changes no
+decision). **P3 — WP94's gate live on this landscape:** if the modeler's fifth step builds a link of three or more
+participations with the currency-rate hub keyed on `CurrencyRateDate, FromCurrencyCode, ToCurrencyCode` through
+`SalesOrderHeader.CurrencyRateID` (as the twenty-second did: `link_customer_sales_order` with `hub_currency_rate`),
+`E_LINK_OPTIONAL_PARTICIPANT` fires in attempt 1 and the remedy is followed within the attempts — the final model
+holds a two-participation link of the sales-order hub and `hub_currency_rate`, and the final step's codes carry
+neither `E_` nor `W_LINK_OPTIONAL_PARTICIPANT`; if the modeler never builds that shape, P3 is unmeasured, not
+held. **P4 — `project_self_contained` 1.0 on every step under WP101's stricter scorer** (the twenty-second's fifth
+step would have scored 0.0 before WP101 fixed the generator — this is WP101 live). **P5 — `stage_refs_unresolved`
+0 on every step;** `stage_refs_inferred` recorded, not predicted. **P6 — cost ≤ 5.5 USD, wall ≤ 30 min; the other
+three WP34 §6 clauses hold** (≥ 8 cross-domain links, ≤ 2 zero-satellite hubs, 0 unsound aliases). **P7 — the
+kept fifth project, built keylessly on the local PostgreSQL copy (`vault`), parses without a hand view and every
+build failure is an inferred-bound stage, its dependants, or the copy's known type artefact; the sales-order link,
+freed of the optional participation, holds all 31 465 orders** (WP103's „nur angenommen"; if P3 is unmeasured,
+the second half of P7 is too). **Not predicted:** attempts per step, the shapes, the inferred count, the
+review-item total.
