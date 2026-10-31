@@ -10,6 +10,12 @@ vi.mock("./api", () => ({
     startRun: vi.fn(async () => ({ id: "stores:1" })), addFile: vi.fn(),
     deleteFile: vi.fn(async () => ({ deleted: "prof.yml" })), deleteRun: vi.fn(async () => ({ deleted: "x" })),
     deleteProject: vi.fn(async () => ({ deleted: "stores" })),
+    settings: vi.fn(async () => ({
+      settings: {},
+      effective: { target_platform: "postgres", primary_model: "claude-sonnet-5-5", heavy_model: "claude-opus-5-5", anthropic_base_url: null },
+      environment: { llm_provider: "anthropic", anthropic_api_key_set: false, primary_model: "claude-sonnet-5-5", heavy_model: "claude-opus-5-5", anthropic_base_url: null },
+    })),
+    saveSettings: vi.fn(async (_id: string, body: unknown) => ({ settings: body })),
   },
 }));
 import { api } from "./api";
@@ -77,5 +83,22 @@ describe("Project — deleting (WP112)", () => {
     await screen.findByRole("button", { name: "delete project" });
     expect(api.deleteProject).toHaveBeenCalledWith("stores");
     expect(onDeleted).toHaveBeenCalled();
+  });
+});
+
+// WP113 (C3): the project's settings — platform, model ids, base URL — shown, saved, and the
+// secrets only as "set"/"not set".
+describe("Project — settings (WP113)", () => {
+  it("shows the effective settings and saves what was typed", async () => {
+    render(<ProjectPerspective project={project} onChanged={() => undefined} onOpenRun={() => undefined} onDeleted={() => undefined} busy={false} />);
+    expect(await screen.findByDisplayValue("claude-sonnet-5-5")).toBeInTheDocument();
+    expect(screen.getByText(/API key/)).toHaveTextContent("not set");
+    fireEvent.change(screen.getByLabelText("anthropic base URL"), { target: { value: "http://proxy.local:8080" } });
+    fireEvent.change(screen.getByLabelText("primary model"), { target: { value: "my-model" } });
+    fireEvent.click(screen.getByRole("button", { name: "save settings" }));
+    await screen.findByRole("button", { name: "save settings" });
+    expect(api.saveSettings).toHaveBeenCalledWith("stores", expect.objectContaining({
+      anthropic_base_url: "http://proxy.local:8080", primary_model: "my-model",
+    }));
   });
 });
