@@ -143,3 +143,12 @@ name no `source()` block and not WP76's `inferred` block declares. A grounded pr
 `seeds:` key; the seed world (ungrounded runs, the bank demos) is byte-identical. Measured keyless: the twenty-third
 chain's fifth project builds with zero warnings (one before), PASS=421 of 421; the demo's Sales step types none of the
 17 relations it reads through `source()`. Spec `backlog-2026-07/wp107-seed-block-only-for-seeds-spec.md`.
+
+## C8 — closed by WP108 (2026-10-31)
+
+The code generator and the model merger drop their own earlier flags before raising this run's, so a flag an earlier
+modeler attempt earned does not reach the sign-off. Measured on the three kept chains of 2026-10-30/31: all 19
+recorded generator flags of the kinds `generation_gap`, `column_collision`, `missing_input` were first-attempt gaps
+the second attempt had repaired (7 of the twenty-third chain's 95 decisions); reconstructed from the traces, 19 of
+19, and 0 left under the rule. The modeler's own flags (`retired_*`, `dropped_record`) stay by design — they record
+what the memory did and cannot be re-derived from the final model. Spec `backlog-2026-07/wp108-attempt-scoped-flags-spec.md`.

@@ -47,8 +47,8 @@ async def test_the_generator_drops_an_earlier_attempts_flags_before_raising_this
 async def test_other_agents_flags_survive_the_generators_re_run() -> None:
     state = VaultAgentState(dv_model=_attempt_one())
     kept = [
-        PipelineFlag(agent="requirements_parser", message="segmented", kind=FlagKind.INPUT_SEGMENTED,
-                     asset="doc.md"),
+        PipelineFlag(agent="requirements_parser", message="segmented",
+                     kind=FlagKind.INPUT_SEGMENTED, asset="doc.md"),
         PipelineFlag(agent="dv2_modeler", message="orphan", kind=FlagKind.RETIRED_ORPHAN,
                      asset="sat_gone"),
         PipelineFlag(agent="link_proposer", message="evidence", kind=FlagKind.LINK_BINDING_EVIDENCE,

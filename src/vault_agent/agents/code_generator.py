@@ -419,6 +419,12 @@ class CodeGeneratorAgent(BaseAgent):
     """Renders the Data Vault model into AutomateDV-compatible dbt models."""
 
     async def run(self, state: VaultAgentState) -> VaultAgentState:
+        # WP108 (C8): this agent's flags describe the model it is given. A re-model attempt
+        # hands it a new one, so an earlier run's flags — its own, staging's, the zero-key
+        # hubs' and the Business Vault's, all raised under this name — are dropped first and
+        # re-derived below. 19 of 19 generator flags of three kept chains were first-attempt
+        # gaps the second attempt had repaired, each still a review decision.
+        state.flags = [f for f in state.flags if f.agent != "code_generator"]
         model = state.dv_model
         if not model.hubs:
             state.flag(

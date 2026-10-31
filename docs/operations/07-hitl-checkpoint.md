@@ -8,7 +8,10 @@ survived the re-model loop, and a data contract whose owner is still the placeho
 (nobody accountable for a source asset). Everything else in the review queue —
 validation warnings, mapping gaps, inferred staging bindings, truncation notices — is
 **advisory**: the pipeline tells you honestly what it could not determine and proceeds
-once you sign off. A mapping gap, in particular, is not a defect; it is the mapper
+once you sign off. Since WP108 (2026-10-31) the generator's and the merger's items describe
+the model that reached you: both re-derive their flags on every run, so a gap an earlier
+modeler attempt had and the next attempt repaired is not in the queue (on three kept chains
+every such item was one of those). A mapping gap, in particular, is not a defect; it is the mapper
 refusing to force-fit a source onto a concept that has none (often correctly pointing
 at Business Vault scope).
 

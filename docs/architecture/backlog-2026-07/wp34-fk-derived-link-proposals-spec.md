@@ -430,3 +430,12 @@ it; a chain is judged against its own generation's chains before it, „cannot b
 exist. The twenty-second seeds the 5.5 record's second generation; the seven chains before it close the
 first; no sample is pruned and no first-generation judgement moves. Rule, guards and the
 pre-registration: `wp104-review-record-generation-spec.md`. The other three clauses are unchanged.
+
+## 16 The review record and WP108 (2026-10-31)
+
+WP108 removes a class of decisions from every chain from now on: the generator's and the merger's flags of earlier
+modeler attempts, which the sign-off had carried as decisions. In the three kept chains that class was 7 (the
+twenty-third, of 95), 6 and 6 decisions — every recorded `generation_gap`. No sample of the record moves and no
+boundary is drawn (WP104 draws one at new decision classes; this is fewer, not new): the next chains enter the
+record lower by that class, which the ceiling tolerates by construction. Readers comparing a chain after WP108 with
+the twenty-second and twenty-third subtract those seven before reading a difference into the modeler.

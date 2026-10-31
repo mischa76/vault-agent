@@ -35,7 +35,11 @@ _AGENT = "model_merger"
 def merge_models(existing: DVModel, delta: DVModel, state: VaultAgentState) -> DVModel:
     """Fold ``delta`` onto ``existing`` additively; return the merged model.
 
-    Flags (never raises) on anything the delta asks for that is not an extension."""
+    Flags (never raises) on anything the delta asks for that is not an extension. WP108
+    (C8): the flags are THIS delta's — an earlier attempt's merger flags are dropped first, so
+    a restatement the modeler repaired leaves no decision behind, and one it repeats is
+    flagged again."""
+    state.flags = [f for f in state.flags if f.agent != _AGENT]
     merged = DVModel(
         hubs=[hub.model_copy(deep=True) for hub in existing.hubs],
         links=[link.model_copy(deep=True) for link in existing.links],

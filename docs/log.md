@@ -11996,3 +11996,38 @@ mirrored WP106 re-chain by that one file and is not mirrored again.
 ruff, mypy. **Nur angenommen.** That no user relied on the `+quote_columns: false` default in a project without seeds
 (dbt applies it to nothing there). **Bewusst nicht getan.** The demo's frozen runs not regenerated (they reproduce a
 recorded run); the README's seed sentence left („if using seeds"); no paid run.
+
+## [2026-10-31] WP108 built and measured: the code generator and the model merger re-derive their flags on every run (C8) — all 19 recorded generator flags of three kept chains were first-attempt gaps, 7 of the twenty-third's 95 decisions; 19 of 19 reconstructed from the traces, 0 left
+
+**Autor:** Claude Code
+
+Second of the old backlog on the owner's word. **The baseline, read before the change** (`wp108-attempt-scoped-flags-spec.md`
+§1): today's generator replayed on each kept step's final model (the twenty-third chain, arms A and T) raises none of
+the 19 recorded generator flags of the kinds `generation_gap`, `column_collision`, `missing_input` — every one a
+first-attempt gap (a multi-active satellite on a multi-source hub without its feed, a satellite declaring a
+`source_table` that is no feed of its parent) the second attempt had repaired, carried into the review as a decision
+because each attempt appends and `dedupe_flags` removes only identical copies. The merger's three `extension_conflict`
+flags are current (the restated link is in both attempts' payloads). **Built** (guards `1ca35cf` first, three of four
+red — one more than the spec said, because the repeated merge left two identical flags before the change):
+`CodeGeneratorAgent.run` drops every flag under its own name before raising this run's (staging's, the zero-key hubs'
+and the Business Vault's are raised under that name inside the run and re-derived with it); `merge_models` drops the
+merger's. The modeler's `retired_*` and `dropped_record` flags stay by design: WP57 carries the repaired previous model
+into the next attempt, so an orphaned payload is not re-emitted and could not be re-flagged — a `retired_orphan`
+decision from attempt 1 is still the human's. Index row, CHANGELOG (Fixed), candidates part 2: C8 closed; WP34 spec
+§16: the review record enters lower by this class from now on, no sample moves, no boundary drawn; CLAUDE.md's record
+clause says to subtract the seven.
+
+**Measured** (keyless). **P1 ✔, 19 of 19:** the first attempts reconstructed from the traces (payloads assigned to their
+step by the hubs they emit, merged onto the kept previous vault, no appliers) raise every recorded stale flag by kind
+and asset (twenty-third 3, 1, 0, 2, 1; arm A 3, 1, 0, 2, 0 over attempts 2, 2, 3, 2, 1; arm T 2, 1, 0, 2, 1 over 2, 2, 3,
+2, 2), nothing missing, nothing extra; the generator run again on the final models, as the loop runs now, leaves 0 of
+them and 0 of these kinds. **P2, inferred:** the merger on the last raw delta raises none of the three conflicts — they
+come from an applier before the merge (a ratified relationship proposal adding the link the modeler also built), which
+the reconstruction skips; the traces show the link in both attempts' payloads each time and the appliers run alike per
+attempt, so the conflict recurs in the last attempt. Stated as inference. **P3 ✔:** suite 1469 passed, 5 skipped;
+ruff; bare mypy.
+
+**Überprüft.** The replay and the reconstruction by script against the recorded review files, the guards red then
+green, suite, ruff, mypy. **Nur angenommen.** P2's recurrence (above); that no consumer counted on a generator flag
+surviving the generator's next run. **Bewusst nicht getan.** The modeler's flags (spec §2.3); the merger's conflicts
+re-derived through the appliers; no paid run; the record's samples untouched.

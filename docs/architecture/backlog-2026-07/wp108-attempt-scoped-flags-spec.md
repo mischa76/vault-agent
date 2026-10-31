@@ -66,3 +66,23 @@ repeats stays flagged.
 ## 6 Measured
 
 Appended after the run.
+
+## 6 Measured (2026-10-31, keyless)
+
+- **P1 ✔ — 19 of 19.** The first attempts reconstructed from the traces (the `emit_dv_model` payloads assigned to
+  their step by the hubs they emit, merged onto the kept previous vault with `merge_models`, no further appliers)
+  and run through the generator raise every recorded stale flag by (kind, asset): twenty-third 3, 1, 0, 2, 1; arm A
+  3, 1, 0, 2, 0 (attempts 2, 2, 3, 2, 1); arm T 2, 1, 0, 2, 1 (attempts 2, 2, 3, 2, 2) — nothing missing, nothing extra.
+  The same states run through the generator again on each final model, as the loop runs now, carry **0** of the 19
+  and **0** flags of these kinds at all. Seven of the twenty-third chain's 95 recorded decisions were these.
+- **P2 — current by inference, not by re-derivation.** `merge_models` on the last attempt's raw delta raises none of
+  the three recorded `extension_conflict` flags: the conflict does not come from the delta alone but from an applier
+  that runs before the merge (a ratified relationship proposal adds a link the modeler also built, WP34/WP37), which
+  the reconstruction skips. The traces show the restated link in *both* attempts' payloads each time (twenty-third
+  step 5 calls 9 and 10; arm T step 4 calls 8 and 9, step 5 calls 10 and 11), and the appliers run identically per
+  attempt, so the conflict recurs in the last attempt and is raised again under rule 2. Inferred, stated as such.
+- **P3 ✔.** Suite 1469 passed, 5 skipped (4 new); ruff; bare mypy; WP75's re-bind and WP43's review-role guards
+  unchanged.
+- **Guards.** Three of four red before the change, not two as §4 says: „a restatement the last delta repeats stays
+  flagged" asserted exactly one conflict, and before the change the repeated merge left two identical flags — the
+  guard was right, the count in §4 was not.

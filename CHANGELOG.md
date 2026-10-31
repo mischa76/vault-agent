@@ -111,6 +111,11 @@ is not the project's.
   seeds it; the seven chains before it close the first; no sample is pruned and no archived judgement
   of the first generation moves.
 ### Fixed
+- A flag the code generator or the model merger raised for an earlier modeler attempt no longer
+  reaches the sign-off (WP108, 2026-10-31, backlog C8): both re-derive their flags on every run. On
+  three kept chains every recorded generator flag — 19 of 19, seven of one chain's 95 review
+  decisions — was a first-attempt gap the second attempt had repaired. The modeler's repair-memory
+  flags stay: they record what the memory did and cannot be re-derived from the final model.
 - `dbt_project.yml` carries a `seeds:` block, and the contract-pinned seed column types, only for
   stages that read a seed (WP107, 2026-10-31, backlog C10): a grounded project whose stages all read
   `source()` relations or the `inferred` block has no `seeds:` key, so dbt no longer warns on every
