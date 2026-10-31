@@ -467,6 +467,39 @@ class RunManager:
         except Exception as exc:
             self._fail(run_id, exc)
 
+    # ----- deleting (WP112, C2) --------------------------------------------------------------
+    def _forget(self, run_id: str) -> None:
+        self._tasks.pop(run_id, None)
+        self._states.pop(run_id, None)
+        if self._active == run_id:
+            self._active = None
+
+    async def delete(self, run_id: str) -> dict[str, Any]:
+        """A run at rest goes whole — folder, checkpoint, trace — and the server forgets it.
+        Running: cancel first; paused: decide or discard first; extended by another run: kept."""
+        meta = self.read(run_id)
+        if meta["status"] == "running":
+            raise RunConflictError(f"run {run_id!r} is running; cancel it first")
+        if meta["status"] == "paused":
+            raise RunConflictError(f"run {run_id!r} is paused; decide or discard it first")
+        extenders = self.store.extenders_of(run_id)
+        if extenders:
+            raise RunConflictError(
+                f"run {run_id!r} is kept: run(s) {', '.join(extenders)} extend it"
+            )
+        self.store.delete_run_dir(meta["project"], run_id)
+        self._forget(run_id)
+        return {"deleted": run_id, "project": meta["project"]}
+
+    def delete_project(self, project_id: str) -> dict[str, Any]:
+        """The store's rules, then the manager forgets every run of the project."""
+        result = self.store.delete(project_id)
+        for run_id in [r for r in {*self._tasks, *self._states} if r.startswith(f"{project_id}:")]:
+            self._forget(run_id)
+        if self._active and self._active.startswith(f"{project_id}:"):
+            self._active = None
+        return result
+
     # ----- evidence --------------------------------------------------------------------------
     def events(self, run_id: str, after: int) -> dict[str, Any]:
         meta = self.read(run_id)

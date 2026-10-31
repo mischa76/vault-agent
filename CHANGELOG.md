@@ -15,6 +15,11 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- Deleting in the workbench (WP112, 2026-10-31, backlog C2): `DELETE /api/projects/{id}/files/{name}`,
+  `DELETE /api/runs/{id}` and `DELETE /api/projects/{id}`, with the rules that keep what another run
+  depends on — a file a run has read, a run another run extends (in any project), a running run until
+  cancelled and a paused run until decided or discarded — each a 409 that names the reason; the server
+  forgets a deleted run; the frontend asks before each deletion and shows the reason when refused.
 - A coverage floor for the workbench package (WP111, 2026-10-31, backlog C19): CI runs the suite with
   `--cov=vault_agent.ui` and `[tool.coverage.report] fail_under = 85` fails the job under it; 45 tests
   through the API cover every action that hands a path to the disk or a subprocess, every error branch

@@ -12131,3 +12131,34 @@ passed, 5 skipped; ruff; bare mypy; no behaviour changed.
 **Nur angenommen.** That the release workflow's pytest line is the only one it runs (read, one line). **Bewusst nicht
 getan.** Changing the two behaviours the pins found (accept-and-discard; the 400/409 split) — recorded for the owner;
 branches that need a slow or failing agent; a floor for the whole tree.
+
+## [2026-10-31] WP112 built and measured: deleting in the workbench (C2) — three DELETE routes with the rules that keep what another run depends on, the server forgetting what it deletes, the frontend asking first; seven API guards and two Vitest tests green, the deleted folder the only change under the store
+
+**Autor:** Claude Code
+
+Sixth of the old backlog on the owner's word. **Built** (`wp112-workbench-delete-spec.md`; guards `e1e4dca` first, seven
+API tests and two Vitest tests red). `ProjectStore`: `delete_file` (a plain name, the file and its entry; refused with
+`ProjectConflictError` — new, a 409 — naming the runs whose record reads it), `delete` (the folder whole; refused while a
+run is running or paused or while another project's run extends one of its runs), `delete_run_dir` (the folder the
+store locates, WP92), `readers_of` and `extenders_of` over every `run.json`. `RunManager.delete` (running: cancel first;
+paused: decide or discard first; extended: kept — each a `RunConflictError`; then the folder and `_forget`: task, state,
+`active`) and `delete_project`. Three routes in `app.py`, `_guard` mapping the new error to 409. Frontend: `api.ts`
+`deleteFile`/`deleteRun`/`deleteProject`, a `delete` button per input and per run (disabled while running or paused,
+the title saying why) and one for the project, each through `window.confirm`, the 409 detail shown, the project
+refreshed or left; `App.tsx` wires `onDeleted`. Manual 14.2 (three rows and a sentence), index row, CHANGELOG (Added),
+candidates part 1: C2 closed.
+
+**Measured** (keyless). **P1 ✔:** the seven guards green — an unused input deleted from disk and list, a read one kept
+with the run named, a traversal name refused by the router (405) before the store's rule; a finished run deleted whole
+(folder, `GET` 404, console 404, the project's list) with the tree comparison showing the run's folder as the only
+change; a paused run refused until discarded; a running run (WP69's slow stub, the client entered as a context so the
+server's loop outlives a request) refused until cancelled; a base run kept while its extension exists; a project
+refused while a run is paused, deleted whole afterwards with the other project untouched, kept while another
+project's run extends one of its runs. **P2 ✔:** `tsc --noEmit` clean, `vitest run` 31 passed (29 before). **P3 ✔:**
+suite 1537 passed, 5 skipped; ruff; bare mypy; `vault_agent.ui` **95 %** (94 before; `projects.py` 98, `runs.py` 94,
+`app.py` 99).
+
+**Überprüft.** The guards red then green, the tree comparison, tsc, vitest, suite, ruff, mypy, the coverage run.
+**Nur angenommen.** Nothing beyond the stubs: no live deletion of a real run. **Bewusst nicht getan.** Undo or a
+recycle bin; deleting from the CLI; rewriting a run's record to free a read file; the frontend bundle not rebuilt here
+(CI and the release build it).

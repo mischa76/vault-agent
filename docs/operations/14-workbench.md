@@ -47,8 +47,12 @@ house loader; a malformed one is refused with the loader's message before any mo
 | `GET /api/runs/{id}/artefacts` · `GET /api/runs/{id}/artefacts/{path}` | the output directory (never `.vault-agent/`, never outside it) |
 | `GET /api/runs/{id}/model` | the model as JSON, its Mermaid flowchart, and the **input** schema as a Mermaid `erDiagram` with foreign keys |
 | `GET /api/runs/{id}/report` | the WP11 report |
+| `DELETE /api/projects/{id}/files/{name}` | WP112 (C2, 2026-10-31): removes an input no run has read — a run's record and CLI equivalent name the files it read, so those are kept (409 naming the runs) |
+| `DELETE /api/runs/{id}` | WP112: removes a run at rest whole (outputs, checkpoint, trace) and the server forgets it; a running run is cancelled first, a paused one decided or discarded first, a run another run extends (`existing_run`, any project) is kept while referenced — each a 409 that says why |
+| `DELETE /api/projects/{id}` | WP112: removes the project folder with its inputs and runs once none of its runs is running or paused and no other project's run extends one of them (409 otherwise); answers how many runs and files went |
 
-Run ids are `<project>:<stamp>`. A paused run's state is read from its checkpoint, a finished
+Deleting asks first in the frontend (a `delete` button per input, per run at rest and for the project) and shows the
+API's reason where a rule refuses. Run ids are `<project>:<stamp>`. A paused run's state is read from its checkpoint, a finished
 run's from `.vault-agent/state.json` (written when it finishes, beside the trace — the same
 sensitivity, never published), so a restarted server serves both. One active run per process:
 the checkpointer and `pending.json` are single-slot per directory. A second start answers 409.

@@ -221,7 +221,8 @@ export function App() {
             {route.project && !project ? <Empty>loading…</Empty> : null}
             {project && route.perspective === "project" ? (
               <ProjectPerspective project={project} busy={busy} onChanged={() => void refreshProject(project.id)}
-                onOpenRun={(id) => navigate({ project: project.id, run: id, perspective: "run" })} />
+                onOpenRun={(id) => navigate({ project: project.id, run: id, perspective: "run" })}
+                onDeleted={() => { setProject(null); void refreshProjects(); navigate({ project: null, run: null, perspective: "project" }); }} />
             ) : null}
             {route.run && !run ? <Empty>loading the run…</Empty> : null}
             {run && route.perspective === "run" ? (

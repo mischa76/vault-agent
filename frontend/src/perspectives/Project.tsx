@@ -10,8 +10,8 @@ const ACCEPT: Record<ProjectFile["kind"], string> = {
   requirements: ".md,.txt", schema: ".yml,.yaml,.json", profiling: ".yml,.yaml,.json",
 };
 
-export function ProjectPerspective({ project, onChanged, onOpenRun, busy }: {
-  project: Project; onChanged: () => void; onOpenRun: (runId: string) => void; busy: boolean;
+export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, busy }: {
+  project: Project; onChanged: () => void; onOpenRun: (runId: string) => void; onDeleted: () => void; busy: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const requirements = project.files.filter((f) => f.kind === "requirements");
@@ -44,6 +44,18 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, busy }: {
     }
   }
 
+  // WP112 (C2): deleting asks first; the API keeps what another run depends on and the 409 says why.
+  async function remove(what: string, action: () => Promise<unknown>, after: () => void) {
+    if (!window.confirm(`Delete ${what}? This cannot be undone.`)) return;
+    setError(null);
+    try {
+      await action();
+      after();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.detail : String(e));
+    }
+  }
+
   async function start() {
     setError(null);
     try {
@@ -63,6 +75,13 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, busy }: {
     <div className="grid gap-4 xl:grid-cols-2">
       <Section title="Project">
         <KV rows={[["Name", project.name], ["Id", <code key="id" className="font-mono text-xs">{project.id}</code>], ["Created", project.created], ["Runs", String(project.runs.length)]]} />
+        <div className="mt-3">
+          <Button kind="danger" disabled={busy}
+            onClick={() => void remove(`project ${project.name} with its inputs and runs`, () => api.deleteProject(project.id), onDeleted)}
+            title="Refused while a run is running or paused, or while another project's run extends one of this project's runs">
+            delete project
+          </Button>
+        </div>
       </Section>
       <Section title="Inputs">
         <ErrorNote error={error} />
@@ -71,7 +90,11 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, busy }: {
           {project.files.map((f) => (
             <li key={f.name} className="flex items-center justify-between py-1.5">
               <span className="font-mono text-xs">{f.name}</span>
-              <span className="flex items-center gap-2 text-xs text-ink-faint"><Pill>{f.kind}</Pill>{formatBytes(f.bytes)}</span>
+              <span className="flex items-center gap-2 text-xs text-ink-faint"><Pill>{f.kind}</Pill>{formatBytes(f.bytes)}
+                <button type="button" aria-label={`delete file ${f.name}`} title="Kept while a run has read it"
+                  className="rounded border border-line px-1.5 py-0.5 hover:bg-pane-2"
+                  onClick={() => void remove(`input ${f.name}`, () => api.deleteFile(project.id, f.name), onChanged)}>delete</button>
+              </span>
             </li>
           ))}
         </ul>
@@ -158,7 +181,12 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, busy }: {
         {project.runs.length === 0 ? <Empty>no runs yet</Empty> : (
           <ul className="divide-y divide-line text-sm">
             {project.runs.map((r) => (
-              <li key={r.id}>
+              <li key={r.id} className="flex items-center gap-2">
+                <button type="button" aria-label={`delete run ${stamp(r)}`}
+                  disabled={r.status === "running" || r.status === "paused"}
+                  title={r.status === "running" ? "cancel first" : r.status === "paused" ? "decide or discard first" : "Kept while another run extends it"}
+                  className="rounded border border-line px-1.5 py-0.5 text-xs text-ink-faint hover:bg-pane-2 disabled:opacity-40"
+                  onClick={() => void remove(`run ${stamp(r)}`, () => api.deleteRun(r.id), onChanged)}>delete</button>
                 <button type="button" onClick={() => onOpenRun(r.id)} className="flex w-full items-center justify-between gap-3 py-2 text-left hover:bg-pane-2">
                   <span className="flex items-center gap-2"><Dot status={r.status} /><span className="font-mono text-xs">{stamp(r)}</span></span>
                   <span className="flex items-center gap-2 text-xs text-ink-faint">

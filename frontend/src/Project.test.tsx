@@ -27,7 +27,7 @@ const project: Project = {
 describe("Project — starting a run (WP82)", () => {
   it("offers the profiling file and the platform, and sends both with the start", async () => {
     const onOpenRun = vi.fn();
-    render(<ProjectPerspective project={project} onChanged={() => undefined} onOpenRun={onOpenRun} busy={false} />);
+    render(<ProjectPerspective project={project} onChanged={() => undefined} onOpenRun={onOpenRun} onDeleted={() => undefined} busy={false} />);
     expect(screen.getByLabelText("profiling")).toHaveValue("");
     expect(screen.getByLabelText("target platform")).toHaveValue("postgres");
     fireEvent.change(screen.getByLabelText("profiling"), { target: { value: "prof.yml" } });

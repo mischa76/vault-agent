@@ -120,3 +120,11 @@ requirements there is nothing to cite. The evidence before the change: no uncite
 or demo run but the applier's links — the 5.5 modeler cites; measured as zero on the demo's five runs and as exactly
 the applier's three links on the twenty-third chain's step 4 when the proposals are withheld. Spec
 `backlog-2026-07/wp109-untraced-construct-spec.md`.
+
+## C2 — closed by WP112 (2026-10-31)
+
+Three `DELETE` routes — an input file, a run, a project — with the rules the candidate named, each a 409 that says why:
+a file a run has read is kept (the run's record names it), a run another run extends is kept while referenced (in any
+project), a running run is cancelled first and a paused one decided or discarded first; the server forgets a deleted
+run (task, state, `active`); the frontend asks before each deletion and shows the API's reason when refused. Spec
+`backlog-2026-07/wp112-workbench-delete-spec.md`.

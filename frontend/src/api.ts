@@ -63,4 +63,12 @@ export const api = {
   console: (id: string, text: string) =>
     call<ConsoleAnswer>(`/api/runs/${encodeURIComponent(id)}/console`, json({ text })),
   reportUrl: (id: string) => `/api/runs/${encodeURIComponent(id)}/report`,
+  // WP112 (C2): deleting — the API keeps what another run depends on and says so (409).
+  deleteProject: (id: string) =>
+    call<{ deleted: string; runs: number; files: number }>(`/api/projects/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  deleteFile: (id: string, name: string) =>
+    call<{ deleted: string; kind: string }>(
+      `/api/projects/${encodeURIComponent(id)}/files/${encodeURIComponent(name)}`, { method: "DELETE" }),
+  deleteRun: (id: string) =>
+    call<{ deleted: string; project: string }>(`/api/runs/${encodeURIComponent(id)}`, { method: "DELETE" }),
 };

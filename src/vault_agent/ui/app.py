@@ -15,7 +15,7 @@ from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.state import BusinessVaultOptions, StageBinding
 from vault_agent.ui.console import ConsoleAnswer, answer
 from vault_agent.ui.graphs import area_views, build_source_mermaid, node_catalogue
-from vault_agent.ui.projects import FileKind, ProjectError, ProjectStore
+from vault_agent.ui.projects import FileKind, ProjectConflictError, ProjectError, ProjectStore
 from vault_agent.ui.runs import RunConflictError, RunManager
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -86,7 +86,7 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
     app = FastAPI(title="vault-agent workbench", version="0.1")
 
     def _guard(exc: Exception) -> HTTPException:
-        if isinstance(exc, RunConflictError):
+        if isinstance(exc, RunConflictError | ProjectConflictError):
             return HTTPException(status_code=409, detail=str(exc))
         if isinstance(exc, ProjectError):
             code = 404 if str(exc).startswith("no ") or " has no " in str(exc) else 400
@@ -112,6 +112,22 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
     def get_project(project_id: str) -> dict[str, Any]:
         try:
             return {**store.get(project_id), "runs": store.runs(project_id)}
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.delete("/api/projects/{project_id}")
+    def delete_project(project_id: str) -> dict[str, Any]:
+        """WP112: the folder whole, once its runs are at rest and nothing outside extends them."""
+        try:
+            return runs.delete_project(project_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.delete("/api/projects/{project_id}/files/{name}")
+    def delete_file(project_id: str, name: str) -> dict[str, Any]:
+        """WP112: an input file no run has read."""
+        try:
+            return store.delete_file(project_id, name)
         except ProjectError as exc:
             raise _guard(exc) from exc
 
@@ -144,6 +160,14 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
         try:
             return runs.read(run_id)
         except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.delete("/api/runs/{run_id}")
+    async def delete_run(run_id: str) -> dict[str, Any]:
+        """WP112: a run at rest, whole; running → cancel first, paused → decide or discard first."""
+        try:
+            return await runs.delete(run_id)
+        except (ProjectError, RunConflictError) as exc:
             raise _guard(exc) from exc
 
     @app.get("/api/runs/{run_id}/events")
