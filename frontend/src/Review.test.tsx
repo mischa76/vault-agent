@@ -110,3 +110,23 @@ describe("Review — bindings at sign-off (WP82)", () => {
     expect(onDecide.mock.calls[0]![0].mappings).toEqual({});
   });
 });
+
+// WP115 (C22): a proposed bridge is a decision — unchecked until the human builds it.
+describe("Review — bridge proposals (WP115)", () => {
+  it("lists a proposed bridge unchecked and sends the answer with the decision", () => {
+    const onDecide = vi.fn();
+    const run2 = { id: "stores:1", project: "stores", status: "paused", thread_id: "t", out_dir: "/tmp/x", cli_equivalents: [],
+      started: "", finished: null, requirements: "req.md", schema: null, existing_run: null, error: null, profiling: null, target_platform: "postgres" } as unknown as Run;
+    const checkpoint2 = { run: "stores:1", phase: "signoff", links: [], resolutions: [], answers: [], blocked: false, decisions: 1, disclosures: 0,
+      items: [], bindings: [], unresolved: [],
+      bridges: [{ path: "hub_customer,link_account_customer,hub_account", requirement_ids: ["REQ-007"] }] } as unknown as Checkpoint;
+    render(<ReviewPerspective run={run2} checkpoint={checkpoint2} onDecide={onDecide} busy={false} error={null} />);
+    const box = screen.getByLabelText("build bridge hub_customer,link_account_customer,hub_account") as HTMLInputElement;
+    expect(box.checked).toBe(false);
+    fireEvent.click(box);
+    fireEvent.click(screen.getByRole("button", { name: /accept/i }));
+    expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({
+      bridges: { "hub_customer,link_account_customer,hub_account": true },
+    }));
+  });
+});
