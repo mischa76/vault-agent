@@ -718,10 +718,34 @@ def link_relation_offer(
     return angebot
 
 
+def stage_model_name(construct_name: str) -> str:
+    """The staging model a single-source hub, a link or a satellite with its own ``source_table``
+    reads: ``stg_<base>``, the base normalised through the one identifier helper and lower-cased.
+
+    Promoted here from ``staging_generator._staging_name`` (WP105, 2026-10-31) the way
+    ``construct_base_name`` was (WP34): the link's relation resolution now reads a stage's carried
+    binding (WP77 keys it by stage name) and must derive the SAME name the generator writes. The
+    generators delegate to this function; byte-identical for every valid construct name."""
+    return STAGING_PREFIX + normalize_identifier(construct_base_name(construct_name)).lower()
+
+
 def resolve_link_relation(
-    link: Any, model: Any, schemas: Any, resolve: Any, expand: Any | None = None
+    link: Any, model: Any, schemas: Any, resolve: Any, expand: Any | None = None,
+    *, carried_bindings: Any | None = None, carried_schemas: Any | None = None,
 ) -> tuple[Any, str]:
     """The declared relation a link reads — ``(relation, grund)``; relation is None when unknown.
+
+    **A carried binding is the first tier (WP105, 2026-10-31, C38).** When the link's stage has a
+    binding an earlier increment made (``carried_bindings``, WP77's ``{stage: relation}``) and
+    that relation is declared in the increment or the carried catalogue (``carried_schemas``,
+    WP74), it is the answer, code ``carried`` — before the name tier, the order ``bind_sources``
+    applies. The binding was made in the step whose increment held the evidence (foreign keys,
+    keys, the evidence tier's decision); a later step's resolution sees only its own increment
+    and cannot see that evidence — the twenty-third chain's step 4 re-bound a link step 3 had
+    bound to ``Product`` by evidence to ``ProductVendor``, the one relation Purchasing offered,
+    and read the product's size unit at the vendor's grain. Only a human (WP82) or a ratified
+    proposal changes a carried binding, exactly as WP77 §3 ranks them. A carried binding naming
+    a relation declared nowhere falls through to the tiers below.
 
     Two tiers, and deliberately no third (WP42 §2) — superseded by WP90 (2026-10-23, the owner's
     word): a third tier decides among two or more fitting relations from the catalogue's evidence
@@ -738,8 +762,14 @@ def resolve_link_relation(
     A satellite's ``source_table`` is not a tier: measured over the same corpus it resolves 1 of
     those 24 and contradicts a unique offer match once (``link_transaction_product``).
 
-    ``grund`` is a code, never a sentence: ``name``, ``offer``, ``payload``, ``key`` (WP90),
-    ``ambiguous``, ``none``."""
+    ``grund`` is a code, never a sentence: ``carried`` (WP105), ``name``, ``offer``, ``payload``,
+    ``key`` (WP90), ``ambiguous``, ``none``."""
+    kept = (carried_bindings or {}).get(stage_model_name(link.name))
+    if kept:
+        wanted = normalize_identifier(kept)
+        for relation in [*schemas, *(carried_schemas or [])]:
+            if normalize_identifier(relation.table) == wanted:
+                return relation, "carried"
     benannt = [t for t in schemas if construct_binds_to_source_table(link.name, t.table)]
     if len(benannt) == 1:
         return benannt[0], "name"

@@ -49,6 +49,7 @@ from vault_agent.rules.dv2_rules import (
     satellite_participation_column,
     source_table_on_multi_source_hub,
     stage_column_name,
+    stage_model_name,
 )
 from vault_agent.rules.platforms import (
     DEFAULT_TARGET_PLATFORM,
@@ -212,8 +213,9 @@ def _staging_name(construct_name: str) -> str:
     # Normalised through the one identifier helper (WP20 §2.4), the way _sat_staging_model
     # already did — two naming paths that merely happen to agree on well-formed names are a
     # latent split. Byte-identical for every valid construct name (E_BAD_NAME enforces
-    # lowercase snake_case, and normalize("account").lower() == "account").
-    return STAGING_PREFIX + normalize_identifier(_base_name(construct_name)).lower()
+    # lowercase snake_case, and normalize("account").lower() == "account"). The rule itself
+    # lives in rules/ since WP105: the link's relation resolution reads carried bindings by it.
+    return stage_model_name(construct_name)
 
 
 def construct_stage_name(construct_name: str) -> str:

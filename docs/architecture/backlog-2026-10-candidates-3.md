@@ -285,3 +285,34 @@ the twenty-second built no product→unit-measure role links.
 (`BINDING_REJECTED`) reads the same `inferred` block and fails the same way, but the metric said 0 for a project with
 two. Candidate: count both kinds (the generator's own comment in `sources.yml` already names both), so the eval's
 number is the build's.
+
+## C38 and C39 — closed by WP105 (2026-10-31), and C38's mechanism corrected
+
+C38 as written above places the offer in step 5; the kept outputs place it in **step 4**: step 3 had bound both stages
+to `Product` by WP90's evidence tier (two `link_binding_evidence` decisions, reason `key`) and carried the binding;
+step 4's resolution over the increment alone found `ProductVendor` the one offer, WP95's rule derived the missing
+role column from its foreign key, and this run's override preceded the carried binding (WP77 §3) — step 4's project
+read the product's size and weight units from the vendor relation (built 2026-10-31: 265 link rows each, 0 of 460
+stage rows agreeing with `Product`), silently green. Step 5 refused the carried `ProductVendor` only because the
+harness carries no `stage_aliases` (C40) and the carried catalogue has no foreign keys (C41). WP105 makes a carried
+binding the first tier of the link's relation resolution at every call site, and `stage_refs_inferred` counts refused
+stages (C39). Spec `backlog-2026-07/wp105-carried-binding-tier-spec.md`; measured keyless: the chain's fifth project
+PASS=421 of 421, the two links holding all 504 products with the real units on 176 / 205 of them.
+
+## C40 — The eval harness carries `stage_bindings` but not `stage_aliases` between steps (found by WP105, 2026-10-31)
+
+`eval/run.py` loads `carried_bindings` for the next step and for a resumed step, never `carried_aliases`; `cli.py`
+(`run --existing`) and `ui/runs.py` load both (WP82). An alias a human typed or WP95 derived in one step therefore
+reaches the next step in the CLI and the workbench but not in a measured chain, where WP73 then refuses the carried
+relation for the very column the alias supplied — the twenty-third chain's step 5 (`binding_rejected: ProductVendor`
+×2) was that, on a binding that happened to be wrong. Two lines; the harness should load what the product loads.
+Needs the owner's go because it changes what the chains measure.
+
+## C41 — The carried catalogue declares no keys (found by WP105, 2026-10-31)
+
+`dump_source_catalogue` writes a table's columns (with types and nullability) and nothing else: no primary key, no
+unique keys, no foreign keys. A relation read from the carried catalogue can therefore not be judged by WP95's role
+derivation, WP85's grain gate or the evidence tier's key clause — the twenty-third chain's step 5 could not derive
+`SIZE_UNITMEASURECODE` on the carried `ProductVendor` where step 4 could. The source schema reader (WP96) and the
+derivation (WP85) carry all three; the catalogue should carry them unchanged, byte-identical where a table declares
+none. Small; needs the owner's go because every brownfield step's catalogue changes shape.

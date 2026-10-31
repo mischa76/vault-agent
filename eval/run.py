@@ -328,9 +328,14 @@ def run_metrics(
             state.artifacts.staging_models,
             state.artifacts.scaffolding.get("models/staging/sources.yml", ""),
         )),
-        "stage_refs_inferred": sum(
-            1 for f in state.flags if f.kind == FlagKind.SOURCE_BINDING
-        ),
+        # WP105 (C39): the stages a human must still bind — inferred (`SOURCE_BINDING`) and
+        # refused (`BINDING_REJECTED`, WP73) alike read the `inferred` block and fail the same
+        # build; each stage once, whatever flags it carries. The twenty-third chain's fifth
+        # project had two refused stages and this number said 0.
+        "stage_refs_inferred": len({
+            f.asset for f in state.flags
+            if f.kind in (FlagKind.SOURCE_BINDING, FlagKind.BINDING_REJECTED)
+        }),
         # WP34 (2026-08-12): the breakdown, under a NEW key because `flags` is an integer in
         # every archived file and an int cannot be compared against a dict. Keyed by
         # `FlagKind`, which is what consumers branch on; the message text is never counted.

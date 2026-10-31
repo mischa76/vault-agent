@@ -96,6 +96,9 @@ is not the project's.
   PostgreSQL `xml` column is spelled `xml`, which SQLAlchemy's dialect alone did not.
 
 ### Changed
+- The eval metric `stage_refs_inferred` counts every stage a human must still bind — inferred
+  (`SOURCE_BINDING`) and refused (`BINDING_REJECTED`) alike, each once (WP105, 2026-10-31, backlog
+  C39); it had read 0 for a project with two refused stages. Archived results keep their numbers.
 - The WP34 §6 review record is split, within a modeler model, into product generations (WP104,
   2026-10-31): `eval.wp34_check.REVIEW_GENERATIONS` draws a boundary at the first chain under new
   decision classes, and a chain is judged against its own generation's chains before it, „cannot be
@@ -104,6 +107,16 @@ is not the project's.
   seeds it; the seven chains before it close the first; no sample is pruned and no archived judgement
   of the first generation moves.
 ### Fixed
+- A link's staging binding an earlier increment made is no longer overruled by a later increment's
+  offer (WP105, 2026-10-31, backlog C38): the link's relation resolution answers the carried binding
+  first, at every call site, so the gates and staging agree. The twenty-third chain's step 4 had
+  re-pointed two product→unit-measure stages from `Product` (bound in step 3 by the evidence tier)
+  to `ProductVendor`, the one relation Purchasing offered, and loaded the vendor's purchasing unit
+  as the product's size and weight unit — 265 link rows each, none agreeing with the source, every
+  gate green. Measured keyless: the chain's fifth project builds PASS=421 of 421 (was 417), both
+  links holding all 504 products with the real unit on 176 and 205 of them; three kept chains
+  otherwise byte-identical. A ratified mapping, a ratified proposal and a human's binding still
+  win over a carried binding.
 - Two surrogate→natural-key translations in one stage whose hubs are keyed alike (`Department.Name` and
   `Shift.Name` in one link) rendered a view projecting `NAME` twice, which dbt and the warehouse refuse —
   and which, accepted, would have hashed both hubs from one column. The second and every later translation

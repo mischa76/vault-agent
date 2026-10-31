@@ -99,3 +99,34 @@ unchanged.
 ## 6 Measured
 
 Appended after the run, with the numbers.
+
+## 6 Measured (2026-10-31, keyless; PostgreSQL 16, the local data copy in `vault`, dbt 1.9.10, AutomateDV 0.11.4)
+
+- **P1 ✔, with one comment line the prediction missed.** Step 4 regenerated after the change against its baseline:
+  `stg_product_size_unit_measure.sql` and `stg_product_weight_unit_measure.sql` read `raw_4: 'Product'` with
+  `SIZE_UNITMEASURECODE: 'SIZEUNITMEASURECODE'` / `WEIGHT_UNITMEASURECODE: 'WEIGHTUNITMEASURECODE'` — step 3's shape;
+  `sources.yml` differs in exactly one line, the `# expected columns` comment of `Product`, which gains the two
+  columns the stages now read (blocks and tables unchanged); no other file. The prediction said `sources.yml`
+  byte-identical — wrong by a comment, recorded as such. The binding flags are unchanged (none); the two WP95
+  `role_columns` aliases onto `UnitMeasureCode` are gone from the metadata.
+- **P2 ✔.** Step 5 from the kept step 4 (the wrong binding carried, no aliases): both stages inferred,
+  `binding_rejected: ProductVendor` ×2, `run_metrics` reads `stage_refs_inferred` **2** (the archived file: 0).
+- **P3 ✔ on the binding and the build; the row prediction forgot C12's design.** Step 5 from the regenerated step 4
+  (`write_step_vault`, catalogue `stage_bindings` carrying `Product` for both stages): both read `raw_5: 'Product'`,
+  no binding flag, `stage_refs_inferred` 0. `dbt parse` 0, `dbt build` in the fresh schema `c38`: **PASS=421 WARN=0
+  ERROR=0 SKIP=0 TOTAL=421** (the kept build: PASS=417, ERROR=2, SKIP=2). The two links hold **504 rows each**, not 176
+  and 205: WP83 zero-keys the optional participation, so the 328 products without a size unit and the 299 without a
+  weight unit point at `hub_unit_measure`'s `-2` row (WP86), and the **176** / **205** products with a unit join the
+  real row — exactly the source's counts; 0 rows unjoined on either hub; the stage's unit equals `Product`'s for all
+  176 / 205. The pre-registered numbers were the real-unit rows; the links keep every product, as C12 designed.
+- **P4 ✔.** Arms A and T (2026-10-30), steps 2–5, and the twenty-third's steps 2, 3 and 5 (the P2 state), regenerated
+  after the change: byte-identical to the baseline dumps, `diff -rq` empty but for the three step-4 files of P1.
+- **P5 ✔.** Suite 1453 passed, 5 skipped (1445 before, 8 new); ruff and bare mypy clean; WP77's override guard and
+  WP95's demo replay unchanged; the eight guards: five red before (`ecf8e18`), all green after.
+- **The wrong data, measured.** The kept step 4 built in `c38_s4kept` (PASS=290): `link_product_size_unit_measure`
+  and `…_weight_…` held **265 rows each** — the distinct (product, vendor unit) pairs of `ProductVendor`'s 460 rows —
+  and **0 of the 460** stage rows agree with `Product`'s size or weight unit; none of those 265 products has a size
+  unit at all. Every gate green, no flag, no decision. This is the wrong-data class (WP24's), found only by a build.
+
+Both schemas dropped after the measurement; the regenerated step 4 and the fifth project mirrored to
+`tank:/tank/git/vault-agent-eval-results/kept-outputs/adventureworks_incremental/20261031T032606335763Z-wp105/`.

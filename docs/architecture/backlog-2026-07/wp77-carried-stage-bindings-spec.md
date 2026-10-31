@@ -82,3 +82,12 @@ stays binding-only).
 ## 6 Results
 
 *(appended after the change)*
+
+## Addendum 2026-10-31 (WP105) — the rule-derived override no longer arises for a carried stage
+
+§3's precedence inside `bind_sources` stands (a this-run override wins over the carried binding; the guard holds).
+What changed is upstream: the link's relation resolution (`resolve_link_relation`) now answers a carried binding
+first (code `carried`), so `link_source_overrides` produces no offer- or evidence-derived override for a stage an
+earlier increment bound — the twenty-third chain's step 4 had overridden step 3's evidence-bound `Product` with the
+increment's only offer, `ProductVendor`, and loaded wrong data. A ratified mapping's or proposal's override and a
+human's WP82 binding still precede the carried binding. Spec: `wp105-carried-binding-tier-spec.md`.

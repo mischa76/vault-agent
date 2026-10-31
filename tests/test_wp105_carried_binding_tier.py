@@ -151,7 +151,8 @@ async def test_the_generator_and_the_rebind_leave_the_stage_on_the_carried_relat
     rebind_staging(state)
     meta = state.artifacts.automatedv_yaml["staging"][STAGE]
     assert meta["source_binding"] == "declared"
-    assert "Product" in str(meta["source_model"]) and "ProductVendor" not in str(meta["source_model"])
+    source = str(meta["source_model"])
+    assert "Product" in source and "ProductVendor" not in source
     # the named column itself, not WP95's alias onto the vendor's unit
     assert meta["derived_columns"]["SIZE_UNITMEASURECODE"] == "SIZEUNITMEASURECODE"
     assert [f for f in state.flags if f.kind in BINDING_KINDS and f.asset in (STAGE, LINK)] == []

@@ -11864,3 +11864,60 @@ not parsed). **Bewusst nicht getan:** no re-run for P3; no change to the binder 
 candidates); the `chain23` schema left in the local copy for a later look; `CLAUDE.md` one clause longer, within
 budget. **Next:** C38 and C39 are the owner's to order; ADR-0019 and ADR-0020 wait for his word; the correction
 measurement is his.
+
+## [2026-10-31] WP105 built and measured: a carried binding is the first tier of a link's relation resolution (C38), and `stage_refs_inferred` counts refused stages (C39) — the chain's fifth project PASS=421 of 421; the real defect was step 4's wrong data, not step 5's refusal; C40 and C41 recorded
+
+**Autor:** Claude Code
+
+On the owner's go (2026-10-31: build C38 and C39). **What the kept outputs said, read before the change.** C38's entry
+placed the offer in step 5. Regenerating steps 2–5 of the twenty-third chain keylessly through the mapper's re-bind
+(byte-identical to the kept staging for steps 2–4) showed the mechanism one step earlier: **step 3** bound
+`stg_product_size_unit_measure` and `…_weight_…` to `Product` by WP90's evidence tier (two `link_binding_evidence`
+decisions, reason `key`) and the catalogue carried the binding (WP77); **step 4** resolved the two links again over
+the increment alone — the offer tier sees only `state.source_schemas` — found `ProductVendor` the one relation offering
+`hub_product` (foreign key `ProductID`) and `hub_unit_measure` (foreign key `UnitMeasureCode`, and as the hub's
+second feed), WP95's rule derived the missing role column from that key (`SIZE_UNITMEASURECODE: UNITMEASURECODE`), and
+`bind_sources` applies this run's override before the carried binding (WP77 §3). Step 4's project therefore read the
+product's size and weight units from the vendor relation, every gate green: built today in `c38_s4kept` (PASS=290),
+the two links held **265 rows each** — `ProductVendor`'s 460 rows as distinct (product, vendor unit) pairs — and **0 of
+460** stage rows agreed with `Product`'s size or weight unit; none of those 265 products has a size unit at all. The
+wrong-data class (WP24's), found only by a build. **Step 5** refused the carried `ProductVendor` (`binding_rejected`
+×2) only because the eval harness loads `carried_bindings` but not `carried_aliases` between steps (C40; the CLI and
+the workbench load both) and the carried catalogue declares no foreign keys (C41), so WP95 could not derive the
+column again — right by accident.
+
+**Built** (`wp105-carried-binding-tier-spec.md`, guards `ecf8e18` first, five of eight red). `rules/dv2_rules.py`:
+`stage_model_name` (the generator's `stg_<base>` rule, promoted as `construct_base_name` was; the generator
+delegates) and the carried tier in `resolve_link_relation` — keyword-only `carried_bindings`/`carried_schemas`, the
+answer `(relation, "carried")` before the name tier when the link's stage has a carried binding whose relation is
+declared in the increment or the catalogue, else fall-through. Every call site passes the state's fields
+(`link_source_overrides`, `link_binding_evidence_flags`, `link_binding_reasons`, the key repair in
+`apply_key_licenses`, the validator's two gates), so a `carried` resolution produces no override, no reason and no
+decision, and `bind_sources` keeps the carried binding through its own WP73-checked path; its precedence (a ratified
+mapping's or proposal's override and a human's binding first) is untouched — WP77's guard holds. `eval/run.py`:
+`stage_refs_inferred` = the distinct stages with `SOURCE_BINDING` or `BINDING_REJECTED` (C39). Addenda appended to
+WP77 §3 and WP74 §2.5; manual 9 (carried binding); index row; CLAUDE.md's WP77 clause; candidates file: C38/C39
+closed with the mechanism corrected, C40 and C41 added.
+
+**Measured** (keyless, PostgreSQL 16, the local copy, dbt 1.9.10, AutomateDV 0.11.4; baseline staging of three kept
+chains dumped before the change, spec §5). **P1 ✔ but for a comment:** step 4 regenerated — exactly the two stage
+files differ (`raw_4: 'Product'`, the named column itself) and one line of `sources.yml`, the `# expected columns`
+comment of `Product` gaining the two columns; predicted byte-identical, wrong by that comment. **P2 ✔:** step 5 from
+the kept step 4 — both stages still inferred, `binding_rejected: ProductVendor` ×2, `stage_refs_inferred` **2** (the
+archived file: 0). **P3 ✔ on binding and build, the row prediction forgot C12:** step 5 from the regenerated step 4
+(`write_step_vault`, the catalogue carrying `Product`) — both stages on `Product`, no binding flag; `dbt parse` 0,
+`dbt build` in `c38` **PASS=421 WARN=0 ERROR=0 SKIP=0 TOTAL=421** (the kept build 417/2/2); the links hold **504 rows
+each**, not 176/205 — WP83 zero-keys the optional participation, so 328 / 299 products without a unit point at
+`hub_unit_measure`'s `-2` row (WP86) and **176 / 205** join the real unit, exactly the source's counts; 0 unjoined on
+either hub; the stage's unit equals `Product`'s on all 176 / 205. **P4 ✔:** arms A and T (2026-10-30) steps 2–5 and
+the twenty-third's steps 2, 3, 5 byte-identical to their baselines. **P5 ✔:** suite 1453 passed, 5 skipped (8 new),
+ruff, bare mypy; WP77's and WP95's guards unchanged. Both schemas dropped; the regenerated step 4 and the fifth
+project mirrored to `tank:/tank/git/vault-agent-eval-results/kept-outputs/adventureworks_incremental/20261031T032606335763Z-wp105/`.
+
+**Überprüft.** The replays by script against the kept staging and the baseline dumps (`diff -rq`); the two builds'
+logs; `psql` against `c38`, `c38_s4kept` and the source copy; the guards red then green; suite, ruff, mypy; the
+mirror by listing. **Nur angenommen.** That the carried tier is right for hub-shared stages too (unchanged path:
+`link_source_overrides` skips them); that no live chain binds a link by a carried relation a human later wants
+re-pointed — WP82 is the way. **Bewusst nicht getan.** C40 (two lines in the harness) and C41 (keys in the carried
+catalogue) — recorded, the owner's go; no paid rerun — the regeneration is the measurement; the candidates file's
+C38 entry stands as written, corrected by the appended entry; no live measurement of the tier.

@@ -1010,6 +1010,8 @@ def apply_key_licenses(
                 link, merged, state.source_schemas,
                 lambda _relation, fk: resolve_fk_target(merged, fk, declared)[0],
                 expand=lambda fk: component_keys(fk, declared),
+                carried_bindings=state.carried_bindings,  # WP105
+                carried_schemas=state.carried_schemas,
             )
             reads = (
                 gelesen is not None
@@ -1133,6 +1135,8 @@ def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
             link, state.dv_model, state.source_schemas,
             lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
             expand=lambda fk: component_keys(fk, declared),
+            carried_bindings=state.carried_bindings,  # WP105
+            carried_schemas=state.carried_schemas,
         )
         if grund in ("offer", "payload", "key"):  # WP90: the evidence tier binds like an offer
             overrides[base] = relation.table
@@ -1186,7 +1190,9 @@ def link_binding_evidence_flags(state: VaultAgentState) -> list[PipelineFlag]:
             return component_keys(fk, declared)
 
         relation, grund = resolve_link_relation(
-            link, state.dv_model, state.source_schemas, resolve, expand=expand
+            link, state.dv_model, state.source_schemas, resolve, expand=expand,
+            carried_bindings=state.carried_bindings,  # WP105
+            carried_schemas=state.carried_schemas,
         )
         if grund not in ("payload", "key") or overrides.get(base) != relation.table:
             continue
@@ -1233,6 +1239,8 @@ def link_binding_reasons(state: VaultAgentState) -> dict[str, str]:
             link, state.dv_model, state.source_schemas,
             lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
             expand=lambda fk: component_keys(fk, declared),
+            carried_bindings=state.carried_bindings,  # WP105
+            carried_schemas=state.carried_schemas,
         )
         if grund in ("ambiguous", "none"):
             reasons[base] = grund

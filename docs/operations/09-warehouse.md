@@ -64,10 +64,15 @@ and clears the inferred-binding flags.
 
 **Carried binding** (WP77, 2026-10-17): a brownfield run keeps the declared binding an earlier
 increment made for a stage — `stage_bindings` in `metadata/source_catalogue.yml`, keyed by stage
-model — when its own resolution (a ratified mapping, a ratified proposal, the offer) says nothing
-about that stage; WP73's column check still applies and a refused carried binding is a
-`binding_rejected` decision. Before WP77 a link bound by offer in one step inferred in the next,
-because the offer tier sees only the increment's tables (the twentieth chain lost 24 of 34).
+model — unless a ratified mapping, a ratified proposal or a human's binding (7.7) says otherwise;
+WP73's column check still applies and a refused carried binding is a `binding_rejected` decision.
+Before WP77 a link bound by offer in one step inferred in the next, because the offer tier sees
+only the increment's tables (the twentieth chain lost 24 of 34). **Since WP105 (2026-10-31) the
+offer and the evidence tier never overrule a carried binding either**: the link's relation
+resolution answers the carried binding first, at every call site, so a later increment's only
+offer cannot re-point a stage an earlier step bound with the evidence in hand — the twenty-third
+chain's step 4 had re-pointed two product→unit-measure stages from `Product` to `ProductVendor`
+and loaded the vendor's purchasing unit as the product's size unit, every gate green.
 
 **Translation model** (WP36, ADR-0013): a link ratified from a foreign key that references a
 surrogate while the hub is keyed on the natural key gets a second staging model,

@@ -1092,6 +1092,8 @@ class ValidatorAgent(BaseAgent):
                 link, state.dv_model, state.source_schemas,
                 lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared_tables)[0],
                 expand=lambda fk: component_keys(fk, declared_tables),
+                carried_bindings=state.carried_bindings,  # WP105
+                carried_schemas=state.carried_schemas,
             )
             bound = [gelesen] if gelesen is not None else []
             in_scope = (
@@ -1186,6 +1188,8 @@ class ValidatorAgent(BaseAgent):
                 link, state.dv_model, state.source_schemas,
                 lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
                 expand=lambda fk: component_keys(fk, declared),
+                carried_bindings=state.carried_bindings,  # WP105
+                carried_schemas=state.carried_schemas,
             )
             if gelesen is None or not gelesen.foreign_keys:
                 continue

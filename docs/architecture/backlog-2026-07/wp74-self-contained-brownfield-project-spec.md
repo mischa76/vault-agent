@@ -99,3 +99,9 @@ staging re-rendered step by step with the catalogue carried): source blocks 1 �
 that remain, a human's mapping, not the generator's loss. **Not measured:** the nineteenth
 chain's live score; a dbt parse of the replayed fifth project (no warehouse here — the
 resolution check is the keyless stand-in, as §5 says).
+
+## Addendum 2026-10-31 (WP105, C39) — `stage_refs_inferred` counts refused stages too
+
+§2.5's second count now reads the distinct stage models carrying a `SOURCE_BINDING` **or** a `BINDING_REJECTED`
+flag (WP73's refusal): both read the `inferred` block and fail the same build, and the twenty-third chain's fifth
+project had two refused stages where the metric said 0. Archived results keep their stored numbers.
