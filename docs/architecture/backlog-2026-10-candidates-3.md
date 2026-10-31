@@ -265,3 +265,23 @@ The decision C32 asked for is drafted as ADR-0020 (`adrs/ADR-0020-turbovault-exp
 datavault4dbt customer asks, the round-trip project JSON, never the MCP proposal schema. Read at HEAD `2dd2d98`
 (0.21.0): the engine has two import shapes, and the minimal one cannot hold a multi-source hub, a role, a key
 translation or a binding's alias. The mapping into the full shape is in the ADR; nothing installed or run.
+
+## C38 — A role link's stage is offered a feed of the hub instead of the relation that carries the role column (found by the twenty-third chain's build, 2026-10-31)
+
+The twenty-third chain's fifth project (`20261031T032606335763Z`) builds PASS=417 of 421 on PostgreSQL; the two
+errors are `stg_product_size_unit_measure` and `stg_product_weight_unit_measure` — the stages of
+`link_product_size_unit_measure` and `…_weight_…` (`hub_product` + `hub_unit_measure` in the roles `size` and
+`weight`, `source_key_column` `SizeUnitMeasureCode` / `WeightUnitMeasureCode`). The offer bound both to
+`ProductVendor`, the second feed of `hub_unit_measure`, which carries `UnitMeasureCode` but neither role column; WP73
+refused correctly (`binding_rejected: ProductVendor: 2`) and the stages read the `inferred` placeholder. The relation
+that carries both hashed columns and the declared foreign key to `UnitMeasure` is `Product` — in the catalogue,
+unoffered. Candidate: the offer for a link stage prefers the relation that carries every hashed column (the FK
+evidence of WP90 already names it for the role participation) over a feed of a participating hub. New in this chain:
+the twenty-second built no product→unit-measure role links.
+
+## C39 — `stage_refs_inferred` counts only `SOURCE_BINDING`, so a refused binding's stage is not counted (same build)
+
+`eval/run.py` sets `stage_refs_inferred` to the number of `SOURCE_BINDING` flags; a stage whose binding WP73 refused
+(`BINDING_REJECTED`) reads the same `inferred` block and fails the same way, but the metric said 0 for a project with
+two. Candidate: count both kinds (the generator's own comment in `sources.yml` already names both), so the eval's
+number is the build's.

@@ -95,6 +95,9 @@ REVIEW_DECISION_SAMPLES: dict[str, tuple[tuple[str, int], ...]] = {
         #                                   a failed chain enters the record; the cause split is
         #                                   in docs/log.md of that date). WP104: the seed of the
         #                                   second 5.5 generation — no longer judged, see below.
+        ("20261031T032606335763Z", 95),  # twenty-third, 2026-10-31 — the first under WP100–WP104:
+        #                                   green, 24.6 min, 4.36 USD; the second generation's
+        #                                   second sample, not judged (two of three)
     ),
 }
 DEFAULT_RECORD_MODEL = "claude-opus-4-8"  # every archived result without `models`

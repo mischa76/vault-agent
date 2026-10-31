@@ -190,7 +190,7 @@ platform and when: `docs/log.md` and `docs/index.md` — never from memory.
   **refuse forced tool use** — `FORCED_TOOL_CHOICE=false` (WP60) asks instead; **defaults switched to
   5.5 by the owner (WP62, 2026-10-09)**; five 5.5 chains green in a row (21–24 min, 4.2–4.9 USD); the
   fourteenth to sixteenth (WP63, WP64 live) had **84, 83, 83 decisions**, the lowest on any model (4.x:
-  126–156); the seventeenth (83), eighteenth (85), twentieth (88) and twenty-first (87, 2026-10-17, under WP77/WP78) held against the 5.5 record's ceiling (89.7 over seven; the twenty-second, 91 under WP79–WP99, failed it by product change and seeds a second generation — WP104, 2026-10-31). **The ceiling has a floor since
+  126–156); the seventeenth (83), eighteenth (85), twentieth (88) and twenty-first (87, 2026-10-17, under WP77/WP78) held against the 5.5 record's ceiling (89.7 over seven; the twenty-second, 91 under WP79–WP99, failed it by product change and seeds a second generation — WP104, 2026-10-31; the twenty-third, 95 under WP100–WP104, is its second sample, judged from the twenty-fifth). **The ceiling has a floor since
   WP70 (2026-10-12, the owner's number):** max(t-bound, mean + 5) — a tight record (84, 83, 83, 83)
   had made the t-bound a demand for sameness. Opus 5.5 reaches for multi-source
   hubs on the person step (three attempts, twice) — the gates answer it; WP63 makes declared types

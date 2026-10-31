@@ -11806,3 +11806,61 @@ build failure is an inferred-bound stage, its dependants, or the copy's known ty
 freed of the optional participation, holds all 31 465 orders** (WP103's „nur angenommen"; if P3 is unmeasured,
 the second half of P7 is too). **Not predicted:** attempts per step, the shapes, the inferred count, the
 review-item total.
+
+## [2026-10-31] Twenty-third chain run — all green under WP100–WP104; 95 decisions, recorded as the second generation's second sample; WP101 live (`project_self_contained` 1.0 on every step under the stricter scorer); the fifth project parses without a hand view and builds PASS=417 of 421, the sales-order links hold every order and the currency-rate link exactly the orders that have one; WP94's gate had nothing to refuse; C38 and C39 found
+
+**Autor:** Claude Code
+
+Stamp `20261031T032606335763Z`, at commit `ba7e20b` (the pre-registration's), 03:26 → 03:50 UTC, 24.6 min wall,
+113 calls (10 Opus 5.5, 103 Sonnet 5.5), **5.17 USD** (input 509 106 uncached, cache write 75 720, cache read
+245 821, output 276 508; priced per model at the 2026-10-09 rates — the twenty-second by the same formula is 4.82).
+Results and kept outputs mirrored to `tank:/tank/git/vault-agent-eval-results/` — the kept outputs under a new
+`kept-outputs/<case>/<stamp>/`, together with both C1 chains' outputs, which the entry of 2026-10-30 reported as
+mirrored and which were not on `tank` at any vault path (found by listing it today; they were still in the
+session's scratchpad). **Against the predictions.** **P1 ✔** `validation_gate` 1.0 on all five steps,
+`pipeline_health` 1.0, `mapping_coverage` 1.0 but 0.75 on step 2 (as the twenty-second). **P2 ✔** 95 decisions
+(16, 8, 28, 8, 35 against the twenty-second's 16, 8, 27, 8, 32), within 91 ± 5; entered into
+`REVIEW_DECISION_SAMPLES` as the second generation's second sample, **not judged** (`wp34_check`: „cannot be
+judged: 1 recorded chain(s), need 3"); the WP104 guard now pins the first eight samples and lets the second
+generation grow. The split on step 5: +2 `binding_rejected` (C38 below), +1 `mapping_unresolved`
+(`hub_business_entity::rowguid`), +2 warnings as decisions (`link_sales_order_line_product`,
+`sat_business_entity_sales_quota_history`), −2 `link_binding_evidence` (8 → 6); step 3 +1 (`link_binding_evidence`
+2, `mapping_gap` 1). **P3 — unmeasured, as pre-registered:** `E_LINK_OPTIONAL_PARTICIPANT` appears nowhere in the
+trace; the modeler built `link_sales_order_currency_rate` with two participations (`hub_sales_order`,
+`hub_currency_rate`) itself, and the only three-participation link holding `hub_currency_rate` is
+`link_currency_rate_currency` with the two NOT NULL currency codes. The gate's live measurement on this landscape
+still waits for a chain whose modeler folds the currency rate into a wider link, as the twenty-second's did.
+**P4 ✔ — WP101 live:** `project_self_contained` 1.0 on every step under the scorer that judges the raw vault; the
+twenty-second's fifth step scored 0.0 under it before WP101's fix. **P5 ✔** `stage_refs_unresolved` 0 on every step;
+`stage_refs_inferred` 0 on every step — and the fifth project has two stages reading the `inferred` block, because
+the metric counts `SOURCE_BINDING` flags only, not `BINDING_REJECTED` (**C39**). **P6 ✔** 5.17 USD, 24.6 min; 21
+cross-domain links, one zero-satellite hub (`hub_employee`: the twenty-second's `hub_national_id` under a new name —
+keyed on `NationalIDNumber`, no link, no satellite, every employee attribute on `hub_business_entity`), 0 unsound
+aliases. **P7 ✔ in both halves, with a finding.** `dbt parse` succeeds on the kept fifth project without a hand
+view (the first attempt of the build script failed on its own `uv --directory` invocation, which made dbt look
+for the project in the repository root — a mistake of the script, fixed by calling the venv's `dbt` from the
+project directory; nothing of the project changed). `dbt build` PASS=417 WARN=0 ERROR=2 SKIP=2 of 421; the two
+errors are `stg_product_size_unit_measure` and `stg_product_weight_unit_measure`, the two skips their links —
+exactly the stages WP73 refused: the offer bound both to `ProductVendor`, which lacks the role columns, while
+`Product` carries `ProductID`, both role columns and the foreign keys to `UnitMeasure` and was never offered
+(**C38**; the twenty-second built no product→unit-measure role links, so the shape is new here). Data: `hub_sales_order`
+31 465 = the source's distinct orders; `link_sales_order_customer`, `_address`, `_credit_card`, `_sales_person`,
+`_sales_territory`, `_ship_method` 31 465 each; `link_sales_order_currency_rate` **13 976 = the orders whose
+`CurrencyRateID` is not NULL**, 0 orphans against either hub; `link_sales_order_line_product` 121 317,
+`link_sales_order_sales_reason` 27 647, `hub_currency_rate` 13 532. WP103's „nur angenommen" (the sales-order link
+whole at 31 465 once the optional participation has its own link) holds — by the modeler's own shape, not by the
+gate. An order without a sales person (27 659 of 31 465) or without a credit card (1 131) points at the optional
+zero key `-2` in its hub, as C12 designed and AutomateDV's `null_columns` render: live, counted. **Attempts:** two
+per step (ten `emit_dv_model` calls), every second attempt after an `E_` remedy and every remedy followed — step 1
+`E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB`; step 2 `E_HUB_HK_COLLISION`, `E_SAT_GRAIN_NOT_UNIQUE`,
+`E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB`; step 3 `E_SAT_GRAIN_NOT_UNIQUE`; step 4 and 5
+`E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` (step 5 also `E_LINK_KEY_NOT_IN_SOURCE`); zero backstop fires. Final model
+40 hubs, 50 links, 87 satellites — the twenty-second's counts exactly. **Überprüft:** every number from the result
+files, the trace, `wp34_check`, `dbt parse`/`build` logs (`scratchpad/chain23/build/chain23/`) and `psql` against
+`chain23` and the source copy; the record guards (16 passed); the mirror by listing `tank`. **Nur angenommen:** the
+USD figure's formula (input tokens taken as uncached, as the runner's own summary line reads them); that the modeler
+built the two-participation currency-rate link in attempt 1 (the final model holds it; the attempt-1 payload was
+not parsed). **Bewusst nicht getan:** no re-run for P3; no change to the binder or the metric (C38, C39 are
+candidates); the `chain23` schema left in the local copy for a later look; `CLAUDE.md` one clause longer, within
+budget. **Next:** C38 and C39 are the owner's to order; ADR-0019 and ADR-0020 wait for his word; the correction
+measurement is his.
