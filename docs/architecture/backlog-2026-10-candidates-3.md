@@ -249,3 +249,12 @@ answering a warning with the remedy — is not needed for these cases and stays 
 Requirements from the catalogue: `adrs/ADR-0019-drafted-requirements.md` proposes a deterministic drafting command
 in place of the stage's *LLM text marked as such*, on the C1 experiment's evidence. Stage 4 closes with the ADR's
 acceptance and the WP that builds the command.
+
+## C28 and C29 — closed by WP93 and WP95 (2026-10-26; noted here 2026-10-31)
+
+Both were built and measured on 2026-10-26 and never annotated here: C28 by WP93 (composite-key translation — the
+paid chain's last step builds with zero hand views, `wp93-composite-key-translation-spec.md`, `docs/log.md`
+2026-10-26) and C29 by WP95 (a role's column from the relation's foreign key — the sign-off alias derived by rule,
+`wp95-role-column-from-foreign-key-spec.md`, same date). The plan of 2026-10-30 listed both as open because this file
+and the index row still did; found on 2026-10-31 by reading the log before starting on them. Open from WP93: the
+two-hop composite case (unmeasured) and the owner's own build; from WP95: a catalogue without foreign keys.

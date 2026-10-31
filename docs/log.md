@@ -11725,3 +11725,18 @@ twenty-second's `flag_kinds` against the twenty-first's, both whole; that nothin
 twenty-second was a normal chain (none is recorded). **Bewusst nicht getan:** a per-kind record (spec §3); the
 `project_self_contained` discrepancy of WP101 (a per-step scorer, no record to re-base); the tolerance; the drafted
 arm, which is not a normal chain. **Next:** C28, C29, then C32, as the plan says.
+
+## [2026-10-31] Correction — C28 and C29 were closed on 2026-10-26 (WP93, WP95); the plan of 2026-10-30 listed them as open
+
+**Autor:** Claude Code
+
+Continuing the plan's fourth point („C28, C29, then C32") began with reading the log, as the bootstrap rule says —
+and the log says C28 was built as WP93 and C29 as WP95, both on 2026-10-26, both measured on the paid chain's last
+step (PostgreSQL builds, zero hand views; four bindings instead of seven). Neither the candidates file nor the index
+row carried the closure, so the plan, written from those two pointers, re-listed finished work — the 2026-08-24
+pattern. **Fixed:** the closure appended to `backlog-2026-10-candidates-3.md` with what each WP left open (WP93: the
+two-hop composite case unmeasured, the owner's own build; WP95: a catalogue without foreign keys), the index row
+amended. **Überprüft:** the two log entries of 2026-10-26, both specs' status lines, the index rows of WP93 and
+WP95. **Nur angenommen:** nothing. **Bewusst nicht getan:** no re-measurement; the specs' `status: not-measured`
+frontmatter is left as the convention leaves it. The plan's remaining point is C32, which needs the owner's
+decision and an ADR before a line is written — the ADR follows.
