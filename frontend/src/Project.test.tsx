@@ -102,3 +102,18 @@ describe("Project — settings (WP113)", () => {
     }));
   });
 });
+
+// WP114 (C3): the naming profile in the settings — saved with the rest.
+describe("Project — naming profile (WP114)", () => {
+  it("saves the naming profile's fields", async () => {
+    render(<ProjectPerspective project={project} onChanged={() => undefined} onOpenRun={() => undefined} onDeleted={() => undefined} busy={false} />);
+    await screen.findByDisplayValue("claude-sonnet-5-5");
+    fireEvent.change(screen.getByLabelText("staging prefix"), { target: { value: "stage_" } });
+    fireEvent.change(screen.getByLabelText("technical case"), { target: { value: "lower" } });
+    fireEvent.click(screen.getByRole("button", { name: "save settings" }));
+    await screen.findByRole("button", { name: "save settings" });
+    expect(api.saveSettings).toHaveBeenCalledWith("stores", expect.objectContaining({
+      naming: expect.objectContaining({ staging_prefix: "stage_", technical_case: "lower" }),
+    }));
+  });
+});
