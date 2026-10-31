@@ -43,6 +43,10 @@ GATES: dict[str, str] = {
     "W_HUB_NO_SAT": (
         "A hub has no satellite: no descriptive data captured; fine for a pure reference hub."
     ),
+    "W_UNTRACED_CONSTRUCT": (
+        "A construct of this run cites no requirement; the ratified appliers' links are exempt "
+        "(WP109)."
+    ),
     "W_LINK_OPTIONAL_PARTICIPANT": (
         "E_LINK_OPTIONAL_PARTICIPANT's shape when nothing says whether the column can be NULL; "
         "same remedy, advisory (WP94)."

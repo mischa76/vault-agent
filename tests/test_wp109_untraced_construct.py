@@ -65,11 +65,12 @@ async def test_an_existing_vaults_constructs_are_not_this_runs() -> None:
     assert _untraced(state) == []
 
 
-async def test_a_link_a_ratified_proposal_built_is_exempt_but_the_same_link_by_hand_is_not() -> None:
+async def test_a_link_a_ratified_proposal_built_is_exempt_the_same_link_by_hand_is_not() -> None:
     state = VaultAgentState(requirements=[_requirement()])
     state.link_proposals.proposals.append(LinkProposal(
         source_table="SalesOrderHeader", source_column="CustomerID", target_hub="hub_customer",
-        target_business_key="CustomerID", category="declared_fk_same_name", ratification_status="accepted",
+        target_business_key="CustomerID", category="declared_fk_same_name",
+        ratification_status="accepted",
     ))
     delta = DVModel.model_validate({
         "hubs": [{"name": "hub_order", "business_key": "SalesOrderID",

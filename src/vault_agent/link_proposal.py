@@ -658,6 +658,33 @@ def _grain(link: Link) -> frozenset[str]:
     return frozenset(ref.hub for ref in link.hub_refs)
 
 
+def _near_hub(hubs: dict[str, Hub], source_table: str) -> str | None:
+    """The hub built from a proposal's referencing table — the near side of its link."""
+    return next(
+        (
+            name for name, hub in hubs.items()
+            if name.startswith("hub_") and hub_binds_to_source_table(hub, source_table)
+        ),
+        None,
+    )
+
+
+def ratified_link_names(state: VaultAgentState, model: DVModel) -> set[str]:
+    """WP109 (C6): the names the ratified appliers give their links — by the appliers' own
+    rules (`_near_hub` + `_link_name`, `_relationship_link_name`), never by a description.
+    The validator exempts these from `W_UNTRACED_CONSTRUCT`: a link built from the catalogue
+    has no requirement to cite."""
+    hubs = {hub.name: hub for hub in model.hubs}
+    names: set[str] = set()
+    for proposal in state.link_proposals.ratified():
+        near = _near_hub(hubs, proposal.source_table)
+        if near is not None:
+            names.add(_link_name(near, proposal.target_hub))
+    for rel in state.link_proposals.ratified_relationships():
+        names.add(_relationship_link_name(rel.source_table))
+    return names
+
+
 def apply_ratified_link_proposals(
     delta: DVModel, existing: DVModel, state: VaultAgentState
 ) -> DVModel:
@@ -679,14 +706,7 @@ def apply_ratified_link_proposals(
     added = 0
 
     for proposal in ratified:
-        near = next(
-            (
-                name
-                for name, hub in hubs.items()
-                if name.startswith("hub_") and hub_binds_to_source_table(hub, proposal.source_table)
-            ),
-            None,
-        )
+        near = _near_hub(hubs, proposal.source_table)
         if near is None:
             state.flag(
                 "link_proposer",

@@ -15,6 +15,11 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- `W_UNTRACED_CONSTRUCT` (WP109, 2026-10-31, backlog C6): a hub, link or satellite of this run that
+  cites no requirement while requirements were parsed is a validation warning — a disclosure, never an
+  error. The links the ratified-proposal appliers build are exempt (recognised by the appliers' own
+  naming), an existing vault's constructs are not this run's. On every kept chain the modeler cites,
+  so the gate fires nowhere today; it guards the next model release and hand-edited models.
 - The C1 experiment's instrument and cases (`eval.adventureworks.draft_requirements`, six
   `adventureworks_drafted_*` cases, `eval.c1_compare`): requirements drafted deterministically from the
   catalogue, run as a chain against the analyst's documents on one commit (2026-10-30). The draft kept

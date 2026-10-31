@@ -110,3 +110,13 @@ The evidence gathered (the C1 experiment, 2026-10-30) is read in `adrs/ADR-0019-
 recommendation is option 3, refined — `vault-agent draft-requirements` writes a deterministic document from the
 house-format schema, typed as unreviewed, a human corrects it, the normal run takes it; options 1 and 2 are
 argued against in the ADR. The owner's acceptance is pending; the WP that builds it follows the acceptance.
+
+## C6 — closed by WP109 (2026-10-31)
+
+`W_UNTRACED_CONSTRUCT`: a hub, link or satellite of this run that cites no requirement while requirements were parsed
+— a warning, a disclosure in the review. The ratified appliers' links are exempt by the appliers' own naming
+(`link_proposal.ratified_link_names`), an existing vault's constructs are not this run's, and without parsed
+requirements there is nothing to cite. The evidence before the change: no uncited construct in any persisted model
+or demo run but the applier's links — the 5.5 modeler cites; measured as zero on the demo's five runs and as exactly
+the applier's three links on the twenty-third chain's step 4 when the proposals are withheld. Spec
+`backlog-2026-07/wp109-untraced-construct-spec.md`.

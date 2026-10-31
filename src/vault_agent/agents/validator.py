@@ -62,15 +62,16 @@ from vault_agent.rules.dv2_rules import (
     zero_key_incapable_type,
 )
 from vault_agent.state import (
+    dedupe_flags,
     Hub,
     IssueSeverity,
     Link,
     RetiredConstruct,
+    Satellite,
     SourceTable,
     ValidationIssue,
     ValidationReport,
     VaultAgentState,
-    dedupe_flags,
 )
 from vault_agent.subtype_feed import ratified_subtype_feeds
 
@@ -207,6 +208,17 @@ def _optional_participants(
     return issues
 
 
+def _pre_existing_names(state: VaultAgentState) -> set[str]:
+    """The constructs of the vault being extended — not this run's (WP23)."""
+    if state.existing_model is None:
+        return set()
+    return (
+        {hub.name for hub in state.existing_model.hubs}
+        | {link.name for link in state.existing_model.links}
+        | {sat.name for sat in state.existing_model.satellites}
+    )
+
+
 def _issue(
     severity: IssueSeverity, code: str, construct: str, message: str,
     remedy: str | None = None, retires: list[str] | None = None,
@@ -268,6 +280,34 @@ class ValidatorAgent(BaseAgent):
                     f"{CONSTRUCT_NAME_PATTERN}",
                 )
             )
+
+        # W_UNTRACED_CONSTRUCT (WP109, C6): the modeler is told to cite `requirement_ids` for
+        # every construct; a construct of this run that cites none is disclosed — a warning,
+        # because the ratified-proposal applier's links are built from the catalogue and have
+        # nothing to cite (exempt by the applier's own naming, never by text), and because
+        # nothing is wrong with the model. Silent without parsed requirements: nothing to cite.
+        if state.requirements:
+            from vault_agent.link_proposal import ratified_link_names
+
+            untraced_pre_existing = _pre_existing_names(state)
+            exempt = ratified_link_names(state, model)
+            constructs: list[Hub | Link | Satellite] = [
+                *model.hubs, *model.links, *model.satellites
+            ]
+            for construct in constructs:
+                if (
+                    construct.name in untraced_pre_existing or construct.name in exempt
+                    or construct.requirement_ids
+                ):
+                    continue
+                issues.append(
+                    _issue(
+                        "warning", "W_UNTRACED_CONSTRUCT", construct.name,
+                        f"construct {construct.name!r} cites no requirement "
+                        f"(requirement_ids is empty; {len(state.requirements)} parsed "
+                        f"requirement(s) to cite); trace it, or record why it is untraced",
+                    )
+                )
 
         for hub in model.hubs:
             if not hub.business_key.strip():
@@ -979,13 +1019,7 @@ class ValidatorAgent(BaseAgent):
         issues: list[ValidationIssue] = []
         if not state.source_schemas:
             return issues
-        pre_existing = (
-            {hub.name for hub in state.existing_model.hubs}
-            | {link.name for link in state.existing_model.links}
-            | {sat.name for sat in state.existing_model.satellites}
-            if state.existing_model is not None
-            else set()
-        )
+        pre_existing = _pre_existing_names(state)
         columns = known_columns(state.source_schemas)
         hub_by_name = {hub.name: hub for hub in state.dv_model.hubs}
         for hub in state.dv_model.hubs:

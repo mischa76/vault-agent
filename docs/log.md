@@ -12031,3 +12031,32 @@ ruff; bare mypy.
 green, suite, ruff, mypy. **Nur angenommen.** P2's recurrence (above); that no consumer counted on a generator flag
 surviving the generator's next run. **Bewusst nicht getan.** The modeler's flags (spec §2.3); the merger's conflicts
 re-derived through the appliers; no paid run; the record's samples untouched.
+
+## [2026-10-31] WP109 built and measured: `W_UNTRACED_CONSTRUCT` — a construct of this run that cites no requirement is a warning (C6); the evidence says the 5.5 modeler cites everywhere, the gate fires only where the ratified appliers' links are not exempt
+
+**Autor:** Claude Code
+
+Third of the old backlog on the owner's word. **The evidence, read first:** every persisted model in `eval/results` (15
+files) and the demo's five runs hold no construct of a run without `requirement_ids` except the links the
+ratified-proposal applier builds (WP34; twenty-third chain step 4: 3; arms A and T: 4+4 and 3+3; the demo's Purchasing
+and Sales runs: 2 and 4). **Built** (`wp109-untraced-construct-spec.md`, guards `c312496` first, two of five red): the
+validator's `W_UNTRACED_CONSTRUCT` after the name gates — a warning per hub, link or satellite of this run with an
+empty `requirement_ids`, naming the count of parsed requirements it could cite; silent when no requirements were
+parsed (nothing to cite — keyless fixtures and scripted models stay as they are) and for the vault being extended
+(`_pre_existing_names`, now shared with the key gates). Exempt by rule, not by text: the links the ratified appliers
+build, named through `link_proposal.ratified_link_names` — the applier's own near-hub rule (`_near_hub`, extracted
+from `apply_ratified_link_proposals`) and `_link_name`, plus `_relationship_link_name` for relationship tables.
+Catalogue entry (WP68's guard pins it), chapter 8 row, cheatsheet row, index row, CHANGELOG (Added), candidates part
+1: C6 closed.
+
+**Measured** (keyless). **P1 ✔ with one named drift:** the demo's five runs replayed through the validator — the gate
+0 on each (the applier links exempt); every other code equal to the recorded report except one `E_LINK_KEY_NOT_IN_SOURCE`
+on the Sales run the 2026-10-22 report lacks — the validator's evolution since (WP89–WP95), not this WP's block. **P2
+✔:** the twenty-third chain's steps with the gate armed by a placeholder requirement and no proposals (a step result
+persists neither): 0, 0, 0, 3, 0 — exactly the applier's three links of step 4, nothing else. **P3 ✔:** suite 1474
+passed, 5 skipped; ruff; bare mypy; README's „36 `E_` gates" untouched.
+
+**Überprüft.** The replays by script against the recorded reports, the guards red then green, the WP68 catalogue guard,
+suite, ruff, mypy. **Nur angenommen.** That the Sales run's extra `E_LINK_KEY_NOT_IN_SOURCE` is drift (the gate's
+class changed in WP89–WP95; not bisected). **Bewusst nicht getan.** No check that cited ids exist among the parsed
+requirements; no `requirement_ids` on the appliers' links; no paid run.

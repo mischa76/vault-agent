@@ -60,3 +60,18 @@ warned. The console catalogue's guard (WP68) pins the code's one-line meaning an
 ## 6 Measured
 
 Appended after the run.
+
+## 6 Measured (2026-10-31, keyless)
+
+- **P1 ✔ on the gate, with one unrelated drift named.** The demo's five runs replayed through the validator:
+  `W_UNTRACED_CONSTRUCT` **0** on each (requirements 122 / 89 / 210 / 97 / 197; ratified proposals 0 / 4 / 1 / 7 / 18;
+  the Purchasing and Sales runs' applier links exempt). Every other code's count equals the recorded report on four
+  runs; on the Sales run the replay raises one `E_LINK_KEY_NOT_IN_SOURCE` the recorded report (2026-10-22) did not —
+  the validator's own evolution since that date (WP89–WP95 touched exactly that gate's class), outside this WP's
+  code path, which adds one warning block and moves no other line.
+- **P2 ✔.** The twenty-third chain's steps with the gate armed by a placeholder requirement and no proposals
+  (neither is persisted in a step result): 0, 0, 0, **3**, 0 — `link_business_entity_product`,
+  `link_business_entity_unit_measure`, `link_purchase_order_product`, the applier's three links of step 4 and nothing
+  else. With the proposals present (the demo's runs, P1) they are exempt.
+- **P3 ✔.** Suite 1474 passed, 5 skipped (5 new); the WP68 catalogue guard green with the new entry and the chapter-8
+  row; ruff; bare mypy; README's gate count untouched.

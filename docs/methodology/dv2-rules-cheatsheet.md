@@ -87,6 +87,7 @@ Each rule is one of two tiers:
 | `E_BAD_NAME` | error | a construct name is not `hub_`/`link_`/`sat_` + lowercase snake_case |
 | `E_HUB_NO_BK` | error | hub has no business key |
 | `W_HUB_NO_SAT` | warning | hub has no satellite |
+| `W_UNTRACED_CONSTRUCT` | warning | a construct of this run cites no requirement (WP109) |
 | `E_LINK_TOO_FEW_HUBS` | error | link connects fewer than two hubs |
 | `E_LINK_UNKNOWN_HUB` | error | link references an unknown hub |
 | `E_DRIVING_KEY_NOT_IN_LINK` | error | driving key not a subset of connected hubs |
