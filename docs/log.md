@@ -11640,3 +11640,29 @@ candidate's second half (the eval answering a warning with the remedy) — not n
 nullability, open for catalogues that cannot say; a re-baseline of the review record — the C1 chains ran on the
 old schema and stay recorded as they ran. **Next:** the C1 ADR (ADR-0019, `draft-requirements`) and the review
 record, as the plan of 2026-10-30 says; the next live chain measures WP94's remedy in the loop.
+
+## [2026-10-31] ADR-0019 proposed — requirements drafted from the source catalogue: a command that writes a document a human corrects, not a source-driven mode (C1, C27 stage 4)
+
+**Autor:** Claude Code
+
+On the owner's word (2026-10-31: the C1 ADR, after C37). **What it decides, if accepted.** The C1 experiment
+(2026-10-30) is read as C1's evidence: the deterministic draft did not make the vault take the source's shape —
+subtypes stayed subtypes, the twelve relationship tables stayed links — and the keys got better (14 of 39 hubs on
+an `…ID` column against 29 of 40), at 60 % more review decisions when nobody corrects the draft, with both arms
+green on every gate. The recommendation is option 3, refined: `vault-agent draft-requirements --source-schema FILE
+--out FILE`, deterministic and keyless, the experiment's rules promoted into `src/vault_agent/` so the six drafted
+documents regenerate byte-identically; one rule added for the house format — a unique key on a GUID-typed column is
+no identifier, since a catalogue read by `source-schema` carries `rowguid`'s index where the derivation dropped it;
+a typed header (`drafted-from-catalogue`, `status: unreviewed`) that `run` reads into a flag, never a refusal; the
+proposed ADR names the provenance. Not read by the draft: inferred keys (ADR-0018's class stays the proposer's),
+profiling, nullability (a later, measured increment under WP34 §3.8). Argued against: not building it (a customer
+with a catalogue alone cannot start, and the keys finding stays an eval finding); a deterministic source-shaped
+generator (the inversion C1 named, and the experiment removes its argument); LLM prose (unmarkable, unneeded); a
+`--draft` flag on `run` (option 2 with a model in the middle). **Überprüft:** the numbers against the memo's §6 and
+the log of 2026-10-30; the rules against `draft_requirements.py`'s docstring; IREB's three sources against
+`ireb-mapping.md` §5; the `StartRun` and `run` requirement against the code; `rowguid`'s `uniqueidentifier` type
+and the derivation's `technical_guid` filter against `derive.py`. **Nur angenommen:** that a corrected draft cuts
+review rather than adding it — the measurement C1 still lacks, the owner's to make on one subject area when the
+command exists. **Bewusst nicht getan:** the command itself (a WP after the acceptance); CHANGELOG (nothing shipped);
+any change to the pipeline. Index row, C1 and C27 stage 4 annotated in their backlog files. **Next:** the owner's
+word on the ADR; then the review record's re-baseline (the plan's point 3) and C28, C29, C32.

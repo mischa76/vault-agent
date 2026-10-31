@@ -103,3 +103,10 @@ database's DDL; a mode that references existing constructs instead of regenerati
 agreement per vault (algorithm, separator, normalisation) in the platform profile, without which
 a new link stands beside the existing hub instead of on it. Proposed test bed: the twenty-first
 chain's PostgreSQL vault treated as foreign.
+
+## C1 — ADR-0019 proposed (2026-10-31)
+
+The evidence gathered (the C1 experiment, 2026-10-30) is read in `adrs/ADR-0019-drafted-requirements.md`: the
+recommendation is option 3, refined — `vault-agent draft-requirements` writes a deterministic document from the
+house-format schema, typed as unreviewed, a human corrects it, the normal run takes it; options 1 and 2 are
+argued against in the ADR. The owner's acceptance is pending; the WP that builds it follows the acceptance.

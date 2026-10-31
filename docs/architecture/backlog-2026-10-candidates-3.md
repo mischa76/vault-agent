@@ -243,3 +243,9 @@ derived cases and their five C1 copies re-derived, nothing else changed. Both ch
 replayed keylessly through the validator, now get `E_LINK_OPTIONAL_PARTICIPANT` on the sales-order link with the
 own-link remedy where they had the warning (`docs/log.md`, 2026-10-31). The second half of the candidate — the eval
 answering a warning with the remedy — is not needed for these cases and stays open for catalogues that cannot say.
+
+## C27 stage 4 — ADR-0019 proposed (2026-10-31)
+
+Requirements from the catalogue: `adrs/ADR-0019-drafted-requirements.md` proposes a deterministic drafting command
+in place of the stage's *LLM text marked as such*, on the C1 experiment's evidence. Stage 4 closes with the ADR's
+acceptance and the WP that builds the command.
