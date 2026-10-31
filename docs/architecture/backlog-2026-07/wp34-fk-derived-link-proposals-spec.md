@@ -417,3 +417,16 @@ Owner's decision, 2026-10-07: the review clause's ceiling is no longer one chain
 recorded normal chains before the judged one (`eval/wp34_check.py`, `REVIEW_DECISION_SAMPLES`,
 `review_ceiling`). Rule, guards and the re-run over the archive:
 `wp53-review-ceiling-distribution-spec.md`. The other three clauses are unchanged.
+
+## 15 The review record per product generation (2026-10-31, WP104)
+
+The twenty-second normal chain (2026-10-30, the C1 experiment's control arm) failed the §14 ceiling
+(91 against 89.7) on decision classes the recorded 5.5 chains never carried — `link_binding_evidence`
+(WP90), `link_translation` — product change, split against the twenty-first and recorded
+(`docs/log.md` 2026-10-30). On the owner's go to continue the plan of 2026-10-30, the record is split,
+within a modeler model, into product generations (`eval/wp34_check.py`, `REVIEW_GENERATIONS`): a
+boundary at the first chain under new decision classes, drawn once with the cause split written before
+it; a chain is judged against its own generation's chains before it, „cannot be judged" until three
+exist. The twenty-second seeds the 5.5 record's second generation; the seven chains before it close the
+first; no sample is pruned and no first-generation judgement moves. Rule, guards and the
+pre-registration: `wp104-review-record-generation-spec.md`. The other three clauses are unchanged.

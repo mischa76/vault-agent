@@ -11666,3 +11666,62 @@ review rather than adding it — the measurement C1 still lacks, the owner's to 
 command exists. **Bewusst nicht getan:** the command itself (a WP after the acceptance); CHANGELOG (nothing shipped);
 any change to the pipeline. Index row, C1 and C27 stage 4 annotated in their backlog files. **Next:** the owner's
 word on the ADR; then the review record's re-baseline (the plan's point 3) and C28, C29, C32.
+
+## [2026-10-31] ADR-0019 stays proposed: a corrected draft is measured before anything is built; the experiment's key finding is read as a modeler-weighting question
+
+**Autor:** Claude Code
+
+The owner asked whether the drafting command brings real value; on the assessment below he chose to continue the
+plan of 2026-10-30 without accepting the ADR (2026-10-31). **The assessment, recorded.** The door problem is real
+(`run` and the workbench require a document) but small — a consultant closes it with half a page. The
+deterministic draft carries no information the modeler does not already see in `source_schemas` (unique keys since
+WP85); the experiment's better keys came from the *form* — the modeler weighed Microsoft's keys more when the text
+named them than when only the schema declared them — which is a finding about the modeler's grounding, not an
+argument for a drafting tool. The ADR's value claim (a corrected draft saves review) is unmeasured; measured is the
+uncorrected draft at 60 % more decisions. **Decided:** ADR-0019 remains Proposed; no WP builds the command. The
+measurement comes first and needs no command: one of the six drafted documents under
+`eval/datasets/adventureworks_drafted_*` corrected by the owner as he would hand it to a customer, one live step,
+decisions compared against the control of 2026-10-30, pre-registered before the run. If it saves review, the
+command is built on that evidence; if not, C1 closes with the measurement and the ADR stays as a rejected proposal.
+**Follow-up, keyless:** how the modeler weighs a declared unique key today against the same key named in the
+requirements text — the experiment's actual find. **Überprüft:** nothing new ran; the numbers are the experiment's
+(`docs/log.md` 2026-10-30). **Nur angenommen:** that an hour's correction is what a customer's reviewer would do.
+**Bewusst nicht getan:** the ADR's status line (it is Proposed and says so); the index row's hold note is the
+record of the pause.
+
+## [2026-10-31] WP104 — the review record is per product generation: the 5.5 record's second generation begins at the twenty-second chain, whose 91 seeds it; the first generation closes with the twenty-first, no sample pruned, no archived judgement moved
+
+**Autor:** Claude Code
+
+On the owner's go to continue the plan of 2026-10-30 (2026-10-31), whose third point this is. **What was wrong.**
+The review clause (WP34 §6; a distribution since WP53, per modeler model since WP62, a floor since WP70) judges a
+chain against the chains before it. The seven recorded 5.5 chains (2026-10-09 → 2026-10-17, 84–88, mean 84.7) all
+ran before WP79; the twenty-second (2026-10-30, the C1 control) ran under WP79–WP99 and carried decision classes
+the record never saw — `link_binding_evidence` 8 (WP90), `link_translation` 4, `source_binding` 8 → 2, net +4 —
+and failed the ceiling 89.7 with 91 (split against the twenty-first, log 2026-10-30). Judged against a record that
+predates the product's own decision classes, the clause reports a product choice as a regression, and every next
+chain at the new level would do the same, entering the record one failure at a time until the mean caught up.
+**What changed.** `eval/wp34_check.py`: `REVIEW_GENERATIONS` maps a modeler model to generation boundaries
+`(since_stamp, label)`; `review_generation` picks the last boundary at or before the result's stamp (unstamped: the
+latest); the clause uses that generation's samples before the result and reports „cannot be judged" until three
+exist (the WP62 precedent); the line names the generation. The 5.5 record: `WP62–WP78` (fourteenth → twenty-first)
+and `WP79–WP99 (link_binding_evidence, link_translation)` from `20261030T184653194084Z`. `REVIEW_DECISION_SAMPLES`
+unchanged — the eight 5.5 and eleven 4.8 chains stay recorded. A boundary is drawn once, with the cause split
+written before it, never because a chain came out high (spec §2 rule 4). WP70's report-line fixture gets the
+generation table emptied (its synthetic record predates the concept). Spec
+`docs/architecture/backlog-2026-07/wp104-review-record-generation-spec.md`, guards
+`tests/test_wp104_review_record_generation.py` (three of nine red in `cf22465`; the six green ones pin the old
+judgements), WP34 spec §15 appended, CHANGELOG, index row, the `CLAUDE.md` sentence on the ceiling. **Measured
+keyless.** P1: the twenty-second's archived result re-checked — `91 decision(s) — cannot be judged: 0 recorded
+chain(s), need 3, generation WP79–WP99 (…)`, the other three clauses held as before. P2: an unrecorded 5.5 chain —
+`1 recorded chain(s), need 3`. P3: the seventeenth, eighteenth, twentieth and twenty-first at their archived stamps
+and counts still held against 88.3, 88.2, 88.6, 89.3 over 3, 4, 5, 6 chains; a chain stamped 2026-10-20 with 91 still
+fails 89.7 over seven. P4: the 4.8 record one generation of eleven, no label. Suite 1445 passed, 5 skipped; ruff,
+mypy clean. **Consequence for the next chains:** the twenty-third and twenty-fourth normal chains enter the second
+generation unjudged; the twenty-fifth is the first judged, against the floor over three (mean + 5) unless the three
+spread wider. **Überprüft:** the guards red before and green after; the archived file through the script; the
+suite. **Nur angenommen:** that WP79–WP99 added no other decision class than the two named — the split read the
+twenty-second's `flag_kinds` against the twenty-first's, both whole; that nothing between the twenty-first and the
+twenty-second was a normal chain (none is recorded). **Bewusst nicht getan:** a per-kind record (spec §3); the
+`project_self_contained` discrepancy of WP101 (a per-step scorer, no record to re-base); the tolerance; the drafted
+arm, which is not a normal chain. **Next:** C28, C29, then C32, as the plan says.

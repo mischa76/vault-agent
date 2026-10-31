@@ -93,10 +93,28 @@ REVIEW_DECISION_SAMPLES: dict[str, tuple[tuple[str, int], ...]] = {
         #                                   arm, the first under WP79–WP99: green, 23.0 min, but
         #                                   FAILED the review ceiling 89.7 (the sixth's precedent:
         #                                   a failed chain enters the record; the cause split is
-        #                                   in docs/log.md of that date)
+        #                                   in docs/log.md of that date). WP104: the seed of the
+        #                                   second 5.5 generation — no longer judged, see below.
     ),
 }
 DEFAULT_RECORD_MODEL = "claude-opus-4-8"  # every archived result without `models`
+# WP104 (2026-10-31, the plan of 2026-10-30): within a model, the record is split into PRODUCT
+# generations. The twenty-second chain's +4 against the twenty-first was product change, not
+# drift — decision classes the seven recorded 5.5 chains never carried (`link_binding_evidence`
+# 8 from WP90, `link_translation` 4; `source_binding` 8 → 2; split in docs/log.md 2026-10-30).
+# Judged against a record that predates its own decision classes, the clause reports a product
+# choice as a regression, chain after chain, until the mean catches up. So: a generation begins at
+# a stamp (the first chain under the new decision classes), is drawn once, with the cause split
+# written BEFORE it is drawn, never because a chain came out high; a result belongs to the last
+# generation whose `since` is <= its stamp (unstamped: the latest) and is judged against that
+# generation's chains before it, "cannot be judged" until MIN_REVIEW_SAMPLES of them exist (the
+# WP62 precedent). The samples above are never pruned; a model absent here has one generation.
+REVIEW_GENERATIONS: dict[str, tuple[tuple[str, str], ...]] = {
+    "claude-opus-5-5": (
+        ("", "WP62–WP78"),  # fourteenth → twenty-first, 2026-10-09 → 2026-10-17 (seven chains)
+        ("20261030T184653194084Z", "WP79–WP99 (link_binding_evidence, link_translation)"),
+    ),
+}
 MIN_REVIEW_SAMPLES = 3
 # WP70 (2026-10-12, the owner's number): the ceiling never sits closer than this to the mean. A
 # tight record (the 5.5 one: 84, 83, 83, 83, sd 0.5) made the t-bound a demand for sameness;
@@ -250,11 +268,31 @@ def unsound_aliases(steps: list[dict[str, Any]]) -> list[str]:
     return problems
 
 
+def review_generation(
+    record_model: str, own_stamp: str | None
+) -> tuple[str, str | None, str | None]:
+    """The product generation a result is judged within (WP104): ``(since, until, label)`` —
+    the last boundary whose ``since`` is <= the result's stamp (unstamped: the latest), ``until``
+    the next boundary's stamp or None. A model without boundaries is one unlabelled generation."""
+    boundaries = REVIEW_GENERATIONS.get(record_model, ())
+    if not boundaries:
+        return "", None, None
+    index = len(boundaries) - 1
+    if own_stamp is not None:
+        index = max(i for i, (since, _) in enumerate(boundaries) if since <= own_stamp)
+    since, label = boundaries[index]
+    until = boundaries[index + 1][0] if index + 1 < len(boundaries) else None
+    return since, until, label
+
+
 def _review_clause(
-    decisions: int | None, used: list[tuple[str, int]], excluded: bool, review: int
+    decisions: int | None, used: list[tuple[str, int]], excluded: bool, review: int,
+    generation: str | None = None,
 ) -> tuple[bool, str]:
-    """The review clause (WP53): decisions against the prediction bound of the recorded chains."""
+    """The review clause (WP53): decisions against the prediction bound of the recorded chains
+    of the result's product generation (WP104)."""
     samples = [count for _, count in used]
+    of_generation = f", generation {generation}" if generation else ""
     reported = (f" · {review} items reported, not judged (the pre-2026-10-05 clause read them "
                 f"against {BASELINE_REVIEW_ITEMS})")
     if decisions is None:
@@ -262,7 +300,8 @@ def _review_clause(
                        f"{review} items) — the clause cannot be judged on it")
     if len(samples) < MIN_REVIEW_SAMPLES:
         return False, (f"review:     {decisions} decision(s) — cannot be judged: "
-                       f"{len(samples)} recorded chain(s), need {MIN_REVIEW_SAMPLES}")
+                       f"{len(samples)} recorded chain(s), need {MIN_REVIEW_SAMPLES}"
+                       f"{of_generation}")
     t_bound, floor = review_bounds(samples)
     ceiling = max(t_bound, floor)
     which = (f"the floor mean + {REVIEW_TOLERANCE} (WP70; t-bound {t_bound:.1f})"
@@ -275,7 +314,7 @@ def _review_clause(
         f"review:     {decisions} decision(s) (ceiling {ceiling:.1f} — {which} of "
         f"{len(samples)} recorded chain(s), mean "
         f"{statistics.mean(samples):.1f}, sd {statistics.stdev(samples):.1f}, "
-        f"{stamps[0][:8]} → {stamps[-1][:8]}"
+        f"{stamps[0][:8]} → {stamps[-1][:8]}{of_generation}"
         f"{'; this run and later ones excluded' if excluded else ''})" + reported
     )
 
@@ -296,7 +335,10 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
     # what came after it. A result without a stamp (a chain not yet recorded) sees them all.
     own_stamp = result.get("timestamp")
     record_model = (result.get("models") or {}).get("heavy_model") or DEFAULT_RECORD_MODEL
-    record = REVIEW_DECISION_SAMPLES.get(record_model, ())
+    # WP104: within the model, the result's own product generation only.
+    since, until, generation = review_generation(record_model, own_stamp)
+    record = [(stamp, count) for stamp, count in REVIEW_DECISION_SAMPLES.get(record_model, ())
+              if stamp >= since and (until is None or stamp < until)]
     used = [(stamp, count) for stamp, count in record
             if own_stamp is None or stamp < own_stamp]
     excluded = len(used) < len(record)
@@ -314,7 +356,7 @@ def check(result: dict[str, Any]) -> tuple[bool, list[str]]:
          f"(must not exceed {BASELINE_ZERO_SAT_HUBS}): {zero_sat}"
          + (f"; named hub present, reported not failing since 2026-09-14 "
             f"(WP29 same-as outcome): {named}" if named else "")),
-        _review_clause(decisions, used, excluded, review),
+        _review_clause(decisions, used, excluded, review, generation),
         (not aliases and gate_fires == 0,
          f"joins:      {len(aliases)} unsound alias(es), "
          f"{gate_fires} E_LINK_KEY_NOT_IN_SOURCE fire(s) — both must be 0"),

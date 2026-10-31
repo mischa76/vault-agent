@@ -95,6 +95,14 @@ is not the project's.
   of C23): 68 tables, 465 columns, 90 foreign keys, 440 comments, every key equal to the extract's; a
   PostgreSQL `xml` column is spelled `xml`, which SQLAlchemy's dialect alone did not.
 
+### Changed
+- The WP34 §6 review record is split, within a modeler model, into product generations (WP104,
+  2026-10-31): `eval.wp34_check.REVIEW_GENERATIONS` draws a boundary at the first chain under new
+  decision classes, and a chain is judged against its own generation's chains before it, „cannot be
+  judged" until three exist (the WP62 precedent). The 5.5 record's second generation begins at the
+  twenty-second chain (2026-10-30, WP79–WP99: `link_binding_evidence`, `link_translation`), whose 91
+  seeds it; the seven chains before it close the first; no sample is pruned and no archived judgement
+  of the first generation moves.
 ### Fixed
 - Two surrogate→natural-key translations in one stage whose hubs are keyed alike (`Department.Name` and
   `Shift.Name` in one link) rendered a view projecting `NAME` twice, which dbt and the warehouse refuse —

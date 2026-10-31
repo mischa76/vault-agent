@@ -23,6 +23,8 @@ def test_the_floor_lifts_a_tight_record_and_never_lowers_a_wide_one() -> None:
 
 
 def test_the_report_line_names_which_bound_applied(monkeypatch: pytest.MonkeyPatch) -> None:
+    # WP104: the synthetic record is one generation (its stamps predate the real boundary).
+    monkeypatch.setattr(wp34_check, "REVIEW_GENERATIONS", {})
     monkeypatch.setattr(wp34_check, "REVIEW_DECISION_SAMPLES", {
         "claude-opus-4-8": tuple(
             (f"2026100{i}T000000000000Z", n) for i, n in enumerate(FIRST_FIVE_4X)
