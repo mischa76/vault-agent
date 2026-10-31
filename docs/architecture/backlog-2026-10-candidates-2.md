@@ -135,3 +135,11 @@ Candidate: a Snowflake platform profile and one recorded build of a chain step, 
   for the owner, not a work package; its outcome belongs in the log.
 - **Business Vault PIT/Bridge** — the analysis lists it as the one „Generate"-class gap; ADR-0007 keeps
   Business Vault logic human-ratified, so it stays out until the owner revisits that ADR.
+
+## C10 — closed by WP107 (2026-10-31)
+
+`dbt_project.yml` carries a `seeds:` block, and WP7 §7.3's seed column types, only for stages that read a seed — a bare
+name no `source()` block and not WP76's `inferred` block declares. A grounded project reading sources alone has no
+`seeds:` key; the seed world (ungrounded runs, the bank demos) is byte-identical. Measured keyless: the twenty-third
+chain's fifth project builds with zero warnings (one before), PASS=421 of 421; the demo's Sales step types none of the
+17 relations it reads through `source()`. Spec `backlog-2026-07/wp107-seed-block-only-for-seeds-spec.md`.

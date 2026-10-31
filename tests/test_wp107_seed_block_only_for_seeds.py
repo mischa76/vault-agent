@@ -13,13 +13,18 @@ from vault_agent.agents.staging_generator import build_staging
 from vault_agent.state import DVModel, SourceTable
 
 
-def _model(*entities: str) -> DVModel:
+def _model(*entities: str, unbound: frozenset[str] = frozenset()) -> DVModel:
+    """One hub and one satellite per entity; a satellite of an `unbound` entity names no
+    `source_table`, so its hub's stage is inferred (`raw_<entity>`) — a bound satellite's
+    `source_table` is a declared binding (WP7 §7.1), rendered as a bare name even where no
+    table of that name is declared, and a bare name is seed-compatible by design."""
     return DVModel.model_validate({
         "hubs": [{"name": f"hub_{e.lower()}", "business_key": f"{e}ID", "source_entity": e,
                   "description": "x"} for e in entities],
         "links": [],
         "satellites": [{"name": f"sat_{e.lower()}_details", "parent": f"hub_{e.lower()}",
-                        "attributes": ["Name"], "source_table": e, "description": "x"}
+                        "attributes": ["Name"], "description": "x",
+                        **({} if e in unbound else {"source_table": e})}
                        for e in entities],
     })
 
@@ -70,9 +75,14 @@ def test_a_mixed_project_types_only_the_seed_read_relations() -> None:
 
 def test_an_inferred_stage_in_a_grounded_project_is_no_seed() -> None:
     # WP76: the inferred relation sits under the `inferred` source block, not in `seeds/`
-    text = _project(_model("Customer", "Product"), [_table("Customer", schema="Sales")],
+    text = _project(_model("Customer", "Product", unbound=frozenset({"Product"})),
+                    [_table("Customer", schema="Sales")],
                     [_typed("Customer"), _typed("raw_product")])
     assert "seeds:" not in text
+    assert "inferred: 'raw_product'" in build_staging(
+        _model("Customer", "Product", unbound=frozenset({"Product"})),
+        [_table("Customer", schema="Sales")],
+    ).models["stg_product"]
 
 
 @pytest.mark.skipif(not _DEMO_STATE.is_file(), reason="the shipped demo is not checked out")

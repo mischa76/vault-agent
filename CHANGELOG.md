@@ -111,6 +111,11 @@ is not the project's.
   seeds it; the seven chains before it close the first; no sample is pruned and no archived judgement
   of the first generation moves.
 ### Fixed
+- `dbt_project.yml` carries a `seeds:` block, and the contract-pinned seed column types, only for
+  stages that read a seed (WP107, 2026-10-31, backlog C10): a grounded project whose stages all read
+  `source()` relations or the `inferred` block has no `seeds:` key, so dbt no longer warns on every
+  parse and build that the paths apply to no resource. Ungrounded projects and the bank demos are
+  byte-identical.
 - The eval harness carries a step's `stage_aliases` into the next step as `run --existing` and the
   workbench do (WP106, 2026-10-31, backlog C40): a role column WP95 derived or a human typed had
   travelled in the product and not in a measured chain, where WP73 then refused the carried relation.

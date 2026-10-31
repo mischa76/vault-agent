@@ -58,3 +58,20 @@ types no seed.
 ## 6 Measured
 
 Appended after the run.
+
+## 6 Measured (2026-10-31, keyless; PostgreSQL 16, the local copy, dbt 1.9.10, AutomateDV 0.11.4)
+
+- **P1 ✔.** WP106's re-chained fifth project regenerated after the change: `diff -r` against the mirrored project
+  names `dbt_project.yml` alone — the `seeds:` block gone (seven lines with its leading blank line; §5 said six),
+  nothing else; `dbt parse` and `dbt build` in the fresh schema `c38s`: **0** warnings of any kind (the kept build: one,
+  `seeds.vault_project`), **PASS=421 WARN=0 ERROR=0 SKIP=0 TOTAL=421**. Schema dropped.
+- **P2 ✔.** The demo's Sales step replayed through WP95's `_replayed`: no `seeds:` key, no `+column_types` (the
+  recorded run: 17 typed relations, all read through `source()`).
+- **P3 ✔.** Suite 1465 passed, 5 skipped (6 new); the ungrounded and the Databricks baselines byte-identical (their
+  guards unchanged); the bank demos untouched; ruff, bare mypy.
+- **Guards.** Four of six red before the change as §4 says, after two corrections to the fixture itself, both
+  committed before the change: the contract field named like the column (`CustomerID`; the label `Customer ID`
+  normalises to `CUSTOMER_ID` and the pin was red on its own label), and the inferred-stage fixture — a satellite
+  naming `source_table: Product` is a *declared* binding (WP7 §7.1), rendered as a bare name even when no such table
+  is declared, and a bare name is seed-compatible by rule 1; the guard now leaves that satellite without a
+  `source_table`, so the hub's stage is the inferred `raw_product` under WP76's block, which is no seed.

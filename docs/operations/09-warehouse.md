@@ -55,6 +55,9 @@ schema/database — the staging references the table name directly and `sources.
 documents the expected raw interface. This deliberately keeps the seed-compatible
 pattern (a dbt source without a schema property would default its schema to the
 source name and break it).
+Only stages of this form and the seed world's bare names make the project carry a `seeds:`
+block with the contract-pinned column types (WP107, 2026-10-31); a project whose stages all
+read `source()` relations has none, and dbt stops warning about paths that apply to nothing.
 
 **`source()` mapping form**: the declared table carried `schema`/`database`, so
 staging binds via dbt's `source()` and `sources.yml` becomes a real source definition

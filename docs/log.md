@@ -11969,3 +11969,30 @@ loader). Order chosen, cheapest and most deterministic first, each with its own 
 C10, C8, C6, C23, C19, C2, C3, C22. ADR-0019 and ADR-0020 stay with the owner; nothing in the queue depends on them.
 **Nur angenommen.** That „the whole old backlog" means the candidates list, not the WP29 remainder or the scale cases.
 **Bewusst nicht getan.** No WP number reserved ahead of its spec.
+
+## [2026-10-31] WP107 built and measured: `dbt_project.yml` carries a `seeds:` block only for stages that read a seed (C10) — the chain's fifth project builds with zero warnings, the demo's Sales step types none of the 17 relations it reads through `source()`
+
+**Autor:** Claude Code
+
+First of the old backlog on the owner's word (plan entry above). **Built** (`wp107-seed-block-only-for-seeds-spec.md`;
+guards `1b78f97`, fixture corrections `d0a58c4` and in the WP commit, both before the change). `staging_generator`:
+after the source blocks are assigned, the relations read by stages with no `source_name` — a bare name no `source()`
+block and not WP76's `inferred` block declares — are the seed relations; `_render_dbt_project(..., seeds=)` writes the
+`seeds:` block (`_render_seeds_block`, the former inline text) only when there is one, and WP7 §7.3's `+column_types`
+only for those relations. A declared table without `schema`/`database` stays seed-compatible, as WP7 §7.2 designed;
+a satellite's own `source_table` naming an undeclared relation is a declared binding rendered as a bare name (WP7
+§7.1) and counts as seed-read too — the guard that assumed otherwise was corrected before the change (spec §6). Manual
+9 (bare-name paragraph), index row, CHANGELOG (Fixed), candidates part 2: C10 closed.
+
+**Measured** (keyless). **P1 ✔:** WP106's re-chained fifth project regenerated — `diff -r` names `dbt_project.yml` alone,
+the `seeds:` block gone (seven lines with its blank; the spec said six); `dbt parse` and `dbt build` in `c38s` with
+**zero** warnings (the kept build: one, `seeds.vault_project`; the owner's Sales step of 2026-10-22: seventeen unused
+paths), **PASS=421 of 421**. **P2 ✔:** the demo's Sales step replayed (WP95's `_replayed`): no `seeds:` key, no
+`+column_types` where the recorded run typed 17. **P3 ✔:** suite 1465 passed, 5 skipped (6 new); the ungrounded and
+the Databricks byte-identity baselines unchanged; ruff; bare mypy. Schema dropped; the project differs from the
+mirrored WP106 re-chain by that one file and is not mirrored again.
+
+**Überprüft.** The diff, both dbt logs grepped for `WARNING` (0) and the PASS line, the guards red then green, suite,
+ruff, mypy. **Nur angenommen.** That no user relied on the `+quote_columns: false` default in a project without seeds
+(dbt applies it to nothing there). **Bewusst nicht getan.** The demo's frozen runs not regenerated (they reproduce a
+recorded run); the README's seed sentence left („if using seeds"); no paid run.
