@@ -80,8 +80,11 @@ REVIEW_FLAG_ROLES: dict[str, ReviewRole] = {
     FlagKind.EXTENSION_CONFLICT: "decision",  # the merger refused a re-statement
     FlagKind.RESOLUTION_UNRESOLVED: "decision",  # existing construct or new? ratify
     FlagKind.RESOLUTION_SAME_AS: "decision",  # asserted equivalent: ratify
-    FlagKind.LINK_TRANSLATION: "decision",  # one join through another relation (ADR-0013 §3)
-    FlagKind.SAT_TRANSLATION: "decision",  # likewise (WP38)
+    # WP116: a translation stands under a ratification the gates enforce; the per-construct flag
+    # is provenance (a disclosure, grouped by its key) and the decision is one per key —
+    # synthesised in assemble_review_queue. A flag without its key stays a decision (flag_role).
+    FlagKind.LINK_TRANSLATION: "disclosure",
+    FlagKind.SAT_TRANSLATION: "disclosure",
     FlagKind.LINK_RELATIONSHIP_INCOMPLETE: "decision",
     FlagKind.LINK_PROPOSAL_SKIPPED: "disclosure",  # the proposer declined; nothing to answer
     FlagKind.RETIRED_REEMITTED: "disclosure",  # WP44: the backstop repaired it
@@ -110,7 +113,57 @@ def flag_role(flag: PipelineFlag) -> ReviewRole:
         return "decision"
     if flag.reason is not None and (flag.kind, flag.reason) in REVIEW_FLAG_REASON_ROLES:
         return REVIEW_FLAG_REASON_ROLES[(flag.kind, flag.reason)]
+    if flag.kind in TRANSLATION_KINDS and flag.reason is None:
+        return "decision"  # WP116: a translation flag that names no key is never hidden
     return REVIEW_FLAG_ROLES.get(flag.kind, _DEFAULT_ROLE)
+
+
+# WP116: the two kinds whose decision is one per translated key (the flag's typed reason).
+TRANSLATION_KINDS: frozenset[str] = frozenset({FlagKind.LINK_TRANSLATION, FlagKind.SAT_TRANSLATION})
+TRANSLATION_GROUP_PREFIX = "translation:"
+TRANSLATION_KEY_GROUP = "translation-key"
+
+
+def flag_group(flag: PipelineFlag) -> str:
+    """The render-time group of a flag's item: by kind, except a translation flag, which groups
+    by its key so that only constructs translating to the same key fold together (WP116)."""
+    if flag.kind in TRANSLATION_KINDS and flag.reason is not None:
+        return TRANSLATION_GROUP_PREFIX + flag.reason
+    return REVIEW_FLAG_GROUPS.get(flag.kind, _DEFAULT_GROUP)
+
+
+def _translation_key_decisions(flags: list[PipelineFlag]) -> list["ReviewItem"]:
+    """WP116 (spec §2.1): one decision per translated key, in first-appearance order — the
+    hub, the relation the join goes through and the natural key it projects, with the
+    constructs that translate to it listed in the detail. The confirmation of the generated
+    translation model, asked once; the per-construct flags are its disclosures."""
+    by_key: dict[str, list[PipelineFlag]] = {}
+    for flag in flags:
+        if flag.kind in TRANSLATION_KINDS and flag.reason is not None:
+            by_key.setdefault(flag.reason, []).append(flag)
+    items: list[ReviewItem] = []
+    for key, members in by_key.items():
+        hub, _, through_and_key = key.partition("=")
+        through, _, natural = through_and_key.partition(".")
+        constructs = [m.asset or "?" for m in members]
+        items.append(ReviewItem(
+            kind="review_flag",
+            summary=(
+                f"{members[0].agent}: {len(members)} construct(s) translate to {hub}'s key "
+                f"{natural} by joining through {through} — confirm the translation model once"
+            ),
+            detail=f"key {key}; constructs: " + ", ".join(constructs),
+            source=_collapsed_source_flags(members),
+            group=TRANSLATION_KEY_GROUP,
+            asset=key,
+            role="decision",
+        ))
+    return items
+
+
+def _collapsed_source_flags(flags: list[PipelineFlag]) -> str:
+    sources = {f.agent for f in flags}
+    return sources.pop() if len(sources) == 1 else "multiple agents"
 
 # Stable categories for routine, repetitive advisory ``review_flag`` items, keyed by the
 # flag's typed ``kind`` (never by message text). Used only to *aggregate* identical-shape
@@ -138,10 +191,9 @@ REVIEW_FLAG_GROUPS: dict[str, str] = {
     FlagKind.PIT_GENERATED: "pit-generated",  # WP91
     FlagKind.BRIDGE_PROPOSED: "bridge-proposed",  # WP115
     FlagKind.BRIDGE_GENERATED: "bridge-generated",  # WP115
-    # WP36: deliberately NOT aggregated — a translation is a join through another relation
-    # and each one is a review item in its own right (ADR-0013 §3). Listed here only as a
-    # comment so the omission reads as a decision, not an oversight.
-    # WP38: FlagKind.SAT_TRANSLATION is likewise NOT aggregated, for the same reason.
+    # WP36/WP38 kept the two translation kinds out of this table on purpose (ADR-0013 §3);
+    # since WP116 they group by their KEY (flag_group), not by kind, so only constructs that
+    # translate to the same key fold together, under one decision per key.
 }
 _DEFAULT_GROUP = "other"
 # Above this many items in one group, the renderers collapse it to a single summarised line.
@@ -162,6 +214,16 @@ _GROUP_LABELS: dict[str, str] = {
     "link-collapsed": "satellite(s) of a link with one hub moved to that hub",
     "relation-inferred": "satellite relation(s) read from the one table carrying every attribute",
 }
+
+
+def _group_label(group: str) -> str:
+    """The noun phrase of a collapsed line; a translation group names its key (WP116)."""
+    if group.startswith(TRANSLATION_GROUP_PREFIX):
+        key = group[len(TRANSLATION_GROUP_PREFIX):]
+        hub, _, rest = key.partition("=")
+        through, _, natural = rest.partition(".")
+        return f"construct(s) translating to {hub}'s key {natural} through {through}"
+    return _GROUP_LABELS.get(group, group)
 
 
 def _sample_term(item: "ReviewItem") -> str:
@@ -265,6 +327,9 @@ def assemble_review_queue(state: VaultAgentState) -> HumanReviewQueue:
     # Remaining advisory flags. The owner concern is already a structured contract_owner
     # item above, so drop those flags (matched on their typed kind, never on message text)
     # to avoid listing the same thing twice.
+    # WP116: the translated keys this run's constructs join to — one decision each, before
+    # the per-construct flags that disclose them.
+    items.extend(_translation_key_decisions(state.flags))
     for flag in state.flags:
         if flag.kind == FlagKind.OWNER_PLACEHOLDER:
             continue
@@ -273,7 +338,7 @@ def assemble_review_queue(state: VaultAgentState) -> HumanReviewQueue:
                 kind="review_flag",
                 summary=str(flag),
                 source=flag.agent,
-                group=REVIEW_FLAG_GROUPS.get(flag.kind, _DEFAULT_GROUP),
+                group=flag_group(flag),
                 asset=flag.asset,
                 role=flag_role(flag),
             )
@@ -360,7 +425,7 @@ def aggregate_review_flags(flags: list[ReviewItem]) -> list[ReviewItem]:
     collapsed: list[ReviewItem] = []
     for group, members in by_group.items():
         if group != _DEFAULT_GROUP and len(members) > AGGREGATE_THRESHOLD:
-            label = _GROUP_LABELS.get(group, group)
+            label = _group_label(group)
             collapsed.append(
                 ReviewItem(
                     kind=members[0].kind,

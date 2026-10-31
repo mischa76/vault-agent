@@ -364,3 +364,11 @@ more review"; the authored arm carried 4; without the class the arms tie 87 to 8
 finding). Candidate: one decision per translated key (hub, through relation, natural key), the per-construct flags
 as disclosures grouped under it; the record's two second-generation samples re-read under the rule. Opened as WP116
 the same day on the owner's choice.
+
+## C42 — closed by WP116 (2026-10-31)
+
+One decision per translated key (`translation_key`: hub, relation joined through, natural key), the per-construct
+`link_translation` and `sat_translation` flags disclosures under it, grouped and collapsing by key; a flag without its
+key stays a decision. Re-counted on the kept queues: the drafted arm 146 → 118, the twenty-second 91 → 90, the
+twenty-third 95 → 94 (both re-read in the record); the C1 arms stand 90 against 118. Spec
+`backlog-2026-07/wp116-translation-ratified-per-key-spec.md`.

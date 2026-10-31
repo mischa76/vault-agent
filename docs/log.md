@@ -12344,3 +12344,39 @@ word in their text for counting only (no code branches on it). **Nur angenommen:
 key's translation once rather than once per link — the premise of the per-key reading, to be judged by the owner.
 **Bewusst nicht getan:** no change to ADR-0019 (Proposed), the experiment memo or ADR-0013; no run; the owner's
 correction not started.
+
+## [2026-10-31] WP116 built and measured: a translation is ratified once per key (C42) — the per-construct translation flags carry their key and are disclosures under one decision per key; the C1 arms re-counted 90 against 118, the record's second generation re-read
+
+**Autor:** Claude Code
+
+On the owner's choice of the first of three ways after the C1 finding (2026-10-31). **Built**
+(`wp116-translation-ratified-per-key-spec.md`; guards `826d58e` first). `rules/dv2_rules.translation_key(t, hub)`
+— `hub_product=Product.PRODUCTNUMBER`, the referencing column deliberately not part of it; `VaultAgentState.flag`
+takes `reason`; the six raise sites (the proposer's translated proposal, a relationship table's translated
+participation, a link and two satellite sites under a key licence, the subtype feed) pass the key. In the
+orchestrator: the two kinds are disclosures by the roles table, a key-less one a decision (`flag_role`), the group is
+the key (`flag_group`, `translation:<key>`, a label naming the key when it collapses), and `assemble_review_queue`
+synthesises one `review_flag` decision per key in first-appearance order (how many constructs, which relation, which
+key; the constructs in the detail). The record: the second 5.5 generation's two samples re-read under the rule
+(91 → 90, 95 → 94, the measured values kept in the comments; the generation stays one — the rule is a deterministic
+transformation of the kept queues, a new generation would have thrown two samples away). Catalogue entries, manual 7,
+CHANGELOG (Changed), index row, dated notes appended to ADR-0013 and WP43's spec, C42 opened and closed.
+
+**Measured** (keyless, spec §6). **P1 ✔:** guards red then green, suite 1567, ruff, bare mypy, no fixture changed;
+WP104's record guard updated deliberately (91 → 90). **P2 ✔ with one number corrected:** from the kept queues under
+the stated method the twenty-second 91 → 90 and the twenty-third 95 → 94 as predicted; the drafted arm 146 → 118, not
+119 — the pre-registration's per-step keys came from a looser shape (6, 4, 10, 3, 10); under the method as written
+they are 4, 2, 8, 6, 12. **P3 ✔:** the C1 arms under the rule 90 against 118, a surplus of 28, every one a per-key
+confirmation of a natural key the authored prose did not keep. **What this means for ADR-0019:** the draft's review
+cost is 28 decisions on five steps, not 60 %; the ADR's context and consequences carry the old diagnosis and are
+corrected by the finding entry and this one, the file stays as drafted — the owner's decision on the ADR follows on
+these numbers.
+
+**Überprüft.** The guards, the suite, ruff, mypy; the re-count from the kept step queues of three chains by section
+and agent suffix, the key read from the flag text for counting only (the code branches on `reason`, never on text).
+**Nur angenommen.** That a reviewer confirms one key's translation once rather than per construct — the owner's
+premise for this way; that no persisted state from before WP116 reaches a sign-off (a key-less flag would show as a
+decision, the conservative case). **Bewusst nicht getan.** No answer slot per key (`--accept` confirms them with the
+rest; a `--confirm-translation` is WP82-parity work only if a decline is ever needed); the 4.8 record and the first
+5.5 generation untouched (no translation decisions there); no paid run; CLAUDE.md unchanged; the ADR-0013 file that
+`cat >>` had created under a wrong name was removed before the commit and the note appended to the right file.

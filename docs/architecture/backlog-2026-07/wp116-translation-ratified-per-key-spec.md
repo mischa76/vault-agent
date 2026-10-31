@@ -84,3 +84,23 @@ Moving the decision to the resolution checkpoint (the licence is already ratifie
 confirmation is kept on purpose, it is where the generated model exists); any change to the translation models or
 the gates; the drafted-requirements command (ADR-0019 is judged after this on corrected numbers); re-reading the 4.8
 record or the first 5.5 generation (no translation decisions there).
+
+## 6 Measured (2026-10-31, keyless)
+
+- **P1 ✔.** Eight guards red before the change (`826d58e`, red at import), green after; suite 1567 passed, 5 skipped;
+  ruff; bare mypy; no fixture changed (none carries a translation flag). Two guards updated deliberately: WP104's
+  record guard (the twenty-second's sample 91 → 90) and nothing else — WP43's mixed state keeps its key-less
+  translation flag a decision, as rule 2 says.
+- **P2 ✔ with one number corrected.** Re-counted from the kept queues under the stated method (decisions − translation
+  flags + distinct keys per step, a key = hub and relation joined through): the twenty-second **91 → 90** and the
+  twenty-third **95 → 94** as predicted (step 5: 4 flags on `hub_currency_rate`, `hub_customer`, `hub_sales_order`);
+  the drafted arm **146 → 118**, not 119 — the pre-registration's per-step keys (6, 4, 10, 3, 10) came from a looser
+  shape that counted a satellite's and a link's flag for one key twice on two steps and merged two keys on another;
+  under the method as written the keys are 4, 2, 8, 6, 12 = 32. The per-step decisions of the drafted arm under the
+  rule: 19, 10, 35, 15, 39.
+- **P3 ✔.** The C1 arms under the rule: **90 against 118**, a surplus of 28 — all of it per-key confirmations of the
+  natural keys the authored arm's prose did not keep. That is the draft's review cost: 28 decisions on five steps,
+  not „60 % more review".
+
+Open after WP116: the per-key decision has no answer slot of its own (it is confirmed by `--accept` like any
+decision); a `--confirm-translation KEY` would be WP82-parity work if a reviewer ever needs to decline one.

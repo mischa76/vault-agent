@@ -30,6 +30,7 @@ from vault_agent.rules.dv2_rules import (
     canonical_hub_key_column,
     hub_binds_to_source_table,
     normalize_identifier,
+    translation_key,
 )
 from vault_agent.state import (
     RESOLUTION_SAME_AS,
@@ -180,6 +181,7 @@ def apply_subtype_feeds(
                 f"review the translation model",
                 kind=FlagKind.SAT_TRANSLATION,
                 asset=sat.name,
+                reason=translation_key(t, feed.hub),  # WP116
             )
     if applied:
         logger.info("subtype feeds: %d satellite translation(s) applied", applied)

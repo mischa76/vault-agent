@@ -88,3 +88,15 @@ follows:
 - ADR-0011 (satellite source binding), ADR-0009 (role-qualified references) — the existing
   patterns the staging change must compose with
 - Invariants: guard-before-change, typed-field branching, helpers in `rules/` (CLAUDE.md)
+
+
+## Note appended 2026-10-31 — the review class is one decision per key (WP116)
+
+§3's „its own review class" was built as one **decision** per translated link (WP36) and per translated
+satellite (WP38), kept individual by WP43's amendment. The C1 finding of 2026-10-31 (`docs/log.md`) showed what
+that costs: 60 decisions for 21 relations on one chain, each repeating the question a ratified key licence or
+proposal had answered — and the gates `E_LINK_TRANSLATION_UNRATIFIED`/`E_SAT_TRANSLATION_UNRATIFIED` admit no
+other. WP116 (`backlog-2026-07/wp116-translation-ratified-per-key-spec.md`) keeps the class and changes its unit:
+the per-construct flags are disclosures grouped by the key they translate to, and the decision is one per key
+(hub, relation joined through, natural key), the confirmation of the generated translation model asked once. The
+reviewer still sees every join; §3's reasoning stands, the counting is corrected. The ADR's text stays as drafted.

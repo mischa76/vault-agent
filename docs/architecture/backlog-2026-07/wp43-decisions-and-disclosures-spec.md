@@ -206,3 +206,11 @@ not see) instead of being appended here; it is dated and additive, and it is not
 the model built 67 translations against 42); `review_disclosures` 230 corrected, 191 of them
 `source_binding` (the chain design, §5). P2 as warned: the WP34 clause reads 432 < 619 and says
 HELD, which is construction, not evidence. P3: `review_queue_lines` 284 (< 409). P4 held.
+
+## Note appended 2026-10-31 — the amendment of 2026-10-03 is superseded for the translation kinds (WP116)
+
+„Translations — not in a group, ADR-0013 §3 — stay individual" held until WP116: `link_translation` and
+`sat_translation` are disclosures since, grouped by the key they translate to (`translation:<key>`, collapsing above
+`AGGREGATE_THRESHOLD` like every group) under one decision per key synthesised in `assemble_review_queue`. A flag that
+names no key keeps this spec's conservative default and stays a decision. The roles table in `orchestrator.py` is the
+owner, as this spec said; the reason is in the C1 finding of 2026-10-31 (`docs/log.md`) and in WP116's spec.

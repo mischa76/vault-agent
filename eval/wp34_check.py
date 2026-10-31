@@ -89,15 +89,18 @@ REVIEW_DECISION_SAMPLES: dict[str, tuple[tuple[str, int], ...]] = {
         #                                   held against 88.6 (green; 24.1 min, 4.86 USD)
         ("20261017T203103850712Z", 87),  # twenty-first, 2026-10-17 — the first under WP77/WP78:
         #                                   held against 89.3 (green; 21.2 min, 4.31 USD)
-        ("20261030T184653194084Z", 91),  # twenty-second, 2026-10-30 — the C1 experiment's control
+        ("20261030T184653194084Z", 90),  # twenty-second, 2026-10-30 — the C1 experiment's control
         #                                   arm, the first under WP79–WP99: green, 23.0 min, but
         #                                   FAILED the review ceiling 89.7 (the sixth's precedent:
         #                                   a failed chain enters the record; the cause split is
         #                                   in docs/log.md of that date). WP104: the seed of the
         #                                   second 5.5 generation — no longer judged, see below.
-        ("20261031T032606335763Z", 95),  # twenty-third, 2026-10-31 — the first under WP100–WP104:
+        #                                   Measured 91; re-read to 90 under WP116 (2026-10-31):
+        #                                   step 5's 4 translation decisions are 3 keys.
+        ("20261031T032606335763Z", 94),  # twenty-third, 2026-10-31 — the first under WP100–WP104:
         #                                   green, 24.6 min, 4.36 USD; the second generation's
-        #                                   second sample, not judged (two of three)
+        #                                   second sample, not judged (two of three). Measured
+        #                                   95; re-read to 94 under WP116 (4 flags, 3 keys).
     ),
 }
 DEFAULT_RECORD_MODEL = "claude-opus-4-8"  # every archived result without `models`

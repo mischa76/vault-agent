@@ -138,6 +138,12 @@ is not the project's.
   PostgreSQL `xml` column is spelled `xml`, which SQLAlchemy's dialect alone did not.
 
 ### Changed
+- A translation is ratified once per key (WP116, 2026-10-31, backlog C42): the review queue asks one decision
+  per translated key — the hub, the relation joined through, the natural key — and discloses the per-construct
+  `link_translation` and `sat_translation` items under it, grouped by key; before, every translated link and
+  satellite was its own decision although the gates already refuse an unratified translation (60 decisions
+  for 21 relations on the C1 experiment's drafted arm). The review record's two second-generation samples are
+  re-read under the rule (91 → 90, 95 → 94).
 - `metadata/source_catalogue.yml` carries a table's primary key, unique keys and foreign keys in the
   house shape where declared (WP106, 2026-10-31, backlog C41), so a relation carried into a later
   increment can be judged by the same rules as one of the increment (WP95's role derivation at

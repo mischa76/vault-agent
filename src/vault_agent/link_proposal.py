@@ -37,6 +37,7 @@ from vault_agent.rules.dv2_rules import (
     resolve_link_relation,
     role_bk_column,
     role_names_column,
+    translation_key,
 )
 from vault_agent.state import (
     DVModel,
@@ -746,6 +747,7 @@ def apply_ratified_link_proposals(
                 f"{proposal.translation.natural_key_label}); review the translation model",
                 kind=FlagKind.LINK_TRANSLATION,
                 asset=f"{proposal.source_table}.{proposal.source_column}",
+                reason=translation_key(proposal.translation, proposal.target_hub),  # WP116
             )
         delta.links.append(
             Link(
@@ -848,6 +850,7 @@ def apply_ratified_link_proposals(
                     f"translation model",
                     kind=FlagKind.LINK_TRANSLATION,
                     asset=f"{rel.source_table}.{p.referencing_column}",
+                    reason=translation_key(p.key_translation, p.target_hub or ""),  # WP116
                 )
         delta.links.append(
             Link(
@@ -1061,6 +1064,7 @@ def apply_key_licenses(
                         f"a ratified key; review the translation model{homonym}",
                         kind=FlagKind.LINK_TRANSLATION,
                         asset=f"{table}.{t.referencing_column}",
+                        reason=translation_key(t, ref.hub),  # WP116
                     )
                 else:
                     ref.source_key_column = grant.alias if ref.role is None else grant.column
@@ -1090,6 +1094,7 @@ def apply_key_licenses(
                     f"{homonym}",
                     kind=FlagKind.SAT_TRANSLATION,
                     asset=sat.name,
+                    reason=translation_key(t, hub.name),  # WP116
                 )
                 continue
             parent = links_by_name.get(sat.parent)
@@ -1120,6 +1125,7 @@ def apply_key_licenses(
                     f"{homonym}",
                     kind=FlagKind.SAT_TRANSLATION,
                     asset=sat.name,
+                    reason=translation_key(t, hub.name),  # WP116
                 )
     return delta
 

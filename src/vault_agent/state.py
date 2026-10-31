@@ -1199,10 +1199,13 @@ class VaultAgentState(BaseModel):
         severity: FlagSeverity = "advisory",
         kind: str = FlagKind.GENERIC,
         asset: str | None = None,
+        reason: str | None = None,
     ) -> None:
-        """Raise a typed pipeline flag (convenience helper for the agents)."""
+        """Raise a typed pipeline flag (convenience helper for the agents). ``reason`` is
+        WP47's typed reason code — WP116 uses it to carry a translation flag's key."""
         self.flags.append(
             PipelineFlag(
-                agent=agent, message=message, severity=severity, kind=kind, asset=asset
+                agent=agent, message=message, severity=severity, kind=kind, asset=asset,
+                reason=reason,
             )
         )

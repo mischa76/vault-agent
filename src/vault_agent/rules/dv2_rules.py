@@ -635,6 +635,16 @@ DBT_UTILS_VERSION = "1.4.1"
 # alternatives, never silent defaults, tracked in docs/methodology/dsaf-mapping.md.
 
 
+def translation_key(translation: Any, hub: str) -> str:
+    """WP116: the unit a human ratifies a surrogate→natural-key translation by — the hub, the
+    relation the join goes through and the natural key it projects, as one string:
+    ``hub_product=Product.PRODUCTNUMBER`` (a composite key joined with ``+``). The referencing
+    column is deliberately not part of it: two surrogates into one hub are one key, confirmed
+    once. ``translation`` is a ``KeyTranslation`` (``through_table``, ``natural_keys``); typed
+    loosely here because ``state`` imports this module."""
+    return f"{hub}={translation.through_table}.{'+'.join(translation.natural_keys)}"
+
+
 def construct_base_name(construct_name: str) -> str:
     """``hub_customer`` -> ``customer``: a construct's name without its DV type prefix.
 

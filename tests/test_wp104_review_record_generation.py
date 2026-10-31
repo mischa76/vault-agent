@@ -43,10 +43,11 @@ def test_the_5_5_record_has_two_generations_and_keeps_every_sample() -> None:
     assert [since for since, _ in generations][-1] == TWENTY_SECOND
     assert all(label for _, label in generations)
     assert "claude-opus-4-8" not in wp34_check.REVIEW_GENERATIONS  # one generation, unlabelled
-    # Nothing pruned: the eight 5.5 chains up to the twenty-second's 91, then the second
-    # generation's samples as they are recorded (the twenty-third's 95, 2026-10-31).
+    # Nothing pruned: the eight 5.5 chains up to the twenty-second, then the second
+    # generation's samples. WP116 (2026-10-31) re-read the two second-generation samples under
+    # the per-key rule (91 → 90, 95 → 94; the measured values stay in the record's comments).
     record = REVIEW_DECISION_SAMPLES["claude-opus-5-5"]
-    assert [count for _, count in record][:8] == [84, 83, 83, 83, 85, 88, 87, 91]
+    assert [count for _, count in record][:8] == [84, 83, 83, 83, 85, 88, 87, 90]
     assert record[7][0] == TWENTY_SECOND
     assert all(stamp > TWENTY_SECOND for stamp, _ in record[8:])
 
