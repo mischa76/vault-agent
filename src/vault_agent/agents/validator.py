@@ -62,7 +62,6 @@ from vault_agent.rules.dv2_rules import (
     zero_key_incapable_type,
 )
 from vault_agent.state import (
-    dedupe_flags,
     Hub,
     IssueSeverity,
     Link,
@@ -72,6 +71,7 @@ from vault_agent.state import (
     ValidationIssue,
     ValidationReport,
     VaultAgentState,
+    dedupe_flags,
 )
 from vault_agent.subtype_feed import ratified_subtype_feeds
 
