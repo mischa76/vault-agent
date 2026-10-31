@@ -6,6 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from vault_agent.rules.naming import NamingProfile
 from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 
 FlagSeverity = Literal["error", "advisory"]
@@ -1115,6 +1116,10 @@ class VaultAgentState(BaseModel):
     # nothing else branches on it, the vault SQL is platform-neutral (AutomateDV dispatches
     # per adapter). Persisted here so a resumed run keeps the choice without re-passing it.
     target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM
+    # WP114 (C3): the physical naming profile the generators write under — the house style
+    # unless a run or a project pins another; persisted so a resumed run keeps it, and
+    # written beside the model (`metadata/naming.yml`) so an extension adopts its vault's.
+    naming: NamingProfile = Field(default_factory=NamingProfile)
     # WP91 (ADR-0016): Business Vault output the operator asked for — off by default, so every
     # artifact is what it was. Persisted so a resumed run keeps the choice.
     business_vault: BusinessVaultOptions = Field(default_factory=lambda: BusinessVaultOptions())

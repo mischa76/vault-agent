@@ -35,7 +35,8 @@ from vault_agent.models.contract import (
     FieldConstraints,
     SemanticConstraint,
 )
-from vault_agent.rules.dv2_rules import STAGING_PREFIX, json_type_for_sql, normalize_identifier
+from vault_agent.rules.dv2_rules import json_type_for_sql, normalize_identifier
+from vault_agent.rules.naming import DEFAULT_NAMING, NamingProfile
 from vault_agent.state import FlagKind, VaultAgentState
 
 logger = logging.getLogger(__name__)
@@ -356,7 +357,7 @@ class DataContractAgent(BaseAgent):
                 name, cols, bk_fields, asset_enrichment, grounded=grounded, state=state
             )
             contracts.append(contract.to_dict())
-            tests_yaml = self._render_dbt_tests(name, contract)
+            tests_yaml = self._render_dbt_tests(name, contract, state.naming)  # WP114
             if tests_yaml:
                 dbt_tests[name] = tests_yaml
 
@@ -490,7 +491,9 @@ class DataContractAgent(BaseAgent):
         return out
 
     @staticmethod
-    def _render_dbt_tests(name: str, contract: DataContract) -> str:
+    def _render_dbt_tests(
+        name: str, contract: DataContract, naming: NamingProfile = DEFAULT_NAMING
+    ) -> str:
         """Emit a dbt properties-file (schema-test) YAML for the asset's staging model.
 
         Deterministic, derived 1:1 from the enforceable schema constraints: primary keys →
@@ -518,6 +521,6 @@ class DataContractAgent(BaseAgent):
             return ""
         doc = {
             "version": 2,
-            "models": [{"name": STAGING_PREFIX + name, "columns": columns}],
+            "models": [{"name": naming.staging_prefix + name, "columns": columns}],
         }
         return yaml.safe_dump(doc, sort_keys=False)

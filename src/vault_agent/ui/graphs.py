@@ -49,6 +49,7 @@ def area_views(state: Any) -> list[dict[str, Any]]:
         state.dv_model, state.source_schemas, carried=state.carried_schemas,
         staging=staging if isinstance(staging, dict) else None,
         existing=state.existing_model, carried_bindings=state.carried_bindings,
+        naming=state.naming,  # WP114
     )
     return [
         {

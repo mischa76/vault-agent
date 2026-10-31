@@ -70,3 +70,26 @@ a bad value refused; the workbench storing it, validating it, a run recording an
 ## 6 Measured
 
 Appended after the run.
+
+## 6 Measured (2026-10-31, keyless)
+
+- **P1 ✔, after one correction the fixtures caught.** Every byte-identity guard green — the greenfield manifest, the
+  ungrounded and Databricks baselines, the WP7/WP10/WP23 fixtures, the bank demos — with the six constants read from
+  the default profile. One wrap for the line-length rule had broken the generated README into two lines (`LOAD_DATETIME`
+  and `RECORD_SOURCE` apart); the manifest, the ungrounded baseline and the report fixture refused it, and the line is
+  rendered whole again through a variable. The profile's explicit equality guard holds beside them.
+- **P2 ✔.** The lower-case bank project (`stage_customer`, `customer_hk`, `customer_details_hashdiff`, `load_dts`,
+  `rec_src`, `applied_dts`) written to disk with the demo's seeds and parsed by dbt (`project_check.dbt_parse`, the
+  throwaway profile): `ok`, no error, 4.9 s — the default project the same; the names agree across staging, raw vault,
+  seeds and contracts, so no `ref()` or column dangles. Without the seeds neither parses (a bare name is a seed to
+  provide), which is the seed world as documented, not the profile.
+- **P3 ✔.** Suite 1550 passed, 5 skipped (7 Python guards and 1 Vitest test new); ruff; bare mypy; `tsc`; `vitest`
+  33; WP82's parity guard knows `naming_profile` → `naming`.
+- **Where the profile is threaded, for the record:** `rules/naming.py` (new), `dv2_rules` (the constants, `stage_model_name`,
+  the carried tier), the code generator (every renderer, `_hub_hashkey`, `_link_hashkey`, `_staging_model`,
+  `_sat_staging_model`, `apply_zero_key_hubs`), the staging generator (`collect_staging_specs`, the stage names, the
+  zero-key view and stage, the seed types, the README), the contracts' dbt tests, the validator's grain gate, the
+  extension diff's owner, the subject areas and graphs, the mapper's refusal lookup, the proposer's and validator's
+  resolution calls; `VaultAgentState.naming`; `existing_model.load_existing_naming`; the CLI (`--naming-profile`,
+  `_choose_naming`, `write_outputs`); the workbench (`ProjectSettings.naming`, the run's `naming-profile.yml`, `run.json`,
+  `StartRun.naming`); the frontend's settings section.

@@ -13,6 +13,7 @@ from typing import Any, Literal, cast
 from pydantic import BaseModel, field_validator
 
 from vault_agent.config import LLMOptions, Settings, get_settings
+from vault_agent.rules.naming import NamingProfile
 from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.source_schema import load_source_schemas
 
@@ -43,6 +44,8 @@ class ProjectSettings(BaseModel):
     primary_model: str | None = None
     heavy_model: str | None = None
     anthropic_base_url: str | None = None
+    # WP114 (C3): the naming profile the project's runs generate under; None = the house style.
+    naming: NamingProfile | None = None
 
     @field_validator("primary_model", "heavy_model", "anthropic_base_url", mode="before")
     @classmethod
@@ -60,6 +63,9 @@ class ProjectSettings(BaseModel):
 
     def stored(self) -> dict[str, Any]:
         return {k: v for k, v in self.model_dump().items() if v is not None}
+
+    def naming_profile(self) -> NamingProfile:
+        return self.naming or NamingProfile()
 
     def llm_options(self) -> LLMOptions:
         return LLMOptions(primary_model=self.primary_model, heavy_model=self.heavy_model,
@@ -187,6 +193,7 @@ class ProjectStore:
                 "primary_model": stored.primary_model or env["primary_model"],
                 "heavy_model": stored.heavy_model or env["heavy_model"],
                 "anthropic_base_url": stored.anthropic_base_url or env["anthropic_base_url"],
+                "naming": stored.naming_profile().model_dump(),  # WP114
             },
             "environment": env,
         }

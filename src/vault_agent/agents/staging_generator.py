@@ -24,13 +24,8 @@ from typing import Any
 from vault_agent.rules.dv2_rules import (
     AUTOMATE_DV_VERSION,
     DBT_UTILS_VERSION,
-    EFFECTIVITY_APPLIED_COLUMN,
-    HASHDIFF_SUFFIX,
     INFERRED_SOURCE_NAME,
-    LOAD_DATETIME_COLUMN,
     RAW_SOURCE_PREFIX,
-    RECORD_SOURCE_COLUMN,
-    STAGING_PREFIX,
     RoleParticipant,
     canonical_hub_key_column,
     construct_base_name,
@@ -51,6 +46,7 @@ from vault_agent.rules.dv2_rules import (
     stage_column_name,
     stage_model_name,
 )
+from vault_agent.rules.naming import DEFAULT_NAMING, NamingProfile
 from vault_agent.rules.platforms import (
     DEFAULT_TARGET_PLATFORM,
     PlatformProfile,
@@ -209,20 +205,20 @@ def _base_name(construct_name: str) -> str:
     return construct_base_name(construct_name)
 
 
-def _staging_name(construct_name: str) -> str:
+def _staging_name(construct_name: str, naming: NamingProfile = DEFAULT_NAMING) -> str:
     # Normalised through the one identifier helper (WP20 §2.4), the way _sat_staging_model
     # already did — two naming paths that merely happen to agree on well-formed names are a
     # latent split. Byte-identical for every valid construct name (E_BAD_NAME enforces
     # lowercase snake_case, and normalize("account").lower() == "account"). The rule itself
     # lives in rules/ since WP105: the link's relation resolution reads carried bindings by it.
-    return stage_model_name(construct_name)
+    return stage_model_name(construct_name, naming)
 
 
-def construct_stage_name(construct_name: str) -> str:
+def construct_stage_name(construct_name: str, naming: NamingProfile = DEFAULT_NAMING) -> str:
     """The staging model a single-source hub, a link or a satellite with its own ``source_table``
     reads: ``stg_<base>``. The public name of the rule above for readers outside the generators
     (WP80's subject areas); a multi-source hub's feeds use ``multi_source_staging_name``."""
-    return _staging_name(construct_name)
+    return _staging_name(construct_name, naming)
 
 
 def legacy_feeds(
@@ -258,6 +254,7 @@ def legacy_feeds(
         if not hub.sources
     }
     for hub in existing.hubs:
+        # the house style: a legacy feed's binding was recorded under the vault's own names
         relation = (carried_bindings or {}).get(_staging_name(hub.name))
         if not hub.sources or relation is None:
             continue
@@ -289,7 +286,8 @@ def is_legacy_feed(hub: Hub, source: HubSource, legacy: set[tuple[str, str, str]
 
 
 def multi_source_staging_name(
-    hub: Hub, source: HubSource, legacy: set[tuple[str, str, str]] | None = None
+    hub: Hub, source: HubSource, legacy: set[tuple[str, str, str]] | None = None,
+    naming: NamingProfile = DEFAULT_NAMING,
 ) -> str:
     """Per-source staging model for a multi-source hub (WP10): ``stg_<entity>_<source>``.
 
@@ -304,9 +302,9 @@ def multi_source_staging_name(
     suffixed WP10 name. ``legacy`` is empty on greenfield runs, so symmetric WP10 naming is
     unchanged there (guarded by the WP10 tests and both demos)."""
     if legacy and is_legacy_feed(hub, source, legacy):
-        return _staging_name(hub.name)
+        return _staging_name(hub.name, naming)
     return (
-        STAGING_PREFIX
+        naming.staging_prefix
         + _base_name(hub.name)
         + "_"
         + normalize_identifier(source.source_table).lower()
@@ -316,6 +314,7 @@ def multi_source_staging_name(
 def collect_staging_specs(
     model: DVModel, legacy: set[tuple[str, str, str]] | None = None,
     existing_satellites: frozenset[str] = frozenset(),
+    naming: NamingProfile = DEFAULT_NAMING,
 ) -> dict[str, StagingSpec]:
     """Group the raw-vault constructs by the staging model that feeds them.
 
@@ -332,7 +331,7 @@ def collect_staging_specs(
     hub_by_name = {hub.name: hub for hub in model.hubs}
 
     def spec_for(construct_name: str) -> StagingSpec:
-        name = _staging_name(construct_name)
+        name = _staging_name(construct_name, naming)
         if name not in specs:
             specs[name] = StagingSpec(name=name, base=_base_name(construct_name))
         return specs[name]
@@ -344,7 +343,7 @@ def collect_staging_specs(
             # same key value hashes identically across sources (the integration property).
             canonical = canonical_hub_key_column(hub)
             for source in hub.sources:
-                name = multi_source_staging_name(hub, source, legacy)
+                name = multi_source_staging_name(hub, source, legacy, naming)
                 spec = specs.setdefault(name, StagingSpec(name=name, base=_base_name(hub.name)))
                 if not (legacy and is_legacy_feed(hub, source, legacy)):
                     spec.source_model = source.source_table
@@ -361,20 +360,20 @@ def collect_staging_specs(
                 src_col = _to_column(source.business_key_column)
                 if src_col != canonical:
                     spec.derived[canonical] = src_col  # alias the source column -> canonical
-                spec.add_hashed(_hub_hashkey(hub), canonical)
+                spec.add_hashed(_hub_hashkey(hub, naming), canonical)
                 spec.add_source_column(src_col)
         elif is_composite_key(hub):
             # WP45: the hash is taken over every key column, in order (AutomateDV's list
             # form of hashed_columns); each column passes through.
             spec = spec_for(hub.name)
             cols = hub_key_columns(hub)
-            spec.add_hashed(_hub_hashkey(hub), cols)
+            spec.add_hashed(_hub_hashkey(hub, naming), cols)
             for col in cols:
                 spec.add_source_column(col)
         else:
             spec = spec_for(hub.name)
             bk_col = _to_column(hub.business_key)
-            spec.add_hashed(_hub_hashkey(hub), bk_col)
+            spec.add_hashed(_hub_hashkey(hub, naming), bk_col)
             spec.add_source_column(bk_col)
 
     generated_links = []
@@ -405,7 +404,7 @@ def collect_staging_specs(
                     # is recorded over it.
                     cols = [spec.projected_apart(ref.key_translation, c) for c in cols]
                 bk_cols.extend(cols)
-                spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), cols)
+                spec.add_hashed(role_fk_column(_hub_hashkey(hub, naming), ref.role), cols)
                 if ref.key_translation is not None:
                     # WP93: the key arrives through the translation view, every column projected
                     # under the hub's own name (the gate holds them to the hub's). What THIS
@@ -426,7 +425,7 @@ def collect_staging_specs(
                 # (two hubs keyed alike), before the hash key and the link key are recorded.
                 bk_col = spec.projected_apart(ref.key_translation, bk_col)
             bk_cols.append(bk_col)
-            spec.add_hashed(role_fk_column(_hub_hashkey(hub), ref.role), bk_col)
+            spec.add_hashed(role_fk_column(_hub_hashkey(hub, naming), ref.role), bk_col)
             if ref.key_translation is None:
                 spec.participations.append(role_participant(ref, hub))  # WP95
             # WP34 §3.4: when the relation feeding this link calls the hub's key something
@@ -449,7 +448,7 @@ def collect_staging_specs(
                 spec.derived[bk_col] = src_col
             spec.add_source_column(src_col)
             spec.add_null_group([bk_col], [src_col], hub.name)
-        spec.add_hashed(_link_hashkey(link), bk_cols)
+        spec.add_hashed(_link_hashkey(link, naming), bk_cols)
         if link.link_type == "transactional":
             for col in link.payload:
                 spec.add_source_column(_to_column(col))
@@ -474,13 +473,14 @@ def collect_staging_specs(
             # columns, so the core system's staging demanded the CRM's — which cannot build.
             # No dedicated stg_<sat base> either: the feed's staging already reads the right
             # relation, and a second one would be the WP24 finding-3 orphan all over again.
-            target_specs = [specs[multi_source_staging_name(sat_parent, bound_feed, legacy)]]
+            feed_name = multi_source_staging_name(sat_parent, bound_feed, legacy, naming)
+            target_specs = [specs[feed_name]]
             for col in [_to_column(attr) for attr in sat.attributes]:
                 target_specs[0].add_source_column(col)
             for key in sat.child_dependent_key:
                 target_specs[0].add_source_column(_to_column(key))
             target_specs[0].add_hashed(
-                _base_name(sat.name).upper() + HASHDIFF_SUFFIX,
+                naming.hashdiff(_base_name(sat.name).upper()),
                 _HashDiff([_to_column(attr) for attr in sat.attributes]),
             )
             continue
@@ -490,7 +490,7 @@ def collect_staging_specs(
             # source_table (never inferred, never flagged). It still computes the
             # parent's hash key from the parent's business key(s): those columns existing
             # in the finer-grain relation is what makes the rows attachable.
-            name = _sat_staging_model(sat)
+            name = _sat_staging_model(sat, naming)
             spec = specs.setdefault(
                 name, StagingSpec(name=name, base=_base_name(sat.name))
             )
@@ -501,13 +501,13 @@ def collect_staging_specs(
                 # E_SAT_KEY_NOT_IN_SOURCE); the parent key hashes over the list.
                 parent_hub = hub_by_name[sat.parent]
                 cols = hub_key_columns(parent_hub)
-                spec.add_hashed(_hub_hashkey(parent_hub), cols)
+                spec.add_hashed(_hub_hashkey(parent_hub, naming), cols)
                 for col in cols:
                     spec.add_source_column(col)
             elif sat.parent in hub_by_name:
                 parent_hub = hub_by_name[sat.parent]
                 bk_col = canonical_hub_key_column(parent_hub)
-                spec.add_hashed(_hub_hashkey(parent_hub), bk_col)
+                spec.add_hashed(_hub_hashkey(parent_hub, naming), bk_col)
                 if sat.key_translation is not None:
                     # WP38: the relation carries the surrogate, not the hub's key; the key
                     # arrives through the translation view `build_staging` renders, exactly as
@@ -548,7 +548,7 @@ def collect_staging_specs(
                         # WP83, as in the link's stage
                         spec.add_null_group([bk_col], [src_col], ref_hub.name)
                     spec.add_source_column(src_col)
-                spec.add_hashed(_link_hashkey(parent_link), bk_cols)
+                spec.add_hashed(_link_hashkey(parent_link, naming), bk_cols)
             target_specs = [spec]
         else:
             sat_parent_hub = hub_by_name.get(sat.parent)
@@ -562,14 +562,14 @@ def collect_staging_specs(
                     # flags the satellite instead of guessing, and no stage carries its payload.
                     feed = legacy_feed_of(sat_parent_hub, legacy)
                     target_specs = (
-                        [specs[multi_source_staging_name(sat_parent_hub, feed, legacy)]]
+                        [specs[multi_source_staging_name(sat_parent_hub, feed, legacy, naming)]]
                         if feed is not None else []
                     )
                 else:
                     # WP10: a satellite on a multi-source hub feeds each per-source staging (one
                     # satellite per source is emitted downstream, reading its own staging).
                     target_specs = [
-                        specs[multi_source_staging_name(sat_parent_hub, source, legacy)]
+                        specs[multi_source_staging_name(sat_parent_hub, source, legacy, naming)]
                         for source in sat_parent_hub.sources
                     ]
             else:
@@ -585,14 +585,14 @@ def collect_staging_specs(
                 # link parent. The dedicated src_eff column is DERIVED from the start date so
                 # AutomateDV's incremental SQL never projects one column twice (see rules/).
                 if sat.parent in link_names and len(attr_cols) >= 2:
-                    spec.derived.setdefault(EFFECTIVITY_APPLIED_COLUMN, attr_cols[0])
+                    spec.derived.setdefault(naming.applied_column, attr_cols[0])
             else:
-                hashdiff_name = _to_column(_base_name(sat.name)) + HASHDIFF_SUFFIX
+                hashdiff_name = naming.hashdiff(_to_column(_base_name(sat.name)))
                 spec.add_hashed(hashdiff_name, _HashDiff(columns=attr_cols))
 
     for spec in specs.values():
-        spec.add_source_column(LOAD_DATETIME_COLUMN)
-        spec.add_source_column(RECORD_SOURCE_COLUMN)
+        spec.add_source_column(naming.load_datetime_column)
+        spec.add_source_column(naming.record_source_column)
     return specs
 
 
@@ -696,12 +696,13 @@ def zero_key_model_name(hub: Hub) -> str:
     return f"zero_keys_{_base_name(hub.name)}"
 
 
-def zero_key_stage_name(hub: Hub) -> str:
-    return f"stg_{_base_name(hub.name)}_zero_keys"
+def zero_key_stage_name(hub: Hub, naming: NamingProfile = DEFAULT_NAMING) -> str:
+    return f"{naming.staging_prefix}{_base_name(hub.name)}_zero_keys"
 
 
 def render_zero_key_model(
-    hub: Hub, columns: list[tuple[str, str]], profile: PlatformProfile, type_stage: str
+    hub: Hub, columns: list[tuple[str, str]], profile: PlatformProfile, type_stage: str,
+    naming: NamingProfile = DEFAULT_NAMING,
 ) -> str:
     """WP86: the hub's two zero-key rows — every key column `-1` (required, missing) and `-2`
     (optional, not applicable) — at AutomateDV's ghost-record date, from the system. Each key is
@@ -716,8 +717,8 @@ def render_zero_key_model(
         keys = ", ".join(f"{cast(value, col, kind)} AS {col}" for col, kind in columns)
         return (
             f"SELECT {keys}, CAST('1900-01-01' AS {profile.seed_type('timestamp')}) AS "
-            f"{LOAD_DATETIME_COLUMN}, CAST('SYSTEM' AS {profile.seed_type('varchar')}) AS "
-            f"{RECORD_SOURCE_COLUMN}"
+            f"{naming.load_datetime_column}, CAST('SYSTEM' AS {profile.seed_type('varchar')}) AS "
+            f"{naming.record_source_column}"
         )
 
     return (
@@ -1392,6 +1393,7 @@ def _collect_seed_column_types(
     specs: dict[str, StagingSpec],
     contracts: list[dict[str, Any]],
     profile: PlatformProfile,
+    naming: NamingProfile = DEFAULT_NAMING,
 ) -> dict[str, dict[str, str]]:
     """Seed column types per staging source, from the drafted data contracts (WP7 §7.3).
 
@@ -1425,8 +1427,8 @@ def _collect_seed_column_types(
             seed_type = _seed_type(contract_field)
             if seed_type is not None:
                 columns[_to_column(label)] = profile.seed_type(seed_type)
-        columns[LOAD_DATETIME_COLUMN] = profile.seed_type("timestamp")
-        columns[RECORD_SOURCE_COLUMN] = profile.seed_type("varchar")
+        columns[naming.load_datetime_column] = profile.seed_type("timestamp")
+        columns[naming.record_source_column] = profile.seed_type("varchar")
         column_types[spec.source_model] = columns
     return column_types
 
@@ -1666,11 +1668,16 @@ and give the `{PROJECT_NAME}` profile a target of `type: {profile.profile_type}`
 """
 
 
-def _render_readme(specs: dict[str, StagingSpec], profile: PlatformProfile) -> str:
+def _render_readme(
+    specs: dict[str, StagingSpec], profile: PlatformProfile, naming: NamingProfile = DEFAULT_NAMING
+) -> str:
     inputs = "\n".join(
         f"- `{spec.source_model}` → feeds `{spec.name}` "
         f"(expected columns: {', '.join(spec.source_columns)})"
         for spec in specs.values()
+    )
+    technical_columns = (
+        f"`{naming.load_datetime_column}` and `{naming.record_source_column}`"
     )
     return f"""# Generated Data Vault project (vault-agent)
 
@@ -1685,7 +1692,7 @@ Each staging model reads one raw relation by name — provide it either as a dbt
 
 {inputs}
 
-Every raw relation must also carry `{LOAD_DATETIME_COLUMN}` and `{RECORD_SOURCE_COLUMN}`.
+Every raw relation must also carry {technical_columns}.
 
 ## Run it
 
@@ -1708,6 +1715,7 @@ def build_staging(
     business_vault: BusinessVaultOptions | None = None,
     ratified_bindings: dict[str, StageBinding] | None = None,
     carried_aliases: dict[str, dict[str, str]] | None = None,
+    naming: NamingProfile = DEFAULT_NAMING,
 ) -> StagingResult:
     """The full staging pass: specs -> bindings -> rendered models + scaffolding.
 
@@ -1737,6 +1745,7 @@ def build_staging(
     specs = collect_staging_specs(
         model, legacy,
         frozenset(s.name for s in existing.satellites) if existing is not None else frozenset(),
+        naming,  # WP114
     )
     # WP82: a human's aliases are part of the stage before anything judges its binding.
     for stage_name, binding in (ratified_bindings or {}).items():
@@ -1776,7 +1785,7 @@ def build_staging(
         if inferred.specs:
             blocks.append(inferred)
     profile = platform_profile(target_platform)
-    seed_column_types = _collect_seed_column_types(specs, contracts or [], profile)
+    seed_column_types = _collect_seed_column_types(specs, contracts or [], profile, naming)
     # WP36: one translation model per link whose target key is a join away. Rendered
     # BEFORE the stage models so each such stage reads its translation model; the referenced
     # relation's binding is taken from the spec that already stages it (the hub's), so the
@@ -1835,19 +1844,21 @@ def build_staging(
         from vault_agent.agents.code_generator import _hub_hashkey
 
         view = zero_key_model_name(hub)
-        stage = StagingSpec(name=zero_key_stage_name(hub), base=_base_name(hub.name),
+        stage = StagingSpec(name=zero_key_stage_name(hub, naming), base=_base_name(hub.name),
                             source_model=view)
         key_columns = [col for col, _ in columns]
-        stage.add_hashed(_hub_hashkey(hub), key_columns if len(key_columns) > 1 else key_columns[0])
+        stage.add_hashed(
+            _hub_hashkey(hub, naming), key_columns if len(key_columns) > 1 else key_columns[0]
+        )
         for col in key_columns:
             stage.add_source_column(col)
-        stage.add_source_column(LOAD_DATETIME_COLUMN)
-        stage.add_source_column(RECORD_SOURCE_COLUMN)
+        stage.add_source_column(naming.load_datetime_column)
+        stage.add_source_column(naming.record_source_column)
         type_stage = (
-            multi_source_staging_name(hub, hub.sources[0], legacy) if hub.sources
-            else _staging_name(hub.name)
+            multi_source_staging_name(hub, hub.sources[0], legacy, naming) if hub.sources
+            else _staging_name(hub.name, naming)
         )
-        models[view] = render_zero_key_model(hub, columns, profile, type_stage)
+        models[view] = render_zero_key_model(hub, columns, profile, type_stage, naming)
         models[stage.name] = render_stage_model(stage, profile).replace(
             "(source binding: inferred — see review queue)",
             f"(source binding: generated — {view}, WP86)",
@@ -1885,7 +1896,7 @@ def build_staging(
         ),
         "packages.yml": _render_packages(business_vault),
         "models/staging/sources.yml": _render_sources_yml(specs, blocks),
-        "README.md": _render_readme(specs, profile),
+        "README.md": _render_readme(specs, profile, naming),
         **translation_tests,
     }
     return StagingResult(

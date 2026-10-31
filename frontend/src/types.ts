@@ -250,16 +250,30 @@ export interface ApiErrorBody {
 
 // WP113 (C3): what a project pins for its runs, what a run effectively takes, and the environment
 // it inherits — the key only as set / not set, never its value.
+// WP114 (C3): the physical naming profile the project's runs generate under.
+export interface NamingProfile {
+  staging_prefix: string; hashkey_suffix: string; hashdiff_suffix: string;
+  load_datetime: string; record_source: string; applied_dts: string;
+  technical_case: "upper" | "lower";
+}
+
+export const DEFAULT_NAMING: NamingProfile = {
+  staging_prefix: "stg_", hashkey_suffix: "_HK", hashdiff_suffix: "_HASHDIFF",
+  load_datetime: "LOAD_DATETIME", record_source: "RECORD_SOURCE", applied_dts: "APPLIED_DTS",
+  technical_case: "upper",
+};
+
 export interface ProjectSettings {
   target_platform?: Platform | null;
   primary_model?: string | null;
   heavy_model?: string | null;
   anthropic_base_url?: string | null;
+  naming?: NamingProfile | null;
 }
 
 export interface ProjectSettingsView {
   settings: ProjectSettings;
-  effective: { target_platform: Platform; primary_model: string; heavy_model: string; anthropic_base_url: string | null };
+  effective: { target_platform: Platform; primary_model: string; heavy_model: string; anthropic_base_url: string | null; naming?: NamingProfile };
   environment: {
     llm_provider: string; anthropic_api_key_set: boolean; primary_model: string; heavy_model: string;
     anthropic_base_url: string | null; route?: string; credentials?: string;

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
 import { formatBytes } from "../derive";
-import { PLATFORMS, type Platform, type Project, type ProjectFile, type ProjectSettingsView, type RunSummary } from "../types";
+import { DEFAULT_NAMING, PLATFORMS, type NamingProfile, type Platform, type Project, type ProjectFile, type ProjectSettingsView, type RunSummary } from "../types";
 import { Button, Dot, Empty, ErrorNote, KV, Pill, Section } from "../components/ui";
 
 // A browser upload is text: .md/.txt requirements and .yml/.yaml/.json schemas. A PDF
@@ -35,6 +35,9 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
   const [view, setView] = useState<ProjectSettingsView | null>(null);
   const [draft, setDraft] = useState({ target_platform: "", primary_model: "", heavy_model: "", anthropic_base_url: "" });
   const [savedNote, setSavedNote] = useState<string | null>(null);
+  // WP114: the naming profile's seven fields; the house style unless the project pins another.
+  const [naming, setNaming] = useState<NamingProfile>(DEFAULT_NAMING);
+  const namingIsDefault = (Object.keys(DEFAULT_NAMING) as (keyof NamingProfile)[]).every((k) => naming[k] === DEFAULT_NAMING[k]);
   useEffect(() => {
     let live = true;
     api.settings(project.id).then((v) => {
@@ -45,6 +48,7 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
         heavy_model: v.settings.heavy_model ?? "", anthropic_base_url: v.settings.anthropic_base_url ?? "",
       });
       setPlatform(v.effective.target_platform);
+      setNaming(v.settings.naming ?? DEFAULT_NAMING);
     }).catch((e) => { if (live) setError(e instanceof ApiError ? e.detail : String(e)); });
     return () => { live = false; };
   }, [project.id]);
@@ -56,6 +60,7 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
         target_platform: (draft.target_platform || null) as Platform | null,
         primary_model: draft.primary_model || null, heavy_model: draft.heavy_model || null,
         anthropic_base_url: draft.anthropic_base_url || null,
+        naming: namingIsDefault ? null : naming,
       });
       setView(v); setPlatform(v.effective.target_platform); setSavedNote("saved — the next run takes these");
     } catch (e) {
@@ -139,6 +144,27 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
               onChange={(e) => setDraft({ ...draft, heavy_model: e.target.value })} className="rounded-md border border-line bg-pane-2 px-2 py-1.5 font-mono text-xs" />
           </label>
         </div>
+        <details className="mt-3 text-sm">
+          <summary className="cursor-pointer text-xs text-ink-faint">naming profile {namingIsDefault ? "(house style)" : "(pinned)"} — the technical names the generator writes; an extension keeps its vault's</summary>
+          <div className="mt-2 grid gap-3 sm:grid-cols-4">
+            {([["staging prefix", "staging_prefix"], ["hash key suffix", "hashkey_suffix"], ["hashdiff suffix", "hashdiff_suffix"],
+               ["load datetime column", "load_datetime"], ["record source column", "record_source"], ["applied dts column", "applied_dts"]] as const).map(([label, key]) => (
+              <label key={key} className="grid gap-1">
+                <span className="text-xs text-ink-faint">{label}</span>
+                <input aria-label={label} value={naming[key]} onChange={(e) => setNaming({ ...naming, [key]: e.target.value })}
+                  className="rounded-md border border-line bg-pane-2 px-2 py-1.5 font-mono text-xs" />
+              </label>
+            ))}
+            <label className="grid gap-1">
+              <span className="text-xs text-ink-faint">technical case</span>
+              <select aria-label="technical case" value={naming.technical_case} onChange={(e) => setNaming({ ...naming, technical_case: e.target.value as "upper" | "lower" })}
+                className="rounded-md border border-line bg-pane-2 px-2 py-1.5">
+                <option value="upper">upper</option>
+                <option value="lower">lower</option>
+              </select>
+            </label>
+          </div>
+        </details>
         <div className="mt-3 flex items-center gap-3">
           <Button kind="ghost" onClick={() => void saveSettings()} disabled={busy}>save settings</Button>
           <span className="text-xs text-ink-faint">{savedNote ?? `route: ${view?.environment.route ?? view?.environment.llm_provider ?? "…"} — secrets stay in .env; every run records these and its CLI equivalent carries them`}</span>

@@ -1128,6 +1128,7 @@ class ValidatorAgent(BaseAgent):
                 expand=lambda fk: component_keys(fk, declared_tables),
                 carried_bindings=state.carried_bindings,  # WP105
                 carried_schemas=state.carried_schemas,
+                naming=state.naming,  # WP114
             )
             bound = [gelesen] if gelesen is not None else []
             in_scope = (
@@ -1224,6 +1225,7 @@ class ValidatorAgent(BaseAgent):
                 expand=lambda fk: component_keys(fk, declared),
                 carried_bindings=state.carried_bindings,  # WP105
                 carried_schemas=state.carried_schemas,
+                naming=state.naming,  # WP114
             )
             if gelesen is None or not gelesen.foreign_keys:
                 continue
@@ -1526,7 +1528,7 @@ class ValidatorAgent(BaseAgent):
                 )
             else:
                 relation_name = link_relations.get(
-                    normalize_identifier(stage_name.removeprefix("stg_"))
+                    normalize_identifier(stage_name.removeprefix(state.naming.staging_prefix))
                 )
             table = declared_tables.get(normalize_identifier(str(relation_name or "")))
             if table is None:

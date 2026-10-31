@@ -18,12 +18,6 @@ from typing import Any
 from vault_agent.agents.base import BaseAgent
 from vault_agent.llm import TraceEvent, emit_trace
 from vault_agent.rules.dv2_rules import (
-    EFFECTIVITY_APPLIED_COLUMN,
-    HASHDIFF_SUFFIX,
-    HASHKEY_SUFFIX,
-    LOAD_DATETIME_COLUMN,
-    RECORD_SOURCE_COLUMN,
-    STAGING_PREFIX,
     canonical_hub_key_column,
     hub_key_columns,
     is_composite_key,
@@ -34,6 +28,7 @@ from vault_agent.rules.dv2_rules import (
     source_table_on_multi_source_hub,
     stage_column_name,
 )
+from vault_agent.rules.naming import DEFAULT_NAMING, NamingProfile
 from vault_agent.state import (
     FlagKind,
     Hub,
@@ -92,13 +87,14 @@ def _base_name(name: str) -> str:
     return name
 
 
-def _staging_model(name: str) -> str:
+def _staging_model(name: str, naming: NamingProfile = DEFAULT_NAMING) -> str:
     # Mirrors staging_generator._staging_name exactly — one normalisation path for every
-    # staging name (WP20 §2.4); byte-identical for well-formed names (E_BAD_NAME).
-    return STAGING_PREFIX + normalize_identifier(_base_name(name)).lower()
+    # staging name (WP20 §2.4); byte-identical for well-formed names (E_BAD_NAME). WP114: the
+    # prefix is the run's profile's (the rule itself: rules.stage_model_name).
+    return naming.staging_prefix + normalize_identifier(_base_name(name)).lower()
 
 
-def _sat_staging_model(sat: Satellite) -> str:
+def _sat_staging_model(sat: Satellite, naming: NamingProfile = DEFAULT_NAMING) -> str:
     """The staging model feeding a satellite (WP7 §7.1).
 
     A satellite that declares a ``source_table`` (its rows live in their own, usually
@@ -107,8 +103,8 @@ def _sat_staging_model(sat: Satellite) -> str:
     always read the parent link's staging — their date pair lives in the relationship's
     own relation — so ``source_table`` is ignored for them."""
     if sat.source_table and sat.sat_type != "effectivity":
-        return _staging_model(sat.name)
-    return _staging_model(sat.parent)
+        return _staging_model(sat.name, naming)
+    return _staging_model(sat.parent, naming)
 
 
 def _sql_list(items: list[str]) -> str:
@@ -120,8 +116,8 @@ def _set_block(assignments: list[tuple[str, str]]) -> str:
     return "".join(f'{{%- set {var} = {value} -%}}\n' for var, value in assignments)
 
 
-def _hub_hashkey(hub: Hub) -> str:
-    return _to_column(hub.source_entity) + HASHKEY_SUFFIX
+def _hub_hashkey(hub: Hub, naming: NamingProfile = DEFAULT_NAMING) -> str:
+    return naming.hashkey(_to_column(hub.source_entity))
 
 
 def _sat_source_name(sat: Satellite, source: HubSource) -> str:
@@ -132,13 +128,13 @@ def _sat_source_name(sat: Satellite, source: HubSource) -> str:
     return sat.name + "_" + normalize_identifier(source.source_table).lower()
 
 
-def _link_hashkey(link: Link) -> str:
-    return _to_column(link.name) + HASHKEY_SUFFIX
+def _link_hashkey(link: Link, naming: NamingProfile = DEFAULT_NAMING) -> str:
+    return naming.hashkey(_to_column(link.name))
 
 
 def _render_hub(
     hub: Hub, legacy: set[tuple[str, str, str]] | None = None,
-    zero_key_stage: str | None = None,
+    zero_key_stage: str | None = None, naming: NamingProfile = DEFAULT_NAMING,
 ) -> tuple[str, dict[str, Any]]:
     # WP10: a multi-source hub unions one staging model per feed (AutomateDV's hub macro
     # accepts source_model as a list — verified against 0.11.4 postgres__hub) and keys off
@@ -151,7 +147,7 @@ def _render_hub(
         # source_model list mixes [legacy staging, new per-source stagings]. Its SQL
         # legitimately changes — the extension diff names that file explicitly.
         source_models = [
-            multi_source_staging_name(hub, source, legacy) for source in hub.sources
+            multi_source_staging_name(hub, source, legacy, naming) for source in hub.sources
         ]
         source_model: str | list[str] = source_models
         src_nk: str | list[str] = stage_column_name(canonical_hub_key_column(hub))  # WP79
@@ -159,12 +155,12 @@ def _render_hub(
     elif is_composite_key(hub):
         # WP45: AutomateDV's hub takes src_nk as a list (expand_column_list); the stage hashes
         # the same list, in the same order, so the key columns and the hash agree by construction.
-        source_model = _staging_model(hub.name)
+        source_model = _staging_model(hub.name, naming)
         src_nk_list = [stage_column_name(c) for c in hub_key_columns(hub)]  # WP79
         src_nk = src_nk_list
         source_model_literal = f'"{source_model}"'
     else:
-        source_model = _staging_model(hub.name)
+        source_model = _staging_model(hub.name, naming)
         src_nk = _to_column(hub.business_key)
         source_model_literal = f'"{source_model}"'
     if zero_key_stage is not None:
@@ -176,10 +172,10 @@ def _render_hub(
     src_nk_literal = _sql_list(src_nk) if isinstance(src_nk, list) else f'"{src_nk}"'
     meta: dict[str, Any] = {
         "source_model": source_model,
-        "src_pk": _hub_hashkey(hub),
+        "src_pk": _hub_hashkey(hub, naming),
         "src_nk": src_nk,
-        "src_ldts": LOAD_DATETIME_COLUMN,
-        "src_source": RECORD_SOURCE_COLUMN,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
     }
     sql = (
         "{{ config(materialized='incremental') }}\n\n"
@@ -188,8 +184,8 @@ def _render_hub(
                 ("source_model", source_model_literal),
                 ("src_pk", f'"{meta["src_pk"]}"'),
                 ("src_nk", src_nk_literal),
-                ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
-                ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
             ]
         )
         + "\n{{ automate_dv.hub(src_pk=src_pk, src_nk=src_nk, src_ldts=src_ldts,\n"
@@ -209,7 +205,7 @@ def apply_zero_key_hubs(state: VaultAgentState, zero_key_hubs: dict[str, str]) -
     for hub in state.dv_model.hubs:
         if hub.name not in state.artifacts.dbt_models:
             continue
-        sql, meta = _render_hub(hub, legacy, zero_key_hubs.get(hub.name))
+        sql, meta = _render_hub(hub, legacy, zero_key_hubs.get(hub.name), state.naming)
         state.artifacts.dbt_models[hub.name] = sql
         hub_metadata[hub.name] = meta
 
@@ -222,14 +218,16 @@ def _link_src_fk(link: Link, hub_hashkeys: dict[str, str]) -> list[str]:
     return [role_fk_column(hub_hashkeys[ref.hub], ref.role) for ref in link.hub_refs]
 
 
-def _render_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict[str, Any]]:
+def _render_link(
+    link: Link, hub_hashkeys: dict[str, str], naming: NamingProfile = DEFAULT_NAMING
+) -> tuple[str, dict[str, Any]]:
     src_fk = _link_src_fk(link, hub_hashkeys)
     meta: dict[str, Any] = {
-        "source_model": _staging_model(link.name),
-        "src_pk": _link_hashkey(link),
+        "source_model": _staging_model(link.name, naming),
+        "src_pk": _link_hashkey(link, naming),
         "src_fk": src_fk,
-        "src_ldts": LOAD_DATETIME_COLUMN,
-        "src_source": RECORD_SOURCE_COLUMN,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
     }
     sql = (
         "{{ config(materialized='incremental') }}\n\n"
@@ -238,8 +236,8 @@ def _render_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict[st
                 ("source_model", f'"{meta["source_model"]}"'),
                 ("src_pk", f'"{meta["src_pk"]}"'),
                 ("src_fk", _sql_list(src_fk)),
-                ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
-                ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
             ]
         )
         + "\n{{ automate_dv.link(src_pk=src_pk, src_fk=src_fk, src_ldts=src_ldts,\n"
@@ -249,20 +247,21 @@ def _render_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict[st
 
 
 def _render_sat(
-    sat: Satellite, parent_hashkey: str, source_model: str | None = None
+    sat: Satellite, parent_hashkey: str, source_model: str | None = None,
+    naming: NamingProfile = DEFAULT_NAMING,
 ) -> tuple[str, dict[str, Any]]:
     payload = [_to_column(attr) for attr in sat.attributes]
     # The hashdiff name is derived from the ORIGINAL satellite base so it matches the column
     # each staging computes — including a per-source staging (WP10), where ``source_model`` is
     # overridden but the hashdiff column keeps the shared name.
-    src_hashdiff = _to_column(_base_name(sat.name)) + HASHDIFF_SUFFIX
+    src_hashdiff = naming.hashdiff(_to_column(_base_name(sat.name)))
     meta: dict[str, Any] = {
-        "source_model": source_model or _sat_staging_model(sat),
+        "source_model": source_model or _sat_staging_model(sat, naming),
         "src_pk": parent_hashkey,
         "src_hashdiff": src_hashdiff,
         "src_payload": payload,
-        "src_ldts": LOAD_DATETIME_COLUMN,
-        "src_source": RECORD_SOURCE_COLUMN,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
     }
     sql = (
         "{{ config(materialized='incremental') }}\n\n"
@@ -272,8 +271,8 @@ def _render_sat(
                 ("src_pk", f'"{parent_hashkey}"'),
                 ("src_hashdiff", f'"{src_hashdiff}"'),
                 ("src_payload", _sql_list(payload)),
-                ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
-                ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
             ]
         )
         + "\n{{ automate_dv.sat(src_pk=src_pk, src_hashdiff=src_hashdiff, "
@@ -284,7 +283,9 @@ def _render_sat(
     return sql, meta
 
 
-def _render_nh_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict[str, Any]]:
+def _render_nh_link(
+    link: Link, hub_hashkeys: dict[str, str], naming: NamingProfile = DEFAULT_NAMING
+) -> tuple[str, dict[str, Any]]:
     """Render a transactional (non-historized) link. Caller guarantees event_timestamp.
 
     Uses AutomateDV's ``t_link`` macro (the transactional/non-historized link — verified
@@ -295,13 +296,13 @@ def _render_nh_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict
     payload = [_to_column(col) for col in link.payload]
     src_eff = _to_column(link.event_timestamp or "")
     meta: dict[str, Any] = {
-        "source_model": _staging_model(link.name),
-        "src_pk": _link_hashkey(link),
+        "source_model": _staging_model(link.name, naming),
+        "src_pk": _link_hashkey(link, naming),
         "src_fk": src_fk,
         "src_payload": payload,
         "src_eff": src_eff,
-        "src_ldts": LOAD_DATETIME_COLUMN,
-        "src_source": RECORD_SOURCE_COLUMN,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
     }
     sql = (
         "{{ config(materialized='incremental') }}\n\n"
@@ -312,8 +313,8 @@ def _render_nh_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict
                 ("src_fk", _sql_list(src_fk)),
                 ("src_payload", _sql_list(payload)),
                 ("src_eff", f'"{src_eff}"'),
-                ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
-                ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
             ]
         )
         + "\n{{ automate_dv.t_link(src_pk=src_pk, src_fk=src_fk, src_payload=src_payload,\n"
@@ -325,20 +326,21 @@ def _render_nh_link(link: Link, hub_hashkeys: dict[str, str]) -> tuple[str, dict
 
 
 def _render_ma_sat(
-    sat: Satellite, parent_hashkey: str, source_model: str | None = None
+    sat: Satellite, parent_hashkey: str, source_model: str | None = None,
+    naming: NamingProfile = DEFAULT_NAMING,
 ) -> tuple[str, dict[str, Any]]:
     payload = [_to_column(attr) for attr in sat.attributes]
     cdk = [_to_column(key) for key in sat.child_dependent_key]
-    src_hashdiff = _to_column(_base_name(sat.name)) + HASHDIFF_SUFFIX
+    src_hashdiff = naming.hashdiff(_to_column(_base_name(sat.name)))
     meta: dict[str, Any] = {
         # WP84: a feed-bound satellite reads its feed's staging, as `_render_sat` does.
-        "source_model": source_model or _sat_staging_model(sat),
+        "source_model": source_model or _sat_staging_model(sat, naming),
         "src_pk": parent_hashkey,
         "src_cdk": cdk,
         "src_hashdiff": src_hashdiff,
         "src_payload": payload,
-        "src_ldts": LOAD_DATETIME_COLUMN,
-        "src_source": RECORD_SOURCE_COLUMN,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
     }
     sql = (
         "{{ config(materialized='incremental') }}\n\n"
@@ -349,8 +351,8 @@ def _render_ma_sat(
                 ("src_cdk", _sql_list(cdk)),
                 ("src_hashdiff", f'"{src_hashdiff}"'),
                 ("src_payload", _sql_list(payload)),
-                ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
-                ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
             ]
         )
         + "\n{{ automate_dv.ma_sat(src_pk=src_pk, src_cdk=src_cdk, "
@@ -362,7 +364,8 @@ def _render_ma_sat(
 
 
 def _render_eff_sat(
-    sat: Satellite, link_hashkey: str, driving_fks: list[str], secondary_fks: list[str]
+    sat: Satellite, link_hashkey: str, driving_fks: list[str], secondary_fks: list[str],
+    naming: NamingProfile = DEFAULT_NAMING,
 ) -> tuple[str, dict[str, Any]]:
     dates = [_to_column(attr) for attr in sat.attributes]
     start_date, end_date = dates[0], dates[1]
@@ -371,22 +374,22 @@ def _render_eff_sat(
     # separately, so reusing the start-date column makes Postgres reject the query with
     # "column ... specified more than once". The eff_sat parent's staging supplies this
     # column carrying the start-date value (see EFFECTIVITY_APPLIED_COLUMN).
-    eff_column = EFFECTIVITY_APPLIED_COLUMN
+    eff_column = naming.applied_column
     # AutomateDV's src_dfk takes a bare key for a single driving hub, a list for several
     # — mirror how src_fk / src_cdk are rendered elsewhere.
     single_driver = len(driving_fks) == 1
     src_dfk: str | list[str] = driving_fks[0] if single_driver else driving_fks
     dfk_render = f'"{driving_fks[0]}"' if single_driver else _sql_list(driving_fks)
     meta: dict[str, Any] = {
-        "source_model": _staging_model(sat.parent),
+        "source_model": _staging_model(sat.parent, naming),
         "src_pk": link_hashkey,
         "src_dfk": src_dfk,
         "src_sfk": secondary_fks,
         "src_start_date": start_date,
         "src_end_date": end_date,
         "src_eff": eff_column,
-        "src_ldts": LOAD_DATETIME_COLUMN,
-        "src_source": RECORD_SOURCE_COLUMN,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
     }
     # Enable AutomateDV's auto end-dating: closing a superseded relationship when a driving
     # key's partner changes is the defining behaviour of an effectivity satellite. The macro
@@ -403,8 +406,8 @@ def _render_eff_sat(
                 ("src_start_date", f'"{start_date}"'),
                 ("src_end_date", f'"{end_date}"'),
                 ("src_eff", f'"{eff_column}"'),
-                ("src_ldts", f'"{LOAD_DATETIME_COLUMN}"'),
-                ("src_source", f'"{RECORD_SOURCE_COLUMN}"'),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
             ]
         )
         + "\n{{ automate_dv.eff_sat(src_pk=src_pk, src_dfk=src_dfk, src_sfk=src_sfk,\n"
@@ -441,7 +444,8 @@ class CodeGeneratorAgent(BaseAgent):
             len(model.links),
             len(model.satellites),
         )
-        hub_hashkeys = {hub.name: _hub_hashkey(hub) for hub in model.hubs}
+        naming = state.naming  # WP114: the run's naming profile, read once
+        hub_hashkeys = {hub.name: _hub_hashkey(hub, naming) for hub in model.hubs}
         hub_by_name = {hub.name: hub for hub in model.hubs}
         # WP23 §2.6 grandfathering: feeds and satellites the extended vault already had.
         # Both are EMPTY on a greenfield run, which is what keeps its output identical.
@@ -466,7 +470,7 @@ class CodeGeneratorAgent(BaseAgent):
         metadata: dict[str, dict[str, Any]] = {"hubs": {}, "links": {}, "satellites": {}}
 
         for hub in model.hubs:
-            sql, meta = _render_hub(hub, legacy)
+            sql, meta = _render_hub(hub, legacy, naming=naming)
             dbt_models[hub.name] = sql
             metadata["hubs"][hub.name] = meta
 
@@ -491,9 +495,9 @@ class CodeGeneratorAgent(BaseAgent):
                     )
                     continue
                 state.flags.extend(_collision_warnings(link.payload, link.name))
-                sql, meta = _render_nh_link(link, hub_hashkeys)
+                sql, meta = _render_nh_link(link, hub_hashkeys, naming)
             else:
-                sql, meta = _render_link(link, hub_hashkeys)
+                sql, meta = _render_link(link, hub_hashkeys, naming)
             dbt_models[link.name] = sql
             metadata["links"][link.name] = meta
             parent_hashkeys[link.name] = _link_hashkey(link)
@@ -539,7 +543,7 @@ class CodeGeneratorAgent(BaseAgent):
                     state.flags.extend(
                         _collision_warnings(sat.attributes + sat.child_dependent_key, sat.name)
                     )
-                    feed_stage = multi_source_staging_name(parent_hub, bound_feed, legacy)
+                    feed_stage = multi_source_staging_name(parent_hub, bound_feed, legacy, naming)
                     if sat.sat_type == "multi_active":
                         # WP84 (C11): the type decides the template here too. Before, every
                         # feed-bound satellite was a plain `sat`, and a multi-active one lost its
@@ -554,11 +558,11 @@ class CodeGeneratorAgent(BaseAgent):
                             )
                             continue
                         sql, meta = _render_ma_sat(
-                            sat, parent_hashkeys[sat.parent], source_model=feed_stage
+                            sat, parent_hashkeys[sat.parent], source_model=feed_stage, naming=naming
                         )
                     else:
                         sql, meta = _render_sat(
-                            sat, parent_hashkeys[sat.parent], source_model=feed_stage
+                            sat, parent_hashkeys[sat.parent], source_model=feed_stage, naming=naming
                         )
                     dbt_models[sat.name] = sql
                     metadata["satellites"][sat.name] = meta
@@ -614,7 +618,8 @@ class CodeGeneratorAgent(BaseAgent):
                             f"existing satellite {sat.name!r} read the legacy staging model "
                             f"of hub {sat.parent!r}, which this step cannot identify among the "
                             f"hub's feeds (the carried catalogue binds no "
-                            f"'{_staging_name(sat.parent)}'); rendering it against a feed would "
+                            f"'{_staging_name(sat.parent, naming)}'); rendering it against a feed "
+                            f"would "
                             f"guess and splitting it would rename a materialised model, so it "
                             f"is flagged for human review",
                             kind=FlagKind.GENERATION_GAP,
@@ -626,7 +631,8 @@ class CodeGeneratorAgent(BaseAgent):
                     )
                     sql, meta = _render_sat(
                         sat, parent_hashkeys[sat.parent],
-                        source_model=multi_source_staging_name(parent_hub, feed, legacy),
+                        source_model=multi_source_staging_name(parent_hub, feed, legacy, naming),
+                        naming=naming,
                     )
                     dbt_models[sat.name] = sql
                     metadata["satellites"][sat.name] = meta
@@ -641,9 +647,9 @@ class CodeGeneratorAgent(BaseAgent):
                 )
                 for source in parent_hub.sources:
                     per_name = _sat_source_name(sat, source)
-                    staging_model = multi_source_staging_name(parent_hub, source, legacy)
+                    staging_model = multi_source_staging_name(parent_hub, source, legacy, naming)
                     sql, meta = _render_sat(
-                        sat, parent_hashkeys[sat.parent], source_model=staging_model
+                        sat, parent_hashkeys[sat.parent], source_model=staging_model, naming=naming
                     )
                     dbt_models[per_name] = sql
                     metadata["satellites"][per_name] = meta
@@ -677,6 +683,7 @@ class CodeGeneratorAgent(BaseAgent):
             business_vault=state.business_vault,  # WP91
             ratified_bindings=state.ratified_bindings,  # WP82
             carried_aliases=state.carried_aliases,  # WP82
+            naming=naming,  # WP114
         )
         state.artifacts.staging_models = staging.models
         state.artifacts.scaffolding = staging.scaffolding
@@ -750,7 +757,7 @@ class CodeGeneratorAgent(BaseAgent):
         )
 
         if sat.sat_type == "standard":
-            return _render_sat(sat, parent_hashkeys[sat.parent])
+            return _render_sat(sat, parent_hashkeys[sat.parent], naming=state.naming)
 
         if sat.sat_type == "multi_active":
             if not sat.child_dependent_key:
@@ -762,7 +769,7 @@ class CodeGeneratorAgent(BaseAgent):
                     asset=sat.name,
                 )
                 return None
-            return _render_ma_sat(sat, parent_hashkeys[sat.parent])
+            return _render_ma_sat(sat, parent_hashkeys[sat.parent], naming=state.naming)
 
         # effectivity
         if sat.parent not in link_fks:
@@ -818,4 +825,5 @@ class CodeGeneratorAgent(BaseAgent):
             parent_hashkeys[sat.parent],
             driving_fks,
             link_secondary_fks.get(sat.parent, []),
+            naming=state.naming,
         )

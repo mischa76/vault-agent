@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 
 from vault_agent.agents.staging_generator import legacy_feeds
 from vault_agent.rules.dv2_rules import normalize_identifier
+from vault_agent.rules.naming import DEFAULT_NAMING, NamingProfile
 from vault_agent.state import DVModel, VaultAgentState
 
 logger = logging.getLogger(__name__)
@@ -156,11 +157,12 @@ async def _changed_files(state: VaultAgentState, prior: DVModel) -> dict[str, li
             if after is None:
                 changed.setdefault(name, []).append(f"{label}/{name}.sql (no longer generated)")
             elif after != sql:
-                changed.setdefault(_owner(name, prior), []).append(f"{label}/{name}.sql")
+                owner = _owner(name, prior, state.naming)
+                changed.setdefault(owner, []).append(f"{label}/{name}.sql")
     return changed
 
 
-def _owner(model_name: str, prior: DVModel) -> str:
+def _owner(model_name: str, prior: DVModel, naming: NamingProfile = DEFAULT_NAMING) -> str:
     """The construct a generated file belongs to.
 
     A raw-vault model is named after its construct; a staging model is named after the
@@ -168,7 +170,8 @@ def _owner(model_name: str, prior: DVModel) -> str:
     reported under their own name rather than guessed at."""
     if model_name in set(_construct_names(prior)):
         return model_name
-    base = model_name[4:] if model_name.startswith("stg_") else model_name
+    prefix = naming.staging_prefix  # WP114: the run's profile, never the literal
+    base = model_name[len(prefix):] if model_name.startswith(prefix) else model_name
     for name in _construct_names(prior):
         if name.split("_", 1)[-1] == base:
             return name

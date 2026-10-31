@@ -1032,6 +1032,7 @@ def apply_key_licenses(
                 expand=lambda fk: component_keys(fk, declared),
                 carried_bindings=state.carried_bindings,  # WP105
                 carried_schemas=state.carried_schemas,
+                naming=state.naming,  # WP114
             )
             reads = (
                 gelesen is not None
@@ -1157,6 +1158,7 @@ def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
             expand=lambda fk: component_keys(fk, declared),
             carried_bindings=state.carried_bindings,  # WP105
             carried_schemas=state.carried_schemas,
+            naming=state.naming,  # WP114
         )
         if grund in ("offer", "payload", "key"):  # WP90: the evidence tier binds like an offer
             overrides[base] = relation.table
@@ -1213,6 +1215,7 @@ def link_binding_evidence_flags(state: VaultAgentState) -> list[PipelineFlag]:
             link, state.dv_model, state.source_schemas, resolve, expand=expand,
             carried_bindings=state.carried_bindings,  # WP105
             carried_schemas=state.carried_schemas,
+            naming=state.naming,  # WP114
         )
         if grund not in ("payload", "key") or overrides.get(base) != relation.table:
             continue
@@ -1261,6 +1264,7 @@ def link_binding_reasons(state: VaultAgentState) -> dict[str, str]:
             expand=lambda fk: component_keys(fk, declared),
             carried_bindings=state.carried_bindings,  # WP105
             carried_schemas=state.carried_schemas,
+            naming=state.naming,  # WP114
         )
         if grund in ("ambiguous", "none"):
             reasons[base] = grund

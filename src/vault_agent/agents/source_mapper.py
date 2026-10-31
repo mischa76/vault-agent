@@ -589,7 +589,7 @@ def rebind_staging(state: VaultAgentState) -> None:
     refused = {f.asset for f in result.flags if f.kind == FlagKind.BINDING_REJECTED}
     evidence = [
         f for f in link_binding_evidence_flags(state)
-        if construct_stage_name(f.asset or "") not in refused  # WP73's refusal stands alone
+        if construct_stage_name(f.asset or "", state.naming) not in refused  # WP73's refusal stands
     ]
     state.flags = dedupe_flags(
         [f for f in state.flags if f.kind not in rebound] + result.flags + evidence

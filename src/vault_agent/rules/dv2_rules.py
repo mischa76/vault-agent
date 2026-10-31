@@ -7,6 +7,8 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
+from vault_agent.rules.naming import DEFAULT_NAMING, NamingProfile
+
 
 def normalize_identifier(label: str) -> str:
     """Normalise a business label into a SQL identifier (UPPER_SNAKE).
@@ -562,18 +564,20 @@ def single_feed_foreign_relation(satellite: Any, parent_hub: Any) -> bool:
 
 # Physical naming conventions the code generator uses when rendering AutomateDV/dbt
 # models. Kept here so naming stays a single source of truth across modeler/generator.
-LOAD_DATETIME_COLUMN = "LOAD_DATETIME"
-RECORD_SOURCE_COLUMN = "RECORD_SOURCE"
-HASHKEY_SUFFIX = "_HK"
-HASHDIFF_SUFFIX = "_HASHDIFF"
-STAGING_PREFIX = "stg_"
+# WP114 (C3): the values of the default `NamingProfile` (`rules/naming.py`); a run that pins
+# another profile carries it on the state, and the generators read it from there.
+LOAD_DATETIME_COLUMN = DEFAULT_NAMING.load_datetime
+RECORD_SOURCE_COLUMN = DEFAULT_NAMING.record_source
+HASHKEY_SUFFIX = DEFAULT_NAMING.hashkey_suffix
+HASHDIFF_SUFFIX = DEFAULT_NAMING.hashdiff_suffix
+STAGING_PREFIX = DEFAULT_NAMING.staging_prefix
 # Dedicated effectivity-tracking column for an effectivity satellite's AutomateDV `src_eff`.
 # It MUST be distinct from src_start_date / src_end_date / src_ldts: AutomateDV's incremental
 # eff_sat SQL projects src_eff separately, so reusing the start-date column makes Postgres
 # reject the query with "column ... specified more than once". The staging for an eff_sat
 # parent supplies this column carrying the same value as the start date, so end-dating closes
 # a superseded record to the business effective date of its successor (not a load timestamp).
-EFFECTIVITY_APPLIED_COLUMN = "APPLIED_DTS"
+EFFECTIVITY_APPLIED_COLUMN = DEFAULT_NAMING.applied_dts
 # Prefix for an *inferred* raw source relation when no declared source table matches a
 # staging model (e.g. stg_customer -> raw_customer). An inferred binding is always flagged
 # for human review (FlagKind.SOURCE_BINDING) — the generator names, it never guesses silently.
@@ -718,20 +722,22 @@ def link_relation_offer(
     return angebot
 
 
-def stage_model_name(construct_name: str) -> str:
+def stage_model_name(construct_name: str, naming: NamingProfile = DEFAULT_NAMING) -> str:
     """The staging model a single-source hub, a link or a satellite with its own ``source_table``
-    reads: ``stg_<base>``, the base normalised through the one identifier helper and lower-cased.
+    reads: ``stg_<base>``, the base normalised through the one identifier helper and lower-cased;
+    the prefix is the run's naming profile's (WP114).
 
     Promoted here from ``staging_generator._staging_name`` (WP105, 2026-10-31) the way
     ``construct_base_name`` was (WP34): the link's relation resolution now reads a stage's carried
     binding (WP77 keys it by stage name) and must derive the SAME name the generator writes. The
     generators delegate to this function; byte-identical for every valid construct name."""
-    return STAGING_PREFIX + normalize_identifier(construct_base_name(construct_name)).lower()
+    return naming.staging_prefix + normalize_identifier(construct_base_name(construct_name)).lower()
 
 
 def resolve_link_relation(
     link: Any, model: Any, schemas: Any, resolve: Any, expand: Any | None = None,
     *, carried_bindings: Any | None = None, carried_schemas: Any | None = None,
+    naming: NamingProfile = DEFAULT_NAMING,
 ) -> tuple[Any, str]:
     """The declared relation a link reads — ``(relation, grund)``; relation is None when unknown.
 
@@ -764,7 +770,7 @@ def resolve_link_relation(
 
     ``grund`` is a code, never a sentence: ``carried`` (WP105), ``name``, ``offer``, ``payload``,
     ``key`` (WP90), ``ambiguous``, ``none``."""
-    kept = (carried_bindings or {}).get(stage_model_name(link.name))
+    kept = (carried_bindings or {}).get(stage_model_name(link.name, naming))
     if kept:
         wanted = normalize_identifier(kept)
         for relation in [*schemas, *(carried_schemas or [])]:

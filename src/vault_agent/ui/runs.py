@@ -15,6 +15,8 @@ from pathlib import Path
 from typing import Any, cast
 from uuid import uuid4
 
+import yaml
+
 from vault_agent import cli
 from vault_agent.agents.entity_resolver import pending_resolution_decisions
 from vault_agent.agents.orchestrator import assemble_review_queue
@@ -25,9 +27,11 @@ from vault_agent.existing_model import (
     load_carried_bindings,
     load_existing_catalogue,
     load_existing_model,
+    load_existing_naming,
 )
 from vault_agent.link_proposal import pending_link_decisions, proposal_key
 from vault_agent.profiling import load_profiling
+from vault_agent.rules.naming import NamingProfile
 from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import (
@@ -173,6 +177,7 @@ class RunManager:
         profiling: str | None = None,
         target_platform: TargetPlatform | None = None,
         llm: LLMOptions | None = None,
+        naming: NamingProfile | None = None,
     ) -> dict[str, Any]:
         business_vault = business_vault or BusinessVaultOptions()
         if self._active and self.read(self._active)["status"] == "running":
@@ -191,6 +196,9 @@ class RunManager:
                 anthropic_base_url=llm.anthropic_base_url or chosen.anthropic_base_url,
             )
         llm = chosen
+        # WP114 (C3): the naming profile — the start's, else the project's, else the house style;
+        # an extension keeps its vault's and refuses a different one (the CLI's rule).
+        naming = naming or project_settings.naming_profile()
         input_doc = self.store.input_path(project_id, requirements)
         schema_path = self.store.input_path(project_id, schema) if schema else None
         profiling_path = self.store.input_path(project_id, profiling) if profiling else None  # WP82
@@ -199,6 +207,15 @@ class RunManager:
         thread_id = uuid4().hex  # known before the task starts (WP69 §2.2)
         out_dir = self.store.run_dir(project_id, stamp, create=True)
         existing_dir = Path(self.read(existing_run)["out_dir"]) if existing_run else None
+        if existing_dir is not None:
+            inherited = load_existing_naming(existing_dir)
+            if naming.is_default():
+                naming = inherited
+            elif naming != inherited:
+                raise ProjectError(
+                    f"the naming profile differs from the one run {existing_run!r} was generated "
+                    f"with; an extension keeps its vault's names"
+                )
         equivalent = ["vault-agent", "run", str(input_doc), "--out", str(out_dir)]
         if schema_path:
             equivalent += ["--source-schema", str(schema_path)]
@@ -209,6 +226,11 @@ class RunManager:
         if target_platform != DEFAULT_TARGET_PLATFORM:  # WP82: the CLI's --target-platform
             equivalent += ["--target-platform", target_platform]
         equivalent += llm.cli_flags()  # WP113
+        if not naming.is_default():  # WP114: the profile as a file the CLI equivalent reads
+            profile_path = out_dir / "naming-profile.yml"
+            profile_path.write_text(yaml.safe_dump(naming.model_dump(), sort_keys=True),
+                                    encoding="utf-8")
+            equivalent += ["--naming-profile", str(profile_path)]
         if business_vault.pit:  # WP91
             equivalent += [
                 "--pit", "--as-of-start", str(business_vault.as_of_start),
@@ -227,6 +249,7 @@ class RunManager:
             "profiling": profiling,  # WP82
             "target_platform": target_platform,  # WP82
             "llm": llm.model_dump(),  # WP113
+            "naming": naming.model_dump(),  # WP114
             "business_vault": business_vault.model_dump(mode="json"),
             "started": datetime.now(UTC).isoformat(timespec="seconds"),
             "finished": None,
@@ -237,7 +260,7 @@ class RunManager:
         self._active = run_id
         self._tasks[run_id] = asyncio.create_task(
             self._run(run_id, input_doc, out_dir, schema_path, existing_dir, thread_id,
-                      business_vault, profiling_path, target_platform, llm)
+                      business_vault, profiling_path, target_platform, llm, naming)
         )
         if wait:
             await self._tasks[run_id]
@@ -255,6 +278,7 @@ class RunManager:
         profiling_path: Path | None = None,
         target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
         llm: LLMOptions | None = None,
+        naming: NamingProfile | None = None,
     ) -> None:
         try:
             schemas = load_source_schemas(schema_path) if schema_path else []
@@ -271,6 +295,7 @@ class RunManager:
                 business_vault=business_vault,  # WP91
                 carried_aliases=load_carried_aliases(existing_dir) if existing_dir else {},  # WP82
                 llm=llm,  # WP113
+                naming=naming,  # WP114
             )
             self._finish(run_id, state, paused, input_doc, thread_id)
         except asyncio.CancelledError:

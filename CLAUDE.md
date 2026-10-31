@@ -87,6 +87,10 @@ fresh clone does not lose them.
   prose that repeats such a value has been wrong twice; docs that must carry one are updated in
   the same commit as the code.
 
+- **The naming profile owns every technical name.** *Trigger:* you write a staging prefix, a hash-key or hashdiff
+  suffix, a load-date, record-source or effectivity column. *Action:* read it from the run's `state.naming`
+  (`rules/naming.py`, WP114) or the helper that takes it; never the literal. *Evidence:* two literal `stg_` had
+  survived the constants (2026-10-31); a profile other than the house style would have missed them.
 - **Ask the helper in `rules/`; never re-derive its answer.** *Trigger:* you need a hub's staging
   key column, a satellite's feed or payload relations, a role-qualified column, a normalised
   identifier. *Action:* call `canonical_hub_key_column`, `satellite_feed`,

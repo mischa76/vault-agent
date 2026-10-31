@@ -30,6 +30,7 @@ RUN = {
     "primary_model": "primary_model",
     "heavy_model": "heavy_model",
     "anthropic_base_url": "anthropic_base_url",
+    "naming_profile": "naming",  # WP114: a file on the CLI, the profile object in the body
     "out": PROCESS,
     "write": PROCESS,
     "trace": PROCESS,

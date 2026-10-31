@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from vault_agent.config import LLMOptions
 from vault_agent.report import build_model_mermaid, build_report
+from vault_agent.rules.naming import NamingProfile
 from vault_agent.rules.platforms import TargetPlatform
 from vault_agent.state import BusinessVaultOptions, StageBinding
 from vault_agent.ui.console import ConsoleAnswer, answer
@@ -57,6 +58,7 @@ class StartRun(BaseModel):
     primary_model: str | None = None
     heavy_model: str | None = None
     anthropic_base_url: str | None = None
+    naming: NamingProfile | None = None  # WP114: the CLI's --naming-profile; None = the project's
     # WP91: Business Vault options, the CLI's --pit/--as-of-* (validated by the same model).
     pit: bool = False
     as_of_start: date | None = None
@@ -181,6 +183,7 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
                 profiling=body.profiling, target_platform=body.target_platform,  # WP82
                 llm=LLMOptions(primary_model=body.primary_model, heavy_model=body.heavy_model,
                                anthropic_base_url=body.anthropic_base_url),  # WP113
+                naming=body.naming,  # WP114
             )
         except (ProjectError, RunConflictError) as exc:
             raise _guard(exc) from exc

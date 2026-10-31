@@ -23,6 +23,7 @@ from vault_agent.agents.staging_generator import (
     legacy_feeds,
 )
 from vault_agent.rules.dv2_rules import normalize_identifier, satellite_feed
+from vault_agent.rules.naming import DEFAULT_NAMING, NamingProfile
 from vault_agent.state import DVModel, SourceTable
 
 NO_SCHEMA_AREA = "(no schema)"  # relations declared without a schema: the seed world
@@ -73,10 +74,11 @@ def _relations_recomputed(
     tables: list[SourceTable],
     existing: DVModel | None,
     carried_bindings: dict[str, str] | None,
+    naming: NamingProfile = DEFAULT_NAMING,
 ) -> dict[str, tuple[str, bool]]:
     """The generator's own binding pass, without the mapper's overrides (a state before
     generation has none yet)."""
-    specs = collect_staging_specs(model, legacy_feeds(existing))
+    specs = collect_staging_specs(model, legacy_feeds(existing), naming=naming)
     bind_sources(specs, tables, None, None, carried_bindings)
     return {name: (spec.source_model, spec.bound) for name, spec in specs.items()}
 
@@ -88,6 +90,7 @@ def subject_areas(
     staging: dict[str, Any] | None = None,
     existing: DVModel | None = None,
     carried_bindings: dict[str, str] | None = None,
+    naming: NamingProfile = DEFAULT_NAMING,
 ) -> list[SubjectArea]:
     """Partition the model's constructs into subject areas (spec §2.1) with their neighbours
     (§2.2). Areas are ordered alphabetically, ``(no schema)`` and ``(unbound)`` last; an area is
@@ -100,7 +103,7 @@ def subject_areas(
     increment = {normalize_identifier(t.table) for t in source_schemas}
     relations = (
         _relations_from_metadata(staging) if staging
-        else _relations_recomputed(model, tables, existing, carried_bindings)
+        else _relations_recomputed(model, tables, existing, carried_bindings, naming)
     )
     areas: dict[str, SubjectArea] = {}
 
@@ -137,7 +140,7 @@ def subject_areas(
                 for source in hub.sources
             ]
         else:
-            stage = construct_stage_name(hub.name)
+            stage = construct_stage_name(hub.name, naming)
             relation = relations.get(stage, ("", False))[0]
             placements = [(area_of_stage(stage) or UNBOUND_AREA, normalize_identifier(relation))]
         hub_areas[hub.name] = list(dict.fromkeys(a for a, _ in placements))
@@ -145,7 +148,7 @@ def subject_areas(
 
     link_areas: dict[str, list[str]] = {}
     for link in model.links:
-        stage = construct_stage_name(link.name)
+        stage = construct_stage_name(link.name, naming)
         relation = relations.get(stage, ("", False))[0]
         link_areas[link.name] = [area_of_stage(stage) or UNBOUND_AREA]
         place(link.name, "links", [(link_areas[link.name][0], normalize_identifier(relation))])
@@ -159,7 +162,7 @@ def subject_areas(
                 (area_of_relation(feed.source_table), normalize_identifier(feed.source_table))
             ]
         else:
-            stage = _sat_staging_model(sat)
+            stage = _sat_staging_model(sat, naming)
             own = area_of_stage(stage)
             if own is not None:
                 placements = [(own, normalize_identifier(relations.get(stage, ("", False))[0]))]

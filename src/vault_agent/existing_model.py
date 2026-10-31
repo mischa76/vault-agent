@@ -24,6 +24,7 @@ from typing import Any
 import yaml
 from pydantic import ValidationError
 
+from vault_agent.rules.naming import NamingProfile
 from vault_agent.state import DVModel, SourceColumn
 
 # The logical model a run writes under its output ``metadata/`` directory, and the file a
@@ -33,6 +34,9 @@ DV_MODEL_FILENAME = "dv_model.yml"
 # in the `source_schemas:` shape the house loader reads; foreign keys are not carried (the
 # catalogue binds, it never proposes). Written beside the model, read by `--existing`.
 SOURCE_CATALOGUE_FILENAME = "source_catalogue.yml"
+# WP114: the naming profile a vault was generated under, written only when it is not the
+# house style; an extension adopts it (`load_existing_naming`).
+NAMING_FILENAME = "naming.yml"
 
 
 def load_existing_model(path: Path) -> DVModel | None:
@@ -289,6 +293,25 @@ def load_carried_aliases(path: Path) -> dict[str, dict[str, str]]:
         str(stage): {str(k): str(v) for k, v in columns.items()}
         for stage, columns in aliases.items() if isinstance(columns, dict)
     }
+
+
+def load_existing_naming(path: Path) -> NamingProfile:
+    """WP114: the profile an existing output was generated under — ``metadata/naming.yml``
+    beside its model, the house style when the file is absent (every output before WP114 and
+    every default run). ``path`` is the output directory, the model file or the catalogue, as
+    for the other loaders. A malformed file is an attributable ``ValueError``."""
+    from vault_agent.rules.naming import NamingProfile
+
+    base = path.parent if path.is_file() else path
+    meta_dir = base if base.name == "metadata" else base / "metadata"
+    candidate = meta_dir / NAMING_FILENAME
+    if not candidate.is_file():
+        return NamingProfile()
+    try:
+        document: Any = yaml.safe_load(candidate.read_text(encoding="utf-8"))
+        return NamingProfile.model_validate(document or {})
+    except (yaml.YAMLError, ValueError) as exc:
+        raise ValueError(f"{candidate}: not a naming profile ({exc})") from exc
 
 
 def _catalogue_path(path: Path) -> Path:

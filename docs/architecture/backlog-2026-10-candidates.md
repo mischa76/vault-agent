@@ -137,3 +137,12 @@ starts takes them, records them (`run.json`: `llm`, `target_platform`) and its C
 new `run` flags `--primary-model`, `--heavy-model`, `--anthropic-base-url`; `pending.json` carries them so `resume` and
 `continue` build the same agents. Spec `backlog-2026-07/wp113-project-settings-spec.md`. The `NamingProfile` half
 (prefixes, suffixes, the technical columns' names, case) follows as WP114 with its own byte-identity guards.
+
+## C3 — closed: the naming profile by WP114 (2026-10-31)
+
+`rules/naming.py`: `NamingProfile` (staging prefix, hash-key and hashdiff suffixes, the load-date, record-source and
+effectivity columns, the technical case), the house style as the default and the six constants its values; carried by
+the run (`state.naming`), threaded through the code generator, the staging generator, the contracts, the validator, the
+extension diff, the subject areas and the resolution's carried tier; persisted as `metadata/naming.yml` when not the
+default and adopted by an extension (a different `--naming-profile` refused); the CLI flag, the project setting and the
+run's record. Construct prefixes and CamelCase stay deferred as C3 said. Spec `backlog-2026-07/wp114-naming-profile-spec.md`.

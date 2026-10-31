@@ -12197,3 +12197,36 @@ carries a key for `default_agents()` as the existing `test_default_agents_cover_
 SDK treats `base_url=None` as „not given" (read in the installed client's signature: `base_url: str | URL | None`).
 **Bewusst nicht getan.** The naming profile (WP114); an OpenAI-compatible endpoint (its own ADR); settings for the
 eval harness; a live run against a proxy endpoint.
+
+## [2026-10-31] WP114 built and measured: a `NamingProfile` in `rules/` (C3, the naming half) — the technical names the generator writes as one typed value the run carries, the house style byte-identical, a lower-case bank project parsing like the default, an extension adopting its vault's profile
+
+**Autor:** Claude Code
+
+Eighth of the old backlog on the owner's word; with WP113 it closes C3. **Built** (`wp114-naming-profile-spec.md`; guards
+`bdc7ceb` first, red at import and one Vitest test). `rules/naming.py`: `NamingProfile` (staging prefix, hash-key and
+hashdiff suffixes, the load-date, record-source and effectivity columns, the technical case; frozen; `hashkey`,
+`hashdiff`, the folded column properties, `stage`), `DEFAULT_NAMING` the house style and the six `dv2_rules`
+constants its values. Threaded explicitly, never a module switch: `VaultAgentState.naming` (persisted with the
+checkpoint like the platform), the code generator reading it once and handing it to every renderer, `build_staging(…,
+naming=)` to the specs, the stage names, the zero-key view and stage, the seed types and the README, the contracts'
+dbt-test model name, the validator's prefix strip, the extension diff's owner match, the subject areas, the mapper's
+refusal lookup, the resolution's carried tier (`stage_model_name(construct, naming)`). Persisted beside the model as
+`metadata/naming.yml` only when not the default (the greenfield manifest stays frozen); `load_existing_naming`;
+`run --naming-profile FILE` (the house loader's errors), `_choose_naming` adopting the extended vault's profile and
+refusing a different one; the workbench's `ProjectSettings.naming`, a run writing `<out>/naming-profile.yml` so its CLI
+equivalent reproduces it, `run.json` recording it, `StartRun.naming` for WP82's parity; the Settings section's seven
+fields. Two literal `stg_` found on the way (the validator's grain gate, the extension diff) now read the profile —
+CLAUDE.md gains the invariant. Manual 6 and 14.2, index row, CHANGELOG (Added), candidates part 1: C3 closed.
+
+**Measured** (keyless). **P1 ✔ after one correction the fixtures caught:** every byte-identity guard green with the
+constants read from the profile; a line wrap for the length rule had split the generated README's technical-column
+sentence, the manifest, the baseline and the report fixture refused it, and the sentence is whole again through a
+variable. **P2 ✔:** the lower-case bank project with the demo's seeds parses with dbt (`ok`, 4.9 s) as the default one
+does — staging, raw vault, seeds and contracts agree on the names. **P3 ✔:** suite 1550 passed, 5 skipped; ruff; bare
+mypy; tsc; vitest 33.
+
+**Überprüft.** The guards red then green, the frozen fixtures, the two dbt parses' results, suite, ruff, mypy, tsc,
+vitest. **Nur angenommen.** That no site builds a technical name from a literal the grep did not see (the grep covered
+the six constants and the `stg_`/`_HK`/`LOAD_DATETIME` spellings in `src/`); the ui coverage floor not re-measured,
+CI measures it. **Bewusst nicht getan.** Construct prefixes and CamelCase (C3 deferred them); a build of a lower-case
+project against a warehouse (seeds would need the lower column names); the eval cases stay house style; no paid run.

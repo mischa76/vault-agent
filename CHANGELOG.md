@@ -15,6 +15,12 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- A naming profile (WP114, 2026-10-31, backlog C3, the naming half): `rules/naming.py` holds the physical
+  names the generator writes — staging prefix, hash-key and hashdiff suffixes, the load-date, record-source
+  and effectivity columns, upper or lower technical case — as one typed value a run carries; the default
+  is the house style and renders byte-identically. `vault-agent run --naming-profile FILE`, a project's
+  settings (`naming`), `metadata/naming.yml` beside a non-default vault's model, and an extension adopting
+  its vault's profile (a different one is refused). Construct prefixes and CamelCase stay deferred.
 - Project settings in the workbench (WP113, 2026-10-31, backlog C3, the settings half): `settings.json` per
   project — target platform, the two model ids and an Anthropic-compatible base URL — edited in the Project
   perspective, applied to every run the project starts, recorded in `run.json` and reproduced by the run's CLI

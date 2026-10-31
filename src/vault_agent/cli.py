@@ -46,12 +46,14 @@ from vault_agent.bindings import check_stage_bindings, parse_bind, pending_stage
 from vault_agent.config import LLMOptions
 from vault_agent.existing_model import (
     DV_MODEL_FILENAME,
+    NAMING_FILENAME,
     SOURCE_CATALOGUE_FILENAME,
     dump_source_catalogue,
     load_carried_aliases,
     load_carried_bindings,
     load_existing_catalogue,
     load_existing_model,
+    load_existing_naming,
     stage_aliases,
     stage_bindings,
 )
@@ -62,6 +64,7 @@ from vault_agent.models.contract import ContractOwner
 from vault_agent.profiling import load_profiling
 from vault_agent.report import build_report
 from vault_agent.rules.dv2_rules import normalize_identifier
+from vault_agent.rules.naming import NamingProfile
 from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.source_schema_reader import SOURCE_URL_ENV
@@ -227,6 +230,15 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         (meta_dir / "automatedv.yml").write_text(
             yaml.safe_dump(state.artifacts.automatedv_yaml, sort_keys=True),
             encoding="utf-8",
+        )
+
+    # WP114 (C3): the naming profile beside the model, only when it is not the house style —
+    # an extension adopts it, and a default run's output tree stays what it was.
+    if not state.naming.is_default():
+        meta_dir = out_dir / "metadata"
+        meta_dir.mkdir(parents=True, exist_ok=True)
+        (meta_dir / NAMING_FILENAME).write_text(
+            yaml.safe_dump(state.naming.model_dump(), sort_keys=True), encoding="utf-8"
         )
 
     # WP23 §2.1: the LOGICAL model as a first-class output — the round-trip source a later
@@ -513,6 +525,38 @@ def _read_pending(out_dir: Path) -> dict[str, Any] | None:
     return cast(dict[str, Any], data)
 
 
+def load_naming_profile(path: Path) -> NamingProfile:
+    """WP114: a YAML naming profile — the house loader style: a malformed file is an
+    attributable ``ValueError`` naming the file and the field."""
+    try:
+        document: Any = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ValueError(f"{path}: not valid YAML ({exc})") from exc
+    if document is None:
+        return NamingProfile()
+    if not isinstance(document, dict):
+        raise ValueError(f"{path}: expected a mapping of naming profile fields")
+    try:
+        return NamingProfile.model_validate(document)
+    except ValueError as exc:
+        raise ValueError(f"{path}: {exc}") from exc
+
+
+def _choose_naming(profile_path: Path | None, existing: Path | None) -> NamingProfile:
+    """WP114: the run's profile — the file's, else the extended vault's, else the house style.
+    A file that disagrees with the vault being extended is refused: the generated names would
+    miss the tables that hold the vault's history."""
+    chosen = load_naming_profile(profile_path) if profile_path else None
+    inherited = load_existing_naming(existing) if existing else None
+    if chosen is not None and inherited is not None and chosen != inherited:
+        raise ValueError(
+            f"{profile_path}: the naming profile differs from the one the vault under "
+            f"{existing} was generated with ({inherited.model_dump()}); an extension keeps its "
+            f"vault's names — drop --naming-profile or pass the same one"
+        )
+    return chosen or inherited or NamingProfile()
+
+
 def _pending_llm(pending: dict[str, Any]) -> LLMOptions:
     """WP113: the options the run started with; a pointer without them is the default."""
     raw = pending.get("llm")
@@ -690,6 +734,7 @@ async def _run_pipeline(
     business_vault: BusinessVaultOptions | None = None,
     carried_aliases: dict[str, dict[str, str]] | None = None,
     llm: LLMOptions | None = None,
+    naming: NamingProfile | None = None,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
@@ -721,6 +766,7 @@ async def _run_pipeline(
             carried_bindings=carried_bindings or {},  # WP77
             business_vault=business_vault or BusinessVaultOptions(),  # WP91
             carried_aliases=carried_aliases or {},  # WP82
+            naming=naming or NamingProfile(),  # WP114
         ),
         input_doc=input_doc,
         trace=trace,
@@ -1634,6 +1680,16 @@ def run(
             help="WP113: an Anthropic-compatible endpoint for this run, over ANTHROPIC_BASE_URL.",
         ),
     ] = None,
+    naming_profile: Annotated[
+        Path | None,
+        typer.Option(
+            "--naming-profile", exists=True, dir_okay=False,
+            help="WP114: a YAML naming profile (staging_prefix, hashkey_suffix, hashdiff_suffix, "
+                 "load_datetime, record_source, applied_dts, technical_case) the generated names "
+                 "follow; default the house style. An extension adopts its vault's profile and "
+                 "refuses a different one.",
+        ),
+    ] = None,
     write: Annotated[
         bool,
         typer.Option(
@@ -1703,6 +1759,7 @@ def run(
         carried = load_existing_catalogue(existing) if existing else []  # WP74
         bindings = load_carried_bindings(existing) if existing else {}  # WP77
         aliases = load_carried_aliases(existing) if existing else {}  # WP82
+        naming = _choose_naming(naming_profile, existing)  # WP114
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]Could not load an input file:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
@@ -1720,6 +1777,7 @@ def run(
                 business_vault=business_vault,
                 carried_aliases=aliases,
                 llm=llm,  # WP113
+                naming=naming,  # WP114
             )
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
