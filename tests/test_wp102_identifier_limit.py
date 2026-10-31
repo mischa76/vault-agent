@@ -1,6 +1,6 @@
-"""WP102 — a translation model's name stays within the platform's identifier limit (C36). Committed
-before the change, failing. WP100's build of arm T's fifth project found two translation views of 74 and
-103 characters; PostgreSQL's identifiers end at 63 and dbt refused the relations."""
+"""WP102 — a translation model's name stays within the platform's identifier limit (C36).
+Committed before the change, failing. WP100's build of arm T's fifth project found two translation
+views of 74 and 103 characters; PostgreSQL's identifiers end at 63 and dbt refused the relations."""
 from __future__ import annotations
 
 from vault_agent.agents.staging_generator import (
@@ -114,6 +114,8 @@ def test_a_staging_name_over_the_limit_is_flagged_on_postgres_only() -> None:
     stage = "stg_" + long_hub[len("hub_"):]
     flagged = build_staging(model, [], target_platform="postgres").flags
     assert [f.asset for f in flagged if f.kind == FlagKind.GENERATION_GAP] == [stage]
-    assert "63" in next(f.message for f in flagged if f.asset == stage)
+    assert "63" in next(
+        f.message for f in flagged if f.asset == stage and f.kind == FlagKind.GENERATION_GAP
+    )
     assert not [f for f in build_staging(model, [], target_platform="databricks").flags
                 if f.kind == FlagKind.GENERATION_GAP]

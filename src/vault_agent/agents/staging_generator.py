@@ -15,6 +15,7 @@ the generator names, it never guesses silently.
 Called by the CodeGeneratorAgent after the raw-vault pass; kept in its own module so the
 raw-vault renderer stays under its size budget and this layer is testable in isolation.
 """
+import hashlib
 import re
 from collections.abc import Iterable
 from dataclasses import dataclass, field
@@ -1220,18 +1221,29 @@ def _project_homonyms_apart(spec: StagingSpec, relation_columns: list[str]) -> N
         )
 
 
-def translation_model_name(spec: StagingSpec) -> str:
-    """``stg_<link>_via_<table>``; several translations join their tables with ``_and_``."""
+def translation_model_name(spec: StagingSpec, limit: int | None = None) -> str:
+    """``stg_<link>_via_<table>``; several translations join their tables with ``_and_``.
+
+    WP102 (C36): when that name would exceed the platform's identifier ``limit`` — arm T's fifth
+    project joined five tables into 103 characters, PostgreSQL ends at 63 — it becomes
+    ``stg_<link>_via_<n>_<digest>``: the count of joined relations and six hex digits of a
+    SHA-256 over the joined list, deterministic and distinct per list. The joined relations stay
+    readable in the view's header, its schema.yml and the stage's ``key_translation`` metadata.
+    A name that fits is unchanged, so every existing output is byte-identical."""
     assert spec.translations
     via = "_and_".join(
         normalize_identifier(construct_base_name(t.through_table)).lower()
         for t in spec.translations
     )
-    return f"{spec.name}_via_{via}"
+    full = f"{spec.name}_via_{via}"
+    if limit is None or len(full) <= limit:
+        return full
+    digest = hashlib.sha256(via.encode("utf-8")).hexdigest()[:6]
+    return f"{spec.name}_via_{len(spec.translations)}_{digest}"
 
 
 def render_translation_model(
-    spec: StagingSpec, throughs: list[StagingSpec | None]
+    spec: StagingSpec, throughs: list[StagingSpec | None], name: str | None = None
 ) -> tuple[str, str]:
     """The WP36 translation model and its schema.yml: one LEFT JOIN per translated
     participation, through the referenced relation, so the hub's natural key is available to
@@ -1243,7 +1255,7 @@ def render_translation_model(
     Data-time facts (unmatched surrogates, duplicate matches) are gated by dbt tests, because
     no model-time gate can see rows; nothing is repaired silently (ADR-0013 consequences)."""
     assert spec.translations and len(throughs) == len(spec.translations)
-    name = translation_model_name(spec)
+    name = name or translation_model_name(spec)  # WP102: the caller knows the platform's limit
     t_ref = _relation_ref(spec.source_model, spec.source_name)
     single = len(spec.translations) == 1
     joins: list[tuple[str, KeyTranslation, str, str]] = []  # alias, translation, ref, test ref
@@ -1773,8 +1785,8 @@ def build_staging(
         throughs = [
             by_relation.get(normalize_identifier(t.through_table)) for t in spec.translations
         ]
-        name = translation_model_name(spec)
-        sql, tests = render_translation_model(spec, throughs)
+        name = translation_model_name(spec, profile.max_identifier_length)  # WP102
+        sql, tests = render_translation_model(spec, throughs, name)
         translations[name] = sql
         translation_tests[f"models/staging/{name}.yml"] = tests
         spec.stage_source = name
@@ -1828,6 +1840,21 @@ def build_staging(
         stage_meta["source_binding"] = "generated"
         metadata[stage.name] = stage_meta
         zero_hubs[hub_name] = stage.name
+    # WP102 (C36): a relation name over the platform's limit is refused by the warehouse; a
+    # translation name was shortened above, any other long name is the construct's own and is
+    # flagged, never truncated — a truncated name is a different model than every reference.
+    for long_name in sorted(n for n in models if len(n) > profile.max_identifier_length):
+        flags.append(PipelineFlag(
+            agent="code_generator",
+            message=(
+                f"staging model {long_name!r} is {len(long_name)} characters long; "
+                f"{profile.name} identifiers end at {profile.max_identifier_length}, so the "
+                f"warehouse will refuse the relation — the construct it stages needs a shorter "
+                f"name"
+            ),
+            kind=FlagKind.GENERATION_GAP,
+            asset=long_name,
+        ))
     scaffolding = {
         "dbt_project.yml": _render_dbt_project(seed_column_types, business_vault),
         "packages.yml": _render_packages(business_vault),

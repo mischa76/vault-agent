@@ -11524,3 +11524,62 @@ after next and lands in the flag; no paid rerun; **the eval instrument changed:*
 the raw vault too, so the twenty-first chain's and both C1 arms' recorded 1.0 would not all hold re-scored (arm A's
 fifth step: 0.0) — recorded here, the record itself untouched; the regenerated project stays in the scratchpad; C36
 next, then the C1 ADR and the review record.
+
+## [2026-10-31] WP102 — a translation model's name stays within the platform's identifier limit (C36): arm T's fifth project builds PASS=507 of 514 to the known inferred stage and the data copy's type artefact; WP100's two unmeasured links measured — the culture link whole, the sales-order link missing 17 489 rows for a reason WP94's gate had named as a warning (C37)
+
+**Autor:** Claude Code
+
+On the owner's go (2026-10-30: C36 after C34/C35). **What was wrong.** `translation_model_name` joined every
+translated relation into `stg_<link>_via_<a>_and_<b>…`; arm T's fifth project named one view 74 and one 103
+characters long, PostgreSQL's identifiers end at 63 (`SHOW max_identifier_length` on the house server), dbt-postgres
+refuses the relation (`Relation name … is longer than 63 characters`), and the stage reading it, its tests and its
+link were skipped. The platform profile carried no identifier length. **The change** (spec
+`backlog-2026-07/wp102-identifier-limit-spec.md`): `PlatformProfile.max_identifier_length` — PostgreSQL 63, Databricks
+255 (Unity Catalog, „Object names cannot exceed 255 characters", learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-names,
+read 2026-10-30; `rules/platforms.py` cites both); `translation_model_name(spec, limit)` keeps the full name when it
+fits and otherwise yields `stg_<link>_via_<n>_<digest>` — the count of joined relations and six hex digits of a
+SHA-256 over the joined list, deterministic, distinct per list — the joined relations still named in the view's
+header, its `schema.yml` and the stage's `key_translation` metadata; `render_translation_model` takes the name from
+the caller; every staging model name over the limit after that is flagged (`GENERATION_GAP`, the model as asset,
+length and limit in the message), never truncated. Raw-vault construct names are the modeler's and stay with
+`E_BAD_NAME`'s shape check (a gate with a remedy would be the tool for their length; not this WP). **Guards**
+(`tests/test_wp102_identifier_limit.py`, committed red at `5a47fa2`): the two limits; the 103-character name kept
+under 255 and shortened under 63, deterministic, distinct for a reversed list; the built project's view, stage
+`source_model` and `schema.yml` agree on the short name and the header still names all five relations; a 75-character
+hub stage flagged on PostgreSQL and not on Databricks.
+
+**Measured** (keyless, PostgreSQL 16.15, the local data copy, dbt 1.9.10, AutomateDV 0.11.4, fresh schema
+`c1_t_wp102`, dropped afterwards — built three times: once for the counts, once more after a driver-less query
+script had failed and the schema was already gone, once more to explain the sales-order link; identical
+`PASS=507` each time). Arm T's fifth project regenerated as for WP100, now with WP100–WP102. **P1 ✔ exactly:** 272
+staging files both sides; the eleven files WP100 changed in place still differ, and the two long views with their
+two `schema.yml` appear under `stg_culture_product_description_product_model_via_2_ccd512` (56 characters) and
+`stg_sales_order_customer_via_5_848f61` (37) — nothing else. **P2 ✔ exactly:** `dbt parse` succeeds; `dbt build`
+**PASS=507 WARN=0 ERROR=2 SKIP=5 TOTAL=514** in 27 s — the errors are `stg_location_product_work_order` (the inferred
+stage, C18) and `stg_product_product_review_via_product` (the copy's `text` `productid`), the five skips their link,
+stage, tests and link. **P3 ✔ for the culture link, ✘ in one number for the sales-order link, explained:**
+`link_culture_product_description_product_model` 762 rows = the relation's 762, its three hub keys 0 orphans each,
+0 rows with two equal hashes. `link_sales_order_customer`: every pushed-apart key joins its hub — `customer_hk`,
+`creditcard_hk`, `currencyrate_hk`, `shipmethod_hk`, `salesterritory_hk` 0 orphans each — and among the 36 pairs of
+its nine hub hashes only two are ever equal, both legitimately: `bill_to_address_hk = ship_to_address_hk` on 13 969
+rows (13 969 orders ship to their billing address, counted in the relation) and
+`sales_person_businessentity_hk = creditcard_hk` on 510 (both the zero key: 510 orders with neither, counted);
+**but the link holds 13 976 rows of the relation's 31 465.** The stage has 31 465 rows and 31 465 distinct link hash
+keys; the 17 489 orders without a `CurrencyRateID` hash a NULL `CURRENCYRATE_HK` — the translated key is
+`CurrencyRateDate`, a `datetime` no zero key can be cast into (WP83's type rule) — and AutomateDV's link macro keeps
+only rows whose foreign-key hashes are all non-NULL (read in the installed `macros/tables/postgres/link.sql`, lines
+40–41 and 84–85). **WP94's gate saw it and said so:** the step's report carries
+`W_LINK_OPTIONAL_PARTICIPANT on link_sales_order_customer … reads SalesOrderHeader.CURRENCYRATEID — of unknown
+nullability` with the own-link remedy — a warning, not an error, because the derived schema states no `nullable`
+and no profile was given, and the unattended chain acts on no warning. The extract knows (471 columns with
+`nullable`, 81 true); `eval.adventureworks.derive` does not transcribe it. **C37** in the backlog. Not a WP102
+matter and not a generator defect: the gate is right, its input was poorer than it had to be. **P4 ✔:** 1432 passed,
+5 skipped, no fixture updated; ruff and mypy clean.
+
+**Überprüft.** The file-level diff by script; the parse and three build logs
+(`scratchpad/c1/build/T102/build*.log`, this session); every count above by `psql` against `c1_t_wp102` and the
+copy's relations; the warning in the step's result JSON and review queue; the installed link macro; the extract's
+`nullable` count. **Nur angenommen.** That the 507 passing models produce right rows beyond AutomateDV's tests and
+the counts above. **Bewusst nicht getan.** No change to `derive.py` or to how the eval answers a WP94 warning —
+C37, the owner's call; no length gate for construct names; no paid rerun; the regenerated project stays in the
+scratchpad. Next: the C1 ADR (ADR-0019, `draft-requirements`) and the review record, as the plan of 2026-10-30 says.

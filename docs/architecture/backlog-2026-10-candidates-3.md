@@ -213,3 +213,25 @@ puts its payload into that feed's stage alone, the raw-vault generator names the
 helper, and `project_self_contained` fails on a raw-vault model reading a stage the project does not render
 (`wp101-legacy-feed-carried-spec.md`). Arm A's fifth project, regenerated keylessly, parses without the hand view and
 builds to the two known inferred-stage errors (`docs/log.md`, 2026-10-30).
+
+## C36 — closed by WP102 (2026-10-31)
+
+The platform profile carries its identifier limit; a translation model's name that would exceed it becomes
+`stg_<link>_via_<n>_<digest>`, and any other staging name over the limit is flagged
+(`wp102-identifier-limit-spec.md`). Arm T's fifth project, regenerated keylessly, builds PASS=507 of 514 to the known
+inferred stage and the data copy's type artefact (`docs/log.md`, 2026-10-31).
+
+## C37 — The derived AdventureWorks schemas carry no nullability, so WP94's gate can only warn (found by WP102's build, 2026-10-31)
+
+`link_sales_order_customer` in arm T's fifth project holds 13 976 rows of `SalesOrderHeader`'s 31 465: the 17 489
+orders without a `CurrencyRateID` hash a NULL `CURRENCYRATE_HK` (the translated key is `CurrencyRateDate`, a
+`datetime`, which no zero key can be cast into), and AutomateDV's link macro keeps only rows whose foreign-key
+hashes are all non-NULL (`macros/tables/postgres/link.sql`, 0.11.4, lines 40–41). WP94's gate saw exactly this and
+said so — `W_LINK_OPTIONAL_PARTICIPANT on link_sales_order_customer … reads SalesOrderHeader.CURRENCYRATEID — of
+unknown nullability` — a warning with the own-link remedy, because the declared schema states no `nullable` and no
+profile was given; the unattended chain does not act on a warning. The extract knows: `schema_extract.json`
+carries `nullable` for all 471 columns (81 nullable), and `eval.adventureworks.derive` does not transcribe it,
+although the house format has the field and the gate reads it. Candidate: emit `nullable` in `derive.py` (every
+derived case changes its `source_schema.yml` — a deliberate re-derivation, the two case-name pins untouched), so the
+gate becomes an error there and the remedy is applied; and, independently, the eval could treat a WP94 warning on a
+link of three or more as a decision the harness answers with the remedy.

@@ -54,6 +54,10 @@ class PlatformProfile:
     seed_types: Mapping[str, str]
     # One line for the generated README: the profile keys the adapter needs.
     profile_hint: str
+    # WP102 (C36): the longest relation name the platform accepts. A generated name over it is
+    # refused by the warehouse (dbt-postgres: "Relation name … is longer than 63 characters"),
+    # so the staging generator shortens a translation model's name to fit and flags any other.
+    max_identifier_length: int
     # WP79: how the platform folds an unquoted identifier — the spelling a QUOTED reference must
     # use to hit a column created unquoted: PostgreSQL lowercases, Snowflake uppercases,
     # Databricks and Fabric compare case-insensitively ("none": the declared spelling serves).
@@ -79,6 +83,8 @@ PLATFORMS: Mapping[TargetPlatform, PlatformProfile] = {
         profile_type="postgres",
         seed_types={t: t for t in SEED_TYPES},
         profile_hint="host, port, user, password, dbname, schema",
+        # NAMEDATALEN - 1; `SHOW max_identifier_length` on the house server (2026-10-30).
+        max_identifier_length=63,
         identifier_fold="lower",
     ),
     "databricks": PlatformProfile(
@@ -95,6 +101,9 @@ PLATFORMS: Mapping[TargetPlatform, PlatformProfile] = {
             "date": "date",
         },
         profile_hint="host, http_path, token (or OAuth), catalog, schema",
+        # Unity Catalog: "Object names cannot exceed 255 characters"
+        # (learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-names, 2026-10-30).
+        max_identifier_length=255,
     ),
 }
 

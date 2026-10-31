@@ -110,6 +110,12 @@ is not the project's.
   generators name that stage through one helper, a satellite whose legacy feed cannot be identified is flagged
   instead of guessed, and `project_self_contained` also fails on a raw-vault model reading a stage the project
   does not render (WP101, 2026-10-30, found by the same build).
+- A translation view joining several relations could be named longer than the warehouse allows
+  (`stg_sales_order_customer_via_customer_and_creditcard_and_…`, 103 characters; PostgreSQL ends at 63 and
+  dbt refuses the relation). The platform profile now carries its identifier limit (PostgreSQL 63, Databricks
+  255); a translation name that would not fit becomes `stg_<link>_via_<n>_<digest>` — deterministic, the joined
+  relations still named in the view's header and metadata — and any other staging name over the limit is
+  flagged rather than truncated (WP102, 2026-10-31, found by WP100's build).
 
 ### Security
 - Dependabot alerts 44–46 (`dompurify` 3.4.16, one critical), 47 (`certifi` 2026.5.20, critical),
