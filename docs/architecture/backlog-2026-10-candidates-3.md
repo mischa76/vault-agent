@@ -258,3 +258,10 @@ paid chain's last step builds with zero hand views, `wp93-composite-key-translat
 `wp95-role-column-from-foreign-key-spec.md`, same date). The plan of 2026-10-30 listed both as open because this file
 and the index row still did; found on 2026-10-31 by reading the log before starting on them. Open from WP93: the
 two-hop composite case (unmeasured) and the owner's own build; from WP95: a catalogue without foreign keys.
+
+## C32 — ADR-0020 proposed (2026-10-31)
+
+The decision C32 asked for is drafted as ADR-0020 (`adrs/ADR-0020-turbovault-export.md`): no exporter now; when a
+datavault4dbt customer asks, the round-trip project JSON, never the MCP proposal schema. Read at HEAD `2dd2d98`
+(0.21.0): the engine has two import shapes, and the minimal one cannot hold a multi-source hub, a role, a key
+translation or a binding's alias. The mapping into the full shape is in the ADR; nothing installed or run.

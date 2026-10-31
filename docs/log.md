@@ -11740,3 +11740,36 @@ amended. **Überprüft:** the two log entries of 2026-10-26, both specs' status 
 WP95. **Nur angenommen:** nothing. **Bewusst nicht getan:** no re-measurement; the specs' `status: not-measured`
 frontmatter is left as the convention leaves it. The plan's remaining point is C32, which needs the owner's
 decision and an ADR before a line is written — the ADR follows.
+
+## [2026-10-31] ADR-0020 proposed — exporting a ratified model into TurboVault Engine: not now, and never into the MCP proposal schema; the round-trip project JSON when a datavault4dbt customer asks (C32)
+
+**Autor:** Claude Code
+
+On the owner's go to continue the plan of 2026-10-30, whose last point is C32; the candidate itself says a decision
+and an ADR come before a line of code. **What was read, 2026-10-31**, at `ScalefreeCOM/turbovault-engine` HEAD
+`2dd2d98` (2026-10-29, `pyproject` 0.21.0), the files saved under the session's scratchpad and named in the ADR:
+the engine has two import shapes. `ModelImportSchema` (MCP `commit_model`, `model import-json`) is flat — one
+`source_table` per hub, business keys matched by column name, a link override „only applied to single-key hubs",
+satellite columns „informational", same-name entities skipped silently. The project round-trip JSON, whose
+intermediate `domain.py` holds several source mappings per hub column, a hashkey alias per hub reference in a
+link, prejoins with join and extraction columns, typed link columns, multi-active keys, source systems with record
+source and load date — „rev-locked to the engine's own export shape" by its parser's docstring. **What the ADR
+proposes.** Option 1: nothing built until a datavault4dbt customer asks or release criteria 2 and 5 are met; the MCP
+schema ruled out as a target because it cannot hold a multi-source hub, a role, a translation, a composite
+participation, an effectivity satellite or a binding's alias — exported into it, a ratified AdventureWorks model
+would arrive as the model this project refuses to build; the round-trip JSON as the target when the day comes, with
+the mapping from `DVModel`, the bindings and the carried catalogue recorded construct by construct and the
+non-travelling parts (effectivity satellites on links, `requirement_ids`, evidence, verdicts, decisions, contracts)
+named as the export's report, not dropped; built as a keyless `export` over `metadata/` with a pinned fixture of
+their field names and a sandboxed proof against their own `project init` and `generate_dbt --dry-run`. Options 2
+(MCP schema now), 3-now, 4 (an own interchange format — `metadata/dv_model.yml` already is one) and 5 (their MCP
+server as a sink) argued against. ADR-0003 and the 2026-10-04 decision untouched by construction: a description is
+written, nothing generated on datavault4dbt. Index row; C32 annotated. **Überprüft:** every statement about the
+engine at the files named, today; our side at `state.py` (`Hub.sources`, `LinkHubRef`, `KeyTranslation`,
+`Satellite.sat_type`, `StageBinding`). **Nur angenommen:** that `domain.py` and the round-trip JSON's field names
+correspond one to one (the JSON parser was not read; the ADR says the fixture is for exactly that); that no customer
+is waiting. **Bewusst nicht getan:** nothing installed, nothing run, no contact; no exporter; no change to the
+landscape page beyond what C32's annotation points to. **The plan of 2026-10-30 is worked through:** audit (done
+2026-10-30), ADR-0019 (proposed, on hold for the owner's measurement), the review record (WP104), C28/C29 (found
+closed), C32 (this ADR). What waits for the owner: ADR-0019 and ADR-0020, the corrected-draft measurement, the next
+live chain (WP94's remedy in the loop; the first of the second review generation).
