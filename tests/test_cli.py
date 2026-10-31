@@ -182,6 +182,7 @@ def test_build_decision_collects_owners() -> None:
         "resolutions": {},
         "links": {},
         "bindings": {},  # WP82: the stages a human bound at sign-off
+        "bridges": {},  # WP115: the bridge paths a human ratified or declined
     }
 
 

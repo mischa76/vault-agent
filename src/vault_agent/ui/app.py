@@ -64,6 +64,7 @@ class StartRun(BaseModel):
     as_of_start: date | None = None
     as_of_end: date | None = None
     as_of_grain: str = "day"
+    bridges: list[str] = Field(default_factory=list)  # WP115: the CLI's repeatable --bridge
 
     model_config = {"populate_by_name": True}
 
@@ -71,6 +72,7 @@ class StartRun(BaseModel):
         return BusinessVaultOptions(
             pit=self.pit, as_of_start=self.as_of_start, as_of_end=self.as_of_end,
             as_of_grain=self.as_of_grain,  # type: ignore[arg-type]  # pydantic validates it
+            bridges=list(self.bridges),
         )
 
 
@@ -89,6 +91,7 @@ class Decision(BaseModel):
     bindings: dict[str, StageBinding] = Field(default_factory=dict)
     mappings: dict[str, str] = Field(default_factory=dict)
     mapping_sources: dict[str, list[dict[str, str]]] = Field(default_factory=dict)
+    bridges: dict[str, bool] = Field(default_factory=dict)  # WP115: --bridge / --no-bridge
 
 
 def create_app(root: Path, static: Path | None = None) -> FastAPI:
@@ -228,6 +231,7 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
                 links=body.links,
                 bindings=body.bindings, mappings=body.mappings,  # WP82
                 mapping_sources=body.mapping_sources,
+                bridges=body.bridges,  # WP115
             )
         except (ProjectError, ValueError) as exc:
             if isinstance(exc, ProjectError):

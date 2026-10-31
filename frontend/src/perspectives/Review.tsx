@@ -42,6 +42,7 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   const [links, setLinks] = useState<Record<string, boolean>>({});
   const [bindings, setBindings] = useState<Record<string, { relation: string; aliases: string }>>({}); // WP82
   const [mappings, setMappings] = useState<Record<string, string>>({}); // WP82: --map
+  const [bridges, setBridges] = useState<Record<string, boolean>>({}); // WP115: --bridge / --no-bridge
   const [showDisclosures, setShowDisclosures] = useState(false);
   const groups = useMemo(() => groupItems(checkpoint?.items ?? []), [checkpoint]);
 
@@ -56,6 +57,10 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   const ownersFilled = ownerItems.every((i) => ownerValid(owners[i.asset!] ?? ""));
   const declined = Object.values(links).filter((v) => v === false).length;
   const pendingBindings = atResolution ? [] : (checkpoint.bindings ?? []);
+  const pendingBridges = atResolution ? [] : (checkpoint.bridges ?? []);
+  // Every proposal is answered, unchecked = declined: a bridge is never built by default.
+  const bridgeAnswers = (): Record<string, boolean> =>
+    Object.fromEntries(pendingBridges.map((b) => [b.path, bridges[b.path] === true]));
   const boundStages = (): Record<string, StageBinding> => {
     const out: Record<string, StageBinding> = {};
     for (const [stage, b] of Object.entries(bindings)) {
@@ -73,6 +78,7 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
     links: atResolution ? links : {},
     bindings: atResolution ? {} : boundStages(),
     mappings: atResolution ? {} : Object.fromEntries(Object.entries(mappings).filter(([, v]) => v.trim())),
+    bridges: atResolution ? {} : bridgeAnswers(),
   });
 
   return (
@@ -158,6 +164,31 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
             ))}
           </ul>
           <datalist id="resolution-answers">{answers.map((a) => <option key={a} value={a} />)}</datalist>
+        </Section>
+      ) : null}
+
+      {pendingBridges.length > 0 ? (
+        <Section title="Bridge paths — proposed from the requirements, built only when you say so">
+          <p className="text-xs text-ink-dim">Each path below joins two links that cite the same requirement around a shared hub. A bridge is Business Vault logic (ADR-0007): unchecked it is declined, as the CLI's <code className="font-mono">--accept</code> declines an unanswered one; checked it is built along the path — <code className="font-mono">--bridge</code>.</p>
+          <ul className="mt-2 grid gap-2 text-sm">
+            {pendingBridges.map((b) => {
+              const build = bridges[b.path] === true;
+              return (
+                <li key={b.path} className="rounded-md border border-line bg-pane-2 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <code className="font-mono text-xs text-accent">{b.path}</code>
+                    {b.requirement_ids.map((r) => <Pill key={r}>{r}</Pill>)}
+                    <label className="ml-auto flex items-center gap-2 text-xs">
+                      <input type="checkbox" checked={build} aria-label={`build bridge ${b.path}`}
+                        onChange={(e) => setBridges({ ...bridges, [b.path]: e.target.checked })} />
+                      {build ? "build" : "decline"}
+                    </label>
+                  </div>
+                  {b.evidence.map((e, i) => <p key={i} className="mt-1 text-xs text-ink-faint">{e}</p>)}
+                </li>
+              );
+            })}
+          </ul>
         </Section>
       ) : null}
 

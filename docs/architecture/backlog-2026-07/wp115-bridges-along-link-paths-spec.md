@@ -108,3 +108,32 @@ beyond the per-link clause (no „all links valid on one effectivity source"); D
 SQL uses only `cross join`, `join`, `max`, `group by` and `coalesce`, the PIT's dialect); a proposal from anything
 but the model's citations (no LLM proposes paths); ADR-0016's re-evaluation when AutomateDV publishes the
 redesigned macros.
+
+## 6 Measured (2026-10-31, keyless)
+
+- **P1 ✔.** Eleven Python guards and one Vitest test red before the change (`3a8718d`: red at import, and the
+  Review perspective without the control), green after; every frozen fixture byte-identical with bridges off (the
+  business vault model block and `dbt_utils` now follow `enabled`, which is `pit` where only a PIT is asked for);
+  suite 1560 passed, 5 skipped; ruff; bare mypy; tsc; vitest 34. One existing guard updated deliberately
+  (`test_build_decision_collects_owners`: the decision payload gains `bridges: {}`).
+- **P2 ✔.** The bank project (the fixture's two hubs, `link_account_customer` with its effectivity satellite,
+  `link_transfer` over `hub_account`/`hub_account:counterparty`) generated keyless with the two paths and the demo's
+  four seeds, spine 2026-01-01 → 2026-03-01 by day: `dbt build` PASS=18 of 18 on PostgreSQL (`wp115_bank`).
+  `bridge_customer_account`: 236 rows over 59 dates; on **every** date the bridge's count equals the count by the
+  rule over the built effectivity satellite and the count by the seed's own `EFFECTIVE_FROM`/`EFFECTIVE_TO`
+  (0 differing dates), and pair for pair by business key: 236 bridge pairs, 236 seed-valid pairs, 0 in either
+  difference. `bridge_account_account`: 73 rows, on every date equal to the transfers loaded by then (0 differing
+  dates). **Not exercised by this data:** the seed's one superseded relationship (`ACC-503`, re-assigned on
+  2026-04-01) lies after the spine's end, so AutomateDV's auto end-dating and the seed's own dates could not differ
+  inside the spine — the rule and the seed agree trivially there; a spine over that date is the next measurement.
+- **P3 ✔.** The second `dbt build` PASS=18; `bridge_customer_account` 236, `bridge_account_account` 73,
+  `link_account_customer` 5, `sat_account_customer_eff` 5, `link_transfer` 3, `hub_account` 4 — unchanged.
+- **P4 ✔.** On the twenty-third chain's five step models (kept outputs `20261031T032606335763Z`): 1, 9, 12, 24, 38
+  proposals for 4, 6, 23, 29, 50 links (every link but 3 + 3 cited), every path parsing back, every count far under
+  the links-squared bound. The paths are three-hop walks a person would ask for (address → state province →
+  country region; address → business entity → department / shift; a sales order's bill-to and ship-to addresses →
+  ship method), and the counts say what the citation rule costs at sign-off: on the sales step 38 decisions,
+  declined by default — a run with the Business Vault on pays that attention once; a run without it sees none.
+
+Open after WP115: a spine crossing an end-dating event (P2's unexercised clause); Databricks; the proposal count on
+a large step as a review-load question (a cap or a grouping is a later WP, measured first).

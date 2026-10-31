@@ -380,7 +380,8 @@ Data defects      found in the owner's build and fixed: zero keys for nullable l
                   gate, hub zero-key rows, homonym keys, evidence-bound link
                   stages (WP83–WP86, WP89, WP90)                               ✅ done
 Business Vault    point-in-time tables in our own SQL — AutomateDV deprecates
-                  its pit()/bridge() (ADR-0016, WP91); bridges                 ✅ PIT · 🔜 bridge
+                  its pit()/bridge() (ADR-0016, WP91); bridges along a
+                  named or ratified path (WP115)                               ✅ done
 Second domain     a non-AdventureWorks landscape (bank / insurance)            ⏳ planned
 Snowflake         platform profile and a recorded build                       ⏳ planned
 ```

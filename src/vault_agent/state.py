@@ -92,6 +92,11 @@ class FlagKind:
     # WP91: a point-in-time table was generated for a hub (ADR-0016) — deterministic from the
     # model, a disclosure.
     PIT_GENERATED = "pit_generated"
+    # WP115: a bridge path proposed from two links citing one requirement around a shared hub
+    # (ADR-0016: proposed from the requirements, ratified as a decision) — a decision, declined
+    # unless answered; and a bridge rendered along a named or ratified path — a disclosure.
+    BRIDGE_PROPOSED = "bridge_proposed"
+    BRIDGE_GENERATED = "bridge_generated"
     GENERIC = "generic"
 
 
@@ -950,18 +955,43 @@ class BusinessVaultOptions(BaseModel):
     (``dbt_utils.date_spine``)."""
 
     pit: bool = False
+    # WP115: bridges named at start, each a path `hub,link,hub[,link,hub…]` with `hub:role` for a
+    # role-qualified participation (the language: business_vault_generator.parse_bridge_path).
+    bridges: list[str] = Field(default_factory=list)
     as_of_start: date | None = None
     as_of_end: date | None = None
     as_of_grain: Literal["day", "month"] = "day"
 
+    @property
+    def enabled(self) -> bool:
+        """The Business Vault is on: a PIT or a bridge was asked for, so the spine and
+        `dbt_utils` are part of the project and bridge paths may be proposed (WP115)."""
+        return self.pit or bool(self.bridges)
+
     @model_validator(mode="after")
     def _bounded(self) -> "BusinessVaultOptions":
-        if self.pit:
+        if self.enabled:
             if self.as_of_start is None or self.as_of_end is None:
-                raise ValueError("a PIT needs as_of_start and as_of_end (YYYY-MM-DD)")
+                raise ValueError("a PIT or a bridge needs as_of_start and as_of_end (YYYY-MM-DD)")
             if self.as_of_start >= self.as_of_end:
                 raise ValueError("as_of_start must lie before as_of_end")
         return self
+
+
+class BridgeProposal(BaseModel):
+    """WP115: one bridge path the run proposes or an operator named at sign-off (ADR-0016).
+
+    Proposed deterministically from the model's own citations — two links citing the same
+    requirement and sharing a hub — never by a prompt; a decision at sign-off (ADR-0007 keeps
+    Business Vault logic human-ratified), declined when unanswered. ``origin`` says whether the
+    citations (``model``) or the human (``operator``, a `--bridge PATH` no proposal carried) named
+    the path."""
+
+    path: str
+    requirement_ids: list[str] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)
+    ratification_status: RatificationStatus = "proposed"
+    origin: Literal["model", "operator"] = "model"
 
 
 class Artifacts(BaseModel):
@@ -1131,6 +1161,9 @@ class VaultAgentState(BaseModel):
     # grounding gate as `resolutions` — an existing model AND a declared schema — so
     # greenfield and ungrounded runs keep it empty and stay byte-identical.
     link_proposals: LinkProposals = Field(default_factory=LinkProposals)
+    # WP115: bridge paths proposed from the model's citations while the Business Vault is on;
+    # empty otherwise, so a run without one keeps its review queue byte-identical.
+    bridge_proposals: list[BridgeProposal] = Field(default_factory=list)
     # Working state
     # Business↔source mapping proposals (WP9): written by the source_mapper on grounded runs,
     # ratified at the HITL checkpoint, and consumed by staging binding. Empty when ungrounded.

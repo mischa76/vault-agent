@@ -231,9 +231,13 @@ class RunManager:
             profile_path.write_text(yaml.safe_dump(naming.model_dump(), sort_keys=True),
                                     encoding="utf-8")
             equivalent += ["--naming-profile", str(profile_path)]
-        if business_vault.pit:  # WP91
+        if business_vault.enabled:  # WP91, WP115
+            if business_vault.pit:
+                equivalent.append("--pit")
+            for path in business_vault.bridges:
+                equivalent += ["--bridge", path]
             equivalent += [
-                "--pit", "--as-of-start", str(business_vault.as_of_start),
+                "--as-of-start", str(business_vault.as_of_start),
                 "--as-of-end", str(business_vault.as_of_end),
                 "--as-of-grain", business_vault.as_of_grain,
             ]
@@ -428,6 +432,12 @@ class RunManager:
             "items": [item.model_dump(mode="json") for item in queue.items],
             # WP82: the stages no rule could bind, with what a binding must say.
             "bindings": [] if at_resolution else pending_stage_bindings(state),
+            # WP115: the proposed bridge paths — decisions, declined unless answered.
+            "bridges": [] if at_resolution else [
+                {"path": p.path, "requirement_ids": list(p.requirement_ids),
+                 "evidence": list(p.evidence)}
+                for p in state.bridge_proposals if p.ratification_status == "proposed"
+            ],
             "unresolved": [
                 {"concept": c, "evidence": cli._unresolved_evidence(state, c)} for c in unresolved
             ],
@@ -447,6 +457,7 @@ class RunManager:
         bindings: dict[str, StageBinding] | None = None,
         mappings: dict[str, str] | None = None,
         mapping_sources: dict[str, list[dict[str, str]]] | None = None,
+        bridges: dict[str, bool] | None = None,
     ) -> dict[str, Any]:
         meta = self.read(run_id)
         allowed = {"paused"} | (CONTINUABLE if discard else set())
@@ -471,6 +482,8 @@ class RunManager:
             equivalent += ["--resolve", f"{concept}={answer}"]
         for key, build in (links or {}).items():
             equivalent += ["--link" if build else "--no-link", key]
+        for path, build in (bridges or {}).items():  # WP115: the CLI's --bridge / --no-bridge
+            equivalent += ["--bridge" if build else "--no-bridge", path]
         for concept, target in (mappings or {}).items():  # WP82: the CLI's --map
             spec = f"{concept}={target}"
             cli._parse_map(spec)  # the CLI's validation, before anything runs
@@ -487,7 +500,7 @@ class RunManager:
         decision = cli._build_decision(
             owner_specs, accept, mappings=mappings or None,
             mapping_sources=mapping_sources or None, resolutions=resolutions or None,
-            links=links or None, bindings=bindings or None,
+            links=links or None, bindings=bindings or None, bridges=bridges or None,
         )
         phase = "resolution" if cli._paused_at_resolution(state) else "signoff"
         command = shlex.join(equivalent)

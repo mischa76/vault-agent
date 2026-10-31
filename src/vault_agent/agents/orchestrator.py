@@ -92,6 +92,8 @@ REVIEW_FLAG_ROLES: dict[str, ReviewRole] = {
     FlagKind.BINDING_REJECTED: "decision",  # WP73: the relation lacks a hashed column; map it
     FlagKind.LINK_BINDING_EVIDENCE: "decision",  # WP90: bound by evidence, in place of ambiguous
     FlagKind.PIT_GENERATED: "disclosure",  # WP91: deterministic from the model (ADR-0016)
+    FlagKind.BRIDGE_PROPOSED: "decision",  # WP115: a path the human ratifies (ADR-0007)
+    FlagKind.BRIDGE_GENERATED: "disclosure",  # WP115: rendered along a named or ratified path
     FlagKind.GENERIC: "decision",  # untyped work, not provenance
 }
 _DEFAULT_ROLE: ReviewRole = "decision"
@@ -134,6 +136,8 @@ REVIEW_FLAG_GROUPS: dict[str, str] = {
     FlagKind.BINDING_REJECTED: "binding-rejected",  # WP73
     FlagKind.LINK_BINDING_EVIDENCE: "link-binding-evidence",  # WP90
     FlagKind.PIT_GENERATED: "pit-generated",  # WP91
+    FlagKind.BRIDGE_PROPOSED: "bridge-proposed",  # WP115
+    FlagKind.BRIDGE_GENERATED: "bridge-generated",  # WP115
     # WP36: deliberately NOT aggregated — a translation is a join through another relation
     # and each one is a review item in its own right (ADR-0013 §3). Listed here only as a
     # comment so the omission reads as a decision, not an oversight.
@@ -492,7 +496,87 @@ def apply_human_decision(state: VaultAgentState, decision: Any) -> list[str]:
     _apply_resolution_decision(
         state, resolutions if isinstance(resolutions, dict) else {}, accept
     )
+    # WP115: ratify or decline the proposed bridge paths, then render the ratified ones.
+    bridges = decision.get("bridges", {}) if isinstance(decision, dict) else {}
+    _apply_bridge_decision(state, bridges if isinstance(bridges, dict) else {}, accept)
     return assigned
+
+
+def _apply_bridge_decision(state: VaultAgentState, answers: dict[str, Any], accept: bool) -> None:
+    """WP115 (spec §2.2, §2.4): ``{path: build it}`` over the proposals; a path answered yes that
+    no proposal carries is the operator's own (parsed against the model, skipped with a warning
+    when it does not parse); at ``accept`` every unanswered proposal is declined — a bridge is
+    Business Vault logic and is never built by default (ADR-0007). Then the Business Vault is
+    re-rendered from the artifacts' own metadata, so the written project holds the bridges."""
+    if not answers and not state.bridge_proposals:
+        return
+    from vault_agent.agents.business_vault_generator import parse_bridge_path
+    from vault_agent.state import BridgeProposal
+
+    by_path = {p.path: p for p in state.bridge_proposals}
+    changed = False
+    for path, build in answers.items():
+        proposal = by_path.get(path)
+        if proposal is not None:
+            proposal.ratification_status = "accepted" if build else "overridden"
+            changed = True
+        elif build:
+            if not state.business_vault.enabled:
+                logger.warning(
+                    "bridge %r ignored — the run has no as-of bounds; start it with "
+                    "--as-of-start/--as-of-end (and --bridge) to generate bridges", path,
+                )
+                continue
+            try:
+                parse_bridge_path(path, state.dv_model)
+            except ValueError as exc:
+                logger.warning("bridge ignored — %s", exc)
+                continue
+            proposal = BridgeProposal(path=path, evidence=["named by the operator at sign-off"],
+                                      ratification_status="accepted", origin="operator")
+            state.bridge_proposals.append(proposal)
+            by_path[path] = proposal
+            changed = True
+    if accept:
+        for proposal in state.bridge_proposals:
+            if proposal.ratification_status == "proposed":
+                proposal.ratification_status = "overridden"
+                changed = True
+    if changed:
+        rebuild_business_vault(state)
+
+
+def rebuild_business_vault(state: VaultAgentState) -> None:
+    """WP115: re-render the Business Vault — the PITs as they were, the bridges along the named
+    and the ratified paths — from the raw vault's own metadata; its flags are replaced, not
+    stacked, and a decided proposal's ``bridge_proposed`` flag goes with the decision."""
+    from vault_agent.agents.business_vault_generator import build_business_vault
+    from vault_agent.agents.code_generator import bridge_proposal_flags
+
+    metadata = state.artifacts.automatedv_yaml
+    if not metadata.get("hubs"):
+        return  # no raw vault was generated; nothing to render a bridge over
+    ratified = [p.path for p in state.bridge_proposals if p.ratification_status == "accepted"]
+    business = build_business_vault(
+        state.dv_model, metadata, state.business_vault, bridges=ratified
+    )
+    known = set(ratified) | set(state.business_vault.bridges)
+    replaced = {FlagKind.PIT_GENERATED, FlagKind.BRIDGE_GENERATED, FlagKind.BRIDGE_PROPOSED}
+    state.flags = [
+        f for f in state.flags
+        if f.kind not in replaced
+        and not (f.kind == FlagKind.GENERATION_GAP and f.agent == "code_generator"
+                 and f.asset in known)
+    ]
+    state.artifacts.business_vault_models = business.models
+    metadata.pop("pit", None)
+    metadata.pop("bridge", None)
+    if business.metadata:
+        metadata["pit"] = business.metadata
+    if business.bridge_metadata:
+        metadata["bridge"] = business.bridge_metadata
+    state.flags.extend(business.flags)
+    state.flags.extend(bridge_proposal_flags(state.bridge_proposals))
 
 
 def _apply_binding_decision(state: VaultAgentState, raw: Any) -> None:

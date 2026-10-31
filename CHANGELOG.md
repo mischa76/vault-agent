@@ -15,6 +15,14 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- Bridges (WP115, 2026-10-31, backlog C22's open half, ADR-0016): a bridge along a link path
+  `hub,link,hub[,link,hub…]` (a role as `hub:role`) over the as-of spine, each link valid by its
+  effectivity satellite or its load date, in vault-agent's own SQL as the PIT is. Named at start
+  (`vault-agent run --bridge PATH`, the workbench's `bridges`) or proposed from two links that cite
+  the same requirement around a shared hub and ratified at sign-off (`resume --bridge` /
+  `--no-bridge`, the Review perspective; unanswered, a proposal is declined). Verified by a keyless
+  PostgreSQL build of the bank demo: every as-of date's pairs equal the effectivity rows' validity
+  and the seed's own dates, the second build idempotent.
 - A naming profile (WP114, 2026-10-31, backlog C3, the naming half): `rules/naming.py` holds the physical
   names the generator writes — staging prefix, hash-key and hashdiff suffixes, the load-date, record-source
   and effectivity columns, upper or lower technical case — as one typed value a run carries; the default

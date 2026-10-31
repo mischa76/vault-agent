@@ -83,3 +83,14 @@ positioning (ADR-0015) names PIT/Bridge among the honest limits today.
 
 Which hubs get a PIT in a given project (every eligible hub by default, the operator deselects); the bridge path
 language; whether marts follow (ADR-0007 keeps them human-ratified).
+
+## Note appended 2026-10-31 — the bridge path language (WP115)
+
+The open point „the bridge path language" is answered by WP115 (`backlog-2026-07/wp115-bridges-along-link-paths-spec.md`,
+§2.1): a path is `hub,link,hub[,link,hub…]`, hubs and links alternating, a role-qualified participation written
+`hub:role` (ADR-0009's notation) — the first hub's role names its participation in the first link, every later hub's
+the one in the link just walked, and a middle hub leaves by the next link's remaining participation. Paths are
+named at start or proposed from two links that cite the same requirement around a shared hub, and a proposal is a
+decision declined unless answered — the human ratification this ADR and ADR-0007 asked for. The consequence line
+above („not generated yet") changed on 2026-10-31 with the first bridges built on PostgreSQL against the bank demo's
+seeds (`docs/log.md`, WP115). The ADR's text stays as drafted.

@@ -334,3 +334,13 @@ applies the 90 foreign keys last. Measured: 759 239 rows in 29 s, Microsoft's co
 extra rows were a hand-added test record; the chain's fifth project builds PASS=421 against it, and keeps the root
 document the session loader had lost. Databricks as a second target stays open (9.6). Spec
 `backlog-2026-07/wp110-adventureworks-loader-spec.md`.
+
+## C22 — closed by WP115 (2026-10-31; the PIT half by WP91, 2026-10-23)
+
+Bridges along link paths in vault-agent's own SQL over the as-of spine: a path `hub,link,hub[,link,hub…]` (a role as
+`hub:role`), each link valid by its effectivity satellite or its load date; named at start (`--bridge`, the workbench)
+or proposed from two links that cite the same requirement around a shared hub and ratified at sign-off (a decision,
+declined unless answered — ADR-0007). Measured keyless: the bank demo builds on PostgreSQL with two bridges, every
+as-of date's pairs equal to the effectivity rows' validity and the seed's dates, the second build idempotent; the
+proposer yields 1, 9, 12, 24, 38 paths on the twenty-third chain's steps. Spec
+`backlog-2026-07/wp115-bridges-along-link-paths-spec.md`.

@@ -119,12 +119,12 @@ describe("Review — bridge proposals (WP115)", () => {
       started: "", finished: null, requirements: "req.md", schema: null, existing_run: null, error: null, profiling: null, target_platform: "postgres" } as unknown as Run;
     const checkpoint2 = { run: "stores:1", phase: "signoff", links: [], resolutions: [], answers: [], blocked: false, decisions: 1, disclosures: 0,
       items: [], bindings: [], unresolved: [],
-      bridges: [{ path: "hub_customer,link_account_customer,hub_account", requirement_ids: ["REQ-007"] }] } as unknown as Checkpoint;
+      bridges: [{ path: "hub_customer,link_account_customer,hub_account", requirement_ids: ["REQ-007"], evidence: ["both links cite REQ-007"] }] } as unknown as Checkpoint;
     render(<ReviewPerspective run={run2} checkpoint={checkpoint2} onDecide={onDecide} busy={false} error={null} />);
     const box = screen.getByLabelText("build bridge hub_customer,link_account_customer,hub_account") as HTMLInputElement;
     expect(box.checked).toBe(false);
     fireEvent.click(box);
-    fireEvent.click(screen.getByRole("button", { name: /accept/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^accept and continue$/i }));
     expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({
       bridges: { "hub_customer,link_account_customer,hub_account": true },
     }));

@@ -59,8 +59,10 @@ def test_the_path_language_is_hubs_and_links_alternating_with_an_optional_role()
     assert bridge_model_name(steps) == "bridge_customer_account"
     roled = parse_bridge_path("hub_account,link_transfer,hub_account:counterparty", model)
     assert roled[-1].role == "counterparty" and bridge_model_name(roled) == "bridge_account_account"
-    for bad in ("hub_customer", "hub_customer,hub_account", "hub_customer,link_transfer,hub_account",
-                "hub_customer,link_account_customer,hub_branch", "link_account_customer,hub_account,x"):
+    for bad in ("hub_customer", "hub_customer,hub_account",
+                "hub_customer,link_transfer,hub_account",
+                "hub_customer,link_account_customer,hub_branch",
+                "link_account_customer,hub_account,x"):
         with pytest.raises(ValueError):
             parse_bridge_path(bad, model)
 
@@ -85,19 +87,20 @@ async def test_a_named_bridge_is_rendered_over_the_spine_with_the_links_effectiv
     assert "pit_" not in " ".join(models)  # a bridge alone asks for no PIT
 
 
-async def test_a_role_qualified_step_names_the_role_column_and_falls_back_to_the_load_date() -> None:
+async def test_a_role_step_names_the_role_column_and_falls_back_to_the_load_date() -> None:
     path = "hub_account,link_transfer,hub_account:counterparty"
     state = VaultAgentState(dv_model=_model(),
                             business_vault=BusinessVaultOptions(bridges=[path], **BOUNDS))
     state = await CodeGeneratorAgent().run(state)
     sql = state.artifacts.business_vault_models["bridge_account_account"]
     assert "COUNTERPARTY_ACCOUNT_HK" in sql and "LOAD_DATETIME <= " in sql
-    assert state.artifacts.automatedv_yaml["bridge"]["bridge_account_account"]["steps"][1]["validity"] == "load_date"
+    meta = state.artifacts.automatedv_yaml["bridge"]["bridge_account_account"]
+    assert meta["steps"][1]["validity"] == "load_date"
 
 
 async def test_an_unknown_path_is_a_generation_gap_not_a_crash() -> None:
-    state = VaultAgentState(dv_model=_bank_model(),
-                            business_vault=BusinessVaultOptions(bridges=["hub_customer,link_nope,hub_account"], **BOUNDS))
+    options = BusinessVaultOptions(bridges=["hub_customer,link_nope,hub_account"], **BOUNDS)
+    state = VaultAgentState(dv_model=_bank_model(), business_vault=options)
     state = await CodeGeneratorAgent().run(state)
     assert "bridge" not in " ".join(state.artifacts.business_vault_models)
     [gap] = [f for f in _flags(state, FlagKind.GENERATION_GAP) if "bridge" in f.message]
@@ -117,8 +120,8 @@ def _cited_model() -> DVModel:
 def test_two_links_citing_one_requirement_and_sharing_a_hub_propose_a_path() -> None:
     proposals = propose_bridge_paths(_cited_model())
     paths = {p.path for p in proposals}
-    assert "hub_customer,link_account_customer,hub_account,link_transfer,hub_account:counterparty" in paths
-    assert "hub_customer,link_account_customer,hub_account,link_transfer,hub_account" in paths
+    long = "hub_customer,link_account_customer,hub_account,link_transfer,hub_account"
+    assert long + ":counterparty" in paths and long in paths
     assert len(proposals) == 2 and all(p.requirement_ids == ["REQ-007"] for p in proposals)
     assert propose_bridge_paths(_model()) == []  # nothing cited together: nothing proposed
 
@@ -129,7 +132,8 @@ async def test_proposals_are_decisions_only_when_the_business_vault_is_on() -> N
     on = await CodeGeneratorAgent().run(VaultAgentState(
         dv_model=_cited_model(), business_vault=BusinessVaultOptions(pit=True, **BOUNDS)))
     proposed = _flags(on, FlagKind.BRIDGE_PROPOSED)
-    assert proposed and all(f.asset == p.path for f, p in zip(proposed, on.bridge_proposals, strict=True))
+    assert proposed
+    assert [f.asset for f in proposed] == [p.path for p in on.bridge_proposals]
     assert all(p.ratification_status == "proposed" for p in on.bridge_proposals)
     assert "--bridge" in proposed[0].message
 
@@ -162,7 +166,7 @@ def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
     return TestClient(create_app(tmp_path / "projects"))
 
 
-def test_a_run_records_named_bridges_and_a_decision_carries_ratified_ones(client: TestClient) -> None:
+def test_a_run_records_named_bridges_and_a_decision_carries_them(client: TestClient) -> None:
     pid = _project_with_inputs(client)
     run = client.post(f"/api/projects/{pid}/runs?wait=true", json={
         "requirements": "req.md", "schema": "schema.yml", "bridges": [PATH],

@@ -26,6 +26,7 @@ RUN = {
     "as_of_start": "as_of_start",
     "as_of_end": "as_of_end",
     "as_of_grain": "as_of_grain",
+    "bridge": "bridges",  # WP115: repeatable on the CLI, a list in the body
     # WP113: the run's model route — per run on the CLI, per project (or per run) in the workbench
     "primary_model": "primary_model",
     "heavy_model": "heavy_model",
@@ -48,6 +49,8 @@ RESUME = {
     "link": ("links",),
     "no_link": ("links",),
     "bind": ("bindings",),
+    "bridge": ("bridges",),  # WP115
+    "no_bridge": ("bridges",),
     "discard": ("discard",),
     "out": PROCESS,
     "write": PROCESS,

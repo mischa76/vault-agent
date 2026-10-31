@@ -299,14 +299,14 @@ which those platforms accept. Not covered by the project's own verification; tre
 demo checklist as the acceptance test and expect platform-specific casing/quoting to be
 the first thing to check. A profile is added when someone verifies one.
 
-## 9.7 Business Vault: point-in-time tables (WP91, ADR-0016)
+## 9.7 Business Vault: point-in-time tables and bridges (WP91, WP115, ADR-0016)
 
-Opt-in — `--pit --as-of-start D1 --as-of-end D2 [--as-of-grain day|month]`, or the same fields on the
-workbench's run start. The project then gains `models/business_vault/`:
+Opt-in — `--pit` and/or `--bridge PATH`, with `--as-of-start D1 --as-of-end D2 [--as-of-grain day|month]`,
+or the same fields on the workbench's run start. The project then gains `models/business_vault/`:
 
-- **`as_of_dates`** — the spine every PIT reads, `dbt_utils.date_spine` over the operator's bounds
-  (start inclusive, end exclusive), one `AS_OF_DATE` per grain. Both bounds are required: a PIT is a
-  cross join of hub keys and as-of dates, and nothing in the inputs says what it should span.
+- **`as_of_dates`** — the spine every PIT and bridge reads, `dbt_utils.date_spine` over the operator's
+  bounds (start inclusive, end exclusive), one `AS_OF_DATE` per grain. Both bounds are required: a PIT
+  is a cross join of hub keys and as-of dates, and nothing in the inputs says what it should span.
 - **`pit_<hub base>`** — one per hub with **two or more descriptive satellites** (standard or
   multi-active, parent = the hub; effectivity and link satellites are not a hub's payload). A row
   is the hub's hash key, `AS_OF_DATE`, and per satellite model `<SAT>_PK` and `<SAT>_LDTS`: the
@@ -329,7 +329,29 @@ workbench's run start. The project then gains `models/business_vault/`:
   second build is idempotent again. `packages.yml` declares `dbt_utils` (the version AutomateDV
   already resolves) only then.
 
-Not generated yet: bridges (a path choice ratified by a human, ADR-0016), an incremental PIT,
-per-hub selection, PITs over link satellites. Verified by a keyless `dbt build` on PostgreSQL
-against the owner's AdventureWorks vault (`docs/log.md`, 2026-10-23, WP91); Databricks not built.
+- **`bridge_<hub bases>`** (WP115) — one per **path**, `hub,link,hub[,link,hub…]`: hubs and links
+  alternating, a role-qualified participation as `hub:role` (the first hub's role names its
+  participation in the first link, every later hub's the one in the link just walked; a middle hub
+  leaves by the next link's remaining participation). A row is the first hub's hash key,
+  `AS_OF_DATE`, and per link its hash key and the far participation's FK column — one row per path
+  instance **valid at the date**: by the link's effectivity satellite where the model has one (its
+  latest row at the date, start <= date < end) and by the link's load date otherwise; the model's
+  header says which. Inner joins: a key with no valid path on a date has no row (a PIT keeps every
+  key, a bridge every path). Two ways to a path: **named at start** (`--bridge`, repeatable; the
+  workbench's `bridges`), or **proposed and ratified** — the run proposes one path per pair of links
+  that cite the same requirement and share a hub (deterministic from the model's own citations, no
+  prompt), each a `bridge_proposed` **decision** at sign-off: `resume --bridge "<path>"` builds it,
+  `--no-bridge` declines it, the interactive prompt defaults to no, and an unanswered proposal is
+  declined at `--accept` — Business Vault logic is human-ratified (ADR-0007), never built by default.
+  A `resume --bridge` with a path no proposal carried builds it too, if the model parses it (a run
+  without as-of bounds cannot: start it with them). The bridges are rendered at sign-off from the
+  raw vault's own metadata, so the written project holds them; `metadata/automatedv.yml` records
+  each under `bridge:` (path, spine, steps with their validity source and columns); one
+  `bridge_generated` disclosure per bridge.
+
+Not generated yet: an incremental PIT or bridge, per-hub PIT selection, PITs over link satellites,
+a path that crosses a link twice. Verified by a keyless `dbt build` on PostgreSQL: the PIT against
+the owner's AdventureWorks vault (`docs/log.md`, 2026-10-23, WP91), the bridges against the bank
+demo's seeds — every as-of date's pairs equal the effectivity rows' validity and the seed's own
+dates, the second build idempotent (`docs/log.md`, 2026-10-31, WP115); Databricks not built.
 

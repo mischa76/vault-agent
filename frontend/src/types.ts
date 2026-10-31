@@ -45,6 +45,7 @@ export interface StartRunBody {
   as_of_start?: string;
   as_of_end?: string;
   as_of_grain?: "day" | "month";
+  bridges?: string[]; // WP115: the CLI's repeatable --bridge, a path each
 }
 
 export interface ProjectSummary {
@@ -136,6 +137,14 @@ export interface PendingBinding {
   role: "decision" | "disclosure";
 }
 
+// WP115: a bridge path proposed from two links citing one requirement around a shared hub — a
+// decision, declined unless the human builds it (the CLI's --bridge / --no-bridge).
+export interface BridgeProposal {
+  path: string;
+  requirement_ids: string[];
+  evidence: string[];
+}
+
 export interface Checkpoint {
   run: string;
   phase: CheckpointPhase;
@@ -148,6 +157,7 @@ export interface Checkpoint {
   resolutions: ResolutionDecision[];
   answers: string[];
   bindings?: PendingBinding[]; // WP82
+  bridges?: BridgeProposal[]; // WP115
 }
 
 // WP82: a stage's binding as the API takes it — the CLI's --bind "STAGE=RELATION(STAGE_COLUMN=column)".
@@ -164,6 +174,7 @@ export interface Decision {
   links?: Record<string, boolean>;
   bindings?: Record<string, StageBinding>; // WP82: --bind
   mappings?: Record<string, string>; // WP82: --map "concept=TABLE.COLUMN"
+  bridges?: Record<string, boolean>; // WP115: --bridge / --no-bridge "<path>"
 }
 
 export interface CheckpointRecord {

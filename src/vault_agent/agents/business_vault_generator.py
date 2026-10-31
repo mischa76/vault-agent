@@ -12,11 +12,22 @@ just produced — the one place a hub's and a satellite's hash-key and load-date
 """
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
+from itertools import combinations
 from typing import Any
 
 from vault_agent.rules.dv2_rules import construct_base_name
-from vault_agent.state import BusinessVaultOptions, DVModel, FlagKind, Hub, PipelineFlag, Satellite
+from vault_agent.state import (
+    BridgeProposal,
+    BusinessVaultOptions,
+    DVModel,
+    FlagKind,
+    Hub,
+    Link,
+    PipelineFlag,
+    Satellite,
+)
 
 AS_OF_MODEL = "as_of_dates"
 # A hub's descriptive payload: standard and multi-active satellites. An effectivity satellite
@@ -29,6 +40,7 @@ class BusinessVaultResult:
     models: dict[str, str] = field(default_factory=dict)
     metadata: dict[str, dict[str, Any]] = field(default_factory=dict)
     flags: list[PipelineFlag] = field(default_factory=list)
+    bridge_metadata: dict[str, dict[str, Any]] = field(default_factory=dict)  # WP115
 
 
 def pit_model_name(hub: Hub) -> str:
@@ -141,11 +153,27 @@ def _rendered_satellite_models(
 
 
 def build_business_vault(
-    model: DVModel, raw_metadata: dict[str, Any], options: BusinessVaultOptions
+    model: DVModel,
+    raw_metadata: dict[str, Any],
+    options: BusinessVaultOptions,
+    bridges: Sequence[str] = (),
 ) -> BusinessVaultResult:
-    """Every PIT the options ask for; empty — and nothing else changed — when they do not."""
+    """Every PIT the options ask for and every bridge along ``options.bridges`` and the ratified
+    ``bridges`` (WP115); empty — and nothing else changed — when nothing is asked for. The PITs
+    are keyed under ``metadata`` as before; a bridge's metadata is kept apart by
+    :attr:`BusinessVaultResult.bridge_metadata`."""
     result = BusinessVaultResult()
+    if not options.enabled:
+        return result
+    paths = [*options.bridges, *bridges]
+    if paths:
+        built = build_bridges(model, raw_metadata, paths)
+        result.models.update(built.models)
+        result.bridge_metadata.update(built.metadata)
+        result.flags.extend(built.flags)
     if not options.pit:
+        if result.models:
+            result.models = {AS_OF_MODEL: render_as_of_dates(options), **result.models}
         return result
     eligible = pit_hubs(model)
     for hub in model.hubs:
@@ -190,4 +218,306 @@ def build_business_vault(
         ))
     if result.models:
         result.models = {AS_OF_MODEL: render_as_of_dates(options), **result.models}
+    return result
+
+
+# ── WP115: bridges along link paths (C22, the open half of ADR-0016) ─────────────────────────
+#
+# A bridge is not deterministic from the model — the graph has as many walks as paths — so a path
+# is either named by the operator (`--bridge`) or proposed from the model's own citations and
+# ratified at sign-off (ADR-0007: Business Vault logic stays human-ratified). The language is the
+# spec's §2.1: `hub,link,hub[,link,hub…]`, `hub:role` for a role-qualified participation.
+
+
+@dataclass
+class BridgeStep:
+    """One step of a parsed path. ``role`` is the role as written; for a hub step ``arrive`` is
+    the index of its participation in the link just walked (None for the first hub) and
+    ``leave`` the index of its participation in the link that follows (None for the last)."""
+
+    kind: str  # "hub" | "link"
+    construct: str
+    role: str | None = None
+    arrive: int | None = None
+    leave: int | None = None
+
+
+def _step_error(path: str, position: int, what: str) -> ValueError:
+    return ValueError(f"bridge path {path!r}, step {position}: {what}")
+
+
+def parse_bridge_path(path: str, model: DVModel) -> list[BridgeStep]:
+    """The one reader of the bridge path language (spec §2.1); raises ``ValueError`` with the
+    step and the reason for anything the model cannot answer."""
+    tokens = [t.strip() for t in path.split(",")]
+    if len(tokens) < 3 or len(tokens) % 2 == 0 or not all(tokens):
+        raise ValueError(
+            f"bridge path {path!r}: a path is hub,link,hub[,link,hub…] — hubs and links "
+            "alternating, at least one link"
+        )
+    hubs = {h.name for h in model.hubs}
+    links = {link.name: link for link in model.links}
+    steps: list[BridgeStep] = []
+    for position, token in enumerate(tokens, start=1):
+        name, sep, role = token.partition(":")
+        if position % 2 == 1:
+            if name not in hubs:
+                raise _step_error(path, position, f"{name!r} is not a hub of the model")
+            if sep and not role:
+                raise _step_error(path, position, "an empty role")
+            steps.append(BridgeStep("hub", name, role or None))
+        else:
+            if sep:
+                raise _step_error(path, position, "a link step carries no role")
+            if name not in links:
+                raise _step_error(path, position, f"{name!r} is not a link of the model")
+            steps.append(BridgeStep("link", name))
+    for i in range(1, len(steps), 2):
+        link = links[steps[i].construct]
+        refs = link.hub_refs
+        before, after = steps[i - 1], steps[i + 1]
+        arrive = [
+            j for j, ref in enumerate(refs) if ref.hub == after.construct and ref.role == after.role
+        ]
+        if not arrive:
+            raise _step_error(
+                path, i + 2,
+                f"{link.name} has no participation "
+                f"{after.construct + (':' + after.role if after.role else '')}",
+            )
+        after.arrive = arrive[0]
+        if i == 1 and before.role is not None:
+            leave = [
+                j for j, ref in enumerate(refs)
+                if ref.hub == before.construct and ref.role == before.role and j != after.arrive
+            ]
+        else:
+            leave = [
+                j for j, ref in enumerate(refs)
+                if ref.hub == before.construct and j != after.arrive
+            ]
+            if len(leave) > 1:
+                leave = [j for j in leave if refs[j].role is None] or leave
+        if not leave:
+            raise _step_error(path, i + 1, f"{link.name} does not join {before.construct}")
+        if len(leave) > 1:
+            raise _step_error(
+                path, i + 1,
+                f"{link.name} joins {before.construct} by several participations — name the role",
+            )
+        before.leave = leave[0]
+    return steps
+
+
+def bridge_model_name(steps: list[BridgeStep]) -> str:
+    return "bridge_" + "_".join(
+        construct_base_name(step.construct) for step in steps if step.kind == "hub"
+    )
+
+
+def _participation(hub: str, role: str | None) -> str:
+    return hub if role is None else f"{hub}:{role}"
+
+
+def propose_bridge_paths(model: DVModel) -> list[BridgeProposal]:
+    """Spec §2.2: one path per pair of links that cite the same requirement and share a hub —
+    from the first link's other participation through the shared hub to each other
+    participation of the second (a self-link yields both exits), links in name order, one
+    direction. Deterministic; a path the language cannot express (an ambiguous exit) is left
+    out, and every returned path parses back."""
+    by_requirement: dict[str, list[Link]] = {}
+    for link in model.links:
+        for rid in link.requirement_ids:
+            by_requirement.setdefault(rid, []).append(link)
+    found: dict[str, BridgeProposal] = {}
+    for rid in sorted(by_requirement):
+        cited = sorted(by_requirement[rid], key=lambda link: link.name)
+        for first, second in combinations(cited, 2):
+            shared = {r.hub for r in first.hub_refs} & {r.hub for r in second.hub_refs}
+            for hub in sorted(shared):
+                for arrive_a in [r for r in first.hub_refs if r.hub == hub]:
+                    for start in [r for r in first.hub_refs if r is not arrive_a]:
+                        for far in [r for r in second.hub_refs]:
+                            if not any(
+                                r.hub == hub for r in second.hub_refs if r is not far
+                            ):
+                                continue
+                            path = ",".join([
+                                _participation(start.hub, start.role), first.name,
+                                _participation(hub, arrive_a.role), second.name,
+                                _participation(far.hub, far.role),
+                            ])
+                            try:
+                                parse_bridge_path(path, model)
+                            except ValueError:
+                                continue
+                            proposal = found.setdefault(path, BridgeProposal(
+                                path=path,
+                                evidence=[
+                                    f"{first.name} and {second.name} share {hub}",
+                                ],
+                            ))
+                            if rid not in proposal.requirement_ids:
+                                proposal.requirement_ids.append(rid)
+    for proposal in found.values():
+        proposal.evidence.insert(
+            0, f"both links cite {', '.join(proposal.requirement_ids)}"
+        )
+    return list(found.values())
+
+
+def _effectivity_satellite(
+    model: DVModel, link_name: str, link_pk: str, raw_metadata: dict[str, Any]
+) -> tuple[str, dict[str, Any]] | None:
+    """The rendered effectivity satellite of a link, if the model has one and the generator
+    rendered it (its metadata carries the start and end date columns)."""
+    for sat in model.satellites:
+        if sat.parent != link_name or sat.sat_type != "effectivity":
+            continue
+        meta = raw_metadata.get("satellites", {}).get(sat.name)
+        if meta and meta.get("src_pk") == link_pk and "src_start_date" in meta:
+            return sat.name, meta
+    return None
+
+
+def render_bridge(
+    path: str, steps: list[BridgeStep], model: DVModel, raw_metadata: dict[str, Any]
+) -> tuple[str, dict[str, Any]]:
+    """Spec §2.3: the first hub's keys cross-joined with the spine, then per link an inner join
+    on the arriving participation's FK column and a validity clause — the link's effectivity
+    satellite where one exists, its load date otherwise. Raises ``KeyError`` for a construct the
+    raw vault has no metadata for (the caller flags it)."""
+    name = bridge_model_name(steps)
+    hub_pk = str(raw_metadata["hubs"][steps[0].construct]["src_pk"])
+    header = [
+        f"-- Generated by vault-agent (WP115, ADR-0016): bridge along {path}.",
+        "-- One row per key of the first hub, as-of date and path instance: per link its hash key",
+        "-- and the far participation's key. A link is walked only while it is valid at the as-of",
+        "-- date — by its effectivity satellite (its latest row at the date, start <= date < end)",
+        "-- where the model has one, by its load date otherwise; the join is inner, so a key with",
+        "-- no valid path on a date has no row (a PIT keeps every key; a bridge keeps every path).",
+    ]
+    ctes = [
+        "with as_of as (",
+        f"    select AS_OF_DATE from {{{{ ref('{AS_OF_MODEL}') }}}}",
+        "),",
+        "base as (",
+        f"    select h.{hub_pk}, a.AS_OF_DATE",
+        f"    from {{{{ ref('{steps[0].construct}') }}}} h cross join as_of a",
+        ")",
+    ]
+    joins: list[str] = []
+    columns: list[tuple[str, str, str]] = [("b", hub_pk, hub_pk)]
+    used = {hub_pk, "AS_OF_DATE"}
+    prev_alias, prev_column = "b", hub_pk
+    step_meta: list[dict[str, Any]] = [{"kind": "hub", "construct": steps[0].construct,
+                                        "role": steps[0].role}]
+    for n, i in enumerate(range(1, len(steps), 2), start=1):
+        link_step, before, after = steps[i], steps[i - 1], steps[i + 1]
+        link_meta = raw_metadata["links"][link_step.construct]
+        fks = [str(c) for c in link_meta["src_fk"]]
+        link_pk, ldts = str(link_meta["src_pk"]), str(link_meta.get("src_ldts", "LOAD_DATETIME"))
+        assert before.leave is not None and after.arrive is not None
+        arrive_fk, far_fk = fks[before.leave], fks[after.arrive]
+        alias = f"l{n}"
+        eff = _effectivity_satellite(model, link_step.construct, link_pk, raw_metadata)
+        joins += [
+            f"join {{{{ ref('{link_step.construct}') }}}} {alias}",
+            f"  on {alias}.{arrive_fk} = {prev_alias}.{prev_column}",
+        ]
+        if eff is not None:
+            eff_name, eff_meta = eff
+            e_pk, e_ldts = str(eff_meta["src_pk"]), str(eff_meta.get("src_ldts", "LOAD_DATETIME"))
+            start, end = str(eff_meta["src_start_date"]), str(eff_meta["src_end_date"])
+            ctes += [
+                ",",
+                f"latest_{n} as (",
+                f"    select e.{e_pk} as LINK_PK, a.AS_OF_DATE, max(e.{e_ldts}) as LDTS",
+                f"    from {{{{ ref('{eff_name}') }}}} e cross join as_of a",
+                f"    where e.{e_ldts} <= a.AS_OF_DATE",
+                f"    group by e.{e_pk}, a.AS_OF_DATE",
+                "),",
+                f"valid_{n} as (",
+                f"    select distinct e.{e_pk} as LINK_PK, v.AS_OF_DATE",
+                f"    from {{{{ ref('{eff_name}') }}}} e",
+                f"    join latest_{n} v on v.LINK_PK = e.{e_pk} and v.LDTS = e.{e_ldts}",
+                f"    where e.{start} <= v.AS_OF_DATE",
+                f"      and (e.{end} is null or e.{end} > v.AS_OF_DATE)",
+                ")",
+            ]
+            joins += [
+                f"join valid_{n} v{n}",
+                f"  on v{n}.LINK_PK = {alias}.{link_pk} and v{n}.AS_OF_DATE = b.AS_OF_DATE",
+            ]
+            validity: dict[str, Any] = {"validity": "effectivity_satellite",
+                                        "effectivity_satellite": eff_name}
+        else:
+            joins[-1] += f" and {alias}.{ldts} <= b.AS_OF_DATE"
+            validity = {"validity": "load_date", "effectivity_satellite": None}
+        for column in (link_pk, far_fk):
+            out = column
+            suffix = 2
+            while out in used:
+                out = f"{column}_{suffix}"
+                suffix += 1
+            used.add(out)
+            columns.append((alias, column, out))
+        step_meta.append({"kind": "link", "construct": link_step.construct, "src_pk": link_pk,
+                          "from": arrive_fk, "to": far_fk, **validity})
+        step_meta.append({"kind": "hub", "construct": after.construct, "role": after.role})
+        prev_alias, prev_column = alias, far_fk
+    select = ["", f"select b.{hub_pk}, b.AS_OF_DATE"]
+    for alias, column, out in columns[1:]:
+        select.append(f"    , {alias}.{column}" + (f" as {out}" if out != column else ""))
+    lines = header + ["{{ config(materialized='table') }}", ""] + ctes + select + ["from base b"]
+    lines += joins + [f"-- {name}", ""]
+    meta = {
+        "path": path,
+        "source_model": steps[0].construct,
+        "src_pk": hub_pk,
+        "as_of_dates_table": AS_OF_MODEL,
+        "steps": step_meta,
+        "columns": [out for _, _, out in columns] + ["AS_OF_DATE"],
+    }
+    return "\n".join(lines), meta
+
+
+def build_bridges(
+    model: DVModel, raw_metadata: dict[str, Any], paths: Sequence[str]
+) -> BusinessVaultResult:
+    """Every bridge along ``paths`` (named or ratified, in order, once each); a path the model
+    or the raw vault cannot answer is a ``generation_gap`` naming the step, never a crash."""
+    result = BusinessVaultResult()
+    for path in dict.fromkeys(paths):
+        try:
+            steps = parse_bridge_path(path, model)
+            sql, meta = render_bridge(path, steps, model, raw_metadata)
+        except (ValueError, KeyError) as exc:
+            reason = (
+                exc.args[0] if isinstance(exc, ValueError)
+                else f"no raw-vault metadata for {exc}"
+            )
+            result.flags.append(PipelineFlag(
+                agent="code_generator",
+                message=f"bridge along {path!r} not generated: {reason}",
+                kind=FlagKind.GENERATION_GAP,
+                asset=path,
+            ))
+            continue
+        name = bridge_model_name(steps)
+        result.models[name] = sql
+        result.metadata[name] = meta
+        sources = sorted({
+            str(step["validity"]) for step in meta["steps"] if step["kind"] == "link"
+        })
+        result.flags.append(PipelineFlag(
+            agent="code_generator",
+            message=(
+                f"bridge {name} generated along {path}: {len(meta['steps']) // 2} link(s), "
+                f"validity by {', '.join(s.replace('_', ' ') for s in sources)}; rebuilt whole "
+                f"over the as-of spine (ADR-0016)"
+            ),
+            kind=FlagKind.BRIDGE_GENERATED,
+            asset=name,
+        ))
     return result

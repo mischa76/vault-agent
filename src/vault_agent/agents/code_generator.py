@@ -30,6 +30,7 @@ from vault_agent.rules.dv2_rules import (
 )
 from vault_agent.rules.naming import DEFAULT_NAMING, NamingProfile
 from vault_agent.state import (
+    BridgeProposal,
     FlagKind,
     Hub,
     HubSource,
@@ -418,6 +419,24 @@ def _render_eff_sat(
     return sql, meta
 
 
+def bridge_proposal_flags(proposals: list[BridgeProposal]) -> list[PipelineFlag]:
+    """WP115: one ``bridge_proposed`` decision per proposal still unanswered, in proposal order
+    (the asset is the path, the one key every answer uses)."""
+    return [
+        PipelineFlag(
+            agent="code_generator",
+            message=(
+                f"bridge along {p.path} proposed: {'; '.join(p.evidence)} — build it with "
+                f"`resume --bridge \"{p.path}\"`, decline it with `--no-bridge`; unanswered at "
+                "--accept it is declined (ADR-0007: Business Vault logic is human-ratified)"
+            ),
+            kind=FlagKind.BRIDGE_PROPOSED,
+            asset=p.path,
+        )
+        for p in proposals if p.ratification_status == "proposed"
+    ]
+
+
 class CodeGeneratorAgent(BaseAgent):
     """Renders the Data Vault model into AutomateDV-compatible dbt models."""
 
@@ -693,13 +712,31 @@ class CodeGeneratorAgent(BaseAgent):
 
         # WP91 (ADR-0016): the Business Vault — a PIT per eligible hub — rendered from the
         # metadata above, so its key and load-date columns are the raw vault's by construction.
-        from vault_agent.agents.business_vault_generator import build_business_vault
+        from vault_agent.agents.business_vault_generator import (
+            build_business_vault,
+            propose_bridge_paths,
+        )
 
-        business = build_business_vault(model, metadata, state.business_vault)
+        # WP115: bridge paths proposed from the model's own citations while the Business Vault
+        # is on — decisions at sign-off; an earlier attempt's answers for the same path carry.
+        previous = {p.path: p for p in state.bridge_proposals}
+        proposals = propose_bridge_paths(model) if state.business_vault.enabled else []
+        for proposal in proposals:
+            if proposal.path in previous:
+                proposal.ratification_status = previous[proposal.path].ratification_status
+        state.bridge_proposals = proposals + [
+            p for p in previous.values()
+            if p.origin == "operator" and p.path not in {q.path for q in proposals}
+        ]
+        ratified = [p.path for p in state.bridge_proposals if p.ratification_status == "accepted"]
+        business = build_business_vault(model, metadata, state.business_vault, bridges=ratified)
         state.artifacts.business_vault_models = business.models
         if business.metadata:
             metadata["pit"] = business.metadata
+        if business.bridge_metadata:
+            metadata["bridge"] = business.bridge_metadata
         state.flags.extend(business.flags)
+        state.flags.extend(bridge_proposal_flags(state.bridge_proposals))
 
         if state.existing_model is not None:
             # WP23 §2.7: computed here because file-change attribution needs the freshly

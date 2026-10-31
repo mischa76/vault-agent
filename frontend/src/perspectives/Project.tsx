@@ -29,7 +29,11 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
   const [asOfStart, setAsOfStart] = useState("");
   const [asOfEnd, setAsOfEnd] = useState("");
   const [grain, setGrain] = useState<"day" | "month">("day");
-  const pitIncomplete = pit && (!asOfStart || !asOfEnd || asOfStart >= asOfEnd);
+  // WP115: bridges along link paths, one path per line — `hub,link,hub[,link,hub…]`, `hub:role`.
+  const [bridgeText, setBridgeText] = useState("");
+  const bridges = bridgeText.split("\n").map((l) => l.trim()).filter(Boolean);
+  const businessVault = pit || bridges.length > 0;
+  const pitIncomplete = businessVault && (!asOfStart || !asOfEnd || asOfStart >= asOfEnd);
   const active = project.runs.find((r) => r.status === "running");
   // WP113 (C3): the project's settings — the start form's platform follows the stored default.
   const [view, setView] = useState<ProjectSettingsView | null>(null);
@@ -98,7 +102,7 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
       const run = await api.startRun(project.id, {
         requirements: req, schema: schema || null, existing_run: existing || null,
         profiling: profiling || null, target_platform: platform,
-        ...(pit ? { pit: true, as_of_start: asOfStart, as_of_end: asOfEnd, as_of_grain: grain } : {}),
+        ...(businessVault ? { pit, bridges, as_of_start: asOfStart, as_of_end: asOfEnd, as_of_grain: grain } : {}),
       });
       onChanged();
       onOpenRun(run.id);
@@ -238,7 +242,11 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
             <input type="checkbox" checked={pit} onChange={(e) => setPit(e.target.checked)} />
             <span>point-in-time tables (Business Vault) — one per hub with two or more satellites, over a bounded spine</span>
           </label>
-          {pit ? (
+          <label className="grid gap-1">
+            <span className="text-xs text-ink-faint">bridges (Business Vault) — one path per line, hub,link,hub[,link,hub…]; a role as hub:role; the CLI's --bridge</span>
+            <textarea value={bridgeText} onChange={(e) => setBridgeText(e.target.value)} rows={2} placeholder="hub_customer,link_account_customer,hub_account" className="rounded-md border border-line bg-pane-2 px-2 py-1.5 font-mono text-xs" />
+          </label>
+          {businessVault ? (
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="grid gap-1">
                 <span className="text-xs text-ink-faint">as-of start (inclusive)</span>
@@ -255,7 +263,7 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
                   <option value="month">month</option>
                 </select>
               </label>
-              {pitIncomplete ? <p className="text-xs text-ink-faint sm:col-span-3">A PIT needs both dates, start before end — the CLI's --as-of-start and --as-of-end.</p> : null}
+              {pitIncomplete ? <p className="text-xs text-ink-faint sm:col-span-3">A PIT or a bridge needs both dates, start before end — the CLI's --as-of-start and --as-of-end.</p> : null}
             </div>
           ) : null}
         </div>

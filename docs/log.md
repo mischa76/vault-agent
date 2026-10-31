@@ -12230,3 +12230,46 @@ vitest. **Nur angenommen.** That no site builds a technical name from a literal 
 the six constants and the `stg_`/`_HK`/`LOAD_DATETIME` spellings in `src/`); the ui coverage floor not re-measured,
 CI measures it. **Bewusst nicht getan.** Construct prefixes and CamelCase (C3 deferred them); a build of a lower-case
 project against a warehouse (seeds would need the lower column names); the eval cases stay house style; no paid run.
+
+## [2026-10-31] WP115 built and measured: bridges along link paths (C22, the open half of ADR-0016) — the path language, a bridge over the as-of spine valid by the link's effectivity satellite or its load date, paths named at start or proposed from the requirements' citations and ratified at sign-off; the bank demo builds on PostgreSQL with two bridges, every date's pairs equal to the seed's own validity
+
+**Autor:** Claude Code
+
+Ninth and last of the old backlog on the owner's word (everything but C7, C17, C21); with WP91 it closes C22. **Built**
+(`wp115-bridges-along-link-paths-spec.md`; guards `3a8718d` first, red at import and one Vitest test). The path language
+(spec §2.1, ADR-0016's open point, a dated note appended to the ADR): `hub,link,hub[,link,hub…]`, `hub:role` for a
+role-qualified participation, `parse_bridge_path` the one reader with five refusals, `bridge_model_name` the table's
+name from the hubs in order. `BusinessVaultOptions.bridges` (the bounds required as for a PIT; `enabled` = pit or
+bridges, and the business vault block and `dbt_utils` follow it), `run --bridge PATH` repeatable, `StartRun.bridges`.
+`propose_bridge_paths`: one path per pair of links citing the same requirement and sharing a hub, through the shared
+hub to each other participation of the second link (a self-link yields both exits), deterministic, every path
+parsing back; proposals only while the Business Vault is on. `BridgeProposal` on the state, `bridge_proposed` a
+decision (role table, group, catalogue), `bridge_generated` a disclosure. `render_bridge`: the first hub's keys cross
+the spine, per link an inner join on the arriving participation's FK and a validity clause — the latest effectivity
+row at the date with start <= date < end where the link has an effectivity satellite, the link's load date
+otherwise — the output the first hub's key, the date, per link its key and the far participation's column; metadata
+under `bridge:`; a path the model or the raw vault cannot answer a `generation_gap` naming the step. Ratified at
+sign-off: `_apply_bridge_decision` (accepted / overridden, unanswered declined at `--accept`, an operator's own path
+parsed and built, a run without bounds warned) and `rebuild_business_vault` re-rendering PITs and bridges from the
+artifacts' metadata with the flags replaced; `resume --bridge` / `--no-bridge`, the interactive prompt (default no),
+the paused report listing the proposals, `Decision.bridges`, the checkpoint's `bridges`, the CLI equivalents, WP82's
+parity rows, the Review perspective's unchecked list, the Project perspective's path field. Manual 6, 7, 9.7, 14.2,
+README's capability line, CHANGELOG (Added), index, candidates part 3: C22 closed.
+
+**Measured** (keyless, spec §6). **P1 ✔:** guards red then green, every frozen fixture byte-identical with bridges off,
+suite 1560 passed, ruff, bare mypy, tsc, vitest 34; one guard updated deliberately (the decision payload's new key).
+**P2 ✔:** the bank project with two bridges and the demo's seeds builds on PostgreSQL, PASS=18 of 18;
+`bridge_customer_account` 236 rows over 59 dates, on every date equal to the rule over the built effectivity satellite
+and to the seed's `EFFECTIVE_FROM`/`EFFECTIVE_TO`, pair for pair by business key (236 = 236, 0 either way);
+`bridge_account_account` 73 rows, on every date the transfers loaded by then. **P3 ✔:** the second build PASS=18, every
+count unchanged. **P4 ✔:** the proposer on the twenty-third chain's five steps: 1, 9, 12, 24, 38 paths for 4, 6, 23,
+29, 50 links, all parsing back — three-hop walks a person would ask for, and on the sales step 38 decisions declined
+by default: the citation rule's review cost, paid only when the Business Vault is on.
+
+**Überprüft.** The guards red then green, the fixtures, the PostgreSQL build twice with the row comparisons above, the
+proposer's counts on the kept step models, suite, ruff, mypy, tsc, vitest. **Nur angenommen.** That the SQL (`cross
+join`, `join`, `max`, `group by`, `coalesce`) runs on Databricks and Snowflake as the PIT's does — not built there;
+that the seed's auto end-dating would be read correctly — the seed's one re-assignment lies after the spine, so the
+rule and the seed agreed trivially. **Bewusst nicht getan.** A spine crossing that end-dating event; an incremental
+bridge; a path crossing a link twice; a cap or grouping for the proposal count on a large step (measured first, 38 on
+sales); no paid run; CLAUDE.md unchanged (the manual carries the construct).

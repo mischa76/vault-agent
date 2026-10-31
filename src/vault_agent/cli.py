@@ -944,6 +944,7 @@ def _build_decision(
     resolutions: dict[str, str] | None = None,
     links: dict[str, bool] | None = None,
     bindings: dict[str, StageBinding] | None = None,
+    bridges: dict[str, bool] | None = None,
 ) -> dict[str, Any]:
     parsed: dict[str, dict[str, str | None]] = {}
     for spec in owners:
@@ -961,6 +962,9 @@ def _build_decision(
         # WP82: {stage: {"relation": R, "columns": {STAGE_COLUMN: column}}} — the stages a human
         # bound at sign-off; plain dicts, so the checkpointer's payload stays JSON.
         "bindings": {stage: b.model_dump() for stage, b in (bindings or {}).items()},
+        # WP115: {"<path>": build it / decline it} over the proposed bridge paths — the same
+        # applier for the flags, the prompt and the workbench (ADR-0007: ratified, never default).
+        "bridges": bridges or {},
     }
 
 
@@ -1006,6 +1010,8 @@ def _has_decision_flags(
     link: list[str] | None = None,
     no_link: list[str] | None = None,
     bind: list[str] | None = None,
+    bridge: list[str] | None = None,
+    no_bridge: list[str] | None = None,
 ) -> bool:
     """True when ``resume`` was given any explicit decision — flags win, no prompt is shown."""
     return (
@@ -1018,6 +1024,8 @@ def _has_decision_flags(
         or bool(link)
         or bool(no_link)
         or bool(bind)
+        or bool(bridge)
+        or bool(no_bridge)
     )
 
 
@@ -1103,6 +1111,28 @@ def _collect_decision(
     return owners, overrides
 
 
+def _collect_bridge_decision(console: Console, state: VaultAgentState) -> dict[str, bool]:
+    """WP115: walk the proposed bridge paths, asking build/decline each — default *no*, and the
+    answer recorded either way, because a bridge is Business Vault logic the human ratifies
+    (ADR-0007); the confirm that follows (`--accept`) would decline the unanswered ones. Parity
+    with ``--bridge`` / ``--no-bridge``: the same handles to the same applier."""
+    answers: dict[str, bool] = {}
+    pending = [p for p in state.bridge_proposals if p.ratification_status == "proposed"]
+    if pending:
+        console.print(
+            f"\n[bold yellow]{len(pending)} bridge path(s) proposed[/bold yellow] from links that "
+            "cite the same requirement around a shared hub:"
+        )
+    for proposal in pending:
+        console.print(f"  [yellow]{proposal.path}[/yellow]")
+        for line in proposal.evidence:
+            console.print(f"    [dim]{line}[/dim]")
+        answers[proposal.path] = _prompter.confirm(
+            console, f"Build the bridge along {proposal.path!r}?", default=False
+        )
+    return answers
+
+
 def _collect_binding_decision(
     console: Console, state: VaultAgentState
 ) -> dict[str, StageBinding]:
@@ -1177,15 +1207,17 @@ def _interactive_checkpoint(
         resolutions: dict[str, str]
         links: dict[str, bool]
         bindings: dict[str, StageBinding]
+        bridges: dict[str, bool]
         try:
             if at_resolution:
-                owners, overrides, bindings = [], {}, {}
+                owners, overrides, bindings, bridges = [], {}, {}, {}
                 resolutions = _collect_resolution_decision(console, state)
                 links = _collect_link_decision(console, state)
                 confirm = "Ratify the remaining proposal(s) as shown and build the model?"
             else:
                 owners, overrides = _collect_decision(console, state)
                 bindings = _collect_binding_decision(console, state)  # WP82
+                bridges = _collect_bridge_decision(console, state)  # WP115
                 resolutions, links = {}, {}
                 confirm = "Accept and finalize?"
                 for issue in state.validation_report.issues:
@@ -1201,7 +1233,9 @@ def _interactive_checkpoint(
             _report_paused(console, out, state=state)
             return state
 
-        decision = _build_decision(owners, True, overrides, {}, resolutions, links, bindings)
+        decision = _build_decision(
+            owners, True, overrides, {}, resolutions, links, bindings, bridges=bridges
+        )
         state, paused = asyncio.run(_resume_pipeline(out, thread_id, decision, trace))
         _print_summary(console, state)
         counts = write_outputs(state, out)
@@ -1464,6 +1498,22 @@ def _report_paused(
     no_owner_to_assign = state is not None and not any(
         item.kind == "contract_owner" for item in assemble_review_queue(state).items
     )
+    pending_bridges = [
+        p for p in (state.bridge_proposals if state is not None else [])
+        if p.ratification_status == "proposed"
+    ]
+    if pending_bridges:  # WP115: decisions, declined unless answered
+        console.print(
+            f"\n[bold yellow]{len(pending_bridges)} bridge path(s) proposed[/bold yellow] "
+            "(two links citing one requirement around a shared hub) — unanswered at --accept "
+            "they are declined:"
+        )
+        for proposal in pending_bridges:
+            console.print(f"  [yellow]{proposal.path}[/yellow]")
+        console.print(
+            f"  [cyan]vault-agent resume --out {out} --bridge \"<path>\"[/cyan]   (build one)\n"
+            f"  [cyan]vault-agent resume --out {out} --no-bridge \"<path>\"[/cyan]  (decline one)"
+        )
     if no_owner_to_assign:
         console.print(
             "\n[bold yellow]Paused at the human-in-the-loop checkpoint.[/bold yellow] "
@@ -1733,20 +1783,29 @@ def run(
     as_of_grain: Annotated[
         str, typer.Option("--as-of-grain", help="Spine grain: day (default) or month."),
     ] = "day",
+    bridge: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--bridge",
+            help="Generate a bridge along a path 'hub,link,hub[,link,hub…]' (a role as "
+                 "'hub:role'; WP115, ADR-0016); repeatable; needs the as-of bounds.",
+        ),
+    ] = None,
 ) -> None:
     """Run the full pipeline on a requirements document and write the artifacts."""
     console = Console()
     try:
         business_vault = BusinessVaultOptions(
             pit=pit,
+            bridges=list(bridge or []),  # WP115
             as_of_start=as_of_start.date() if as_of_start else None,
             as_of_end=as_of_end.date() if as_of_end else None,
             as_of_grain=as_of_grain,  # type: ignore[arg-type]  # pydantic validates the literal
         )
     except ValidationError as exc:
         console.print(
-            "[bold red]--pit needs --as-of-start and --as-of-end (YYYY-MM-DD, start before end) "
-            f"and --as-of-grain day|month:[/bold red] {exc.errors()[0]['msg']}"
+            "[bold red]--pit and --bridge need --as-of-start and --as-of-end (YYYY-MM-DD, start "
+            f"before end) and --as-of-grain day|month:[/bold red] {exc.errors()[0]['msg']}"
         )
         raise typer.Exit(code=2) from exc
     console.print(f"[bold]Running Vault-Agent pipeline[/bold] on {input_doc} …\n")
@@ -1836,6 +1895,8 @@ def _resume_paused(
     link: list[str] | None = None,
     no_link: list[str] | None = None,
     bind: list[str] | None = None,
+    bridge: list[str] | None = None,
+    no_bridge: list[str] | None = None,
 ) -> None:
     """Answer the HITL checkpoint of a paused run — the flag path and the WP12 prompt.
 
@@ -1851,7 +1912,8 @@ def _resume_paused(
     # and a non-TTY keeps today's flag-based path byte-identical.
     if (
         not _has_decision_flags(
-            owner, accept, mappings, map_, resolutions, resolve, link, no_link, bind
+            owner, accept, mappings, map_, resolutions, resolve, link, no_link, bind,
+            bridge, no_bridge,
         )
         and write
         and _is_interactive(interactive)
@@ -1890,8 +1952,12 @@ def _resume_paused(
             errors = check_stage_bindings(asyncio.run(_paused_state(out, thread_id)), bindings)
             if errors:
                 raise ValueError("cannot bind:\n  " + "\n  ".join(errors))
+        # WP115: as for links, an explicit --no-bridge wins over --bridge for the same path.
+        bridge_answers: dict[str, bool] = {spec: True for spec in bridge or []}
+        bridge_answers.update({spec: False for spec in no_bridge or []})
         decision = _build_decision(
-            owner or [], accept, overrides, multi, ratified, link_answers, bindings
+            owner or [], accept, overrides, multi, ratified, link_answers, bindings,
+            bridges=bridge_answers,
         )
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]{exc}[/bold red]")
@@ -2000,6 +2066,20 @@ def resume(
                  "'STAGE=RELATION(STAGE_COLUMN=column, …)' (WP82).",
         ),
     ] = None,
+    bridge: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--bridge",
+            help="Build a proposed bridge (or name one): 'hub,link,hub[,link,hub…]' (WP115).",
+        ),
+    ] = None,
+    no_bridge: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--no-bridge",
+            help="Decline a proposed bridge: its path (WP115).",
+        ),
+    ] = None,
     trace: Annotated[
         bool,
         typer.Option(
@@ -2104,7 +2184,8 @@ def resume(
         _write_pending(out, thread_id, input_path)
         pending = {"thread_id": thread_id, "input": str(input_path)}
         if not _has_decision_flags(
-            owner, accept, mappings, map_, resolutions, resolve, link, no_link, bind
+            owner, accept, mappings, map_, resolutions, resolve, link, no_link, bind,
+            bridge, no_bridge,
         ):
             if write and _is_interactive(interactive):
                 state = _interactive_checkpoint(console, out, thread_id, state, trace)
@@ -2117,6 +2198,7 @@ def resume(
         console, out, pending,
         owner=owner, accept=accept, mappings=mappings, map_=map_,
         resolutions=resolutions, resolve=resolve, link=link, no_link=no_link, bind=bind,
+        bridge=bridge, no_bridge=no_bridge,  # WP115
         trace=trace, interactive=interactive, write=write,
     )
 

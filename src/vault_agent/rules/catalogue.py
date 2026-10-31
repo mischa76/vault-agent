@@ -248,5 +248,13 @@ FLAGS: dict[str, str] = {
         "A point-in-time table was generated for a hub with two or more descriptive satellites; "
         "deterministic from the model, its ghost entries are AutomateDV ghost records."
     ),
+    FlagKind.BRIDGE_PROPOSED: (
+        "A bridge path was proposed from two links that cite the same requirement and share a "
+        "hub; a decision — build it (`--bridge PATH`) or decline it, unanswered it is declined."
+    ),
+    FlagKind.BRIDGE_GENERATED: (
+        "A bridge was generated along a named or ratified path over the as-of spine, each link "
+        "valid by its effectivity satellite or its load date; rebuilt whole."
+    ),
     FlagKind.GENERIC: "Untyped work for a human; not provenance.",
 }
