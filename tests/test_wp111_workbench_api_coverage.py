@@ -98,7 +98,8 @@ def test_a_run_on_a_missing_input_or_predecessor_is_a_404_and_a_bad_grain_a_422(
     pid = _project_with_inputs(client)
     missing = client.post(f"/api/projects/{pid}/runs", json={"requirements": "nope.md"})
     assert missing.status_code == 404
-    assert client.post("/api/projects/nope/runs", json={"requirements": "req.md"}).status_code == 404
+    foreign = client.post("/api/projects/nope/runs", json={"requirements": "req.md"})
+    assert foreign.status_code == 404
     r = client.post(f"/api/projects/{pid}/runs", json={
         "requirements": "req.md", "schema": "schema.yml", "existing_run": "ghost",
     })
