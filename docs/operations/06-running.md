@@ -104,6 +104,32 @@ the prompt (whose default for an inferred proposal is *no*) builds one (7). Two 
 database give one byte-identical file; measured against AdventureWorks' own declarations on
 the key-less data copy (`docs/log.md`, 2026-10-30).
 
+**Drafting the requirements from the catalogue (WP117, ADR-0019).** A customer with a catalogue
+and no documents cannot start a run — the modeler models only what the requirements support,
+and there is no source-driven mode (ADR-0019 says why). The third command writes the document
+a human then corrects:
+
+```bash
+uv run vault-agent draft-requirements --source-schema inputs/source_schema.yml --out inputs/requirements.md
+```
+
+Deterministic, no model call: per table what it is (the catalogue's own comment), what identifies
+it — a *relationship* when two or more foreign keys cover its primary key, a *subtype* when exactly
+one does, else an *entity* identified by its first declared unique key that is not a row GUID (the
+type decides, never the name) or by its primary key — what it records (one requirement per
+described column, the undescribed in one line, the comments verbatim) and how it refers to other
+tables (one per foreign key); columns in words, never by physical name; `--technical COLUMN`
+names columns stated once per entity as technical (a GUID-typed column is technical anyway);
+`--area` names the title. The document opens with a typed header (`vault-agent:
+drafted-from-catalogue`, source, date, `status: unreviewed`). **Correct it** — cut what is not in
+scope, rename what the business calls otherwise, add the business's words — and set `status:
+reviewed`; `run` takes it as any document, and while the header still says unreviewed the review
+queue carries one `requirements_unreviewed` decision per document and the proposed ADR names the
+provenance — never a refusal. What an uncorrected draft costs, measured on AdventureWorks: the
+same constructs, keyed on the catalogue's natural keys where the analyst's prose had kept the
+surrogates, and 28 more per-key translation confirmations over five steps (`docs/log.md`,
+2026-10-31). The eval's six `adventureworks_drafted_*` documents are this command's output.
+
 Worked examples for all three live under `examples/inputs/` (bank and messy-insurance
 sets, including an enriched schema and profiling file).
 

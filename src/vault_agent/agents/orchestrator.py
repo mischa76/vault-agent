@@ -97,6 +97,7 @@ REVIEW_FLAG_ROLES: dict[str, ReviewRole] = {
     FlagKind.PIT_GENERATED: "disclosure",  # WP91: deterministic from the model (ADR-0016)
     FlagKind.BRIDGE_PROPOSED: "decision",  # WP115: a path the human ratifies (ADR-0007)
     FlagKind.BRIDGE_GENERATED: "disclosure",  # WP115: rendered along a named or ratified path
+    FlagKind.REQUIREMENTS_UNREVIEWED: "decision",  # WP117: a draft nobody corrected (ADR-0019)
     FlagKind.GENERIC: "decision",  # untyped work, not provenance
 }
 _DEFAULT_ROLE: ReviewRole = "decision"

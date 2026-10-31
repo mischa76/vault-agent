@@ -15,6 +15,11 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- `vault-agent draft-requirements` (WP117, 2026-10-31, ADR-0019, backlog C1 and C27 stage 4): a requirements
+  document drafted deterministically from the declared source schema — what each table is, what identifies
+  it, what it records, how it refers to other tables, in the catalogue's words and nothing else — headed by a
+  typed `status: unreviewed` mark a human clears after correcting it; `run` flags an unreviewed draft
+  (`requirements_unreviewed`, a decision) and the proposed ADR names the provenance. No source-driven mode.
 - Bridges (WP115, 2026-10-31, backlog C22's open half, ADR-0016): a bridge along a link path
   `hub,link,hub[,link,hub…]` (a role as `hub:role`) over the as-of spine, each link valid by its
   effectivity satellite or its load date, in vault-agent's own SQL as the PIT is. Named at start

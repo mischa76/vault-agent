@@ -12398,3 +12398,34 @@ header, the `requirements_unreviewed` flag in `run`, the GUID rule — guards fi
 (ADR rule 5) stays the owner's, and after WP116 it measures scope cutting, not review. **Überprüft:** the ADR text
 against the two correcting entries; no code ran. **Nur angenommen:** nothing. **Bewusst nicht getan:** no edit to
 the ADR's body; the measurement of rule 5 not started.
+
+## [2026-10-31] WP117 built and measured: `vault-agent draft-requirements` (ADR-0019) — the C1 instrument promoted into the product, the six drafted documents regenerating from it byte-identically but for the typed header, an unreviewed draft a decision in `run`
+
+**Autor:** Claude Code
+
+The WP ADR-0019's acceptance named (2026-10-31). **Built** (`wp117-draft-requirements-spec.md`; guards `780c8c7`
+first). `src/vault_agent/draft_requirements.py`: `DraftHeader` (source, date, status) and `read_draft_header`, the
+typed mark; `classify` (relationship / subtype / entity by how the foreign keys cover the primary key), `natural_key`
+(the first declared unique key that is not a row GUID — the type decides, `uniqueidentifier`/`uuid`), `draft_document`
+on `SourceTable`s with `technical=` columns stated once per entity (GUID-typed ones anyway). `vault-agent
+draft-requirements --source-schema FILE --out FILE [--area] [--technical]`, exit 1 on a schema that does not load.
+`FlagKind.REQUIREMENTS_UNREVIEWED`, a decision: the parser reads every document's header and flags a status of
+`unreviewed`; the proposed ADR names the provenance beside the document (typed on the flag). The eval's
+`draft(extract, schema)` builds the area's house-format tables and calls the product, so the six
+`adventureworks_drafted_*` documents are the product's output; regenerated in this commit, their leading comment
+now the typed header. Manual 6.1, catalogue, index row, CHANGELOG (Added).
+
+**Measured** (keyless, spec §5). **P1 ✔:** guards red then green, suite 1575, ruff, bare mypy; the regeneration
+changed the five area documents by exactly their four header lines (20 insertions, 20 deletions over 5 files) and
+reported the experiment's counts unchanged. One rule kept as measured rather than as the ADR worded it: the
+identifier is the first declared non-GUID unique key of any arity (the ADR said single-column; AdventureWorks
+declares composite alternate keys first on some tables, and the experiment's documents carry them). **P2 ✔:** the
+bank schema — no keys, no comments — drafts to three entities and 6 requirements, as concretised from the file before
+the run. **P3 ✔:** an authored document raises no flag; no chain ran.
+
+**Überprüft.** The guards, the diff of the regeneration, the command's output on the bank schema, suite, ruff,
+mypy. **Nur angenommen.** That `datetime`/`timestamp`/`date`/`smalldatetime` and `uniqueidentifier`/`uuid` cover
+the technical types a catalogue carries (a type outside them is stated as a named technical column, never dropped).
+**Bewusst nicht getan.** The corrected-draft measurement (ADR rule 5, the owner's; after WP116 it measures scope);
+the workbench offering the command (a drafted file is uploaded as any requirements file); README's quick start
+unchanged; no paid run; CLAUDE.md unchanged.

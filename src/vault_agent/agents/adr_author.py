@@ -251,6 +251,20 @@ def _mappings_section(mappings: ProposedMapping) -> list[str]:
     return lines
 
 
+def _documents_with_provenance(state: VaultAgentState) -> str:
+    """WP117 (ADR-0019): a document the parser flagged as an unreviewed draft is named as such,
+    by the flag's typed kind and asset — never by its text."""
+    drafted = {
+        f.asset for f in state.flags
+        if f.kind == FlagKind.REQUIREMENTS_UNREVIEWED and f.asset is not None
+    }
+    return ", ".join(
+        doc + (" (drafted from the catalogue by vault-agent, unreviewed at run time)"
+               if doc in drafted else "")
+        for doc in state.input_documents
+    )
+
+
 class AdrAuthorAgent(BaseAgent):
     """Renders the finalized Data Vault model ADR from state.dv_model."""
 
@@ -375,7 +389,7 @@ class AdrAuthorAgent(BaseAgent):
             "",
             "## References",
             "",
-            f"- Source requirement document(s): {', '.join(state.input_documents) or '—'}",
+            "- Source requirement document(s): " + (_documents_with_provenance(state) or "—"),
             f"- Generated dbt models: {len(state.artifacts.dbt_models)} raw-vault "
             f"model(s) + {len(state.artifacts.staging_models)} staging model(s) "
             "(see `state.artifacts`)",

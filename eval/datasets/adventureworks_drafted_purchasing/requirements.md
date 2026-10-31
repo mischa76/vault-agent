@@ -1,7 +1,7 @@
-<!-- Drafted deterministically from the AdventureWorks catalogue (Microsoft, MIT — see
-NOTICE) by eval.adventureworks.draft_requirements: tables, descriptions, keys and foreign
-keys as the catalogue states them. No analyst has read or written this. The C1 experiment,
-2026-10-30. -->
+<!-- vault-agent: drafted-from-catalogue
+source: eval.adventureworks.derive (schema_extract.json)
+date: 2026-10-30
+status: unreviewed -->
 
 # Requirements drafted from the source catalogue: purchasing
 

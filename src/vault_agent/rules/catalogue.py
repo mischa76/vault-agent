@@ -254,6 +254,11 @@ FLAGS: dict[str, str] = {
         "A bridge path was proposed from two links that cite the same requirement and share a "
         "hub; a decision — build it (`--bridge PATH`) or decline it, unanswered it is declined."
     ),
+    FlagKind.REQUIREMENTS_UNREVIEWED: (
+        "An input document is a draft vault-agent wrote from the catalogue "
+        "(`draft-requirements`) whose header still says unreviewed; correct it and set the "
+        "status, or accept that the model follows the catalogue's words alone."
+    ),
     FlagKind.BRIDGE_GENERATED: (
         "A bridge was generated along a named or ratified path over the as-of spine, each link "
         "valid by its effectivity satellite or its load date; rebuilt whole."

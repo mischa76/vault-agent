@@ -2203,6 +2203,64 @@ def resume(
     )
 
 
+@app.command("draft-requirements")
+def draft_requirements_command(
+    source_schema: Annotated[
+        Path,
+        typer.Option("--source-schema", "-s", help="The declared source schema (the file `run "
+                     "--source-schema` reads; `source-schema` writes it from a catalogue)."),
+    ],
+    out: Annotated[
+        Path, typer.Option("--out", "-o", help="The requirements document to write."),
+    ] = Path("requirements.md"),
+    area: Annotated[
+        str | None,
+        typer.Option("--area", help="The subject area named in the title (default: the one "
+                     "schema the tables share, else 'source')."),
+    ] = None,
+    technical: Annotated[
+        list[str] | None,
+        typer.Option("--technical", help="A column stated once per entity as technical, never "
+                     "as an attribute (repeat); columns of a GUID type are technical anyway."),
+    ] = None,
+) -> None:
+    """Draft a requirements document from the declared source schema (WP117, ADR-0019).
+
+    Deterministic, no model call: tables, what identifies each, what each records, how they
+    refer to one another — in the catalogue's words and nothing else. The document is marked
+    as an unreviewed draft; correct it, set `status: reviewed` in its header, then `run` takes
+    it as any document (an unreviewed one is flagged in the review queue, never refused)."""
+    from datetime import date as _date
+
+    from vault_agent.draft_requirements import draft_document
+
+    console = Console()
+    try:
+        tables = load_source_schemas(source_schema)
+    except (ValueError, OSError, yaml.YAMLError) as exc:
+        console.print(
+            f"[bold red]Cannot read the source schema {source_schema}:[/bold red] {exc}"
+        )
+        raise typer.Exit(code=1) from exc
+    if not tables:
+        console.print(f"[bold red]No tables in {source_schema}[/bold red] — nothing to draft.")
+        raise typer.Exit(code=1)
+    schemas = {t.schema_name for t in tables if t.schema_name}
+    chosen_area = area or (schemas.pop() if len(schemas) == 1 else "source")
+    text = draft_document(
+        tables, chosen_area, source=str(source_schema), date=_date.today().isoformat(),
+        technical=tuple(technical or ()),
+    )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text, encoding="utf-8")
+    console.print(
+        f"[bold]Drafted[/bold] {text.count('- **REQ-')} requirement(s) for {len(tables)} "
+        f"table(s) into [cyan]{out}[/cyan] — status [yellow]unreviewed[/yellow]: correct it, set "
+        f"`status: reviewed` in its header, then [cyan]vault-agent run {out} --source-schema "
+        f"{source_schema}[/cyan]."
+    )
+
+
 @app.command("source-schema")
 def source_schema_command(
     schema: Annotated[

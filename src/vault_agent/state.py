@@ -97,6 +97,9 @@ class FlagKind:
     # unless answered; and a bridge rendered along a named or ratified path — a disclosure.
     BRIDGE_PROPOSED = "bridge_proposed"
     BRIDGE_GENERATED = "bridge_generated"
+    # WP117 (ADR-0019): an input document is a draft vault-agent wrote from the catalogue and
+    # nobody has reviewed — a decision, so a skipped correction stands above the fold.
+    REQUIREMENTS_UNREVIEWED = "requirements_unreviewed"
     GENERIC = "generic"
 
 

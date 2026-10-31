@@ -20,6 +20,7 @@ from typing import Any, Protocol
 from pydantic import ValidationError
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.draft_requirements import read_draft_header
 from vault_agent.llm import call_with_truncation_split, decoded_field
 from vault_agent.state import FlagKind, ParsedRequirement, VaultAgentState
 
@@ -189,6 +190,17 @@ class RequirementsParserAgent(BaseAgent):
             if document is None:
                 continue
             logger.debug("document %s: %d chars", doc_path, len(document))
+            header = read_draft_header(document)  # WP117 (ADR-0019)
+            if header is not None and header.status == "unreviewed":
+                state.flag(
+                    "requirements_parser",
+                    f"document {doc_path!r} is a draft vault-agent wrote from the catalogue "
+                    f"({header.source}, {header.date}) that nobody has reviewed: correct it and "
+                    f"set `status: reviewed` in its header, or accept that the model follows "
+                    f"the catalogue's words alone",
+                    kind=FlagKind.REQUIREMENTS_UNREVIEWED,
+                    asset=doc_path,
+                )
             segments = await self._extract(extractor, system_prompt, document)
             raw_records, dropped = merge_records(segments)
             if len(segments) > 1:

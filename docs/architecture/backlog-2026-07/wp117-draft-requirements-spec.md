@@ -64,3 +64,24 @@ table classifying the new kind (WP43's guard). Byte-identity fixtures untouched.
 A corrected draft's effect on the model and the review load (ADR rule 5 — the owner's measurement; after WP116 it
 measures scope, not review); the workbench offering the command (a file of kind `requirements` can be uploaded as
 today); LLM prose; a `--draft` flag on `run`.
+
+**P2, concretised from the file before the run (2026-10-31):** `examples/inputs/bank_source_schema.yml` declares three
+tables (`customer`, `account`, `account_customer`), no primary key, no unique key, no foreign key, no comment. So:
+three entities, no relationship, no identifier requirement, every column undescribed — **6 requirements** (per
+table: „must record every X" and one line listing its columns), no technical column.
+
+## 5 Measured (2026-10-31, keyless)
+
+- **P1 ✔.** Nine guards red before the change (`780c8c7`, red at import), green after; suite 1575 passed, 5 skipped;
+  ruff; bare mypy; no byte-identity fixture changed. The regeneration (`python -m eval.adventureworks.draft_requirements`)
+  changed the five area documents by **exactly their four header lines** (`git diff --stat`: 5 files, 20 insertions,
+  20 deletions) and reported the experiment's numbers unchanged — 64, 42, 160, 50, 131 requirements; 161, 97, 325,
+  99, 264 lines; 9/2/2, 5/1/0, 20/0/5, 3/1/1, 13/2/4 entities/subtypes/relationships. One rule kept as the instrument
+  measured it rather than as ADR-0019 §2 worded it: the identifier is the **first** declared unique key that is not
+  a row GUID, of any arity (the ADR said single-column); AdventureWorks declares composite alternate keys first on
+  some tables and the experiment's documents carry them, so the product keeps the measured rule and this entry
+  records the wording's correction.
+- **P2 ✔.** `vault-agent draft-requirements --source-schema examples/inputs/bank_source_schema.yml`: three entities,
+  no identifier line, no relationship, **6 requirements**, exactly as concretised from the file before the run.
+- **P3 ✔.** An authored document raises no `requirements_unreviewed` flag (the parser guard); no chain ran, the
+  record is untouched.
