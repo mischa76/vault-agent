@@ -102,11 +102,11 @@ class MappingProposer(Protocol):
 class AnthropicMappingProposer:
     """Default proposer backed by the shared forced-tool-use call path (Sonnet-tier)."""
 
-    def __init__(self, model: str | None = None) -> None:
+    def __init__(self, model: str | None = None, base_url: str | None = None) -> None:
         from vault_agent.config import get_settings
         from vault_agent.llm import ForcedToolCaller
 
-        self._caller = ForcedToolCaller(model or get_settings().primary_model)
+        self._caller = ForcedToolCaller(model or get_settings().primary_model, base_url=base_url)
 
     async def propose(self, *, system_prompt: str, user_content: str) -> dict[str, Any]:
         payload = await self._caller.call(

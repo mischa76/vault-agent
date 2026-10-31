@@ -265,7 +265,11 @@ def make_client(settings: Any) -> Any:
     is turned into an attributable error naming the extra to install."""
     provider = settings.llm_provider
     if provider == "anthropic":
-        return anthropic.AsyncAnthropic(api_key=settings.anthropic_api_key)
+        # WP113: the base URL from the settings (env ANTHROPIC_BASE_URL or a project's own);
+        # None keeps the SDK's default, which reads the same variable.
+        return anthropic.AsyncAnthropic(
+            api_key=settings.anthropic_api_key, base_url=settings.anthropic_base_url
+        )
     try:
         if provider == "bedrock":
             kwargs: dict[str, Any] = {"aws_region": settings.aws_region}
@@ -301,6 +305,7 @@ class ForcedToolCaller:
         trace_recorder: TraceRecorder | None = None,
         rng: Callable[[], float] | None = None,
         forced: bool | None = None,
+        base_url: str | None = None,
     ) -> None:
         if client is None:
             # Imported here so module import never requires an API key. The mode is read
@@ -308,6 +313,8 @@ class ForcedToolCaller:
             from vault_agent.config import get_settings
 
             settings = get_settings()
+            if base_url:  # WP113: a project's or a run's own endpoint over the environment's
+                settings = settings.model_copy(update={"anthropic_base_url": base_url})
             client = make_client(settings)
             if forced is None:
                 forced = settings.forced_tool_choice

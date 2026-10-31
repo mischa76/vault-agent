@@ -3,12 +3,17 @@ from __future__ import annotations
 
 import builtins
 import json
+import os
 import re
 import shutil
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal, cast
 
+from pydantic import BaseModel, field_validator
+
+from vault_agent.config import LLMOptions, Settings, get_settings
+from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.source_schema import load_source_schemas
 
 FileKind = Literal["requirements", "schema", "profiling"]
@@ -28,6 +33,62 @@ def _slug(name: str) -> str:
     if not slug:
         raise ProjectError(f"project name {name!r} leaves no usable identifier")
     return slug
+
+
+class ProjectSettings(BaseModel):
+    """WP113 (C3): what a project pins for every run it starts — each field optional, a
+    blank clears it. Secrets are never here; they stay in `.env`."""
+
+    target_platform: TargetPlatform | None = None
+    primary_model: str | None = None
+    heavy_model: str | None = None
+    anthropic_base_url: str | None = None
+
+    @field_validator("primary_model", "heavy_model", "anthropic_base_url", mode="before")
+    @classmethod
+    def _blank_is_none(cls, value: object) -> object:
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
+
+    @field_validator("anthropic_base_url")
+    @classmethod
+    def _url_has_a_scheme(cls, value: str | None) -> str | None:
+        if value is not None and not value.lower().startswith(("http://", "https://")):
+            raise ValueError("anthropic_base_url must start with http:// or https://")
+        return value
+
+    def stored(self) -> dict[str, Any]:
+        return {k: v for k, v in self.model_dump().items() if v is not None}
+
+    def llm_options(self) -> LLMOptions:
+        return LLMOptions(primary_model=self.primary_model, heavy_model=self.heavy_model,
+                          anthropic_base_url=self.anthropic_base_url)
+
+
+def environment_facts() -> dict[str, Any]:
+    """WP113: the environment a run would inherit — the route, the models, the endpoint, and
+    whether the key is set. Never the key. A route without its credentials is reported as
+    such instead of raising (the settings model raises at construction)."""
+    try:
+        settings = get_settings()
+    except ValueError:
+        return {
+            "llm_provider": os.environ.get("LLM_PROVIDER", "anthropic"),
+            "anthropic_api_key_set": bool(os.environ.get("ANTHROPIC_API_KEY")),
+            "primary_model": Settings.model_fields["primary_model"].default,
+            "heavy_model": Settings.model_fields["heavy_model"].default,
+            "anthropic_base_url": os.environ.get("ANTHROPIC_BASE_URL") or None,
+            "credentials": "missing for the configured route",
+        }
+    return {
+        "llm_provider": settings.llm_provider,
+        "anthropic_api_key_set": bool(settings.anthropic_api_key),
+        "primary_model": settings.primary_model,
+        "heavy_model": settings.heavy_model,
+        "anthropic_base_url": settings.anthropic_base_url,
+        "route": settings.route_description(),
+    }
 
 
 class ProjectConflictError(ProjectError):
@@ -102,6 +163,33 @@ class ProjectStore:
         if create:
             path.mkdir(parents=True, exist_ok=False)
         return path
+
+    # ----- settings (WP113, C3) ---------------------------------------------------------------
+    def settings(self, project_id: str) -> ProjectSettings:
+        path = self._dir(project_id) / "settings.json"
+        if not path.is_file():
+            return ProjectSettings()
+        return ProjectSettings.model_validate(json.loads(path.read_text(encoding="utf-8")))
+
+    def save_settings(self, project_id: str, settings: ProjectSettings) -> ProjectSettings:
+        path = self._dir(project_id) / "settings.json"
+        path.write_text(json.dumps(settings.stored(), indent=2), encoding="utf-8")
+        return settings
+
+    def settings_view(self, project_id: str) -> dict[str, Any]:
+        """The stored settings, what a run would effectively take, and the environment."""
+        stored = self.settings(project_id)
+        env = environment_facts()
+        return {
+            "settings": stored.stored(),
+            "effective": {
+                "target_platform": stored.target_platform or DEFAULT_TARGET_PLATFORM,
+                "primary_model": stored.primary_model or env["primary_model"],
+                "heavy_model": stored.heavy_model or env["heavy_model"],
+                "anthropic_base_url": stored.anthropic_base_url or env["anthropic_base_url"],
+            },
+            "environment": env,
+        }
 
     # ----- deleting (WP112, C2) ---------------------------------------------------------------
     def _run_metas(self, project_id: str | None = None) -> builtins.list[dict[str, Any]]:

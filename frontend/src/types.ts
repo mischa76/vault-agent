@@ -37,7 +37,10 @@ export interface StartRunBody {
   schema: string | null;
   existing_run: string | null;
   profiling: string | null;
-  target_platform: Platform;
+  target_platform?: Platform | null; // WP113: null = the project's setting
+  primary_model?: string | null;
+  heavy_model?: string | null;
+  anthropic_base_url?: string | null;
   pit?: boolean;
   as_of_start?: string;
   as_of_end?: string;
@@ -243,4 +246,22 @@ export interface ConsoleEntry {
 
 export interface ApiErrorBody {
   detail: string | unknown;
+}
+
+// WP113 (C3): what a project pins for its runs, what a run effectively takes, and the environment
+// it inherits — the key only as set / not set, never its value.
+export interface ProjectSettings {
+  target_platform?: Platform | null;
+  primary_model?: string | null;
+  heavy_model?: string | null;
+  anthropic_base_url?: string | null;
+}
+
+export interface ProjectSettingsView {
+  settings: ProjectSettings;
+  effective: { target_platform: Platform; primary_model: string; heavy_model: string; anthropic_base_url: string | null };
+  environment: {
+    llm_provider: string; anthropic_api_key_set: boolean; primary_model: string; heavy_model: string;
+    anthropic_base_url: string | null; route?: string; credentials?: string;
+  };
 }

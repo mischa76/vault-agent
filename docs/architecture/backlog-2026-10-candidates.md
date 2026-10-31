@@ -128,3 +128,12 @@ a file a run has read is kept (the run's record names it), a run another run ext
 project), a running run is cancelled first and a paused one decided or discarded first; the server forgets a deleted
 run (task, state, `active`); the frontend asks before each deletion and shows the API's reason when refused. Spec
 `backlog-2026-07/wp112-workbench-delete-spec.md`.
+
+## C3 — the settings half closed by WP113 (2026-10-31); the naming profile is WP114
+
+`settings.json` per project (platform, primary and heavy model ids, an Anthropic-compatible base URL), a Settings
+section in the Project perspective, the environment shown with the key only as set/not set; every run the project
+starts takes them, records them (`run.json`: `llm`, `target_platform`) and its CLI equivalent reproduces them with the
+new `run` flags `--primary-model`, `--heavy-model`, `--anthropic-base-url`; `pending.json` carries them so `resume` and
+`continue` build the same agents. Spec `backlog-2026-07/wp113-project-settings-spec.md`. The `NamingProfile` half
+(prefixes, suffixes, the technical columns' names, case) follows as WP114 with its own byte-identity guards.

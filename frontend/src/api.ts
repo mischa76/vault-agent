@@ -1,6 +1,6 @@
 // A thin typed client over the WP66 API. Every call here is one the CLI could make; the run
 // records the equivalent (`cli_equivalents`).
-import type { Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, ParseResult, Project, ProjectCheck, ProjectFile, ProjectSummary, Run, StartRunBody } from "./types";
+import type { ProjectSettings, ProjectSettingsView, Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, ParseResult, Project, ProjectCheck, ProjectFile, ProjectSummary, Run, StartRunBody } from "./types";
 
 // WP91: the CLI's --pit / --as-of-* on the run start; the server validates the bounds.
 export type BusinessVault = { pit: boolean; as_of_start: string; as_of_end: string; as_of_grain: "day" | "month" };
@@ -71,4 +71,8 @@ export const api = {
       `/api/projects/${encodeURIComponent(id)}/files/${encodeURIComponent(name)}`, { method: "DELETE" }),
   deleteRun: (id: string) =>
     call<{ deleted: string; project: string }>(`/api/runs/${encodeURIComponent(id)}`, { method: "DELETE" }),
+  // WP113 (C3): the project's settings — stored, effective, and the environment (never a secret).
+  settings: (id: string) => call<ProjectSettingsView>(`/api/projects/${encodeURIComponent(id)}/settings`),
+  saveSettings: (id: string, body: ProjectSettings) =>
+    call<ProjectSettingsView>(`/api/projects/${encodeURIComponent(id)}/settings`, { method: "PUT", body: JSON.stringify(body) }),
 };

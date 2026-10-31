@@ -26,6 +26,10 @@ RUN = {
     "as_of_start": "as_of_start",
     "as_of_end": "as_of_end",
     "as_of_grain": "as_of_grain",
+    # WP113: the run's model route — per run on the CLI, per project (or per run) in the workbench
+    "primary_model": "primary_model",
+    "heavy_model": "heavy_model",
+    "anthropic_base_url": "anthropic_base_url",
     "out": PROCESS,
     "write": PROCESS,
     "trace": PROCESS,

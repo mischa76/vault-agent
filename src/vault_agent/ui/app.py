@@ -10,12 +10,19 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
+from vault_agent.config import LLMOptions
 from vault_agent.report import build_model_mermaid, build_report
-from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
+from vault_agent.rules.platforms import TargetPlatform
 from vault_agent.state import BusinessVaultOptions, StageBinding
 from vault_agent.ui.console import ConsoleAnswer, answer
 from vault_agent.ui.graphs import area_views, build_source_mermaid, node_catalogue
-from vault_agent.ui.projects import FileKind, ProjectConflictError, ProjectError, ProjectStore
+from vault_agent.ui.projects import (
+    FileKind,
+    ProjectConflictError,
+    ProjectError,
+    ProjectSettings,
+    ProjectStore,
+)
 from vault_agent.ui.runs import RunConflictError, RunManager
 
 STATIC_DIR = Path(__file__).parent / "static"
@@ -44,7 +51,12 @@ class StartRun(BaseModel):
     existing_run: str | None = None
     # WP82: the CLI's --profiling (a project file of kind `profiling`) and --target-platform.
     profiling: str | None = None
-    target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM
+    target_platform: TargetPlatform | None = None  # WP113: None = the project's setting
+    # WP113: the CLI's --primary-model / --heavy-model / --anthropic-base-url, per run; None
+    # takes the project's setting, which takes the environment's.
+    primary_model: str | None = None
+    heavy_model: str | None = None
+    anthropic_base_url: str | None = None
     # WP91: Business Vault options, the CLI's --pit/--as-of-* (validated by the same model).
     pit: bool = False
     as_of_start: date | None = None
@@ -115,6 +127,22 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
         except ProjectError as exc:
             raise _guard(exc) from exc
 
+    @app.get("/api/projects/{project_id}/settings")
+    def get_settings_view(project_id: str) -> dict[str, Any]:
+        """WP113: the stored settings, the effective ones, the environment — never a secret."""
+        try:
+            return store.settings_view(project_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.put("/api/projects/{project_id}/settings")
+    def put_settings(project_id: str, body: ProjectSettings) -> dict[str, Any]:
+        try:
+            store.save_settings(project_id, body)
+            return store.settings_view(project_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
     @app.delete("/api/projects/{project_id}")
     def delete_project(project_id: str) -> dict[str, Any]:
         """WP112: the folder whole, once its runs are at rest and nothing outside extends them."""
@@ -151,6 +179,8 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
                 project_id, body.requirements, body.schema_file, body.existing_run, wait=wait,
                 business_vault=business_vault,
                 profiling=body.profiling, target_platform=body.target_platform,  # WP82
+                llm=LLMOptions(primary_model=body.primary_model, heavy_model=body.heavy_model,
+                               anthropic_base_url=body.anthropic_base_url),  # WP113
             )
         except (ProjectError, RunConflictError) as exc:
             raise _guard(exc) from exc

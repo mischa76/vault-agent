@@ -59,7 +59,12 @@ def test_unknown_provider_is_rejected() -> None:
 def test_factory_builds_the_first_party_client(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(anthropic, "AsyncAnthropic", _Recorder)
     client = make_client(_settings(anthropic_api_key="sk-ant-test"))
-    assert isinstance(client, _Recorder) and client.kwargs == {"api_key": "sk-ant-test"}
+    # WP113: the base URL travels with the settings; None keeps the SDK's own default.
+    assert isinstance(client, _Recorder)
+    assert client.kwargs == {"api_key": "sk-ant-test", "base_url": None}
+    pinned = make_client(_settings(anthropic_api_key="sk-ant-test",
+                                   anthropic_base_url="http://proxy.local:8080"))
+    assert pinned.kwargs["base_url"] == "http://proxy.local:8080"
 
 
 def test_factory_builds_bedrock_with_region_and_optional_profile(

@@ -120,6 +120,7 @@ vault-agent [--debug] run <input_doc> [OPTIONS]
 | `--profiling <file>` | — | Mapper evidence (6.1) |
 | `--existing`, `-e <dir\|file>` | — | **Extend** an existing vault instead of modelling into an empty one (6.7) |
 | `--target-platform <name>` | `postgres` | Warehouse the generated project is aimed at (9.6): seed column types and the README's profile hint. The vault SQL is platform-neutral. Values: the `TargetPlatform` members in `rules/platforms.py` |
+| `--primary-model <id>` · `--heavy-model <id>` · `--anthropic-base-url <url>` | from `.env` | WP113 (C3): pin this run's models (the heavy one is the modeler's) and an Anthropic-compatible endpoint over `PRIMARY_MODEL`, `HEAVY_MODEL`, `ANTHROPIC_BASE_URL`; recorded in the run's `pending.json`, so `resume` and `continue` build the same agents — they take no such flags |
 | `--pit / --no-pit` | off | WP91 (ADR-0016): generate a point-in-time table per hub with two or more descriptive satellites under `models/business_vault/` (9.7); needs both bounds below. Off, every artifact is what it was |
 | `--as-of-start <YYYY-MM-DD>` · `--as-of-end <YYYY-MM-DD>` · `--as-of-grain day\|month` | — · — · `day` | The as-of spine every PIT reads: start inclusive, end exclusive (`dbt_utils.date_spine`); `--pit` without both is a usage error, no LLM token spent |
 | `--write / --no-write` | write | Write **artifacts** to disk. Run state (checkpoint, `pending.json`, trace) is written regardless — a paused `--no-write` run must stay resumable |

@@ -12162,3 +12162,38 @@ suite 1537 passed, 5 skipped; ruff; bare mypy; `vault_agent.ui` **95 %** (94 bef
 **Nur angenommen.** Nothing beyond the stubs: no live deletion of a real run. **Bewusst nicht getan.** Undo or a
 recycle bin; deleting from the CLI; rewriting a run's record to free a read file; the frontend bundle not rebuilt here
 (CI and the release build it).
+
+## [2026-10-31] WP113 built and measured: project settings in the workbench (C3, the settings half) — platform, model ids and an Anthropic-compatible base URL per project, travelling with the run as `LLMOptions`, the CLI's three flags, resume and continue rebuilding the same agents
+
+**Autor:** Claude Code
+
+Seventh of the old backlog on the owner's word; C3's other half, the naming profile, is WP114. **Built**
+(`wp113-project-settings-spec.md`; guards `8082ad0` first, red at import and one Vitest test). `config.LLMOptions`
+(primary model, heavy model, base URL, each optional) and `Settings.anthropic_base_url`; `make_client` passes the URL
+to the SDK (`None` keeps its default); `ForcedToolCaller(model, base_url=)` copies the settings with the URL; the six
+model-calling helpers (`Anthropic…`) take `model` and `base_url`; `graph.default_agents(options)` builds them with the
+options, the default path byte-identical. The CLI: `run --primary-model/--heavy-model/--anthropic-base-url`,
+`_invoke_checkpointed(llm=)` building its own agents when options are set, `pending.json` carrying `llm`
+(`_write_pending`, the paused and the crashed pointer alike), `_pending_options` read by `_resume_pipeline` and
+`_continue_pipeline`. The workbench: `settings.json` per project (`ProjectSettings`: a known platform, non-empty ids or
+none, a URL with a scheme or none, blanks clear), `GET`/`PUT /api/projects/{id}/settings` answering stored, effective
+and environment facts — `anthropic_api_key_set` as a boolean, never the key; a route without credentials reported, not
+raised — a run taking the stored platform unless the body names one and the models and URL unless the body pins them
+per run (WP82's parity guard asked for the body's fields), `run.json` recording `llm`, the CLI equivalent carrying the
+flags, the pointer written with them on pause and on cancel. Frontend: a Settings section in the Project perspective
+(the start form's platform follows the stored default), `api.settings`/`saveSettings`, the key shown as set/not set.
+Manual 6 and 14.2, index row, CHANGELOG (Added), candidates part 1: C3's settings half closed.
+
+**Measured** (keyless). **P1 ✔:** nine Python guards and the Vitest test green; suite 1544 passed, 5 skipped; two older
+guards updated with the change and the reason in the commit (WP82's parity rows; the client factory's `base_url`),
+one of this WP's own corrected before landing (the default path builds no caller — helpers are lazy). **P2 ✔:** a CLI
+run with the flags and a `resume --owner` rebuilding the agents from the pointer (two builds, both with the options);
+a workbench run's first CLI equivalent reproducing the project's settings, `llm` in `run.json` and the pointer, the
+body's platform winning. **P3 ✔ but for one claim left to CI:** ruff, bare mypy, tsc, vitest 32; the `vault_agent.ui`
+floor not re-measured locally — CI measures it on the push.
+
+**Überprüft.** The guards red then green, suite, ruff, mypy, tsc, vitest. **Nur angenommen.** That CI's environment
+carries a key for `default_agents()` as the existing `test_default_agents_cover_all_nodes` already requires; that the
+SDK treats `base_url=None` as „not given" (read in the installed client's signature: `base_url: str | URL | None`).
+**Bewusst nicht getan.** The naming profile (WP114); an OpenAI-compatible endpoint (its own ADR); settings for the
+eval harness; a live run against a proxy endpoint.

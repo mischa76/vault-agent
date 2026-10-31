@@ -15,6 +15,12 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- Project settings in the workbench (WP113, 2026-10-31, backlog C3, the settings half): `settings.json` per
+  project — target platform, the two model ids and an Anthropic-compatible base URL — edited in the Project
+  perspective, applied to every run the project starts, recorded in `run.json` and reproduced by the run's CLI
+  equivalent; `vault-agent run` gains `--primary-model`, `--heavy-model` and `--anthropic-base-url`, and a
+  run's `pending.json` carries them so `resume` and `continue` build the agents the run started with. The API
+  says whether the key is set, never its value. The naming profile is WP114.
 - Deleting in the workbench (WP112, 2026-10-31, backlog C2): `DELETE /api/projects/{id}/files/{name}`,
   `DELETE /api/runs/{id}` and `DELETE /api/projects/{id}`, with the rules that keep what another run
   depends on — a file a run has read, a run another run extends (in any project), a running run until

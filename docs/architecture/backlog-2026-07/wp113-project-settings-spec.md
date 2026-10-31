@@ -71,3 +71,24 @@ shown from the API and saved as typed.
 ## 6 Measured
 
 Appended after the run.
+
+## 6 Measured (2026-10-31, keyless)
+
+- **P1 ✔.** The nine Python guards and the Vitest test green; the suite 1544 passed, 5 skipped. Two guards updated
+  deliberately with the change, the reason in the commit: WP82's parity guard gained the three `run` options and their
+  `StartRun` fields (the body may pin the models and URL per run, over the project's setting, over the environment —
+  without them the guard would have called the new options unreachable from the workbench), and the client-factory
+  guard sees `base_url` on the first-party client (`None` keeps the SDK's default). One of this WP's own guards was
+  corrected before the change landed: the default path of `default_agents` builds no caller at all — each agent makes
+  its helper lazily from `.env` when first used — so the guard asserts exactly that.
+- **P2 ✔.** `vault-agent run --primary-model … --heavy-model … --anthropic-base-url …` records the three in
+  `pending.json`; `resume --owner …` on that run rebuilt its agents with the same options (the guard counts two builds,
+  both with the pointer's options); a workbench run on a project with settings carries
+  `--target-platform databricks --primary-model … --heavy-model … --anthropic-base-url …` in its first CLI equivalent,
+  `llm` in `run.json` and in its pointer; the body's own platform wins.
+- **P3 ✔ with one claim left to CI.** ruff, bare mypy, `tsc --noEmit`, `vitest run` (32); manual 6 (the option row) and
+  14.2 (the two routes, the Settings section) gained their rows. The `vault_agent.ui` floor was not re-measured here;
+  CI measures it on the push, and the new routes and store methods are covered by the new guards.
+- **One design decision made while building, recorded:** the agents' helper classes (`Anthropic…Extractor`, `…Enricher`,
+  `…Proposer`) take the options, not the agents — the agents take a helper, as the keyless suite has always injected
+  one; `default_agents(options)` builds the helpers with the models and URL and the default path is byte-identical.

@@ -29,7 +29,7 @@ about.
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import model_validator
+from pydantic import BaseModel, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 LLMProvider = Literal["anthropic", "bedrock", "vertex"]
@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # LLM route (data residency) — see the module docstring.
     llm_provider: LLMProvider = "anthropic"
     anthropic_api_key: str | None = None
+    # WP113 (C3): an Anthropic-compatible endpoint (a proxy, a gateway). The SDK reads the
+    # same variable itself; passing it explicitly lets a project pin its own (LLMOptions).
+    anthropic_base_url: str | None = None
     aws_region: str | None = None
     aws_profile: str | None = None
     gcp_project_id: str | None = None
@@ -106,6 +109,30 @@ class Settings(BaseSettings):
                 f"llm_provider={self.llm_provider!r} requires {', '.join(missing)}"
             )
         return self
+
+
+class LLMOptions(BaseModel):
+    """WP113 (C3): the model route a run pins — each field optional, ``None`` meaning the
+    environment's value. Travels with the run: the workbench's `run.json`, the CLI's flags,
+    and `pending.json`, so `resume` and `continue` build the same agents the run started with."""
+
+    primary_model: str | None = None
+    heavy_model: str | None = None
+    anthropic_base_url: str | None = None
+
+    def is_default(self) -> bool:
+        return not (self.primary_model or self.heavy_model or self.anthropic_base_url)
+
+    def cli_flags(self) -> list[str]:
+        """The `vault-agent run` flags that reproduce these options."""
+        flags: list[str] = []
+        if self.primary_model:
+            flags += ["--primary-model", self.primary_model]
+        if self.heavy_model:
+            flags += ["--heavy-model", self.heavy_model]
+        if self.anthropic_base_url:
+            flags += ["--anthropic-base-url", self.anthropic_base_url]
+        return flags
 
 
 @lru_cache(maxsize=1)

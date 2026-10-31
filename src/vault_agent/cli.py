@@ -43,6 +43,7 @@ from vault_agent.agents.orchestrator import (
     status_line,
 )
 from vault_agent.bindings import check_stage_bindings, parse_bind, pending_stage_bindings
+from vault_agent.config import LLMOptions
 from vault_agent.existing_model import (
     DV_MODEL_FILENAME,
     SOURCE_CATALOGUE_FILENAME,
@@ -55,7 +56,7 @@ from vault_agent.existing_model import (
     stage_bindings,
 )
 from vault_agent.extension_diff import DIFF_FILENAME, ExtensionDiff, render_extension_diff_md
-from vault_agent.graph import MAX_MODELING_ATTEMPTS, build_graph
+from vault_agent.graph import MAX_MODELING_ATTEMPTS, build_graph, default_agents
 from vault_agent.link_proposal import pending_link_decisions, proposal_key
 from vault_agent.models.contract import ContractOwner
 from vault_agent.profiling import load_profiling
@@ -470,6 +471,7 @@ def _write_pending(
     *,
     phase: str = PENDING_PAUSED,
     error: str | None = None,
+    llm: LLMOptions | None = None,
 ) -> None:
     """Point at the unfinished run's thread, and say WHY it is unfinished (WP17 §2.1).
 
@@ -478,13 +480,16 @@ def _write_pending(
     ``dict[str, str]``, and a file written before WP17 (no ``phase`` key) reads as paused."""
     path = _pending_path(out_dir)
     path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {"thread_id": thread_id, "input": str(input_doc), "phase": phase}
+    payload: dict[str, Any] = {"thread_id": thread_id, "input": str(input_doc), "phase": phase}
     if error is not None:
         payload["error"] = error
+    if llm is not None and not llm.is_default():
+        # WP113: the models and endpoint the run started with — resume/continue rebuild them.
+        payload["llm"] = llm.model_dump()
     path.write_text(json.dumps(payload), encoding="utf-8")
 
 
-def _read_pending(out_dir: Path) -> dict[str, str] | None:
+def _read_pending(out_dir: Path) -> dict[str, Any] | None:
     """The unfinished-run pointer, or None when there is none.
 
     Raises an attributable ``ValueError`` naming the file and the problem when the pointer
@@ -505,10 +510,25 @@ def _read_pending(out_dir: Path) -> dict[str, str] | None:
             f"{path}: expected a JSON object with a 'thread_id' key naming the run's "
             f"checkpoint thread"
         )
-    return cast(dict[str, str], data)
+    return cast(dict[str, Any], data)
 
 
-def _pending_phase(pending: dict[str, str]) -> str:
+def _pending_llm(pending: dict[str, Any]) -> LLMOptions:
+    """WP113: the options the run started with; a pointer without them is the default."""
+    raw = pending.get("llm")
+    return LLMOptions.model_validate(raw) if isinstance(raw, dict) else LLMOptions()
+
+
+def _pending_options(out_dir: Path) -> LLMOptions:
+    """The pointer's options, or the default when there is no usable pointer."""
+    try:
+        pending = _read_pending(out_dir)
+    except ValueError:
+        return LLMOptions()
+    return _pending_llm(pending) if pending else LLMOptions()
+
+
+def _pending_phase(pending: dict[str, Any]) -> str:
     """The pending run's phase; a pre-WP17 file without the key is a paused run."""
     return pending.get("phase") or PENDING_PAUSED
 
@@ -583,6 +603,7 @@ async def _invoke_checkpointed(
     trace: bool,
     write: bool,
     prune_orphans: bool = False,
+    llm: LLMOptions | None = None,
 ) -> tuple[VaultAgentState, bool]:
     """One checkpointed graph invocation: trace on, saver open, crash recovery around it.
 
@@ -599,11 +620,17 @@ async def _invoke_checkpointed(
             saver.serde = _checkpoint_serde()
             if prune_orphans:
                 await _prune_orphan_threads(saver, out_dir, keep=thread_id)
-            compiled = build_graph().compile(checkpointer=saver)
+            # WP113: pinned models or endpoint build their own agents; the default path is
+            # byte-for-byte the previous one (the keyless suites patch `build_graph`).
+            graph = (
+                build_graph(default_agents(llm)) if llm is not None and not llm.is_default()
+                else build_graph()
+            )
+            compiled = graph.compile(checkpointer=saver)
             try:
                 result = await compiled.ainvoke(payload, config=config)
             except Exception as exc:
-                await _rescue(out_dir, thread_id, input_doc, compiled, config, exc, write)
+                await _rescue(out_dir, thread_id, input_doc, compiled, config, exc, write, llm)
                 raise
             paused = "__interrupt__" in result
             if not paused:
@@ -619,6 +646,7 @@ async def _rescue(
     config: RunnableConfig,
     exc: BaseException,
     write: bool,
+    llm: LLMOptions | None = None,
 ) -> None:
     """Record the crash and write the artifacts-so-far — never masking ``exc`` (WP17 §2.2).
 
@@ -632,7 +660,7 @@ async def _rescue(
     try:
         _write_pending(
             out_dir, thread_id, input_doc,
-            phase=PENDING_CRASHED, error=f"{type(exc).__name__}: {exc}",
+            phase=PENDING_CRASHED, error=f"{type(exc).__name__}: {exc}", llm=llm,
         )
     except OSError:
         logger.warning("could not record the crashed run's pending pointer", exc_info=True)
@@ -661,6 +689,7 @@ async def _run_pipeline(
     carried_bindings: dict[str, str] | None = None,
     business_vault: BusinessVaultOptions | None = None,
     carried_aliases: dict[str, dict[str, str]] | None = None,
+    llm: LLMOptions | None = None,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
@@ -697,6 +726,7 @@ async def _run_pipeline(
         trace=trace,
         write=write,
         prune_orphans=True,
+        llm=llm,  # WP113
     )
     return state, paused, thread_id
 
@@ -719,6 +749,7 @@ async def _resume_pipeline(
         input_doc=input_doc or Path("unknown"),
         trace=trace,
         write=write,
+        llm=_pending_options(out_dir),  # WP113: the agents the run started with
     )
 
 
@@ -741,6 +772,7 @@ async def _continue_pipeline(
         input_doc=input_doc or Path("unknown"),
         trace=trace,
         write=write,
+        llm=_pending_options(out_dir),  # WP113
     )
 
 
@@ -1583,6 +1615,25 @@ def run(
                  "(AutomateDV dispatches per adapter).",
         ),
     ] = DEFAULT_TARGET_PLATFORM,
+    primary_model: Annotated[
+        str | None,
+        typer.Option(
+            "--primary-model",
+            help="WP113: the model id for the lighter agents, over PRIMARY_MODEL in .env; "
+                 "recorded in the run's pending pointer so resume uses the same.",
+        ),
+    ] = None,
+    heavy_model: Annotated[
+        str | None,
+        typer.Option("--heavy-model", help="WP113: the modeler's model id, over HEAVY_MODEL."),
+    ] = None,
+    anthropic_base_url: Annotated[
+        str | None,
+        typer.Option(
+            "--anthropic-base-url",
+            help="WP113: an Anthropic-compatible endpoint for this run, over ANTHROPIC_BASE_URL.",
+        ),
+    ] = None,
     write: Annotated[
         bool,
         typer.Option(
@@ -1655,6 +1706,9 @@ def run(
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]Could not load an input file:[/bold red] {exc}")
         raise typer.Exit(code=1) from exc
+    llm = LLMOptions(  # WP113: the run's own route, recorded with the run
+        primary_model=primary_model, heavy_model=heavy_model, anthropic_base_url=anthropic_base_url,
+    )
     try:
         state, paused, thread_id = asyncio.run(
             _run_pipeline(
@@ -1665,6 +1719,7 @@ def run(
                 carried_bindings=bindings,
                 business_vault=business_vault,
                 carried_aliases=aliases,
+                llm=llm,  # WP113
             )
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI
@@ -1688,7 +1743,7 @@ def run(
         # Run state (checkpoint, pending pointer, trace) is not an artifact and is written
         # even under --no-write (WP21 §2.7): a paused run that could not be resumed would be
         # strictly worse than useless.
-        _write_pending(out, thread_id, input_doc)
+        _write_pending(out, thread_id, input_doc, llm=llm)
         # WP12: answer the checkpoint in-terminal when interactive (needs write, since the
         # in-process resume finalises to disk); otherwise print today's resume instructions.
         if write and _is_interactive(interactive):

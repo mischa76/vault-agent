@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
 import { formatBytes } from "../derive";
-import { PLATFORMS, type Platform, type Project, type ProjectFile, type RunSummary } from "../types";
+import { PLATFORMS, type Platform, type Project, type ProjectFile, type ProjectSettingsView, type RunSummary } from "../types";
 import { Button, Dot, Empty, ErrorNote, KV, Pill, Section } from "../components/ui";
 
 // A browser upload is text: .md/.txt requirements and .yml/.yaml/.json schemas. A PDF
@@ -31,6 +31,37 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
   const [grain, setGrain] = useState<"day" | "month">("day");
   const pitIncomplete = pit && (!asOfStart || !asOfEnd || asOfStart >= asOfEnd);
   const active = project.runs.find((r) => r.status === "running");
+  // WP113 (C3): the project's settings — the start form's platform follows the stored default.
+  const [view, setView] = useState<ProjectSettingsView | null>(null);
+  const [draft, setDraft] = useState({ target_platform: "", primary_model: "", heavy_model: "", anthropic_base_url: "" });
+  const [savedNote, setSavedNote] = useState<string | null>(null);
+  useEffect(() => {
+    let live = true;
+    api.settings(project.id).then((v) => {
+      if (!live) return;
+      setView(v);
+      setDraft({
+        target_platform: v.settings.target_platform ?? "", primary_model: v.settings.primary_model ?? "",
+        heavy_model: v.settings.heavy_model ?? "", anthropic_base_url: v.settings.anthropic_base_url ?? "",
+      });
+      setPlatform(v.effective.target_platform);
+    }).catch((e) => { if (live) setError(e instanceof ApiError ? e.detail : String(e)); });
+    return () => { live = false; };
+  }, [project.id]);
+
+  async function saveSettings() {
+    setError(null); setSavedNote(null);
+    try {
+      const v = await api.saveSettings(project.id, {
+        target_platform: (draft.target_platform || null) as Platform | null,
+        primary_model: draft.primary_model || null, heavy_model: draft.heavy_model || null,
+        anthropic_base_url: draft.anthropic_base_url || null,
+      });
+      setView(v); setPlatform(v.effective.target_platform); setSavedNote("saved — the next run takes these");
+    } catch (e) {
+      setError(e instanceof ApiError ? e.detail : String(e));
+    }
+  }
 
   async function upload(kind: ProjectFile["kind"], file: File) {
     setError(null);
@@ -81,6 +112,36 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
             title="Refused while a run is running or paused, or while another project's run extends one of this project's runs">
             delete project
           </Button>
+        </div>
+      </Section>
+      <Section title="Settings" aside={view ? <Pill tone={view.environment.anthropic_api_key_set ? "ok" : "warn"}>API key: {view.environment.anthropic_api_key_set ? "set" : "not set"}</Pill> : null}>
+        <div className="grid gap-3 text-sm sm:grid-cols-2">
+          <label className="grid gap-1">
+            <span className="text-xs text-ink-faint">default target platform</span>
+            <select aria-label="default target platform" value={draft.target_platform} onChange={(e) => setDraft({ ...draft, target_platform: e.target.value })} className="rounded-md border border-line bg-pane-2 px-2 py-1.5">
+              <option value="">environment ({view?.environment.llm_provider ?? "…"}: postgres)</option>
+              {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          </label>
+          <label className="grid gap-1">
+            <span className="text-xs text-ink-faint">anthropic base URL</span>
+            <input aria-label="anthropic base URL" value={draft.anthropic_base_url} placeholder={view?.environment.anthropic_base_url ?? "the SDK's default"}
+              onChange={(e) => setDraft({ ...draft, anthropic_base_url: e.target.value })} className="rounded-md border border-line bg-pane-2 px-2 py-1.5 font-mono text-xs" />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-xs text-ink-faint">primary model</span>
+            <input aria-label="primary model" value={draft.primary_model || view?.effective.primary_model || ""} placeholder={view?.environment.primary_model}
+              onChange={(e) => setDraft({ ...draft, primary_model: e.target.value })} className="rounded-md border border-line bg-pane-2 px-2 py-1.5 font-mono text-xs" />
+          </label>
+          <label className="grid gap-1">
+            <span className="text-xs text-ink-faint">heavy model (the modeler)</span>
+            <input aria-label="heavy model" value={draft.heavy_model || view?.effective.heavy_model || ""} placeholder={view?.environment.heavy_model}
+              onChange={(e) => setDraft({ ...draft, heavy_model: e.target.value })} className="rounded-md border border-line bg-pane-2 px-2 py-1.5 font-mono text-xs" />
+          </label>
+        </div>
+        <div className="mt-3 flex items-center gap-3">
+          <Button kind="ghost" onClick={() => void saveSettings()} disabled={busy}>save settings</Button>
+          <span className="text-xs text-ink-faint">{savedNote ?? `route: ${view?.environment.route ?? view?.environment.llm_provider ?? "…"} — secrets stay in .env; every run records these and its CLI equivalent carries them`}</span>
         </div>
       </Section>
       <Section title="Inputs">

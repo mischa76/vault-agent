@@ -26,21 +26,26 @@ OPTIONS = LLMOptions(primary_model="stub-primary", heavy_model="stub-heavy",
 
 @pytest.fixture
 def client(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> TestClient:
-    monkeypatch.setattr(
-        cli, "build_graph", lambda agents=None: build_graph(_sqlite_stub_agents(block_signoff=True))
-    )
+    # The pipeline on the stub agents whatever options a run pins; the wiring of real agents
+    # from the options is the dedicated guard below.
+    stubs = lambda *_a, **_k: _sqlite_stub_agents(block_signoff=True)  # noqa: E731
+    monkeypatch.setattr(cli, "default_agents", stubs)
+    monkeypatch.setattr(cli, "build_graph", lambda agents=None: build_graph(stubs()))
     return TestClient(create_app(tmp_path / "projects"))
 
 
 # ── the settings themselves ───────────────────────────────────────────────────────────────
-def test_a_new_project_has_no_settings_and_the_environment_shows_through(client: TestClient) -> None:
+def test_a_new_project_has_no_settings_and_the_environment_shows(client: TestClient) -> None:
     pid = client.post("/api/projects", json={"name": "Bank demo"}).json()["id"]
     view = client.get(f"/api/projects/{pid}/settings").json()
     assert view["settings"] == {}
     assert view["effective"]["target_platform"] == "postgres"
-    assert isinstance(view["effective"]["primary_model"], str) and view["effective"]["primary_model"]
+    primary = view["effective"]["primary_model"]
+    assert isinstance(primary, str) and primary
     assert isinstance(view["environment"]["anthropic_api_key_set"], bool)
-    assert "anthropic_api_key" not in json.dumps(view)  # never the value, only whether it is set
+    # never the value, only whether it is set: the one key-named field is the boolean
+    assert [k for k in json.dumps(view).split('"') if "api_key" in k] == ["anthropic_api_key_set"]
+    assert "sk-ant" not in json.dumps(view)
     assert view["environment"]["llm_provider"] in ("anthropic", "bedrock", "vertex")
     assert client.get("/api/projects/nope/settings").status_code == 404
 
@@ -54,7 +59,8 @@ def test_settings_are_stored_validated_and_read_back(client: TestClient, tmp_pat
     assert r.json()["settings"] == body and r.json()["effective"]["target_platform"] == "databricks"
     assert json.loads((tmp_path / "projects" / pid / "settings.json").read_text()) == body
     assert client.get(f"/api/projects/{pid}/settings").json()["settings"] == body
-    assert client.put(f"/api/projects/{pid}/settings", json={"target_platform": "oracle"}).status_code == 422
+    bad = client.put(f"/api/projects/{pid}/settings", json={"target_platform": "oracle"})
+    assert bad.status_code == 422
     assert client.put(f"/api/projects/{pid}/settings",
                       json={"anthropic_base_url": "proxy.local"}).status_code == 422
     cleared = client.put(f"/api/projects/{pid}/settings", json={"primary_model": "  "})
@@ -94,7 +100,8 @@ def test_default_agents_hand_the_options_to_every_model_calling_agent(
     built: list[tuple[str, str | None]] = []
 
     class _Caller:
-        def __init__(self, model: str, *args: Any, base_url: str | None = None, **kwargs: Any) -> None:
+        def __init__(self, model: str, *args: Any, base_url: str | None = None,
+                     **kwargs: Any) -> None:
             built.append((model, base_url))
 
     monkeypatch.setattr(llm, "ForcedToolCaller", _Caller)
@@ -103,8 +110,8 @@ def test_default_agents_hand_the_options_to_every_model_calling_agent(
     assert models == ["stub-heavy"] + ["stub-primary"] * 5
     assert {u for _, u in built} == {"http://proxy.local:8080"}
     built.clear()
-    graph.default_agents()  # the default: the settings' models, no base URL override
-    assert built and all(u is None for _, u in built)
+    graph.default_agents()  # the default path: each agent builds its helper lazily, from .env
+    assert built == []
 
 
 def test_the_client_carries_the_base_url(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -118,7 +125,7 @@ def test_the_client_carries_the_base_url(monkeypatch: pytest.MonkeyPatch) -> Non
     llm.ForcedToolCaller("m", base_url="http://proxy.local:8080")
     assert captured[-1]["base_url"] == "http://proxy.local:8080"
     llm.ForcedToolCaller("m")
-    assert captured[-1].get("base_url") in (None, "")  # the SDK's own default and ANTHROPIC_BASE_URL
+    assert captured[-1].get("base_url") in (None, "")  # the SDK's default, ANTHROPIC_BASE_URL
 
 
 # ── the CLI's flags and the pending pointer ──────────────────────────────────────────────

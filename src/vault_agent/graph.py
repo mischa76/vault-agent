@@ -25,6 +25,7 @@ from vault_agent.agents.orchestrator import HumanCheckpointAgent, OrchestratorAg
 from vault_agent.agents.requirements_parser import RequirementsParserAgent
 from vault_agent.agents.source_mapper import SourceMapperAgent
 from vault_agent.agents.validator import ValidatorAgent
+from vault_agent.config import LLMOptions
 from vault_agent.link_proposal import LinkProposerAgent
 from vault_agent.state import VaultAgentState
 
@@ -106,20 +107,52 @@ def route_after_validation(state: VaultAgentState) -> str:
     return "dv2_modeler"
 
 
-def default_agents() -> dict[str, BaseAgent]:
-    """Construct the real agents (no API key needed until they run)."""
+def default_agents(options: LLMOptions | None = None) -> dict[str, BaseAgent]:
+    """Construct the real agents (no API key needed until they run).
+
+    WP113 (C3): ``options`` pins the models and the endpoint for this run — the primary model
+    for the five lighter agents, the heavy one for the modeler, the base URL for every caller;
+    ``None`` (and every ``None`` field) means the environment's value, as before."""
+    if options is None or options.is_default():
+        # The default path, byte-for-byte the previous one: each agent builds its own helper
+        # from the environment's settings when it is first used.
+        return {
+            "orchestrator": OrchestratorAgent(planned_stages=PLANNED_STAGES),
+            "requirements_parser": RequirementsParserAgent(),
+            "business_key_identifier": BusinessKeyIdentifierAgent(),
+            "data_contract": DataContractAgent(),
+            "entity_resolver": EntityResolverAgent(),
+            "link_proposer": LinkProposerAgent(),
+            "resolution_checkpoint": ResolutionCheckpointAgent(),
+            "dv2_modeler": Dv2ModelerAgent(),
+            "code_generator": CodeGeneratorAgent(),
+            "validator": ValidatorAgent(),
+            "source_mapper": SourceMapperAgent(),
+            "human_checkpoint": HumanCheckpointAgent(),
+            "adr_author": AdrAuthorAgent(),
+        }
+    from vault_agent.agents.business_key_identifier import AnthropicBusinessKeyExtractor
+    from vault_agent.agents.data_contract import AnthropicContractEnricher
+    from vault_agent.agents.dv2_modeler import AnthropicDVModelExtractor
+    from vault_agent.agents.entity_resolver import AnthropicResolutionProposer
+    from vault_agent.agents.requirements_parser import AnthropicRequirementExtractor
+    from vault_agent.agents.source_mapper import AnthropicMappingProposer
+
+    primary, heavy, url = options.primary_model, options.heavy_model, options.anthropic_base_url
     return {
         "orchestrator": OrchestratorAgent(planned_stages=PLANNED_STAGES),
-        "requirements_parser": RequirementsParserAgent(),
-        "business_key_identifier": BusinessKeyIdentifierAgent(),
-        "data_contract": DataContractAgent(),
-        "entity_resolver": EntityResolverAgent(),
+        "requirements_parser": RequirementsParserAgent(AnthropicRequirementExtractor(primary, url)),
+        "business_key_identifier": BusinessKeyIdentifierAgent(
+            AnthropicBusinessKeyExtractor(primary, url)
+        ),
+        "data_contract": DataContractAgent(AnthropicContractEnricher(primary, url)),
+        "entity_resolver": EntityResolverAgent(AnthropicResolutionProposer(primary, url)),
         "link_proposer": LinkProposerAgent(),
         "resolution_checkpoint": ResolutionCheckpointAgent(),
-        "dv2_modeler": Dv2ModelerAgent(),
+        "dv2_modeler": Dv2ModelerAgent(AnthropicDVModelExtractor(heavy, url)),
         "code_generator": CodeGeneratorAgent(),
         "validator": ValidatorAgent(),
-        "source_mapper": SourceMapperAgent(),
+        "source_mapper": SourceMapperAgent(AnthropicMappingProposer(primary, url)),
         "human_checkpoint": HumanCheckpointAgent(),
         "adr_author": AdrAuthorAgent(),
     }

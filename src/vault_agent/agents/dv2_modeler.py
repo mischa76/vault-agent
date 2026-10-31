@@ -418,13 +418,13 @@ class DVModelExtractor(Protocol):
 class AnthropicDVModelExtractor:
     """Default extractor backed by the shared forced-tool-use call path."""
 
-    def __init__(self, model: str | None = None) -> None:
+    def __init__(self, model: str | None = None, base_url: str | None = None) -> None:
         # Imported lazily so importing this module never requires an API key.
         from vault_agent.config import get_settings
         from vault_agent.llm import ForcedToolCaller
 
         # The modeller is the hardest reasoning step; allow the heavy model via config.
-        self._caller = ForcedToolCaller(model or get_settings().heavy_model)
+        self._caller = ForcedToolCaller(model or get_settings().heavy_model, base_url=base_url)
 
     async def model(self, *, system_prompt: str, payload_json: str) -> dict[str, Any]:
         return await self._caller.call(
