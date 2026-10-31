@@ -280,7 +280,8 @@ def test_p2_the_command_writes_the_file_from_the_environment_url(
     tables = load_source_schemas(out)
     assert [t.table for t in tables] == ["Customer", "SalesOrderHeader"]
     assert out.read_text(encoding="utf-8").startswith("# read by vault-agent source-schema from ")
-    assert "2 tables" in result.output
+    # the console wraps long lines (the tmp path grew to three digits): compare without newlines
+    assert "2 tables" in " ".join(result.output.split())
 
 
 # --- P3: the DDL instrument ---------------------------------------------------------------------
