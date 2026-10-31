@@ -29,8 +29,8 @@ def _table(entity: str, *, schema: str | None) -> SourceTable:
 
 
 def _typed(entity: str) -> dict[str, Any]:
-    return _contract(entity, [{"name": f"{entity} ID", "data_type": "integer"},
-                              {"name": "name", "data_type": "string"}])
+    return _contract(entity, [{"name": f"{entity}ID", "data_type": "integer"},
+                              {"name": "Name", "data_type": "string"}])
 
 
 def _project(model: DVModel, schemas: list[SourceTable], contracts: list[dict[str, Any]]) -> str:
