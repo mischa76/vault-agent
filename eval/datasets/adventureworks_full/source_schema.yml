@@ -8,32 +8,41 @@ source_schemas:
   columns:
   - name: AddressID
     type: int
+    nullable: false
     comment: Primary key for Address records.
   - name: AddressLine1
     type: nvarchar(60)
+    nullable: false
     comment: First street address line.
   - name: AddressLine2
     type: nvarchar(60)
+    nullable: true
     comment: Second street address line.
   - name: City
     type: nvarchar(30)
+    nullable: false
     comment: Name of the city.
   - name: StateProvinceID
     type: int
+    nullable: false
     comment: Unique identification number for the state or province. Foreign key to
       StateProvince table.
   - name: PostalCode
     type: nvarchar(15)
+    nullable: false
     comment: Postal code for the street address.
   - name: SpatialLocation
     type: geography
+    nullable: true
     comment: Latitude and longitude of this address.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -50,16 +59,20 @@ source_schemas:
   columns:
   - name: AddressTypeID
     type: int
+    nullable: false
     comment: Primary key for AddressType records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Address type description. For example, Billing, Home, or Shipping.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - AddressTypeID
@@ -72,13 +85,16 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key for all customers, vendors, and employees.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - BusinessEntityID
@@ -89,19 +105,24 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to BusinessEntity.BusinessEntityID.
   - name: AddressID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to Address.AddressID.
   - name: AddressTypeID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to AddressType.AddressTypeID.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -132,19 +153,24 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to BusinessEntity.BusinessEntityID.
   - name: PersonID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to Person.BusinessEntityID.
   - name: ContactTypeID
     type: int
+    nullable: false
     comment: Primary key.  Foreign key to ContactType.ContactTypeID.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -175,12 +201,15 @@ source_schemas:
   columns:
   - name: ContactTypeID
     type: int
+    nullable: false
     comment: Primary key for ContactType records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Contact type description.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - ContactTypeID
@@ -192,12 +221,15 @@ source_schemas:
   columns:
   - name: CountryRegionCode
     type: nvarchar(3)
+    nullable: false
     comment: ISO standard code for countries and regions.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Country or region name.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - CountryRegionCode
@@ -209,20 +241,25 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. Person associated with this email address.  Foreign key
       to Person.BusinessEntityID
   - name: EmailAddressID
     type: int
+    nullable: false
     comment: Primary key. ID of this email address.
   - name: EmailAddress
     type: nvarchar(50)
+    nullable: true
     comment: E-mail address for the person.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -240,19 +277,24 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
   - name: PasswordHash
     type: varchar(128)
+    nullable: false
     comment: Password for the e-mail account.
   - name: PasswordSalt
     type: varchar(10)
+    nullable: false
     comment: Random value concatenated with the password string before the password
       is hashed.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -270,49 +312,62 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key for Person records.
   - name: PersonType
     type: nchar(2)
+    nullable: false
     comment: 'Primary type of person: SC = Store Contact, IN = Individual (retail)
       customer, SP = Sales person, EM = Employee (non-sales), VC = Vendor contact,
       GC = General contact'
   - name: NameStyle
     type: bit
+    nullable: false
     comment: 0 = The data in FirstName and LastName are stored in western style (first
       name, last name) order.  1 = Eastern style (last name, first name) order.
   - name: Title
     type: nvarchar(8)
+    nullable: true
     comment: A courtesy title. For example, Mr. or Ms.
   - name: FirstName
     type: nvarchar(50)
+    nullable: false
     comment: First name of the person.
   - name: MiddleName
     type: nvarchar(50)
+    nullable: true
     comment: Middle name or middle initial of the person.
   - name: LastName
     type: nvarchar(50)
+    nullable: false
     comment: Last name of the person.
   - name: Suffix
     type: nvarchar(10)
+    nullable: true
     comment: Surname suffix. For example, Sr. or Jr.
   - name: EmailPromotion
     type: int
+    nullable: false
     comment: 0 = Contact does not wish to receive e-mail promotions, 1 = Contact does
       wish to receive e-mail promotions from AdventureWorks, 2 = Contact does wish
       to receive e-mail promotions from AdventureWorks and selected partners.
   - name: AdditionalContactInfo
     type: XML(Person.AdditionalContactInfoSchemaCollection)
+    nullable: true
     comment: Additional contact information about the person stored in xml format.
   - name: Demographics
     type: XML(Person.IndividualSurveySchemaCollection)
+    nullable: true
     comment: Personal information such as hobbies, and income collected from online
       shoppers. Used for sales analysis.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -329,15 +384,19 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Business entity identification number. Foreign key to Person.BusinessEntityID.
   - name: PhoneNumber
     type: nvarchar(25)
+    nullable: false
     comment: Telephone number identification number.
   - name: PhoneNumberTypeID
     type: int
+    nullable: false
     comment: Kind of phone number. Foreign key to PhoneNumberType.PhoneNumberTypeID.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -362,12 +421,15 @@ source_schemas:
   columns:
   - name: PhoneNumberTypeID
     type: int
+    nullable: false
     comment: Primary key for telephone number type records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Name of the telephone number type
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - PhoneNumberTypeID
@@ -377,30 +439,38 @@ source_schemas:
   columns:
   - name: StateProvinceID
     type: int
+    nullable: false
     comment: Primary key for StateProvince records.
   - name: StateProvinceCode
     type: nchar(3)
+    nullable: false
     comment: ISO standard state or province code.
   - name: CountryRegionCode
     type: nvarchar(3)
+    nullable: false
     comment: ISO standard country or region code. Foreign key to CountryRegion.CountryRegionCode.
   - name: IsOnlyStateProvinceFlag
     type: bit
+    nullable: false
     comment: 0 = StateProvinceCode exists. 1 = StateProvinceCode unavailable, using
       CountryRegionCode.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: State or province description.
   - name: TerritoryID
     type: int
+    nullable: false
     comment: ID of the territory in which the state or province is located. Foreign
       key to SalesTerritory.SalesTerritoryID.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -428,15 +498,19 @@ source_schemas:
   columns:
   - name: DepartmentID
     type: smallint
+    nullable: false
     comment: Primary key for Department records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Name of the department.
   - name: GroupName
     type: nvarchar(50)
+    nullable: false
     comment: Name of the group to which the department belongs.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - DepartmentID
@@ -448,53 +522,69 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key for Employee records.  Foreign key to BusinessEntity.BusinessEntityID.
   - name: NationalIDNumber
     type: nvarchar(15)
+    nullable: false
     comment: Unique national identification number such as a social security number.
   - name: LoginID
     type: nvarchar(256)
+    nullable: false
     comment: Network login.
   - name: OrganizationNode
     type: hierarchyid
+    nullable: true
     comment: Where the employee is located in corporate hierarchy.
   - name: OrganizationLevel
     type: AS
+    nullable: true
     comment: The depth of the employee in the corporate hierarchy.
   - name: JobTitle
     type: nvarchar(50)
+    nullable: false
     comment: Work title such as Buyer or Sales Representative.
   - name: BirthDate
     type: date
+    nullable: false
     comment: Date of birth.
   - name: MaritalStatus
     type: nchar(1)
+    nullable: false
     comment: M = Married, S = Single
   - name: Gender
     type: nchar(1)
+    nullable: false
     comment: M = Male, F = Female
   - name: HireDate
     type: date
+    nullable: false
     comment: Employee hired on this date.
   - name: SalariedFlag
     type: bit
+    nullable: false
     comment: Job classification. 0 = Hourly, not exempt from collective bargaining.
       1 = Salaried, exempt from collective bargaining.
   - name: VacationHours
     type: smallint
+    nullable: false
     comment: Number of available vacation hours.
   - name: SickLeaveHours
     type: smallint
+    nullable: false
     comment: Number of available sick leave hours.
   - name: CurrentFlag
     type: bit
+    nullable: false
     comment: 0 = Inactive, 1 = Active
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -514,22 +604,28 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Employee identification number. Foreign key to Employee.BusinessEntityID.
   - name: DepartmentID
     type: smallint
+    nullable: false
     comment: Department in which the employee worked including currently. Foreign
       key to Department.DepartmentID.
   - name: ShiftID
     type: tinyint
+    nullable: false
     comment: Identifies which 8-hour shift the employee works. Foreign key to Shift.Shift.ID.
   - name: StartDate
     type: date
+    nullable: false
     comment: Date the employee started work in the department.
   - name: EndDate
     type: date
+    nullable: true
     comment: Date the employee left the department. NULL = Current department.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -561,18 +657,23 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Employee identification number. Foreign key to Employee.BusinessEntityID.
   - name: RateChangeDate
     type: datetime
+    nullable: false
     comment: Date the change in pay is effective
   - name: Rate
     type: money
+    nullable: false
     comment: Salary hourly rate.
   - name: PayFrequency
     type: tinyint
+    nullable: false
     comment: 1 = Salary received monthly, 2 = Salary received biweekly
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -590,16 +691,20 @@ source_schemas:
   columns:
   - name: JobCandidateID
     type: int
+    nullable: false
     comment: Primary key for JobCandidate records.
   - name: BusinessEntityID
     type: int
+    nullable: true
     comment: Employee identification number if applicant was hired. Foreign key to
       Employee.BusinessEntityID.
   - name: Resume
     type: XML(HumanResources.HRResumeSchemaCollection)
+    nullable: true
     comment: Résumé in XML format.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -616,18 +721,23 @@ source_schemas:
   columns:
   - name: ShiftID
     type: tinyint
+    nullable: false
     comment: Primary key for Shift records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Shift description.
   - name: StartTime
     type: time
+    nullable: false
     comment: Shift start time.
   - name: EndTime
     type: time
+    nullable: false
     comment: Shift end time.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - ShiftID
@@ -642,30 +752,39 @@ source_schemas:
   columns:
   - name: BillOfMaterialsID
     type: int
+    nullable: false
     comment: Primary key for BillOfMaterials records.
   - name: ProductAssemblyID
     type: int
+    nullable: true
     comment: Parent product identification number. Foreign key to Product.ProductID.
   - name: ComponentID
     type: int
+    nullable: false
     comment: Component identification number. Foreign key to Product.ProductID.
   - name: StartDate
     type: datetime
+    nullable: false
     comment: Date the component started being used in the assembly item.
   - name: EndDate
     type: datetime
+    nullable: true
     comment: Date the component stopped being used in the assembly item.
   - name: UnitMeasureCode
     type: nchar(3)
+    nullable: false
     comment: Standard code identifying the unit of measure for the quantity.
   - name: BOMLevel
     type: smallint
+    nullable: false
     comment: Indicates the depth the component is from its parent (AssemblyID).
   - name: PerAssemblyQty
     type: decimal(8, 2)
+    nullable: false
     comment: Quantity of the component needed to create the assembly.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -699,12 +818,15 @@ source_schemas:
   columns:
   - name: CultureID
     type: nchar(6)
+    nullable: false
     comment: Primary key for Culture records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Culture description.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - CultureID
@@ -716,45 +838,59 @@ source_schemas:
   columns:
   - name: DocumentNode
     type: hierarchyid
+    nullable: false
     comment: Primary key for Document records.
   - name: DocumentLevel
     type: AS
+    nullable: true
     comment: Depth in the document hierarchy.
   - name: Title
     type: nvarchar(50)
+    nullable: false
     comment: Title of the document.
   - name: Owner
     type: int
+    nullable: false
     comment: Employee who controls the document.  Foreign key to Employee.BusinessEntityID
   - name: FolderFlag
     type: bit
+    nullable: false
     comment: 0 = This is a folder, 1 = This is a document.
   - name: FileName
     type: nvarchar(400)
+    nullable: false
     comment: File name of the document
   - name: FileExtension
     type: nvarchar(8)
+    nullable: false
     comment: File extension indicating the document type. For example, .doc or .txt.
   - name: Revision
     type: nchar(5)
+    nullable: false
     comment: Revision number of the document.
   - name: ChangeNumber
     type: int
+    nullable: false
     comment: Engineering change approval number.
   - name: Status
     type: tinyint
+    nullable: false
     comment: 1 = Pending approval, 2 = Approved, 3 = Obsolete
   - name: DocumentSummary
     type: nvarchar(max)
+    nullable: true
     comment: Document abstract.
   - name: Document
     type: varbinary(max)
+    nullable: true
     comment: Complete document.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Required for FileStream.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -771,12 +907,15 @@ source_schemas:
   columns:
   - name: IllustrationID
     type: int
+    nullable: false
     comment: Primary key for Illustration records.
   - name: Diagram
     type: XML
+    nullable: true
     comment: Illustrations used in manufacturing instructions. Stored as XML.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - IllustrationID
@@ -786,18 +925,23 @@ source_schemas:
   columns:
   - name: LocationID
     type: smallint
+    nullable: false
     comment: Primary key for Location records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Location description.
   - name: CostRate
     type: smallmoney
+    nullable: false
     comment: Standard hourly cost of the manufacturing location.
   - name: Availability
     type: decimal(8, 2)
+    nullable: false
     comment: Work capacity (in hours) of the manufacturing location.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - LocationID
@@ -809,79 +953,104 @@ source_schemas:
   columns:
   - name: ProductID
     type: int
+    nullable: false
     comment: Primary key for Product records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Name of the product.
   - name: ProductNumber
     type: nvarchar(25)
+    nullable: false
     comment: Unique product identification number.
   - name: MakeFlag
     type: bit
+    nullable: false
     comment: 0 = Product is purchased, 1 = Product is manufactured in-house.
   - name: FinishedGoodsFlag
     type: bit
+    nullable: false
     comment: 0 = Product is not a salable item. 1 = Product is salable.
   - name: Color
     type: nvarchar(15)
+    nullable: true
     comment: Product color.
   - name: SafetyStockLevel
     type: smallint
+    nullable: false
     comment: Minimum inventory quantity.
   - name: ReorderPoint
     type: smallint
+    nullable: false
     comment: Inventory level that triggers a purchase order or work order.
   - name: StandardCost
     type: money
+    nullable: false
     comment: Standard cost of the product.
   - name: ListPrice
     type: money
+    nullable: false
     comment: Selling price.
   - name: Size
     type: nvarchar(5)
+    nullable: true
     comment: Product size.
   - name: SizeUnitMeasureCode
     type: nchar(3)
+    nullable: true
     comment: Unit of measure for Size column.
   - name: WeightUnitMeasureCode
     type: nchar(3)
+    nullable: true
     comment: Unit of measure for Weight column.
   - name: Weight
     type: decimal(8, 2)
+    nullable: true
     comment: Product weight.
   - name: DaysToManufacture
     type: int
+    nullable: false
     comment: Number of days required to manufacture the product.
   - name: ProductLine
     type: nchar(2)
+    nullable: true
     comment: R = Road, M = Mountain, T = Touring, S = Standard
   - name: Class
     type: nchar(2)
+    nullable: true
     comment: H = High, M = Medium, L = Low
   - name: Style
     type: nchar(2)
+    nullable: true
     comment: W = Womens, M = Mens, U = Universal
   - name: ProductSubcategoryID
     type: int
+    nullable: true
     comment: Product is a member of this product subcategory. Foreign key to ProductSubCategory.ProductSubCategoryID.
   - name: ProductModelID
     type: int
+    nullable: true
     comment: Product is a member of this product model. Foreign key to ProductModel.ProductModelID.
   - name: SellStartDate
     type: datetime
+    nullable: false
     comment: Date the product was available for sale.
   - name: SellEndDate
     type: datetime
+    nullable: true
     comment: Date the product was no longer available for sale.
   - name: DiscontinuedDate
     type: datetime
+    nullable: true
     comment: Date the product was discontinued.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -919,16 +1088,20 @@ source_schemas:
   columns:
   - name: ProductCategoryID
     type: int
+    nullable: false
     comment: Primary key for ProductCategory records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Category description.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - ProductCategoryID
@@ -940,18 +1113,23 @@ source_schemas:
   columns:
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID
   - name: StartDate
     type: datetime
+    nullable: false
     comment: Product cost start date.
   - name: EndDate
     type: datetime
+    nullable: true
     comment: Product cost end date.
   - name: StandardCost
     type: money
+    nullable: false
     comment: Standard cost of the product.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -969,16 +1147,20 @@ source_schemas:
   columns:
   - name: ProductDescriptionID
     type: int
+    nullable: false
     comment: Primary key for ProductDescription records.
   - name: Description
     type: nvarchar(400)
+    nullable: false
     comment: Description of the product.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - ProductDescriptionID
@@ -988,12 +1170,15 @@ source_schemas:
   columns:
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: DocumentNode
     type: hierarchyid
+    nullable: false
     comment: Document identification number. Foreign key to Document.DocumentNode.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1017,25 +1202,32 @@ source_schemas:
   columns:
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: LocationID
     type: smallint
+    nullable: false
     comment: Inventory location identification number. Foreign key to Location.LocationID.
   - name: Shelf
     type: nvarchar(10)
+    nullable: false
     comment: Storage compartment within an inventory location.
   - name: Bin
     type: tinyint
+    nullable: false
     comment: Storage container on a shelf in an inventory location.
   - name: Quantity
     type: smallint
+    nullable: false
     comment: Quantity of products in the inventory location.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1059,18 +1251,23 @@ source_schemas:
   columns:
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID
   - name: StartDate
     type: datetime
+    nullable: false
     comment: List price start date.
   - name: EndDate
     type: datetime
+    nullable: true
     comment: List price end date
   - name: ListPrice
     type: money
+    nullable: false
     comment: Product list price.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1088,22 +1285,28 @@ source_schemas:
   columns:
   - name: ProductModelID
     type: int
+    nullable: false
     comment: Primary key for ProductModel records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Product model description.
   - name: CatalogDescription
     type: XML(Production.ProductDescriptionSchemaCollection)
+    nullable: true
     comment: Detailed product catalog information in xml format.
   - name: Instructions
     type: XML(Production.ManuInstructionsSchemaCollection)
+    nullable: true
     comment: Manufacturing instructions in xml format.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - ProductModelID
@@ -1115,12 +1318,15 @@ source_schemas:
   columns:
   - name: ProductModelID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to ProductModel.ProductModelID.
   - name: IllustrationID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to Illustration.IllustrationID.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1145,15 +1351,19 @@ source_schemas:
   columns:
   - name: ProductModelID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to ProductModel.ProductModelID.
   - name: ProductDescriptionID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to ProductDescription.ProductDescriptionID.
   - name: CultureID
     type: nchar(6)
+    nullable: false
     comment: Culture identification number. Foreign key to Culture.CultureID.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1184,21 +1394,27 @@ source_schemas:
   columns:
   - name: ProductPhotoID
     type: int
+    nullable: false
     comment: Primary key for ProductPhoto records.
   - name: ThumbNailPhoto
     type: varbinary(max)
+    nullable: true
     comment: Small image of the product.
   - name: ThumbnailPhotoFileName
     type: nvarchar(50)
+    nullable: true
     comment: Small image file name.
   - name: LargePhoto
     type: varbinary(max)
+    nullable: true
     comment: Large image of the product.
   - name: LargePhotoFileName
     type: nvarchar(50)
+    nullable: true
     comment: Large image file name.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - ProductPhotoID
@@ -1208,15 +1424,19 @@ source_schemas:
   columns:
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: ProductPhotoID
     type: int
+    nullable: false
     comment: Product photo identification number. Foreign key to ProductPhoto.ProductPhotoID.
   - name: Primary
     type: bit
+    nullable: false
     comment: 0 = Photo is not the principal image. 1 = Photo is the principal image.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1240,28 +1460,36 @@ source_schemas:
   columns:
   - name: ProductReviewID
     type: int
+    nullable: false
     comment: Primary key for ProductReview records.
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: ReviewerName
     type: nvarchar(50)
+    nullable: false
     comment: Name of the reviewer.
   - name: ReviewDate
     type: datetime
+    nullable: false
     comment: Date review was submitted.
   - name: EmailAddress
     type: nvarchar(50)
+    nullable: false
     comment: Reviewer's e-mail address.
   - name: Rating
     type: int
+    nullable: false
     comment: Product rating given by the reviewer. Scale is 1 to 5 with 5 as the highest
       rating.
   - name: Comments
     type: nvarchar(3850)
+    nullable: true
     comment: Reviewer's comments
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1278,19 +1506,24 @@ source_schemas:
   columns:
   - name: ProductSubcategoryID
     type: int
+    nullable: false
     comment: Primary key for ProductSubcategory records.
   - name: ProductCategoryID
     type: int
+    nullable: false
     comment: Product category identification number. Foreign key to ProductCategory.ProductCategoryID.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Subcategory description.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1309,12 +1542,15 @@ source_schemas:
   columns:
   - name: ScrapReasonID
     type: smallint
+    nullable: false
     comment: Primary key for ScrapReason records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Failure description.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - ScrapReasonID
@@ -1327,31 +1563,40 @@ source_schemas:
   columns:
   - name: TransactionID
     type: int
+    nullable: false
     comment: Primary key for TransactionHistory records.
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: ReferenceOrderID
     type: int
+    nullable: false
     comment: Purchase order, sales order, or work order identification number.
   - name: ReferenceOrderLineID
     type: int
+    nullable: false
     comment: Line number associated with the purchase order, sales order, or work
       order.
   - name: TransactionDate
     type: datetime
+    nullable: false
     comment: Date and time of the transaction.
   - name: TransactionType
     type: nchar(1)
+    nullable: false
     comment: W = WorkOrder, S = SalesOrder, P = PurchaseOrder
   - name: Quantity
     type: int
+    nullable: false
     comment: Product quantity.
   - name: ActualCost
     type: money
+    nullable: false
     comment: Product cost.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1368,31 +1613,40 @@ source_schemas:
   columns:
   - name: TransactionID
     type: int
+    nullable: false
     comment: Primary key for TransactionHistoryArchive records.
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: ReferenceOrderID
     type: int
+    nullable: false
     comment: Purchase order, sales order, or work order identification number.
   - name: ReferenceOrderLineID
     type: int
+    nullable: false
     comment: Line number associated with the purchase order, sales order, or work
       order.
   - name: TransactionDate
     type: datetime
+    nullable: false
     comment: Date and time of the transaction.
   - name: TransactionType
     type: nchar(1)
+    nullable: false
     comment: W = Work Order, S = Sales Order, P = Purchase Order
   - name: Quantity
     type: int
+    nullable: false
     comment: Product quantity.
   - name: ActualCost
     type: money
+    nullable: false
     comment: Product cost.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - TransactionID
@@ -1402,12 +1656,15 @@ source_schemas:
   columns:
   - name: UnitMeasureCode
     type: nchar(3)
+    nullable: false
     comment: Primary key.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Unit of measure description.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - UnitMeasureCode
@@ -1418,24 +1675,34 @@ source_schemas:
   columns:
   - name: WorkOrderID
     type: int
+    nullable: false
   - name: ProductID
     type: int
+    nullable: false
   - name: OrderQty
     type: int
+    nullable: false
   - name: StockedQty
     type: AS
+    nullable: true
   - name: ScrappedQty
     type: smallint
+    nullable: false
   - name: StartDate
     type: datetime
+    nullable: false
   - name: EndDate
     type: datetime
+    nullable: true
   - name: DueDate
     type: datetime
+    nullable: false
   - name: ScrapReasonID
     type: smallint
+    nullable: true
   - name: ModifiedDate
     type: datetime
+    nullable: false
   foreign_keys:
   - columns:
     - ProductID
@@ -1456,28 +1723,40 @@ source_schemas:
   columns:
   - name: WorkOrderID
     type: int
+    nullable: false
   - name: ProductID
     type: int
+    nullable: false
   - name: OperationSequence
     type: smallint
+    nullable: false
   - name: LocationID
     type: smallint
+    nullable: false
   - name: ScheduledStartDate
     type: datetime
+    nullable: false
   - name: ScheduledEndDate
     type: datetime
+    nullable: false
   - name: ActualStartDate
     type: datetime
+    nullable: true
   - name: ActualEndDate
     type: datetime
+    nullable: true
   - name: ActualResourceHrs
     type: decimal(9, 4)
+    nullable: true
   - name: PlannedCost
     type: money
+    nullable: false
   - name: ActualCost
     type: money
+    nullable: true
   - name: ModifiedDate
     type: datetime
+    nullable: false
   foreign_keys:
   - columns:
     - LocationID
@@ -1501,37 +1780,48 @@ source_schemas:
   columns:
   - name: ProductID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to Product.ProductID.
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to Vendor.BusinessEntityID.
   - name: AverageLeadTime
     type: int
+    nullable: false
     comment: The average span of time (in days) between placing an order with the
       vendor and receiving the purchased product.
   - name: StandardPrice
     type: money
+    nullable: false
     comment: The vendor's usual selling price.
   - name: LastReceiptCost
     type: money
+    nullable: true
     comment: The selling price when last purchased.
   - name: LastReceiptDate
     type: datetime
+    nullable: true
     comment: Date the product was last received by the vendor.
   - name: MinOrderQty
     type: int
+    nullable: false
     comment: The maximum quantity that should be ordered.
   - name: MaxOrderQty
     type: int
+    nullable: false
     comment: The minimum quantity that should be ordered.
   - name: OnOrderQty
     type: int
+    nullable: true
     comment: The quantity currently on order.
   - name: UnitMeasureCode
     type: nchar(3)
+    nullable: false
     comment: The product's unit of measure.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1561,36 +1851,47 @@ source_schemas:
   columns:
   - name: PurchaseOrderID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to PurchaseOrderHeader.PurchaseOrderID.
   - name: PurchaseOrderDetailID
     type: int
+    nullable: false
     comment: Primary key. One line number per purchased product.
   - name: DueDate
     type: datetime
+    nullable: false
     comment: Date the product is expected to be received.
   - name: OrderQty
     type: smallint
+    nullable: false
     comment: Quantity ordered.
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: UnitPrice
     type: money
+    nullable: false
     comment: Vendor's selling price of a single product.
   - name: LineTotal
     type: AS
+    nullable: true
     comment: Per product subtotal. Computed as OrderQty * UnitPrice.
   - name: ReceivedQty
     type: decimal(8, 2)
+    nullable: false
     comment: Quantity actually received from the vendor.
   - name: RejectedQty
     type: decimal(8, 2)
+    nullable: false
     comment: Quantity rejected during inspection.
   - name: StockedQty
     type: AS
+    nullable: true
     comment: Quantity accepted into inventory. Computed as ReceivedQty - RejectedQty.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1614,43 +1915,56 @@ source_schemas:
   columns:
   - name: PurchaseOrderID
     type: int
+    nullable: false
     comment: Primary key.
   - name: RevisionNumber
     type: tinyint
+    nullable: false
     comment: Incremental number to track changes to the purchase order over time.
   - name: Status
     type: tinyint
+    nullable: false
     comment: Order current status. 1 = Pending; 2 = Approved; 3 = Rejected; 4 = Complete
   - name: EmployeeID
     type: int
+    nullable: false
     comment: Employee who created the purchase order. Foreign key to Employee.BusinessEntityID.
   - name: VendorID
     type: int
+    nullable: false
     comment: Vendor with whom the purchase order is placed. Foreign key to Vendor.BusinessEntityID.
   - name: ShipMethodID
     type: int
+    nullable: false
     comment: Shipping method. Foreign key to ShipMethod.ShipMethodID.
   - name: OrderDate
     type: datetime
+    nullable: false
     comment: Purchase order creation date.
   - name: ShipDate
     type: datetime
+    nullable: true
     comment: Estimated shipment date from the vendor.
   - name: SubTotal
     type: money
+    nullable: false
     comment: Purchase order subtotal. Computed as SUM(PurchaseOrderDetail.LineTotal)for
       the appropriate PurchaseOrderID.
   - name: TaxAmt
     type: money
+    nullable: false
     comment: Tax amount.
   - name: Freight
     type: money
+    nullable: false
     comment: Shipping cost.
   - name: TotalDue
     type: AS
+    nullable: false
     comment: Total due to vendor. Computed as Subtotal + TaxAmt + Freight.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1679,22 +1993,28 @@ source_schemas:
   columns:
   - name: ShipMethodID
     type: int
+    nullable: false
     comment: Primary key for ShipMethod records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Shipping company name.
   - name: ShipBase
     type: money
+    nullable: false
     comment: Minimum shipping charge.
   - name: ShipRate
     type: money
+    nullable: false
     comment: Shipping charge per pound.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - ShipMethodID
@@ -1706,28 +2026,36 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key for Vendor records.  Foreign key to BusinessEntity.BusinessEntityID
   - name: AccountNumber
     type: nvarchar(15)
+    nullable: false
     comment: Vendor account (identification) number.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Company name.
   - name: CreditRating
     type: tinyint
+    nullable: false
     comment: 1 = Superior, 2 = Excellent, 3 = Above average, 4 = Average, 5 = Below
       average
   - name: PreferredVendorStatus
     type: bit
+    nullable: false
     comment: 0 = Do not use if another vendor is available. 1 = Preferred over other
       vendors supplying the same product.
   - name: ActiveFlag
     type: bit
+    nullable: false
     comment: 0 = Vendor no longer used. 1 = Vendor is actively used.
   - name: PurchasingWebServiceURL
     type: nvarchar(1024)
+    nullable: true
   - name: ModifiedDate
     type: datetime
+    nullable: false
   foreign_keys:
   - columns:
     - BusinessEntityID
@@ -1745,12 +2073,15 @@ source_schemas:
   columns:
   - name: CountryRegionCode
     type: nvarchar(3)
+    nullable: false
     comment: ISO code for countries and regions. Foreign key to CountryRegion.CountryRegionCode.
   - name: CurrencyCode
     type: nchar(3)
+    nullable: false
     comment: ISO standard currency code. Foreign key to Currency.CurrencyCode.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1774,21 +2105,27 @@ source_schemas:
   columns:
   - name: CreditCardID
     type: int
+    nullable: false
     comment: Primary key for CreditCard records.
   - name: CardType
     type: nvarchar(50)
+    nullable: false
     comment: Credit card name.
   - name: CardNumber
     type: nvarchar(25)
+    nullable: false
     comment: Credit card number.
   - name: ExpMonth
     type: tinyint
+    nullable: false
     comment: Credit card expiration month.
   - name: ExpYear
     type: smallint
+    nullable: false
     comment: Credit card expiration year.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - CreditCardID
@@ -1800,12 +2137,15 @@ source_schemas:
   columns:
   - name: CurrencyCode
     type: nchar(3)
+    nullable: false
     comment: The ISO code for the Currency.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Currency name.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - CurrencyCode
@@ -1817,24 +2157,31 @@ source_schemas:
   columns:
   - name: CurrencyRateID
     type: int
+    nullable: false
     comment: Primary key for CurrencyRate records.
   - name: CurrencyRateDate
     type: datetime
+    nullable: false
     comment: Date and time the exchange rate was obtained.
   - name: FromCurrencyCode
     type: nchar(3)
+    nullable: false
     comment: Exchange rate was converted from this currency code.
   - name: ToCurrencyCode
     type: nchar(3)
+    nullable: false
     comment: Exchange rate was converted to this currency code.
   - name: AverageRate
     type: money
+    nullable: false
     comment: Average exchange rate for the day.
   - name: EndOfDayRate
     type: money
+    nullable: false
     comment: Final exchange rate for the day.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1861,26 +2208,33 @@ source_schemas:
   columns:
   - name: CustomerID
     type: int
+    nullable: false
     comment: Primary key.
   - name: PersonID
     type: int
+    nullable: true
     comment: Foreign key to Person.BusinessEntityID
   - name: StoreID
     type: int
+    nullable: true
     comment: Foreign key to Store.BusinessEntityID
   - name: TerritoryID
     type: int
+    nullable: true
     comment: ID of the territory in which the customer is located. Foreign key to
       SalesTerritory.SalesTerritoryID.
   - name: AccountNumber
     type: AS
+    nullable: true
     comment: Unique number identifying the customer assigned by the accounting system.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1912,12 +2266,15 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Business entity identification number. Foreign key to Person.BusinessEntityID.
   - name: CreditCardID
     type: int
+    nullable: false
     comment: Credit card identification number. Foreign key to CreditCard.CreditCardID.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1941,38 +2298,49 @@ source_schemas:
   columns:
   - name: SalesOrderID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to SalesOrderHeader.SalesOrderID.
   - name: SalesOrderDetailID
     type: int
+    nullable: false
     comment: Primary key. One incremental unique number per product sold.
   - name: CarrierTrackingNumber
     type: nvarchar(25)
+    nullable: true
     comment: Shipment tracking number supplied by the shipper.
   - name: OrderQty
     type: smallint
+    nullable: false
     comment: Quantity ordered per product.
   - name: ProductID
     type: int
+    nullable: false
     comment: Product sold to customer. Foreign key to Product.ProductID.
   - name: SpecialOfferID
     type: int
+    nullable: false
     comment: Promotional code. Foreign key to SpecialOffer.SpecialOfferID.
   - name: UnitPrice
     type: money
+    nullable: false
     comment: Selling price of a single product.
   - name: UnitPriceDiscount
     type: money
+    nullable: false
     comment: Discount amount.
   - name: LineTotal
     type: AS
+    nullable: true
     comment: Per product subtotal. Computed as UnitPrice * (1 - UnitPriceDiscount)
       * OrderQty.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -1998,84 +2366,110 @@ source_schemas:
   columns:
   - name: SalesOrderID
     type: int
+    nullable: false
     comment: Primary key.
   - name: RevisionNumber
     type: tinyint
+    nullable: false
     comment: Incremental number to track changes to the sales order over time.
   - name: OrderDate
     type: datetime
+    nullable: false
     comment: Dates the sales order was created.
   - name: DueDate
     type: datetime
+    nullable: false
     comment: Date the order is due to the customer.
   - name: ShipDate
     type: datetime
+    nullable: true
     comment: Date the order was shipped to the customer.
   - name: Status
     type: tinyint
+    nullable: false
     comment: Order current status. 1 = In process; 2 = Approved; 3 = Backordered;
       4 = Rejected; 5 = Shipped; 6 = Cancelled
   - name: OnlineOrderFlag
     type: bit
+    nullable: false
     comment: 0 = Order placed by sales person. 1 = Order placed online by customer.
   - name: SalesOrderNumber
     type: AS
+    nullable: true
     comment: Unique sales order identification number.
   - name: PurchaseOrderNumber
     type: nvarchar(25)
+    nullable: true
     comment: Customer purchase order number reference.
   - name: AccountNumber
     type: nvarchar(15)
+    nullable: true
     comment: Financial accounting number reference.
   - name: CustomerID
     type: int
+    nullable: false
     comment: Customer identification number. Foreign key to Customer.BusinessEntityID.
   - name: SalesPersonID
     type: int
+    nullable: true
     comment: Sales person who created the sales order. Foreign key to SalesPerson.BusinessEntityID.
   - name: TerritoryID
     type: int
+    nullable: true
     comment: Territory in which the sale was made. Foreign key to SalesTerritory.SalesTerritoryID.
   - name: BillToAddressID
     type: int
+    nullable: false
     comment: Customer billing address. Foreign key to Address.AddressID.
   - name: ShipToAddressID
     type: int
+    nullable: false
     comment: Customer shipping address. Foreign key to Address.AddressID.
   - name: ShipMethodID
     type: int
+    nullable: false
     comment: Shipping method. Foreign key to ShipMethod.ShipMethodID.
   - name: CreditCardID
     type: int
+    nullable: true
     comment: Credit card identification number. Foreign key to CreditCard.CreditCardID.
   - name: CreditCardApprovalCode
     type: varchar(15)
+    nullable: true
     comment: Approval code provided by the credit card company.
   - name: CurrencyRateID
     type: int
+    nullable: true
     comment: Currency exchange rate used. Foreign key to CurrencyRate.CurrencyRateID.
   - name: SubTotal
     type: money
+    nullable: false
     comment: Sales subtotal. Computed as SUM(SalesOrderDetail.LineTotal)for the appropriate
       SalesOrderID.
   - name: TaxAmt
     type: money
+    nullable: false
     comment: Tax amount.
   - name: Freight
     type: money
+    nullable: false
     comment: Shipping cost.
   - name: TotalDue
     type: AS
+    nullable: true
     comment: Total due from customer. Computed as Subtotal + TaxAmt + Freight.
   - name: Comment
     type: nvarchar(128)
+    nullable: true
     comment: Sales representative comments.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -2136,12 +2530,15 @@ source_schemas:
   columns:
   - name: SalesOrderID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to SalesOrderHeader.SalesOrderID.
   - name: SalesReasonID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to SalesReason.SalesReasonID.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -2165,31 +2562,40 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key for SalesPerson records. Foreign key to Employee.BusinessEntityID
   - name: TerritoryID
     type: int
+    nullable: true
     comment: Territory currently assigned to. Foreign key to SalesTerritory.SalesTerritoryID.
   - name: SalesQuota
     type: money
+    nullable: true
     comment: Projected yearly sales.
   - name: Bonus
     type: money
+    nullable: false
     comment: Bonus due if quota is met.
   - name: CommissionPct
     type: smallmoney
+    nullable: false
     comment: Commision percent received per sale.
   - name: SalesYTD
     type: money
+    nullable: false
     comment: Sales total year to date.
   - name: SalesLastYear
     type: money
+    nullable: false
     comment: Sales total of previous year.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -2212,19 +2618,24 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Sales person identification number. Foreign key to SalesPerson.BusinessEntityID.
   - name: QuotaDate
     type: datetime
+    nullable: false
     comment: Sales quota date.
   - name: SalesQuota
     type: money
+    nullable: false
     comment: Sales quota amount.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -2242,15 +2653,19 @@ source_schemas:
   columns:
   - name: SalesReasonID
     type: int
+    nullable: false
     comment: Primary key for SalesReason records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Sales reason description.
   - name: ReasonType
     type: nvarchar(50)
+    nullable: false
     comment: Category the sales reason belongs to.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - SalesReasonID
@@ -2260,26 +2675,33 @@ source_schemas:
   columns:
   - name: SalesTaxRateID
     type: int
+    nullable: false
     comment: Primary key for SalesTaxRate records.
   - name: StateProvinceID
     type: int
+    nullable: false
     comment: State, province, or country/region the sales tax applies to.
   - name: TaxType
     type: tinyint
+    nullable: false
     comment: 1 = Tax applied to retail transactions, 2 = Tax applied to wholesale
       transactions, 3 = Tax applied to all sales (retail and wholesale) transactions.
   - name: TaxRate
     type: smallmoney
+    nullable: false
     comment: Tax rate amount.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Tax rate description.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -2299,34 +2721,44 @@ source_schemas:
   columns:
   - name: TerritoryID
     type: int
+    nullable: false
     comment: Primary key for SalesTerritory records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Sales territory description
   - name: CountryRegionCode
     type: nvarchar(3)
+    nullable: false
     comment: ISO standard country or region code. Foreign key to CountryRegion.CountryRegionCode.
   - name: Group
     type: nvarchar(50)
+    nullable: false
     comment: Geographic area to which the sales territory belong.
   - name: SalesYTD
     type: money
+    nullable: false
     comment: Sales in the territory year to date.
   - name: SalesLastYear
     type: money
+    nullable: false
     comment: Sales in the territory the previous year.
   - name: CostYTD
     type: money
+    nullable: false
     comment: Business costs in the territory year to date.
   - name: CostLastYear
     type: money
+    nullable: false
     comment: Business costs in the territory the previous year.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -2345,22 +2777,28 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. The sales rep.  Foreign key to SalesPerson.BusinessEntityID.
   - name: TerritoryID
     type: int
+    nullable: false
     comment: Primary key. Territory identification number. Foreign key to SalesTerritory.SalesTerritoryID.
   - name: StartDate
     type: datetime
+    nullable: false
     comment: Primary key. Date the sales representive started work in the territory.
   - name: EndDate
     type: datetime
+    nullable: true
     comment: Date the sales representative left work in the territory.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -2385,21 +2823,27 @@ source_schemas:
   columns:
   - name: ShoppingCartItemID
     type: int
+    nullable: false
     comment: Primary key for ShoppingCartItem records.
   - name: ShoppingCartID
     type: nvarchar(50)
+    nullable: false
     comment: Shopping cart identification number.
   - name: Quantity
     type: int
+    nullable: false
     comment: Product quantity ordered.
   - name: ProductID
     type: int
+    nullable: false
     comment: Product ordered. Foreign key to Product.ProductID.
   - name: DateCreated
     type: datetime
+    nullable: false
     comment: Date the time the record was created.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -2416,37 +2860,48 @@ source_schemas:
   columns:
   - name: SpecialOfferID
     type: int
+    nullable: false
     comment: Primary key for SpecialOffer records.
   - name: Description
     type: nvarchar(255)
+    nullable: false
     comment: Discount description.
   - name: DiscountPct
     type: smallmoney
+    nullable: false
     comment: Discount precentage.
   - name: Type
     type: nvarchar(50)
+    nullable: false
     comment: Discount type category.
   - name: Category
     type: nvarchar(50)
+    nullable: false
     comment: Group the discount applies to such as Reseller or Customer.
   - name: StartDate
     type: datetime
+    nullable: false
     comment: Discount start date.
   - name: EndDate
     type: datetime
+    nullable: false
     comment: Discount end date.
   - name: MinQty
     type: int
+    nullable: false
     comment: Minimum discount percent allowed.
   - name: MaxQty
     type: int
+    nullable: true
     comment: Maximum discount percent allowed.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - SpecialOfferID
@@ -2456,16 +2911,20 @@ source_schemas:
   columns:
   - name: SpecialOfferID
     type: int
+    nullable: false
     comment: Primary key for SpecialOfferProduct records.
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -2489,23 +2948,29 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to Customer.BusinessEntityID.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Name of the store.
   - name: SalesPersonID
     type: int
+    nullable: true
     comment: ID of the sales person assigned to the customer. Foreign key to SalesPerson.BusinessEntityID.
   - name: Demographics
     type: XML(Sales.StoreSurveySchemaCollection)
+    nullable: true
     comment: Demographic informationg about the store such as the number of employees,
       annual sales and store type.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:

@@ -5,8 +5,8 @@ Deterministic and keyless: the same extract yields byte-identical `source_schema
 the business — that is the point of the WP, and it is enforced by two rules:
 
 **The schema is transcribed, never curated.** Every table of a subject area is declared, with
-every column, its type, and its description VERBATIM where Microsoft wrote one (§2.3 as
-amended). A column Microsoft left undescribed is declared without a comment.
+every column, its type, its nullability (WP103) and its description VERBATIM where Microsoft
+wrote one (§2.3 as amended). A column Microsoft left undescribed is declared without a comment.
 
 **The golden contains ONLY Microsoft's own key declarations.** A business key here is a column
 carrying a single-column ``AK_*`` unique index — Microsoft's statement that this is the natural
@@ -81,8 +81,11 @@ def build_source_schema(extract: dict[str, Any], schema: str) -> dict[str, Any]:
         for col in table["columns"]:
             declared_type = col["type"]
             alias = aliases.get(declared_type.removeprefix("dbo."))
+            # WP103 (C37): the extract's nullability, after `type` and before `comment` as WP98's
+            # reader writes it — WP94's gate reads it; without it the gate could only warn.
             entry: dict[str, Any] = {
                 "name": col["name"], "type": alias["base_type"] if alias else declared_type,
+                "nullable": col["nullable"],
             }
             if col["description"]:
                 entry["comment"] = col["description"]

@@ -235,3 +235,11 @@ although the house format has the field and the gate reads it. Candidate: emit `
 derived case changes its `source_schema.yml` — a deliberate re-derivation, the two case-name pins untouched), so the
 gate becomes an error there and the remedy is applied; and, independently, the eval could treat a WP94 warning on a
 link of three or more as a decision the harness answers with the remedy.
+
+## C37 — closed by WP103 (2026-10-31)
+
+The derivation transcribes the extract's `nullable` for every column (`wp103-derived-nullability-spec.md`); the six
+derived cases and their five C1 copies re-derived, nothing else changed. Both chains' fifth step of 2026-10-30,
+replayed keylessly through the validator, now get `E_LINK_OPTIONAL_PARTICIPANT` on the sales-order link with the
+own-link remedy where they had the warning (`docs/log.md`, 2026-10-31). The second half of the candidate — the eval
+answering a warning with the remedy — is not needed for these cases and stays open for catalogues that cannot say.

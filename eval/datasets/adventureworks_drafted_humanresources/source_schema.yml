@@ -9,15 +9,19 @@ source_schemas:
   columns:
   - name: DepartmentID
     type: smallint
+    nullable: false
     comment: Primary key for Department records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Name of the department.
   - name: GroupName
     type: nvarchar(50)
+    nullable: false
     comment: Name of the group to which the department belongs.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - DepartmentID
@@ -29,53 +33,69 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key for Employee records.  Foreign key to BusinessEntity.BusinessEntityID.
   - name: NationalIDNumber
     type: nvarchar(15)
+    nullable: false
     comment: Unique national identification number such as a social security number.
   - name: LoginID
     type: nvarchar(256)
+    nullable: false
     comment: Network login.
   - name: OrganizationNode
     type: hierarchyid
+    nullable: true
     comment: Where the employee is located in corporate hierarchy.
   - name: OrganizationLevel
     type: AS
+    nullable: true
     comment: The depth of the employee in the corporate hierarchy.
   - name: JobTitle
     type: nvarchar(50)
+    nullable: false
     comment: Work title such as Buyer or Sales Representative.
   - name: BirthDate
     type: date
+    nullable: false
     comment: Date of birth.
   - name: MaritalStatus
     type: nchar(1)
+    nullable: false
     comment: M = Married, S = Single
   - name: Gender
     type: nchar(1)
+    nullable: false
     comment: M = Male, F = Female
   - name: HireDate
     type: date
+    nullable: false
     comment: Employee hired on this date.
   - name: SalariedFlag
     type: bit
+    nullable: false
     comment: Job classification. 0 = Hourly, not exempt from collective bargaining.
       1 = Salaried, exempt from collective bargaining.
   - name: VacationHours
     type: smallint
+    nullable: false
     comment: Number of available vacation hours.
   - name: SickLeaveHours
     type: smallint
+    nullable: false
     comment: Number of available sick leave hours.
   - name: CurrentFlag
     type: bit
+    nullable: false
     comment: 0 = Inactive, 1 = Active
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -95,22 +115,28 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Employee identification number. Foreign key to Employee.BusinessEntityID.
   - name: DepartmentID
     type: smallint
+    nullable: false
     comment: Department in which the employee worked including currently. Foreign
       key to Department.DepartmentID.
   - name: ShiftID
     type: tinyint
+    nullable: false
     comment: Identifies which 8-hour shift the employee works. Foreign key to Shift.Shift.ID.
   - name: StartDate
     type: date
+    nullable: false
     comment: Date the employee started work in the department.
   - name: EndDate
     type: date
+    nullable: true
     comment: Date the employee left the department. NULL = Current department.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -142,18 +168,23 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Employee identification number. Foreign key to Employee.BusinessEntityID.
   - name: RateChangeDate
     type: datetime
+    nullable: false
     comment: Date the change in pay is effective
   - name: Rate
     type: money
+    nullable: false
     comment: Salary hourly rate.
   - name: PayFrequency
     type: tinyint
+    nullable: false
     comment: 1 = Salary received monthly, 2 = Salary received biweekly
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -171,16 +202,20 @@ source_schemas:
   columns:
   - name: JobCandidateID
     type: int
+    nullable: false
     comment: Primary key for JobCandidate records.
   - name: BusinessEntityID
     type: int
+    nullable: true
     comment: Employee identification number if applicant was hired. Foreign key to
       Employee.BusinessEntityID.
   - name: Resume
     type: XML(HumanResources.HRResumeSchemaCollection)
+    nullable: true
     comment: Résumé in XML format.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -197,18 +232,23 @@ source_schemas:
   columns:
   - name: ShiftID
     type: tinyint
+    nullable: false
     comment: Primary key for Shift records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Shift description.
   - name: StartTime
     type: time
+    nullable: false
     comment: Shift start time.
   - name: EndTime
     type: time
+    nullable: false
     comment: Shift end time.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - ShiftID

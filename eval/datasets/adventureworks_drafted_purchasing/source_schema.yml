@@ -8,37 +8,48 @@ source_schemas:
   columns:
   - name: ProductID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to Product.ProductID.
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to Vendor.BusinessEntityID.
   - name: AverageLeadTime
     type: int
+    nullable: false
     comment: The average span of time (in days) between placing an order with the
       vendor and receiving the purchased product.
   - name: StandardPrice
     type: money
+    nullable: false
     comment: The vendor's usual selling price.
   - name: LastReceiptCost
     type: money
+    nullable: true
     comment: The selling price when last purchased.
   - name: LastReceiptDate
     type: datetime
+    nullable: true
     comment: Date the product was last received by the vendor.
   - name: MinOrderQty
     type: int
+    nullable: false
     comment: The maximum quantity that should be ordered.
   - name: MaxOrderQty
     type: int
+    nullable: false
     comment: The minimum quantity that should be ordered.
   - name: OnOrderQty
     type: int
+    nullable: true
     comment: The quantity currently on order.
   - name: UnitMeasureCode
     type: nchar(3)
+    nullable: false
     comment: The product's unit of measure.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -68,36 +79,47 @@ source_schemas:
   columns:
   - name: PurchaseOrderID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to PurchaseOrderHeader.PurchaseOrderID.
   - name: PurchaseOrderDetailID
     type: int
+    nullable: false
     comment: Primary key. One line number per purchased product.
   - name: DueDate
     type: datetime
+    nullable: false
     comment: Date the product is expected to be received.
   - name: OrderQty
     type: smallint
+    nullable: false
     comment: Quantity ordered.
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: UnitPrice
     type: money
+    nullable: false
     comment: Vendor's selling price of a single product.
   - name: LineTotal
     type: AS
+    nullable: true
     comment: Per product subtotal. Computed as OrderQty * UnitPrice.
   - name: ReceivedQty
     type: decimal(8, 2)
+    nullable: false
     comment: Quantity actually received from the vendor.
   - name: RejectedQty
     type: decimal(8, 2)
+    nullable: false
     comment: Quantity rejected during inspection.
   - name: StockedQty
     type: AS
+    nullable: true
     comment: Quantity accepted into inventory. Computed as ReceivedQty - RejectedQty.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -121,43 +143,56 @@ source_schemas:
   columns:
   - name: PurchaseOrderID
     type: int
+    nullable: false
     comment: Primary key.
   - name: RevisionNumber
     type: tinyint
+    nullable: false
     comment: Incremental number to track changes to the purchase order over time.
   - name: Status
     type: tinyint
+    nullable: false
     comment: Order current status. 1 = Pending; 2 = Approved; 3 = Rejected; 4 = Complete
   - name: EmployeeID
     type: int
+    nullable: false
     comment: Employee who created the purchase order. Foreign key to Employee.BusinessEntityID.
   - name: VendorID
     type: int
+    nullable: false
     comment: Vendor with whom the purchase order is placed. Foreign key to Vendor.BusinessEntityID.
   - name: ShipMethodID
     type: int
+    nullable: false
     comment: Shipping method. Foreign key to ShipMethod.ShipMethodID.
   - name: OrderDate
     type: datetime
+    nullable: false
     comment: Purchase order creation date.
   - name: ShipDate
     type: datetime
+    nullable: true
     comment: Estimated shipment date from the vendor.
   - name: SubTotal
     type: money
+    nullable: false
     comment: Purchase order subtotal. Computed as SUM(PurchaseOrderDetail.LineTotal)for
       the appropriate PurchaseOrderID.
   - name: TaxAmt
     type: money
+    nullable: false
     comment: Tax amount.
   - name: Freight
     type: money
+    nullable: false
     comment: Shipping cost.
   - name: TotalDue
     type: AS
+    nullable: false
     comment: Total due to vendor. Computed as Subtotal + TaxAmt + Freight.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -186,22 +221,28 @@ source_schemas:
   columns:
   - name: ShipMethodID
     type: int
+    nullable: false
     comment: Primary key for ShipMethod records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Shipping company name.
   - name: ShipBase
     type: money
+    nullable: false
     comment: Minimum shipping charge.
   - name: ShipRate
     type: money
+    nullable: false
     comment: Shipping charge per pound.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - ShipMethodID
@@ -213,28 +254,36 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key for Vendor records.  Foreign key to BusinessEntity.BusinessEntityID
   - name: AccountNumber
     type: nvarchar(15)
+    nullable: false
     comment: Vendor account (identification) number.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Company name.
   - name: CreditRating
     type: tinyint
+    nullable: false
     comment: 1 = Superior, 2 = Excellent, 3 = Above average, 4 = Average, 5 = Below
       average
   - name: PreferredVendorStatus
     type: bit
+    nullable: false
     comment: 0 = Do not use if another vendor is available. 1 = Preferred over other
       vendors supplying the same product.
   - name: ActiveFlag
     type: bit
+    nullable: false
     comment: 0 = Vendor no longer used. 1 = Vendor is actively used.
   - name: PurchasingWebServiceURL
     type: nvarchar(1024)
+    nullable: true
   - name: ModifiedDate
     type: datetime
+    nullable: false
   foreign_keys:
   - columns:
     - BusinessEntityID

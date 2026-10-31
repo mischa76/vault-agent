@@ -8,12 +8,15 @@ source_schemas:
   columns:
   - name: CountryRegionCode
     type: nvarchar(3)
+    nullable: false
     comment: ISO code for countries and regions. Foreign key to CountryRegion.CountryRegionCode.
   - name: CurrencyCode
     type: nchar(3)
+    nullable: false
     comment: ISO standard currency code. Foreign key to Currency.CurrencyCode.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -37,21 +40,27 @@ source_schemas:
   columns:
   - name: CreditCardID
     type: int
+    nullable: false
     comment: Primary key for CreditCard records.
   - name: CardType
     type: nvarchar(50)
+    nullable: false
     comment: Credit card name.
   - name: CardNumber
     type: nvarchar(25)
+    nullable: false
     comment: Credit card number.
   - name: ExpMonth
     type: tinyint
+    nullable: false
     comment: Credit card expiration month.
   - name: ExpYear
     type: smallint
+    nullable: false
     comment: Credit card expiration year.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - CreditCardID
@@ -63,12 +72,15 @@ source_schemas:
   columns:
   - name: CurrencyCode
     type: nchar(3)
+    nullable: false
     comment: The ISO code for the Currency.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Currency name.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - CurrencyCode
@@ -80,24 +92,31 @@ source_schemas:
   columns:
   - name: CurrencyRateID
     type: int
+    nullable: false
     comment: Primary key for CurrencyRate records.
   - name: CurrencyRateDate
     type: datetime
+    nullable: false
     comment: Date and time the exchange rate was obtained.
   - name: FromCurrencyCode
     type: nchar(3)
+    nullable: false
     comment: Exchange rate was converted from this currency code.
   - name: ToCurrencyCode
     type: nchar(3)
+    nullable: false
     comment: Exchange rate was converted to this currency code.
   - name: AverageRate
     type: money
+    nullable: false
     comment: Average exchange rate for the day.
   - name: EndOfDayRate
     type: money
+    nullable: false
     comment: Final exchange rate for the day.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -124,26 +143,33 @@ source_schemas:
   columns:
   - name: CustomerID
     type: int
+    nullable: false
     comment: Primary key.
   - name: PersonID
     type: int
+    nullable: true
     comment: Foreign key to Person.BusinessEntityID
   - name: StoreID
     type: int
+    nullable: true
     comment: Foreign key to Store.BusinessEntityID
   - name: TerritoryID
     type: int
+    nullable: true
     comment: ID of the territory in which the customer is located. Foreign key to
       SalesTerritory.SalesTerritoryID.
   - name: AccountNumber
     type: AS
+    nullable: true
     comment: Unique number identifying the customer assigned by the accounting system.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -175,12 +201,15 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Business entity identification number. Foreign key to Person.BusinessEntityID.
   - name: CreditCardID
     type: int
+    nullable: false
     comment: Credit card identification number. Foreign key to CreditCard.CreditCardID.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -204,38 +233,49 @@ source_schemas:
   columns:
   - name: SalesOrderID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to SalesOrderHeader.SalesOrderID.
   - name: SalesOrderDetailID
     type: int
+    nullable: false
     comment: Primary key. One incremental unique number per product sold.
   - name: CarrierTrackingNumber
     type: nvarchar(25)
+    nullable: true
     comment: Shipment tracking number supplied by the shipper.
   - name: OrderQty
     type: smallint
+    nullable: false
     comment: Quantity ordered per product.
   - name: ProductID
     type: int
+    nullable: false
     comment: Product sold to customer. Foreign key to Product.ProductID.
   - name: SpecialOfferID
     type: int
+    nullable: false
     comment: Promotional code. Foreign key to SpecialOffer.SpecialOfferID.
   - name: UnitPrice
     type: money
+    nullable: false
     comment: Selling price of a single product.
   - name: UnitPriceDiscount
     type: money
+    nullable: false
     comment: Discount amount.
   - name: LineTotal
     type: AS
+    nullable: true
     comment: Per product subtotal. Computed as UnitPrice * (1 - UnitPriceDiscount)
       * OrderQty.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -261,84 +301,110 @@ source_schemas:
   columns:
   - name: SalesOrderID
     type: int
+    nullable: false
     comment: Primary key.
   - name: RevisionNumber
     type: tinyint
+    nullable: false
     comment: Incremental number to track changes to the sales order over time.
   - name: OrderDate
     type: datetime
+    nullable: false
     comment: Dates the sales order was created.
   - name: DueDate
     type: datetime
+    nullable: false
     comment: Date the order is due to the customer.
   - name: ShipDate
     type: datetime
+    nullable: true
     comment: Date the order was shipped to the customer.
   - name: Status
     type: tinyint
+    nullable: false
     comment: Order current status. 1 = In process; 2 = Approved; 3 = Backordered;
       4 = Rejected; 5 = Shipped; 6 = Cancelled
   - name: OnlineOrderFlag
     type: bit
+    nullable: false
     comment: 0 = Order placed by sales person. 1 = Order placed online by customer.
   - name: SalesOrderNumber
     type: AS
+    nullable: true
     comment: Unique sales order identification number.
   - name: PurchaseOrderNumber
     type: nvarchar(25)
+    nullable: true
     comment: Customer purchase order number reference.
   - name: AccountNumber
     type: nvarchar(15)
+    nullable: true
     comment: Financial accounting number reference.
   - name: CustomerID
     type: int
+    nullable: false
     comment: Customer identification number. Foreign key to Customer.BusinessEntityID.
   - name: SalesPersonID
     type: int
+    nullable: true
     comment: Sales person who created the sales order. Foreign key to SalesPerson.BusinessEntityID.
   - name: TerritoryID
     type: int
+    nullable: true
     comment: Territory in which the sale was made. Foreign key to SalesTerritory.SalesTerritoryID.
   - name: BillToAddressID
     type: int
+    nullable: false
     comment: Customer billing address. Foreign key to Address.AddressID.
   - name: ShipToAddressID
     type: int
+    nullable: false
     comment: Customer shipping address. Foreign key to Address.AddressID.
   - name: ShipMethodID
     type: int
+    nullable: false
     comment: Shipping method. Foreign key to ShipMethod.ShipMethodID.
   - name: CreditCardID
     type: int
+    nullable: true
     comment: Credit card identification number. Foreign key to CreditCard.CreditCardID.
   - name: CreditCardApprovalCode
     type: varchar(15)
+    nullable: true
     comment: Approval code provided by the credit card company.
   - name: CurrencyRateID
     type: int
+    nullable: true
     comment: Currency exchange rate used. Foreign key to CurrencyRate.CurrencyRateID.
   - name: SubTotal
     type: money
+    nullable: false
     comment: Sales subtotal. Computed as SUM(SalesOrderDetail.LineTotal)for the appropriate
       SalesOrderID.
   - name: TaxAmt
     type: money
+    nullable: false
     comment: Tax amount.
   - name: Freight
     type: money
+    nullable: false
     comment: Shipping cost.
   - name: TotalDue
     type: AS
+    nullable: true
     comment: Total due from customer. Computed as Subtotal + TaxAmt + Freight.
   - name: Comment
     type: nvarchar(128)
+    nullable: true
     comment: Sales representative comments.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -399,12 +465,15 @@ source_schemas:
   columns:
   - name: SalesOrderID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to SalesOrderHeader.SalesOrderID.
   - name: SalesReasonID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to SalesReason.SalesReasonID.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -428,31 +497,40 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key for SalesPerson records. Foreign key to Employee.BusinessEntityID
   - name: TerritoryID
     type: int
+    nullable: true
     comment: Territory currently assigned to. Foreign key to SalesTerritory.SalesTerritoryID.
   - name: SalesQuota
     type: money
+    nullable: true
     comment: Projected yearly sales.
   - name: Bonus
     type: money
+    nullable: false
     comment: Bonus due if quota is met.
   - name: CommissionPct
     type: smallmoney
+    nullable: false
     comment: Commision percent received per sale.
   - name: SalesYTD
     type: money
+    nullable: false
     comment: Sales total year to date.
   - name: SalesLastYear
     type: money
+    nullable: false
     comment: Sales total of previous year.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -475,19 +553,24 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Sales person identification number. Foreign key to SalesPerson.BusinessEntityID.
   - name: QuotaDate
     type: datetime
+    nullable: false
     comment: Sales quota date.
   - name: SalesQuota
     type: money
+    nullable: false
     comment: Sales quota amount.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -505,15 +588,19 @@ source_schemas:
   columns:
   - name: SalesReasonID
     type: int
+    nullable: false
     comment: Primary key for SalesReason records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Sales reason description.
   - name: ReasonType
     type: nvarchar(50)
+    nullable: false
     comment: Category the sales reason belongs to.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - SalesReasonID
@@ -523,26 +610,33 @@ source_schemas:
   columns:
   - name: SalesTaxRateID
     type: int
+    nullable: false
     comment: Primary key for SalesTaxRate records.
   - name: StateProvinceID
     type: int
+    nullable: false
     comment: State, province, or country/region the sales tax applies to.
   - name: TaxType
     type: tinyint
+    nullable: false
     comment: 1 = Tax applied to retail transactions, 2 = Tax applied to wholesale
       transactions, 3 = Tax applied to all sales (retail and wholesale) transactions.
   - name: TaxRate
     type: smallmoney
+    nullable: false
     comment: Tax rate amount.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Tax rate description.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -562,34 +656,44 @@ source_schemas:
   columns:
   - name: TerritoryID
     type: int
+    nullable: false
     comment: Primary key for SalesTerritory records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Sales territory description
   - name: CountryRegionCode
     type: nvarchar(3)
+    nullable: false
     comment: ISO standard country or region code. Foreign key to CountryRegion.CountryRegionCode.
   - name: Group
     type: nvarchar(50)
+    nullable: false
     comment: Geographic area to which the sales territory belong.
   - name: SalesYTD
     type: money
+    nullable: false
     comment: Sales in the territory year to date.
   - name: SalesLastYear
     type: money
+    nullable: false
     comment: Sales in the territory the previous year.
   - name: CostYTD
     type: money
+    nullable: false
     comment: Business costs in the territory year to date.
   - name: CostLastYear
     type: money
+    nullable: false
     comment: Business costs in the territory the previous year.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -608,22 +712,28 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. The sales rep.  Foreign key to SalesPerson.BusinessEntityID.
   - name: TerritoryID
     type: int
+    nullable: false
     comment: Primary key. Territory identification number. Foreign key to SalesTerritory.SalesTerritoryID.
   - name: StartDate
     type: datetime
+    nullable: false
     comment: Primary key. Date the sales representive started work in the territory.
   - name: EndDate
     type: datetime
+    nullable: true
     comment: Date the sales representative left work in the territory.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -648,21 +758,27 @@ source_schemas:
   columns:
   - name: ShoppingCartItemID
     type: int
+    nullable: false
     comment: Primary key for ShoppingCartItem records.
   - name: ShoppingCartID
     type: nvarchar(50)
+    nullable: false
     comment: Shopping cart identification number.
   - name: Quantity
     type: int
+    nullable: false
     comment: Product quantity ordered.
   - name: ProductID
     type: int
+    nullable: false
     comment: Product ordered. Foreign key to Product.ProductID.
   - name: DateCreated
     type: datetime
+    nullable: false
     comment: Date the time the record was created.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -679,37 +795,48 @@ source_schemas:
   columns:
   - name: SpecialOfferID
     type: int
+    nullable: false
     comment: Primary key for SpecialOffer records.
   - name: Description
     type: nvarchar(255)
+    nullable: false
     comment: Discount description.
   - name: DiscountPct
     type: smallmoney
+    nullable: false
     comment: Discount precentage.
   - name: Type
     type: nvarchar(50)
+    nullable: false
     comment: Discount type category.
   - name: Category
     type: nvarchar(50)
+    nullable: false
     comment: Group the discount applies to such as Reseller or Customer.
   - name: StartDate
     type: datetime
+    nullable: false
     comment: Discount start date.
   - name: EndDate
     type: datetime
+    nullable: false
     comment: Discount end date.
   - name: MinQty
     type: int
+    nullable: false
     comment: Minimum discount percent allowed.
   - name: MaxQty
     type: int
+    nullable: true
     comment: Maximum discount percent allowed.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - SpecialOfferID
@@ -719,16 +846,20 @@ source_schemas:
   columns:
   - name: SpecialOfferID
     type: int
+    nullable: false
     comment: Primary key for SpecialOfferProduct records.
   - name: ProductID
     type: int
+    nullable: false
     comment: Product identification number. Foreign key to Product.ProductID.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -752,23 +883,29 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to Customer.BusinessEntityID.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Name of the store.
   - name: SalesPersonID
     type: int
+    nullable: true
     comment: ID of the sales person assigned to the customer. Foreign key to SalesPerson.BusinessEntityID.
   - name: Demographics
     type: XML(Sales.StoreSurveySchemaCollection)
+    nullable: true
     comment: Demographic informationg about the store such as the number of employees,
       annual sales and store type.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:

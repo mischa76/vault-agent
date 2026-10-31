@@ -8,32 +8,41 @@ source_schemas:
   columns:
   - name: AddressID
     type: int
+    nullable: false
     comment: Primary key for Address records.
   - name: AddressLine1
     type: nvarchar(60)
+    nullable: false
     comment: First street address line.
   - name: AddressLine2
     type: nvarchar(60)
+    nullable: true
     comment: Second street address line.
   - name: City
     type: nvarchar(30)
+    nullable: false
     comment: Name of the city.
   - name: StateProvinceID
     type: int
+    nullable: false
     comment: Unique identification number for the state or province. Foreign key to
       StateProvince table.
   - name: PostalCode
     type: nvarchar(15)
+    nullable: false
     comment: Postal code for the street address.
   - name: SpatialLocation
     type: geography
+    nullable: true
     comment: Latitude and longitude of this address.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -50,16 +59,20 @@ source_schemas:
   columns:
   - name: AddressTypeID
     type: int
+    nullable: false
     comment: Primary key for AddressType records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Address type description. For example, Billing, Home, or Shipping.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - AddressTypeID
@@ -72,13 +85,16 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key for all customers, vendors, and employees.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - BusinessEntityID
@@ -89,19 +105,24 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to BusinessEntity.BusinessEntityID.
   - name: AddressID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to Address.AddressID.
   - name: AddressTypeID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to AddressType.AddressTypeID.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -132,19 +153,24 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to BusinessEntity.BusinessEntityID.
   - name: PersonID
     type: int
+    nullable: false
     comment: Primary key. Foreign key to Person.BusinessEntityID.
   - name: ContactTypeID
     type: int
+    nullable: false
     comment: Primary key.  Foreign key to ContactType.ContactTypeID.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -175,12 +201,15 @@ source_schemas:
   columns:
   - name: ContactTypeID
     type: int
+    nullable: false
     comment: Primary key for ContactType records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Contact type description.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - ContactTypeID
@@ -192,12 +221,15 @@ source_schemas:
   columns:
   - name: CountryRegionCode
     type: nvarchar(3)
+    nullable: false
     comment: ISO standard code for countries and regions.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Country or region name.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - CountryRegionCode
@@ -209,20 +241,25 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key. Person associated with this email address.  Foreign key
       to Person.BusinessEntityID
   - name: EmailAddressID
     type: int
+    nullable: false
     comment: Primary key. ID of this email address.
   - name: EmailAddress
     type: nvarchar(50)
+    nullable: true
     comment: E-mail address for the person.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -240,19 +277,24 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
   - name: PasswordHash
     type: varchar(128)
+    nullable: false
     comment: Password for the e-mail account.
   - name: PasswordSalt
     type: varchar(10)
+    nullable: false
     comment: Random value concatenated with the password string before the password
       is hashed.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -270,49 +312,62 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Primary key for Person records.
   - name: PersonType
     type: nchar(2)
+    nullable: false
     comment: 'Primary type of person: SC = Store Contact, IN = Individual (retail)
       customer, SP = Sales person, EM = Employee (non-sales), VC = Vendor contact,
       GC = General contact'
   - name: NameStyle
     type: bit
+    nullable: false
     comment: 0 = The data in FirstName and LastName are stored in western style (first
       name, last name) order.  1 = Eastern style (last name, first name) order.
   - name: Title
     type: nvarchar(8)
+    nullable: true
     comment: A courtesy title. For example, Mr. or Ms.
   - name: FirstName
     type: nvarchar(50)
+    nullable: false
     comment: First name of the person.
   - name: MiddleName
     type: nvarchar(50)
+    nullable: true
     comment: Middle name or middle initial of the person.
   - name: LastName
     type: nvarchar(50)
+    nullable: false
     comment: Last name of the person.
   - name: Suffix
     type: nvarchar(10)
+    nullable: true
     comment: Surname suffix. For example, Sr. or Jr.
   - name: EmailPromotion
     type: int
+    nullable: false
     comment: 0 = Contact does not wish to receive e-mail promotions, 1 = Contact does
       wish to receive e-mail promotions from AdventureWorks, 2 = Contact does wish
       to receive e-mail promotions from AdventureWorks and selected partners.
   - name: AdditionalContactInfo
     type: XML(Person.AdditionalContactInfoSchemaCollection)
+    nullable: true
     comment: Additional contact information about the person stored in xml format.
   - name: Demographics
     type: XML(Person.IndividualSurveySchemaCollection)
+    nullable: true
     comment: Personal information such as hobbies, and income collected from online
       shoppers. Used for sales analysis.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -329,15 +384,19 @@ source_schemas:
   columns:
   - name: BusinessEntityID
     type: int
+    nullable: false
     comment: Business entity identification number. Foreign key to Person.BusinessEntityID.
   - name: PhoneNumber
     type: nvarchar(25)
+    nullable: false
     comment: Telephone number identification number.
   - name: PhoneNumberTypeID
     type: int
+    nullable: false
     comment: Kind of phone number. Foreign key to PhoneNumberType.PhoneNumberTypeID.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:
@@ -362,12 +421,15 @@ source_schemas:
   columns:
   - name: PhoneNumberTypeID
     type: int
+    nullable: false
     comment: Primary key for telephone number type records.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: Name of the telephone number type
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   primary_key:
   - PhoneNumberTypeID
@@ -377,30 +439,38 @@ source_schemas:
   columns:
   - name: StateProvinceID
     type: int
+    nullable: false
     comment: Primary key for StateProvince records.
   - name: StateProvinceCode
     type: nchar(3)
+    nullable: false
     comment: ISO standard state or province code.
   - name: CountryRegionCode
     type: nvarchar(3)
+    nullable: false
     comment: ISO standard country or region code. Foreign key to CountryRegion.CountryRegionCode.
   - name: IsOnlyStateProvinceFlag
     type: bit
+    nullable: false
     comment: 0 = StateProvinceCode exists. 1 = StateProvinceCode unavailable, using
       CountryRegionCode.
   - name: Name
     type: nvarchar(50)
+    nullable: false
     comment: State or province description.
   - name: TerritoryID
     type: int
+    nullable: false
     comment: ID of the territory in which the state or province is located. Foreign
       key to SalesTerritory.SalesTerritoryID.
   - name: rowguid
     type: uniqueidentifier
+    nullable: false
     comment: ROWGUIDCOL number uniquely identifying the record. Used to support a
       merge replication sample.
   - name: ModifiedDate
     type: datetime
+    nullable: false
     comment: Date and time the record was last updated.
   foreign_keys:
   - columns:

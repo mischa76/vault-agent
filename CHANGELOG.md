@@ -116,6 +116,10 @@ is not the project's.
   255); a translation name that would not fit becomes `stg_<link>_via_<n>_<digest>` — deterministic, the joined
   relations still named in the view's header and metadata — and any other staging name over the limit is
   flagged rather than truncated (WP102, 2026-10-31, found by WP100's build).
+- The derived AdventureWorks cases declare every column's nullability from the extract (465 columns, 77
+  nullable), in the key order `vault-agent source-schema` writes; WP94's optional-participant gate, which had
+  only been able to warn there, refuses on them — both chains of 2026-10-30 had carried the warning on their
+  fifth step over the link that lost 17 489 of 31 465 orders (WP103, 2026-10-31, found by WP102's build).
 
 ### Security
 - Dependabot alerts 44–46 (`dompurify` 3.4.16, one critical), 47 (`certifi` 2026.5.20, critical),

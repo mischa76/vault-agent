@@ -11583,3 +11583,60 @@ copy's relations; the warning in the step's result JSON and review queue; the in
 the counts above. **Bewusst nicht getan.** No change to `derive.py` or to how the eval answers a WP94 warning —
 C37, the owner's call; no length gate for construct names; no paid rerun; the regenerated project stays in the
 scratchpad. Next: the C1 ADR (ADR-0019, `draft-requirements`) and the review record, as the plan of 2026-10-30 says.
+
+## [2026-10-31] WP103 — the derived AdventureWorks schemas carry the extract's nullability (C37): both chains' fifth step, replayed keylessly, now refuse the sales-order link's optional currency-rate participation where they had warned; the data copy confirms the declaration
+
+**Autor:** Claude Code
+
+On the owner's word (2026-10-31: C37 before the C1 ADR). **What was wrong.** WP102's build had explained
+`link_sales_order_customer`'s 13 976 of 31 465 rows: orders without a `CurrencyRateID` hash a NULL hub key — the
+translated key is a `datetime`, which no zero key fits — and AutomateDV's link macro drops them. WP94's gate had
+named exactly this on both chains of 2026-10-30, as `W_LINK_OPTIONAL_PARTICIPANT` with the own-link remedy — a
+warning, because the derived schema declared no `nullable` and no profile was given; the unattended chain acts on
+errors, not warnings. The extract carries `nullable` for all 465 columns of the five business schemas (77 nullable),
+the house format has had the field since WP94, WP98's reader writes it, the gate reads it — and
+`eval.adventureworks.derive` did not transcribe it. The earlier backlog text (C37, 2026-10-31) said 471 columns and
+81 nullable; the counts the code gives are 465 and 77, and this entry corrects it. **The change** (spec
+`backlog-2026-07/wp103-derived-nullability-spec.md`): `build_source_schema` writes `nullable: true|false` from the
+extract for every column, after `type` and before `comment`, the order `source_schema_reader._entry` writes, so a
+derived file and a read file are one shape; transcribed, never curated. The six derived `source_schema.yml` (five
+areas and `adventureworks_full`) and the five `adventureworks_drafted_*` copies re-derived (`python -m
+eval.adventureworks.derive`, then `draft_requirements`); goldens, requirements and both case-name pins untouched. No
+gate, generator or prompt changed. **Guards** (`tests/test_wp103_derived_nullability.py`, committed red in
+`e0e78d0`, all four): the derivation states the extract's value for all 465 columns, 77 nullable, in the house
+format's key order; every shipped case declares it, the drafted copies match byte for byte, the combined case
+counts the same 77; WP94's miniature over the shipped Sales case gets the error with the remedy
+`link_sales_order_header_currency_rate` and never names the customer's integer participation.
+
+**Measured, keyless.** *P1 held:* the re-derivation changed the eleven schema files and nothing else — one added
+line per column (465 in `adventureworks_full`, 40/70/169/49/137 per area and the same in each copy), no golden, no
+requirements file. *P2 held:* both chains' fifth step (arm A `20261030T184653194084Z`, arm T
+`20261030T184653223619Z`) replayed through `ValidatorAgent` from the kept `dv_model.yml`, the step-4 catalogue and
+the result's mappings, once with the old Sales schema and once with the new: arm A 80 issues both times, arm T 92
+both times; the one `W_LINK_OPTIONAL_PARTICIPANT` became `E_LINK_OPTIONAL_PARTICIPANT` on the same link
+(`link_customer_sales_order`, `link_sales_order_customer`), reading `SalesOrderHeader.CURRENCYRATEID — nullable`,
+with the same remedy (`link_sales_order_currency_rate(hub_sales_order, hub_currency_rate)`); every other code and
+count unchanged. The replay also shows `E_LINK_TRANSLATION_UNRATIFIED` (4 and 20) that the live steps did not have:
+the replay carries no ratified licenses — a limitation of the replay, not a finding, and identical on both sides.
+*The data copy* (PostgreSQL 16, the five business schemas, measured before the pre-registration and recorded as
+evidence): of the 77 columns declared nullable, 46 hold NULLs and 31 none; of the 388 declared `NOT NULL`, 386 hold
+none and 2 hold some (`Production.Document.FileExtension` 4 of 12 rows, `Production.Document.DocumentNode` 1 of 12 —
+the copy carries no `NOT NULL` constraints at all, 388 columns differ from the extract in `information_schema`, so
+these two are an artefact of the copy's load, not of the extract); `SalesOrderHeader.CurrencyRateID` is NULL in
+17 489 of 31 465 rows, the rows the link lost. The extract is faithful on the one axis a column DDL leaves open: no
+column is declared nullable whose alias type (`Name`, `Flag`, …) is `NOT NULL`. *P3:* `uv run pytest`, `ruff`, bare
+`mypy` — see the commit; no fixture updated.
+
+**Überprüft:** the guards red before and green after; the eleven-file diff; the validator replay on both arms; the
+NULL counts against the local copy (`psql`, one query per column); the alias-type check against
+`user_defined_types`. **Nur angenommen:** that the modeler applies the error's remedy in the re-model loop on these
+cases — WP94 measured it on the replayed demo step, and it needs a live step here (the next chain will show it,
+along with `link_sales_order` at 31 465 rows if WP94's P3 holds in the chain); that `nullable: true` is the right
+evidence where the copy holds no NULLs (31 columns) — the gate reads the declaration, as WP94 decided, and a
+profile can say more. **Bewusst nicht getan:** the demo's frozen inputs
+(`demo/workbench-adventureworks/…/inputs/*_source_schema.yml`) — the inputs of a recorded run, already different from
+the eval files, left so the run stays reproducible; nullability for the synthetic cases — nobody declared it; the
+candidate's second half (the eval answering a warning with the remedy) — not needed once the cases carry
+nullability, open for catalogues that cannot say; a re-baseline of the review record — the C1 chains ran on the
+old schema and stay recorded as they ran. **Next:** the C1 ADR (ADR-0019, `draft-requirements`) and the review
+record, as the plan of 2026-10-30 says; the next live chain measures WP94's remedy in the loop.
