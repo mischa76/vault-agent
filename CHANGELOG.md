@@ -14,6 +14,24 @@ is not the project's.
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-11-01
+
+Nine days and work packages WP82, WP92–WP117 after 0.11.0. The positioning is decided (ADR-0015: the
+consultant's single-user tool, a project root that moves whole) and the source system becomes an input in
+its own right: the declared schema, column profiles and data-inferred keys are read from the database by
+explicit, scoped commands (`source-schema`, `profile`, `infer-keys`; ADR-0018), and where no requirements
+document exists yet, `draft-requirements` drafts one from the catalogue for a human to correct (ADR-0019 —
+measured first as an experiment with two paid chains, then built; no source-driven mode). The Business
+Vault gains bridges along a named or ratified link path (ADR-0016's second half), the generator a naming
+profile, the workbench project settings and deleting. A stage no rule can bind is bound at sign-off and
+carried; composite-key translations, role columns from foreign keys and optional participants as links of
+their own close the owner's-build and chain findings. Eight corrections came out of keyless PostgreSQL
+builds of the paid chains' projects (WP100–WP103, WP105–WP108): two would have hashed a link from one
+column or loaded another table's unit as a product's — so the count for 1.0 criterion 2 (two consecutive
+minors without a wrong-data fix, `docs/architecture/release-1.0-criteria.md`) starts after this release.
+Live: three paid five-step chains (2026-10-30 twice, 2026-10-31), all green; the fifth projects build
+PASS=421 of 421 and PASS=484 of 514 keyless on PostgreSQL. No TurboVault export (ADR-0020).
+
 ### Added
 - `vault-agent draft-requirements` (WP117, 2026-10-31, ADR-0019, backlog C1 and C27 stage 4): a requirements
   document drafted deterministically from the declared source schema — what each table is, what identifies
@@ -733,6 +751,9 @@ Open: no live Databricks build yet — that is what 1.0 waits for.
 
 Project start. Everything between here and 0.9.0 is in `docs/log.md`, entry by entry.
 
-[Unreleased]: https://github.com/mischa76/vault-agent/compare/0.9.1...HEAD
+[Unreleased]: https://github.com/mischa76/vault-agent/compare/0.12.0...HEAD
+[0.12.0]: https://github.com/mischa76/vault-agent/compare/0.11.0...0.12.0
+[0.11.0]: https://github.com/mischa76/vault-agent/compare/0.10.0...0.11.0
+[0.10.0]: https://github.com/mischa76/vault-agent/compare/0.9.1...0.10.0
 [0.9.1]: https://github.com/mischa76/vault-agent/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/mischa76/vault-agent/releases/tag/0.9.0

@@ -12454,3 +12454,20 @@ entry. **Überprüft.** The gate count by the README's own command; each README 
 gate). **Bewusst nicht getan.** The wiki page `vault-agent.md` is updated in the wiki's own commit, not here; the
 ADR files stay as they are; no CLAUDE.md change.
 
+## [2026-11-01] Release 0.12.0 — WP82, WP92–WP117; the 1.0 count for criterion 2 starts after it
+
+**Autor:** Claude Code
+
+On the owner's go for the three (2026-11-01), of which C15 is the release; the premise corrected in the previous
+entry. `uv version 0.12.0`, `uv lock`, the `[Unreleased]` entries become `## [0.12.0] - 2026-11-01` with a summary
+paragraph (positioning, the source-system commands, `draft-requirements`, bridges, naming profile and settings,
+bindings at sign-off, the eight corrections from the keyless builds); the compare links at the file's foot, which
+had stopped at 0.9.1, now carry 0.10.0, 0.11.0 and 0.12.0. **Criterion 2** (`release-1.0-criteria.md`): this
+release carries wrong-data corrections — WP105 (a carried binding overruled, 265 link rows each loaded with another
+table's unit, every gate green) and WP100 (a link that would have hashed two hubs from one column) — so the two
+consecutive minors without one are counted from 0.13.0 on. **Überprüft.** Definition of done before the tag:
+`pytest` (incl. `tests/test_release.py`: pyproject, `__version__`, lock and changelog agree), `ruff`, bare `mypy`;
+tag `0.12.0` pushed with the commits, the release workflow builds and publishes; its result is checked after the
+push and recorded below if it differs. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No PyPI (GitHub
+releases only, 2026-09-12); the wiki page is updated in the wiki's own commit.
+
