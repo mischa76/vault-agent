@@ -26,7 +26,9 @@ jobs:
           echo "tag=$TAG project=$VERSION"
           test "$TAG" = "$VERSION" || { echo "::error::tag $TAG != pyproject version $VERSION — bump with 'uv version $TAG' first"; exit 1; }
       - name: Sync deps
-        run: uv sync --extra dev --extra ui
+        # `catalogue` too: `source_schema_reader.py` and `profiler.py` subclass and return SQLAlchemy
+        # types; without the extra mypy strict sees `Any` and fails (red from 2026-10-30 to 2026-11-01).
+        run: uv sync --extra dev --extra ui --extra catalogue
       - name: Definition of done
         run: |
           uv run ruff check .

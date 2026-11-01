@@ -377,3 +377,24 @@ twenty-third 95 → 94 (both re-read in the record); the C1 arms stand 90 agains
 
 ADR-0019 accepted on 2026-10-31 on the corrected review numbers (WP116): a deterministic draft from the house-format
 catalogue in place of the stage's *LLM text marked as such*; the command that builds it is WP117.
+
+## C43 — 97 open CodeQL alerts, none triaged; the workbench's project and run ids reach the filesystem unchecked (read 2026-11-01)
+
+GitHub's code scanning holds 97 open alerts on `main` (2026-11-01): 95 `py/path-injection`, 2 `py/polynomial-redos`
+(`cli.py:841`, `:844`, the `--owner` e-mail match); the oldest from 2026-10-10, none ever dismissed or answered.
+Read by class: **(a)** the CLI, `existing_model.py`, `profiling.py`, `source_schema.py`, `trace.py` — paths the
+owner types on the command line and files under the output directory; by design, the single-user tool of
+ADR-0015, the model's own names already pass `_safe_component`. **(b)** the workbench — `ui/projects.py`,
+`ui/runs.py`, `ui/app.py`, `ui/project_check.py`: `ProjectStore._dir` builds `root / project_id` from the URL
+segment and checks only that a `project.json` lies there; a run id is used the same way. A file *name* is checked
+on upload (`_safe` — a plain name, an allowed suffix), the read path is resolved against `inputs/` (`:162`), a
+delete looks the name up in `project.json` first; the static route refuses `..`. What is missing is the one check
+that would answer most of (b): a project id must match what `_slug` produces (`[a-z0-9-]+`), a run id the stamp
+`\d{8}T\d{15}Z`, refused with 404 before any path is built — then `..` as a URL segment cannot point
+`delete_project`'s `rmtree` or the settings write at the root's parent. Exposure today is small: the server binds
+loopback (WP92), has one user (ADR-0015), and a browser's cross-origin DELETE or JSON POST is preflighted and
+refused — but the fix is ten lines, keyless to test, and lets the 60-odd workbench alerts be closed as fixed and
+the CLI ones dismissed with a written reason instead of standing unanswered. Candidate: the two id checks with
+guards, the `--owner` match without nested quantifiers, then a triage pass over the alerts (fixed / won't fix with
+reason). Evidence: `gh api repos/mischa76/vault-agent/code-scanning/alerts?state=open`, `docs/log.md` 2026-11-01.
+

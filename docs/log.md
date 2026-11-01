@@ -12471,3 +12471,46 @@ tag `0.12.0` pushed with the commits, the release workflow builds and publishes;
 push and recorded below if it differs. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No PyPI (GitHub
 releases only, 2026-09-12); the wiki page is updated in the wiki's own commit.
 
+## [2026-11-01] Correction and release 0.12.1 — CI on `main` had been red since 2026-10-30 17:01 on three causes nobody read (mypy without the `catalogue` extra, a stale frontend test mock since WP113, an unsorted import since WP117 that ruff's cache hid locally); 0.12.0's workflow failed on the third; the security alerts read: four oauthlib (unchanged, not movable) and 97 untriaged CodeQL alerts (C43)
+
+**Autor:** Claude Code
+
+The owner wrote that GitHub points at security issues in the repo (2026-11-01). Reading them found the larger thing
+beside them. **CI.** The last green run is 40b0132 (2026-10-26 22:16). Every push since 2026-10-30 17:01 (the
+first after WP96) is red: `uv run mypy` on CI reported five errors in `source_schema_reader.py` and
+`profiler.py` — CI syncs `dev` and `ui` only, so SQLAlchemy is absent, `ignore_missing_imports` makes it `Any`,
+and strict mode refuses a class that subclasses `Any` and functions returning it; locally the `catalogue` extra is
+installed and mypy is clean, which is why the definition of done passed here and failed there. Reproduced in a
+CI-like environment (`uv sync --extra dev --extra ui` into a scratch venv: the same five errors; with `catalogue`:
+clean). From WP113 (2026-10-31) the frontend job was red too: `Project.test.tsx`'s `saveSettings` mock answered
+with the settings alone while the API answers with the whole view, so the perspective read `environment` of
+`undefined` after a save — vitest counted 34 passed and exited on two unhandled errors. From WP117 (2026-10-31
+21:29) the lint step was red: an unsorted import block in `tests/test_wp117_draft_requirements.py`. **That one
+is on this session twice:** the definition of done before 0.12.0 (previous entry) ran `uv run ruff check .` and
+read „All checks passed" from ruff's cache; `--no-cache` finds the error. The claim „ruff green" in the 0.12.0
+entry was not verified against the tree. The owner pushed `main` and the tag; the release workflow failed in its
+first step after 11 s; CI's failure notices had not been read by anyone since 2026-10-30. **Fixed.** Both
+workflows sync `--extra catalogue` (comment in place); `CONTRIBUTING.md` names that command as what CI installs;
+the test mock answers as `put_settings` does; the import block sorted. Verified here as CI runs it: `ruff check
+--no-cache .`, bare `mypy`, `pytest --cov=vault_agent.ui` (1575 passed, 5 skipped, coverage 95.34 % against the
+85 floor), `npm run check`, `vitest run` (34 passed, 0 errors). Not re-run: `npm run build` (no frontend source
+changed, only a test). **Release 0.12.1**, a patch: nothing in the generated output changes. `uv version 0.12.1`,
+`uv lock`, CHANGELOG section with the three fixes and a note under 0.12.0 that its tag has no release; tag
+`0.12.1` set locally — the push is the owner's, as with 0.12.0 (the session may not create a public surface);
+the workflow's result is recorded after it.
+
+**The security alerts.** *Dependabot:* four open, all oauthlib in `uv.lock` (63 and 57 high, 26 and 25 medium;
+server-side OAuth and the device flow, which this project does not run), the same four the entry of 2026-10-31
+left open — still not movable: dbt-databricks 1.13.0, released since, still requires
+`databricks-sql-connector <4.4.1`, and 4.4.0 requires `oauthlib <4` (PyPI metadata read today). No secret-scanning
+alert. *CodeQL:* 97 open, 95 `py/path-injection`, 2 `py/polynomial-redos`, the oldest of 2026-10-10, none ever
+dismissed or fixed — the scanner has been reporting into a void for three weeks. Read by class and recorded as
+**C43** (`backlog-2026-10-candidates-3.md`): the CLI's paths are the owner's own arguments (by design, ADR-0015);
+the workbench's project and run ids reach `root / project_id` with only an existence check behind them, and a
+`..` segment is a legal URL segment — the exposure is loopback-only and preflight-guarded, the fix two id checks.
+Not done today: the owner's call on order. **Überprüft.** The CI run list and job conclusions (`gh run list`,
+`gh run view --json jobs`), the raw mypy log of run 41241509668, the scratch-venv reproduction, the local vitest
+run before and after the mock change, every check named above. **Nur angenommen.** That `npm run build` passes
+on the unchanged frontend sources (it passed on every run whose Test step failed, up to 2026-10-31). **Bewusst
+nicht getan.** No CodeQL fix or dismissal; no dbt-databricks bump; the wiki's GitHub/CI page unchanged.
+

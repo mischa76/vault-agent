@@ -7,6 +7,13 @@ import json
 from pathlib import Path
 
 from typer.testing import CliRunner
+
+from tests.test_agents.test_adr_author import _state as _adr_state
+from tests.test_agents.test_requirements_parser import StubExtractor, _valid_payload
+from vault_agent.agents.adr_author import AdrAuthorAgent
+from vault_agent.agents.orchestrator import REVIEW_FLAG_ROLES
+from vault_agent.agents.requirements_parser import RequirementsParserAgent
+from vault_agent.cli import app
 from vault_agent.draft_requirements import (
     DRAFT_MARKER,
     DraftHeader,
@@ -15,13 +22,6 @@ from vault_agent.draft_requirements import (
     natural_key,
     read_draft_header,
 )
-
-from tests.test_agents.test_adr_author import _state as _adr_state
-from tests.test_agents.test_requirements_parser import StubExtractor, _valid_payload
-from vault_agent.agents.adr_author import AdrAuthorAgent
-from vault_agent.agents.orchestrator import REVIEW_FLAG_ROLES
-from vault_agent.agents.requirements_parser import RequirementsParserAgent
-from vault_agent.cli import app
 from vault_agent.source_schema import load_source_schemas
 from vault_agent.state import FlagKind, ForeignKeyRef, SourceTable, VaultAgentState
 

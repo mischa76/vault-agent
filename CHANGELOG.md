@@ -14,7 +14,27 @@ is not the project's.
 
 ## [Unreleased]
 
+## [0.12.1] - 2026-11-01
+
+0.12.0's tag was pushed, and its release workflow failed in the first step: CI on `main` had been red since
+2026-10-30 and nobody had read it. Nothing in the generated output changes — a patch.
+
+### Fixed
+- CI and the release workflow install the `catalogue` extra, so mypy sees SQLAlchemy's types:
+  `source_schema_reader.py` (WP96) and `profiler.py` (WP98) subclass and return them, and without the extra
+  mypy strict reported five errors on every push from 2026-10-30 17:01 on. `CONTRIBUTING.md` names the same
+  command.
+- The workbench's Project test answered a settings save with the settings alone, where
+  `PUT /api/projects/{id}/settings` answers with the whole view; the perspective then read `environment` of
+  nothing and vitest exited red on two unhandled errors while all 34 tests passed (since WP113, 2026-10-31).
+- An import block in WP117's test file was unsorted; ruff's local cache had reported the tree clean, so the
+  definition of done before 0.12.0 held on a stale answer — `ruff check --no-cache` finds it.
+
 ## [0.12.0] - 2026-11-01
+
+(The tag exists; its workflow failed before building, so there is no GitHub release of it. 0.12.1 is the
+same tree plus the fixes above.)
+
 
 Nine days and work packages WP82, WP92–WP117 after 0.11.0. The positioning is decided (ADR-0015: the
 consultant's single-user tool, a project root that moves whole) and the source system becomes an input in
@@ -751,7 +771,8 @@ Open: no live Databricks build yet — that is what 1.0 waits for.
 
 Project start. Everything between here and 0.9.0 is in `docs/log.md`, entry by entry.
 
-[Unreleased]: https://github.com/mischa76/vault-agent/compare/0.12.0...HEAD
+[Unreleased]: https://github.com/mischa76/vault-agent/compare/0.12.1...HEAD
+[0.12.1]: https://github.com/mischa76/vault-agent/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/mischa76/vault-agent/compare/0.11.0...0.12.0
 [0.11.0]: https://github.com/mischa76/vault-agent/compare/0.10.0...0.11.0
 [0.10.0]: https://github.com/mischa76/vault-agent/compare/0.9.1...0.10.0

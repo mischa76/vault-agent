@@ -9,7 +9,7 @@ MIT licensed. By contributing you agree your work ships under the same terms.
 ## Getting set up
 
 ```bash
-uv sync --extra dev          # Python 3.12+; add --extra eval, --extra demo or --extra demo-databricks as needed
+uv sync --extra dev --extra ui --extra catalogue   # Python 3.12+ — what CI installs; mypy needs `catalogue` (SQLAlchemy's types); add --extra eval, --extra demo or --extra demo-databricks as needed
 uv run pytest                # must pass with NO Anthropic API key set
 ```
 

@@ -15,7 +15,13 @@ vi.mock("./api", () => ({
       effective: { target_platform: "postgres", primary_model: "claude-sonnet-5-5", heavy_model: "claude-opus-5-5", anthropic_base_url: null },
       environment: { llm_provider: "anthropic", anthropic_api_key_set: false, primary_model: "claude-sonnet-5-5", heavy_model: "claude-opus-5-5", anthropic_base_url: null },
     })),
-    saveSettings: vi.fn(async (_id: string, body: unknown) => ({ settings: body })),
+    // PUT /settings answers with the whole view, as GET does (app.py `put_settings`); a mock that
+    // answered with the settings alone left the perspective reading `environment` of nothing.
+    saveSettings: vi.fn(async (_id: string, body: unknown) => ({
+      settings: body,
+      effective: { target_platform: "postgres", primary_model: "claude-sonnet-5-5", heavy_model: "claude-opus-5-5", anthropic_base_url: null },
+      environment: { llm_provider: "anthropic", anthropic_api_key_set: false, primary_model: "claude-sonnet-5-5", heavy_model: "claude-opus-5-5", anthropic_base_url: null },
+    })),
   },
 }));
 import { api } from "./api";
