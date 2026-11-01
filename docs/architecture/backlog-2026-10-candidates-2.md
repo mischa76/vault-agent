@@ -161,3 +161,16 @@ branch with the code it answers today, every console command on the paused stub 
 item branches on a constructed state. `vault_agent.ui` from 82 % to 94 % line coverage; a floor of 85 in
 `[tool.coverage.report]`, enforced by CI's `--cov=vault_agent.ui` on both workflows and pinned by a guard; the local
 suite unchanged. Spec `backlog-2026-07/wp111-workbench-api-coverage-spec.md`.
+
+## C14, C15 and C16 — closed on 2026-10-22 (noted here 2026-11-01)
+
+All three were built on 2026-10-22 on the owner's go and never annotated here, so a status read from this file on
+2026-11-01 listed them as open and the owner asked for them again. C14: `.gitignore` ignores `workbench/` and
+`workbench-demo*/`, both trees left the index, the owner's AdventureWorks build ships curated as
+`demo/workbench-adventureworks/` (`docs/log.md` 2026-10-22, „C14 built"). C16: README, reference architecture and
+the three ADRs' acceptance (ADR-0004, -0005, -0007 Accepted by log entry and index row, files unchanged;
+`docs/log.md` 2026-10-22, „C16 built"). C15: release 0.10.0 cut the same day, 0.11.0 on 2026-10-23
+(`docs/log.md` 2026-10-22 and 2026-10-23). What was open again on 2026-11-01 is drift of C16's kind, nine days
+on: the README said 36 gates where the validator has 37, its roadmap and command section ended before WP92–WP117,
+the reference architecture still called PIT/bridge open and profiling partial; re-derived in the commit that
+carries this note. The release in C15's sense is 0.12.0 (WP92–WP117), cut the same day.

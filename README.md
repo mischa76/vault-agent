@@ -86,7 +86,7 @@ too). All built; the list is `graph.py`'s, which owns it:
 | **Business-Key Identifier** | Scores key candidates against DV2.0 heuristics; flags ambiguity for review | ✅ Built |
 | **DV2.0 Modeler** | Generates Hubs, Links (incl. role-qualified self-referencing links), and Satellites under DV2.0 rules | ✅ Built |
 | **Code Generator** | Emits AutomateDV dbt models — hubs, links, standard/multi-active/effectivity satellites, transactional links — plus the staging layer and dbt project scaffolding (a runnable project) | ✅ Built |
-| **Validator** | 36 independent `E_` gates (plus advisory `W_` warnings) checking the model and generated artifacts for DV2.0 compliance — the code owns the count: `rg -o '"E_[A-Z_]+"' src/vault_agent/agents/validator.py \| sort -u` | ✅ Built |
+| **Validator** | 37 independent `E_` gates (plus advisory `W_` warnings) checking the model and generated artifacts for DV2.0 compliance — the code owns the count: `rg -o '"E_[A-Z_]+"' src/vault_agent/agents/validator.py \| sort -u` | ✅ Built |
 | **ADR Author** | Turns the agents' modeling decisions into an explicit, traceable ADR | ✅ Built |
 | **Data Contract Agent** | Drafts JSON-Schema source-to-staging contracts + dbt schema tests; flags gaps for human review | ✅ Built |
 | **Entity Resolver** | In brownfield runs, proposes whether a new concept is an existing hub (merge / same-as / new), with evidence and a confidence category; nothing merges unratified (WP29) | ✅ Built |
@@ -226,7 +226,11 @@ does (measured on PostgreSQL, WP98). For a source without declared keys, `vault-
 dependencies with their evidence — under `inferred_keys`, beside the declarations and never
 inside them; the proposer offers them with provenance `inferred`, and `--accept` declines them:
 only an explicit `--link` builds one (WP99, ADR-0018; measured against AdventureWorks' own
-declarations).
+declarations). Where no requirements document exists yet, `vault-agent draft-requirements
+--source-schema s.yml --out requirements.md` drafts one from the catalogue — what each table is,
+what identifies it, how it refers to other tables, in the catalogue's words — headed by a typed
+`status: unreviewed` mark a human clears after correcting it; `run` flags an unreviewed draft as a
+decision (WP117, ADR-0019). There is no source-driven mode: the document stays the input.
 
 To **extend an existing vault** instead of modelling into an empty one, point the run at an earlier
 run's output: `vault-agent run … --existing <earlier output dir>` (brownfield, WP23/WP29).
@@ -358,7 +362,7 @@ Contracts         data contract agent + dbt schema tests                       �
 Orchestration     orchestrator entry node · live HITL (interrupt/resume)       ✅ done
 Hardening         typed pipeline flags · resilient LLM call path (retry/backoff/caching) ✅ done
 Runnable output   staging generator + dbt project scaffolding (verified on Postgres) ✅ done
-Validation depth  36 independent validator gates (incl. eff-sat order, HK collisions, composite keys) ✅ done
+Validation depth  37 independent validator gates (incl. eff-sat order, HK collisions, composite keys) ✅ done
 Evals             eval harness: golden datasets · deterministic scorers · LangSmith layer ✅ done
 Multi-role links  role-qualified self-referencing links (ADR-0009, Postgres-verified) ✅ done
 Mapping (Phase 2) business↔source mapping — LLM-first, ratified, opacity-probed &
@@ -382,6 +386,12 @@ Data defects      found in the owner's build and fixed: zero keys for nullable l
 Business Vault    point-in-time tables in our own SQL — AutomateDV deprecates
                   its pit()/bridge() (ADR-0016, WP91); bridges along a
                   named or ratified path (WP115)                               ✅ done
+Source system     declared schema, profiling and inferred keys read from the
+                  source database (WP96–WP99, ADR-0018); a requirements
+                  draft from the catalogue a human corrects (WP117, ADR-0019) ✅ done
+Positioning       the consultant's single-user tool, a relocatable project
+                  root (ADR-0015, WP92); project settings and a naming
+                  profile (WP113, WP114)                                      ✅ done
 Second domain     a non-AdventureWorks landscape (bank / insurance)            ⏳ planned
 Snowflake         platform profile and a recorded build                       ⏳ planned
 ```

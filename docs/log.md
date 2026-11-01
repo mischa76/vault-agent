@@ -12429,3 +12429,28 @@ the technical types a catalogue carries (a type outside them is stated as a name
 **Bewusst nicht getan.** The corrected-draft measurement (ADR rule 5, the owner's; after WP116 it measures scope);
 the workbench offering the command (a drafted file is uploaded as any requirements file); README's quick start
 unchanged; no paid run; CLAUDE.md unchanged.
+
+## [2026-11-01] Correction — C14, C15 and C16 were closed on 2026-10-22; a status read from the candidates file listed them as open, and the owner asked for them again. The drift of C16's kind since then re-derived: 37 gates, the roadmap and the reference architecture through WP117
+
+**Autor:** Claude Code
+
+**What was wrong.** The session's opening status report named C14 (repo hygiene), C15 (release 0.10.0) and C16
+(documentation drift) as open candidates without code, read from `backlog-2026-10-candidates-2.md`, which closes
+C8, C10 and C19 by dated note and the other three not at all. The log of 2026-10-22 records all three built („C14
+built", „C16 built", „C15: release 0.10.0"), and 0.11.0 followed on 2026-10-23. The catalogue was read as proof,
+against the bootstrap rule; the same mistake as the C28/C29 correction of 2026-10-31, and found the same way, by
+reading the log before starting. The owner's go (2026-11-01) was given on the wrong status. **Done instead.** A
+dated closing note in the candidates file and its index row; and the drift of C16's kind that nine days had
+produced, re-derived from the code: the README said 36 `E_` gates where `validator.py` has 37
+(`rg -o '"E_[A-Z_]+"' … | sort -u | wc -l`; the agents table and the roadmap line), its roadmap ended at WP115 and
+its command section at `infer-keys` — the source-system commands (WP96–WP99), `draft-requirements` (WP117), the
+positioning and settings work (ADR-0015, WP92, WP113, WP114) added; `docs/reference-architecture.md` still called
+PIT/bridge *open* and profiling *partial* — PIT/bridge is achieved (WP91, WP115, keyless PostgreSQL builds) and
+source identification is achieved as assist (`source-schema`, `profile`, `infer-keys`, `draft-requirements`; the
+pipeline reads no rows), the re-derivation date moved to today. C15 in today's sense is release 0.12.0, the next
+entry. **Überprüft.** The gate count by the README's own command; each README claim against the WP entries of
+2026-10-24 → 2026-10-31; the reference architecture's two changed rows against ADR-0016 and ADR-0018/-0019.
+**Nur angenommen.** That no other maintained page repeats the gate count (`rg "36" docs/` found none beside a
+gate). **Bewusst nicht getan.** The wiki page `vault-agent.md` is updated in the wiki's own commit, not here; the
+ADR files stay as they are; no CLAUDE.md change.
+
