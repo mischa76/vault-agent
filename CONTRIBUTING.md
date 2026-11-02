@@ -10,7 +10,10 @@ MIT licensed. By contributing you agree your work ships under the same terms.
 
 ```bash
 uv sync --extra dev --extra ui --extra catalogue   # Python 3.12+ — what CI installs; mypy needs `catalogue` (SQLAlchemy's types); add --extra eval, --extra demo or --extra demo-databricks as needed
-uv run pytest                # must pass with NO Anthropic API key set
+uv run pytest                # must pass with NO Anthropic API key set — and none reachable:
+#   mv .env .env.off; env -u ANTHROPIC_API_KEY uv run pytest; mv .env.off .env
+#   (an `.env` key hid the one keyed test from CI, 2026-11-02; an EMPTY variable is not the
+#   same as an unset one — two tests tell them apart)
 ```
 
 The suite is **keyless by design**. Every LLM call sits behind an injectable seam, and the

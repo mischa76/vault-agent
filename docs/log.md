@@ -12514,3 +12514,31 @@ run before and after the mock change, every check named above. **Nur angenommen.
 on the unchanged frontend sources (it passed on every run whose Test step failed, up to 2026-10-31). **Bewusst
 nicht getan.** No CodeQL fix or dismissal; no dbt-databricks bump; the wiki's GitHub/CI page unchanged.
 
+## [2026-11-02] Release 0.12.2 — 0.12.1's workflow failed on the one keyed test of 1575; the definition of done gains the keyless run, the ruff cache and the CI run of the push (CLAUDE.md)
+
+**Autor:** Claude Code
+
+The owner pushed `main` and tag `0.12.1` (2026-11-02 23:50 UTC). CI run 41548380466: lint, type-check and the
+frontend job green — the three causes of the previous entry are closed on GitHub, not only here — and the test
+step red on one test, the release workflow (41548383005) on the same: `test_wp113_project_settings.py::
+test_the_client_carries_the_base_url` constructs `ForcedToolCaller`, which builds its route from `Settings()`,
+which refuses when `llm_provider='anthropic'` has no key. Locally `.env` supplies one; CI has none. The invariant
+„the suite runs without an API key" held in every test but this one since 2026-10-31, and the local definition of
+done could not see it because the key was reachable. **Fixed.** The test sets `ANTHROPIC_API_KEY` to the dummy
+`test_config.py` uses and clears `get_settings`' cache before and after. **How keyless was measured, and a
+wrong road.** `ANTHROPIC_API_KEY= uv run pytest` (empty, overriding `.env`) is *not* unset: two tests
+(`test_stale_or_foreign_dotenv_keys_are_ignored`, `test_bedrock_needs_a_region_but_no_anthropic_key`) tell an
+empty variable from a missing one and fail under it. Running from another directory loses the cwd-relative
+fixtures (41 failures, all path). The faithful run is `mv .env .env.off; env -u ANTHROPIC_API_KEY uv run pytest;
+mv .env.off .env` from the repo root: before the fix the test fails under it (checked on the stashed tree), after
+it 1575 passed, 5 skipped, coverage 95.42 % (CI shows 6 skipped — one environment-dependent skip, not read
+further). **CLAUDE.md** (223 → 227 lines): the definition of done names the keyless recipe, `ruff check
+--no-cache`, and the CI run of the push as the last step — three incidents in two days, each a local „green" that
+GitHub contradicted; `CONTRIBUTING.md` carries the recipe. **Release 0.12.2**, a patch: version, lock, CHANGELOG
+section and a note under 0.12.1; tag set locally, the push the owner's. **Überprüft.** The two CI runs' job and
+step conclusions and the failing test's log; the faithful keyless suite before (red) and after (green) the fix;
+`ruff check --no-cache`, bare `mypy`. **Nur angenommen.** That the release workflow's remaining steps (frontend
+build, `uv build`, publish) pass as they did for 0.11.0 — unchanged since. **Bewusst nicht getan.** No autouse
+fixture that hides `.env` from every test (it would change what `test_config.py` measures); the sixth skip on CI
+not identified; C43 untouched.
+

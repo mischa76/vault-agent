@@ -15,7 +15,7 @@ from typer.testing import CliRunner
 
 from tests.test_cli import _sqlite_stub_agents
 from tests.test_wp66_workbench_api import _project_with_inputs
-from vault_agent import cli, graph, llm
+from vault_agent import cli, config, graph, llm
 from vault_agent.config import LLMOptions
 from vault_agent.graph import build_graph
 from vault_agent.ui.app import create_app
@@ -122,10 +122,18 @@ def test_the_client_carries_the_base_url(monkeypatch: pytest.MonkeyPatch) -> Non
             captured.append(kwargs)
 
     monkeypatch.setattr(llm.anthropic, "AsyncAnthropic", _Client)
-    llm.ForcedToolCaller("m", base_url="http://proxy.local:8080")
-    assert captured[-1]["base_url"] == "http://proxy.local:8080"
-    llm.ForcedToolCaller("m")
-    assert captured[-1].get("base_url") in (None, "")  # the SDK's default, ANTHROPIC_BASE_URL
+    # The caller builds its route from `Settings()`, which refuses without a key: the suite is
+    # keyless, so the key is a dummy set here — an `.env` on the author's machine had hidden that
+    # this test needed one (CI red on 2026-11-02, the only keyed test among 1575).
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-test-not-a-real-key")
+    config.get_settings.cache_clear()
+    try:
+        llm.ForcedToolCaller("m", base_url="http://proxy.local:8080")
+        assert captured[-1]["base_url"] == "http://proxy.local:8080"
+        llm.ForcedToolCaller("m")
+        assert captured[-1].get("base_url") in (None, "")  # the SDK's default, ANTHROPIC_BASE_URL
+    finally:
+        config.get_settings.cache_clear()
 
 
 # ── the CLI's flags and the pending pointer ──────────────────────────────────────────────

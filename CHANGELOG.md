@@ -14,7 +14,22 @@ is not the project's.
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-11-02
+
+0.12.1's workflow got past lint, type-check and the frontend and failed on one test: the only one of 1575 that
+needed an API key. Nothing in the generated output changes — a patch.
+
+### Fixed
+- `test_the_client_carries_the_base_url` (WP113) built the Anthropic client, which reads `Settings()`, which
+  refuses without a key; the author's `.env` had supplied one, CI has none. The test sets a dummy key and
+  clears the settings cache around it, as `test_config.py` does. The definition of done now runs the suite
+  with the key unset *and* `.env` set aside (`CONTRIBUTING.md`, `CLAUDE.md`); an empty variable is not the
+  same as an unset one — two tests tell them apart.
+
 ## [0.12.1] - 2026-11-01
+
+(The tag exists; its workflow failed on the test above, so there is no GitHub release of it either.)
+
 
 0.12.0's tag was pushed, and its release workflow failed in the first step: CI on `main` had been red since
 2026-10-30 and nobody had read it. Nothing in the generated output changes — a patch.
@@ -771,7 +786,8 @@ Open: no live Databricks build yet — that is what 1.0 waits for.
 
 Project start. Everything between here and 0.9.0 is in `docs/log.md`, entry by entry.
 
-[Unreleased]: https://github.com/mischa76/vault-agent/compare/0.12.1...HEAD
+[Unreleased]: https://github.com/mischa76/vault-agent/compare/0.12.2...HEAD
+[0.12.2]: https://github.com/mischa76/vault-agent/compare/0.12.1...0.12.2
 [0.12.1]: https://github.com/mischa76/vault-agent/compare/0.12.0...0.12.1
 [0.12.0]: https://github.com/mischa76/vault-agent/compare/0.11.0...0.12.0
 [0.11.0]: https://github.com/mischa76/vault-agent/compare/0.10.0...0.11.0

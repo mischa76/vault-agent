@@ -131,8 +131,12 @@ fresh clone does not lose them.
   *Action:* add a dated entry that says so; never edit the old text. *Evidence:* the correction is
   findable by date, and the original reasoning is still readable.
 
-- **Definition of done.** `uv run pytest`, `uv run ruff check`, and a bare `uv run mypy` — no path
-  argument, it overrides `pyproject`'s file list and silently skips `eval/`. CI adds
+- **Definition of done.** `uv run pytest` **with no key reachable** — `ANTHROPIC_API_KEY` unset and
+  no `.env` in the working directory — `mv .env .env.off; env -u ANTHROPIC_API_KEY uv run pytest; mv .env.off .env`, an empty variable is not unset (an `.env` key hid the one keyed test, CI red 2026-11-02);
+  `uv run ruff check --no-cache` (the cache answered „clean" for a red tree, 2026-11-01); and a bare
+  `uv run mypy` — no path argument, it overrides `pyproject`'s file list and silently skips `eval/`.
+  **Then the CI run of the push**: `gh run list --limit 1` green, or the WP is not done — CI was red
+  for three weeks (2026-10-30 → 2026-11-02) while every local DoD passed. CI adds
   `--cov=vault_agent.ui` with a floor of 85 (WP111): workbench code without tests through the API fails there. Then a `docs/log.md`
   entry. A live-verified claim names its evidence and says *which* live: a paid LLM run verifies
   modelling, a keyless `dbt build` verifies the warehouse output; a keyless-only claim says so.
