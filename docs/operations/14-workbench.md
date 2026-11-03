@@ -55,7 +55,7 @@ house loader; a malformed one is refused with the loader's message before any mo
 The Project perspective's *Settings* section edits these (the start form's platform follows the stored default)
 and shows the route and whether the API key is set. The section's *naming profile* folds out the seven technical names (WP114).
 Deleting asks first in the frontend (a `delete` button per input, per run at rest and for the project) and shows the
-API's reason where a rule refuses. Run ids are `<project>:<stamp>`. A paused run's state is read from its checkpoint, a finished
+API's reason where a rule refuses. Run ids are `<project>:<stamp>`; a project id is what its name slugs to (`[a-z0-9-]+`), a stamp the start's UTC stamp, and the store answers 404 to any other shape before a path is built (WP118, C43: `%2E%2E` reaches a route as `..`). A paused run's state is read from its checkpoint, a finished
 run's from `.vault-agent/state.json` (written when it finishes, beside the trace — the same
 sensitivity, never published), so a restarted server serves both. One active run per process:
 the checkpointer and `pending.json` are single-slot per directory. A second start answers 409.

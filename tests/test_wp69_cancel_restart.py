@@ -115,15 +115,17 @@ def test_startup_reconciles_runs_the_server_died_on(tmp_path: Path, fast_graph: 
     (out / "run.json").write_text(json.dumps({**meta, "status": "running"}), encoding="utf-8")
     (out / ".vault-agent" / "pending.json").unlink()
     # a second, thread-less run the server died on before anything was checkpointed
-    dead = out.parent / "dead"
+    stamp = "20260101T000000000000Z"  # a stamp, as WP118 requires of every run folder
+    dead = out.parent / stamp
     dead.mkdir()
     (dead / "run.json").write_text(json.dumps({
-        **meta, "id": f"{pid}:dead", "status": "running", "thread_id": None, "out_dir": str(dead),
+        **meta, "id": f"{pid}:{stamp}", "status": "running", "thread_id": None,
+        "out_dir": str(dead),
     }), encoding="utf-8")
     with TestClient(create_app(root)) as other:
         revived = other.get(f"/api/runs/{run['id']}").json()
         assert revived["status"] == "interrupted" and "server" in (revived["error"] or "")
         assert (out / ".vault-agent" / "pending.json").exists()
-        assert other.get(f"/api/runs/{pid}:dead").json()["status"] == "failed"
+        assert other.get(f"/api/runs/{pid}:{stamp}").json()["status"] == "failed"
         r = other.post(f"/api/runs/{run['id']}/checkpoint?wait=true", json={"discard": True})
         assert r.status_code == 200 and r.json()["status"] == "discarded"

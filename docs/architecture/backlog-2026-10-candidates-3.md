@@ -398,3 +398,13 @@ the CLI ones dismissed with a written reason instead of standing unanswered. Can
 guards, the `--owner` match without nested quantifiers, then a triage pass over the alerts (fixed / won't fix with
 reason). Evidence: `gh api repos/mischa76/vault-agent/code-scanning/alerts?state=open`, `docs/log.md` 2026-11-01.
 
+
+## C43 — closed by WP118 on 2026-11-03
+
+The two id checks live in the store (`_dir`, `run_dir`, `_run_metas`; `delete_run_dir` through `run_dir`), the
+owner spec parses without regexes, both with guards committed red first
+(`wp118-untrusted-ids-spec.md`, `tests/test_wp118_untrusted_ids.py`). Two corrections to the note above: a run
+stamp is `\d{8}T\d{12}Z` (`%Y%m%dT%H%M%S%fZ` — 12 digits after the T, not 15; the shipped demo's runs say so),
+and the hazard was not hypothetical at the HTTP layer — `%2E%2E` reaches a route as `..` (measured with the test
+client, 2026-11-03). What CodeQL closes and what is dismissed with a reason: `docs/log.md` 2026-11-03 and the
+entry after the push's CodeQL run.

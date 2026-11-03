@@ -14,6 +14,15 @@ is not the project's.
 
 ## [Unreleased]
 
+### Fixed
+- The workbench checks a project id and a run stamp before building a path (WP118, C43): a project id must be
+  what its name slugs to, a stamp the start's UTC stamp, anything else is the 404 a wrong id gets. Before, a
+  client sending `%2E%2E` reached the store with `..`, and with a `project.json` in the root's parent that was a
+  readable, writable and deletable project. Exposure was small (loopback, one user); the check is in the store,
+  so every route has it.
+- `--owner` and the checkpoint form's owner parse without regular expressions: the two patterns backtracked
+  quadratically (7 s and 11 s on a 60 000-character spec). Same answers, pinned by a table against the old code.
+
 ## [0.12.2] - 2026-11-02
 
 0.12.1's workflow got past lint, type-check and the frontend and failed on one test: the only one of 1575 that

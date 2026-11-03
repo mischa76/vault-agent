@@ -36,6 +36,13 @@ def _slug(name: str) -> str:
     return slug
 
 
+# WP118 (C43): the two shapes an id may have — what `_slug` produces, and what `RunManager.start`
+# stamps (`%Y%m%dT%H%M%S%fZ`). Both arrive from a URL segment, and `%2E%2E` arrives as `..`; the
+# store refuses any other shape before a path exists, with the 404 a wrong id gets.
+_PROJECT_ID = re.compile(r"[a-z0-9-]+")
+_RUN_STAMP = re.compile(r"\d{8}T\d{12}Z")
+
+
 class ProjectSettings(BaseModel):
     """WP113 (C3): what a project pins for every run it starts — each field optional, a
     blank clears it. Secrets are never here; they stay in `.env`."""
@@ -109,6 +116,8 @@ class ProjectStore:
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _dir(self, project_id: str) -> Path:
+        if not _PROJECT_ID.fullmatch(project_id):
+            raise ProjectError(f"no project {project_id!r} under {self.root}")
         path = self.root / project_id
         if not (path / "project.json").is_file():
             raise ProjectError(f"no project {project_id!r} under {self.root}")
@@ -164,8 +173,12 @@ class ProjectStore:
             raise ProjectError(f"project {project_id!r} has no input file {name!r}")
         return path
 
-    def run_dir(self, project_id: str, run_id: str, *, create: bool = False) -> Path:
-        path = self._dir(project_id) / "runs" / run_id
+    def run_dir(self, project_id: str, stamp: str, *, create: bool = False) -> Path:
+        """The run's folder under the project — the stamp checked first (WP118): `runs/..` is
+        the project itself, and a stamp is never anything but the start's UTC stamp."""
+        if not _RUN_STAMP.fullmatch(stamp):
+            raise ProjectError(f"no run {stamp!r}")
+        path = self._dir(project_id) / "runs" / stamp
         if create:
             path.mkdir(parents=True, exist_ok=False)
         return path
@@ -200,6 +213,8 @@ class ProjectStore:
 
     # ----- deleting (WP112, C2) ---------------------------------------------------------------
     def _run_metas(self, project_id: str | None = None) -> builtins.list[dict[str, Any]]:
+        if project_id is not None:
+            self._dir(project_id)  # WP118: the id's shape, before it becomes a glob pattern
         pattern = f"{project_id}/runs/*/run.json" if project_id else "*/runs/*/run.json"
         return [
             json.loads(p.read_text(encoding="utf-8"))
@@ -240,7 +255,7 @@ class ProjectStore:
     def delete_run_dir(self, project_id: str, run_id: str) -> None:
         """The folder the store locates for the run, removed whole (never a recorded path)."""
         _, _, stamp = run_id.partition(":")
-        path = self._dir(project_id) / "runs" / stamp
+        path = self.run_dir(project_id, stamp)
         if not (path / "run.json").is_file():
             raise ProjectError(f"no run {run_id!r}")
         shutil.rmtree(path)

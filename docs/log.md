@@ -12563,3 +12563,44 @@ release; the sixth skip's identity waits for the next CI run. **Bewusst nicht ge
 wheel (the release workflow's `uv build` is the same command as 0.11.0's, and the asset sizes are plausible);
 C43 not started — it is the proposed next item, the owner decides the order. Evidence: runs 41559612131 and
 41559614402; the 2026-11-02 entry above.
+
+## [2026-11-03] WP118 built and measured keyless: the workbench's ids are checked before any path (C43) — `%2E%2E` had reached a route as `..`; `_parse_owner` without its two quadratic regexes; 49 of the 97 CodeQL alerts dismissed with a written reason, the 48 on the changed code wait for the push's scan
+
+**Autor:** Claude Code
+
+On the owner's go (2026-11-03) for C43 as recorded on 2026-11-01. **Built** (`wp118-untrusted-ids-spec.md`;
+guards `7d95634` first, three of the four dot-dot assertions and one timing case red on the old code). In
+`ui/projects.py`: `_PROJECT_ID` (`[a-z0-9-]+`, what `_slug` produces) is checked in `_dir`, `_RUN_STAMP`
+(`\d{8}T\d{12}Z`, what `RunManager.start` stamps) in `run_dir`; `_run_metas` goes through `_dir` before the id
+becomes a glob pattern, `delete_run_dir` through `run_dir`; a failing id is the `ProjectError("no …")` the API
+already turns into 404, so a malformed id tells no more than a wrong one. In `cli.py`: `_is_bare_address`
+(`partition("@")`, no whitespace, `<`, `>` or second `@` in either part, a dot inside the domain) and
+`_angle_bracketed` (the first `<` with at least one non-`>` character before its `>`, by `str.find` in one pass)
+replace `re.fullmatch(r"[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+")` and `re.search(r"<([^>]+)>")`; the table in the test
+judges the rewrite against the old code copied in, twenty specs including `a=x@a.b.` (an address, the dot after
+`a`), `a=<>Team <t@x.io>` and `a=Ann <b <c@x.io>`. **Measured.** Before: `GET /api/projects/%2E%2E` under the
+test client reaches `get_project` with `project_id == ".."` (a browser normalises it, a client need not), and with
+a `project.json` in the root's parent it was a readable, writable and deletable project — `DELETE` would have
+removed the parent whole; `GET /api/runs/p:..` reached with `p:..`, and `delete_run_dir` on it would have removed
+the project folder (`runs/..`). The regexes: 7.0 s and 11.3 s on 60 000-character specs; after, milliseconds, the
+guard allows 2 s. The keyless suite: 1602 passed, 5 skipped, `vault_agent.ui` 95 %; `ruff --no-cache` and bare
+`mypy` clean. One existing test changed with the reason in the commit: WP69's restart test fabricated a run folder
+named `dead`, which is no stamp; it is `20260101T000000000000Z` now. **Two corrections to the candidate note of
+2026-11-01:** a stamp has 12 digits after the T, not 15 (`%H%M%S%f`; the shipped demo's runs say
+`20261022T233041709632Z`), and the hazard was reachable over HTTP, not only in theory. **Triage.** Of the 97 open
+alerts, 49 are the CLI class — `cli.py` 32, `existing_model.py` 13, `trace.py` 2, `source_schema.py` 1,
+`profiling.py` 1: paths the owner types for the owner's own files, or under the output directory the owner named,
+in the single-user tool of ADR-0015. Dismissed as „won't fix" with that reason and a pointer to this entry
+(`gh api -X PATCH …/code-scanning/alerts/<n>`, 49 of 49 accepted). Open after it: 48 — the 2 `polynomial-redos`
+on the rewritten lines and the 46 `path-injection` in `ui/` (`projects.py` 21, `runs.py` 14, `project_check.py`
+8, `app.py` 3). Those are the push's business: CodeQL re-scans `main`, closes what it reads as fixed, and whatever
+it keeps — a `fullmatch` is not a barrier the scanner recognises — is dismissed as a false positive naming the
+check, in a dated entry. **Überprüft.** The four guards red then green; the timing of both regexes before and after
+on this machine; the keyless suite from the repo root with `.env` set aside; the dismissals by re-listing the open
+alerts. **Nur angenommen.** That CodeQL's next scan closes the two ReDoS alerts (the patterns are gone from the
+file); how many of the 46 it closes is unknown until it runs. **Bewusst nicht getan.** `app.py`'s `_guard` still
+chooses 404 by the message's prefix („no "), against the typed-fields rule — noted, not changed here (a code on
+`ProjectError` would be the fix, a candidate); `_write` and `add_file` still build `self.root / project_id`
+directly, reached only after `_read` or `create` checked the id; no CLI path changed; the manual's API table
+unchanged, the ids sentence under it extended. Evidence: `tests/test_wp118_untrusted_ids.py`, the commit of this
+entry, CodeQL alert 108 as the first dismissal.

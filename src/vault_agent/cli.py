@@ -830,6 +830,32 @@ async def _discard_pending(out_dir: Path, thread_id: str) -> None:
     _clear_pending(out_dir)
 
 
+def _address_part_ok(part: str) -> bool:
+    return bool(part) and not any(c.isspace() or c in "<>@" for c in part)
+
+
+def _is_bare_address(text: str) -> bool:
+    """``local@domain`` with a dot inside the domain and no whitespace, ``<``, ``>`` or second
+    ``@`` — the language of the former ``[^\\s<>@]+@[^\\s<>@]+\\.[^\\s<>@]+`` without its
+    backtracking (WP118, C43: 11 s on a 60 000-character spec)."""
+    local, at, domain = text.partition("@")
+    if not at or not _address_part_ok(local) or not _address_part_ok(domain):
+        return False
+    return "." in domain[1:-1]
+
+
+def _angle_bracketed(text: str) -> tuple[int, int] | None:
+    """The first ``<`` followed by at least one non-``>`` character and a ``>`` — the span
+    ``re.search(r"<([^>]+)>")`` found, in one pass instead of one per ``<`` (WP118)."""
+    segment = 0
+    while (close := text.find(">", segment)) != -1:
+        opening = text.find("<", segment, close - 1)
+        if opening != -1:
+            return opening, close
+        segment = close + 1
+    return None
+
+
 def _parse_owner(spec: str) -> tuple[str, dict[str, str | None]]:
     """Parse ``asset=Owner Name <email@host>`` (the ``<email>`` part optional). WP87: a bare
     address ``asset=local@domain`` is the email, its local part the name — before, it became the
@@ -838,13 +864,14 @@ def _parse_owner(spec: str) -> tuple[str, dict[str, str | None]]:
     asset, rest = asset.strip(), rest.strip()
     if not sep or not asset or not rest:
         raise ValueError(f"invalid --owner {spec!r}; expected 'asset=Name <email>'")
-    if re.fullmatch(r"[^\s<>@]+@[^\s<>@]+\.[^\s<>@]+", rest):
+    if _is_bare_address(rest):
         return asset, {"name": rest.split("@", 1)[0], "email": rest}
     email: str | None = None
-    match = re.search(r"<([^>]+)>", rest)
-    if match:
-        email = match.group(1).strip()
-        rest = rest[: match.start()].strip()
+    span = _angle_bracketed(rest)
+    if span is not None:
+        opening, close = span
+        email = rest[opening + 1 : close].strip()
+        rest = rest[:opening].strip()
     if not rest:
         raise ValueError(f"invalid --owner {spec!r}; missing owner name")
     return asset, {"name": rest, "email": email}
