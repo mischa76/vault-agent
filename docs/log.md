@@ -12641,3 +12641,19 @@ reads `.resolve()` plus a `parents` membership as a barrier for #52/#53 — if n
 No audit of other `Path / untrusted` joins outside `ui/` beyond the 49 CLI-class alerts already read on 2026-11-03;
 the `_guard` message-prefix branching stays a candidate. CHANGELOG line under Unreleased. Evidence: alerts #52, #53
 (open), #3 and the 43 others (dismissed), the two ReDoS alerts (fixed); commit `4eceda9` and the commit of this entry.
+
+## [2026-11-03] Note — C43 closed: zero open code-scanning alerts; the fix's scan closed #52 and #53 as fixed and raised three on the new lines, dismissed naming the resolve-and-parents check
+
+**Autor:** Claude Code
+
+The push of f1aa3e7: CI run 41602403641 green (1602 passed, 6 skipped), CodeQL run 41602404201 green. The scanner
+closed the two alerts on the old static route as fixed (08:20:03 UTC) and raised #110, #111, #112 on the new lines —
+the resolved candidate and the `FileResponse` of it — so it reads neither a `fullmatch` nor `.resolve()` plus a
+`parents` membership as a barrier; the assumption in the entry above did not hold. Dismissed as false positive with
+the check and the guard named in the comment. **State of the repository's code scanning:** 0 open; of the 97 read on
+2026-11-01, 2 fixed by the scanner (ReDoS), 2 fixed by the scanner (the old static route), 49 dismissed as won't fix
+(the CLI class), 44 plus 3 dismissed as false positives (the workbench). Every future alert stands alone. **Überprüft.**
+`gh api` counts of open, dismissed and fixed alerts after the last dismissal; the CodeQL run's conclusion. **Nur
+angenommen.** Nothing. **Bewusst nicht getan.** No change to the CodeQL configuration to teach it the barrier (a
+custom model or query would be its own candidate); C43's candidate note already carries its closing line. Evidence:
+alerts #52, #53 (fixed), #110–#112 (dismissed); run 41602404201.
