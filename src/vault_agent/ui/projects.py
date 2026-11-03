@@ -29,6 +29,11 @@ class ProjectError(ValueError):
     """An attributable refusal (a bad name, a missing project, a file the loader rejects)."""
 
 
+class ProjectNotFoundError(ProjectError):
+    """A lookup that found nothing — a project, run, input file, artefact or state that is not
+    there. The API answers 404 by this type (C44); the message is presentation."""
+
+
 def _slug(name: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
     if not slug:
@@ -117,10 +122,10 @@ class ProjectStore:
 
     def _dir(self, project_id: str) -> Path:
         if not _PROJECT_ID.fullmatch(project_id):
-            raise ProjectError(f"no project {project_id!r} under {self.root}")
+            raise ProjectNotFoundError(f"no project {project_id!r} under {self.root}")
         path = self.root / project_id
         if not (path / "project.json").is_file():
-            raise ProjectError(f"no project {project_id!r} under {self.root}")
+            raise ProjectNotFoundError(f"no project {project_id!r} under {self.root}")
         return path
 
     def _read(self, project_id: str) -> dict[str, Any]:
@@ -170,14 +175,14 @@ class ProjectStore:
     def input_path(self, project_id: str, name: str) -> Path:
         path = (self._dir(project_id) / "inputs" / name).resolve()
         if path.parent != (self._dir(project_id) / "inputs").resolve() or not path.is_file():
-            raise ProjectError(f"project {project_id!r} has no input file {name!r}")
+            raise ProjectNotFoundError(f"project {project_id!r} has no input file {name!r}")
         return path
 
     def run_dir(self, project_id: str, stamp: str, *, create: bool = False) -> Path:
         """The run's folder under the project — the stamp checked first (WP118): `runs/..` is
         the project itself, and a stamp is never anything but the start's UTC stamp."""
         if not _RUN_STAMP.fullmatch(stamp):
-            raise ProjectError(f"no run {stamp!r}")
+            raise ProjectNotFoundError(f"no run {stamp!r}")
         path = self._dir(project_id) / "runs" / stamp
         if create:
             path.mkdir(parents=True, exist_ok=False)
@@ -241,7 +246,7 @@ class ProjectStore:
             raise ProjectError(f"file name {name!r} is not a plain file name")
         entry = next((f for f in data["files"] if f["name"] == name), None)
         if entry is None:
-            raise ProjectError(f"project {project_id!r} has no input file {name!r}")
+            raise ProjectNotFoundError(f"project {project_id!r} has no input file {name!r}")
         readers = self.readers_of(project_id, name)
         if readers:
             raise ProjectConflictError(
@@ -257,7 +262,7 @@ class ProjectStore:
         _, _, stamp = run_id.partition(":")
         path = self.run_dir(project_id, stamp)
         if not (path / "run.json").is_file():
-            raise ProjectError(f"no run {run_id!r}")
+            raise ProjectNotFoundError(f"no run {run_id!r}")
         shutil.rmtree(path)
 
     def delete(self, project_id: str) -> dict[str, Any]:

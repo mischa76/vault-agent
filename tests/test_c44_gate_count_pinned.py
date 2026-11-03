@@ -54,8 +54,9 @@ def test_the_validator_raises_at_least_the_gates_the_project_has_argued_about() 
 
 def test_the_manual_catalogue_names_exactly_the_raised_codes() -> None:
     raised, documented = raised_gate_codes(), catalogue_codes()
-    assert raised - documented == set(), f"raised but not in the catalogue: {sorted(raised - documented)}"
-    assert documented - raised == set(), f"in the catalogue but not raised: {sorted(documented - raised)}"
+    missing, extra = sorted(raised - documented), sorted(documented - raised)
+    assert not missing, f"raised but not in the catalogue: {missing}"
+    assert not extra, f"in the catalogue but not raised: {extra}"
 
 
 def test_the_readme_states_the_count_the_code_has() -> None:
@@ -63,4 +64,4 @@ def test_the_readme_states_the_count_the_code_has() -> None:
     text = README.read_text(encoding="utf-8")
     stated = {int(m) for m in re.findall(r"(\d+) independent (?:`E_` gates|validator gates)", text)}
     assert stated, "the README no longer states the gate count in its two known phrasings"
-    assert stated == {n}, f"README says {sorted(stated)}, the validator raises {n} distinct E_ codes"
+    assert stated == {n}, f"README says {sorted(stated)}, the validator raises {n} E_ codes"

@@ -21,6 +21,7 @@ from vault_agent.ui.projects import (
     FileKind,
     ProjectConflictError,
     ProjectError,
+    ProjectNotFoundError,
     ProjectSettings,
     ProjectStore,
 )
@@ -105,9 +106,10 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
     def _guard(exc: Exception) -> HTTPException:
         if isinstance(exc, RunConflictError | ProjectConflictError):
             return HTTPException(status_code=409, detail=str(exc))
+        if isinstance(exc, ProjectNotFoundError):
+            return HTTPException(status_code=404, detail=str(exc))
         if isinstance(exc, ProjectError):
-            code = 404 if str(exc).startswith("no ") or " has no " in str(exc) else 400
-            return HTTPException(status_code=code, detail=str(exc))
+            return HTTPException(status_code=400, detail=str(exc))
         raise exc
 
     @app.get("/api/graph")

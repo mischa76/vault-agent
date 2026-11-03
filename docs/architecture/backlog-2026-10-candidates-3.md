@@ -418,6 +418,13 @@ honest derivation is the set of string codes passed to `_issue`; nothing pins RE
 (`08-validation-gates.md`) to it. Candidate: a keyless test that parses `validator.py`'s AST for those codes and
 fails when the README's number or the catalogue's rows disagree with them. **(b)** `ui/app.py`'s `_guard` answers
 404 when `str(exc)` starts with „no " or contains „ has no " — a branch on message text, against the invariant;
-noted at WP118's close. Candidate: `ProjectNotFound(ProjectError)` raised at the nine lookup sites in `projects.py`
+noted at WP118's close. Candidate: `ProjectNotFoundError(ProjectError)` raised at the nine lookup sites in `projects.py`
 and `runs.py`, `_guard` mapping by type. Evidence: `docs/log.md` 2026-11-03 („Correction — the manual's chapter 1";
 „WP118 built and measured").
+
+## C44 — closed on 2026-11-03
+
+Both halves built the same day with guards first (`9975db7`): `tests/test_c44_gate_count_pinned.py` derives the
+count from the AST (codes passed to `_issue`, 37 today) and fails on a mutated README number or a missing catalogue
+row — checked by mutating both; `ProjectNotFoundError` at the nine lookup sites, `_guard` by type. `docs/log.md`
+2026-11-03 („C44 built").

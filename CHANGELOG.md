@@ -14,6 +14,13 @@ is not the project's.
 
 ## [Unreleased]
 
+### Changed
+- The workbench API answers 404 by a typed exception, `ProjectNotFoundError`, raised at the nine lookup sites
+  (project, run, input file, artefact, session state); before, `_guard` chose 404 when the message began with
+  „no " (C44). Same answers for every existing route; a refusal whose wording starts with „no " is a 400 now.
+- The README's gate count and the manual's gate catalogue are pinned to the codes the validator passes to
+  `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
+
 ### Fixed
 - The workbench checks a project id and a run stamp before building a path (WP118, C43): a project id must be
   what its name slugs to, a stamp the start's UTC stamp, anything else is the 404 a wrong id gets. Before, a

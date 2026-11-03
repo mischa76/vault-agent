@@ -12693,3 +12693,22 @@ not to describe the tool as deviating from it, and keeps the mapping sentence fo
 The headers of both DV2.0 documents and the list of `docs/methodology/`; `grep` for a „deviates from DV2.0" claim
 over README, `docs/index.md` and `docs/operations/` finds none. **Nur angenommen.** That the LinkedIn article and the
 website post make no such claim — not searched here. **Bewusst nicht getan.** No commit.
+
+## [2026-11-03] C44 built: the gate count pinned to the code, and the API's 404 a type — two small guards against the day's two incidents
+
+**Autor:** Claude Code
+
+On the owner's go. **Guards first** (`9975db7`): the pin test green on the tree and red under a mutated README (36 →
+„README says [36, 37], the validator raises 37") and under a removed catalogue row („raised but not in the catalogue:
+E_NO_HUBS"); the typed-404 test red at import. **Built.** `tests/test_c44_gate_count_pinned.py` reads
+`agents/validator.py`'s AST and collects every string `E_` code passed to `_issue`, positionally or as `code=`,
+including the two sides of a conditional expression — 37 today — and asserts the README's two phrasings state that
+number and the manual's catalogue (`08-validation-gates.md`) has exactly those rows. `ProjectNotFoundError(ProjectError)`
+in `ui/projects.py`, raised at the six lookup sites there and the three in `ui/runs.py` (`_dir`, `input_path`,
+`run_dir`, `delete_file`, `delete_run_dir`; `read`, `_state`, `artefact`); `app._guard` maps it to 404 and any other
+`ProjectError` to 400 — the prefix match on „no " / „ has no " is gone. ruff asked for the `Error` suffix (N818),
+hence the name. Keyless suite 1608 passed, 5 skipped, `ui` 96 %; `ruff --no-cache` and bare `mypy` clean. CHANGELOG
+under Unreleased (Changed). **Überprüft.** The pin test against both mutations; the full suite; every existing 404
+assertion still green (WP66, WP112, WP118 tests). **Nur angenommen.** Nothing. **Bewusst nicht getan.** The
+`W_` warnings are not pinned (the README does not count them); the article's „37" outside the repo is not reachable
+by a test — the README is, and the article cites the README.

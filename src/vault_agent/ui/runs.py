@@ -42,7 +42,7 @@ from vault_agent.state import (
     split_concept_key,
 )
 from vault_agent.ui import project_check
-from vault_agent.ui.projects import ProjectError, ProjectStore
+from vault_agent.ui.projects import ProjectError, ProjectNotFoundError, ProjectStore
 
 TERMINAL = {"finished", "failed", "discarded"}
 # A thread with work in it and nothing running: the CLI's crash path continues or discards it.
@@ -146,7 +146,7 @@ class RunManager:
         is not there. The store's place under the root is the one location a run has."""
         path = self._meta_path(run_id)
         if not path.is_file():
-            raise ProjectError(f"no run {run_id!r}")
+            raise ProjectNotFoundError(f"no run {run_id!r}")
         meta = cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
         meta["out_dir"] = str(path.parent)
         return meta
@@ -410,7 +410,7 @@ class RunManager:
             state = VaultAgentState.model_validate_json(persisted.read_text(encoding="utf-8"))
             self._states[run_id] = state
             return state
-        raise ProjectError(f"run {run_id!r} has no state in this session ({meta['status']})")
+        raise ProjectNotFoundError(f"run {run_id!r} has no state in this session ({meta['status']})")
 
     async def checkpoint(self, run_id: str) -> dict[str, Any]:
         meta = self.read(run_id)
@@ -606,5 +606,5 @@ class RunManager:
         out_dir = self.out_dir(run_id).resolve()
         path = (out_dir / relative).resolve()
         if out_dir not in path.parents or not path.is_file():
-            raise ProjectError(f"run {run_id!r} has no artefact {relative!r}")
+            raise ProjectNotFoundError(f"run {run_id!r} has no artefact {relative!r}")
         return path
