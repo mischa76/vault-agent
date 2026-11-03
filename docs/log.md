@@ -12604,3 +12604,14 @@ chooses 404 by the message's prefix („no "), against the typed-fields rule —
 directly, reached only after `_read` or `create` checked the id; no CLI path changed; the manual's API table
 unchanged, the ids sentence under it extended. Evidence: `tests/test_wp118_untrusted_ids.py`, the commit of this
 entry, CodeQL alert 108 as the first dismissal.
+
+## [2026-11-03] Note — the sixth skip on CI is `test_wp104_review_record_generation.py:55`: the archived chain result that lives in this machine's `eval/results/`
+
+**Autor:** Claude Code
+
+The owner pushed 4e4de2f (CI run 41574308192, green, 1574 passed, 6 skipped); with `-rs` the log names the
+skips: the five a local checkout has (two regeneration helpers, AutomateDV not installed, WP53's and WP70's
+archived results) and `tests/test_wp104_review_record_generation.py:55`, „the archived result is not in this
+checkout". Locally that test runs because `eval/results/` holds the twenty-third chain's result (git-ignored,
+mirrored to `tank` per the skill); on CI it cannot. Nothing to fix — the test skips for the right reason, as
+WP53's and WP70's do. Closes the „nur angenommen" of the two entries above. Evidence: run 41574308192's test log.
