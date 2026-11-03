@@ -408,3 +408,16 @@ stamp is `\d{8}T\d{12}Z` (`%Y%m%dT%H%M%S%fZ` — 12 digits after the T, not 15; 
 and the hazard was not hypothetical at the HTTP layer — `%2E%2E` reaches a route as `..` (measured with the test
 client, 2026-11-03). What CodeQL closes and what is dismissed with a reason: `docs/log.md` 2026-11-03 and the
 entry after the push's CodeQL run.
+
+## C44 — The README's gate count is prose, and the API's 404 is a message prefix (recorded 2026-11-03)
+
+Two small things the day's incidents named. **(a)** The README repeats the validator's gate count in two places
+(the agents table, the roadmap line). It has drifted twice (36 on 2026-11-01) and a reviewer read 32 from a stale copy
+on 2026-11-03; a bare `rg "E_[A-Z_]+"` over `validator.py` says 42 because two constant names carry the prefix. The
+honest derivation is the set of string codes passed to `_issue`; nothing pins README and the manual's catalogue
+(`08-validation-gates.md`) to it. Candidate: a keyless test that parses `validator.py`'s AST for those codes and
+fails when the README's number or the catalogue's rows disagree with them. **(b)** `ui/app.py`'s `_guard` answers
+404 when `str(exc)` starts with „no " or contains „ has no " — a branch on message text, against the invariant;
+noted at WP118's close. Candidate: `ProjectNotFound(ProjectError)` raised at the nine lookup sites in `projects.py`
+and `runs.py`, `_guard` mapping by type. Evidence: `docs/log.md` 2026-11-03 („Correction — the manual's chapter 1";
+„WP118 built and measured").
