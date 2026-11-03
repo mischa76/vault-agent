@@ -20,6 +20,9 @@ is not the project's.
   client sending `%2E%2E` reached the store with `..`, and with a `project.json` in the root's parent that was a
   readable, writable and deletable project. Exposure was small (loopback, one user); the check is in the store,
   so every route has it.
+- The workbench's client-route fallback served any readable file for an absolute or dot-dot path (`%2F`
+  arrives as `/`, and `static / "/etc/hostname"` replaces the base; found by WP118's CodeQL triage): a file is
+  served only when its resolved path lies under the bundle directory, anything else answers the SPA.
 - `--owner` and the checkpoint form's owner parse without regular expressions: the two patterns backtracked
   quadratically (7 s and 11 s on a 60 000-character spec). Same answers, pinned by a table against the old code.
 

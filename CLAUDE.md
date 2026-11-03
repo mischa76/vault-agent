@@ -9,14 +9,10 @@ business requirements documents. Target market: Swiss/DACH enterprises with larg
 Mischa Eismann (eismann.consulting) — CDVP² (Data Vault 2.0 Practitioner, 2015), 20+ years in ICT.
 
 ## Technology stack (locked unless an ADR says otherwise)
-- Python 3.12+, uv for dependency management
-- LangGraph for orchestration (state machine, subgraphs, persistence)
 - Anthropic Claude API (Sonnet 5.5 primary, Opus 5.5 for hard reasoning since WP62, 2026-10-09; the
   5.5 models refuse forced tool use, so the client asks — `FORCED_TOOL_CHOICE`); MCP for tools
-- AutomateDV (OSS dbt package) as the code-gen backend; dbt Core for transformations
 - Strategic targets Snowflake + MS Fabric (DACH); any AutomateDV-supported platform works;
   PostgreSQL for the local demo (AutomateDV has no DuckDB support)
-- LangSmith for tracing/evaluation, pytest for tests, ruff + mypy strict for quality
 
 ## Methodological foundations (cite when relevant)
 Data Vault 2.0 (Linstedt/Olschimke) · DSAF (Roelant Vos) · IREB CPRE Foundation ·
@@ -25,7 +21,6 @@ Each is mapped critically — adopted / partially / deviated — in `docs/method
 mapping before citing the source; the deviations are deliberate and argued.
 
 ## Code conventions
-- Type hints everywhere; pydantic for data models; mypy strict
 - Each agent in its own file under `src/vault_agent/agents/`
 - Prompts live as `.md` files in `src/vault_agent/prompts/`, loaded by the agent
 - LangGraph state is a single pydantic model in `state.py`; agents read/write specific fields

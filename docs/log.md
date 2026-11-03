@@ -12615,3 +12615,29 @@ archived results) and `tests/test_wp104_review_record_generation.py:55`, „the 
 checkout". Locally that test runs because `eval/results/` holds the twenty-third chain's result (git-ignored,
 mirrored to `tank` per the skill); on CI it cannot. Nothing to fix — the test skips for the right reason, as
 WP53's and WP70's do. Closes the „nur angenommen" of the two entries above. Evidence: run 41574308192's test log.
+
+## [2026-11-03] WP118 triage closed, and one real finding in it: the static fallback route served any readable file for an absolute path (`GET /%2Fetc%2Fhostname`); fixed with a guard first; 44 workbench alerts dismissed as false positives naming the check, the 2 ReDoS alerts closed by the scanner
+
+**Autor:** Claude Code
+
+The owner pushed WP118 (4e4de2f..7136cb6) and asked for the triage to be closed. CI run 41601487496 green (1601
+passed, 6 skipped); CodeQL run 41601486715 green. **What the scanner closed itself:** the two `polynomial-redos`
+alerts on `_parse_owner` (state `fixed`). **What it kept:** all 46 `path-injection` alerts in `ui/` — a `fullmatch`
+on the id is not a barrier CodeQL recognises, as the 2026-11-03 entry above assumed. **Reading them one by one found
+a real one.** `app.py`'s client-route fallback did `(static / path).is_file() and ".." not in path`; `pathlib` makes
+`static / "/etc/hostname"` the absolute path, the base replaced, and `%2F` reaches the `{path:path}` parameter as
+`/`. Measured with the test client: `GET /%2Fetc%2Fhostname` answered the file's content (`vault-dev`). Loopback and
+one user (ADR-0015), but any readable file on the machine, and the `..` check never saw an encoded dot-dot either.
+**Fixed** (`4eceda9` guard first, red on the old code: an absolute path, an encoded `..`, a `..` behind a segment —
+each must answer the bundle, never the file; then the change): a file is served only when its *resolved* path has
+the bundle directory among its parents, `runs.artefact`'s pattern. Keyless suite 1603 passed, 5 skipped, `ui` 96 %;
+`ruff --no-cache` and bare `mypy` clean. **Dismissed as false positive** (44, comment under GitHub's 280-character
+cap, pointing at the store's checks and the guards file): `projects.py` 21, `runs.py` 14, `project_check.py` 8,
+`app.py:267` (the artefact route, resolve-and-parents). **Still open:** `app.py` #52 and #53, the two lines of the
+route just fixed — left for the push's CodeQL run to close as fixed; if it keeps them, they are dismissed naming the
+resolve-and-parents check in a dated note. **Überprüft.** The alert list before and after each step via `gh api`;
+the finding reproduced with the test client before the fix; the guard red then green. **Nur angenommen.** That CodeQL
+reads `.resolve()` plus a `parents` membership as a barrier for #52/#53 — if not, see above. **Bewusst nicht getan.**
+No audit of other `Path / untrusted` joins outside `ui/` beyond the 49 CLI-class alerts already read on 2026-11-03;
+the `_guard` message-prefix branching stays a candidate. CHANGELOG line under Unreleased. Evidence: alerts #52, #53
+(open), #3 and the 43 others (dismissed), the two ReDoS alerts (fixed); commit `4eceda9` and the commit of this entry.

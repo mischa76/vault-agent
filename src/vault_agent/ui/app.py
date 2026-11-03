@@ -331,8 +331,13 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
         if path.startswith("api/") or path == "api":
             raise HTTPException(status_code=404)
         if index.is_file():
-            if path and (static / path).is_file() and ".." not in path:
-                return FileResponse(static / path)
+            # WP118 (C43): `static / path` with an absolute `path` *replaces* the base, and `%2F`
+            # arrives as `/` — `GET /%2Fetc%2Fhostname` served the file (2026-11-03). A bundle file
+            # is one whose resolved path lies under the bundle directory; anything else is the SPA.
+            candidate = (static / path).resolve() if path else None
+            inside = candidate is not None and static.resolve() in candidate.parents
+            if candidate is not None and inside and candidate.is_file():
+                return FileResponse(candidate)
             return FileResponse(index)
         return HTMLResponse(_NO_BUNDLE)
 
