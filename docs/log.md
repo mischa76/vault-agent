@@ -12712,3 +12712,16 @@ under Unreleased (Changed). **Überprüft.** The pin test against both mutations
 assertion still green (WP66, WP112, WP118 tests). **Nur angenommen.** Nothing. **Bewusst nicht getan.** The
 `W_` warnings are not pinned (the README does not count them); the article's „37" outside the repo is not reachable
 by a test — the README is, and the article cites the README.
+
+## [2026-11-03] Note — C44's CI: red on 26aeff5 (lint), green on 5bf9c5b; the local ruff had been read through a pipe
+
+**Autor:** Claude Code
+
+CI run 41683648272 for `26aeff5` failed in the Lint step on two lines over 100 columns; run 41683707931 for
+`5bf9c5b` is green (test and frontend). Cause, mine: `uv run ruff check --no-cache | tail -1` inside an `&&` chain —
+a pipe's exit status is the last command's, so a red ruff read as green and the chain went on to commit and push.
+The definition of done's `ruff check --no-cache` was run, but not *read*; CI's lint step was the guard that held, as
+CLAUDE.md's last DoD line intends. Rule for the next time, in the chronicle rather than CLAUDE.md (no second
+incident yet): never put the DoD's commands behind a pipe in a chain, or set `pipefail` first. **Überprüft.** Both
+runs' job and step conclusions. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No CLAUDE.md line for a single
+incident. Evidence: runs 41683648272 and 41683707931.
