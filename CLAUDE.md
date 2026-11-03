@@ -15,10 +15,12 @@ Mischa Eismann (eismann.consulting) — CDVP² (Data Vault 2.0 Practitioner, 201
   PostgreSQL for the local demo (AutomateDV has no DuckDB support)
 
 ## Methodological foundations (cite when relevant)
-Data Vault 2.0 (Linstedt/Olschimke) · DSAF (Roelant Vos) · IREB CPRE Foundation ·
-Data Contracts (Sanderson, Freeman & Schmidt, O'Reilly 2025) · Karpathy LOOPS.md and LLM Wiki.
-Each is mapped critically — adopted / partially / deviated — in `docs/methodology/`. Read the
-mapping before citing the source; the deviations are deliberate and argued.
+Data Vault 2.0 (Linstedt/Olschimke) is the canon of record — encoded, not mapped, in
+`dv2-rules-cheatsheet.md` and `dv2-modeling-rules-spec.md`; do not describe the tool as deviating
+from DV2.0. DSAF (Roelant Vos) · IREB CPRE Foundation · Data Contracts (Sanderson, Freeman &
+Schmidt, O'Reilly 2025) · Karpathy LOOPS.md and LLM Wiki are mapped critically — adopted /
+partially / deviated — in `docs/methodology/`; DSAF's revisions are ADR-gated alternatives, never
+silent defaults. Read the mapping before citing the source; the deviations are deliberate and argued.
 
 ## Code conventions
 - Each agent in its own file under `src/vault_agent/agents/`

@@ -12677,3 +12677,19 @@ in manual 8 has 37 rows and names exactly those codes; 14 `W_` warnings beside t
 agree. **Überprüft.** The served README's lines; `git log -S` for the three sentences; the code-derived count against
 the catalogue. **Nur angenommen.** Where the reader's copy came from (a cached page or an old link). **Bewusst nicht
 getan.** No test that pins the README's gate number to the code — a candidate (C44) if the number drifts again.
+
+## [2026-11-03] Correction — CLAUDE.md's „Methodological foundations" read as if DV2.0 were mapped with deviations; it is the canon of record, encoded without a deviation mapping
+
+**Autor:** Cowork
+
+The section listed Data Vault 2.0 among the sources „mapped critically — adopted / partially / deviated". An agent took
+that at its word and drafted, for a community post on DVAUnited, the claim that the tool deviates from DV2.0 and
+documents the deviations; the owner caught it and the post was corrected the same day (2026-11-03). What the repository
+says: `docs/methodology/dv2-rules-cheatsheet.md` and `dv2-modeling-rules-spec.md` encode the DV2.0 canon (Linstedt/
+Olschimke) and put Roelant Vos's revisions out of scope as ADR-gated alternatives tracked in `dsaf-mapping.md`; the
+critical mappings that exist are DSAF, IREB, LOOPS and the LLM wiki (`*-mapping.md`), with data contracts in
+`data-contracts-approach.md`. On the owner's go (2026-11-03) the section now names DV2.0 as the canon of record, says
+not to describe the tool as deviating from it, and keeps the mapping sentence for the other sources. **Überprüft.**
+The headers of both DV2.0 documents and the list of `docs/methodology/`; `grep` for a „deviates from DV2.0" claim
+over README, `docs/index.md` and `docs/operations/` finds none. **Nur angenommen.** That the LinkedIn article and the
+website post make no such claim — not searched here. **Bewusst nicht getan.** No commit.
