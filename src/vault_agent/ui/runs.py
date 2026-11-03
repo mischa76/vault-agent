@@ -410,7 +410,9 @@ class RunManager:
             state = VaultAgentState.model_validate_json(persisted.read_text(encoding="utf-8"))
             self._states[run_id] = state
             return state
-        raise ProjectNotFoundError(f"run {run_id!r} has no state in this session ({meta['status']})")
+        raise ProjectNotFoundError(
+            f"run {run_id!r} has no state in this session ({meta['status']})"
+        )
 
     async def checkpoint(self, run_id: str) -> dict[str, Any]:
         meta = self.read(run_id)

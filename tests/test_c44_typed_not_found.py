@@ -1,7 +1,8 @@
 """C44 — the API chooses 404 by a typed exception, not by the message's prefix. `_guard` in
 `ui/app.py` answered 404 when `str(exc)` began with „no " or contained „ has no " — a branch on
 message text, against the craft rule. Committed before the change: `ProjectNotFoundError` does
-not exist yet, and a `ProjectError` whose message happens to start with „no " answers 404. Keyless."""
+not exist yet, and a `ProjectError` whose message happens to start with „no " answers 404.
+Keyless."""
 from __future__ import annotations
 
 from pathlib import Path
