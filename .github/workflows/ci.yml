@@ -27,7 +27,9 @@ jobs:
       - name: Type-check
         run: uv run mypy
       - name: Test
-        run: uv run pytest -q --cov=vault_agent.ui --cov-report=term
+        # `-rs`: name every skip — CI skips one test more than a local checkout (6 vs 5, 2026-11-03),
+        # and `-q` alone did not say which.
+        run: uv run pytest -q -rs --cov=vault_agent.ui --cov-report=term
 
   # The frontend's own checks (WP67 §2.6): type-check, Vitest, and a build — the proof the bundle
   # the Python app serves can be produced from this commit. Node-free Python stays the test job.

@@ -12542,3 +12542,24 @@ build, `uv build`, publish) pass as they did for 0.11.0 — unchanged since. **B
 fixture that hides `.env` from every test (it would change what `test_config.py` measures); the sixth skip on CI
 not identified; C43 untouched.
 
+
+## [2026-11-03] Verification — 0.12.2 is green on GitHub: CI and Release both passed on the owner's push; the first GitHub release since 0.11.0 carries the wheel and the sdist
+
+**Scope.** Closes the "nur angenommen" of the 2026-11-02 entry (release 0.12.2): the release workflow's
+remaining steps had not run green since 0.11.0. **What ran.** The owner pushed `main` (b0c2410) and tag `0.12.2`
+at 01:25 UTC. CI run 41559612131: `test` and `frontend` both success; 1574 passed, 6 skipped, coverage 95.00 %
+over `vault_agent.ui` (floor 85). Release run 41559614402: success end to end — the version-equals-tag check, the
+DoD, the frontend build, `uv build` and the publish; GitHub release `0.12.2` exists, not draft, not pre-release,
+with `vault_agent-0.12.2-py3-none-any.whl` (388 571 bytes) and `vault_agent-0.12.2.tar.gz` (3 086 585 bytes).
+The tags `0.12.0` and `0.12.1` keep no release, as the CHANGELOG notes. CodeQL on the push: success (the alert
+count is C43's matter, unchanged). The Dependabot security job for oauthlib failed again with
+`dependency_file_not_resolvable` on the `demo-databricks` split — the same pin as read on 2026-11-01
+(databricks-sql-connector holds oauthlib below 4), nothing to do on this side. **The sixth skip.** The local
+keyless run today: 1575 passed, 5 skipped (two regeneration helpers, AutomateDV not installed, two archived-result
+tests). CI skips one more and `-q` does not say which; `ci.yml` now runs pytest with `-rs`, so the next CI run
+names it. **Überprüft.** Job conclusions of both runs via `gh run view`; the pytest total line in the CI log;
+`gh release view 0.12.2` with assets; the Dependabot job log's error line. **Nur angenommen.** Nothing for the
+release; the sixth skip's identity waits for the next CI run. **Bewusst nicht getan.** No local install of the
+wheel (the release workflow's `uv build` is the same command as 0.11.0's, and the asset sizes are plausible);
+C43 not started — it is the proposed next item, the owner decides the order. Evidence: runs 41559612131 and
+41559614402; the 2026-11-02 entry above.
