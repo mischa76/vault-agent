@@ -154,3 +154,30 @@ def test_a_long_spec_parses_in_linear_time(rest: str) -> None:
     started = time.perf_counter()
     _parse_owner(f"x={rest}")
     assert time.perf_counter() - started < 2.0
+
+
+# --- the static fallback route (found by the C43 triage, 2026-11-03) --------------------------
+
+
+def test_the_static_route_never_leaves_the_bundle_directory(tmp_path: Path) -> None:
+    """`static / path` with an absolute `path` *replaces* the base (`pathlib` semantics), and
+    `%2F` arrives as `/`: measured 2026-11-03, `GET /%2Fetc%2Fhostname` served the file. The
+    route must answer with the bundle (index or a file under it), never with anything outside."""
+    from urllib.parse import quote
+
+    static = tmp_path / "static"
+    static.mkdir()
+    (static / "index.html").write_text("<html>bundle</html>")
+    (static / "app.js").write_text("console.log(1)")
+    secret = tmp_path / "secret.txt"
+    secret.write_text("not for the browser")
+    client = TestClient(create_app(tmp_path / "projects", static))
+    assert client.get("/app.js").text == "console.log(1)"
+    for path in (
+        "/" + quote(str(secret), safe=""),             # absolute path, encoded
+        "/" + quote("../secret.txt", safe=""),          # dot-dot, encoded
+        "/" + quote("sub/../../secret.txt", safe=""),   # dot-dot behind a segment
+    ):
+        r = client.get(path)
+        assert r.status_code == 200 and "not for the browser" not in r.text, path
+        assert "bundle" in r.text, path
