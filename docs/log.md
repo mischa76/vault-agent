@@ -12657,3 +12657,23 @@ the check and the guard named in the comment. **State of the repository's code s
 angenommen.** Nothing. **Bewusst nicht getan.** No change to the CodeQL configuration to teach it the barrier (a
 custom model or query would be its own candidate); C43's candidate note already carries its closing line. Evidence:
 alerts #52, #53 (fixed), #110–#112 (dismissed); run 41602404201.
+
+## [2026-11-03] Correction — the manual's chapter 1 still called the Databricks target „keyless-only, no workspace build recorded"; the README on `main` is current (37 gates, Databricks built, workbench and AdventureWorks in the roadmap), the gate count re-derived from the code
+
+**Autor:** Claude Code
+
+The owner relayed a reader's objection that the README contradicts the new article: 32 gates, Databricks keyless-only,
+a roadmap ending at „Polish — public walkthrough". Checked against what GitHub serves for `main` (`gh api
+repos/…/readme`): 37 gates (line 89 and the roadmap line), the Databricks row „whole chain built", the Workbench,
+Real-data chain and Positioning rows present. The three quoted sentences left the README on 2026-10-04 („32
+independent", 3c3dea9) and 2026-10-22 (the other two, 28c106d, C16) — the reader saw an older rendering, not `main`.
+**What was stale:** `docs/operations/01-introduction.md` (last touched 2026-09-11) still said „keyless-only so far,
+no workspace build recorded" of the Databricks target; corrected to the WP72 builds of 2026-10-16 → 2026-10-18 with
+the log pointer. No other maintained page carries the three claims (`grep` over `docs/operations`, `docs/index.md`,
+CONTRIBUTING, the demo README). **The count, from the code:** 37 distinct `E_` codes are passed to `_issue` in
+`agents/validator.py` (a bare `rg "E_[A-Z_]+"` says 42 because `CONSTRUCT_NAME_PATTERN` and
+`SAT_WIDE_ATTRIBUTE_THRESHOLD` contain the prefix — count the codes passed to `_issue`, not the tokens); the catalogue
+in manual 8 has 37 rows and names exactly those codes; 14 `W_` warnings beside them. README, article and catalogue
+agree. **Überprüft.** The served README's lines; `git log -S` for the three sentences; the code-derived count against
+the catalogue. **Nur angenommen.** Where the reader's copy came from (a cached page or an old link). **Bewusst nicht
+getan.** No test that pins the README's gate number to the code — a candidate (C44) if the number drifts again.

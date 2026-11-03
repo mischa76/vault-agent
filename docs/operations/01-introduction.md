@@ -12,7 +12,8 @@ modelled and why. The output builds on a real warehouse: the reference verificat
 on PostgreSQL 16, and any AutomateDV-supported platform (Snowflake, BigQuery,
 Databricks, MS SQL Server, PostgreSQL) is a valid target. Databricks is additionally a
 *selectable* target (`--target-platform databricks`, 9.6) whose native seed types the
-generator writes itself — keyless-only so far, no workspace build recorded.
+generator writes itself — built on a Databricks workspace since 2026-10-16 (WP72: the bank demo,
+then the five-step AdventureWorks chain whole; `docs/log.md` 2026-10-16 → 2026-10-18).
 
 The design conviction behind it: the slow, unforgiving part of Data Vault work — key
 identification, construct selection, loading logic — is automatable, but the *judgment*
