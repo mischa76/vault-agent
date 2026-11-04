@@ -12725,3 +12725,20 @@ CLAUDE.md's last DoD line intends. Rule for the next time, in the chronicle rath
 incident yet): never put the DoD's commands behind a pipe in a chain, or set `pipefail` first. **Überprüft.** Both
 runs' job and step conclusions. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No CLAUDE.md line for a single
 incident. Evidence: runs 41683648272 and 41683707931.
+
+## [2026-11-04] Dependabot #42 merged: tornado 6.5.10 → 6.6 (dev extra only); its red check was the 2026-10-30 type-check failure, not the bump; CI on `main` green after the merge
+
+**Autor:** Claude Code
+
+The owner pointed at the open PR with one failing check. Read: #42 (Dependabot, 2026-10-30), tornado reached only
+through `ipykernel`/`jupyter-client` under the `dev` extra; the failing check was run 41095475422's Type-check step at
+17:03 on 2026-10-30 — the same hour and cause as `main`'s red (mypy without the `catalogue` extra, fixed in 0.12.1 on
+2026-11-01); the branch was based on a93b3c4 and never saw the workflow fix. **Verified locally first:** the PR branch
+in a scratch worktree, `main` merged in, a separate environment synced with the PR's lock (tornado 6.6): bare `mypy`
+clean, keyless suite 1607 passed, 6 skipped. **Then, on the owner's word:** `@dependabot rebase` commented and
+`gh pr merge 42 --squash --auto` — which merged at once, since the repository has no required checks for `--auto`
+to wait on; the rebase comment was moot. Merge commit `4bb3aa1`; CI run 41766603603 on `main` green (test, frontend).
+**Überprüft.** The failed step and its date; the local run on the merged tree; the CI run after the merge. **Nur
+angenommen.** Nothing. **Bewusst nicht getan.** No branch protection added — `--auto` merging immediately is worth
+knowing, not worth a rule yet; the oauthlib PRs stay closed by the Databricks pin (2026-11-01). Evidence: PR #42,
+runs 41095475422 and 41766603603.
