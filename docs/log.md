@@ -12757,3 +12757,43 @@ states the open remainder: C7, C17, C21. **Überprüft.** `docs/log.md` headings
 entries. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No rule in CLAUDE.md beyond the existing one („the
 code owns every count" has a sibling here: the log owns every status) — the bootstrap rule in `~/.claude/rules`
 already says it; the fix is to obey it, not to repeat it. Evidence: the headings cited; the note appended today.
+
+## [2026-11-05] Pre-registration for the twenty-fourth chain run — the first the owner drives through the workbench himself since 2026-10-22, the first under WP105–WP118, written before the run
+
+**Autor:** Claude Code
+
+On the owner's go (2026-11-05): the next paid chain, and he wants to configure and run it in the workbench rather than
+have a script drive the API. **Setup.** Workbench started from the repo root at the commit carrying this entry,
+`--root ~/workbench/chain-20261105`, port 8765, reached through the SSH tunnel of manual 14.1; project
+`adventureworks-chain-24` created and the ten demo inputs attached through the API (the five authored requirements
+documents and the five derived schemas of `demo/workbench-adventureworks/adventureworks/inputs/`); settings left at
+the environment's (Sonnet 5.5 / Opus 5.5, PostgreSQL, house naming); the key from the repo's `.env`. **Protocol, so
+the chain stays comparable with the record:** five runs person → HumanResources → Production → Purchasing → Sales,
+each extending the previous run; at the resolution checkpoint the proposals accepted as offered; at sign-off accept,
+every owner the same person; no PIT, no bridges, no profiling; the owner may deviate and says so per step. Prices as
+verified 2026-10-09 (Opus 5.5 4 / 20 USD per million, Sonnet 5.5 2 / 10). Code since the twenty-third (2026-10-31,
+`ba7e20b`): WP105 (a carried binding is the first tier), WP106–WP107, WP108 (generator flags re-derived — the
+twenty-third's 7 first-attempt flags do not recur), WP109 (`W_UNTRACED_CONSTRUCT`), WP111–WP114 (the workbench's
+tests, deletes, settings, naming profile), WP115 (bridges; not exercised here), WP116 (one decision per translated
+key), WP117 (drafted requirements; not exercised — the authored documents are used), WP118 (ids checked).
+
+**P1 — all five steps green:** every run finishes with a passing validation, the Run view's strip without a red
+node. **P2 — decisions recorded per step from the sign-off view, not judged:** total expected 87 ± 6 (the
+twenty-third's 95 less WP108's 7 generator flags less WP116's 1); this chain is driven through the workbench, so it
+does **not** enter `REVIEW_DECISION_SAMPLES` (the harness owns the record, as on 2026-10-23) — the numbers go into
+this log. **P3 — WP94's gate live, conditional as before:** if the fifth step's modeler builds a link of three or
+more participations with `hub_currency_rate`, `E_LINK_OPTIONAL_PARTICIPANT` fires in attempt 1, the remedy is
+followed, and the final model holds the two-participation link; if the shape never appears, P3 is unmeasured.
+**P4 — WP105 live:** on every step the project check says every stage resolves; the fifth step lists at most 2
+stages to provide (the twenty-third's two inferred-block stages, C39), and no stage bound on an earlier step is
+re-pointed on a later one (read from the fifth project's `source_catalogue.yml` bindings against the fourth's).
+**P5 — WP116 live:** wherever a step's sign-off carries translations, they appear as one `review_flag` decision per
+translated key with the per-construct flags as disclosures beneath it, never as per-construct decisions; if no
+step translates, P5 is unmeasured. **P6 — cost ≤ 5.5 USD and ≤ 30 min of pipeline time over the five runs** (the
+owner's answering time excluded; read from the Run view's usage and the traces). **P7 — the fifth project, built
+keylessly afterwards on the local PostgreSQL copy (`vault`, a fresh schema), parses without a hand view; every
+build failure is an inferred-bound stage, its dependants, or the copy's known type artefact; if P3 fired, the
+sales-order link holds all 31 465 orders.** **P8 — WP109 live:** `W_UNTRACED_CONSTRUCT` appears only as a warning,
+never blocks; its count per step recorded. **Not predicted:** attempts per step, the shapes, the review-item
+total, the owner's deviations. **Criterion 2 watch:** any wrong-data finding in the build restarts the two-minor
+count (release-1.0-criteria.md).
