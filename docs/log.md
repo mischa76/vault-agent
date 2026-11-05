@@ -12742,3 +12742,18 @@ to wait on; the rebase comment was moot. Merge commit `4bb3aa1`; CI run 41766603
 angenommen.** Nothing. **Bewusst nicht getan.** No branch protection added — `--auto` merging immediately is worth
 knowing, not worth a rule yet; the oauthlib PRs stay closed by the Databricks pin (2026-11-01). Evidence: PR #42,
 runs 41095475422 and 41766603603.
+
+## [2026-11-05] Correction — C25, C30 and C31 were named as open small work on 2026-11-04; all three closed in October (WP86, WP94, WP97); the whole of candidates part 3 is closed, the open backlog is C7, C17, C21
+
+**Autor:** Claude Code
+
+The owner asked what C25, C30 and C31 were about. Reading the candidates file gave their texts; reading the log gave
+their closures: C25 by WP86 (2026-10-23), C30 by WP94 (2026-10-26, the own-link way), C31 by WP97 (2026-10-30). The
+recommendation of 2026-11-04 („C25, C30, C31 fit in between") came from a session summary that carried the list from
+2026-11-01, the day before most of them closed — the same error class as the C14/C15/C16 correction of 2026-11-01: a
+status read from the candidates file or from memory instead of from the log. A dated status note now closes the gap
+in `backlog-2026-10-candidates-3.md` for every candidate without one (C24, C25, C26, C30, C31, C34, C35, C37) and
+states the open remainder: C7, C17, C21. **Überprüft.** `docs/log.md` headings for C22–C44; the WP86, WP94 and WP97
+entries. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No rule in CLAUDE.md beyond the existing one („the
+code owns every count" has a sibling here: the log owns every status) — the bootstrap rule in `~/.claude/rules`
+already says it; the fix is to obey it, not to repeat it. Evidence: the headings cited; the note appended today.

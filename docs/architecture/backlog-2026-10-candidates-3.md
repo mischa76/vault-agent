@@ -428,3 +428,15 @@ Both halves built the same day with guards first (`9975db7`): `tests/test_c44_ga
 count from the AST (codes passed to `_issue`, 37 today) and fails on a mutated README number or a missing catalogue
 row — checked by mutating both; `ProjectNotFoundError` at the nine lookup sites, `_guard` by type. `docs/log.md`
 2026-11-03 („C44 built").
+
+## Status read on 2026-11-05 — every candidate in this part is closed; the closures that had no note here
+
+Read from `docs/log.md`'s headings, after a recommendation of 2026-11-04 had named C25, C30 and C31 as open small
+work. C24 → WP92 (2026-10-26, relocatable root, ADR-0015). C25 → WP86 (2026-10-23, zero-key rows in the hubs,
+PASS=406). C26 → found by WP86's measurement, handled with the homonym-key work of that week (WP89/WP90, README
+roadmap „Data defects"). C27 → WP96–WP99 and WP117 (ADR-0017 to ADR-0019). C28, C29 → WP93, WP95 (correction of
+2026-10-31). C30 → WP94 (2026-10-26, the second of the two ways: the optional participation becomes a link of its
+own). C31 → WP97 (2026-10-30). C32 → ADR-0020 (not now). C33 → WP100. C34, C35 → WP101. C36 → WP102. C37 → WP103.
+C38, C39 → WP105. C40, C41 → WP106. C42 → WP116. C43 → WP118. C44 → built 2026-11-03. What remains open in the whole
+backlog is in part 1 and part 2: C7 (extending a vault this tool did not build, a spike), C17 (a second real domain)
+and C21 (Snowflake dialect and build) — the three the plan of 2026-10-31 set aside, two of them 1.0 criteria.
