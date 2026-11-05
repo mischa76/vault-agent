@@ -37,3 +37,35 @@ the attach controls that secondary look — e.g. accent outline or `accent-soft`
 `danger` gets a hue clearly apart from the accent; (4) the per-file/per-run `delete` follow the rule. Guard first:
 the existing `Project.test.tsx` queries by role and name (`getByRole("button", …)`); the attach controls are found
 by `aria-label` on the input, which must survive the change.
+
+## C46 — Reading the source catalogue and profiling from the workbench (owner, 2026-11-05)
+
+**Asked by the owner** while driving the twenty-fourth chain: where in the workbench is the connection to the source
+database configured, the catalogue read and the profile made — including the choice of what goes into the profile?
+**Answer read in the repo (2026-11-05, `c8fd28c`): nowhere in the workbench.** Both producers are CLI commands only —
+`vault-agent source-schema` (WP96, C27 stage 1: metadata, no row) and `vault-agent profile` (WP98, C27 stage 2: reads
+rows; ADR-0008 #4's explicitly invoked, read-only, scoped step, note of 2026-10-30). The connection is
+`VAULT_AGENT_SOURCE_URL` (manual 5, „the place for the password") or `--url`. The profile's scope is `--schema`,
+`--table`, `--check` (range, lengths, patterns by default; examples; all; none), `--sample` (10 000) and `--examples`
+(0). The workbench only takes the resulting files through „attach schema" / „attach profiling". The omission was
+deliberate and recorded only in the two specs' „not done" lists: WP96 — „a catalogue step in the workbench is a
+later increment under ADR-0015"; WP98 — „The workbench". No candidate carried it until now.
+
+**Shape of a WP:** a „Source" section in the Project perspective, above Inputs: (1) the connection — dialect and
+host/database shown, the password **not** entered in the browser by default; (2) „read catalogue": schema choice
+(the catalogue's schema list offered once connected), views on/off, writes the project's schema input as the CLI
+would, the provenance header included; (3) „make profile": schema and table choice (from the read catalogue),
+checks as toggles with `examples` off and marked as the one that writes values, sample size, writes the profiling
+input; (4) every action recorded as its CLI equivalent like the rest of the workbench, the URL in it with the
+password hidden (`hidden_url`).
+
+**Open before a spec:** (a) **where the password lives.** Today's rule: in the environment or `.env`, never in a file
+or a shell history; the API key follows the same rule in WP113's settings (`anthropic_api_key_set` as a boolean,
+never the key). A browser field would break it — the candidate shapes are the environment variable only (the
+section shows „set / not set", like the API key), a per-project URL without password plus the password from the
+environment, or a secret store; the owner decides. (b) **Consent for row reads.** WP96's spec tied profiling to
+consent and sampling in `deployment-residency.md`; a button makes a row read one click away, so the section has to
+say what is read and confirm it. (c) ADR-0015 (single-user tool, Option C) — whether it already settles (a), read
+before the spec. (d) Long profiles: the CLI blocks; the workbench needs the run-style progress and cancel
+(WP68/WP69) or a limit. Guard: the CLI's outputs for the same arguments as the byte-identity reference — the
+workbench must write the same files the commands write.

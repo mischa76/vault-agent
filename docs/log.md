@@ -12812,3 +12812,19 @@ perspectives (`danger` 4×, `ghost` 3×, the rest default `primary`), `docs/oper
 no written rule. **Nur angenommen.** That the owner's „orange" for delete project is `--color-bad` read next to the
 accent (not checked on screen). **Bewusst nicht getan.** No code change; no WP number — the owner prioritises.
 Evidence: this entry; the candidate file.
+
+## [2026-11-05] Candidate C46 recorded — reading the source catalogue and profiling from the workbench; today both are CLI only, deliberately deferred by WP96 and WP98
+
+**Autor:** Claude Code
+
+The owner asked where the workbench configures the source connection, reads the catalogue and makes the profile.
+It does not: `vault-agent source-schema` (WP96) and `vault-agent profile` (WP98) exist only on the command line, the
+connection is `VAULT_AGENT_SOURCE_URL` or `--url`, and the workbench takes their files through the attach
+controls. Both specs list the workbench under „not done" (WP96: „a catalogue step in the workbench is a later
+increment under ADR-0015"); no candidate carried it. Recorded as C46 in `backlog-2026-11-candidates.md` on the
+owner's instruction, index line extended. **Überprüft.** `cli.py` (`source-schema`, `profile` and their options),
+`source_schema_reader.py` and `profiler.py` module docstrings, `frontend/src/api.ts` and `ui/app.py` (no catalogue or
+profiling endpoint), manual chapters 5 and 6, the two specs' „not done" lists, ADR-0008 #4 and its note of
+2026-10-30, the candidate files and this log for an earlier candidate (none). **Nur angenommen.** That ADR-0015 does
+not already settle where a source password lives — its title and status read, not its body. **Bewusst nicht getan.**
+No code, no WP number, no decision on the password — open question (a) in the candidate.
