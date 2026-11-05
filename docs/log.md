@@ -12797,3 +12797,18 @@ sales-order link holds all 31 465 orders.** **P8 — WP109 live:** `W_UNTRACED_C
 never blocks; its count per step recorded. **Not predicted:** attempts per step, the shapes, the review-item
 total, the owner's deviations. **Criterion 2 watch:** any wrong-data finding in the build restarts the two-minor
 count (release-1.0-criteria.md).
+
+## [2026-11-05] Candidate C45 recorded — the workbench's button kinds have no written rule; the „attach" controls in Inputs do not read as buttons
+
+**Autor:** Claude Code
+
+The owner, driving the twenty-fourth chain through the workbench, asked for a backlog note: the three attach
+controls in the Project perspective's Inputs section are not recognisable as buttons next to the file rows, and
+whether a concept governs filled-accent, danger-outlined and grey-outlined buttons. Recorded as C45 in a new file
+`docs/architecture/backlog-2026-11-candidates.md` (part 3 is closed), with a line in `docs/index.md`. **Überprüft.**
+`components/ui.tsx` (`Button`, kinds `primary`/`ghost`/`danger`, the colour tokens in `styles.css`), the Inputs section
+of `perspectives/Project.tsx` (attach controls are a hand-written `<label>`, not `Button`), the kinds in use across the
+perspectives (`danger` 4×, `ghost` 3×, the rest default `primary`), `docs/operations/14-workbench.md` and the ADRs —
+no written rule. **Nur angenommen.** That the owner's „orange" for delete project is `--color-bad` read next to the
+accent (not checked on screen). **Bewusst nicht getan.** No code change; no WP number — the owner prioritises.
+Evidence: this entry; the candidate file.
