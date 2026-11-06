@@ -288,7 +288,10 @@ class ProjectStore:
         shutil.rmtree(self.root / project_id)
         return {"deleted": project_id, "runs": len(metas), "files": len(data["files"])}
 
-    def add_file(self, project_id: str, kind: FileKind, name: str, content: str) -> dict[str, Any]:
+    def add_file(
+        self, project_id: str, kind: FileKind, name: str, content: str, *,
+        command: str | None = None,
+    ) -> dict[str, Any]:
         """Store an input file; a schema (or profiling) file must pass the house loader first."""
         data = self._read(project_id)
         safe = Path(name).name
@@ -309,7 +312,11 @@ class ProjectStore:
             if not tables:
                 target.unlink(missing_ok=True)
                 raise ProjectError(f"{safe}: the schema declares no tables")
-        entry = {"kind": kind, "name": safe, "bytes": len(content.encode("utf-8"))}
+        entry: dict[str, Any] = {
+            "kind": kind, "name": safe, "bytes": len(content.encode("utf-8")),
+        }
+        if command is not None:
+            entry["command"] = command  # WP119: the CLI command that writes the same file
         data["files"] = [f for f in data["files"] if f["name"] != safe] + [entry]
         self._write(project_id, data)
         return entry

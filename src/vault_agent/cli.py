@@ -2314,16 +2314,12 @@ def source_schema_command(
     Metadata only — tables, columns with type and nullability, comments, primary and unique
     keys, foreign keys — transcribed into the file `run --source-schema` reads. No row is read.
     The driver for the dialect is yours to install (manual 6.1)."""
-    import sqlalchemy.exc
-
     from vault_agent.source_schema_reader import (
-        database_of,
+        SourceDriverMissingError,
+        SourceError,
+        UnknownSchemasError,
         hidden_url,
-        inspector_reader,
-        provenance,
-        read_source_schema,
-        render_source_schema,
-        warn_unknown_types,
+        produce_source_schema,
     )
 
     console = Console()
@@ -2334,52 +2330,44 @@ def source_schema_command(
         )
         raise typer.Exit(code=2)
     try:
-        reader = inspector_reader(source_url)
-        available = reader.schema_names()
-    except ModuleNotFoundError as exc:
-        console.print(
-            f"[bold red]The driver for {hidden_url(source_url)} is not installed:[/bold red] "
-            f"{exc.name} — install it into this environment (manual 6.1)."
-        )
+        produced = produce_source_schema(source_url, schema, views=views)
+    except UnknownSchemasError as exc:
+        _print_unknown_schemas(console, exc)
+        raise typer.Exit(code=2) from exc
+    except SourceDriverMissingError as exc:
+        _print_source_error(console, exc, f"The driver for {exc.url} is not installed:",
+                            f"{exc.module} — install it into this environment (manual 6.1).")
         raise typer.Exit(code=1) from exc
-    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
-        console.print(
-            f"[bold red]Could not read the catalogue of {hidden_url(source_url)}:[/bold red] "
-            f"{type(exc).__name__}: {_without_password(str(exc), source_url)}"
-        )
+    except SourceError as exc:
+        _print_source_error(console, exc)
         raise typer.Exit(code=1) from exc
-    missing = [name for name in schema or [] if name not in available]
-    if not schema or missing:
-        what = (
-            f"schema(s) not in the catalogue: {', '.join(missing)}" if missing
-            else "pass --schema for each schema to read"
-        )
-        console.print(f"[bold red]{what}.[/bold red] This connection sees: {', '.join(available)}")
-        raise typer.Exit(code=2)
-    try:
-        tables = read_source_schema(
-            reader, schemas=schema, database=database_of(source_url), views=views
-        )
-    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
-        console.print(
-            f"[bold red]Could not read the catalogue of {hidden_url(source_url)}:[/bold red] "
-            f"{type(exc).__name__}: {_without_password(str(exc), source_url)}"
-        )
-        raise typer.Exit(code=1) from exc
-    warn_unknown_types(tables)
+    for warning in produced.warnings:
+        print(warning, file=sys.stderr)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(
-        render_source_schema(tables, header=provenance(source_url, schema, views=views)),
-        encoding="utf-8",
-    )
-    n_columns = sum(len(t.column_refs) for t in tables)
-    n_fks = sum(len(t.foreign_keys) for t in tables)
-    n_comments = sum(1 for t in tables for c in t.column_refs if c.comment)
+    out.write_text(produced.text, encoding="utf-8")
     console.print(
-        f"[bold]{out}[/bold]: {len(tables)} tables, {n_columns} columns "
-        f"({n_comments} with a comment), {n_fks} foreign keys — from "
-        f"{hidden_url(source_url)}, schemas {', '.join(schema)}."
+        f"[bold]{out}[/bold]: {produced.tables} tables, {produced.columns} columns "
+        f"({produced.comments} with a comment), {produced.foreign_keys} foreign keys — from "
+        f"{hidden_url(source_url)}, schemas {', '.join(schema or [])}."
     )
+
+
+def _print_unknown_schemas(console: Console, exc: Any) -> None:
+    """The schema refusal as the commands always printed it (WP96/WP98)."""
+    what, _, sees = str(exc).partition(". This connection sees: ")
+    console.print(f"[bold red]{what}.[/bold red] This connection sees: {sees}")
+
+
+def _print_source_error(
+    console: Console, exc: Any, head: str | None = None, tail: str | None = None
+) -> None:
+    """A producer's refusal in the commands' red-head form; the message is already free of
+    the password (`without_password`)."""
+    if head is None:
+        verb_and_url, _, detail = str(exc).partition(": ")
+        console.print(f"[bold red]{verb_and_url}:[/bold red] {detail}")
+        return
+    console.print(f"[bold red]{head}[/bold red] {tail}")
 
 
 @app.command("infer-keys")
@@ -2532,18 +2520,18 @@ def profile_command(
     columns) are selectable; `--examples` is off by default. A column the database refuses is
     omitted and named, never zeroed. The driver for the dialect is yours to install (manual 6.1);
     the data boundary is manual 10.7."""
-    import sqlalchemy.exc
-
     from vault_agent.profiler import (
-        CHECKS,
-        DEFAULT_CHECKS,
-        DEFAULT_EXAMPLES,
-        profile_tables,
-        provenance,
-        render_profiling,
-        select_tables,
+        UnknownChecksError,
+        UnknownTablesError,
+        _stderr,
+        produce_profiling,
     )
-    from vault_agent.source_schema_reader import hidden_url, source_engine
+    from vault_agent.source_schema_reader import (
+        SourceDriverMissingError,
+        SourceError,
+        UnknownSchemasError,
+        hidden_url,
+    )
 
     console = Console()
     source_url = url or os.environ.get(SOURCE_URL_ENV)
@@ -2552,84 +2540,40 @@ def profile_command(
             f"[bold red]No source database:[/bold red] pass --url or set {SOURCE_URL_ENV}."
         )
         raise typer.Exit(code=2)
-    chosen: list[str] = list(DEFAULT_CHECKS)
-    if check:
-        unknown = [c for c in check if c not in (*CHECKS, "all", "none")]
-        if unknown:
-            console.print(
-                f"[bold red]Unknown check(s): {', '.join(unknown)}.[/bold red] "
-                f"Known: {', '.join(CHECKS)}, all, none."
-            )
-            raise typer.Exit(code=2)
-        chosen = list(CHECKS) if "all" in check else [c for c in check if c != "none"]
-    if examples > 0 and "examples" not in chosen:
-        chosen.append("examples")
-    if "examples" in chosen and examples <= 0:
-        examples = DEFAULT_EXAMPLES
     try:
-        engine = source_engine(source_url)
-        available = list(sqlalchemy.inspect(engine).get_schema_names())
-    except ModuleNotFoundError as exc:
-        console.print(
-            f"[bold red]The driver for {hidden_url(source_url)} is not installed:[/bold red] "
-            f"{exc.name} — install it into this environment (manual 6.1)."
+        produced = produce_profiling(
+            source_url, schema, table, checks=check, sample=sample, examples=examples,
+            warn=_stderr,
         )
+    except (UnknownChecksError, UnknownTablesError) as exc:
+        head, _, tail = str(exc).partition(". ")
+        console.print(f"[bold red]{head}.[/bold red] {tail}")
+        raise typer.Exit(code=2) from exc
+    except UnknownSchemasError as exc:
+        _print_unknown_schemas(console, exc)
+        raise typer.Exit(code=2) from exc
+    except SourceDriverMissingError as exc:
+        _print_source_error(console, exc, f"The driver for {exc.url} is not installed:",
+                            f"{exc.module} — install it into this environment (manual 6.1).")
         raise typer.Exit(code=1) from exc
-    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
-        console.print(
-            f"[bold red]Could not read the catalogue of {hidden_url(source_url)}:[/bold red] "
-            f"{type(exc).__name__}: {_without_password(str(exc), source_url)}"
-        )
-        raise typer.Exit(code=1) from exc
-    missing = [name for name in schema or [] if name not in available]
-    if not schema or missing:
-        what = (
-            f"schema(s) not in the catalogue: {', '.join(missing)}" if missing
-            else "pass --schema for each schema to profile"
-        )
-        console.print(f"[bold red]{what}.[/bold red] This connection sees: {', '.join(available)}")
-        raise typer.Exit(code=2)
-    try:
-        selected, unknown_tables = select_tables(engine, schemas=schema, tables=table)
-        if unknown_tables:
-            console.print(
-                f"[bold red]table(s) not in the schemas: {', '.join(unknown_tables)}.[/bold red] "
-                f"The schemas hold: {', '.join(f'{s}.{t}' for s, t in selected) or 'nothing'}"
-            )
-            raise typer.Exit(code=2)
-        profiles = profile_tables(
-            engine, schemas=schema, tables=table, checks=chosen, sample=sample,
-            examples=examples,
-        )
-    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
-        console.print(
-            f"[bold red]Could not profile {hidden_url(source_url)}:[/bold red] "
-            f"{type(exc).__name__}: {_without_password(str(exc), source_url)}"
-        )
+    except SourceError as exc:
+        _print_source_error(console, exc)
         raise typer.Exit(code=1) from exc
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(
-        render_profiling(profiles, header=provenance(
-            source_url, schema, table or [], checks=chosen, sample=sample, examples=examples,
-        )),
-        encoding="utf-8",
-    )
-    n_columns = sum(len(p.columns) for p in profiles)
-    n_rows = sum(p.row_count for p in profiles)
-    tables_word = "table" if len(profiles) == 1 else "tables"
+    out.write_text(produced.text, encoding="utf-8")
+    tables_word = "table" if produced.tables == 1 else "tables"
     console.print(
-        f"[bold]{out}[/bold]: {len(profiles)} {tables_word}, {n_columns} columns, "
-        f"{n_rows} rows counted; checks {', '.join(chosen) or 'none'} — from "
-        f"{hidden_url(source_url)}, schemas {', '.join(schema)}."
+        f"[bold]{out}[/bold]: {produced.tables} {tables_word}, {produced.columns} columns, "
+        f"{produced.rows} rows counted; checks {', '.join(produced.checks) or 'none'} — from "
+        f"{hidden_url(source_url)}, schemas {', '.join(schema or [])}."
     )
 
 
 def _without_password(message: str, url: str) -> str:
     """A dialect's message may echo the URL; the password never reaches the terminal."""
-    from sqlalchemy.engine import make_url
+    from vault_agent.source_schema_reader import without_password
 
-    password = make_url(url).password
-    return message.replace(password, "***") if password else message
+    return without_password(message, url)
 
 
 if __name__ == "__main__":

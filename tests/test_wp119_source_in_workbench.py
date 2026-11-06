@@ -18,8 +18,8 @@ from vault_agent import profiler
 from vault_agent.cli import app as cli_app
 from vault_agent.profiler import produce_profiling
 from vault_agent.source_schema_reader import (
-    SourceDriverMissing,
-    UnknownSchemas,
+    SourceDriverMissingError,
+    UnknownSchemasError,
     produce_source_schema,
 )
 from vault_agent.ui.app import create_app
@@ -118,9 +118,9 @@ def test_g2_the_catalogue_file_is_the_commands_file(
                     json={"schemas": ["main"], "name": "aw.yml"})
     assert r.status_code == 201, r.text
     body = r.json()
-    assert body["file"] == {"kind": "schema", "name": "aw.yml",
-                            "bytes": len(_input(tmp_path, project, "aw.yml").encode())}
     assert body["command"] == "vault-agent source-schema --schema main --out inputs/aw.yml"
+    assert body["file"] == {"kind": "schema", "name": "aw.yml", "command": body["command"],
+                            "bytes": len(_input(tmp_path, project, "aw.yml").encode())}
     out = tmp_path / "cli.yml"
     result = CliRunner().invoke(cli_app, ["source-schema", "--schema", "main", "--out", str(out)])
     assert result.exit_code == 0, result.output
@@ -209,7 +209,7 @@ def test_g3_refusals_and_a_refused_column(
 
 # ── G4 one core: the producers raise types, the CLI keeps its codes ───────────────────────
 def test_g4_the_producers_raise_types(source: str, monkeypatch: pytest.MonkeyPatch) -> None:
-    with pytest.raises(UnknownSchemas) as caught:
+    with pytest.raises(UnknownSchemasError) as caught:
         produce_source_schema(source, ["Sales"], views=False)
     assert caught.value.missing == ["Sales"] and "main" in caught.value.available
     produced = produce_profiling(source, ["main"], ["Store"], checks=None, sample=10, examples=0)
@@ -220,7 +220,7 @@ def test_g4_the_producers_raise_types(source: str, monkeypatch: pytest.MonkeyPat
         raise ModuleNotFoundError("No module named 'psycopg2'", name="psycopg2")
 
     monkeypatch.setattr("vault_agent.source_schema_reader.source_engine", missing)
-    with pytest.raises(SourceDriverMissing) as driver:
+    with pytest.raises(SourceDriverMissingError) as driver:
         produce_source_schema("postgresql+psycopg2://u:p@h/d", ["x"], views=False)
     assert driver.value.module == "psycopg2"
 

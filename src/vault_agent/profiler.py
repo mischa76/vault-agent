@@ -28,7 +28,12 @@ import sqlalchemy as sa
 import yaml
 from sqlalchemy.sql import sqltypes
 
-from vault_agent.source_schema_reader import hidden_url
+from vault_agent.source_schema_reader import (
+    SourceError,
+    SourceUnreachableError,
+    checked_schemas,
+    hidden_url,
+)
 from vault_agent.state import ColumnProfile, ValuePattern
 
 if TYPE_CHECKING:
@@ -348,4 +353,105 @@ def provenance(
         f"{examples}.\n"
         "Profiling evidence is an input: edit freely, the loader validates. A statistic absent "
         "here was not measured."
+    )
+
+
+# ── WP119 (C46): one core for the command and the workbench ────────────────────────────────
+class UnknownChecksError(SourceError):
+    def __init__(self, unknown: Sequence[str]) -> None:
+        self.unknown = list(unknown)
+        super().__init__(
+            f"Unknown check(s): {', '.join(self.unknown)}. Known: {', '.join(CHECKS)}, all, none."
+        )
+
+
+class UnknownTablesError(SourceError):
+    def __init__(self, missing: Sequence[str], held: Sequence[tuple[str, str]]) -> None:
+        self.missing, self.held = list(missing), [f"{s}.{t}" for s, t in held]
+        super().__init__(
+            f"table(s) not in the schemas: {', '.join(self.missing)}. "
+            f"The schemas hold: {', '.join(self.held) or 'nothing'}"
+        )
+
+
+def resolve_checks(check: Sequence[str] | None, examples: int) -> tuple[list[str], int]:
+    """The command's check list as both callers resolve it: the default without ``check``,
+    ``all``/``none``, and ``examples`` implied by a positive count (and given its default
+    count when chosen without one)."""
+    chosen: list[str] = list(DEFAULT_CHECKS)
+    if check:
+        unknown = [c for c in check if c not in (*CHECKS, "all", "none")]
+        if unknown:
+            raise UnknownChecksError(unknown)
+        chosen = list(CHECKS) if "all" in check else [c for c in check if c != "none"]
+    if examples > 0 and "examples" not in chosen:
+        chosen.append("examples")
+    if "examples" in chosen and examples <= 0:
+        examples = DEFAULT_EXAMPLES
+    return chosen, examples
+
+
+@dataclass(frozen=True)
+class ProducedProfiling:
+    text: str
+    tables: int
+    columns: int
+    rows: int
+    checks: list[str]
+    examples: int
+    refused: list[str]
+
+
+def produce_profiling(
+    url: str,
+    schemas: Sequence[str] | None,
+    tables: Sequence[str] | None,
+    *,
+    checks: Sequence[str] | None,
+    sample: int,
+    examples: int,
+    warn: Warn | None = None,
+) -> ProducedProfiling:
+    """`vault-agent profile` without the terminal (WP119 §2 rule 2). **Reads rows.** Every column
+    the database refuses is collected in ``refused`` (and passed to ``warn`` when given)."""
+    from vault_agent import source_schema_reader as reader
+
+    chosen, examples = resolve_checks(checks, examples)
+    holder: dict[str, Engine] = {}
+
+    def available() -> list[str]:
+        holder["engine"] = reader.source_engine(url)
+        return list(sa.inspect(holder["engine"]).get_schema_names())
+
+    named = checked_schemas(url, schemas, available, verb="profile")
+    engine = holder["engine"]
+    refused: list[str] = []
+
+    def collect(message: str) -> None:
+        refused.append(message)
+        if warn is not None:
+            warn(message)
+
+    try:
+        selected, unknown_tables = select_tables(engine, schemas=named, tables=tables)
+        if unknown_tables:
+            # what the schemas hold, not what matched — the command said nothing (before WP119)
+            held, _ = select_tables(engine, schemas=named, tables=None)
+            raise UnknownTablesError(unknown_tables, held)
+        profiles = profile_tables(
+            engine, schemas=named, tables=tables, checks=chosen, sample=sample,
+            examples=examples, warn=collect,
+        )
+    except (sa.exc.SQLAlchemyError, OSError) as exc:
+        raise SourceUnreachableError(url, exc, verb="profile") from exc
+    return ProducedProfiling(
+        text=render_profiling(profiles, header=provenance(
+            url, named, tables or [], checks=chosen, sample=sample, examples=examples,
+        )),
+        tables=len(profiles),
+        columns=sum(len(p.columns) for p in profiles),
+        rows=sum(p.row_count for p in profiles),
+        checks=chosen,
+        examples=examples,
+        refused=refused,
     )

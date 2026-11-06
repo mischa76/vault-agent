@@ -344,3 +344,130 @@ def warn_unknown_types(tables: Sequence[SourceTable]) -> None:
                     "did not recognise the type; declared empty, not guessed",
                     file=sys.stderr,
                 )
+
+
+# ── WP119 (C46): one core for the command and the workbench ────────────────────────────────
+class SourceError(Exception):
+    """A refusal of a source producer, typed so each caller maps it (the CLI to an exit code,
+    the workbench API to a status) without reading the message (WP119 §2 rule 2)."""
+
+
+class SourceDriverMissingError(SourceError):
+    def __init__(self, url: str, module: str | None) -> None:
+        self.url, self.module = hidden_url(url), module or "?"
+        super().__init__(
+            f"The driver for {self.url} is not installed: {self.module} — install it into this "
+            "environment (manual 6.1)."
+        )
+
+
+class SourceUnreachableError(SourceError):
+    def __init__(
+        self, url: str, exc: BaseException, *, verb: str = "read the catalogue of"
+    ) -> None:
+        self.url = hidden_url(url)
+        self.detail = f"{type(exc).__name__}: {without_password(str(exc), url)}"
+        super().__init__(f"Could not {verb} {self.url}: {self.detail}")
+
+
+class UnknownSchemasError(SourceError):
+    def __init__(self, missing: Sequence[str], available: Sequence[str], *, verb: str) -> None:
+        self.missing, self.available = list(missing), list(available)
+        what = (
+            f"schema(s) not in the catalogue: {', '.join(self.missing)}" if self.missing
+            else f"pass --schema for each schema to {verb}"
+        )
+        super().__init__(f"{what}. This connection sees: {', '.join(self.available)}")
+
+
+def without_password(message: str, url: str) -> str:
+    """A dialect's message may echo the URL; the password never reaches a terminal or an answer."""
+    from sqlalchemy.engine import make_url
+
+    try:
+        password = make_url(url).password
+    except Exception:  # noqa: BLE001 — an unparseable URL has no password to hide
+        return message
+    return message.replace(str(password), "***") if password else message
+
+
+def checked_schemas(
+    url: str, schemas: Sequence[str] | None, available: Callable[[], Sequence[str]], *, verb: str
+) -> list[str]:
+    """The catalogue's schema list read once (driver and connection refusals typed), the named
+    schemas checked against it."""
+    import sqlalchemy.exc
+
+    try:
+        seen = list(available())
+    except ModuleNotFoundError as exc:
+        raise SourceDriverMissingError(url, exc.name) from exc
+    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
+        raise SourceUnreachableError(url, exc) from exc
+    missing = [name for name in schemas or [] if name not in seen]
+    if not schemas or missing:
+        raise UnknownSchemasError(missing, seen, verb=verb)
+    return list(schemas)
+
+
+def catalogue_schemas(url: str) -> list[str]:
+    """The schema names the connection sees — what the workbench offers (WP119)."""
+    def names() -> list[str]:
+        return list(inspector_reader(url).schema_names())
+
+    import sqlalchemy.exc
+
+    try:
+        return names()
+    except ModuleNotFoundError as exc:
+        raise SourceDriverMissingError(url, exc.name) from exc
+    except (sqlalchemy.exc.SQLAlchemyError, OSError, ValueError) as exc:
+        raise SourceUnreachableError(url, exc) from exc
+
+
+@dataclass(frozen=True)
+class ProducedSchema:
+    text: str
+    tables: int
+    columns: int
+    comments: int
+    foreign_keys: int
+    warnings: list[str]
+
+
+def unknown_type_warnings(tables: Sequence[SourceTable]) -> list[str]:
+    return [
+        f"source-schema: {table.schema_name}.{table.table}.{column.name}: the dialect "
+        "did not recognise the type; declared empty, not guessed"
+        for table in tables for column in table.column_refs if column.type == ""
+    ]
+
+
+def produce_source_schema(
+    url: str, schemas: Sequence[str] | None, *, views: bool
+) -> ProducedSchema:
+    """`vault-agent source-schema` without the terminal: the file text, its counts and the
+    warnings; refusals as :class:`SourceError` subtypes (WP119 §2 rule 2)."""
+    import sqlalchemy.exc
+
+    holder: dict[str, InspectorReader] = {}
+
+    def available() -> list[str]:
+        holder["reader"] = inspector_reader(url)
+        return list(holder["reader"].schema_names())
+
+    chosen = checked_schemas(url, schemas, available, verb="read")
+    try:
+        tables = read_source_schema(
+            holder["reader"], schemas=chosen, database=database_of(url), views=views
+        )
+    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
+        raise SourceUnreachableError(url, exc) from exc
+    return ProducedSchema(
+        text=render_source_schema(tables, header=provenance(url, chosen, views=views)),
+        tables=len(tables),
+        columns=sum(len(t.column_refs) for t in tables),
+        comments=sum(1 for t in tables for c in t.column_refs if c.comment),
+        foreign_keys=sum(len(t.foreign_keys) for t in tables),
+        warnings=unknown_type_warnings(tables),
+    )

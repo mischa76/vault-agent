@@ -1,9 +1,10 @@
 """The FastAPI application (WP66): routes over :class:`ProjectStore` and :class:`RunManager`."""
 from __future__ import annotations
 
+import os
 from datetime import date
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import FileResponse, HTMLResponse
@@ -75,6 +76,26 @@ class StartRun(BaseModel):
             as_of_grain=self.as_of_grain,  # type: ignore[arg-type]  # pydantic validates it
             bridges=list(self.bridges),
         )
+
+
+class ReadCatalogue(BaseModel):
+    """WP119: the body of `vault-agent source-schema` — the URL never; it is the environment's."""
+
+    schemas: list[str]
+    views: bool = False
+    name: str = "source_schema.yml"
+
+
+class MakeProfile(BaseModel):
+    """WP119: the body of `vault-agent profile`; ``reads_rows`` acknowledges the row read."""
+
+    schemas: list[str]
+    tables: list[str] = Field(default_factory=list)
+    checks: list[str] | None = None
+    sample: int = Field(default=10_000, ge=1)
+    examples: int = Field(default=0, ge=0)
+    name: str = "profiling.yml"
+    reads_rows: bool = False
 
 
 class ConsoleQuestion(BaseModel):
@@ -172,6 +193,162 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
             return store.add_file(project_id, body.kind, body.name, body.content)
         except ProjectError as exc:
             raise _guard(exc) from exc
+
+    # ----- the source database (WP119, C46) -------------------------------------------------
+    # The connection is the process's VAULT_AGENT_SOURCE_URL (ADR-0015: secrets in the operator's
+    # `.env`); no body carries it and no answer carries its password. SQLAlchemy is the
+    # `catalogue` extra, imported here so the workbench runs without it.
+    def _source_url() -> str | None:
+        return os.environ.get("VAULT_AGENT_SOURCE_URL") or None
+
+    def _source_status(exc: Exception) -> HTTPException:
+        from vault_agent.profiler import UnknownChecksError, UnknownTablesError
+        from vault_agent.source_schema_reader import (
+            SourceDriverMissingError,
+            SourceUnreachableError,
+            UnknownSchemasError,
+        )
+
+        if isinstance(exc, UnknownSchemasError | UnknownTablesError | UnknownChecksError):
+            return HTTPException(status_code=422, detail=str(exc))
+        if isinstance(exc, SourceDriverMissingError | SourceUnreachableError):
+            return HTTPException(status_code=502, detail=str(exc))
+        raise exc
+
+    def _need_source() -> str:
+        url = _source_url()
+        if url is None:
+            raise HTTPException(
+                status_code=409,
+                detail="no source database: set VAULT_AGENT_SOURCE_URL in the workbench's "
+                       "environment (.env) and restart it",
+            )
+        return url
+
+    @app.get("/api/source")
+    def get_source() -> dict[str, Any]:
+        url = _source_url()
+        if url is None:
+            return {"state": "unset", "url": None, "dialect": None, "schemas": []}
+        try:
+            from vault_agent.source_schema_reader import (
+                SourceDriverMissingError,
+                SourceUnreachableError,
+                catalogue_schemas,
+                hidden_url,
+            )
+        except ModuleNotFoundError as exc:
+            return {"state": "driver_missing", "url": None, "dialect": None, "schemas": [],
+                    "detail": f"{exc.name} — uv sync --extra catalogue (manual 4)"}
+        try:
+            shown = hidden_url(url)
+            dialect: str | None = shown.split(":", 1)[0].split("+", 1)[0]
+        except Exception:  # noqa: BLE001 — an unparseable URL is reported, never echoed
+            return {"state": "unreachable", "url": None, "dialect": None, "schemas": [],
+                    "detail": "VAULT_AGENT_SOURCE_URL is not a SQLAlchemy URL"}
+        try:
+            schemas = catalogue_schemas(url)
+        except SourceDriverMissingError as exc:
+            return {"state": "driver_missing", "url": shown, "dialect": dialect, "schemas": [],
+                    "detail": str(exc)}
+        except SourceUnreachableError as exc:
+            return {"state": "unreachable", "url": shown, "dialect": dialect, "schemas": [],
+                    "detail": str(exc)}
+        return {"state": "ok", "url": shown, "dialect": dialect, "schemas": schemas}
+
+    @app.get("/api/source/tables")
+    def get_source_tables(
+        schema: Annotated[list[str] | None, Query()] = None,
+    ) -> list[dict[str, str]]:
+        url = _need_source()
+        from vault_agent.profiler import select_tables
+        from vault_agent.source_schema_reader import SourceError, checked_schemas, source_engine
+
+        holder: dict[str, Any] = {}
+
+        def available() -> list[str]:
+            import sqlalchemy as sa
+
+            holder["engine"] = source_engine(url)
+            return list(sa.inspect(holder["engine"]).get_schema_names())
+
+        try:
+            named = checked_schemas(url, schema, available, verb="list")
+            pairs, _ = select_tables(holder["engine"], schemas=named, tables=None)
+        except SourceError as exc:
+            raise _source_status(exc) from exc
+        except Exception as exc:  # noqa: BLE001 — a driver's own error, typed by the helper
+            from vault_agent.source_schema_reader import SourceUnreachableError
+
+            raise _source_status(SourceUnreachableError(url, exc)) from exc
+        return [{"schema": s_, "table": t} for s_, t in pairs]
+
+    @app.post("/api/projects/{project_id}/source-schema", status_code=201)
+    def read_catalogue(project_id: str, body: ReadCatalogue) -> dict[str, Any]:
+        try:
+            store.get(project_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        url = _need_source()
+        from vault_agent.source_schema_reader import SourceError, produce_source_schema
+
+        try:
+            produced = produce_source_schema(url, body.schemas, views=body.views)
+        except SourceError as exc:
+            raise _source_status(exc) from exc
+        command = " ".join([
+            "vault-agent source-schema", *(f"--schema {s_}" for s_ in body.schemas),
+            *(["--views"] if body.views else []), f"--out inputs/{body.name}",
+        ])
+        try:
+            entry = store.add_file(project_id, "schema", body.name, produced.text,
+                                   command=command)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        return {"file": entry, "command": command, "warnings": produced.warnings,
+                "summary": {"tables": produced.tables, "columns": produced.columns,
+                            "comments": produced.comments,
+                            "foreign_keys": produced.foreign_keys}}
+
+    @app.post("/api/projects/{project_id}/profile", status_code=201)
+    def make_profile(project_id: str, body: MakeProfile) -> dict[str, Any]:
+        try:
+            store.get(project_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        if not body.reads_rows:
+            raise HTTPException(
+                status_code=422,
+                detail="profiling reads rows of the source database: send reads_rows: true to "
+                       "acknowledge it (ADR-0008 #4, manual 10.7)",
+            )
+        url = _need_source()
+        from vault_agent.profiler import produce_profiling
+        from vault_agent.source_schema_reader import SourceError
+
+        try:
+            produced = produce_profiling(
+                url, body.schemas, body.tables or None, checks=body.checks,
+                sample=body.sample, examples=body.examples,
+            )
+        except SourceError as exc:
+            raise _source_status(exc) from exc
+        command = " ".join([
+            "vault-agent profile", *(f"--schema {s_}" for s_ in body.schemas),
+            *(f"--table {t}" for t in body.tables),
+            *(f"--check {c}" for c in produced.checks),
+            *([] if produced.checks else ["--check none"]),
+            f"--sample {body.sample}", f"--examples {produced.examples}",
+            f"--out inputs/{body.name}",
+        ])
+        try:
+            entry = store.add_file(project_id, "profiling", body.name, produced.text,
+                                   command=command)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        return {"file": entry, "command": command, "refused": produced.refused,
+                "summary": {"tables": produced.tables, "columns": produced.columns,
+                            "rows": produced.rows, "checks": produced.checks}}
 
     @app.post("/api/projects/{project_id}/runs", status_code=201)
     async def start_run(
