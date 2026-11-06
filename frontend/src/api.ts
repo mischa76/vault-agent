@@ -1,6 +1,6 @@
 // A thin typed client over the WP66 API. Every call here is one the CLI could make; the run
 // records the equivalent (`cli_equivalents`).
-import type { ProjectSettings, ProjectSettingsView, Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, ParseResult, Project, ProjectCheck, ProjectFile, ProjectSummary, Run, StartRunBody } from "./types";
+import type { MakeProfileBody, MakeProfileResult, ReadCatalogueResult, SourceView, ProjectSettings, ProjectSettingsView, Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, ParseResult, Project, ProjectCheck, ProjectFile, ProjectSummary, Run, StartRunBody } from "./types";
 
 // WP91: the CLI's --pit / --as-of-* on the run start; the server validates the bounds.
 export type BusinessVault = { pit: boolean; as_of_start: string; as_of_end: string; as_of_grain: "day" | "month" };
@@ -75,4 +75,12 @@ export const api = {
   settings: (id: string) => call<ProjectSettingsView>(`/api/projects/${encodeURIComponent(id)}/settings`),
   saveSettings: (id: string, body: ProjectSettings) =>
     call<ProjectSettingsView>(`/api/projects/${encodeURIComponent(id)}/settings`, { method: "PUT", body: JSON.stringify(body) }),
+  // WP119 (C46): the source database from the workbench's environment — catalogue and profile.
+  source: () => call<SourceView>("/api/source"),
+  sourceTables: (schemas: string[]) =>
+    call<{ schema: string; table: string }[]>(`/api/source/tables?${schemas.map((s) => `schema=${encodeURIComponent(s)}`).join("&")}`),
+  readCatalogue: (id: string, body: { schemas: string[]; views: boolean }) =>
+    call<ReadCatalogueResult>(`/api/projects/${encodeURIComponent(id)}/source-schema`, json(body)),
+  makeProfile: (id: string, body: MakeProfileBody) =>
+    call<MakeProfileResult>(`/api/projects/${encodeURIComponent(id)}/profile`, json(body)),
 };

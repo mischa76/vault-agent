@@ -10,6 +10,7 @@ vi.mock("./api", () => ({
     startRun: vi.fn(async () => ({ id: "stores:1" })), addFile: vi.fn(),
     deleteFile: vi.fn(async () => ({ deleted: "prof.yml" })), deleteRun: vi.fn(async () => ({ deleted: "x" })),
     deleteProject: vi.fn(async () => ({ deleted: "stores" })),
+    source: vi.fn(async () => ({ state: "unset", url: null, dialect: null, schemas: [] })),
     settings: vi.fn(async () => ({
       settings: {},
       effective: { target_platform: "postgres", primary_model: "claude-sonnet-5-5", heavy_model: "claude-opus-5-5", anthropic_base_url: null },

@@ -3,6 +3,7 @@ import { api, ApiError } from "../api";
 import { formatBytes } from "../derive";
 import { DEFAULT_NAMING, PLATFORMS, type NamingProfile, type Platform, type Project, type ProjectFile, type ProjectSettingsView, type RunSummary } from "../types";
 import { Button, Dot, Empty, ErrorNote, KV, Pill, Section } from "../components/ui";
+import { SourceSection } from "../components/Source";
 
 // A browser upload is text: .md/.txt requirements and .yml/.yaml/.json schemas. A PDF
 // requirements document goes through the CLI (`vault-agent run file.pdf`), as the hint says.
@@ -174,6 +175,7 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
           <span className="text-xs text-ink-faint">{savedNote ?? `route: ${view?.environment.route ?? view?.environment.llm_provider ?? "…"} — secrets stay in .env; every run records these and its CLI equivalent carries them`}</span>
         </div>
       </Section>
+      <SourceSection projectId={project.id} onChanged={onChanged} busy={busy} />
       <Section title="Inputs">
         <ErrorNote error={error} />
         <ul className="mt-2 divide-y divide-line text-sm">

@@ -41,6 +41,10 @@ and named on stderr, never guessed — except the ones the reader registers per 
 customer's catalogue are the warehouse's problem only where a stage casts (9.3); the gates
 read type families, which the vendor spelling keeps.
 
+The workbench has this command and `profile` (below) in its *Source* section (WP119, 14.2): it reads the variable
+from the workbench's own environment — set it in `.env` before `vault-agent ui` — and writes the byte-identical file as a
+project input. The URL is never typed into the browser.
+
 **Profiling evidence (optional).** `--profiling <file.yml|json>` adds per-column
 statistics (uniqueness, null rate, example values) as mapper evidence. Example values
 are the pipeline's one deliberate touchpoint with data *values* — see 10.7 for the

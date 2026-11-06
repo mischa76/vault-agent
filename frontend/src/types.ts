@@ -11,6 +11,27 @@ export interface ProjectFile {
   kind: "requirements" | "schema" | "profiling";
   name: string;
   bytes: number;
+  command?: string; // WP119: the CLI command that writes the same file, when the workbench produced it
+}
+
+// WP119 (C46): the source database as the workbench's environment names it — never a password.
+export interface SourceView {
+  state: "unset" | "ok" | "driver_missing" | "unreachable";
+  url: string | null;
+  dialect: string | null;
+  schemas: string[];
+  detail?: string;
+}
+export interface ReadCatalogueResult {
+  file: ProjectFile; command: string; warnings: string[];
+  summary: { tables: number; columns: number; comments: number; foreign_keys: number };
+}
+export interface MakeProfileBody {
+  schemas: string[]; tables: string[]; checks: string[]; sample: number; examples: number; reads_rows: boolean;
+}
+export interface MakeProfileResult {
+  file: ProjectFile; command: string; refused: string[];
+  summary: { tables: number; columns: number; rows: number; checks: string[] };
 }
 
 // WP82: the CLI's --target-platform choices — `TargetPlatform` in src/vault_agent/rules/platforms.py;

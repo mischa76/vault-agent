@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SourceSection } from "./components/Source";
+import type { SourceView } from "./types";
 
 // WP119 (C46) G5: the source section — state from the API, the schema choice from the catalogue,
 // the catalogue read and the profile posted as chosen, the row read confirmed before it is asked.
@@ -21,13 +22,13 @@ vi.mock("./api", () => ({
 }));
 import { api } from "./api";
 
-const ok = { state: "ok", url: "postgresql+psycopg2://reader:***@db.local/aw", dialect: "postgresql", schemas: ["Person", "Sales"] };
+const ok: SourceView = { state: "ok", url: "postgresql+psycopg2://reader:***@db.local/aw", dialect: "postgresql", schemas: ["Person", "Sales"] };
 
 afterEach(() => vi.clearAllMocks());
 
 describe("Source (WP119)", () => {
   it("says the source is not set and offers nothing to press", async () => {
-    vi.mocked(api.source).mockResolvedValue({ state: "unset", url: null, dialect: null, schemas: [] });
+    vi.mocked(api.source).mockResolvedValue({ state: "unset", url: null, dialect: null, schemas: [] } satisfies SourceView);
     render(<SourceSection projectId="stores" onChanged={() => undefined} busy={false} />);
     expect(await screen.findByText("source: not set")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "read catalogue" })).toBeNull();
@@ -61,6 +62,6 @@ describe("Source (WP119)", () => {
       schemas: ["Sales"], tables: ["Sales.Customer"], checks: ["range", "lengths"], sample: 10000,
       examples: 0, reads_rows: true,
     }));
-    expect(confirm.mock.calls[1][0]).toMatch(/reads rows/);
+    expect(confirm.mock.calls[1]?.[0]).toMatch(/reads rows/);
   });
 });
