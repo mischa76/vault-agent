@@ -84,6 +84,6 @@ workbench process today).
 
 ## C46 — taken up as WP119 (2026-11-07)
 
-On the owner's go, specified and built as WP119 (): the connection
+On the owner's go, specified and built as WP119 (`backlog-2026-07/wp119-source-in-workbench-spec.md`): the connection
 from the workbench's environment only, as the ADR-0015 reading above says; a per-project connection and progress for
 long profiles stay out (its §3).
