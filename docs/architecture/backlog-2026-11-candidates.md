@@ -69,3 +69,15 @@ say what is read and confirm it. (c) ADR-0015 (single-user tool, Option C) — w
 before the spec. (d) Long profiles: the CLI blocks; the workbench needs the run-style progress and cancel
 (WP68/WP69) or a limit. Guard: the CLI's outputs for the same arguments as the byte-identity reference — the
 workbench must write the same files the commands write.
+
+**C46 (a) read against ADR-0015 (2026-11-06).** ADR-0015 does not name a source-database password, but it settles
+the principle: its context lists „Secrets (the Anthropic key, Bedrock/Vertex credentials) are read from the
+operator's `.env`", and the consequences of the accepted Option C say „Security stays simple: no listener beyond
+`127.0.0.1`, secrets in the operator's `.env`". A second argument comes from the same ADR: the output is handed over
+as a project in the customer's git, and WP92 made project folders relocatable for handover — a password stored per
+project would travel with it. So, under ADR-0015, the password stays in the environment (`VAULT_AGENT_SOURCE_URL` or
+`.env`); the section shows „set / not set" like the API key, and may at most store a URL **without** password per
+project. A browser field that persists the password would need an amendment of ADR-0015; one that only passes it
+for a single call without storing it is not excluded by the text, but would still put it into the request and
+possibly the console log — not recommended. Left open by the ADR: several sources per engagement (one variable per
+workbench process today).

@@ -12828,3 +12828,16 @@ profiling endpoint), manual chapters 5 and 6, the two specs' „not done" lists,
 2026-10-30, the candidate files and this log for an earlier candidate (none). **Nur angenommen.** That ADR-0015 does
 not already settle where a source password lives — its title and status read, not its body. **Bewusst nicht getan.**
 No code, no WP number, no decision on the password — open question (a) in the candidate.
+
+## [2026-11-06] C46 (a) read against ADR-0015 — the ADR settles the principle (secrets in the operator's `.env`), not the source password by name
+
+**Autor:** Claude Code
+
+Follows the C46 entry of 2026-11-05, whose „Nur angenommen" said ADR-0015 had been read by title and status only.
+The owner asked whether it settles where the source password lives. Read in full: it does not name a source
+database, but its context („Secrets … are read from the operator's `.env`") and the consequence of the accepted
+Option C („no listener beyond `127.0.0.1`, secrets in the operator's `.env`") fix the principle; the handover of a
+project folder (WP92) adds that a password stored per project would travel with it. A note under C46 records the
+reading: password in the environment, at most a URL without password per project, a persisting browser field only
+with an amendment of the ADR. **Überprüft.** ADR-0015, all 85 lines. **Nur angenommen.** Nothing new. **Bewusst
+nicht getan.** No amendment drafted, no WP — the owner decides.
