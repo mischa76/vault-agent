@@ -1,6 +1,6 @@
 ---
 type: spec
-status: not-measured
+status: measured
 updated: 2026-11-07
 ---
 
@@ -92,3 +92,25 @@ reader (C27 tier C). Requirements drafted from the catalogue (WP117 exists; not 
 ## 6 Measured
 
 Appended after the run.
+
+## 6 Measured (2026-11-07, keyless)
+
+- **P1 ✔.** G1–G4: 11 Python guards green (`tests/test_wp119_source_in_workbench.py`, red by import at `37b2813`);
+  G5: 3 Vitest cases green (`Source.test.tsx`, red by import at `da838e7`). Whole suite with no key reachable (the
+  worktree has no `.env`, `ANTHROPIC_API_KEY` unset): 1618 passed, 6 skipped; `ruff check --no-cache` clean; bare
+  `mypy` clean (70 files); `tsc --noEmit` clean; `vitest run` 37 passed; `npm run build` built.
+- **P2 ✔ on SQLite, PostgreSQL not done.** Byte-identity holds for both producers against the commands on the SQLite
+  fixture (G2, G3). The hand check on vault-dev's PostgreSQL copy was not made: the session had no source URL for
+  it (none in the checkout's `.env`), and looking for the database password was not pursued. Open for the owner:
+  `VAULT_AGENT_SOURCE_URL` set in the workbench's `.env`, the Source section read once against the `person` schema
+  and one table profiled, both files compared with the commands' (`cmp`).
+- **P3 ✔.** No password in any answer: G1's sweep with a URL carrying `reader:secret@` over all four routes; the
+  recorded commands carry no `--url`. The driver-missing answer shows the URL as `hidden_url` renders it.
+- **P4 ✔ locally, CI pending.** `vault_agent.ui` coverage 95 % locally (floor 85); manual 6 (the workbench as the
+  second caller of both commands) and 14.2 (two route rows, the Source section) in `efdf013`.
+- **Deviations from §2, recorded:** the error types carry the house's `Error` suffix (`SourceDriverMissingError`,
+  `SourceUnreachableError`, `UnknownSchemasError`, `UnknownTablesError`, `UnknownChecksError`; ruff N818), and the
+  project's file entry carries `command` (rule 3 said the project records it; G2 was updated to expect it in the
+  same commit). **Found on the way:** an unknown `--table` answered „The schemas hold: nothing" — the command listed
+  the tables that matched, not those the schemas hold; both callers now list what the schemas hold.
+- **Not predicted, not measured:** the time a large profile takes through the workbench.

@@ -12841,3 +12841,30 @@ project folder (WP92) adds that a password stored per project would travel with 
 reading: password in the environment, at most a URL without password per project, a persisting browser field only
 with an amendment of the ADR. **Überprüft.** ADR-0015, all 85 lines. **Nur angenommen.** Nothing new. **Bewusst
 nicht getan.** No amendment drafted, no WP — the owner decides.
+
+## [2026-11-07] WP119 built and measured (keyless): the source database in the workbench — catalogue and profile through one core with the CLI (C46)
+
+**Autor:** Claude Code
+
+On the owner's go to continue with C46 (2026-11-07). Spec `backlog-2026-07/wp119-source-in-workbench-spec.md` with
+pre-registration and guards first (`37b2813`, Python red by import; `da838e7`, Vitest red by import). Built in a
+separate worktree (`~/projects/vault-agent-wp119`, branch `wp119-source-in-workbench`) because the owner's
+twenty-fourth chain runs its workbench from the main checkout; that checkout was not touched.
+
+**What changed.** `produce_source_schema` (`source_schema_reader.py`) and `produce_profiling` (`profiler.py`) hold
+the two commands' bodies and raise typed errors; the commands map them to their old exit codes and messages, the
+API to 409/422/502 (`1d71c5e`). Four routes — `GET /api/source`, `GET /api/source/tables`, `POST
+/api/projects/{id}/source-schema`, `POST /api/projects/{id}/profile` (refused without `reads_rows: true`); the URL
+only from the workbench's `VAULT_AGENT_SOURCE_URL` (ADR-0015). A Source section in the Project perspective, the
+manual's chapters 6 and 14.2 (`efdf013`). A correction found on the way: an unknown `--table` answered „The schemas
+hold: nothing", listing the match instead of the schema.
+
+**Überprüft.** Spec §6: suite 1618 passed / 6 skipped with no key reachable, ruff, bare mypy, tsc, vitest 37, build;
+byte-identity of both files against the commands on SQLite; no password in any answer (G1's sweep); `vault_agent.ui`
+95 % locally. **Nur angenommen.** That the PostgreSQL path behaves as SQLite's for byte-identity — the producers are
+the commands' own code, but the hand check on the PostgreSQL copy was not made (no source URL in the session; the
+database password was not looked for). CI on the push is pending at the time of writing. **Bewusst nicht getan.** No
+per-project connection, no password field (ADR-0015), no progress or cancel for long profiles (§3); C45's button
+kinds untouched; the main checkout and the running workbench not touched.
+
+Evidence: commits `37b2813`, `1d71c5e`, `da838e7`, `efdf013` and this entry's; spec §6.

@@ -81,3 +81,9 @@ project. A browser field that persists the password would need an amendment of A
 for a single call without storing it is not excluded by the text, but would still put it into the request and
 possibly the console log — not recommended. Left open by the ADR: several sources per engagement (one variable per
 workbench process today).
+
+## C46 — taken up as WP119 (2026-11-07)
+
+On the owner's go, specified and built as WP119 (): the connection
+from the workbench's environment only, as the ADR-0015 reading above says; a per-project connection and progress for
+long profiles stay out (its §3).
