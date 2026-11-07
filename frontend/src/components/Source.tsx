@@ -9,6 +9,12 @@ import { Button, ErrorNote, Pill, Section } from "./ui";
 const CHECKS = ["range", "lengths", "patterns", "examples"] as const;
 type Check = (typeof CHECKS)[number];
 
+// WP119 follow-up (C50 option c): the files are named after the chosen schemas, so a brownfield
+// chain's steps (`person_…`, `production_…`) never replace an earlier step's input; a typed name wins.
+const stem = (schemas: string[]) => schemas.map((s) => s.toLowerCase()).join("_");
+const defaultName = (schemas: string[], kind: "source_schema" | "profiling") =>
+  schemas.length ? `${stem(schemas)}_${kind}.yml` : `${kind}.yml`;
+
 // `onProduced` hands the stored input to the run form, which selects it as an upload is selected.
 export function SourceSection({ projectId, onChanged, onProduced, busy }: {
   projectId: string; onChanged: () => void; onProduced?: (file: ProjectFile) => void; busy: boolean;
@@ -23,6 +29,10 @@ export function SourceSection({ projectId, onChanged, onProduced, busy }: {
   const [sample, setSample] = useState(10000);
   const [working, setWorking] = useState(false);
   const [result, setResult] = useState<{ command: string; note: string } | null>(null);
+  const [catalogueName, setCatalogueName] = useState<string | null>(null); // null = follow the schemas
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const catalogueFile = catalogueName ?? defaultName(schemas, "source_schema");
+  const profileFile = profileName ?? defaultName(schemas, "profiling");
 
   useEffect(() => {
     let live = true;
@@ -58,7 +68,7 @@ export function SourceSection({ projectId, onChanged, onProduced, busy }: {
 
   function readCatalogue() {
     void act(async () => {
-      const r = await api.readCatalogue(projectId, { schemas, views });
+      const r = await api.readCatalogue(projectId, { schemas, views, name: catalogueFile });
       const s = r.summary;
       return { command: r.command, file: r.file, note: `${r.file.name}: ${s.tables} tables, ${s.columns} columns, ${s.foreign_keys} foreign keys — metadata only` };
     });
@@ -71,7 +81,7 @@ export function SourceSection({ projectId, onChanged, onProduced, busy }: {
     void act(async () => {
       const r = await api.makeProfile(projectId, {
         schemas, tables: chosenTables, checks: checks.length ? checks : ["none"], sample,
-        examples: checks.includes("examples") ? 3 : 0, reads_rows: true,
+        examples: checks.includes("examples") ? 3 : 0, reads_rows: true, name: profileFile,
       });
       const s = r.summary;
       const refused = r.refused.length ? `; refused by the database: ${r.refused.join("; ")}` : "";
@@ -106,8 +116,10 @@ export function SourceSection({ projectId, onChanged, onProduced, busy }: {
             <label className="flex items-center gap-1.5 text-xs text-ink-dim">
               <input type="checkbox" aria-label="views" checked={views} onChange={() => setViews(!views)} /> views as well
             </label>
-            <Button kind="ghost" onClick={readCatalogue} disabled={busy || working || schemas.length === 0}>read catalogue</Button>
-            <span className="text-xs text-ink-faint">metadata only — becomes a schema input</span>
+            <input aria-label="catalogue file name" value={catalogueFile} onChange={(e) => setCatalogueName(e.target.value)}
+              className="w-64 rounded-md border border-line bg-pane-2 px-2 py-1 font-mono text-xs" />
+            <Button kind="ghost" onClick={readCatalogue} disabled={busy || working || schemas.length === 0 || !catalogueFile.trim()}>read catalogue</Button>
+            <span className="text-xs text-ink-faint">metadata only — becomes a schema input; a file of the same name is replaced</span>
           </div>
           <details>
             <summary className="cursor-pointer text-xs text-ink-faint">profile — reads rows; tables {chosenTables.length ? chosenTables.length : "all"}, checks {checks.join(", ") || "none"}</summary>
@@ -139,8 +151,10 @@ export function SourceSection({ projectId, onChanged, onProduced, busy }: {
                 </label>
               </div>
               <div className="flex items-center gap-3">
-                <Button kind="ghost" onClick={makeProfile} disabled={busy || working || schemas.length === 0}>make profile</Button>
-                <span className="text-xs text-ink-faint">counts over all rows; becomes a profiling input</span>
+                <input aria-label="profile file name" value={profileFile} onChange={(e) => setProfileName(e.target.value)}
+                  className="w-64 rounded-md border border-line bg-pane-2 px-2 py-1 font-mono text-xs" />
+                <Button kind="ghost" onClick={makeProfile} disabled={busy || working || schemas.length === 0 || !profileFile.trim()}>make profile</Button>
+                <span className="text-xs text-ink-faint">counts over all rows; becomes a profiling input; a file of the same name is replaced</span>
               </div>
             </div>
           </details>

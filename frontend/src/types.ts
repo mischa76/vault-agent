@@ -28,6 +28,7 @@ export interface ReadCatalogueResult {
 }
 export interface MakeProfileBody {
   schemas: string[]; tables: string[]; checks: string[]; sample: number; examples: number; reads_rows: boolean;
+  name?: string;
 }
 export interface MakeProfileResult {
   file: ProjectFile; command: string; refused: string[];

@@ -13055,3 +13055,20 @@ an unambiguous yet elegant form; three options given, a segmented control prefer
 instruction, index line extended. **Überprüft.** `Review.tsx`: the bridge section (`{build ? "build" : "decline"}`,
 unchecked = declined, `bridgeAnswers`) and the link section (`build`/`allow`/`decline`, default build). **Nur
 angenommen.** Nothing. **Bewusst nicht getan.** No code, no WP number.
+
+## [2026-11-07] WP119 follow-up — the Source section names its files: the API took a name, the section never sent one
+
+**Autor:** Claude Code
+
+The owner, about to read Production's catalogue in the twenty-fifth chain, found no field for the file name: the
+protocol's step-specific names (pre-registration of the same day) could not be given, and the HumanResources read had
+replaced the person step's inputs (C50). WP119's routes accept `name`, the section built with them never sent it — my
+gap, and my instruction to „save under" a name was not followable. Guards red first (`9eb03be`: the names follow the
+chosen schemas, are sent with both requests, a typed name survives a change of choice); then a name field beside
+each button, default `<schemas in lower case, joined by _>_source_schema.yml` / `…_profiling.yml`, `source_schema.yml`
+/ `profiling.yml` with no schema chosen, the button disabled on an empty name. The two older G5 tests pinned the body
+without a name and now expect the default — updated in the fix commit, reason there. Manual 14.2 says it, with the
+replacement still possible (C50 stays open). **Überprüft.** `tsc --noEmit`; `vitest run` 40 passed (38 + 2);
+`npm run build`. **Nur angenommen.** That the server stores under the sent name — `ReadCatalogue.name` and
+`MakeProfile.name` exist with the old defaults and G1/G2 cover the route with a name; not clicked live. **Bewusst nicht
+getan.** No refusal of a used name (C50 (a)), no copy into the run folder (C50 (b)); no Python change.

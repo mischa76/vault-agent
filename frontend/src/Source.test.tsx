@@ -43,7 +43,7 @@ describe("Source (WP119)", () => {
     fireEvent.click(screen.getByLabelText("schema Sales"));
     fireEvent.click(read);
     await screen.findByText(/metadata only$/);
-    expect(api.readCatalogue).toHaveBeenCalledWith("stores", { schemas: ["Sales"], views: false });
+    expect(api.readCatalogue).toHaveBeenCalledWith("stores", { schemas: ["Sales"], views: false, name: "sales_source_schema.yml" });
     expect(onChanged).toHaveBeenCalled();
     expect(screen.getByText(/\$ vault-agent source-schema --schema Sales/)).toBeInTheDocument();
   });
@@ -60,7 +60,7 @@ describe("Source (WP119)", () => {
     fireEvent.click(screen.getByRole("button", { name: "make profile" }));
     await waitFor(() => expect(api.makeProfile).toHaveBeenCalledWith("stores", {
       schemas: ["Sales"], tables: ["Sales.Customer"], checks: ["range", "lengths"], sample: 10000,
-      examples: 0, reads_rows: true,
+      examples: 0, reads_rows: true, name: "sales_profiling.yml",
     }));
     expect(confirm.mock.calls[1]?.[0]).toMatch(/reads rows/);
   });

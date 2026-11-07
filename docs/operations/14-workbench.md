@@ -58,7 +58,10 @@ The Project perspective's *Source* section (WP119, above Inputs) shows the conne
 catalogue's schemas, reads the catalogue, and — folded out, because it reads rows — makes a profile from a table choice,
 the checks as toggles (`examples` marked as the one that writes values) and the sample size, after a confirmation that
 says what is read; the answer's command is shown under the file it wrote. A large profile takes as long as the command:
-the request is synchronous, without progress or cancel.
+the request is synchronous, without progress or cancel. Each of the two files is named in a field beside its button,
+by default after the chosen schemas (`production_source_schema.yml`, `production_profiling.yml`; two schemas
+`sales_person_…`), so the steps of a chain keep their own inputs; a typed name is kept when the choice changes. A file
+of the same name is replaced — also one an earlier run used (C50).
 The Project perspective's *Settings* section edits these (the start form's platform follows the stored default)
 and shows the route and whether the API key is set. The section's *naming profile* folds out the seven technical names (WP114).
 Deleting asks first in the frontend (a `delete` button per input, per run at rest and for the project) and shows the

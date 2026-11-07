@@ -79,7 +79,7 @@ export const api = {
   source: () => call<SourceView>("/api/source"),
   sourceTables: (schemas: string[]) =>
     call<{ schema: string; table: string }[]>(`/api/source/tables?${schemas.map((s) => `schema=${encodeURIComponent(s)}`).join("&")}`),
-  readCatalogue: (id: string, body: { schemas: string[]; views: boolean }) =>
+  readCatalogue: (id: string, body: { schemas: string[]; views: boolean; name?: string }) =>
     call<ReadCatalogueResult>(`/api/projects/${encodeURIComponent(id)}/source-schema`, json(body)),
   makeProfile: (id: string, body: MakeProfileBody) =>
     call<MakeProfileResult>(`/api/projects/${encodeURIComponent(id)}/profile`, json(body)),
