@@ -239,3 +239,28 @@ def test_g4_the_command_record_is_json_safe(client: TestClient, project: str, so
     assert r.status_code == 201
     assert r.json()["command"].endswith("--views --out inputs/source_schema.yml")
     json.dumps(r.json())
+
+
+# ── G6 the variable in `.env` is the variable (found 2026-11-07 before the first live use) ──
+def test_g6_the_workbench_and_the_commands_read_the_url_from_dot_env(
+    client: TestClient, project: str, source: str, tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Manual 6 and ADR-0015 put the URL into `.env`; the settings model reads `.env` for its own
+    # fields only, so a bare os.environ lookup answered „unset" with the URL in the file.
+    workdir = tmp_path / "work"
+    workdir.mkdir()
+    (workdir / ".env").write_text(f"OTHER=1\n{ENV}={source}\n", encoding="utf-8")
+    monkeypatch.chdir(workdir)
+    monkeypatch.delenv(ENV, raising=False)
+    assert client.get("/api/source").json()["state"] == "ok"
+    out = tmp_path / "cli.yml"
+    result = CliRunner().invoke(cli_app, ["source-schema", "--schema", "main", "--out", str(out)])
+    assert result.exit_code == 0, result.output
+    result = CliRunner().invoke(
+        cli_app, ["profile", "--schema", "main", "--out", str(tmp_path / "p.yml")]
+    )
+    assert result.exit_code == 0, result.output
+    # the process environment still wins over the file, as for every other setting
+    monkeypatch.setenv(ENV, "sqlite://reader:secret@/nowhere.db")
+    assert client.get("/api/source").json()["state"] == "unreachable"
