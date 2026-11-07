@@ -87,3 +87,43 @@ workbench process today).
 On the owner's go, specified and built as WP119 (`backlog-2026-07/wp119-source-in-workbench-spec.md`): the connection
 from the workbench's environment only, as the ADR-0015 reading above says; a per-project connection and progress for
 long profiles stay out (its §3).
+
+## C47 — Neutral type families in the house format; the rules decide on the family, the vendor spelling stays as evidence (owner, 2026-11-07)
+
+**Found** while preparing a live chain with the catalogue read from PostgreSQL (WP119): the house format
+(`source_schemas:`) is product-neutral in its structure but carries each column's type in the source's own spelling —
+by WP96's rule „transcription, never interpretation". Every chain so far ran on `derive.py`'s transcription of
+Microsoft's DDL (SQL Server spellings); none on a catalogue read from PostgreSQL (WP96 measured the reader, 68 tables
+equal on every axis, the types a function over 47 spellings — `int → integer`, `nvarchar(n) → varchar(n)`,
+`datetime → timestamp without time zone`, `money → numeric(19, 4)`, `uniqueidentifier → uuid`). Where the code
+decides on a type it partly knows SQL Server's names only: `rules/dv2_rules.py` `json_type_for_sql` (WP63, the data
+contracts' JSON type) maps `int`, `nvarchar`, `datetime`, `money`, `uniqueidentifier` but not `integer`, `timestamp`,
+`uuid`, `boolean` — on a PostgreSQL catalogue the model would again choose the type WP63 took from it. The zero-key
+sets (`NULL_SAFE_TYPES`, `ZERO_KEY_INCAPABLE_TYPES`, WP83/WP94) are mixed. Not swept completely.
+
+**What the consumers expect, read 2026-11-07.** AutomateDV 0.11.4 (installed package, e.g.
+`macros/supporting/ghost_records/create_ghost_record.sql`) and datavault4dbt (`macros/staging/derived_column_datatypes.sql`,
+`macros/supporting/ghost_record_per_datatype.sql`) take no type as input: they read the columns of the warehouse
+relation at dbt run time (`get_columns_in_relation`) and dispatch per adapter. TurboVault Engine
+(`backend/engine/services/imports/domain.py`, read via its repository) holds an optional free-text `datatype` on
+source columns and `target_column_datatype` on hub, link and satellite columns, no value set; its comment points to
+a database import as the origin — presumably vendor spellings, not confirmed; its Excel format and minimal import
+schema have no type column. So the neutral output towards dbt is the model and the project; the types matter for
+this tool's own decisions (zero keys, contract types, staging casts) and, verbatim, for a TurboVault export
+(ADR-0020).
+
+**Shape (an ADR first, amending WP96's rule).** Each declared column carries two fields: `type` — verbatim as now,
+for people, casts and an export — and `family` — neutral, `integer | decimal | string | datetime | date | time |
+boolean | uuid | binary | other` (set to be fixed by the ADR), from SQLAlchemy's generic type affinity when the
+catalogue reader has the type object (tried on vault-dev: PostgreSQL `INTEGER`/`VARCHAR`/`TIMESTAMP`/`UUID` and SQL
+Server `INT`/`NVARCHAR`/`DATETIME`/`UNIQUEIDENTIFIER` fall into `Integer`/`String`/`DateTime`/`Uuid`; `MONEY` has no
+affinity in either dialect), plus a small table for types without one (`money`, `xml`, `geography`, user-defined
+aliases). Without a type object — `derive.py`, hand-written files — the loader derives the family from the text through
+the same table and SQLAlchemy's per-dialect name maps, an approximation it marks. Every rule that reads a type reads
+the family; a new source dialect is entries in the table, not code. SAP (C27 tier C) has no SQLAlchemy and supplies
+the family itself.
+
+**Possible first stage, small and separate:** extend the type-reading rules by the PostgreSQL spellings WP96
+measured (the 47 pairs), guards first, so a chain on a PostgreSQL catalogue is not measuring this gap. Then the ADR
+and the family field. **Open:** whether TurboVault evaluates `datatype` or passes it through, and which values its
+database import stores — only a real export settles it (ADR-0020 defers that).

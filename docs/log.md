@@ -12881,3 +12881,21 @@ Guard G6 red first (`d02bbae`), then `config.source_url_from_environment()` for 
 `infer-keys`, `profile`. **Überprüft.** G6 green; suite 1620 passed / 5 skipped, no key reachable; ruff; bare mypy.
 **Nur angenommen.** Nothing. **Bewusst nicht getan.** The variable did not become a settings field (the pipeline must
 never read it, ADR-0008 #4). Evidence: spec §7; this entry; `d02bbae` and the fix commit.
+
+## [2026-11-07] Candidate C47 recorded — neutral type families in the house format; the type rules know SQL Server's spellings, a PostgreSQL catalogue would bypass WP63
+
+**Autor:** Claude Code
+
+Preparing the owner's live chain with the catalogue read from PostgreSQL, the owner asked whether the schema file
+is product-neutral. Its structure is, its types are not (WP96: the vendor's spelling). `json_type_for_sql` (WP63)
+knows SQL Server names only, so a PostgreSQL catalogue would hand most contract types back to the model; no chain has
+yet run on a catalogue read from PostgreSQL. Read what the consumers expect: AutomateDV 0.11.4 and datavault4dbt read
+types from the warehouse at dbt run time (`get_columns_in_relation`), TurboVault Engine holds an optional free-text
+`datatype`. Recorded as C47 on the owner's instruction, with a small first stage (the PostgreSQL spellings in the type
+rules) before the ADR. **Überprüft.** `dv2_rules.py` (`_SQL_JSON_TYPES`, `NULL_SAFE_TYPES`,
+`ZERO_KEY_INCAPABLE_TYPES`), `source_schema_reader.py` (`type_name`), the WP96 log entry's type pairs, SQLAlchemy's
+`_type_affinity` for nine types on vault-dev, the installed AutomateDV 0.11.4 (`demo/bank_postgres/dbt_packages`),
+the local datavault4dbt clone (`1b688515`), TurboVault Engine's `domain.py` and import docs (read through a fetch
+agent, 2026-11-07). **Nur angenommen.** That TurboVault's `datatype` holds vendor spellings; that the sweep of
+type-reading rules is complete — it is not, only the two places named were read. **Bewusst nicht getan.** No code,
+no WP number, no ADR draft.
