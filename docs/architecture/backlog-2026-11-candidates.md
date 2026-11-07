@@ -152,3 +152,17 @@ SVG as a download, which prints and scales without loss in any viewer. Points to
 print dialog writes is enough or a server-side export is wanted; the title and run stamp on the sheet; an area view
 (WP88) printing the area, not the whole model. **Not decided**, no WP number — the owner prioritises; C45's button
 kinds would govern the control's look.
+
+## C50 — A project input a run has used is overwritten without a word (owner, 2026-11-07)
+
+**Found** in the twenty-fifth chain: the owner read HumanResources' catalogue and profile in the Source section under
+the default names `source_schema.yml` and `profiling.yml`, which the finished person run (`20261107T101620658215Z`)
+had used; both were replaced. `ProjectStore.add_file` writes the file and replaces the entry of the same name, and
+the attach controls and both Source routes reach it — no warning, no refusal. The run itself is safe (its state
+carries the 13 tables, the extension reads the carried state), but `run.json` now names a file whose content is
+another schema, and the run's CLI equivalent no longer replays. **Options:** (a) refuse a name a run of the project
+references, answering 409 with the runs that use it, and offer a free name; (b) keep the old file under the run
+(copy each input into the run folder at start, `inputs/` stays the scratch area) — the run is then self-contained and
+replayable whatever happens to `inputs/`; (c) propose a step-specific default in the Source section (the schema's
+name, `person_source_schema.yml`). (b) answers the cause, (a) and (c) the surprise; they combine. **Not decided**,
+no WP number — the owner prioritises.

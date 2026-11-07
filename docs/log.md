@@ -13018,3 +13018,17 @@ Recorded as C49 in `backlog-2026-11-candidates.md`, index line extended. **Über
 its two uses in `perspectives/Model.tsx`, no `@media print` rule in the frontend. **Nur angenommen.** That a
 light-theme re-render prints legibly and that the browser's PDF suffices — neither tried. **Bewusst nicht getan.** No
 code, no WP number.
+
+## [2026-11-07] Candidate C50 recorded — a project input a run has used is overwritten without a word
+
+**Autor:** Claude Code
+
+At the twenty-fifth chain's second step the HumanResources catalogue and profile were stored under the default names
+the finished person run had used, replacing its inputs; the owner had the step-specific names from the protocol, the
+workbench gave no hint. Recorded as C50 on the owner's instruction, index line extended. **Überprüft.**
+`ProjectStore.add_file` (write, then the entry of the same name replaced); `project.json` of `chain-20261107` (the two
+entries now carry `--schema HumanResources`); the person run's `run.json` (`schema: source_schema.yml`) and its
+`state.json` (13 tables in `source_schemas`, so the run's result is unaffected). **Nur angenommen.** That the
+extension reads only the carried state, not the earlier run's input file — inferred from the run's `existing_run`
+handling, not traced. **Bewusst nicht getan.** No code; the person run's files not yet restored — after the chain,
+by the recorded command, with a byte comparison noted in the chain's entry.
