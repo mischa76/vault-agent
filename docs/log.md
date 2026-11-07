@@ -13032,3 +13032,15 @@ entries now carry `--schema HumanResources`); the person run's `run.json` (`sche
 extension reads only the carried state, not the earlier run's input file — inferred from the run's `existing_run`
 handling, not traced. **Bewusst nicht getan.** No code; the person run's files not yet restored — after the chain,
 by the recorded command, with a byte comparison noted in the chain's entry.
+
+## [2026-11-07] Candidate C51 recorded — the entity-resolution answer field: invisible default, incomplete list, the CLI's words
+
+**Autor:** Claude Code
+
+The owner, at the twenty-fifth chain's second resolution checkpoint, found the answer field misleading: the grey text
+names „leave as proposed", the list offers `NEW`, `same_as_candidate`, `unresolved`, which do not map one to one and
+mix two spellings; he proposed one vocabulary, *keep the proposal* as an explicit default, possibly a
+confidence-dependent default. Recorded as C51 on his instruction, with the ADR-0014 reservation on the last point,
+index line extended. **Überprüft.** `Review.tsx` (placeholder, datalist, `FALLBACK_ANSWERS`), `ui/runs.py`
+`RESOLUTION_ANSWERS`, the CLI's `--resolve` parsing (`cli.py`), the orchestrator's override contract (a construct
+name or one of the three). **Nur angenommen.** Nothing. **Bewusst nicht getan.** No code, no WP number.

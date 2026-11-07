@@ -166,3 +166,22 @@ references, answering 409 with the runs that use it, and offer a free name; (b) 
 replayable whatever happens to `inputs/`; (c) propose a step-specific default in the Source section (the schema's
 name, `person_source_schema.yml`). (b) answers the cause, (a) and (c) the surprise; they combine. **Not decided**,
 no WP number — the owner prioritises.
+
+## C51 — The entity-resolution answer field: the default is invisible, the list is incomplete, the words are the CLI's (owner, 2026-11-07)
+
+**Found** at the twenty-fifth chain's second resolution checkpoint (`employee::businessentityid` proposed IS
+`hub_business_entity`, `exact_key`, 0.90). The answer is a free-text input with a datalist (`perspectives/Review.tsx`,
+the resolutions and the unresolved section): its grey placeholder says „leave as proposed, or NEW / a construct", the
+list offers `NEW`, `same_as_candidate`, `unresolved` (`ui/runs.py` `RESOLUTION_ANSWERS`, the CLI's `--resolve`
+values). The answer space and the list do not map one to one: *keep the proposal* is the empty field and appears
+in no list; *another existing construct* is a name to type; the three listed values mix an upper-case token with two
+lower-case ones. **The owner's points:** one vocabulary — either the machine names consistently (upper case,
+underscores) or human-readable text; *keep the proposal* offered explicitly and as the default; possibly a default
+that depends on the confidence. **Proposal for when it is taken up:** a select with human-readable entries — „Keep
+proposal (<construct>)" first and preselected, „New hub", „Same as candidate", „Leave unresolved", the existing
+constructs by name (or „Other construct…" with a filtered list) — the machine value shown only in the CLI
+equivalent; the unresolved section the same without „Keep proposal". On the confidence: ADR-0014 lets the UI decide
+nothing an agent decides, and „Keep proposal" already is the agent's answer, so a default that changes with the
+confidence would be a second decision rule in the UI; a hint below a threshold („check the evidence") would not.
+**Not decided**, no WP number — the owner prioritises; the vocabulary question touches the link and bridge
+sections and C45's controls too.
