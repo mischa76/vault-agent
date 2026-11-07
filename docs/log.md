@@ -12931,3 +12931,49 @@ schema as the source schema and a profile as the profiling evidence. **Überprü
 first (`444c6bf`, the select's value empty), then green; `tsc --noEmit`; `vitest run` 38 passed; `npm run build`.
 **Nur angenommen.** Nothing. **Bewusst nicht getan.** No server change; the running workbench serves the rebuilt
 bundle on reload.
+
+## [2026-11-07] Pre-registration for the twenty-fifth chain run — the first on a catalogue and a profile read from PostgreSQL in the workbench, built afterwards in the same database; written before the run
+
+**Autor:** Claude Code
+
+On the owner's go (2026-11-07): the chain with PostgreSQL as the source of the catalogue and as the build target,
+with a profile, driven by the owner in the workbench. **The twenty-fourth (pre-registered 2026-11-05) was never run**
+(`~/workbench/chain-20261105/adventureworks-chain-24/runs/` empty); this one replaces it, its predictions are not
+carried over as measured. **Setup.** Workbench from the repo root at the commit carrying this entry, `--root
+~/workbench/chain-20261107`, port 8765, SSH tunnel (manual 14.1); project `chain-20261107`; source
+`VAULT_AGENT_SOURCE_URL` in `.env` → `aw_source` (68 tables loaded by WP110's loader the same day, 759 239 rows;
+`GET /api/source` → `ok`). Per step the owner reads the step's one schema in the Source section and profiles it
+(checks `range`, `lengths`, `patterns`; sample 10 000; **examples 0** — no row value leaves the database), each
+under a step-named file (`person_source_schema.yml`, `person_profiling.yml`, …): the store replaces a file of the
+same name (`ProjectStore.add_file`), so a default name would change an earlier run's input under it. The five
+authored requirements documents of `demo/workbench-adventureworks/adventureworks/inputs/` attached as before.
+Settings at the environment's (Sonnet 5.5 / Opus 5.5, PostgreSQL, house naming). **Protocol** as the twenty-third's:
+five runs person → HumanResources → Production → Purchasing → Sales, each extending the previous; proposals accepted
+as offered; sign-off accept, one owner; no PIT, no bridges; deviations said per step. Code since the twenty-third
+(`ba7e20b`): WP105–WP118 as listed 2026-11-05, plus WP119 (the Source section), WP120 (PostgreSQL type spellings,
+technical columns dropped).
+
+**What differs from every earlier chain, by construction.** The catalogue is the database's, not the derived files:
+the same tables per step (13 / 6 / 25 / 5 / 19), keys, foreign keys and comments, but **column names lower case**
+(the loader folds them; table names keep their case), **types in PostgreSQL spelling**, and **two load columns per
+table** (`load_datetime`, `record_source`) that WP120 drops. A profile is attached on every step (the twenty-third
+had none).
+
+**P1 — all five steps green**, the Run view's strip without a red node. **P2 — the catalogue as read matches the
+derived one:** per step the Source section reports the step's table count above, and the run's saved state lists in
+`technical_source_columns` exactly the step's tables, each with `load_datetime` and `record_source`, nothing else.
+**P3 — no load column reaches the model:** no hub, link or satellite of the fifth model reads `load_datetime` or
+`record_source` as payload or key, and no `E_HUB_PAYLOAD_UNREAD` names either. **P4 — lower-case columns cost
+nothing:** no gate fires on a column the catalogue declares (no `W_ATTR_NOT_IN_SOURCE`, no unresolved stage) that a
+case-sensitive comparison would explain. **P5 — WP105 live** as predicted 2026-11-05 (every stage resolves; the fifth
+step lists at most 2 stages to provide; no earlier binding re-pointed). **P6 — WP116 live** as predicted 2026-11-05,
+unmeasured if no step translates. **P7 — WP109:** `W_UNTRACED_CONSTRUCT` a warning only, counted per step.
+**P8 — decisions per step recorded from the sign-off view, total 87 ± 12** (the 2026-11-05 estimate, the band
+widened for the new catalogue and the profile); not entered into `REVIEW_DECISION_SAMPLES`. **P9 — cost ≤ 6.5 USD and
+≤ 35 min of pipeline time over the five runs** (2026-11-05's bound plus the profile's prompt share; the owner's
+answering time excluded). **P10 — the build:** the fifth project, built keylessly afterwards in `aw_source` into a
+fresh schema `vault` (profile `schema: vault`; the sources resolve in the same database), parses without a hand view;
+every failure is an inferred-bound stage, its dependants, or a type artefact named in the record; if the sales-order
+link is built, it holds 31 465 orders. **P11 — WP94's gate** conditional as 2026-11-05's P3. **Not predicted:**
+attempts per step, the shapes, the review-item total, whether the profile changes a key or a binding against the
+twenty-third. **Criterion 2 watch:** any wrong-data finding in the build restarts the two-minor count.
