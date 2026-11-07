@@ -175,7 +175,8 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
           <span className="text-xs text-ink-faint">{savedNote ?? `route: ${view?.environment.route ?? view?.environment.llm_provider ?? "…"} — secrets stay in .env; every run records these and its CLI equivalent carries them`}</span>
         </div>
       </Section>
-      <SourceSection projectId={project.id} onChanged={onChanged} busy={busy} />
+      <SourceSection projectId={project.id} onChanged={onChanged} busy={busy}
+        onProduced={(f) => { if (f.kind === "schema") setSchema(f.name); if (f.kind === "profiling") setProfiling(f.name); }} />
       <Section title="Inputs">
         <ErrorNote error={error} />
         <ul className="mt-2 divide-y divide-line text-sm">

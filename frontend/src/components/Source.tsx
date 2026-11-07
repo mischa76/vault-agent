@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
-import type { SourceView } from "../types";
+import type { ProjectFile, SourceView } from "../types";
 import { Button, ErrorNote, Pill, Section } from "./ui";
 
 // WP119 (C46): the source database — `vault-agent source-schema` and `vault-agent profile` from the
@@ -9,7 +9,10 @@ import { Button, ErrorNote, Pill, Section } from "./ui";
 const CHECKS = ["range", "lengths", "patterns", "examples"] as const;
 type Check = (typeof CHECKS)[number];
 
-export function SourceSection({ projectId, onChanged, busy }: { projectId: string; onChanged: () => void; busy: boolean }) {
+// `onProduced` hands the stored input to the run form, which selects it as an upload is selected.
+export function SourceSection({ projectId, onChanged, onProduced, busy }: {
+  projectId: string; onChanged: () => void; onProduced?: (file: ProjectFile) => void; busy: boolean;
+}) {
   const [view, setView] = useState<SourceView | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [schemas, setSchemas] = useState<string[]>([]);
@@ -39,10 +42,12 @@ export function SourceSection({ projectId, onChanged, busy }: { projectId: strin
 
   const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
 
-  async function act(action: () => Promise<{ command: string; note: string }>) {
+  async function act(action: () => Promise<{ command: string; note: string; file: ProjectFile }>) {
     setError(null); setResult(null); setWorking(true);
     try {
-      setResult(await action());
+      const done = await action();
+      setResult(done);
+      onProduced?.(done.file);
       onChanged();
     } catch (e) {
       setError(e instanceof ApiError ? e.detail : String(e));
@@ -55,7 +60,7 @@ export function SourceSection({ projectId, onChanged, busy }: { projectId: strin
     void act(async () => {
       const r = await api.readCatalogue(projectId, { schemas, views });
       const s = r.summary;
-      return { command: r.command, note: `${r.file.name}: ${s.tables} tables, ${s.columns} columns, ${s.foreign_keys} foreign keys — metadata only` };
+      return { command: r.command, file: r.file, note: `${r.file.name}: ${s.tables} tables, ${s.columns} columns, ${s.foreign_keys} foreign keys — metadata only` };
     });
   }
 
@@ -70,7 +75,7 @@ export function SourceSection({ projectId, onChanged, busy }: { projectId: strin
       });
       const s = r.summary;
       const refused = r.refused.length ? `; refused by the database: ${r.refused.join("; ")}` : "";
-      return { command: r.command, note: `${r.file.name}: ${s.tables} tables, ${s.columns} columns, ${s.rows} rows counted${refused}` };
+      return { command: r.command, file: r.file, note: `${r.file.name}: ${s.tables} tables, ${s.columns} columns, ${s.rows} rows counted${refused}` };
     });
   }
 

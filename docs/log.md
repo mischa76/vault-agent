@@ -12918,3 +12918,16 @@ first, `6870f5d`), suite 1650 passed / 5 skipped with no key reachable, ruff, ba
 literal type names in `src/` (`dv2_rules.py`, `staging_generator.py`'s integer set, `draft_requirements.py`'s
 prefixes, which already read PostgreSQL's), not every string comparison. **Bewusst nicht getan.** C47's family field
 and ADR; `infer-keys` and `profile` still see every column; the report does not print the dropped columns.
+
+## [2026-11-07] WP119 follow-up — a catalogue read or a profile made in the Source section is selected in the run form at once
+
+**Autor:** Claude Code
+
+The owner asked whether the Source section's files still have to be attached. They do not — both routes store them
+as project inputs — but the run form's „source schema (grounding)" picks its default only at mount or after an
+upload, so after „read catalogue" it stayed on „none" and a run started from there would have been ungrounded. Fixed
+before the owner's live chain: `SourceSection` hands the stored file to the perspective (`onProduced`), which selects a
+schema as the source schema and a profile as the profiling evidence. **Überprüft.** The new `Project.test.tsx` case red
+first (`444c6bf`, the select's value empty), then green; `tsc --noEmit`; `vitest run` 38 passed; `npm run build`.
+**Nur angenommen.** Nothing. **Bewusst nicht getan.** No server change; the running workbench serves the rebuilt
+bundle on reload.
