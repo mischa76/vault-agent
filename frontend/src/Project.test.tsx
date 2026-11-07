@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { ProjectPerspective } from "./perspectives/Project";
 import type { Project } from "./types";
@@ -11,6 +11,11 @@ vi.mock("./api", () => ({
     deleteFile: vi.fn(async () => ({ deleted: "prof.yml" })), deleteRun: vi.fn(async () => ({ deleted: "x" })),
     deleteProject: vi.fn(async () => ({ deleted: "stores" })),
     source: vi.fn(async () => ({ state: "unset", url: null, dialect: null, schemas: [] })),
+    sourceTables: vi.fn(async () => []),
+    readCatalogue: vi.fn(async () => ({
+      file: { kind: "schema", name: "source_schema.yml", bytes: 10 }, command: "vault-agent source-schema --schema Person --out inputs/source_schema.yml",
+      warnings: [], summary: { tables: 1, columns: 2, comments: 0, foreign_keys: 0 },
+    })),
     settings: vi.fn(async () => ({
       settings: {},
       effective: { target_platform: "postgres", primary_model: "claude-sonnet-5-5", heavy_model: "claude-opus-5-5", anthropic_base_url: null },
@@ -122,5 +127,21 @@ describe("Project — naming profile (WP114)", () => {
     expect(api.saveSettings).toHaveBeenCalledWith("stores", expect.objectContaining({
       naming: expect.objectContaining({ staging_prefix: "stage_", technical_case: "lower" }),
     }));
+  });
+});
+
+// WP119 follow-up (2026-11-07): a catalogue read in the Source section is the run's schema
+// at once, as an uploaded one is — otherwise the form stays on „none" and the run is ungrounded.
+describe("Project — the Source section's file is selected for the run (WP119)", () => {
+  it("selects the catalogue just read as the source schema", async () => {
+    vi.mocked(api.source).mockResolvedValueOnce({ state: "ok", url: "postgresql://vault:***@localhost/vault", dialect: "postgresql", schemas: ["Person"] });
+    const bare: Project = { ...project, files: [{ kind: "requirements", name: "req.md", bytes: 10 }] };
+    const { rerender } = render(<ProjectPerspective project={bare} onChanged={() => undefined} onOpenRun={() => undefined} onDeleted={() => undefined} busy={false} />);
+    fireEvent.click(await screen.findByLabelText("schema Person"));
+    fireEvent.click(screen.getByRole("button", { name: "read catalogue" }));
+    await waitFor(() => expect(api.readCatalogue).toHaveBeenCalled());
+    const withSchema: Project = { ...bare, files: [...bare.files, { kind: "schema", name: "source_schema.yml", bytes: 10 }] };
+    rerender(<ProjectPerspective project={withSchema} onChanged={() => undefined} onOpenRun={() => undefined} onDeleted={() => undefined} busy={false} />);
+    await waitFor(() => expect(screen.getByLabelText("source schema (grounding)")).toHaveValue("source_schema.yml"));
   });
 });
