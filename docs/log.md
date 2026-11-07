@@ -12996,3 +12996,14 @@ flags; `dv2_modeler`'s comment and `_MAX_TOKENS = 32768`; the run's trace (`2026
 tokens truncated at 8 192, parts 3 751 → 5 204 and 3 981 → 6 956). **Nur angenommen.** The factor 1.6 and the „some
 80k input tokens" are one document's ratio, written as a rule of thumb, not measured across documents. **Bewusst
 nicht getan.** No code change; the budgets stay constants.
+
+## [2026-11-07] Workbench cosmetics — the checkpoint pills under „CLI equivalents" no longer overlap
+
+**Autor:** Claude Code
+
+The owner, at the twenty-fifth chain's first sign-off, showed the Run view's CLI equivalents: the `resolution` and
+`signoff` pills of two consecutive lines touched and overlapped — inline elements with vertical padding in a list
+without line spacing. The list now spaces its items (`space-y-1.5`) and lays each out as a flex row. **Überprüft.**
+`tsc --noEmit`; `vitest run` 38 passed; `npm run build`. **Nur angenommen.** That the overlap is gone on screen —
+not looked at; the owner sees it on reload. **Bewusst nicht getan.** No other use of `Pill` touched; no test for a
+spacing class.
