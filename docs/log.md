@@ -12977,3 +12977,22 @@ every failure is an inferred-bound stage, its dependants, or a type artefact nam
 link is built, it holds 31 465 orders. **P11 — WP94's gate** conditional as 2026-11-05's P3. **Not predicted:**
 attempts per step, the shapes, the review-item total, whether the profile changes a key or a binding against the
 twenty-third. **Criterion 2 watch:** any wrong-data finding in the build restarts the two-minor count.
+
+## [2026-11-07] Manual: the adaptive segmentation and `INPUT_SEGMENTED` described — the manual knew only the 400k cut, called every `llm_error` terminal and gave a truncation one remedy
+
+**Autor:** Claude Code
+
+The owner asked, at the first checkpoint of the twenty-fifth chain, what the `requirements_parser` flag *„did not
+fit one model response and was extracted over 2 segment(s)“* means and whether the manual describes it and a remedy.
+It did not: chapter 6.1 named only `INPUT_TRUNCATED` (400k characters), 10.2 called `llm_error` „a terminal failure",
+though the run's `llm_error` at 10:17:03 (`emit_requirements`, `max_tokens`) was followed by the two parts' calls and
+the run went on, and 12.1 offered „shrink the input" for every truncation. Added on the owner's instruction: a
+paragraph in 6.1 (the output budget as the bound, the halving at heading/blank line/line break up to depth 4 = 16
+parts, the merge, the flag, the trace's shape, a rule of thumb, the five agents that split and the modeler that does
+not), the qualification in 10.2, and in 12.1 the truncation row narrowed to the cases that end a run plus a row for
+`INPUT_SEGMENTED`. **Überprüft.** `llm.call_with_truncation_split` and `MAX_SPLIT_DEPTH = 4`;
+`requirements_parser.split_document` and `merge_records`; the four other callers and their `FlagKind.INPUT_SEGMENTED`
+flags; `dv2_modeler`'s comment and `_MAX_TOKENS = 32768`; the run's trace (`20261107T101620658215Z`: 7 626 input
+tokens truncated at 8 192, parts 3 751 → 5 204 and 3 981 → 6 956). **Nur angenommen.** The factor 1.6 and the „some
+80k input tokens" are one document's ratio, written as a rule of thumb, not measured across documents. **Bewusst
+nicht getan.** No code change; the budgets stay constants.

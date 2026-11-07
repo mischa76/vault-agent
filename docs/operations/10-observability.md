@@ -19,8 +19,11 @@ one transcript; a crash keeps everything written so far.
 Event kinds: `llm_route` (the first line of every run segment: the configured route as
 facts — `{"provider": "bedrock", "region": "eu-central-2"}`, or `unknown` when settings
 did not construct; 5.5), `llm_call` (a completed API response — including a truncated one),
-`llm_error` (a terminal failure: truncation, missing tool block, exhausted retries, a
-non-retryable 4xx), and `backstop` (10.4). Fields per event: timestamp, `tool_name`,
+`llm_error` (a failed call: truncation, missing tool block, exhausted retries, a
+non-retryable 4xx — terminal for that call, not necessarily for the run: a truncation in one
+of the five agents that split their input is followed by the halves' `llm_call`s and an
+`INPUT_SEGMENTED` flag, 6.1; only an `llm_error` with no later call of the same tool ended
+the stage), and `backstop` (10.4). Fields per event: timestamp, `tool_name`,
 `client` (the SDK client class that carried the call — `AsyncAnthropic`,
 `AsyncAnthropicBedrockMantle`, `AsyncAnthropicVertex`; the per-call residency evidence,
 as opposed to the configured route in the header)

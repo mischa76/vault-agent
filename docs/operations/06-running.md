@@ -10,6 +10,28 @@ than `MAX_DOCUMENT_CHARS` (400k chars, ~100k tokens) are cut to the head and fla
 `INPUT_TRUNCATED` — the pipeline continues on the head and you decide at the
 checkpoint.
 
+**A long document is read in parts, not cut (adaptive segmentation, 2026-07-28).** The
+400k-character limit above bounds the *input*; the tighter bound is the parser's
+*answer*: the extracted requirements, as a structured list, run longer than the prose they
+come from (about 1.6× in the twenty-fifth chain's person document: 7 626 input tokens asked
+for more than the 8 192 output tokens a call may write). When an answer is cut off at that
+budget, the parser does not raise the limit and drops nothing: it halves the document at the
+structural boundary closest to the middle — a heading, else a blank line, else a line break —
+and extracts each half on its own, halving again where a half still does not fit, at most
+four times (up to 16 parts). The parts are merged: identical records once, colliding ids of
+different records suffixed `-2`, `-3`. The checkpoint shows this as the advisory flag
+`INPUT_SEGMENTED` (*„did not fit one model response and was extracted over N segment(s)
+…“*), and the trace as an `llm_error` with `stop_reason: "max_tokens"` followed by the
+parts' calls (10.2). Nothing to answer; look over the extracted requirements at sign-off,
+since a requirement whose context spans the cut, or two wordings of one requirement, is
+what a merge cannot see. As a rule of thumb a document stays readable up to roughly 16 ×
+8 192 output tokens, i.e. some 80k input tokens of dense requirements; a run fails only on a
+single line that alone overflows the budget, or past 16 parts (12.1). The business-key
+identifier, the entity resolver, the source mapper and the contract enricher split their
+own input the same way (`llm.call_with_truncation_split`) and flag it with the same kind; the
+modeler does not — one model cannot be merged from halves, its only lever is its larger
+budget (32 768).
+
 **Declared source schema (optional, recommended).** `--source-schema <file.yml|json>`
 activates grounding (2.3): a top-level `source_schemas:` key or a bare list of tables,
 each with `table`, `columns` (plain names or objects with `name`/`type`/`comment`),
