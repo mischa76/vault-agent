@@ -185,3 +185,17 @@ nothing an agent decides, and „Keep proposal" already is the agent's answer, s
 confidence would be a second decision rule in the UI; a hint below a threshold („check the evidence") would not.
 **Not decided**, no WP number — the owner prioritises; the vocabulary question touches the link and bridge
 sections and C45's controls too.
+
+## C52 — A checkbox whose word is the state, not the label: bridge paths and link proposals read the wrong way round (owner, 2026-11-07)
+
+**Found** at the twenty-fifth chain's sign-offs. Under „Bridge paths" each proposal is an unchecked checkbox with the
+word „decline" beside it (`perspectives/Review.tsx`, the bridge section); checked, the word turns to „build". The
+word is the current answer, not what ticking does — the owner first read „tick to decline", then saw the bridge not
+built with the box empty, and only understood when the word flipped. The link proposals at the resolution checkpoint
+use the same pattern (`build` / `allow` / `decline`, default checked). **Options:** (1) a two-part segmented control,
+`[ Decline | Build ]`, both answers always visible, the chosen one filled, the default preselected (links `[ Build |
+Decline ]`, licenses `[ Allow | Decline ]`); (2) a checkbox with a fixed action label („Build this bridge"), the box
+alone carrying the state; (3) a switch with a fixed label. **Preferred (1):** it shows a choice between two named
+answers, one shape for links and bridges despite their opposite defaults, no word that changes under the pointer.
+Belongs with C45 (button kinds) and C51 (the resolution answer field) to one question: a small set of decision
+controls for the checkpoint. **Not decided**, no WP number.

@@ -13044,3 +13044,14 @@ confidence-dependent default. Recorded as C51 on his instruction, with the ADR-0
 index line extended. **Überprüft.** `Review.tsx` (placeholder, datalist, `FALLBACK_ANSWERS`), `ui/runs.py`
 `RESOLUTION_ANSWERS`, the CLI's `--resolve` parsing (`cli.py`), the orchestrator's override contract (a construct
 name or one of the three). **Nur angenommen.** Nothing. **Bewusst nicht getan.** No code, no WP number.
+
+## [2026-11-07] Candidate C52 recorded — the bridge and link checkboxes show the state as if it were the label
+
+**Autor:** Claude Code
+
+The owner, at the twenty-fifth chain's second sign-off, found the bridge control misleading: an unchecked box beside
+„decline" reads as „tick to decline", while the word is the current answer and turns to „build" when ticked. Asked for
+an unambiguous yet elegant form; three options given, a segmented control preferred; recorded as C52 on his
+instruction, index line extended. **Überprüft.** `Review.tsx`: the bridge section (`{build ? "build" : "decline"}`,
+unchecked = declined, `bridgeAnswers`) and the link section (`build`/`allow`/`decline`, default build). **Nur
+angenommen.** Nothing. **Bewusst nicht getan.** No code, no WP number.
