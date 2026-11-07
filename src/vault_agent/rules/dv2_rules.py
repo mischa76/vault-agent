@@ -1025,11 +1025,22 @@ _SQL_JSON_TYPES: dict[str, str] = {
         "date", "time", "datetime", "datetime2", "smalldatetime", "datetimeoffset", "binary",
         "varbinary", "image", "hierarchyid", "geography", "geometry",
     )},
+    # WP120 (C47 stage 1): PostgreSQL's spellings, as a catalogue read by `source-schema` gives
+    # them (WP96 measured the pairs) or a hand-written file writes them out.
+    **{t: "integer" for t in ("integer", "serial", "bigserial", "smallserial")},
+    "boolean": "boolean", "bool": "boolean",
+    "double precision": "number",
+    **{t: "string" for t in (
+        "character varying", "character", "bpchar", "uuid", "bytea", "json", "jsonb", "citext",
+        "interval", "timestamp", "timestamp without time zone", "timestamp with time zone",
+        "time without time zone", "time with time zone",
+    )},
 }
 
 
 def json_type_for_sql(declared: str) -> str | None:
-    """The JSON Schema type a declared SQL Server base type denotes, or None (WP63).
+    """The JSON Schema type a declared SQL Server or PostgreSQL (WP120) base type denotes, or
+    None (WP63).
 
     A length or precision suffix is ignored (``nvarchar(50)``, ``decimal(8,2)``); a user-defined
     type (AdventureWorks' ``Name``, ``Flag``, ``Phone``) or an empty declaration is None — the
@@ -1423,6 +1434,7 @@ def hub_collision_remedy(
 NULL_SAFE_TYPES = frozenset({
     "int", "integer", "bigint", "smallint", "tinyint",
     "char", "nchar", "varchar", "nvarchar", "text", "string",
+    "character", "bpchar",  # WP120: PostgreSQL's `character varying(n)` / `character(n)`
 })
 
 

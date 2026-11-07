@@ -1,6 +1,6 @@
 ---
 type: spec
-status: not-measured
+status: measured
 updated: 2026-11-07
 ---
 
@@ -59,3 +59,13 @@ unchanged — the AdventureWorks files carry no technical columns, so every chai
 ## 5 Measured
 
 Appended after the run.
+
+## 5 Measured (2026-11-07, keyless)
+
+- **P1 ✔.** T1–T5: 30 guards green (19 of them red at `6870f5d`, the other 11 the spellings both tables already
+  shared and the SQL Server table pinned). Whole suite with no key reachable: 1650 passed, 5 skipped (1620 before,
+  plus these 30); ruff, bare mypy clean.
+- **P2 ✔.** No older guard changed or failed: the AdventureWorks files and every fixture carry no column named like
+  the profile's technical columns, so their states are what they were.
+- **Not measured:** the live chain on the PostgreSQL catalogue, which this WP prepares; the report does not print
+  `technical_source_columns` yet (§3).

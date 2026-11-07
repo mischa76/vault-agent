@@ -12899,3 +12899,22 @@ the local datavault4dbt clone (`1b688515`), TurboVault Engine's `domain.py` and 
 agent, 2026-11-07). **Nur angenommen.** That TurboVault's `datatype` holds vendor spellings; that the sweep of
 type-reading rules is complete — it is not, only the two places named were read. **Bewusst nicht getan.** No code,
 no WP number, no ADR draft.
+
+## [2026-11-07] WP120 built and measured (keyless): a catalogue read from the landing zone — PostgreSQL's type spellings and the technical columns (C47 stage 1, C48)
+
+**Autor:** Claude Code
+
+Before the owner's live chain on a catalogue read from the PostgreSQL copy, two gaps no run had measured. (1) The type
+rules knew SQL Server's names only: `json_type_for_sql` (WP63) answered `None` for `integer`, `boolean`, `uuid`,
+`timestamp…`, `double precision`, so the contract agent would have asked the model; `null_safe_type` read
+`character varying(n)` as unknown. (2) A landing table's `load_datetime` and `record_source` were transcribed as
+source columns; `unread_payload` listed them and the error gate `E_HUB_PAYLOAD_UNREAD` would have pushed them into a
+satellite's hashdiff — a new row per key per batch (reproduced keylessly). Recorded as C48, built with C47's first
+stage on the owner's go: PostgreSQL's spellings added to the two tables (SQL Server's answers pinned), and
+`VaultAgentState` drops the naming profile's technical columns from `source_schemas` and `carried_schemas` unless a
+declared key holds them, recording them in `technical_source_columns`. **Überprüft.** Spec §5: 30 guards (19 red
+first, `6870f5d`), suite 1650 passed / 5 skipped with no key reachable, ruff, bare mypy; no older guard changed.
+**Nur angenommen.** That no other code path reads a declared type by SQL Server's name — the sweep covered the
+literal type names in `src/` (`dv2_rules.py`, `staging_generator.py`'s integer set, `draft_requirements.py`'s
+prefixes, which already read PostgreSQL's), not every string comparison. **Bewusst nicht getan.** C47's family field
+and ADR; `infer-keys` and `profile` still see every column; the report does not print the dropped columns.

@@ -1153,6 +1153,10 @@ class VaultAgentState(BaseModel):
     # unless a run or a project pins another; persisted so a resumed run keeps it, and
     # written beside the model (`metadata/naming.yml`) so an extension adopts its vault's.
     naming: NamingProfile = Field(default_factory=NamingProfile)
+    # WP120 (C48): the naming profile's technical columns a landing table carries (`load_datetime`,
+    # `record_source`, `applied_dts`), dropped from `source_schemas` and `carried_schemas` — the
+    # pipeline adds them itself, and as payload they reach a hashdiff. Per `Schema.Table`.
+    technical_source_columns: dict[str, list[str]] = Field(default_factory=dict)
     # WP91 (ADR-0016): Business Vault output the operator asked for — off by default, so every
     # artifact is what it was. Persisted so a resumed run keeps the choice.
     business_vault: BusinessVaultOptions = Field(default_factory=lambda: BusinessVaultOptions())
@@ -1193,6 +1197,42 @@ class VaultAgentState(BaseModel):
     # Typed advisory/error flags raised by the agents (dropped records, generation gaps,
     # contract review items, …). Consumers branch on kind/asset, never on message text.
     flags: list[PipelineFlag] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _drop_technical_columns(self) -> "VaultAgentState":
+        """WP120 (C48): a declared column named like one of the profile's technical columns is
+        the landing zone's load metadata, not a source attribute — unless a declared key holds
+        it. The file stays a transcription (WP96); the drop happens here, where the model's
+        inputs are formed, and is recorded in ``technical_source_columns``. Idempotent."""
+        technical = {
+            self.naming.load_datetime.upper(), self.naming.record_source.upper(),
+            self.naming.applied_dts.upper(),
+        }
+        dropped: dict[str, list[str]] = dict(self.technical_source_columns)
+
+        def strip(tables: list[SourceTable], record: bool) -> list[SourceTable]:
+            kept: list[SourceTable] = []
+            for table in tables:
+                keyed = {c.upper() for c in table.primary_key}
+                keyed |= {c.upper() for key in table.unique_keys for c in key}
+                gone = [c.name for c in table.column_refs
+                        if c.name.upper() in technical and c.name.upper() not in keyed]
+                if not gone:
+                    kept.append(table)
+                    continue
+                kept.append(table.model_copy(update={
+                    "columns": [c for c in table.column_refs if c.name not in gone],
+                }))
+                if record:
+                    where = (f"{table.schema_name}.{table.table}" if table.schema_name
+                             else table.table)
+                    dropped[where] = list(dict.fromkeys([*dropped.get(where, []), *gone]))
+            return kept
+
+        self.source_schemas = strip(self.source_schemas, record=True)
+        self.carried_schemas = strip(self.carried_schemas, record=False)
+        self.technical_source_columns = dropped
+        return self
 
     def flag(
         self,

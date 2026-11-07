@@ -127,3 +127,15 @@ the family itself.
 measured (the 47 pairs), guards first, so a chain on a PostgreSQL catalogue is not measuring this gap. Then the ADR
 and the family field. **Open:** whether TurboVault evaluates `datatype` or passes it through, and which values its
 database import stores — only a real export settles it (ADR-0020 defers that).
+
+## C48 — The landing zone's load columns become payload: a catalogue read from a loaded table declares `load_datetime` and `record_source` as source columns (2026-11-07)
+
+**Found** while clearing the live chain on the PostgreSQL catalogue, on the owner's question where dbt reads the
+source data: the generated project reads landing tables in the warehouse (`sources.yml`, `raw`), which carry
+`load_datetime` and `record_source` (WP110's loader adds them; a customer's landing zone has its own). A catalogue
+read from there (WP96, WP119) transcribes them as ordinary columns; WP96 had measured against `aw_ddl`, a DDL-only
+database without them. Reproduced keylessly: `unread_payload` lists them, the error gate `E_HUB_PAYLOAD_UNREAD`
+(WP54) asks the loop for a satellite that reads them, and `load_datetime` in a hashdiff writes a new satellite row
+per key per batch. **Taken up the same day as WP120** together with C47's first stage
+(`backlog-2026-07/wp120-landing-zone-catalogue-spec.md`): the state drops the naming profile's technical columns
+from the declared schemas, unless a declared key holds them, and records what it dropped.
