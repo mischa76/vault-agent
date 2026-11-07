@@ -1,7 +1,6 @@
 """The FastAPI application (WP66): routes over :class:`ProjectStore` and :class:`RunManager`."""
 from __future__ import annotations
 
-import os
 from datetime import date
 from pathlib import Path
 from typing import Annotated, Any
@@ -11,7 +10,7 @@ from fastapi.responses import FileResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
 
-from vault_agent.config import LLMOptions
+from vault_agent.config import LLMOptions, source_url_from_environment
 from vault_agent.report import build_model_mermaid, build_report
 from vault_agent.rules.naming import NamingProfile
 from vault_agent.rules.platforms import TargetPlatform
@@ -199,7 +198,7 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
     # `.env`); no body carries it and no answer carries its password. SQLAlchemy is the
     # `catalogue` extra, imported here so the workbench runs without it.
     def _source_url() -> str | None:
-        return os.environ.get("VAULT_AGENT_SOURCE_URL") or None
+        return source_url_from_environment()
 
     def _source_status(exc: Exception) -> HTTPException:
         from vault_agent.profiler import UnknownChecksError, UnknownTablesError

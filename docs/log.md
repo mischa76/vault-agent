@@ -12868,3 +12868,16 @@ per-project connection, no password field (ADR-0015), no progress or cancel for 
 kinds untouched; the main checkout and the running workbench not touched.
 
 Evidence: commits `37b2813`, `1d71c5e`, `da838e7`, `efdf013` and this entry's; spec §6.
+
+## [2026-11-07] WP119 correction — `VAULT_AGENT_SOURCE_URL` in `.env` never reached the source routes or the three commands; read from `.env` now (G6)
+
+**Autor:** Claude Code
+
+Before starting the workbench for the owner's PostgreSQL chain: the URL's documented place is `.env` (manual 5,
+ADR-0015, WP119's manual text), but every lookup was `os.environ.get` — the settings model loads `.env` only for its
+own fields. Reproduced: a `.env` with the variable in the working directory, `GET /api/source` → `unset`. Since
+WP96 the commands had the same gap; it went unnoticed because the measured builds exported the variable in the shell.
+Guard G6 red first (`d02bbae`), then `config.source_url_from_environment()` for the routes and `source-schema`,
+`infer-keys`, `profile`. **Überprüft.** G6 green; suite 1620 passed / 5 skipped, no key reachable; ruff; bare mypy.
+**Nur angenommen.** Nothing. **Bewusst nicht getan.** The variable did not become a settings field (the pipeline must
+never read it, ADR-0008 #4). Evidence: spec §7; this entry; `d02bbae` and the fix commit.

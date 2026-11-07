@@ -114,3 +114,14 @@ Appended after the run.
   same commit). **Found on the way:** an unknown `--table` answered „The schemas hold: nothing" — the command listed
   the tables that matched, not those the schemas hold; both callers now list what the schemas hold.
 - **Not predicted, not measured:** the time a large profile takes through the workbench.
+
+## 7 Correction (2026-11-07) — `.env` did not reach the lookup; G6
+
+Found before the first live use, when the owner asked for the workbench to be started on PostgreSQL: §2 rule 1 and
+manual 6 say the URL lives in `.env`, but the routes (and the three commands before them) read `os.environ` only.
+`config.Settings` reads `.env` for its own fields; `VAULT_AGENT_SOURCE_URL` is none of them, so a URL in the file
+answered `state: unset` (reproduced with a `.env` in a temporary working directory). G6 committed red (`d02bbae`), then
+`config.source_url_from_environment()` — the process environment first, then `.env` in the working directory —
+used by the four routes and by `source-schema`, `infer-keys` and `profile`. Suite 1620 passed / 5 skipped with no key
+reachable; ruff, bare mypy clean. §6's P3 is unaffected; its claim „the workbench reads `.env`" was untrue until this
+commit.

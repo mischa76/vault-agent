@@ -10,7 +10,6 @@ without the graph or an API key; the ``run`` command wires the graph to it.
 import asyncio
 import json
 import logging
-import os
 import re
 import sys
 from collections.abc import Iterator
@@ -43,7 +42,7 @@ from vault_agent.agents.orchestrator import (
     status_line,
 )
 from vault_agent.bindings import check_stage_bindings, parse_bind, pending_stage_bindings
-from vault_agent.config import LLMOptions
+from vault_agent.config import LLMOptions, source_url_from_environment
 from vault_agent.existing_model import (
     DV_MODEL_FILENAME,
     NAMING_FILENAME,
@@ -2323,7 +2322,7 @@ def source_schema_command(
     )
 
     console = Console()
-    source_url = url or os.environ.get(SOURCE_URL_ENV)
+    source_url = url or source_url_from_environment()
     if not source_url:
         console.print(
             f"[bold red]No source database:[/bold red] pass --url or set {SOURCE_URL_ENV}."
@@ -2413,7 +2412,7 @@ def infer_keys_command(
     from vault_agent.source_schema_reader import hidden_url, render_source_schema, source_engine
 
     console = Console()
-    source_url = url or os.environ.get(SOURCE_URL_ENV)
+    source_url = url or source_url_from_environment()
     if not source_url:
         console.print(
             f"[bold red]No source database:[/bold red] pass --url or set {SOURCE_URL_ENV}."
@@ -2534,7 +2533,7 @@ def profile_command(
     )
 
     console = Console()
-    source_url = url or os.environ.get(SOURCE_URL_ENV)
+    source_url = url or source_url_from_environment()
     if not source_url:
         console.print(
             f"[bold red]No source database:[/bold red] pass --url or set {SOURCE_URL_ENV}."

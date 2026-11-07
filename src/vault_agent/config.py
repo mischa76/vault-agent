@@ -139,3 +139,18 @@ class LLMOptions(BaseModel):
 def get_settings() -> Settings:
     """Return the process-wide ``Settings``, constructing it on first use."""
     return Settings()
+
+
+def source_url_from_environment() -> str | None:
+    """`VAULT_AGENT_SOURCE_URL` from the process environment, else from `.env` in the working
+    directory — the file the settings model reads its own fields from. The variable is no
+    settings field (the pipeline never reads it), so a bare ``os.environ`` lookup missed the file
+    that manual 5 and ADR-0015 name as its place (WP119 G6, 2026-11-07)."""
+    import os
+
+    from dotenv import dotenv_values
+
+    value = os.environ.get("VAULT_AGENT_SOURCE_URL")
+    if value:
+        return value
+    return dotenv_values(".env").get("VAULT_AGENT_SOURCE_URL") or None
