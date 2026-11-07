@@ -139,3 +139,16 @@ database without them. Reproduced keylessly: `unread_payload` lists them, the er
 per key per batch. **Taken up the same day as WP120** together with C47's first stage
 (`backlog-2026-07/wp120-landing-zone-catalogue-spec.md`): the state drops the naming profile's technical columns
 from the declared schemas, unless a declared key holds them, and records what it dropped.
+
+## C49 — A print control on the workbench's diagrams (owner, 2026-11-07)
+
+**Asked** by the owner during the twenty-fifth chain: can the Model perspective's diagrams be printed? Today the
+tiles (`components/Mermaid.tsx`, WP88) offer zoom, fit and full screen; printing the page prints the whole
+perspective in the dark theme, the diagram cut at the tile's width. **Feasible without a new dependency**, since the
+component already holds Mermaid's SVG: (1) *print* — re-render the same source with Mermaid's light theme into a
+print-only container, an `@media print` rule hiding everything else, `window.print()`, the SVG scaled to the page
+(landscape suggested, a wide model may still need more than one page); (2) alongside, *save as SVG* — the same light
+SVG as a download, which prints and scales without loss in any viewer. Points to settle: whether the PDF the browser's
+print dialog writes is enough or a server-side export is wanted; the title and run stamp on the sheet; an area view
+(WP88) printing the area, not the whole model. **Not decided**, no WP number — the owner prioritises; C45's button
+kinds would govern the control's look.

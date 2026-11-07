@@ -13007,3 +13007,14 @@ without line spacing. The list now spaces its items (`space-y-1.5`) and lays eac
 `tsc --noEmit`; `vitest run` 38 passed; `npm run build`. **Nur angenommen.** That the overlap is gone on screen —
 not looked at; the owner sees it on reload. **Bewusst nicht getan.** No other use of `Pill` touched; no test for a
 spacing class.
+
+## [2026-11-07] Candidate C49 recorded — a print control on the workbench's diagrams
+
+**Autor:** Claude Code
+
+The owner asked, as a side note during the twenty-fifth chain, whether a print button on the diagrams is feasible.
+Recorded as C49 in `backlog-2026-11-candidates.md`, index line extended. **Überprüft.** `components/Mermaid.tsx`
+(the SVG Mermaid renders is held in the tile; dark theme fixed in `initialize`; zoom, fit and full screen only),
+its two uses in `perspectives/Model.tsx`, no `@media print` rule in the frontend. **Nur angenommen.** That a
+light-theme re-render prints legibly and that the browser's PDF suffices — neither tried. **Bewusst nicht getan.** No
+code, no WP number.
