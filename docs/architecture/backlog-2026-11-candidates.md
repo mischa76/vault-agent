@@ -235,3 +235,24 @@ string — the C47 family `string`); (b) leave ghost records off for satellites 
 `enable_ghost_records`), losing the ghost row there; (c) refuse at generation with an attributable message. (a) is the
 one that keeps the data and fits C47; the same check belongs to every type without equality (`json`, `point`, …).
 **Not decided**, no WP number.
+
+## C54 — taken up as WP121 (2026-11-08)
+
+Option (a), on the owner's go: `backlog-2026-07/wp121-no-equality-types-spec.md`. The nine PostgreSQL types without
+equality (measured) are cast to the platform's unbounded text in every bound stage; the twenty-fifth chain's fifth
+project builds `PASS=420 ERROR=1 SKIP=4`, the five satellites and two PITs with it.
+
+## C55 — The run form sent another requirements document than the one the owner saw selected (owner, 2026-11-08)
+
+**Found** in the twenty-fifth chain: the false start `20261107T182113094743Z` was started with Production's schema and
+profile, and the owner reports `production_requirements.md` selected; `run.json` records `hr_requirements.md` and the
+trace's parser read the HR document („Business Requirements: Human Resources Data Warehouse"). The restart a few
+minutes later, after a page reload, sent the right document. **Read, not resolved:** the form keeps its choices in
+React state (`perspectives/Project.tsx`: `req` initialised to the first requirements file, changed only by the select
+and by an upload), the select is controlled by that state — so what it showed should be what it sent; the HR run had
+set `req` to `hr_requirements.md` before, and the Source section's reads re-render the perspective. Not reproduced.
+**Options:** (a) reproduce in the browser (the Vitest harness cannot show what a browser displayed) — a run after a
+Source read and a perspective switch; (b) whatever the cause, show the start's inputs before the run begins — the CLI
+equivalent with the three file names, one confirm — and warn when the requirements document's stem and the schema's
+differ (`hr_` vs `production_`); (c) clear the form's choices after a start. (b) catches the slip whatever the cause.
+**Not decided**, no WP number.

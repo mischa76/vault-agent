@@ -13206,3 +13206,29 @@ CPython 3.14.9, ruff, bare mypy, 1649 passed / 6 skipped (the sixth the archived
 extra stays off both legs. **Bewusst nicht getan.** The release workflow keeps the pin alone; the
 `demo-databricks` comment, `verify_vault.sql` and the CI matrix are not credited to the report — the owner's and
 mine.
+
+## [2026-11-08] WP121 built and measured (keyless): a payload column whose type has no equality is staged as text — the twenty-fifth chain's fifth project builds PASS=420, the five `xml` satellites with it (C54); C55 recorded
+
+**Autor:** Claude Code
+
+On the owner's go to take up C54 and record C55. **Measured first:** on PostgreSQL 16.15 `SELECT NULL::t UNION SELECT
+NULL::t` fails for nine types (`xml`, `json`, `point`, `line`, `lseg`, `box`, `path`, `polygon`, `circle`) and works
+for fifteen others tried (`jsonb`, `text`, `uuid`, `bytea`, …); each of the nine cast to `text` works. Spec with
+pre-registration and guards first (`1b87a07`, red by import). **Built:** `NO_EQUALITY_TYPES` and `lacks_equality` in
+`rules/dv2_rules.py`, `PlatformProfile.text_type` (`text`, Databricks `string` — AutomateDV's `type_string()` is
+`VARCHAR(255)` there and would truncate), and in the staging generator a derived `CAST(<col> AS <text_type>)` under the
+column's own name for every such column of a bound stage's declared relation (AutomateDV's `stage.sql` excludes a
+source column a derived column names, and hashes after deriving). **Measured (spec §5):** guards 24, suite 1674 / 5
+skipped with no key reachable, ruff, bare mypy; the fifth project regenerated from its state before and after
+differs in exactly the nine stages reading the five relations plus `automatedv.yml`; overlaid on the run's project
+and built in `aw_source`: **PASS=420 ERROR=1 SKIP=4** as pre-registered, each of the five satellites one row per
+source row plus the ghost, the 13 resumes equal to the source's text. **Corrections on the way, both the guard's
+premise:** the stage under test is the satellite's own; „inferred" holds for the hub's stage only (an ungrounded
+run's stages count as declared, a satellite's `source_table` binds verbatim). **C55** recorded: the false start's
+form sent `hr_requirements.md` while the owner saw Production's selected; the form's state was read, the cause not
+found, not reproduced. **Überprüft.** As above; the compiled satellite SQL; AutomateDV 0.11.4's `stage.sql`,
+`derive_columns.sql` and `type_string.sql` in the build's `dbt_packages`. **Nur angenommen.** That Databricks accepts
+`CAST(x AS string)` for a string landing column — guarded, not built. **Bewusst nicht getan.** Reserved-word columns
+of such a type (WP79's form takes a column, not an expression); keys of such a type; the profiler's refusal of `xml`
+statistics; Databricks build; the replay's divergence from the run's project elsewhere; the measurement schema
+dropped.

@@ -1,6 +1,7 @@
-"""WP121 (C54) — a payload column whose type has no equality is staged as text. Committed before the change,
-failing. The shape is the twenty-fifth chain's: `HumanResources.JobCandidate.Resume` is `xml`, and AutomateDV's
-satellite merges its ghost record by `UNION`, which PostgreSQL refuses for `xml` (spec §1)."""
+"""WP121 (C54) — a payload column whose type has no equality is staged as text. Committed before
+the change, failing. The shape is the twenty-fifth chain's: `HumanResources.JobCandidate.Resume` is
+`xml`, and AutomateDV's satellite merges its ghost record by `UNION`, which PostgreSQL refuses for
+`xml` (spec §1)."""
 from __future__ import annotations
 
 from typing import Any
@@ -41,11 +42,11 @@ def _stage_yaml(sql: str) -> dict[str, Any]:
     return loaded
 
 
-def _stage(resume_type: str, platform: str = "postgres", bound: bool = True) -> tuple[str, dict[str, Any]]:
-    tables = [_candidate(resume_type)] if bound else []
+def _stage(resume_type: str, platform: str = "postgres") -> tuple[str, dict[str, Any]]:
+    tables = [_candidate(resume_type)]
     result = build_staging(_model(), tables, target_platform=platform)  # type: ignore[arg-type]
-    # the satellite's own stage: it hashes the hashdiff and feeds the satellite (the hub's stage reads the
-    # same relation and is cast the same way — every bound stage of it selects the column)
+    # the satellite's own stage: it hashes the hashdiff and feeds the satellite (the hub's stage
+    # reads the same relation and is cast the same way — every bound stage of it selects the column)
     return result.models["stg_job_candidate_details"], result.metadata["stg_job_candidate_details"]
 
 
@@ -65,9 +66,9 @@ def test_types_with_equality_or_unknown(declared: str) -> None:
 
 
 def test_the_set_is_the_measured_nine() -> None:
-    assert NO_EQUALITY_TYPES == frozenset(
+    assert frozenset(
         {"xml", "json", "point", "line", "lseg", "box", "path", "polygon", "circle"}
-    )
+    ) == NO_EQUALITY_TYPES
 
 
 # ── T2: PostgreSQL — the stage derives the column as text, the hashdiff still names it ─────
@@ -97,8 +98,13 @@ def test_a_character_payload_gets_no_derived_column() -> None:
     assert "derived_columns" not in meta
 
 
-# ── T5: an inferred stage has no declared types, so nothing is cast ────────────────────────
-def test_an_inferred_stage_is_not_cast() -> None:
-    sql, meta = _stage("xml", bound=False)
-    assert meta["source_binding"] == "inferred"
-    assert "derived_columns" not in _stage_yaml(sql)
+# ── T5: a relation the catalogue does not declare has no types, so nothing is cast ──────────
+def test_a_relation_without_declared_types_is_not_cast() -> None:
+    other = SourceTable(table="Department", schema="HumanResources",
+                        columns=_cols(("DepartmentID", "integer")))
+    result = build_staging(_model(), [other], target_platform="postgres")
+    # the hub's stage finds no declared relation: inferred
+    assert result.metadata["stg_job_candidate"]["source_binding"] == "inferred"
+    # the satellite's stage binds verbatim to its source_table, which the catalogue lacks
+    for name in ("stg_job_candidate", "stg_job_candidate_details"):
+        assert "derived_columns" not in _stage_yaml(result.models[name]), name

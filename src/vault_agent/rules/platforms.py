@@ -62,6 +62,9 @@ class PlatformProfile:
     # use to hit a column created unquoted: PostgreSQL lowercases, Snowflake uppercases,
     # Databricks and Fabric compare case-insensitively ("none": the declared spelling serves).
     identifier_fold: Literal["lower", "upper", "none"] = "none"
+    # WP121 (C54): the unbounded character type a payload column without equality is cast to.
+    # Not AutomateDV's `type_string()`, which is VARCHAR(255) on Databricks and would truncate.
+    text_type: str = "text"
 
     def physical_name(self, column: str) -> str:
         """WP79: the spelling an escaped reference to ``column`` must carry on this platform."""
@@ -104,6 +107,7 @@ PLATFORMS: Mapping[TargetPlatform, PlatformProfile] = {
         # Unity Catalog: "Object names cannot exceed 255 characters"
         # (learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-names, 2026-10-30).
         max_identifier_length=255,
+        text_type="string",
     ),
 }
 

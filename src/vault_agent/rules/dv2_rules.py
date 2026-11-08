@@ -1456,6 +1456,21 @@ def null_safe_type(declared: str) -> bool:
     return _type_base(declared) in NULL_SAFE_TYPES
 
 
+# WP121 (C54): the declared types PostgreSQL defines no equality for — measured on 16.15 with
+# `SELECT NULL::t UNION SELECT NULL::t` (2026-11-08). AutomateDV's satellite merges its ghost
+# record by `UNION`, so a payload column of one of these fails the model; the stage casts it to
+# text (spec §2).
+NO_EQUALITY_TYPES = frozenset({
+    "xml", "json", "point", "line", "lseg", "box", "path", "polygon", "circle",
+})
+
+
+def lacks_equality(declared: str) -> bool:
+    """WP121: True when a declared type is one the warehouse cannot compare for equality; an unknown
+    word is no evidence."""
+    return _type_base(declared) in NO_EQUALITY_TYPES
+
+
 def zero_key_incapable_type(declared: str) -> bool:
     """True when a declared type is one a zero key cannot be cast into (WP94's gate reads
     this, never the negation of `null_safe_type`: an unknown word is no evidence)."""

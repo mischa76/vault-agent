@@ -33,6 +33,7 @@ from vault_agent.rules.dv2_rules import (
     hub_key_columns,
     is_composite_key,
     is_reserved_column,
+    lacks_equality,
     normalize_identifier,
     null_safe_type,
     participation_key,
@@ -1050,16 +1051,37 @@ def _reserved_rewrite(
     return derived, hashed
 
 
+def _text_casts(
+    derived: dict[str, str | dict[str, Any]],
+    text_columns: list[str] | None,
+    profile: PlatformProfile,
+) -> dict[str, str | dict[str, Any]]:
+    """WP121 (C54): each bound column whose type has no equality, derived under its own name as a
+    cast to the platform's unbounded text — AutomateDV then selects the cast instead of the column
+    and hashes it. A column already derived, or a reserved one (WP79's escaping form takes a
+    column, not an expression), is left as it is. No such column: ``derived`` unchanged, the
+    output byte-identical."""
+    if not text_columns:
+        return derived
+    cast = dict(derived)
+    for column in text_columns:
+        if column not in cast and not is_reserved_column(column):
+            cast[column] = f"CAST({column} AS {profile.text_type})"
+    return cast
+
+
 def render_stage_model(
     spec: StagingSpec, profile: PlatformProfile | None = None,
     relation_columns: list[str] | None = None,
     null_columns: list[str] | None = None,
+    text_columns: list[str] | None = None,
 ) -> str:
     """Render one AutomateDV ``stage`` model (the pattern verified by demo/bank_postgres).
     ``profile`` (WP79) supplies the physical spelling of an escaped reserved column; the
     default platform's when omitted; ``relation_columns`` the bound relation's declared columns."""
     profile = profile or platform_profile(DEFAULT_TARGET_PLATFORM)
     derived, hashed = _reserved_rewrite(spec, profile, relation_columns)
+    derived = _text_casts(derived, text_columns, profile)  # WP121
     binding = "declared source schema" if spec.bound else "inferred — see review queue"
     lines = [
         f"-- Generated AutomateDV staging model for the raw-vault constructs on "
@@ -1131,9 +1153,11 @@ def _stage_metadata(
     spec: StagingSpec, profile: PlatformProfile | None = None,
     relation_columns: list[str] | None = None,
     null_columns: list[str] | None = None,
+    text_columns: list[str] | None = None,
 ) -> dict[str, object]:
     profile = profile or platform_profile(DEFAULT_TARGET_PLATFORM)
     derived_columns, hashed_columns = _reserved_rewrite(spec, profile, relation_columns)  # WP79
+    derived_columns = _text_casts(derived_columns, text_columns, profile)  # WP121
     hashed: dict[str, object] = {}
     for name, value in hashed_columns:
         if isinstance(value, _HashDiff):
@@ -1829,13 +1853,24 @@ def build_staging(
             spec, declared_tables.get(normalize_identifier(spec.source_model)), declared_tables
         )
 
+    def text_columns(spec: StagingSpec) -> list[str]:
+        """WP121 (C54): the bound relation's columns whose declared type has no equality."""
+        table = declared_tables.get(normalize_identifier(spec.source_model)) if spec.bound else None
+        if table is None:
+            return []
+        return [normalize_identifier(c.name) for c in table.column_refs if lacks_equality(c.type)]
+
     models = {
-        name: render_stage_model(spec, profile, relation_columns(spec), null_columns(spec))
+        name: render_stage_model(
+            spec, profile, relation_columns(spec), null_columns(spec), text_columns(spec)
+        )
         for name, spec in specs.items()
     }
     models.update(translations)
     metadata = {
-        name: _stage_metadata(spec, profile, relation_columns(spec), null_columns(spec))
+        name: _stage_metadata(
+            spec, profile, relation_columns(spec), null_columns(spec), text_columns(spec)
+        )
         for name, spec in specs.items()
     }
     # WP86: a zero-key view and stage per hub a zero-keyed participation reaches.

@@ -22,6 +22,11 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- A satellite whose payload holds a PostgreSQL `xml`, `json` or geometric column failed on build: AutomateDV merges
+  its ghost record by `UNION`, which PostgreSQL refuses for those types (*could not identify an equality operator*).
+  Every bound stage now derives such a column as the platform's unbounded text (`text` on PostgreSQL, `string` on
+  Databricks); the hashdiff is unchanged, the value is the column's text (WP121, C54). Output changes only for
+  relations that declare one of these types.
 - Python is pinned to 3.12 (`.python-version`). Without a pin uv chose the newest interpreter it found or could
   fetch; on 3.14 dbt-core 1.9's `mashumaro` fails to import (`UnserializableField: Field "schema" …`), so the
   demos could not run. `requires-python` keeps no upper bound: the core package and its suite run on 3.14

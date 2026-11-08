@@ -1,6 +1,6 @@
 ---
 type: spec
-status: not-measured
+status: measured
 updated: 2026-11-08
 ---
 
@@ -60,6 +60,24 @@ refusal of `xml` statistics (WP98, *UndefinedFunction*) — separate.
   zero-key sources and expected-column comments differ, seen before the change; the differential reads only what
   WP121 changes).
 
-## 5 Measured
+## 5 Measured (2026-11-08, keyless)
 
-(after the build)
+- **P1 ✔.** T1–T5, 24 guards, red by import at `1b87a07`. Two fixture corrections before green, both the guard's
+  premise and not the rule: the stage under test is the satellite's own (`stg_job_candidate_details`, the one that
+  hashes the hashdiff), and T5 reads a relation the catalogue lacks — without any catalogue a run is ungrounded and
+  its stages count as declared, and a satellite with a `source_table` binds verbatim (never inferred), so the
+  premise „inferred" holds for the hub's stage only; T5 now asserts both stages uncast.
+- **P2 ✔.** Suite with no key reachable 1674 passed / 5 skipped (1650 + 24), ruff, bare mypy. No older guard
+  changed: no fixture's bound relation declares one of the nine types in a way a pinned output reads.
+- **P3 ✔ exactly as pre-registered.** Regenerated before (`replay0`) and after (`replay1`): the only differing files
+  are `automatedv.yml` and the nine stages reading `JobCandidate` (2), `Person`, `Store`, `Illustration` (2) and
+  `ProductModel` (3), each gaining `derived_columns` with one `CAST(<col> AS text)` per `xml` column. Those nine
+  were byte-identical between `replay0` and the run's own project, so they were copied over a copy of the run's
+  project; built in `aw_source` into a fresh schema: **PASS=420 WARN=0 ERROR=1 SKIP=4** of 425 — the error and
+  skips `stg_product_subcategory`'s. Rows: `sat_job_candidate_details` 14 (13 + ghost), `…_person_sensitive`
+  19 973 (19 972 + 1), `…_store_demographics` 702 (701 + 1), `sat_illustration_details` 6 (5 + 1),
+  `sat_product_model_content` 129 (128 + 1); `pit_business_entity` 62 337 and `pit_product_model` 390 rows; the
+  satellite's `resume` is `text` and equals the source's `resume::text` for 13 of 13 candidates.
+- **Not measured:** Databricks (the cast's spelling is guarded, not built); the regeneration from the final state is
+  not byte-identical with the run's project elsewhere (zero-key sources, expected-column comments) — seen before the
+  change, outside this WP; the measurement schema dropped afterwards.
