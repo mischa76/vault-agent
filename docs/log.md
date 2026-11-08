@@ -13086,3 +13086,53 @@ start and exit participations, roles as participations, no pruning of variants o
 **Nur angenommen.** That the decline is not carried because the extension's model holds no bridge — inferred from the
 proposals recurring, the carry path not read. **Bewusst nicht getan.** No code, no WP number; the chain continues
 under the protocol (every bridge declined).
+
+## [2026-11-08] Twenty-fifth chain run measured — five steps green on a catalogue and profile read from PostgreSQL in the workbench; P8 broken by bridge proposals alone (C53), the build's only new failure PostgreSQL's `xml` in five satellites
+
+**Autor:** Claude Code
+
+Against the pre-registration of 2026-11-07 (`1e56c0f`). Driven by the owner in the workbench, project `chain-20261107`
+under `~/workbench/chain-20261107`, source `aw_source`. Runs: person `20261107T101620658215Z`, HumanResources
+`20261107T171854517087Z`, Production `20261107T182950600404Z`, Purchasing `20261108T013943257819Z`, Sales
+`20261108T040200265598Z`, each extending the previous; one false start `20261107T182113094743Z` (Production's schema
+with `hr_requirements.md` — the trace's parser read the HR document; discarded at sign-off on my advice, about 0.30 USD).
+
+**Deviations from the protocol, the owner's or the tool's.** PIT on in every step (the form's default; kept for the
+chain's consistency). Steps 1 and 2 stored catalogue and profile under the default names, so the person and HR runs'
+`run.json` now name files holding Production's schema: the Source section never sent a name — fixed mid-chain
+(`312cf8a`), the overwrite itself is C50. Production's catalogue read with `--views` (no views in `aw_source`, no
+effect). Every bridge declined; owners all one person; proposals accepted as offered.
+
+**P1 ✔** five of five validations passed; the modeler took two attempts in every step (attempt 1 failing on
+`E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` in four steps, `E_SAT_GRAIN_NOT_UNIQUE` in two). **P2 ✔** `technical_source_columns`
+lists exactly the step's tables, 13 / 6 / 25 / 5 / 19, each with `load_datetime` and `record_source`, nothing else.
+**P3 ✔** neither column in any step's `dv_model.yml`, `source_catalogue.yml` or `mappings.review.yml`; no
+`E_HUB_PAYLOAD_UNREAD` naming them. **P4 ✔** no gate traced to the lower-case columns. **P5 ✔** the fifth project's check:
+228 staging models, none unresolved, one inferred (`stg_product_subcategory`, ≤ 2); of the fourth project's 97 stage
+bindings none re-pointed or dropped in the fifth's 151. **P6 unmeasured** — no sign-off carried a translation decision.
+**P7 ✔** `W_UNTRACED_CONSTRUCT` 0 in every step. **P8 ✘ 171 decisions** (14, 7, 35, 33, 82) against 87 ± 12 — of them
+**88 bridge proposals** (0, 1, 7, 27, 53); without them 83, inside the band. The baseline predates WP115; recorded as
+C53. **P9 ✔ 4.67 USD** (person 0.71, HR 0.45, Production 1.53, Purchasing 0.65, Sales 1.33; 4.97 with the false start),
+about 31 min of pipeline time. **P10 partly ✘.** The fifth project (copied to a build directory, profile `aw_source`,
+schema `vault`) parses without a hand view; `dbt build`: **PASS=413 ERROR=6 SKIP=6** of 425. One error is the
+inferred-bound stage (`stg_product_subcategory`, an empty column list) with its dependants (`hub_` and
+`link_product_subcategory`, the zero-key stage and model) — predicted. **Five are not:** every satellite carrying a
+PostgreSQL `xml` column (`sat_business_entity_person_sensitive`, `…_store_demographics`, `sat_illustration_details`,
+`sat_job_candidate_details`, `sat_product_model_content`; the seven `xml` columns of `aw_source`) fails with *could not
+identify an equality operator for type xml*, and `pit_business_entity` / `pit_product_model` skip behind them. The
+`vault` copy held these columns as `text`, so no earlier build met the type; it fails loudly, no wrong data. Counts:
+every hub checked equals its source plus the two zero keys (`-1`, `-2`, `SYSTEM`) — `hub_sales_order` 31 467,
+`hub_sales_order_line` 121 319, `hub_business_entity` 20 779, `hub_product` 506; **`link_sales_order_currency_rate` holds
+all 31 465 orders** (13 976 with a rate, the rest on the zero key). **P11 unmeasured** — the modeler split
+`SalesOrderHeader` into two-participation links from the first attempt; the three-participation shape never appeared.
+**Criterion 2:** no wrong-data finding.
+
+**Also measured.** 3 + 1 + 2 + 1 + 2 truncations, each recovered by segmentation (manual 6.1 written the same day);
+11 backstops, all `stringified_payload_field`. Model 39 hubs, 52 links, 90 satellites (the twenty-third: 40 / 50 / 87).
+**Überprüft.** Each run's `run.json`, `state.json`, trace and checkpoint answer; the build log
+(`/tmp/wp119/build25.log` on vault-dev); `psql` counts against the source tables. **Nur angenommen.** That the `xml`
+failure is AutomateDV's satellite comparing the payload (the error's position is the hashdiff's neighbour column in
+the generated SQL) — the compiled SQL not read line by line; that the pipeline times are the traces' active spans.
+**Bewusst nicht getan.** No fix for `xml` (a candidate, the owner decides); the person and HR runs' input files not
+restored — one name cannot hold both, both runs' states carry their schemas; the `vault` schema in `aw_source` left
+standing for the owner to inspect.
