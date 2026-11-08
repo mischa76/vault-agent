@@ -22,6 +22,23 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- Python is pinned to 3.12 (`.python-version`). Without a pin uv chose the newest interpreter it found or could
+  fetch; on 3.14 dbt-core 1.9's `mashumaro` fails to import (`UnserializableField: Field "schema" …`), so the
+  demos could not run. `requires-python` keeps no upper bound: the core package and its suite run on 3.14
+  (CI did until this pin), only the dbt 1.9 demo extra does not. The README says that `uv run` uses the
+  project's `.venv`, not a separately created virtualenv (reported by Satyasai Gurazada, DVAUnited).
+- `demo/bank_postgres/README.md`: the expected result is `PASS=36` (4 seeds, 4 staging views, 7 raw-vault
+  models, 21 data tests) since WP8, not `PASS=29`; the verification table lists `link_transfer`; the
+  last-verified note is current. PostgreSQL 18.6 is noted as reported working; 16 stays the verified baseline
+  (reported by Satyasai Gurazada, DVAUnited).
+- `pyproject.toml`: the `demo-databricks` comment no longer calls the extra keyless-only — it has had real
+  workspace builds since WP72 (2026-10-16).
+- The README points Windows users to the installer first (reported by Satyasai Gurazada, DVAUnited).
+- `demo/bank_postgres/analyses/verify_vault.sql` counts `link_transfer` too (seven vault tables since WP8).
+
+### Changed (CI)
+- CI tests on Python 3.12 (the pin) and 3.14 (the newest), so the core keeps its coverage on the newest Python
+  that the pin would otherwise have dropped.
 - The workbench checks a project id and a run stamp before building a path (WP118, C43): a project id must be
   what its name slugs to, a stamp the start's UTC stamp, anything else is the 404 a wrong id gets. Before, a
   client sending `%2E%2E` reached the store with `..`, and with a `project.json` in the root's parent that was a

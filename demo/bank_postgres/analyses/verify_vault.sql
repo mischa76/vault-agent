@@ -10,6 +10,7 @@ union all select 'link_account_customer',    count(*) from {{ ref('link_account_
 union all select 'sat_customer_details',     count(*) from {{ ref('sat_customer_details') }}
 union all select 'sat_account_details',      count(*) from {{ ref('sat_account_details') }}
 union all select 'sat_account_customer_eff', count(*) from {{ ref('sat_account_customer_eff') }}
+union all select 'link_transfer',            count(*) from {{ ref('link_transfer') }}
 order by vault_table;
 
 -- (2) End-dating of the transferred account ACC-503 — the effectivity satellite's signature

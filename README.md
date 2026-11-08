@@ -120,6 +120,8 @@ metadata, data contracts, and an ADR out.
 
 ### 1. Install
 
+**On Windows, start with the installer below** — it sets up everything the rest of this guide assumes.
+
 #### Windows 11 (WSL2)
 
 [`scripts/install/`](scripts/install/README.md) installs the whole stack — WSL2 + Ubuntu, uv,
@@ -136,6 +138,10 @@ cd vault-agent
 uv sync
 uv run vault-agent --version                # the released version; see CHANGELOG.md
 ```
+
+The project runs on Python 3.12, pinned in `.python-version`: `uv sync` builds the project environment `.venv`
+with it (fetching 3.12 if the machine lacks it), and `uv run` always uses that environment — not a virtualenv you
+create yourself, which `uv run` ignores.
 
 ### 2. Your API key
 

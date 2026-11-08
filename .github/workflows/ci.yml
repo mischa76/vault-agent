@@ -11,9 +11,18 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # 3.12 is the pinned version (`.python-version`, 2026-11-08); 3.14 keeps the core's coverage on the
+    # newest Python, which CI ran on unpinned until then. setup-uv's `python-version` sets UV_PYTHON,
+    # which overrides `.python-version`. The dbt demo extra stays off both legs (dbt 1.9 breaks on 3.14).
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.14"]
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
       - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
       - name: Sync deps
         # `catalogue` too: `source_schema_reader.py` and `profiler.py` subclass and return SQLAlchemy
         # types; without the extra mypy strict sees `Any` and fails (red from 2026-10-30 to 2026-11-01).

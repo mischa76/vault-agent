@@ -7,10 +7,12 @@ local PostgreSQL. No API key, no cloud warehouse.
 
 Implements [`docs/architecture/poc-end-to-end-dbt-spec.md`](../../docs/architecture/poc-end-to-end-dbt-spec.md).
 
-> **Last verified:** 2026-06-25 on PostgreSQL 16 + AutomateDV 0.11.4. `build_vault_models.py`
-> regenerated all 6 raw-vault models byte-identically (idempotent); `dbt build --full-refresh`
-> was green (`PASS=29 WARN=0 ERROR=0`); the Phase B2 end-dating demo closed ACC-503's first owner
-> at the transfer date and left the new owner open, idempotent on re-run.
+> **Last verified:** 2026-11-08 on PostgreSQL 16 + AutomateDV 0.11.4 + dbt-core 1.9.10, Python 3.12, from a
+> fresh clone: `build_vault_models.py` regenerated all 7 raw-vault models byte-identically (idempotent);
+> `dbt build --full-refresh` was green (`PASS=36 WARN=0 ERROR=0`). Reported working on PostgreSQL 18.6 by a
+> user (2026-11); 16 stays the verified baseline. The Phase B2 end-dating demo (below) was last verified
+> 2026-06-25: it closed ACC-503's first owner at the transfer date and left the new owner open, idempotent on
+> re-run.
 >
 > **WP8 verified 2026-07-08 (ADR-0009)** on PostgreSQL 16 + AutomateDV 0.11.4: the
 > self-referencing `link_transfer` (+ `stg_transfer` + `raw_transfer` seed) built green as
@@ -64,7 +66,8 @@ The fixed bank model (hand-checked, deterministic — no LLM) exercises five con
 
 - **Python + uv** (as for the main project) with the demo extra:
   `uv sync --extra demo` (installs `dbt-core~=1.9` + `dbt-postgres~=1.9`).
-- **PostgreSQL 16**, native and local — **no Docker needed**. This demo targets a host Postgres
+- **PostgreSQL 16** (verified; reported working on 18.6 by a user, 2026-11), native and local — **no Docker
+  needed**. This demo targets a host Postgres
   at `localhost:5432` with a `vault` role/database (password `vault`). Provision it once:
 
   ```bash
@@ -103,10 +106,11 @@ uv run dbt build --full-refresh                    # seed + run + test, all gree
 raw-vault models, and runs the schema tests in one pass. Expected tail:
 
 ```
-Done. PASS=29 WARN=0 ERROR=0 SKIP=0 TOTAL=29
+Done. PASS=36 WARN=0 ERROR=0 SKIP=0 TOTAL=36
 ```
 
-(6 models + 3 seeds + 3 staging views + 17 data tests.)
+(4 seeds + 4 staging views + 7 raw-vault models + 21 data tests — since WP8, 2026-07-08, which added
+`raw_transfer`, `stg_transfer` and `link_transfer`.)
 
 You can also run the steps separately: `uv run dbt seed && uv run dbt run && uv run dbt test`.
 
@@ -122,6 +126,7 @@ Every vault table is populated:
 | `sat_customer_details` | 3 |
 | `sat_account_details` | 4 |
 | `sat_account_customer_eff` | 5 |
+| `link_transfer` | 3 |
 
 [`analyses/verify_vault.sql`](./analyses/verify_vault.sql) ships the row-count query and the
 ownership-history join. To inspect ACC-503 (the transferred account):

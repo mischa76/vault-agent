@@ -1,6 +1,7 @@
 # dbt connection profile for the bank end-to-end PoC.
 #
-# Targets a NATIVE local PostgreSQL 16 (no Docker): the cluster runs on the host at
+# Targets a NATIVE local PostgreSQL 16 (no Docker; 16 is the verified baseline, a user reported 18.6
+# working, 2026-11): the cluster runs on the host at
 # localhost:5432 with a `vault` role/database (password `vault`). To provision it on a
 # fresh machine:
 #

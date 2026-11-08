@@ -13165,3 +13165,44 @@ a `VaultAgentState` (so the technical columns drop as in the run), equals the ru
 pattern check reproduced exactly. **Also seen:** the profile omits every `xml` column (*the database refused its
 statistics*, `UndefinedFunction`) — Person 2, HumanResources 1; the same type as C54, already in the runs' profiles.
 **Nur angenommen.** Nothing. **Bewusst nicht getan.** No `run.json` changed; the generic files kept, two runs name them.
+
+## [2026-11-08] Install and demo fixes from an outside user's report — Python pinned to 3.12, the bank demo's expected result `PASS=36`, PostgreSQL 18.6 noted, two stale texts
+
+**Autor:** Claude Code
+
+The owner passed on what a member of the DVAUnited community, Satyasai Gurazada, ran into while following the setup
+guide, and asked for small documentation and configuration fixes without behaviour change; the reporter agreed to be
+named when the owner asked (2026-11-08), so the CHANGELOG credits him.
+**(1) Python.** The repo had no `.python-version` and `requires-python = ">=3.12"`, so uv took the newest interpreter
+it found or could fetch. Reproduced on vault-dev: a fresh clone synced with `--python 3.14` and the demo extra fails
+in `dbt parse` with `mashumaro.exceptions.UnserializableField: Field "schema" of type Optional[str] in
+JSONObjectSchema is not serializable`. The installed dbt-core 1.9.10's metadata declares `Requires-Python: >=3.9`,
+classifiers up to 3.12 and `mashumaro[msgpack]<3.15,>=3.9` — no upper bound of its own, the break is mashumaro's on
+3.14. Added `.python-version` = `3.12`. **No upper bound on `requires-python`**: the core package and its suite ran on
+3.14 — CI's last run before the pin used „CPython 3.14.4 interpreter at /usr/bin/python3" and was green — and only
+the dbt 1.9 demo extra breaks; a bound would forbid the working core. With the pin: a fresh clone's `uv sync
+--extra demo --extra dev` chose „CPython 3.12.15" although the machine's default `python3` is 3.13, `uv run python
+--version` 3.12.15, dbt 1.9.10; setup-uv v9.0.0 (CI's pin) sets `UV_PYTHON` only from its `python-version` input,
+which CI does not pass, and its README says that input overrides `.python-version` — so CI's `uv sync` follows the
+file and moves from 3.14 to 3.12; `setup-wsl.sh` runs `uv sync` after `cd "$TARGET_DIR"`, the repo root, so it
+follows it too. The README's install section says that `uv run` uses the project's `.venv`, not a virtualenv made
+by hand (the reporter's `.venv-demo` was ignored). **(2) Bank demo.** The runbook expected `PASS=29` (6 models, 3
+seeds, 3 staging views, 17 tests); since WP8 (2026-07-08) it is `PASS=36`. Re-derived from the project and a build:
+4 seeds, 4 staging views, 7 raw-vault models, 21 tests (`dbt ls`), `PASS=36 TOTAL=36` on the pinned fresh clone,
+`build_vault_models.py` byte-identical. Swept: the „last verified" note (6 models, `PASS=29`) brought to today,
+the verification table missing `link_transfer` (3 rows, counted after the build). **(3)** PostgreSQL 18.6, on which
+the reporter built the demo green, noted as reported working in the demo README and `profiles.yml`; 16 stays the
+verified baseline (the build here: PostgreSQL 16.15). **(4)** The `demo-databricks` comment in `pyproject.toml` no
+longer says keyless-only — workspace builds are recorded since WP72. **(5)** The README's Quick start had the
+installer as its first subsection; a bold lead line now sends Windows users there first. CHANGELOG [Unreleased] →
+Fixed, without the reporter's name. **Überprüft.** Suite with no key reachable 1650 passed / 5 skipped; ruff; bare
+mypy; `uv lock --check` unchanged; the two builds and the 3.14 reproduction above (scratch schema dropped).
+**Nur angenommen.** That CI lands on 3.12 — read from setup-uv's action and README and shown locally, not yet seen in
+a CI log (it will be on the push). **Added on the owner's word the same session:** `analyses/verify_vault.sql` counts `link_transfer` (run against
+a fresh build: seven tables, `link_transfer` 3), and CI's test job runs a matrix of 3.12 and 3.14 — the pin would
+otherwise have dropped CI's coverage of the core on the newest Python; setup-uv's `python-version` sets
+`UV_PYTHON`, which overrides the file. The 3.14 leg reproduced locally on a clean clone with the change applied:
+CPython 3.14.9, ruff, bare mypy, 1649 passed / 6 skipped (the sixth the archived result, as on CI); the dbt demo
+extra stays off both legs. **Bewusst nicht getan.** The release workflow keeps the pin alone; the
+`demo-databricks` comment, `verify_vault.sql` and the CI matrix are not credited to the report — the owner's and
+mine.
