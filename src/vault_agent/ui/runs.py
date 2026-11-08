@@ -25,6 +25,7 @@ from vault_agent.config import LLMOptions
 from vault_agent.existing_model import (
     load_carried_aliases,
     load_carried_bindings,
+    load_declined_bridges,
     load_existing_catalogue,
     load_existing_model,
     load_existing_naming,
@@ -300,6 +301,7 @@ class RunManager:
                 carried_aliases=load_carried_aliases(existing_dir) if existing_dir else {},  # WP82
                 llm=llm,  # WP113
                 naming=naming,  # WP114
+                declined_bridges=load_declined_bridges(existing_dir) if existing_dir else [],
             )
             self._finish(run_id, state, paused, input_doc, thread_id)
         except asyncio.CancelledError:

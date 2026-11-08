@@ -1,6 +1,6 @@
 ---
 type: spec
-status: not-measured
+status: measured
 updated: 2026-11-08
 ---
 
@@ -46,6 +46,14 @@ extension's `business_vault.bridges`; any change to the checkpoint's controls.
 - **Not measured:** a live extension writing and reading `bridge_decisions.yml` end to end through the workbench
   (covered by T5/T6 through `write_outputs` and the loader, not by a paid run).
 
-## 5 Measured
+## 5 Measured (2026-11-08, keyless)
 
-(after the build)
+- **P1 ✔.** T1–T7 (8 tests), red by import at `9495180`; one fixture correction before green (the unit-of-measure
+  hubs need `source_entity`), checked first against the code before the change: it proposed the cycle and the
+  cross-role path, so T1 was red for its own reason.
+- **P2 ✔.** Suite with no key reachable 1682 passed / 5 skipped (1674 + 8), ruff, bare mypy; WP115's 10 guards
+  unchanged and green.
+- **P3 ✔ exactly as pre-registered.** The five saved models, each step proposing with what the steps before
+  declined: **1, 0, 5, 20, 23 — 49** over the chain instead of 89, no path whose start equals its end.
+- **Not measured:** a live extension writing and reading `bridge_decisions.yml` through the workbench (T4–T7 cover the
+  writer, the loader and both callers keylessly).

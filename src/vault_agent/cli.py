@@ -44,12 +44,15 @@ from vault_agent.agents.orchestrator import (
 from vault_agent.bindings import check_stage_bindings, parse_bind, pending_stage_bindings
 from vault_agent.config import LLMOptions, source_url_from_environment
 from vault_agent.existing_model import (
+    BRIDGE_DECISIONS_FILENAME,
     DV_MODEL_FILENAME,
     NAMING_FILENAME,
     SOURCE_CATALOGUE_FILENAME,
+    declined_bridge_paths,
     dump_source_catalogue,
     load_carried_aliases,
     load_carried_bindings,
+    load_declined_bridges,
     load_existing_catalogue,
     load_existing_model,
     load_existing_naming,
@@ -238,6 +241,16 @@ def write_outputs(state: VaultAgentState, out_dir: Path) -> dict[str, int]:
         meta_dir.mkdir(parents=True, exist_ok=True)
         (meta_dir / NAMING_FILENAME).write_text(
             yaml.safe_dump(state.naming.model_dump(), sort_keys=True), encoding="utf-8"
+        )
+
+    # WP122 (C53): the bridge paths this vault declined, so an extension does not propose them
+    # again — only when there are any, so every other output tree stays what it was.
+    declined = declined_bridge_paths(state)
+    if declined:
+        meta_dir = out_dir / "metadata"
+        meta_dir.mkdir(parents=True, exist_ok=True)
+        (meta_dir / BRIDGE_DECISIONS_FILENAME).write_text(
+            yaml.safe_dump({"declined": declined}, sort_keys=True), encoding="utf-8"
         )
 
     # WP23 §2.1: the LOGICAL model as a first-class output — the round-trip source a later
@@ -734,6 +747,7 @@ async def _run_pipeline(
     carried_aliases: dict[str, dict[str, str]] | None = None,
     llm: LLMOptions | None = None,
     naming: NamingProfile | None = None,
+    declined_bridges: list[str] | None = None,
 ) -> tuple[VaultAgentState, bool, str]:
     """Run the pipeline under a persistent checkpointer. Returns (state, paused, thread_id);
     ``paused`` is true when the human-in-the-loop checkpoint interrupted the run.
@@ -766,6 +780,7 @@ async def _run_pipeline(
             business_vault=business_vault or BusinessVaultOptions(),  # WP91
             carried_aliases=carried_aliases or {},  # WP82
             naming=naming or NamingProfile(),  # WP114
+            declined_bridges=declined_bridges or [],  # WP122
         ),
         input_doc=input_doc,
         trace=trace,
@@ -1844,6 +1859,7 @@ def run(
         carried = load_existing_catalogue(existing) if existing else []  # WP74
         bindings = load_carried_bindings(existing) if existing else {}  # WP77
         aliases = load_carried_aliases(existing) if existing else {}  # WP82
+        declined = load_declined_bridges(existing) if existing else []  # WP122
         naming = _choose_naming(naming_profile, existing)  # WP114
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]Could not load an input file:[/bold red] {exc}")
@@ -1863,6 +1879,7 @@ def run(
                 carried_aliases=aliases,
                 llm=llm,  # WP113
                 naming=naming,  # WP114
+                declined_bridges=declined,  # WP122
             )
         )
     except Exception as exc:  # noqa: BLE001 - surface any runtime failure cleanly to the CLI

@@ -12,7 +12,7 @@ just produced — the one place a hub's and a satellite's hash-key and load-date
 """
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Collection, Sequence
 from dataclasses import dataclass, field
 from itertools import combinations
 from typing import Any
@@ -319,12 +319,19 @@ def _participation(hub: str, role: str | None) -> str:
     return hub if role is None else f"{hub}:{role}"
 
 
-def propose_bridge_paths(model: DVModel) -> list[BridgeProposal]:
+def propose_bridge_paths(
+    model: DVModel, declined: Collection[str] = frozenset()
+) -> list[BridgeProposal]:
     """Spec §2.2: one path per pair of links that cite the same requirement and share a hub —
     from the first link's other participation through the shared hub to each other
     participation of the second (a self-link yields both exits), links in name order, one
     direction. Deterministic; a path the language cannot express (an ambiguous exit) is left
-    out, and every returned path parses back."""
+    out, and every returned path parses back.
+
+    WP122 (C53): a path that ends on the participation it starts from (hub and role) is no
+    traversal and is left out; so is every path in ``declined`` — what an earlier increment of
+    the vault declined (``metadata/bridge_decisions.yml``) is not asked again."""
+    declined = frozenset(declined)
     by_requirement: dict[str, list[Link]] = {}
     for link in model.links:
         for rid in link.requirement_ids:
@@ -342,11 +349,16 @@ def propose_bridge_paths(model: DVModel) -> list[BridgeProposal]:
                                 r.hub == hub for r in second.hub_refs if r is not far
                             ):
                                 continue
+                            begin = _participation(start.hub, start.role)
+                            end = _participation(far.hub, far.role)
+                            if begin == end:
+                                continue  # WP122: back to where it started
                             path = ",".join([
-                                _participation(start.hub, start.role), first.name,
-                                _participation(hub, arrive_a.role), second.name,
-                                _participation(far.hub, far.role),
+                                begin, first.name, _participation(hub, arrive_a.role),
+                                second.name, end,
                             ])
+                            if path in declined:
+                                continue  # WP122: declined in an earlier increment
                             try:
                                 parse_bridge_path(path, model)
                             except ValueError:

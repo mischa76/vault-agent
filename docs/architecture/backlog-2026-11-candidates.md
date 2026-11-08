@@ -256,3 +256,10 @@ Source read and a perspective switch; (b) whatever the cause, show the start's i
 equivalent with the three file names, one confirm — and warn when the requirements document's stem and the schema's
 differ (`hr_` vs `production_`); (c) clear the form's choices after a start. (b) catches the slip whatever the cause.
 **Not decided**, no WP number.
+
+## C53 — option (b) taken up as WP122 (2026-11-08); (a) stays open
+
+The owner chose (b) now and (a) later with the checkpoint controls (C45, C51, C52):
+`backlog-2026-07/wp122-bridge-declines-spec.md`. No path back to its own start; a declined path is written to
+`metadata/bridge_decisions.yml` and not proposed again by an extension. Replayed on the twenty-fifth chain: 49 bridge
+decisions instead of 89. **Open:** (a), one decision per link pair and shared hub (measured 25 with (b)).

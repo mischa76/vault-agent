@@ -37,6 +37,8 @@ SOURCE_CATALOGUE_FILENAME = "source_catalogue.yml"
 # WP114: the naming profile a vault was generated under, written only when it is not the
 # house style; an extension adopts it (`load_existing_naming`).
 NAMING_FILENAME = "naming.yml"
+# WP122 (C53): the bridge paths this vault declined, beside the model — written only when any were.
+BRIDGE_DECISIONS_FILENAME = "bridge_decisions.yml"
 
 
 def load_existing_model(path: Path) -> DVModel | None:
@@ -312,6 +314,39 @@ def load_existing_naming(path: Path) -> NamingProfile:
         return NamingProfile.model_validate(document or {})
     except (yaml.YAMLError, ValueError) as exc:
         raise ValueError(f"{candidate}: not a naming profile ({exc})") from exc
+
+
+def declined_bridge_paths(state: Any) -> list[str]:
+    """WP122: the paths to record as declined — the ones carried in plus this run's declined
+    proposals, less any path this run built (an operator may name a declined path after all)."""
+    built = {p.path for p in state.bridge_proposals if p.ratification_status == "accepted"}
+    built |= set(state.business_vault.bridges)
+    declined = set(state.declined_bridges) | {
+        p.path for p in state.bridge_proposals if p.ratification_status == "overridden"
+    }
+    return sorted(declined - built)
+
+
+def load_declined_bridges(path: Path) -> list[str]:
+    """WP122: the declined bridge paths of an existing output — ``bridge_decisions.yml`` beside
+    its model, ``[]`` when absent (every output before WP122, and every output that declined
+    nothing). ``path`` is the output directory, the model file or the metadata directory, as for
+    ``load_existing_naming``. A malformed file is an attributable ``ValueError``."""
+    base = path.parent if path.is_file() else path
+    meta_dir = base if base.name == "metadata" else base / "metadata"
+    candidate = meta_dir / BRIDGE_DECISIONS_FILENAME
+    if not candidate.is_file():
+        return []
+    try:
+        document: Any = yaml.safe_load(candidate.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ValueError(f"{candidate}: not YAML ({exc})") from exc
+    declined = (document or {}).get("declined") if isinstance(document or {}, dict) else None
+    if declined is None:
+        return []
+    if not isinstance(declined, list):
+        raise ValueError(f"{candidate}: `declined` must be a list of bridge paths")
+    return sorted(str(p) for p in declined)
 
 
 def _catalogue_path(path: Path) -> Path:

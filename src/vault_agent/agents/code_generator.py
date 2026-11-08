@@ -720,7 +720,10 @@ class CodeGeneratorAgent(BaseAgent):
         # WP115: bridge paths proposed from the model's own citations while the Business Vault
         # is on — decisions at sign-off; an earlier attempt's answers for the same path carry.
         previous = {p.path: p for p in state.bridge_proposals}
-        proposals = propose_bridge_paths(model) if state.business_vault.enabled else []
+        proposals = (  # WP122: what earlier increments declined is not proposed again
+            propose_bridge_paths(model, state.declined_bridges)
+            if state.business_vault.enabled else []
+        )
         for proposal in proposals:
             if proposal.path in previous:
                 proposal.ratification_status = previous[proposal.path].ratification_status

@@ -1171,6 +1171,9 @@ class VaultAgentState(BaseModel):
     # WP115: bridge paths proposed from the model's citations while the Business Vault is on;
     # empty otherwise, so a run without one keeps its review queue byte-identical.
     bridge_proposals: list[BridgeProposal] = Field(default_factory=list)
+    # WP122 (C53): bridge paths an earlier increment of this vault declined, carried from the
+    # existing output's `metadata/bridge_decisions.yml` so an extension does not propose them again.
+    declined_bridges: list[str] = Field(default_factory=list)
     # Working state
     # Business↔source mapping proposals (WP9): written by the source_mapper on grounded runs,
     # ratified at the HITL checkpoint, and consumed by staging binding. Empty when ungrounded.

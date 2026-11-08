@@ -344,7 +344,10 @@ or the same fields on the workbench's run start. The project then gains `models/
   `--no-bridge` declines it, the interactive prompt defaults to no, and an unanswered proposal is
   declined at `--accept` — Business Vault logic is human-ratified (ADR-0007), never built by default.
   A `resume --bridge` with a path no proposal carried builds it too, if the model parses it (a run
-  without as-of bounds cannot: start it with them). The bridges are rendered at sign-off from the
+  without as-of bounds cannot: start it with them). **Since WP122** a path that ends on the participation it
+  starts from is not proposed, and a declined path is written to `metadata/bridge_decisions.yml` (`declined:`,
+  only when there is one); an extension (`--existing`, the workbench's base run) reads it and does not propose
+  those paths again — name one with `--bridge` to build it after all, and it leaves the list. The bridges are rendered at sign-off from the
   raw vault's own metadata, so the written project holds them; `metadata/automatedv.yml` records
   each under `bridge:` (path, spine, steps with their validity source and columns); one
   `bridge_generated` disclosure per bridge.

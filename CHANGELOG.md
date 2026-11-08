@@ -22,6 +22,9 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- Bridge proposals no longer return after a decline, and no path ends where it starts (WP122, C53): a declined
+  path is recorded in `metadata/bridge_decisions.yml` and an extension does not propose it again. On the
+  twenty-fifth chain's models: 49 bridge decisions over five steps instead of 89.
 - A satellite whose payload holds a PostgreSQL `xml`, `json` or geometric column failed on build: AutomateDV merges
   its ghost record by `UNION`, which PostgreSQL refuses for those types (*could not identify an equality operator*).
   Every bound stage now derives such a column as the platform's unbounded text (`text` on PostgreSQL, `string` on

@@ -13232,3 +13232,21 @@ found, not reproduced. **Überprüft.** As above; the compiled satellite SQL; Au
 of such a type (WP79's form takes a column, not an expression); keys of such a type; the profiler's refusal of `xml`
 statistics; Databricks build; the replay's divergence from the run's project elsewhere; the measurement schema
 dropped.
+
+## [2026-11-08] WP122 built and measured (keyless): bridge proposals — no path back to its start, a declined path not proposed again (C53, option b); the chain's bridge count corrected to 89
+
+**Autor:** Claude Code
+
+The owner chose option (b) of C53 now and (a), grouping, later with the checkpoint controls. **Measured first** on the
+twenty-fifth chain's five saved models: 89 bridge proposals (the chain's entry of the same day said 88 — the person
+step had one too, so the decision total there is 172, not 171; P8's verdict stands), 6 ending on the participation
+they start from, 36 proposed again after an earlier step declined them; (b) leaves 49, (a)+(b) 25. Spec and guards
+first (`9495180`, red by import). **Built:** `propose_bridge_paths(model, declined)` skips a path whose last
+participation equals its first and every declined path; `VaultAgentState.declined_bridges`; the code generator passes
+it; `write_outputs` writes `metadata/bridge_decisions.yml` (`declined:` — carried plus this run's declined, less what
+it built; only when not empty); `load_declined_bridges` reads it; the CLI's `run --existing` and the workbench's
+extension pass it. Manual 9.7 says so. **Measured (spec §5):** 8 guards, suite 1682 / 5 skipped with no key
+reachable, ruff, bare mypy, WP115's guards unchanged; replayed: **1, 0, 5, 20, 23 = 49** as pre-registered, no cycle.
+**Nur angenommen.** That a live extension through the workbench reads the file — covered by the loader and a source
+check of both callers, not by a run. **Bewusst nicht getan.** Grouping (a); carrying built bridges into an
+extension's options; the checkpoint's controls.
