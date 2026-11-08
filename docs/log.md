@@ -13148,3 +13148,20 @@ payload) is now read: the compiled `sat_job_candidate_details.sql` merges the gh
 `xml` columns in `information_schema.columns` of `aw_source`. **Nur angenommen.** That AutomateDV's ghost-record switch
 removes the `UNION` — the macro not read. **Bewusst nicht getan.** No code, no WP number; the `vault` schema stays
 standing on the owner's word.
+
+## [2026-11-08] The twenty-fifth chain's person and HR inputs re-read under step names — identical to what each run's state carries
+
+**Autor:** Claude Code
+
+Follows the chain's entry of the same day („the person and HR runs' input files not restored"). On the owner's choice
+(option B of three: leave, re-read under step names, or re-read and rewrite the runs' `run.json` — the last refused,
+a run's record is evidence): Person and HumanResources read again from `aw_source` through the workbench's routes,
+catalogue and profile with the chain's settings (checks range/lengths/patterns, sample 10 000, examples 0), stored as
+`person_source_schema.yml`, `person_profiling.yml`, `hr_source_schema.yml`, `hr_profiling.yml`. **Which file belongs to
+which run:** person `20261107T101620658215Z` ← `person_*`, HR `20261107T171854517087Z` ← `hr_*`; their `run.json` still
+name `source_schema.yml` / `profiling.yml`, which now hold Production's (C50). **Überprüft.** Each new schema, formed into
+a `VaultAgentState` (so the technical columns drop as in the run), equals the run's `state.json` `source_schemas`
+(13 and 6 tables); each new profile equals the run's `profiling`, column for column (13 and 6 tables) — the sampled
+pattern check reproduced exactly. **Also seen:** the profile omits every `xml` column (*the database refused its
+statistics*, `UndefinedFunction`) — Person 2, HumanResources 1; the same type as C54, already in the runs' profiles.
+**Nur angenommen.** Nothing. **Bewusst nicht getan.** No `run.json` changed; the generic files kept, two runs name them.
