@@ -13072,3 +13072,17 @@ replacement still possible (C50 stays open). **Überprüft.** `tsc --noEmit`; `v
 `npm run build`. **Nur angenommen.** That the server stores under the sent name — `ReadCatalogue.name` and
 `MakeProfile.name` exist with the old defaults and G1/G2 cover the route with a name; not clicked live. **Bewusst nicht
 getan.** No refusal of a used name (C50 (a)), no copy into the run folder (C50 (b)); no Python change.
+
+## [2026-11-08] Candidate C53 recorded — bridge proposals grow combinatorially (1, 7, 27 per step) and return after a decline
+
+**Autor:** Claude Code
+
+At the twenty-fifth chain's fourth sign-off (Purchasing, `20261108T013943257819Z`) 27 of 33 decisions were bridge
+proposals, after 7 in Production and 1 in HumanResources — 35 of the first four steps' 89 decisions, which will carry
+P8 (87 ± 12 over five steps) past its band; the pre-registration's baseline predates WP115. Recorded as C53 on the
+owner's instruction, index line extended. **Überprüft.** `propose_bridge_paths` (the loops over link pairs, arrival,
+start and exit participations, roles as participations, no pruning of variants or of a path back to its start);
+`bridge_proposal_flags`; the four checkpoints' `bridges` counts (0, 1, 7, 27) and the recurring Address path.
+**Nur angenommen.** That the decline is not carried because the extension's model holds no bridge — inferred from the
+proposals recurring, the carry path not read. **Bewusst nicht getan.** No code, no WP number; the chain continues
+under the protocol (every bridge declined).

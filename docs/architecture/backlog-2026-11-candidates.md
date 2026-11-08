@@ -199,3 +199,23 @@ alone carrying the state; (3) a switch with a fixed label. **Preferred (1):** it
 answers, one shape for links and bridges despite their opposite defaults, no word that changes under the pointer.
 Belongs with C45 (button kinds) and C51 (the resolution answer field) to one question: a small set of decision
 controls for the checkpoint. **Not decided**, no WP number.
+
+## C53 — Bridge proposals grow combinatorially and come back after a decline: 1, 7, 27 decisions per step (owner, 2026-11-08)
+
+**Measured** in the twenty-fifth chain (PIT on, every bridge declined at sign-off): HumanResources 1 proposal,
+Production 7, Purchasing 27 — 35 of the 89 decisions of the first four steps. `propose_bridge_paths`
+(`business_vault_generator.py`, WP115 spec §2.2) emits one path per pair of links citing the same requirement and
+sharing a hub, per arrival participation, per start participation of the first link, per exit of the second; a role
+counts as its own participation (`hub_business_entity:person`, `:vendor`, `:employee`), so two links of three
+participations around a role-played hub yield up to eight paths, and the set is not pruned for paths that only
+differ in an end. A path back to its start appears (`hub_product,…,hub_unit_measure:size,…,hub_product`, Production).
+And a declined proposal is proposed again on the next extension (the Address → StateProvince → CountryRegion path at
+every step from the first): the decline is recorded in the run, not carried into the model the next step extends.
+Each proposal is a `review_flag` decision (`bridge_proposal_flags`, `code_generator.py`). **Consequence:** the
+decision count — the measure of review effort (C1, P8 of the twenty-fifth's pre-registration) — is inflated by
+variants nobody chose, and the twenty-third chain's baseline (before WP115) no longer compares. **Options:** (a) group
+the variants of one link pair into one decision (the pair and the shared hub; ends chosen only when building);
+(b) drop paths whose start equals their end and paths an earlier step declined (carry declines like ratified
+bindings, WP105); (c) propose only where the requirement names a traversal (both ends cited), not every shared
+hub; (d) a disclosure count instead of decisions while no PIT/bridge was asked for at start. (a) and (b) keep the
+WP115 evidence and cut most of the volume; they combine. **Not decided**, no WP number.
