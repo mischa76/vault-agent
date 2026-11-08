@@ -219,3 +219,19 @@ the variants of one link pair into one decision (the pair and the shared hub; en
 bindings, WP105); (c) propose only where the requirement names a traversal (both ends cited), not every shared
 hub; (d) a disclosure count instead of decisions while no PIT/bridge was asked for at start. (a) and (b) keep the
 WP115 evidence and cut most of the volume; they combine. **Not decided**, no WP number.
+
+## C54 — A PostgreSQL `xml` column breaks its satellite: AutomateDV's ghost record is merged with `UNION`, and `xml` has no equality (2026-11-08)
+
+**Found** in the twenty-fifth chain's build (`aw_source`, schema `vault`, PASS=413 ERROR=6): every satellite carrying
+one of `aw_source`'s seven `xml` columns (`JobCandidate.resume`, `Person.additionalcontactinfo` and `demographics`,
+`Illustration.diagram`, `ProductModel.catalogdescription` and `instructions`, `Store.demographics`) fails with *could
+not identify an equality operator for type xml*; two PITs skip behind them. **Cause, read in the compiled SQL**
+(`sat_job_candidate_details`): AutomateDV 0.11.4's satellite builds a ghost record (`CAST(NULL AS xml) AS resume`)
+and merges it with the new records by `UNION`, which de-duplicates and so compares every column; PostgreSQL defines no
+equality for `xml`. The hashdiff is not the problem — the stage casts the column `AS VARCHAR` before hashing. No
+earlier build met the type: the `vault` copy holds these columns as `text`. **Options:** (a) the staging generator
+derives a declared `xml` column as `text` on PostgreSQL (a derived column of the same name, the payload then a
+string — the C47 family `string`); (b) leave ghost records off for satellites with such a payload (AutomateDV's
+`enable_ghost_records`), losing the ghost row there; (c) refuse at generation with an attributable message. (a) is the
+one that keeps the data and fits C47; the same check belongs to every type without equality (`json`, `point`, …).
+**Not decided**, no WP number.

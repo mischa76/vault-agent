@@ -13136,3 +13136,15 @@ the generated SQL) — the compiled SQL not read line by line; that the pipeline
 **Bewusst nicht getan.** No fix for `xml` (a candidate, the owner decides); the person and HR runs' input files not
 restored — one name cannot hold both, both runs' states carry their schemas; the `vault` schema in `aw_source` left
 standing for the owner to inspect.
+
+## [2026-11-08] Candidate C54 recorded — a PostgreSQL `xml` column breaks its satellite (AutomateDV's ghost record merged by `UNION`)
+
+**Autor:** Claude Code
+
+The twenty-fifth chain's build failed in five satellites on `xml` (entry of the same day, P10). Recorded as C54 on
+the owner's instruction, index line extended. The previous entry's „Nur angenommen" (the satellite comparing the
+payload) is now read: the compiled `sat_job_candidate_details.sql` merges the ghost record with the new records by
+`UNION`; the stage hashes the column cast `AS VARCHAR`. **Überprüft.** The compiled satellite and stage SQL; the seven
+`xml` columns in `information_schema.columns` of `aw_source`. **Nur angenommen.** That AutomateDV's ghost-record switch
+removes the `UNION` — the macro not read. **Bewusst nicht getan.** No code, no WP number; the `vault` schema stays
+standing on the owner's word.
