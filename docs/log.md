@@ -13286,3 +13286,18 @@ cause, not a misuse. **Überprüft.** Build logs, row contents, the compiled SQL
 occurs on every adapter — read in each macro, built on PostgreSQL only. **Bewusst nicht getan.** No issue filed,
 nothing posted (the owner's call); no vault-agent change; the scratch project and the schemas `dv4x`, `dv4x_src`
 left standing.
+
+## [2026-11-09] C56 second round — datavault4dbt 2.3.0: key translation by prejoin, NULL into date/uuid keys, a two-source hub and a transactional link all build; a dangling reference collapses into the unknown key
+
+**Autor:** Claude Code
+
+On the owner's go for points 1–4 after he asked how datavault4dbt's snapshot control relates to vault-agent's
+(theirs: `control_snap_v0/v1`, a table of snapshot dates with retention flags, in the warehouse and adjustable in
+operation; ours: `as_of_dates` from `dbt_utils.date_spine` over bounds fixed at generation, manual 9.7). **Measured**
+in the scratch project (`/tmp/dv4x`): all ten new models `PASS=10` on the first load, re-delivery `INSERT 0 0`, a new
+line `INSERT 0 1`; prejoined product keys equal the hub's; the `date`/`uuid` hubs carry typed ghost rows and the link
+the unknown key for a NULL date; the two-source hub one row per key with equal hashes; the `nh_link` keeps the first
+quantity of a corrected line. **Observed:** a reference to a product that does not exist becomes the unknown key, as a
+missing one does — unflagged. Table in C56. **Überprüft.** Build logs per load, row contents, column types.
+**Nur angenommen.** Nothing. **Bewusst nicht getan.** Late or out-of-order data and deletes (point 5) and multi-active
+satellites (point 6) — not asked yet; nothing filed; scratch project and schemas left standing.

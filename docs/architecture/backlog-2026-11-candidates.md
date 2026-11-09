@@ -286,3 +286,18 @@ from the hub, PostgreSQL 16.15, `aw_source` plus probe tables in `dv4x_src`), tw
 `postgres__sat_v0`, and the documented `forever: 'TRUE'` that no macro accepts. Material for the owner's decision on
 Scalefree's community challenge (an issue each); nothing filed. **Not decided**, no WP number: whether datavault4dbt
 becomes a target is ADR-0020's question.
+
+## C56 — second round (2026-11-09): key translation, NULL into date/uuid keys, a two-source hub, a transactional link
+
+Same scratch project, the owner's go for points 1–4; AdventureWorks shapes in small (`dv4x_src.product`,
+`order_line`, `vendor`), two to three loads:
+
+| Case | AutomateDV 0.11.4 / vault-agent | datavault4dbt 2.3.0 (measured) |
+|---|---|---|
+| Key translation — the line carries `productid`, the hub is keyed on `productnumber` | vault-agent's own translation model (WP36, WP116) with its tests | ✔ `prejoined_columns` in the stage: the line's product key equals the hub's. **But** a dangling reference (product 9 does not exist) becomes the unknown key `0000…`, the same as a line with no product — the difference between „none" and „points nowhere" is lost, nothing flags it |
+| NULL participant into a `date`-keyed and a `uuid`-keyed hub | needed WP94's gate (a zero key cannot be cast into `date`/`uuid`) | ✔ the link takes the unknown key; the hubs' ghost rows are typed (`0001-01-01`/`8888-12-31`, `NULL` for `uuid`) |
+| One hub, two sources (`business_entity` and `vendor`, key 20 in both) | WP10, one stage per feed | ✔ same key, same hash from both stages; one row per key, the first source's `rsrc` kept |
+| Transactional link with payload (`nh_link`, `qty`) | `t_link` (WP8 found the generator calling `nh_link`) | ✔ re-delivery `INSERT 0 0`; a new line inserted; a corrected quantity on an existing line **is not** — first wins, as a non-historised link should, silently |
+
+No further bug in this round. The dangling-reference collapse is a design observation for the comparison, and the
+place where vault-agent's translation tests would say more than the package does.
