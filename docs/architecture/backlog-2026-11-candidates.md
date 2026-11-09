@@ -496,3 +496,30 @@ equal to its newest version (silver); F a late row for 1 stamped 02-25 equal to 
   two consecutive identical versions.
 - **P6** the bank demo's effectivity satellite, batch 2026-04-01 loaded before 2026-01-01: not predicted — AutomateDV's
   `eff_sat` end-dating under out-of-order batches is read, not known; recorded as measured.
+
+## C60 — measured (2026-11-10): P1–P5 hold; P6 — the effectivity satellite under reversed batches leaves two owners open
+
+`uv run python -m eval.automatedv.scenario` (vault-agent's `CodeGeneratorAgent` for `av_src.contact`, AutomateDV
+0.11.4, dbt-core 1.9.10, PostgreSQL 16.15; reproducible, run twice). Satellite results per load: A `SELECT 2`, B
+`INSERT 0 1`, C `INSERT 0 0`, D `INSERT 0 0`, E `INSERT 0 0`, F `INSERT 0 1`; contact 1 holds bronze 02-15, bronze
+02-25, gold 03-01; contact 2 silver 03-01.
+
+- **P1 ✔** a late row that differs from the newest version is inserted with its own `ldts` — no high-water mark, the
+  timeline is right.
+- **P2 ✔** a re-delivery equal to the newest inserts nothing.
+- **P3 ✔ — wrong data in vault-agent's own output:** `gold` → `Gold` inserts nothing; the satellite's newest value
+  reads `gold`, the source `Gold`. AutomateDV upper-cases hashdiff input by default (`hash_content_casing: 'upper'`)
+  and vault-agent does not change it — the same consequence as datavault4dbt's D3 (C56), here by documented default.
+- **P4 ✔** a late row equal to the newest version is not recorded (silver already held on 02-20 — not stored).
+- **P5 ✔** a late row equal to the version before the newest is inserted: two consecutive identical versions
+  (bronze, bronze) — redundant, not wrong.
+- **P6 (not predicted) — wrong data:** the bank demo's effectivity satellite, batch 2026-04-01 loaded before
+  2026-01-01. ACC-503 ends with CH-1001 01-01 → open (loaded 01-01), CH-1002 04-01 → **01-01** (loaded 01-01 — an
+  interval that ends before it starts) and CH-1002 04-01 → open (loaded 04-01). Taking the latest row per relationship
+  (the demo's own rule) **both owners are open at once**. In order, CH-1001 closes on 04-01 and only CH-1002 is open.
+
+**What follows, not decided:** P3 asks whether vault-agent should set `hash_content_casing` (hashdiffs case-sensitive;
+whether AutomateDV separates key and diff casing is to verify — business keys should stay case-insensitive); P6 that
+AutomateDV's `eff_sat` assumes batches in load order — a stated precondition in the manual, a load-order guard, or an
+effectivity model of vault-agent's own (as PIT and bridges already are); P4/P5 are imprecisions to document. The
+scenario lives in `eval/automatedv/`.
