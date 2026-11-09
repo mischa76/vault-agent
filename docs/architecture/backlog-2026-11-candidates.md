@@ -468,3 +468,31 @@ manual says nothing (checked). **Proposal:** run C56's scenario pattern against 
 late row and the case-only change — and record per construct what happens; then decide whether the generator needs a
 setting (AutomateDV's source filtering / apply-source-filter options, to verify) or the manual a stated limitation.
 **Not decided**, no WP number; keyless.
+
+## C60 — taken up (2026-11-10): what AutomateDV does with late rows on vault-agent's output — pre-registration
+
+On the owner's go. **Read first** (AutomateDV 0.11.4, `macros/tables/postgres/sat.sql`): without `apply_source_filter`
+— vault-agent sets it nowhere (`src/vault_agent`, checked) — the satellite has no high-water mark; within a delivery
+each row's hashdiff is compared by `LAG` ordered by `ldts`, the first row of a key against the target's **newest**
+version (`latest_records`, `ROW_NUMBER() … ORDER BY ldts DESC`), whatever that row's own `ldts`. And vault-agent sets
+no `hash_content_casing`, whose default is `'upper'` (`supporting/hash_components/standard_column_wrapper.sql:8`): the
+hashdiff input is upper-cased.
+
+**Scenario** (keyless, `eval/automatedv/`): a vault-agent-generated project (the real `CodeGeneratorAgent`) for one
+landing table `contact(contactid, segment, load_datetime, record_source)` — hub and one satellite — and the bank demo's
+effectivity satellite with its two batches loaded in reverse. Loads: A 03-01 (1 gold, 2 silver); B a late row for 1
+stamped 02-15 (bronze); C 03-10 (1 gold re-delivered); D 03-20 (1 `Gold`, case only); E a late row for 2 stamped 02-20
+equal to its newest version (silver); F a late row for 1 stamped 02-25 equal to the version before the newest (bronze).
+
+**Predictions:**
+- **P1** B is inserted with its own `ldts` (no high-water mark): contact 1's history reads bronze 02-15, gold 03-01.
+- **P2** C inserts nothing (equal to the newest).
+- **P3** D inserts nothing — the hashdiff is case-insensitive under AutomateDV's default — and the satellite's newest
+  value reads `gold` while the source holds `Gold` (the same consequence as datavault4dbt's D3, here by documented
+  default).
+- **P4** E inserts nothing (equal to the newest, compared regardless of age): that silver already held on 02-20 is not
+  recorded — a silent imprecision, not a loss of value.
+- **P5** F is inserted (it differs from the newest, gold): contact 1 then holds bronze 02-15, bronze 02-25, gold 03-01 —
+  two consecutive identical versions.
+- **P6** the bank demo's effectivity satellite, batch 2026-04-01 loaded before 2026-01-01: not predicted — AutomateDV's
+  `eff_sat` end-dating under out-of-order batches is read, not known; recorded as measured.

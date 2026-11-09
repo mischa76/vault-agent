@@ -13419,3 +13419,13 @@ measured on vault-agent's AutomateDV output. **Überprüft.** A search of `src/v
 flags and deletion (only the workbench's own deletes, WP112) and of `src` and the manual for late-arriving or
 out-of-order handling (none). **Nur angenommen.** That AutomateDV 0.11.4 has no record-tracking macro and what its
 source-filter options do — both marked „to verify" in the candidates. **Bewusst nicht getan.** No code, no WP number.
+
+## [2026-11-10] C60 taken up — pre-registration: AutomateDV's satellite on vault-agent's output has no high-water mark and an upper-cased hashdiff by default
+
+**Autor:** Claude Code
+
+On the owner's go to continue with C60. Read AutomateDV 0.11.4's PostgreSQL satellite macro and its hash casing
+default, and searched vault-agent for `apply_source_filter` and `hash_content_casing` (set nowhere). Wrote the scenario
+and predictions P1–P6 into C60 before building anything; P3 says vault-agent's own output loses case-only changes by
+AutomateDV's documented default. **Überprüft.** The macro text and the casing default in the installed package; the
+search. **Nur angenommen.** Everything in P1–P5 — predictions. **Bewusst nicht getan.** Nothing built yet.
