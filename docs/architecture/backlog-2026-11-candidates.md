@@ -301,3 +301,21 @@ Same scratch project, the owner's go for points 1–4; AdventureWorks shapes in 
 
 No further bug in this round. The dangling-reference collapse is a design observation for the comparison, and the
 place where vault-agent's translation tests would say more than the package does.
+
+## C56 — third round (2026-11-09): late and out-of-order data, deletes, a multi-active satellite
+
+Same scratch project, the owner's go for points 5–6; three loads (A 2026-03-01, B with a row stamped 2026-02-15 —
+older than A — and a changed phone at 2026-03-05, C 2026-03-10 with a key deleted at the source and a phone removed):
+
+| Case | datavault4dbt 2.3.0 (measured) | vault-agent / AutomateDV |
+|---|---|---|
+| A late row (stamped before the satellite's newest load) | **dropped silently by default**: `sat_v0`'s high-water mark loads only `ldts >` the target's maximum (`postgres/sat_v0.sql:51`), `INSERT 0 0`; with `disable_hwm: true` it is inserted and `sat_v1`'s timeline is right (bronze 02-15…02-28, gold from 03-01); a later re-delivery equal to the newest version inserts nothing | not measured — no chain ever delivered out of order |
+| A key deleted at the source | the record-tracking satellite (`rec_track_sat`) shows its last delivery (03-05) and nothing after; the descriptive satellite keeps the last version as current — no delete flag of its own | neither record tracking nor delete detection is generated — a gap of vault-agent's own |
+| Multi-active satellite (phones per contact, key `phonetype`) | ✔ a changed number re-versions the whole group (2 rows); a removed phone ends the group, the next holds one row; the unchanged contact untouched | AutomateDV `ma_sat` generated (sat_type multi-active), not measured against changes |
+
+**Summary of C56 over three rounds:** on the data cases that cost work in AutomateDV — payloads without equality, NULL
+participants, `date`/`uuid` keys — datavault4dbt is the more robust package; it has two bugs of its own (an unescaped
+`sat_v0` payload on PostgreSQL, a documented `forever: 'TRUE'` no macro accepts) and two silent behaviours worth
+knowing (a dangling reference becomes the unknown key; a late row is dropped under the default high-water mark).
+**For vault-agent itself** two gaps surfaced that do not depend on the package: no record tracking / delete detection,
+and no measurement of out-of-order loads. **Not decided**, no WP number.

@@ -13301,3 +13301,18 @@ quantity of a corrected line. **Observed:** a reference to a product that does n
 missing one does — unflagged. Table in C56. **Überprüft.** Build logs per load, row contents, column types.
 **Nur angenommen.** Nothing. **Bewusst nicht getan.** Late or out-of-order data and deletes (point 5) and multi-active
 satellites (point 6) — not asked yet; nothing filed; scratch project and schemas left standing.
+
+## [2026-11-09] C56 third round — datavault4dbt 2.3.0: a late row is dropped silently under the default high-water mark; deletes show only in record tracking; multi-active groups version correctly
+
+**Autor:** Claude Code
+
+On the owner's go for points 5 and 6. Three loads in the scratch project (`/tmp/dv4x`), all `PASS=9`. **Measured:** a row
+stamped 2026-02-15 delivered after the 2026-03-01 load is not loaded by `sat_v0` (`INSERT 0 0`, the high-water mark
+`ldts > max(ldts)`), and is with `disable_hwm: true`, where `sat_v1` closes it correctly before the newer version; a
+key deleted at the source stays current in the satellite, only `rec_track_sat` shows its deliveries ending; the
+multi-active satellite re-versions the whole group on a changed phone and ends it when a phone is removed. Table and a
+summary of the three rounds in C56, including two gaps of vault-agent's own (no record tracking or delete detection;
+out-of-order loads never measured). My script stopped once on its own `grep` under `set -e` and once on a drop without
+`cascade`; rerun from a full refresh. **Überprüft.** Build logs of the three loads, the satellites' rows with `ledts` and
+`is_current`. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No AutomateDV counterpart run for these cases;
+nothing filed; scratch project and schemas left standing.
