@@ -13364,3 +13364,15 @@ build, oracle); index line extended, where C56's line now also says four defects
 **Überprüft.** ADR-0020's account of the engine (version, import shapes, licence). **Nur angenommen.** That the
 engine installs without a service of its own beyond Django's database — to be seen. **Bewusst nicht getan.** No change
 to ADR-0020; nothing of the engine's code into this repository.
+
+## [2026-11-09] C57 first step — TurboVault Engine 0.23.0 as published does not get past `workspace init` (a subpackage missing from the wheel); worked around, its own example generates
+
+**Autor:** Claude Code
+
+Installed the engine (now 0.23.0) in its own environment with telemetry off (environment variable verified in its
+code, and the workspace setting). `workspace init` failed on a missing module; traced to the explicit package list in
+its `pyproject.toml`, which lacks `engine.services.generation.renderers` (new in 0.23.0); the PyPI wheel lacks it too.
+Recorded in C57 as defect T1. Worked around with an editable install from the clone; the TPC-H example then
+generates 109 files. **Überprüft.** The traceback, the package list, the git history of the subpackage, the PyPI
+wheel's file list, the telemetry opt-out in code, an issue/PR search. **Nur angenommen.** Nothing. **Bewusst nicht
+getan.** Nothing reported upstream; no change to their repository beyond the local clone being installed editable.

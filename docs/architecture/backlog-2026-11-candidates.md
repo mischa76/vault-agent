@@ -372,3 +372,17 @@ project JSON by ADR-0020's recorded mapping and once through the MCP proposal sc
 C56's oracle (`eval/datavault4dbt/`). **Why:** evidence for ADR-0020 and C47 (does „vault-agent models, TurboVault
 generates" carry?), and material for Scalefree's community challenge, which names TurboVault. **Not decided**
 beyond the probe; no WP number; ADR-0020 stands (a probe is no exporter).
+
+## C57 — first step (2026-11-09): the published 0.23.0 does not install into a working state
+
+TurboVault Engine is at **0.23.0** now (`a9feeb3`, PyPI 0.23.0), two minors past ADR-0020's 0.21.0. Installed into
+its own environment (`/tmp/tv-venv`, outside this repository; telemetry off by `TURBOVAULT_DISABLE_TELEMETRY=1`,
+honoured at `engine/cli/utils/telemetry.py:116`, and by `disable_anonymous_usage_stats: true` in the workspace).
+**Defect T1:** `turbovault workspace init` fails with `ModuleNotFoundError: No module named
+'engine.services.generation.renderers'`. `pyproject.toml` lists its packages one by one (`[tool.setuptools]
+packages = [...]`), and `engine.services.generation.renderers`, added with the SQLMesh output (`8f9c2ba`, #220,
+released in 0.23.0), is not in the list; the wheel on PyPI has no `generation/renderers` (checked in the
+downloaded `turbovault_engine-0.23.0-py3-none-any.whl`). The documented install (`pip install turbovault-engine`)
+therefore stops at the first command. No issue or PR names it (searched 2026-11-09). **Worked around** for the probe
+with an editable install from the clone; with it the workspace initialises and Scalefree's own TPC-H example
+generates 109 files with „No issues". Next: a vault-agent model in.
