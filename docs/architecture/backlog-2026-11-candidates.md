@@ -438,3 +438,33 @@ keys, links and satellite split. It names its target „Data Vault 2.0".
 - Evidence on hand for either message: C56 (datavault4dbt's defects, the oracle), C57 (both import paths measured).
 
 **Not decided**, no WP number; no wording is published.
+
+## C59 — The generated vault cannot tell that a key was deleted at the source: no record tracking, no delete detection (owner, 2026-11-09)
+
+**Found** while probing datavault4dbt (C56, third round): a key deleted at the source stays current in its satellite
+there too, but the package offers a record-tracking satellite (`rec_track_sat`) that shows its deliveries ending.
+vault-agent generates **neither** — checked 2026-11-09: no record-tracking satellite, no effectivity over hub
+membership, no delete flag anywhere in the generator (`src/vault_agent`; the only „deleted" are the workbench's own
+deletes, WP112). A satellite's last version therefore reads as current for a customer, product or order the source
+has removed, and nothing in the vault says when it disappeared. **Why it matters:** in continuous operation every
+full or snapshot delivery can drop keys; downstream marts then report dead entities as live. **Options:** (a) a
+record-tracking satellite per hub (and per link) from the stages the generator already writes — which load saw which
+key — with a business-vault view „last seen"; (b) an effectivity satellite on hub membership for full-delivery
+sources, end-dating a key absent from a full load (needs to know which sources deliver in full — a new input);
+(c) a CDC delete flag passed through when the source carries one (`deleted_flag`); (d) at least a disclosure at
+generation that deletes are not tracked. AutomateDV 0.11.4 has no record-tracking macro of its own (to verify before
+choosing (a)); vault-agent renders the PIT and bridges in its own SQL already (WP91, WP115), so a record-tracking
+model in plain SQL fits that pattern. **Not decided**, no WP number.
+
+## C60 — Late and out-of-order loads were never measured on vault-agent's output (owner, 2026-11-09)
+
+**Found** in C56's third round: datavault4dbt's `sat_v0` drops a row stamped before the satellite's newest load
+silently under its default high-water mark, and loads it correctly with `disable_hwm`. No chain and no demo of
+vault-agent ever delivered data out of order: every build so far was one full load, or batches in ascending load
+date (the bank demo's Phase B2). What AutomateDV 0.11.4's satellites, links and effectivity satellites do with a late
+row — dropped, inserted, inserted but ordered wrong in a PIT, an effectivity window mis-closed — is unknown; the
+manual says nothing (checked). **Proposal:** run C56's scenario pattern against a vault-agent project — the oracle in
+`eval/datavault4dbt/` with AutomateDV's hash rules in place of datavault4dbt's, over the same four loads including the
+late row and the case-only change — and record per construct what happens; then decide whether the generator needs a
+setting (AutomateDV's source filtering / apply-source-filter options, to verify) or the manual a stated limitation.
+**Not decided**, no WP number; keyless.

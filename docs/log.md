@@ -13408,3 +13408,14 @@ the round-trip path, competing with the MCP path); index line extended. **Überp
 measurements. **Nur angenommen.** That no undocumented inference feature exists — a search of its docs for automatic,
 infer, suggest found none beyond MCP. **Bewusst nicht getan.** No wording for publication; no change to ADR-0015 or
 ADR-0020.
+
+## [2026-11-09] Candidates C59 and C60 recorded — the two gaps of vault-agent's own that the datavault4dbt probe surfaced
+
+**Autor:** Claude Code
+
+On the owner's instruction, the two gaps named in C56's third round: C59, the generated vault has no record tracking
+and no delete detection (a key deleted at the source stays current); C60, late and out-of-order loads were never
+measured on vault-agent's AutomateDV output. **Überprüft.** A search of `src/vault_agent` for record tracking, delete
+flags and deletion (only the workbench's own deletes, WP112) and of `src` and the manual for late-arriving or
+out-of-order handling (none). **Nur angenommen.** That AutomateDV 0.11.4 has no record-tracking macro and what its
+source-filter options do — both marked „to verify" in the candidates. **Bewusst nicht getan.** No code, no WP number.
