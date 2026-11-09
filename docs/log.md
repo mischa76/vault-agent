@@ -13353,3 +13353,14 @@ the way:** the line-length rewrap first split one SQL literal (`'vendor forty'`)
 of every literal in the scenario's SQL and fixed before the run; an f-string split by the same tool, rewritten.
 **Nur angenommen.** Nothing. **Bewusst nicht getan.** No CI job for the scenario (it needs a database and network);
 nothing reported upstream; `/tmp/dv4x` and the schemas `dv4x`, `dv4x_src` remain (the scenario recreates them).
+
+## [2026-11-09] Candidate C57 recorded — run TurboVault Engine on a vault-agent model and check its output with C56's oracle
+
+**Autor:** Claude Code
+
+The owner asked whether TurboVault deserves a closer look and, on the answer, to record it and start. Recorded as C57
+(plan: install outside the repo, the person step through the round-trip JSON and through the MCP schema, generate,
+build, oracle); index line extended, where C56's line now also says four defects and where the probe lives.
+**Überprüft.** ADR-0020's account of the engine (version, import shapes, licence). **Nur angenommen.** That the
+engine installs without a service of its own beyond Django's database — to be seen. **Bewusst nicht getan.** No change
+to ADR-0020; nothing of the engine's code into this repository.

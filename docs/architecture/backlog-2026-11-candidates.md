@@ -360,3 +360,15 @@ defects 1 and 2), `scenario.py` replaying the sources and four loads from nothin
 documented and the as-built hash rules) and a README with the result; the as-built model pinned keylessly against
 the warehouse's hashes in `tests/test_c56_datavault4dbt_hashing.py`. Exit 0 means every check holds except the
 recorded defects — a defect that disappears after a package upgrade fails the run, so it is noticed.
+
+## C57 — TurboVault Engine run, not read: a vault-agent model in, datavault4dbt code out, checked by C56's oracle (owner, 2026-11-09)
+
+**Asked** by the owner after C56: TurboVault has so far only been read (ADR-0020, the repository at `2dd2d98`,
+version 0.21.0, 2026-10-31), never run. **Plan:** (1) install it in its own environment outside this repo (AGPL-3.0:
+running it is use; none of its code comes into this repository); (2) give it a model of this project — the
+twenty-fifth chain's person step (13 tables, roles, foreign keys, several sources) — once through the round-trip
+project JSON by ADR-0020's recorded mapping and once through the MCP proposal schema, so that what each loses is
+**measured** rather than read; (3) let it generate datavault4dbt code, build it in `aw_source`, and check it with
+C56's oracle (`eval/datavault4dbt/`). **Why:** evidence for ADR-0020 and C47 (does „vault-agent models, TurboVault
+generates" carry?), and material for Scalefree's community challenge, which names TurboVault. **Not decided**
+beyond the probe; no WP number; ADR-0020 stands (a probe is no exporter).
