@@ -13268,3 +13268,21 @@ cast is needed there. **Überprüft.** The build logs, the satellites' rows and 
 Nothing beyond the defaults (MD5, string hash type). **Bewusst nicht getan.** No issue opened and nothing posted —
 there is nothing broken to report, and anything outward is the owner's; no change to vault-agent; the scratch
 project and the schemas `dv4x`, `dv4x_src` left standing in `aw_source` for the owner to look at.
+
+## [2026-11-09] Candidate C56 recorded and probed — the chains' AutomateDV findings against datavault4dbt 2.3.0: five hold up there, two datavault4dbt bugs found
+
+**Autor:** Claude Code
+
+Follows the `xml` probe of the same day. The owner judged a check of AutomateDV's known issues against datavault4dbt in
+scope (it may become a second target, C47) and asked for it. Recorded as C56 with the comparison table. **Measured**
+in the scratch project (`/tmp/dv4x`, datavault4dbt 2.3.0, PostgreSQL 16.15): roles of one hub, a NULL participant
+(unknown key natively), effectivity across an ownership change (two loads: old link inactive at 2026-02-01, new
+active), PIT (313 snapshots × 5 hub rows = 1 565) build and hold the right rows; payloads without equality had
+already. **Two bugs:** a reserved payload column breaks `sat_v0` on PostgreSQL even with the escape vars set (the
+macro prints the payload without `escape_column_names`); `control_snap_v1`'s documented `forever: 'TRUE'` compiles to
+`INTERVAL ' '` (string against `is true`), the boolean builds. My own first `log_logic` (`daily` forever) had the same
+cause, not a misuse. **Überprüft.** Build logs, row contents, the compiled SQL, the macros of every adapter for
+`escape_column_names` in `sat_v0` and `is true` in `control_snap_v1`. **Nur angenommen.** That the `forever` failure
+occurs on every adapter — read in each macro, built on PostgreSQL only. **Bewusst nicht getan.** No issue filed,
+nothing posted (the owner's call); no vault-agent change; the scratch project and the schemas `dv4x`, `dv4x_src`
+left standing.

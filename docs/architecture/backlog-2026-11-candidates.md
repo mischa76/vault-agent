@@ -263,3 +263,26 @@ The owner chose (b) now and (a) later with the checkpoint controls (C45, C51, C5
 `backlog-2026-07/wp122-bridge-declines-spec.md`. No path back to its own start; a declined path is written to
 `metadata/bridge_decisions.yml` and not proposed again by an extension. Replayed on the twenty-fifth chain: 49 bridge
 decisions instead of 89. **Open:** (a), one decision per link pair and shared hub (measured 25 with (b)).
+
+## C56 — The AutomateDV findings of the chains, checked against datavault4dbt (owner, 2026-11-09)
+
+**Asked** by the owner: since datavault4dbt (and TurboVault, which generates datavault4dbt code) may become a second
+target (C47, ADR-0020), check whether what the chains found in AutomateDV 0.11.4 holds there too. **Probed the same
+day** in a scratch dbt project (`/tmp/dv4x` on vault-dev; dbt-core 1.9.10, dbt-postgres 1.9.1, datavault4dbt 2.3.0
+from the hub, PostgreSQL 16.15, `aw_source` plus probe tables in `dv4x_src`), two loads where it matters:
+
+| Case | AutomateDV 0.11.4 (our chains) | datavault4dbt 2.3.0 (measured 2026-11-09) |
+|---|---|---|
+| Payload of a type without equality (`xml`, `json`, `point`) | fails — ghost record merged by `UNION`; vault-agent casts (WP121) | ✔ native types kept; ghost records by `UNION ALL`, hashdiffs compared |
+| One hub in two roles (customer → person / store) | ✔ with role-qualified columns (WP8, the generator) | ✔ one hashed column per role, both resolve to the hub |
+| A NULL participant (a customer with no store) | the row drops unless `null_columns` (WP83/WP94) | ✔ natively: the unknown key `0000…`, the hub's `-1` ghost record |
+| A reserved column name (`group`) | ✔ with `escape: true` (WP79) | **✘** stage only with the vars `escape_char_left/right` (empty on PostgreSQL by default); **`sat_v0` on PostgreSQL never escapes its payload** (`postgres/sat_v0.sql` prints `source_cols` without `escape_column_names`, Snowflake/SQL Server/Databricks/Fabric do) |
+| Effectivity across an ownership change | driving-key end-dating (bank demo) | ✔ `eff_sat_v0`: the old link row `is_active` false at the change, the new true |
+| PIT | ✔ (WP91) | ✔ with `control_snap_v0/v1`; one row per snapshot and hub row, ghost keys included |
+| Snapshot control, documented example | — | **✘** `control_snap_v1.md`'s example (`'yearly': {'forever': 'TRUE'}`) fails on PostgreSQL (`INTERVAL ' '`): the macros test `is true`, a string is not; the boolean `true` builds. Every adapter's macro tests `is true` (read, not built) |
+| Bridge | AutomateDV has one; vault-agent renders its own (WP115) | no bridge macro in 2.3.0 |
+
+**Two findings that are datavault4dbt's, reproducible from the scratch project:** the unescaped payload in
+`postgres__sat_v0`, and the documented `forever: 'TRUE'` that no macro accepts. Material for the owner's decision on
+Scalefree's community challenge (an issue each); nothing filed. **Not decided**, no WP number: whether datavault4dbt
+becomes a target is ADR-0020's question.
