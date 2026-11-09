@@ -13446,3 +13446,15 @@ glued a statement onto a closing SQL string (repaired, literals checked). **Übe
 result; ruff, bare mypy; the satellite histories and the effectivity rows. **Nur angenommen.** Whether AutomateDV can
 case a hashdiff separately from a key — to verify. **Bewusst nicht getan.** No change to the generator; no manual
 text yet; the schemas `av_src`, `av`, `av_bank` left standing.
+
+## [2026-11-10] Candidates C61 and C62 recorded — the two wrong-data findings of C60 on vault-agent's own output
+
+**Autor:** Claude Code
+
+On the owner's go. C61: case-only changes are lost because AutomateDV upper-cases hashdiff input by default; read
+first whether AutomateDV can case keys and diffs separately — it cannot (one variable, one wrapper for both), which
+shapes the options (a global switch that also makes keys case-sensitive, or vault-agent rendering the hashdiff
+itself). C62: the effectivity satellite needs batches in load order. **Überprüft.** `standard_column_wrapper.sql`,
+`hash.sql`, `null_expression.sql` in the installed AutomateDV 0.11.4. **Nur angenommen.** That option (b) of C61 can
+reproduce AutomateDV's standardisation exactly minus `UPPER` — to be pinned by a guard when built. **Bewusst nicht
+getan.** No code.
