@@ -13376,3 +13376,22 @@ Recorded in C57 as defect T1. Worked around with an editable install from the cl
 generates 109 files. **Überprüft.** The traceback, the package list, the git history of the subpackage, the PyPI
 wheel's file list, the telemetry opt-out in code, an issue/PR search. **Nur angenommen.** Nothing. **Bewusst nicht
 getan.** Nothing reported upstream; no change to their repository beyond the local clone being installed editable.
+
+## [2026-11-09] C57 second step — the person step through TurboVault: the MCP schema loses the role and four hub sources silently; the round-trip JSON carries it whole and builds to the same content as vault-agent's vault
+
+**Autor:** Claude Code
+
+On the owner's go to continue with both import shapes. Converted the twenty-fifth chain's person step by throwaway
+scripts, imported, validated, generated with TurboVault 0.23.0, built on datavault4dbt in `aw_source` (schemas
+`tv_*`, `tvrt_*`, `tvrt2_*`). **MCP schema:** invalid until links got a `source_table` its doc does not list; then
+„valid", but the role collapses (a dict hub → column) and only one hub source survives — six satellites fail at build
+(PASS=106 ERROR=6). **Round-trip JSON:** valid, PASS=131, every counted construct equal to the source and to the
+AutomateDV vault, the role link answering 909 of 909 pairs. **My own error on the way:** I first named the role's link
+column after its source column; TurboVault's importer dropped it silently and the build failed on a missing hashkey —
+TPC-H's own example showed the right shape (the hub's key as the link column name), corrected and rebuilt. Defect 3 of
+C56 is inherited by TurboVault's dbt output (no variable set; the option exists only for SQLMesh). Table and findings
+T1–T4 in C57. **Überprüft.** Each import, validation, generation and build log; the generated link and stage SQL;
+the counts against source and `vault`; TurboVault's `LinkImport` and config schema in code. **Nur angenommen.**
+That the TPC-H role pattern is the intended one — inferred from their example, not from documentation. **Bewusst
+nicht getan.** Nothing reported upstream; the converters stay throwaway under `/tmp/wp119` (no exporter, ADR-0020);
+the probe schemas left in `aw_source`.

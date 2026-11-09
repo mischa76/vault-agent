@@ -386,3 +386,27 @@ downloaded `turbovault_engine-0.23.0-py3-none-any.whl`). The documented install 
 therefore stops at the first command. No issue or PR names it (searched 2026-11-09). **Worked around** for the probe
 with an editable install from the clone; with it the workspace initialises and Scalefree's own TPC-H example
 generates 109 files with „No issues". Next: a vault-agent model in.
+
+## C57 — second step (2026-11-09): the person step through both import shapes, generated, built and compared
+
+The twenty-fifth chain's person step (7 hubs, 4 links, 17 satellites; `hub_business_entity` with five sources, a
+role `person` in `link_business_entity_contact`, two multi-active satellites) converted by throwaway scripts (on
+vault-dev `/tmp/wp119/tv_mcp.py`, `tv_rt.py`; not an exporter, ADR-0020 stands), the sources given as a round-trip
+JSON holding only `sources` (as an Excel template would). Generated with TurboVault 0.23.0 (editable install, T1),
+built on datavault4dbt 2.3.0 in `aw_source`:
+
+| | MCP proposal schema (`model import-json`) | round-trip project JSON (`project init --source`) |
+|---|---|---|
+| Import / validate | 7 / 4 / 17 imported; first **invalid** — „Link has no source tables — set a source_table on the link" while the schema's doc has no such field (`LinkImport` in code has `source_table`, `hub_source_columns`, `payload_columns`, `dependent_child_keys`); with them „valid — no issues found" | „valid — no issues found" |
+| Role (`hub_business_entity` as `person`) | **lost silently**: `hub_source_columns` is a dict hub → column, so two participations of one hub cannot be told apart; the link keeps `hk_business_entity_h` (from `personid`) and the contact type — which company a person is a contact for is not in the vault (909 = 909 rows only because person and type are unique in AdventureWorks) | ✔ with `link_column_name` = the hub's key and the role's own `source_column_name` and alias (TPC-H's own `HK_CUSTOMER_DUPLICATE_H` pattern); my first mapping named the link column `personid` and the importer **dropped it without a word**, the link model then referenced a hashkey no stage computed (build error) |
+| Several hub sources | **lost**: one `source_table` per hub; the six satellites fed by Person, EmailAddress, PersonPhone, Password fail (`column "hk_business_entity_h" does not exist`) — validation and generation said nothing | ✔ five hub source tables |
+| Build | PASS=106 ERROR=6 SKIP=18 | **PASS=131**, nothing failed |
+| Content | — | equal to the source **and** to vault-agent's AutomateDV vault for every construct counted (hubs 20 777 / 19 614, the three links, person name, both multi-active satellites); the role link answers all 909 company–person pairs; the `xml` satellite builds |
+
+**Inherited, not fixed:** TurboVault's dbt output sets no `hashdiff_input_case_sensitive`, so its projects carry
+C56's defect 3 (every hashdiff of the person stage upper-cased); the setting exists only under `output.sqlmesh`.
+**Findings for TurboVault:** T1 (the wheel), T2 the model import schema's doc lags its code (link `source_table`
+etc.), T3 an invalid link column is dropped on import without a warning, T4 the MCP schema cannot hold a role or a
+second hub source and validation passes the loss; plus defect 3 inherited on the dbt path. **For ADR-0020:**
+measured, its reading holds — the MCP schema loses exactly what it said; the round-trip JSON carries this step
+whole and builds to the same content as vault-agent's own vault.
