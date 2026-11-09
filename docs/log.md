@@ -13250,3 +13250,21 @@ reachable, ruff, bare mypy, WP115's guards unchanged; replayed: **1, 0, 5, 20, 2
 **Nur angenommen.** That a live extension through the workbench reads the file — covered by the loader and a source
 check of both callers, not by a run. **Bewusst nicht getan.** Grouping (a); carrying built bridges into an
 extension's options; the checkpoint's controls.
+
+## [2026-11-09] Probe: datavault4dbt 2.3.0 builds payloads without equality (`xml`, `json`, `point`) on PostgreSQL — where AutomateDV 0.11.4 fails (WP121)
+
+**Autor:** Claude Code
+
+The owner forwarded Scalefree's community challenge for datavault4dbt and TurboVault Engine and asked for the probe
+proposed in reply: does datavault4dbt meet the failure WP121 fixed for AutomateDV? A scratch dbt project outside the
+repo (`/tmp/dv4x` on vault-dev, dbt-core 1.9.10, dbt-postgres 1.9.1, datavault4dbt 2.3.0 from the hub, its defaults),
+in `aw_source`: `HumanResources.JobCandidate` (`resume xml`, 13 rows) and a probe table of its own
+(`dv4x_src.probe`: `json` and `point`, 3 rows) — each a stage, a hub, a `sat_v0` and a `sat_v1`. **Measured:** first
+load `PASS=8`, each satellite its rows plus two ghost records (`SYSTEM` at 0001-01-01, `ERROR` at 8888-12-31); an
+unchanged reload `INSERT 0 0` everywhere; one probe row changed → `INSERT 0 1` in `probe_s0`, `sat_v1` closing the old
+version (`is_current` f) and opening the new. The payload keeps its own types (`xml`, `json`, `point`) — the package
+appends its ghost records with `UNION ALL` and compares hashdiffs only (`macros/staging/postgres/stage.sql`), so no
+cast is needed there. **Überprüft.** The build logs, the satellites' rows and column types. **Nur angenommen.**
+Nothing beyond the defaults (MD5, string hash type). **Bewusst nicht getan.** No issue opened and nothing posted —
+there is nothing broken to report, and anything outward is the owner's; no change to vault-agent; the scratch
+project and the schemas `dv4x`, `dv4x_src` left standing in `aw_source` for the owner to look at.
