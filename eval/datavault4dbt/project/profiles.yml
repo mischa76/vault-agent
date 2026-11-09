@@ -1,0 +1,14 @@
+# The probe's connection: the libpq variables, defaulting to the local demo database (manual 9).
+# The scenario writes the schemas dv4x_src (sources) and dv4x (the vault) and drops them first.
+dv4x:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: "{{ env_var('PGHOST', 'localhost') }}"
+      port: "{{ env_var('PGPORT', '5432') | int }}"
+      user: "{{ env_var('PGUSER', 'vault') }}"
+      pass: "{{ env_var('PGPASSWORD', 'vault') }}"
+      dbname: "{{ env_var('PGDATABASE', 'aw_source') }}"
+      schema: dv4x
+      threads: 4

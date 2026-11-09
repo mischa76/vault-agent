@@ -13336,3 +13336,20 @@ each fixed and the run repeated. **Überprüft.** The compiled stage SQL, `hash.
 run. **Nur angenommen.** Why the documented default does not take effect (a variable scope question) — the effect is
 measured, the cause not traced. **Bewusst nicht getan.** Nothing filed; the oracle not moved into the repo; no
 AutomateDV counterpart run of the same oracle.
+
+## [2026-11-09] C56's probe and oracle moved into the repo — `eval/datavault4dbt/`, replayed from nothing with the same result; the hash models pinned keylessly
+
+**Autor:** Claude Code
+
+On the owner's go to keep the oracle (it lived under `/tmp/dv4x` on vault-dev). **What moved:** the dbt project on
+datavault4dbt 2.3.0 (the two failing models under `models/defects/`, documented in place), `scenario.py` (the sources
+and the four loads of the rounds, now in one deterministic sequence with fixed load dates instead of `now()`),
+`oracle.py` (typed; each check names the defect it exposes), `hashing.py` (the documented and the as-built rule as
+pure functions), a README, and `tests/test_c56_datavault4dbt_hashing.py` pinning both models against the 14 rows the
+warehouse hashed. A row in `eval/README.md`. **Measured:** `uv run python -m eval.datavault4dbt.scenario` from empty
+schemas — four loads `PASS=39`, both defect models fail with the recorded messages, the oracle 22 of 27 with exactly
+the five checks of defects 3 and 4 failing, exit 0; 31 keyless tests green; suite, ruff, bare mypy. **Corrections on
+the way:** the line-length rewrap first split one SQL literal (`'vendor forty'`) across two lines — caught by a check
+of every literal in the scenario's SQL and fixed before the run; an f-string split by the same tool, rewritten.
+**Nur angenommen.** Nothing. **Bewusst nicht getan.** No CI job for the scenario (it needs a database and network);
+nothing reported upstream; `/tmp/dv4x` and the schemas `dv4x`, `dv4x_src` remain (the scenario recreates them).

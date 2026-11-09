@@ -352,3 +352,11 @@ values that would collide under naive concatenation. **Result 23 of 28:**
 Together with the first round's two (unescaped `sat_v0` payload, `forever: 'TRUE'`), four datavault4dbt defects,
 two of them silent wrong data. **The oracle itself** is the reusable part: the same reconciliation and hash checks
 could guard vault-agent's own builds (AutomateDV's rules in place of these) — not decided, no WP number.
+
+## C56 — the probe and the oracle kept in the repo (2026-11-09)
+
+On the owner's word the scratch work moved to `eval/datavault4dbt/`: the dbt project (with `models/defects/` for
+defects 1 and 2), `scenario.py` replaying the sources and four loads from nothing, `oracle.py`, `hashing.py` (the
+documented and the as-built hash rules) and a README with the result; the as-built model pinned keylessly against
+the warehouse's hashes in `tests/test_c56_datavault4dbt_hashing.py`. Exit 0 means every check holds except the
+recorded defects — a defect that disappears after a package upgrade fails the run, so it is noticed.

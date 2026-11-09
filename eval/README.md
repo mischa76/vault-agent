@@ -11,6 +11,7 @@ Three strictly separated layers:
 | 2 — deterministic scorers | `eval/scorers.py` | nothing (keyless, CI-tested) |
 | 3 — live runner | `eval/run.py` | `ANTHROPIC_API_KEY` (real LLM calls) |
 | optional — LangSmith | `eval/langsmith_upload.py` | `LANGSMITH_API_KEY` + the `eval` extra |
+| C56 — datavault4dbt probe and oracle | `eval/datavault4dbt/` (its README) | PostgreSQL with `aw_source`, the `demo` extra, network for `dbt deps`; the hash models keyless in `tests/test_c56_datavault4dbt_hashing.py` |
 
 The default test suite (`uv run pytest -q`) never runs layer 3 and never needs the
 `langsmith` package.

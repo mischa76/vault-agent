@@ -1,0 +1,11 @@
+# C56 — datavault4dbt probe (eval/datavault4dbt, README). The package's defaults, except the escape
+# characters (PostgreSQL's default is none; set so a reserved column name reaches the satellite at all).
+# hashdiff_input_case_sensitive is deliberately NOT set: defect 3 is what happens without it.
+name: dv4x
+version: "1.0.0"
+config-version: 2
+profile: dv4x
+model-paths: ["models"]
+vars:
+  escape_char_left: '"'
+  escape_char_right: '"'

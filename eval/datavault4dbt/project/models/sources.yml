@@ -1,0 +1,19 @@
+version: 2
+sources:
+  - name: hr
+    schema: HumanResources
+    quoting: {identifier: true}
+    tables:
+      - name: JobCandidate
+  - name: probe
+    schema: dv4x_src
+    tables:
+      - name: probe
+      - name: business_entity
+      - name: customer
+      - name: product
+      - name: order_line
+      - name: vendor
+      - name: contact
+      - name: phone
+      - name: nasty
