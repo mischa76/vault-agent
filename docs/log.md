@@ -13316,3 +13316,23 @@ out-of-order loads never measured). My script stopped once on its own `grep` und
 `cascade`; rerun from a full refresh. **Überprüft.** Build logs of the three loads, the satellites' rows with `ledts` and
 `is_current`. **Nur angenommen.** Nothing. **Bewusst nicht getan.** No AutomateDV counterpart run for these cases;
 nothing filed; scratch project and schemas left standing.
+
+## [2026-11-09] C56 fourth round — datavault4dbt's built models against an independent oracle: everything reconciles except two hashing defects that lose changes silently (case, line breaks)
+
+**Autor:** Claude Code
+
+The owner noted that the rounds so far had not measured the correctness of the models the package builds, and chose
+the oracle (reconciliation against the source, hashes recomputed from the documented rules) as the next step. Built
+in the scratch project (`/tmp/dv4x/dv4x_oracle.py`, a collision probe `dv4x_src.nasty`). **23 of 28 checks pass:**
+hubs, links, satellite histories, `sat_v1` end dates, 939 PIT rows, multi-active groups, every hashkey. **Two defects,**
+found by the oracle's misses and pinned down step by step: the hashdiff is upper-cased although the package documents
+case-sensitivity as default (only a root-project setting makes it so) — a `gold` → `Gold` change was not stored and the
+satellite's current value differs from the source's; and PostgreSQL's `regexp_replace` without `g` replaces only the
+first quote and backslash and removes only the first control character of the hash input — `ab` and `a⏎b` collide.
+**Corrections on the way, all the oracle's:** it first checked the stage's ghost rows as data, compared tz-aware with
+naive datetimes in Python, and rendered timestamps with Python's six fraction digits instead of PostgreSQL's text;
+each fixed and the run repeated. **Überprüft.** The compiled stage SQL, `hash.sql` and
+`postgres__concattenated_standardise`, a direct `regexp_replace` test, the end-to-end case change, the oracle's final
+run. **Nur angenommen.** Why the documented default does not take effect (a variable scope question) — the effect is
+measured, the cause not traced. **Bewusst nicht getan.** Nothing filed; the oracle not moved into the repo; no
+AutomateDV counterpart run of the same oracle.

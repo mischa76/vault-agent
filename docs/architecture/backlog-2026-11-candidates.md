@@ -319,3 +319,36 @@ participants, `date`/`uuid` keys — datavault4dbt is the more robust package; i
 knowing (a dangling reference becomes the unknown key; a late row is dropped under the default high-water mark).
 **For vault-agent itself** two gaps surfaced that do not depend on the package: no record tracking / delete detection,
 and no measurement of out-of-order loads. **Not decided**, no WP number.
+
+## C56 — fourth round (2026-11-09): correctness against an independent oracle — two hashing defects on PostgreSQL
+
+The owner pointed out that the rounds so far checked behaviour by eye on a few rows, not the correctness of what the
+package builds. **An oracle** (`/tmp/dv4x/dv4x_oracle.py`, Python + psycopg2, outside the package) recomputes from
+the source tables and the scripted load history: hub keys, link combinations, one satellite row per change,
+`sat_v1` end dates, PIT loads per snapshot, multi-active groups — and every hashkey and hashdiff from the hash rules
+the package documents (its global variables: trim, cast to text, the quote / null-placeholder / concat tokens,
+`||`, `^^` for NULL, hashkey upper-cased, hashdiff case-sensitive, MD5). A collision probe (`dv4x_src.nasty`) adds
+values that would collide under naive concatenation. **Result 23 of 28:**
+
+- **Reconciles:** hub keys = the source's distinct keys (+ two ghosts), every hashkey = the oracle's; the two-source
+  hub = the union; link combinations = the deliveries, link hashkeys = the oracle's; one satellite row per change
+  as delivered; `sat_v1.ledts` = next `ldts` − 1 µs, the last open; PIT = the latest satellite load at or before each
+  of 939 snapshot rows; multi-active groups per load as delivered; the payload equal to the source; no collision of
+  `a||`+`b` with `a`+`||b`, `^^` as a value distinct from NULL, blanks trimmed, all-NULL key = unknown key.
+- **Defect 3 — the hashdiff is case-insensitive unless the root project sets the variable.** The package's
+  `dbt_project.yml` and the macro's default say `hashdiff_input_case_sensitive: TRUE`; the compiled stage upper-cases
+  the hashdiff input (`Same` = `same`). Setting `datavault4dbt.hashdiff_input_case_sensitive: true` in the root
+  project makes it sensitive. **Consequence, measured end to end:** the source changes `gold` → `Gold`, the satellite
+  inserts nothing, and its current version reads `gold` while the source reads `Gold` — wrong data, silently.
+- **Defect 4 — PostgreSQL's `regexp_replace` without the `g` flag.** The stage escapes the first backslash, replaces
+  the first quote character, and removes the first `\n`, `\t`, `\v`, `\r` of the whole hash input only (PostgreSQL
+  replaces one match without `g`; checked directly). The oracle reproduces all 22 hashdiffs (9 probe, 13 `xml`
+  rows) only under that model. **Consequence:** `ab` and `a⏎b` share a hashdiff, so do `ab⏎c` and `abc`, while
+  `a⏎b⏎c` differs from both — a text that gains or loses a line break is not historised, and inconsistently so.
+  Reproduced on PostgreSQL only; the other adapters' functions were not checked for the same behaviour.
+- **Observed, not a defect:** a source `timestamp` arrives in the satellite as `timestamptz` (equal values under a
+  UTC session; a non-UTC session would read the naive value as local time).
+
+Together with the first round's two (unescaped `sat_v0` payload, `forever: 'TRUE'`), four datavault4dbt defects,
+two of them silent wrong data. **The oracle itself** is the reusable part: the same reconciliation and hash checks
+could guard vault-agent's own builds (AutomateDV's rules in place of these) — not decided, no WP number.
