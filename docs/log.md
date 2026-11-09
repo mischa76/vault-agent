@@ -13395,3 +13395,16 @@ the counts against source and `vault`; TurboVault's `LinkImport` and config sche
 That the TPC-H role pattern is the intended one — inferred from their example, not from documentation. **Bewusst
 nicht getan.** Nothing reported upstream; the converters stay throwaway under `/tmp/wp119` (no exporter, ADR-0020);
 the probe schemas left in `aw_source`.
+
+## [2026-11-09] Candidate C58 recorded — positioning against TurboVault Engine: it renders a declared model, vault-agent finds one
+
+**Autor:** Claude Code
+
+The owner asked whether TurboVault derives a Data Vault from a source schema by a rule set without AI agents, and on
+the answer asked to record it as a positioning candidate. Read in TurboVault 0.23.0's README, the Excel metadata
+format and the MCP server page: the model is declared by a human or proposed by an external assistant through MCP;
+TurboVault validates and renders it. Recorded as C58 with the comparison and two possible messages (complementary on
+the round-trip path, competing with the MCP path); index line extended. **Überprüft.** The three documents named; C57's
+measurements. **Nur angenommen.** That no undocumented inference feature exists — a search of its docs for automatic,
+infer, suggest found none beyond MCP. **Bewusst nicht getan.** No wording for publication; no change to ADR-0015 or
+ADR-0020.

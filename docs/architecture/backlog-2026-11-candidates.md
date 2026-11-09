@@ -410,3 +410,31 @@ etc.), T3 an invalid link column is dropped on import without a warning, T4 the 
 second hub source and validation passes the loss; plus defect 3 inherited on the dbt path. **For ADR-0020:**
 measured, its reading holds — the MCP schema loses exactly what it said; the round-trip JSON carries this step
 whole and builds to the same content as vault-agent's own vault.
+
+## C58 — Positioning against TurboVault Engine: vault-agent finds the model, TurboVault renders one it is given (owner, 2026-11-09)
+
+**Asked** by the owner after C57, on the question whether TurboVault transforms a source schema into a Data Vault by
+rules. **Read 2026-11-09** (TurboVault 0.23.0, README and docs): it does not. It ingests source metadata (Excel,
+a database catalogue, its JSON export — tables and columns), takes the **model as declared** (the Excel template's
+`standard_hub` sheet „defines standard hubs and maps their business keys to source columns"; links and satellites
+likewise, row by row; its README's „maps metadata into a consistent Data Vault domain model" is that translation, not
+an inference), validates it and renders datavault4dbt / SQLMesh code from Jinja templates — deterministic, but only
+after a human, or an AI assistant through its MCP server (`list_sources` → `commit_model`), has decided the hubs,
+keys, links and satellite split. It names its target „Data Vault 2.0".
+
+| Step | vault-agent | TurboVault Engine |
+|---|---|---|
+| Finding the model from requirements and the catalogue | agents under a rule set, gates, human ratification | a human (Excel, admin) or an external LLM via MCP, without gates |
+| Checking the model | the validator's gates (bindings, translations, grain, keys, …) | validation rules — which passed the role and hub-source losses of C57 (T4) |
+| Rendering code | AutomateDV | datavault4dbt / SQLMesh |
+
+**The positioning this suggests** (for the owner to decide; touches ADR-0015's product statement and ADR-0020):
+- *Complementary* on the round-trip path: vault-agent supplies the modelling TurboVault lacks, TurboVault the
+  datavault4dbt rendering vault-agent lacks — measured lossless for the person step (C57: PASS=131, content equal to
+  source and to vault-agent's own vault).
+- *Competing* with TurboVault's MCP path: both put an LLM on the modelling step; vault-agent's case is the rule set,
+  the gates and the human ratification around it, and that its model survives the hand-over (the MCP schema measurably
+  does not — C57, T4).
+- Evidence on hand for either message: C56 (datavault4dbt's defects, the oracle), C57 (both import paths measured).
+
+**Not decided**, no WP number; no wording is published.
