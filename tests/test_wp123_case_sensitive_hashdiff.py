@@ -1,5 +1,6 @@
-"""WP123 (C61) — a hashdiff's input keeps its letter case: each column is derived as the hex of its trimmed UTF-8
-bytes before AutomateDV upper-cases it. Committed before the change, failing (spec §2)."""
+"""WP123 (C61) — a hashdiff's input keeps its letter case: each column is derived as the hex of its
+trimmed UTF-8 bytes before AutomateDV upper-cases it. Committed before the change, failing (spec
+§2)."""
 
 from __future__ import annotations
 
@@ -54,7 +55,7 @@ def _yaml(sql: str) -> dict[str, Any]:
 def _stage(
     attributes: tuple[str, ...], columns: tuple[tuple[str, str], ...], platform: str = "postgres"
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
-    result = build_staging(_model(*attributes), [_table(*columns)], target_platform=platform)  # type: ignore[arg-type]
+    result = build_staging(_model(*attributes), [_table(*columns)], target_platform=platform)
     sat = "stg_contact_details"
     return _yaml(result.models[sat]), result.metadata[sat], _yaml(result.models["stg_contact"])
 
@@ -113,7 +114,8 @@ def test_an_xml_payload_is_read_through_its_cast() -> None:
 
 # ── T6: the validator's column gate reads what a generator expression reads ────────────────
 # WP121's cast and WP123's hex are expressions, not column names; `E_STAGE_COLUMN_NOT_IN_SOURCE`
-# must judge the column each one reads (recorded in the stage's metadata), not the expression's text.
+# must judge the column each one reads (recorded in the stage's metadata), not the
+# expression's text.
 # WP121 shipped without this: a real run on an `xml` relation would have been refused.
 async def test_the_column_gate_accepts_generator_expressions() -> None:
     from vault_agent.agents.code_generator import CodeGeneratorAgent

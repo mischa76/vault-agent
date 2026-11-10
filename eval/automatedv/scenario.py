@@ -190,6 +190,7 @@ def main() -> int:
     checks = [
         ("P1 B (late, differs) inserted with its own ldts", ("bronze", "2026-02-15") in one),
         ("P2 C (equal to the newest) inserts nothing", ("gold", "2026-03-10") not in one),
+        # since WP123 (C61) both P3 checks report DIFFERS — the fix: D inserts, `Gold` is newest
         ("P3 D (case only) inserts nothing", not any(s == "Gold" for s, _ in one)),
         ("P3 newest value reads 'gold' while the source said 'Gold'", one and one[-1][0] == "gold"),
         ("P4 E (late, equal to the newest) inserts nothing", two == [("silver", "2026-03-01")]),

@@ -100,7 +100,8 @@ def test_rendered_stage_model_calls_automate_dv_stage() -> None:
     assert "source_model: 'raw_customer'" in sql
     assert "CUSTOMER_HK: 'NATIONAL_CUSTOMER_ID'" in sql
     assert "is_hashdiff: true" in sql
-    assert "derived_columns=none," in sql
+    # WP123: the hashdiff's hex columns
+    assert "derived_columns=metadata_dict['derived_columns']," in sql
 
     link_sql = result.models["stg_account_customer"]
     assert "APPLIED_DTS: 'EFFECTIVE_FROM'" in link_sql

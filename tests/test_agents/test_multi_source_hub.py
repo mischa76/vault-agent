@@ -62,8 +62,10 @@ def test_two_stages_hash_the_same_canonical_column() -> None:
     assert a["hashed_columns"]["CUSTOMER_HK"] == "CUSTOMER_ID"
     assert b["hashed_columns"]["CUSTOMER_HK"] == "CUSTOMER_ID"
     # Each aliases its own physical key column to the canonical name.
-    assert a["derived_columns"] == {"CUSTOMER_ID": "CUST_ID"}
-    assert b["derived_columns"] == {"CUSTOMER_ID": "PARTN_ID"}
+    assert a["derived_columns"]["CUSTOMER_ID"] == "CUST_ID"
+    assert b["derived_columns"]["CUSTOMER_ID"] == "PARTN_ID"
+    # WP123: besides the alias only the hashdiff's case-preserving columns are derived
+    assert all(n == "CUSTOMER_ID" or n.endswith("__CS") for n in a["derived_columns"])
     # Bound verbatim to each source table (no inference flag).
     assert a["source_model"] == "crm_customer" and b["source_model"] == "victor_partner"
 

@@ -558,3 +558,10 @@ satellite holds two open rows for one driving key, or an end before a start (che
 (c) an effectivity model of vault-agent's own in plain SQL, rebuilt from the link and its source history like the PIT
 (WP91) and bridges (WP115), so load order stops mattering. (a)+(b) are small; (c) is the robust one.
 **Not decided**, no WP number.
+
+## C61 — option (b) taken up as WP123 (2026-11-10)
+
+`backlog-2026-07/wp123-case-sensitive-hashdiff-spec.md`: each hashdiff column is derived as the hex of its trimmed
+UTF-8 bytes before AutomateDV upper-cases it; keys untouched. C60's case-only load now inserts and the satellite reads
+`Gold`. On the way: the validator's column gate refused generator expressions — WP121's casts included — fixed with a
+typed `expression_reads` in the stage metadata.

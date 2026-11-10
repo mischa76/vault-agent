@@ -65,6 +65,10 @@ class PlatformProfile:
     # WP121 (C54): the unbounded character type a payload column without equality is cast to.
     # Not AutomateDV's `type_string()`, which is VARCHAR(255) on Databricks and would truncate.
     text_type: str = "text"
+    # WP123 (C61): the hex of a text's UTF-8 bytes, `{}` the text. A hashdiff hashes these
+    # instead of the raw columns, so AutomateDV's upper-casing (`hash_content_casing`, one
+    # switch for keys and diffs) no longer erases a change of letter case; keys keep theirs.
+    hex_text: str = "ENCODE(CONVERT_TO({}, 'UTF8'), 'hex')"
 
     def physical_name(self, column: str) -> str:
         """WP79: the spelling an escaped reference to ``column`` must carry on this platform."""
@@ -108,6 +112,7 @@ PLATFORMS: Mapping[TargetPlatform, PlatformProfile] = {
         # (learn.microsoft.com/azure/databricks/sql/language-manual/sql-ref-names, 2026-10-30).
         max_identifier_length=255,
         text_type="string",
+        hex_text="HEX({})",
     ),
 }
 

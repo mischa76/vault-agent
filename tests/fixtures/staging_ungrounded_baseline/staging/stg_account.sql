@@ -4,18 +4,21 @@
 {{ config(materialized='view') }}
 {%- set yaml_metadata -%}
 source_model: 'raw_account'
+derived_columns:
+  BALANCE__CS: 'ENCODE(CONVERT_TO(NULLIF(TRIM(CAST(BALANCE AS text)), ''''), ''UTF8''), ''hex'')'
+  STATUS__CS: 'ENCODE(CONVERT_TO(NULLIF(TRIM(CAST(STATUS AS text)), ''''), ''UTF8''), ''hex'')'
 hashed_columns:
   ACCOUNT_HK: 'ACCOUNT_NUMBER'
   ACCOUNT_DETAILS_HASHDIFF:
     is_hashdiff: true
     columns:
-      - 'BALANCE'
-      - 'STATUS'
+      - 'BALANCE__CS'
+      - 'STATUS__CS'
 {%- endset -%}
 {% set metadata_dict = fromyaml(yaml_metadata) %}
 
 {{ automate_dv.stage(include_source_columns=true,
                      source_model=metadata_dict['source_model'],
-                     derived_columns=none,
+                     derived_columns=metadata_dict['derived_columns'],
                      hashed_columns=metadata_dict['hashed_columns'],
                      ranked_columns=none) }}

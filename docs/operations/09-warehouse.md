@@ -191,6 +191,19 @@ the canonical two-batch pattern: after loading a transfer snapshot, the account'
 first ownership row is end-dated to the new owner's start (2026-04-01) and the new row
 stays open — and stays that way on re-runs.
 
+**Hashdiffs keep the letter case (WP123, 2026-11-10).** AutomateDV upper-cases every hash input by default
+(`hash_content_casing`, one switch for keys and hashdiffs alike), so a change of case only (`gold` → `Gold`) used to
+leave the satellite untouched and its newest value stale. Each column a hashdiff reads is now first derived in the
+stage as the hex of its trimmed UTF-8 bytes (`<COL>__CS`; PostgreSQL `ENCODE(CONVERT_TO(…, 'UTF8'), 'hex')`,
+Databricks `HEX(…)`); AutomateDV hashes those as before. **Hash keys are unchanged** — business keys stay
+case-insensitive. **Upgrading an existing vault:** every hashdiff changes once, so the first load after regenerating
+inserts one new row per key into every satellite (same values, new hashdiff) — expected, not a change in the data;
+rebuild with `--full-refresh` instead if the history may be reloaded. Two neighbouring behaviours of AutomateDV,
+measured on vault-agent's output (`eval/automatedv/`, C60): a late row (stamped before the satellite's newest load)
+is inserted with its own load date — there is no high-water mark — but one equal to the newest version is not
+recorded, and one equal to the version before it adds a second identical version. **The effectivity satellite needs
+batches in load order:** loaded in reverse, the bank demo's ACC-503 ends with two open owners (C62).
+
 Multi-active satellites read their own finer-grained staging (their declared
 `source_table`), with the parent's hash key joining every row back to the hub.
 Multi-source hubs union their per-source staging models into one hub — the same key

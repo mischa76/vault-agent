@@ -1,6 +1,6 @@
 ---
 type: spec
-status: not-measured
+status: measured
 updated: 2026-11-10
 ---
 
@@ -53,6 +53,27 @@ order) separate. Databricks is guarded by its spelling only, not built.
   unchanged; each satellite one row per source row; hub row counts unchanged (keys untouched).
 - **P5** the bank demo: `build_vault_models.py` byte-identical (its stages are hand-written), `dbt build` PASS=36.
 
-## 5 Measured
+## 5 Measured (2026-11-10, keyless)
 
-(after the build)
+- **P1 ✔.** Five guards, four red at `c93c77f` (the key guard green before and after, as it should be); a sixth for
+  the column gate, red at `e6edd31`.
+- **P2 ✔, with one finding.** Suite with no key reachable 1719 passed / 5 skipped, ruff, bare mypy. The guards that
+  changed, each deliberately and only in its hashdiff part: the two byte-identity baselines (`staging_ungrounded_
+  baseline/` — `stg_account`, `stg_customer`; `greenfield_manifest.json` — those two and `automatedv.yml`; no
+  raw-vault model changed), `test_multi_source_hub`, `test_staging_generator`, `test_target_platform` (the stages now
+  differ across platforms in the hex lines only), `test_wp79_reserved_word_columns` (the hashdiff reads `GROUP__CS`,
+  which reads `"group"`), four of `test_wp121_no_equality_types`. **Finding:** the validator's column gate
+  `E_STAGE_COLUMN_NOT_IN_SOURCE` read every derived value as a source column name, so a generator expression failed
+  it — WP121's `CAST(RESUME AS text)` already did (guard T6 red against the code before this WP: two errors on the
+  `xml` relation), unnoticed because WP121 was measured on a regeneration without the validator. Fixed by a typed
+  record: the stage metadata's `expression_reads` names the column each generator expression reads, and the gate
+  judges that.
+- **P3 ✔** C60's scenario: load D (`gold` → `Gold`) `INSERT 0 1`, contact 1's newest value `Gold`; A–C, E, F as before
+  (`SELECT 2`, `INSERT 0 1`, `INSERT 0 0`, `INSERT 0 0`, `INSERT 0 1`).
+- **P4 ✔** the twenty-fifth chain's fifth project: 75 stages differ (every stage with a hashdiff, nothing else), each
+  of them equal to the pre-WP123 regeneration in the WP121 build, overlaid and built: **PASS=420 ERROR=1 SKIP=4**;
+  `hub_business_entity` 20 779 rows as before; `sat_business_entity_person_name` 19 973 (19 972 + ghost),
+  `sat_sales_order_details` 31 466 (31 465 + ghost).
+- **P5 ✔** the bank demo: `build_vault_models.py` byte-identical, `dbt build --full-refresh` PASS=36.
+- **Not measured:** Databricks (spelling guarded); an existing vault's first load after the upgrade (one new row per
+  key per satellite is the expected cost — stated in the manual, not run).

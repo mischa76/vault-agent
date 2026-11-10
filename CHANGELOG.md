@@ -15,6 +15,10 @@ is not the project's.
 ## [Unreleased]
 
 ### Changed
+- **Output-changing: hashdiffs keep the letter case** (WP123, C61). AutomateDV upper-cases hash input by default for
+  keys and hashdiffs alike, so a change of case only was never historised. Each hashdiff column is now hashed as the
+  hex of its UTF-8 bytes; hash keys are unchanged. An existing vault's satellites gain one row per key on the first
+  load after regenerating (manual 9.4), or rebuild with `--full-refresh`.
 - The workbench API answers 404 by a typed exception, `ProjectNotFoundError`, raised at the nine lookup sites
   (project, run, input file, artefact, session state); before, `_guard` chose 404 when the message began with
   „no " (C44). Same answers for every existing route; a refusal whose wording starts with „no " is a 400 now.
@@ -22,6 +26,9 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- The validator's column gate (`E_STAGE_COLUMN_NOT_IN_SOURCE`) refused a stage whose derived column is a generator
+  expression — WP121's `xml` cast among them, so a run on a relation with such a column would have been refused. The
+  stage metadata now records the column each expression reads (`expression_reads`), and the gate judges that.
 - Bridge proposals no longer return after a decline, and no path ends where it starts (WP122, C53): a declined
   path is recorded in `metadata/bridge_decisions.yml` and an extension does not propose it again. On the
   twenty-fifth chain's models: 49 bridge decisions over five steps instead of 89.

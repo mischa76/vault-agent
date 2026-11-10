@@ -114,8 +114,17 @@ async def test_models_are_identical_across_platforms_only_scaffolding_differs() 
     databricks = await builder.generate_models(model, target_platform="databricks")
 
     assert databricks.artifacts.dbt_models == postgres.artifacts.dbt_models
-    assert databricks.artifacts.staging_models == postgres.artifacts.staging_models
-    assert databricks.artifacts.automatedv_yaml == postgres.artifacts.automatedv_yaml
+
+    # WP123: a stage's hashdiff columns are the platform's hex of a text — the only lines
+    # that differ
+    def neutral(text: str) -> str:
+        return "\n".join(ln for ln in text.splitlines() if "__CS:" not in ln)
+
+    assert {k: neutral(v) for k, v in databricks.artifacts.staging_models.items()} == {
+        k: neutral(v) for k, v in postgres.artifacts.staging_models.items()
+    }
+    assert any("HEX(NULLIF(TRIM(CAST(" in v for v in databricks.artifacts.staging_models.values())
+    assert any("ENCODE(CONVERT_TO(" in v for v in postgres.artifacts.staging_models.values())
     differing = sorted(
         name for name in postgres.artifacts.scaffolding
         if postgres.artifacts.scaffolding[name] != databricks.artifacts.scaffolding[name]

@@ -59,11 +59,13 @@ def test_the_stage_escapes_and_aliases_the_reserved_column_for_postgres() -> Non
     yaml_block = sql.split("{%- set yaml_metadata -%}")[1].split("{%- endset -%}")[0]
     meta = yaml.safe_load(yaml_block)
     hashdiff = meta["hashed_columns"]["SALES_TERRITORY_DETAILS_HASHDIFF"]["columns"]
-    assert "GROUP_" in hashdiff and "GROUP" not in hashdiff
-    assert "NAME" in hashdiff  # not reserved in PostgreSQL: untouched
+    # WP123: the hashdiff reads case-preserving columns; GROUP's reads the quoted physical name
+    assert "GROUP__CS" in hashdiff and "GROUP" not in hashdiff
+    assert "NAME__CS" in hashdiff  # not reserved in PostgreSQL: read by name
+    assert '"group"' in meta["derived_columns"]["GROUP__CS"]
     stored = result.metadata["stg_sales_territory_details"]
     assert stored["derived_columns"]["GROUP_"] == {"source_column": "group", "escape": True}
-    assert "GROUP_" in stored["hashed_columns"]["SALES_TERRITORY_DETAILS_HASHDIFF"]["columns"]
+    assert "GROUP__CS" in stored["hashed_columns"]["SALES_TERRITORY_DETAILS_HASHDIFF"]["columns"]
 
 
 def test_databricks_keeps_the_declared_spelling() -> None:

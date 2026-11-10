@@ -4,18 +4,21 @@
 {{ config(materialized='view') }}
 {%- set yaml_metadata -%}
 source_model: 'raw_customer'
+derived_columns:
+  CUSTOMER_NAME__CS: 'ENCODE(CONVERT_TO(NULLIF(TRIM(CAST(CUSTOMER_NAME AS text)), ''''), ''UTF8''), ''hex'')'
+  DATE_OF_BIRTH__CS: 'ENCODE(CONVERT_TO(NULLIF(TRIM(CAST(DATE_OF_BIRTH AS text)), ''''), ''UTF8''), ''hex'')'
 hashed_columns:
   CUSTOMER_HK: 'NATIONAL_CUSTOMER_ID'
   CUSTOMER_DETAILS_HASHDIFF:
     is_hashdiff: true
     columns:
-      - 'CUSTOMER_NAME'
-      - 'DATE_OF_BIRTH'
+      - 'CUSTOMER_NAME__CS'
+      - 'DATE_OF_BIRTH__CS'
 {%- endset -%}
 {% set metadata_dict = fromyaml(yaml_metadata) %}
 
 {{ automate_dv.stage(include_source_columns=true,
                      source_model=metadata_dict['source_model'],
-                     derived_columns=none,
+                     derived_columns=metadata_dict['derived_columns'],
                      hashed_columns=metadata_dict['hashed_columns'],
                      ranked_columns=none) }}

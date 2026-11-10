@@ -1070,6 +1070,46 @@ def _text_casts(
     return cast
 
 
+# WP123 (C61): the suffix of the derived column a hashdiff reads in place of a payload column.
+CASE_PRESERVING_SUFFIX = "__CS"
+
+
+def _case_preserving_hashdiffs(
+    derived: dict[str, str | dict[str, Any]],
+    hashed: list[tuple[str, str | list[str] | _HashDiff]],
+    profile: PlatformProfile,
+) -> tuple[dict[str, str | dict[str, Any]], list[tuple[str, str | list[str] | _HashDiff]]]:
+    """WP123 (C61): every column a hashdiff reads is derived as the hex of its trimmed UTF-8 bytes
+    (``<COL>__CS``), AutomateDV's own standardisation minus the upper-casing, and the hashdiff
+    lists those. AutomateDV upper-cases the hex — which carries no letter case — and hashes as
+    before. A column the stage already derives is read through its derivation, a reserved one
+    through its quoted physical name (AutomateDV evaluates derived columns in one select). Hashkeys
+    are untouched; a stage without a hashdiff comes back unchanged."""
+    if not any(isinstance(value, _HashDiff) for _, value in hashed):
+        return derived, hashed
+    out = dict(derived)
+    rewritten: list[tuple[str, str | list[str] | _HashDiff]] = []
+    for name, value in hashed:
+        if not isinstance(value, _HashDiff):
+            rewritten.append((name, value))
+            continue
+        columns: list[str] = []
+        for column in value.columns:
+            entry = derived.get(column)
+            if isinstance(entry, dict):
+                reference = f'"{entry["source_column"]}"'
+                base = normalize_identifier(str(entry["source_column"]))
+            else:
+                reference = entry if isinstance(entry, str) else column
+                base = column
+            target = f"{base}{CASE_PRESERVING_SUFFIX}"
+            text = f"NULLIF(TRIM(CAST({reference} AS {profile.text_type})), '')"
+            out.setdefault(target, profile.hex_text.format(text))
+            columns.append(target)
+        rewritten.append((name, _HashDiff(columns)))
+    return out, rewritten
+
+
 def render_stage_model(
     spec: StagingSpec, profile: PlatformProfile | None = None,
     relation_columns: list[str] | None = None,
@@ -1082,6 +1122,7 @@ def render_stage_model(
     profile = profile or platform_profile(DEFAULT_TARGET_PLATFORM)
     derived, hashed = _reserved_rewrite(spec, profile, relation_columns)
     derived = _text_casts(derived, text_columns, profile)  # WP121
+    derived, hashed = _case_preserving_hashdiffs(derived, hashed, profile)  # WP123
     binding = "declared source schema" if spec.bound else "inferred — see review queue"
     lines = [
         f"-- Generated AutomateDV staging model for the raw-vault constructs on "
@@ -1110,7 +1151,9 @@ def render_stage_model(
                 lines.append(f"    source_column: '{source_col['source_column']}'")
                 lines.append("    escape: true")
             else:
-                lines.append(f"  {name}: '{source_col}'")
+                # YAML single-quoted: a quote inside is doubled (WP123's expressions carry quotes).
+                quoted = source_col.replace("'", "''")
+                lines.append(f"  {name}: '{quoted}'")
     if null_columns:
         # WP83: a missing link participant becomes AutomateDV's optional zero key ('-2')
         # before hashing; the original stays as <COL>_ORIGINAL.
@@ -1157,7 +1200,20 @@ def _stage_metadata(
 ) -> dict[str, object]:
     profile = profile or platform_profile(DEFAULT_TARGET_PLATFORM)
     derived_columns, hashed_columns = _reserved_rewrite(spec, profile, relation_columns)  # WP79
+    before_casts = dict(derived_columns)
     derived_columns = _text_casts(derived_columns, text_columns, profile)  # WP121
+    reads: dict[str, list[str]] = {
+        name: [name] for name in derived_columns if name not in before_casts
+    }
+    before_hex = dict(derived_columns)
+    derived_columns, hashed_columns = _case_preserving_hashdiffs(
+        derived_columns, hashed_columns, profile
+    )  # WP123
+    for name in derived_columns:
+        if name in before_hex:
+            continue
+        column = name.removesuffix(CASE_PRESERVING_SUFFIX)
+        reads[name] = reads.get(column, [column])
     hashed: dict[str, object] = {}
     for name, value in hashed_columns:
         if isinstance(value, _HashDiff):
@@ -1177,6 +1233,11 @@ def _stage_metadata(
     }
     if derived_columns:
         meta["derived_columns"] = dict(derived_columns)
+    if reads:
+        # WP123: the source column each generator expression reads (a WP121 cast, a WP123
+        # hex), so the validator's column gate judges columns, not expression text. Absent on
+        # stages without one.
+        meta["expression_reads"] = reads
     if spec.ratified_columns:
         meta["ratified_columns"] = dict(spec.ratified_columns)  # WP82
     if spec.role_columns:
@@ -1765,7 +1826,8 @@ def build_staging(
     greenfield, where nothing is grandfathered and naming is symmetric.
 
     ``target_platform`` (WP35) selects the seed-type dialect and the README's profile
-    hint; the rendered models are identical across platforms. The default is the
+    hint; the rendered models are identical across platforms except the generator's own
+    expressions — WP121's cast type and WP123's hex of a hashdiff column. The default is the
     byte-identity baseline."""
     legacy = legacy_feeds(existing, carried_bindings)  # WP101: the carried catalogue too
     specs = collect_staging_specs(

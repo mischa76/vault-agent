@@ -13458,3 +13458,23 @@ itself). C62: the effectivity satellite needs batches in load order. **Überprü
 `hash.sql`, `null_expression.sql` in the installed AutomateDV 0.11.4. **Nur angenommen.** That option (b) of C61 can
 reproduce AutomateDV's standardisation exactly minus `UPPER` — to be pinned by a guard when built. **Bewusst nicht
 getan.** No code.
+
+## [2026-11-10] WP123 built and measured (keyless): hashdiffs keep the letter case on vault-agent's output (C61, option b); the column gate refused generator expressions — WP121's cast included — fixed
+
+**Autor:** Claude Code
+
+On the owner's choice of option (b). **Measured first:** in PostgreSQL the hex of a trimmed text's UTF-8 bytes keeps
+`gold` and `Gold` apart through `UPPER`. Spec and guards first (`c93c77f`). **Built:** `PlatformProfile.hex_text`;
+the staging generator derives each hashdiff column as `<COL>__CS` and the hashdiff lists those — read through an
+existing derivation or, for a reserved column, its quoted physical name; YAML single quotes doubled in derived
+values. **Found on the way:** the validator's `E_STAGE_COLUMN_NOT_IN_SOURCE` read every derived value as a column
+name — WP121's cast already failed it (guard T6, `e6edd31`, red against the code before this WP: two errors on the
+`xml` relation); my WP121 measurement had used a regeneration without the validator and could not see it. Fixed with
+a typed `expression_reads` in the stage metadata. **Measured (spec §5):** suite 1719 / 5 skipped with no key
+reachable, ruff, bare mypy; 10 older guards changed in their hashdiff part only, among them the two byte-identity
+baselines (no raw-vault model changed); C60's scenario now stores the case change; the fifth chain project
+`PASS=420 ERROR=1 SKIP=4` with 75 stages changed and hub counts unchanged; the bank demo byte-identical and PASS=36.
+Manual 9.4 states the change, the upgrade cost and C60's behaviours; CHANGELOG Changed (output-changing) and Fixed.
+**Nur angenommen.** Databricks' `HEX` of a string is its UTF-8 hex — guarded spelling, not built. **Bewusst nicht
+getan.** No release cut (output-changing: a minor, the owner's call); C62 untouched; the long-line tool's damage
+(a moved `type: ignore`, split comments) found by review and repaired before the commit.

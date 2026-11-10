@@ -75,11 +75,12 @@ def test_the_set_is_the_measured_nine() -> None:
 def test_an_xml_payload_is_derived_as_text_on_postgres() -> None:
     sql, meta = _stage("xml")
     stage = _stage_yaml(sql)
-    assert stage["derived_columns"] == {"RESUME": "CAST(RESUME AS text)"}
+    assert stage["derived_columns"]["RESUME"] == "CAST(RESUME AS text)"
     assert "derived_columns=metadata_dict['derived_columns']" in sql
     hashdiff = next(v for v in stage["hashed_columns"].values() if isinstance(v, dict))
-    assert "RESUME" in hashdiff["columns"]
-    assert meta["derived_columns"] == {"RESUME": "CAST(RESUME AS text)"}
+    # WP123: the hashdiff reads the case-preserving column
+    assert "RESUME__CS" in hashdiff["columns"]
+    assert meta["derived_columns"]["RESUME"] == "CAST(RESUME AS text)"
 
 
 # ── T3: Databricks — its unbounded character type, never AutomateDV's VARCHAR(255) ─────────
@@ -87,15 +88,15 @@ def test_the_cast_uses_the_platforms_unbounded_text_type() -> None:
     assert platform_profile("postgres").text_type == "text"
     assert platform_profile("databricks").text_type == "string"
     sql, _ = _stage("xml", platform="databricks")
-    assert _stage_yaml(sql)["derived_columns"] == {"RESUME": "CAST(RESUME AS string)"}
+    assert _stage_yaml(sql)["derived_columns"]["RESUME"] == "CAST(RESUME AS string)"
 
 
 # ── T4: byte-identity — a relation without such a type renders as before ───────────────────
 def test_a_character_payload_gets_no_derived_column() -> None:
     sql, meta = _stage("character varying(4000)")
-    assert "derived_columns" not in _stage_yaml(sql)
-    assert "derived_columns=none" in sql
-    assert "derived_columns" not in meta
+    # no cast: RESUME is not derived; WP123's hex columns are the only derived ones
+    assert "RESUME" not in _stage_yaml(sql)["derived_columns"]
+    assert all(name.endswith("__CS") for name in meta["derived_columns"])
 
 
 # ── T5: a relation the catalogue does not declare has no types, so nothing is cast ──────────
@@ -107,4 +108,5 @@ def test_a_relation_without_declared_types_is_not_cast() -> None:
     assert result.metadata["stg_job_candidate"]["source_binding"] == "inferred"
     # the satellite's stage binds verbatim to its source_table, which the catalogue lacks
     for name in ("stg_job_candidate", "stg_job_candidate_details"):
-        assert "derived_columns" not in _stage_yaml(result.models[name]), name
+        derived = _stage_yaml(result.models[name]).get("derived_columns") or {}
+        assert "RESUME" not in derived, name  # no cast (WP123's hex columns aside)
