@@ -109,3 +109,26 @@ def test_an_xml_payload_is_read_through_its_cast() -> None:
     stage, _, _ = _stage(("Resume",), (("contactid", "integer"), ("resume", "xml")))
     assert stage["derived_columns"]["RESUME"] == "CAST(RESUME AS text)"
     assert stage["derived_columns"]["RESUME__CS"] == PG.format("CAST(RESUME AS text)")
+
+
+# ── T6: the validator's column gate reads what a generator expression reads ────────────────
+# WP121's cast and WP123's hex are expressions, not column names; `E_STAGE_COLUMN_NOT_IN_SOURCE`
+# must judge the column each one reads (recorded in the stage's metadata), not the expression's text.
+# WP121 shipped without this: a real run on an `xml` relation would have been refused.
+async def test_the_column_gate_accepts_generator_expressions() -> None:
+    from vault_agent.agents.code_generator import CodeGeneratorAgent
+    from vault_agent.agents.validator import ValidatorAgent
+    from vault_agent.state import VaultAgentState
+
+    table = _table(("contactid", "integer"), ("segment", "text"), ("resume", "xml"))
+    state = VaultAgentState(
+        source_schemas=[table], dv_model=_model("Segment", "Resume"), target_platform="postgres"
+    )
+    await CodeGeneratorAgent().run(state)
+    await ValidatorAgent().run(state)
+    codes = [i.code for i in state.validation_report.issues if i.severity == "error"]
+    assert "E_STAGE_COLUMN_NOT_IN_SOURCE" not in codes, codes
+    meta = state.artifacts.automatedv_yaml["staging"]["stg_contact_details"]
+    assert meta["expression_reads"]["RESUME"] == ["RESUME"]
+    assert meta["expression_reads"]["RESUME__CS"] == ["RESUME"]
+    assert meta["expression_reads"]["SEGMENT__CS"] == ["SEGMENT"]
