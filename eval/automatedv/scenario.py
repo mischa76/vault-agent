@@ -240,7 +240,68 @@ def main() -> int:
     print("P6 ACC-503 after 2026-04-01 then 2026-01-01 (owner, from, to, loaded):")
     for row in rows:
         print("   ", row)
+
+    # WP124 (C62): the two tests vault-agent now generates per effectivity satellite, run on the
+    # reversed load and again after the batches were loaded in order.
+    load_order_tests(eff)
     return 0
+
+
+def load_order_tests(eff: list[str]) -> None:
+    import asyncio
+    import importlib.util
+    import re
+
+    spec = importlib.util.spec_from_file_location(
+        "build_vault_models", BANK / "build_vault_models.py"
+    )
+    assert spec and spec.loader
+    builder = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(builder)
+    state = asyncio.run(builder.generate_models(builder.build_bank_dv_model()))
+    for rel, text in state.artifacts.scaffolding.items():
+        if rel.startswith("tests/"):
+            (BANK / rel).parent.mkdir(parents=True, exist_ok=True)
+            (BANK / rel).write_text(text)
+
+    def run_tests(label: str) -> None:
+        done = subprocess.run(
+            [
+                str(Path(sys.executable).parent / "dbt"),
+                "test",
+                "--select",
+                "sat_account_customer_eff",
+                "--profiles-dir",
+                str(BANK),
+            ],
+            cwd=BANK,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        plain = re.sub(r"\x1b\[[0-9;]*m", "", done.stdout)
+        for test in ("one_open_per_driving_key", "end_after_start"):
+            line = next(
+                (
+                    ln
+                    for ln in plain.splitlines()
+                    if test in ln and "of" in ln and ("PASS" in ln or "FAIL" in ln)
+                ),
+                "?",
+            )
+            verdict = "FAIL" if "FAIL" in line else "PASS" if "PASS" in line else "?"
+            got = (
+                re.search(r"Got (\d+) result", plain[plain.find(test) :])
+                if verdict == "FAIL"
+                else None
+            )
+            rows = got.group(1) if got else "0"
+            print(f"WP124 {label}: {test}: {verdict} ({rows} row(s))")
+
+    run_tests("reversed batches")
+    dbt(BANK, "run", "--select", *eff, "--vars", '{load_batch: "2026-01-01"}', "--full-refresh")
+    dbt(BANK, "run", "--select", *eff, "--vars", '{load_batch: "2026-04-01"}')
+    run_tests("batches in order")
 
 
 if __name__ == "__main__":

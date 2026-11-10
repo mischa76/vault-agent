@@ -202,7 +202,10 @@ rebuild with `--full-refresh` instead if the history may be reloaded. Two neighb
 measured on vault-agent's output (`eval/automatedv/`, C60): a late row (stamped before the satellite's newest load)
 is inserted with its own load date — there is no high-water mark — but one equal to the newest version is not
 recorded, and one equal to the version before it adds a second identical version. **The effectivity satellite needs
-batches in load order:** loaded in reverse, the bank demo's ACC-503 ends with two open owners (C62).
+batches in load order:** loaded in reverse, the bank demo's ACC-503 ends with two open owners (C62). **Since WP124**
+a generated project with an effectivity satellite says so in its README and carries two tests per such satellite,
+`tests/<satellite>__one_open_per_driving_key.sql` and `tests/<satellite>__end_after_start.sql`, which fail
+`dbt build` after an out-of-order load; repair by rebuilding the satellite with `--full-refresh` and loading in order.
 
 Multi-active satellites read their own finer-grained staging (their declared
 `source_table`), with the parent's hash key joining every row back to the hub.

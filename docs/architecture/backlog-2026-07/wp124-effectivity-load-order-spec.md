@@ -1,6 +1,6 @@
 ---
 type: spec
-status: not-measured
+status: measured
 updated: 2026-11-10
 ---
 
@@ -46,6 +46,17 @@ the tests caught (the README says: rebuild with `--full-refresh`, in order).
   overlaid as in WP123, built: every new test passes (one full load is in order), the rest as before
   (PASS rises by twice the number of effectivity satellites, ERROR=1 SKIP=4).
 
-## 5 Measured
+## 5 Measured (2026-11-10, keyless)
 
-(after the build)
+- **P1 ✔.** Five guards, red at `bd1b679`, green after.
+- **P2 ✔.** Suite with no key reachable 1724 passed / 5 skipped, ruff, bare mypy. Changed deliberately: the
+  ungrounded baseline's `README.md` and its two new test files, the greenfield manifest (`README.md`, `report.html` —
+  its file list names the two tests — and the two tests added), `test_agent_wires_staging_into_artifacts_and_metadata`
+  (the bank model's scaffolding gains the two tests). No raw-vault or staging model changed.
+- **P3 ✔ exactly.** C60's bank part with the generated tests (`eval/automatedv/scenario.py`, extended): reversed
+  batches → `one_open_per_driving_key` FAIL with 1 row, `end_after_start` FAIL with 1 row; reloaded in order → both
+  PASS with 0 rows.
+- **P4 ✔.** The twenty-fifth chain's fifth project regenerated: no model differs from WP123's, three effectivity
+  satellites gain six tests; overlaid on the WP123 build: **PASS=426 ERROR=1 SKIP=4** (420 + 6), every new test
+  passing.
+- **Not measured:** Databricks (the tests use AutomateDV's own date macros, dispatched per adapter).

@@ -14,6 +14,11 @@ is not the project's.
 
 ## [Unreleased]
 
+### Added
+- Effectivity satellites in a generated project come with two dbt tests each — at most one open relationship per
+  driving key, no record ending before it starts — and a README note that batches must be loaded in load order
+  (WP124, C62). AutomateDV's effectivity satellite assumes that order; loaded in reverse it left two owners open.
+
 ### Changed
 - **Output-changing: hashdiffs keep the letter case** (WP123, C61). AutomateDV upper-cases hash input by default for
   keys and hashdiffs alike, so a change of case only was never historised. Each hashdiff column is now hashed as the

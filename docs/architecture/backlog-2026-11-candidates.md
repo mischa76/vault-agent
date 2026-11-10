@@ -565,3 +565,10 @@ satellite holds two open rows for one driving key, or an end before a start (che
 UTF-8 bytes before AutomateDV upper-cases it; keys untouched. C60's case-only load now inserts and the satellite reads
 `Gold`. On the way: the validator's column gate refused generator expressions — WP121's casts included — fixed with a
 typed `expression_reads` in the stage metadata.
+
+## C62 — options (a) and (b) taken up as WP124 (2026-11-10); (c) stays open
+
+`backlog-2026-07/wp124-effectivity-load-order-spec.md`: a generated project with an effectivity satellite says in its
+README that batches must come in load order, and carries two tests per such satellite that fail `dbt build` after an
+out-of-order load (measured: both fail on the reversed bank batches, both pass in order). **Open:** (c), an
+effectivity model of vault-agent's own that makes load order irrelevant.

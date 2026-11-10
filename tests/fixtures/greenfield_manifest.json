@@ -1,5 +1,5 @@
 {
-  "README.md": "1c7a5562f75107f572e132160de9121fdc2fd5b380af26434107dadcd16e337b",
+  "README.md": "bbe43cf535aedf2f5b9ccc464c1138e1aee9f686969b0afdaab4a7ced9c602f3",
   "dbt_project.yml": "aa11c2da8061c94144a10bc871359d971026abe27d6588776ae81d2a7d45f776",
   "metadata/automatedv.yml": "0fa0558f17745b066b18779d4a3ff48d828c5140939d469b6fd510bad52c7fa2",
   "metadata/dv_model.yml": "1636dfac547047a4d7762dd099d9f3368ebe92d844c012c8f1092cd1d34d8f93",
@@ -16,6 +16,8 @@
   "models/staging/stg_customer.sql": "7529cfe19a3d188adb721952a2ec96ff5bab8012e5fbd7ab5420f9ded0c57da4",
   "models/staging/stg_transfer.sql": "fc0f2f42dca8f715fbaa819c01a99ce933749703f15d2944262630892a71bccb",
   "packages.yml": "4587270b6d25a7e5cd06e4a0de6cb790acbfaa24c08cb4c25225bdbaecdeb278",
-  "report.html": "89b265e455f2129b44210244e8560030af9916c820e12b2ac5921284582e899a",
-  "review-queue.md": "070d8b47671bfc93747a16e407f2d3df4273c2a4da19714dba9e13d622ff147c"
+  "report.html": "0b05b77a44b73bfc0e27a550582037e03496838e27f5505304893f103b99bebe",
+  "review-queue.md": "070d8b47671bfc93747a16e407f2d3df4273c2a4da19714dba9e13d622ff147c",
+  "tests/sat_account_customer_eff__end_after_start.sql": "ca37584abe9c37742ef11f81e456fb4d9952af1fda1d4ae260745b354ffb269a",
+  "tests/sat_account_customer_eff__one_open_per_driving_key.sql": "872c3807f97e2e239a7e2f52477d00aa5ac2878e1e2d3243fb7005c7d5d597bf"
 }

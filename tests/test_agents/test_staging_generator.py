@@ -310,6 +310,9 @@ async def test_agent_wires_staging_into_artifacts_and_metadata() -> None:
     }
     assert set(result.artifacts.scaffolding) == {
         "dbt_project.yml", "packages.yml", "models/staging/sources.yml", "README.md",
+        # WP124 (C62): the bank model's effectivity satellite gets its two load-order tests
+        "tests/sat_account_customer_eff__one_open_per_driving_key.sql",
+        "tests/sat_account_customer_eff__end_after_start.sql",
     }
     staging_meta = result.artifacts.automatedv_yaml["staging"]
     assert staging_meta["stg_account_customer"]["derived_columns"] == {

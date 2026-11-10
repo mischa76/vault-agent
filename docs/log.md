@@ -13478,3 +13478,19 @@ Manual 9.4 states the change, the upgrade cost and C60's behaviours; CHANGELOG C
 **Nur angenommen.** Databricks' `HEX` of a string is its UTF-8 hex — guarded spelling, not built. **Bewusst nicht
 getan.** No release cut (output-changing: a minor, the owner's call); C62 untouched; the long-line tool's damage
 (a moved `type: ignore`, split comments) found by review and repaired before the commit.
+
+## [2026-11-10] WP124 built and measured (keyless): effectivity satellites — the load-order precondition in the generated README, two generated tests that fail after an out-of-order load (C62, a+b)
+
+**Autor:** Claude Code
+
+On the owner's choice of (a)+(b). Read first that AutomateDV defines an open relationship as the end date's day equal
+to `max_datetime()`'s (`eff_sat.sql:72`), and checked that its PostgreSQL `cast_date` (format `YYY-MM-DD`) still
+reads `9999-12-31` correctly. Spec and guards first (`bd1b679`, five red). **Built:** `effectivity_load_order_tests`
+in the code generator — per effectivity satellite `tests/<sat>__one_open_per_driving_key.sql` (latest row per
+relationship, open by AutomateDV's macros, grouped by every driving-key column) and `tests/<sat>__end_after_start.sql`
+— and a README section, both only when the project has an effectivity satellite. **Measured (spec §5):** suite 1724 /
+5 skipped with no key reachable, ruff, bare mypy; on the bank demo's reversed batches both tests fail with one row
+each, in order both pass; the fifth chain project gains six passing tests, `PASS=426 ERROR=1 SKIP=4`, no model changed.
+Manual 9.4 and CHANGELOG (Added). **Nur angenommen.** The Databricks rendering of the tests — AutomateDV's macros,
+not built there. **Bewusst nicht getan.** (c), an own effectivity model; no repair automation. **On the way:** the
+scratchpad copy of my baseline script was gone; continued from the copy on vault-dev.
