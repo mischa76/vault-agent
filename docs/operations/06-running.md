@@ -51,7 +51,10 @@ uv run vault-agent source-schema --schema Sales --schema Person --out inputs/sou
 
 needs `--extra catalogue` and the dialect's driver (4.2). It transcribes what the
 catalogue says about the named schemas — every table (views with `--views`), every
-column in order with the vendor's type spelling and `nullable`, table and column comments verbatim,
+column in order with the vendor's type spelling, `nullable` and — where the dialect's reflection
+says so — `generated` (WP127: an identity, a serial, a sequence default; on PostgreSQL and SQL Server
+also `false`; a landing zone or a copy reports `false` for every column, which is why the key rule
+reads only `true`), table and column comments verbatim,
 the primary key, unique constraints and unique indexes, foreign keys with their schema —
 into exactly the file `--source-schema` reads, with a header naming the connection
 (password hidden). Nothing is inferred and no row is read (10.7); the file is yours to

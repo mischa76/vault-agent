@@ -182,8 +182,9 @@ keys. `rules/key_decision.py` puts the two together per declared table: where th
 first choice is a declared unique key that is not technical, that is the key (*agreed*); where the
 primary key is itself a natural key — a code, a character column — it stays (*natural primary
 key*); and the modeler is **given** these keys, it does not weigh them (`E_HUB_KEY_NOT_AS_DECIDED`
-refuses a deviation, 8.2). A key is **contested** when the primary key is technical — an integer
-or a GUID; the type decides, never the column's name —, the table declares a natural key, and the
+refuses a deviation, 8.2). A key is **contested** when the primary key is technical — a column
+the catalogue says is generated (WP127), an exact numeric or a GUID; the catalogue and the type
+decide, never the column's name —, the table declares a natural key, and the
 requirements did not name it first. The resolution checkpoint pauses on those and prints each with
 its evidence: the requirements' first choice and its score, the declared natural keys, the
 primary key, and any composite unique key. **Unanswered, a contested hub is keyed on the declared
