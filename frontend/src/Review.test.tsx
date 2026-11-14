@@ -130,3 +130,43 @@ describe("Review — bridge proposals (WP115)", () => {
     }));
   });
 });
+
+const contested: Checkpoint = {
+  ...resolution, links: [],
+  keys: [{
+    table: "AddressType", default: ["Name"], primary_key: ["AddressTypeID"], natural_keys: ["Name"],
+    first_choice: "AddressTypeID", first_choice_score: 0.6,
+    evidence: ["the requirements' first choice is AddressTypeID (0.60)", "AddressType declares Name unique"],
+  }],
+};
+
+describe("Review — contested hub keys (WP126)", () => {
+  it("shows the natural key as the default and sends no key answer when it is left alone", () => {
+    const onDecide = vi.fn();
+    render(<ReviewPerspective run={run} checkpoint={contested} onDecide={onDecide} busy={false} error={null} />);
+    expect(screen.getByText("1 hub keys")).toBeInTheDocument();
+    expect(screen.getByLabelText("hub key for AddressType")).toHaveValue("Name");
+    expect(screen.getByText("AddressType declares Name unique")).toBeInTheDocument();
+    expect(screen.queryByLabelText("reason for AddressType")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ratify as proposed and build the model" }));
+    expect(onDecide.mock.calls[0]![0].keys).toEqual({});
+  });
+  it("asks a reason for the technical primary key and blocks until it is given", () => {
+    const onDecide = vi.fn();
+    render(<ReviewPerspective run={run} checkpoint={contested} onDecide={onDecide} busy={false} error={null} />);
+    fireEvent.change(screen.getByLabelText("hub key for AddressType"), { target: { value: "AddressTypeID" } });
+    const accept = screen.getByRole("button", { name: "Ratify as proposed and build the model" });
+    expect(accept).toBeDisabled();
+    expect(screen.getByText("a reason is required for the technical key")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("reason for AddressType"), { target: { value: "the name is renamed yearly" } });
+    expect(accept).toBeEnabled();
+    fireEvent.click(accept);
+    expect(onDecide.mock.calls[0]![0].keys).toEqual({
+      AddressType: { columns: ["AddressTypeID"], reason: "the name is renamed yearly" },
+    });
+  });
+  it("shows no key section at sign-off", () => {
+    render(<ReviewPerspective run={run} checkpoint={{ ...checkpoint, keys: contested.keys }} onDecide={() => undefined} busy={false} error={null} />);
+    expect(screen.queryByLabelText("hub key for AddressType")).not.toBeInTheDocument();
+  });
+});

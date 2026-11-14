@@ -167,6 +167,24 @@ export interface BridgeProposal {
   evidence: string[];
 }
 
+// WP125/WP126 (ADR-0021): a contested hub key — a technical primary key against a declared natural
+// key the requirements did not name first. Unanswered, the hub is keyed on `default`.
+export interface PendingKey {
+  table: string;
+  default: string[];
+  primary_key: string[];
+  natural_keys: string[];
+  first_choice: string | null;
+  first_choice_score: number | null;
+  evidence: string[];
+}
+
+// The CLI's --key "Table=Column[+Column]" with its --key-reason.
+export interface KeyAnswer {
+  columns: string[];
+  reason?: string | null;
+}
+
 export interface Checkpoint {
   run: string;
   phase: CheckpointPhase;
@@ -180,6 +198,7 @@ export interface Checkpoint {
   answers: string[];
   bindings?: PendingBinding[]; // WP82
   bridges?: BridgeProposal[]; // WP115
+  keys?: PendingKey[]; // WP125: contested hub keys, at the resolution checkpoint
 }
 
 // WP82: a stage's binding as the API takes it — the CLI's --bind "STAGE=RELATION(STAGE_COLUMN=column)".
@@ -197,6 +216,7 @@ export interface Decision {
   bindings?: Record<string, StageBinding>; // WP82: --bind
   mappings?: Record<string, string>; // WP82: --map "concept=TABLE.COLUMN"
   bridges?: Record<string, boolean>; // WP115: --bridge / --no-bridge "<path>"
+  keys?: Record<string, KeyAnswer>; // WP125: --key / --key-reason, by declared table
 }
 
 export interface CheckpointRecord {

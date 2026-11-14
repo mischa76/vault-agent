@@ -13577,3 +13577,21 @@ the same proposal marked inferred: one decision). **Nur angenommen.** That the r
 are few — not counted on a stored chain, because the stored chains have almost no translations (C63). **Bewusst
 nicht getan.** The review record's stored samples are not recomputed; a chain under ADR-0021 starts a new
 generation.
+
+## [2026-11-14] WP126 built and measured (keyless): the workbench's Review page asks the contested hub keys at the resolution checkpoint
+
+**Autor:** Claude Code
+
+On the owner's go. WP125 had given the API the fields; the page did not show them, so a run paused for a key alone
+looked like an empty checkpoint whose button took the default unseen. **Built:** `PendingKey` and `KeyAnswer` in
+`frontend/src/types.ts`; a section on the Review page at the resolution phase — per contested table a selection
+whose pre-selected option is the declared natural key, the technical primary key named as such, the CLI's evidence
+lines; the technical key opens a reason field and disables the continuing button until it is filled; only a named
+answer is sent. Manual 14 (the API's `keys`, the page), CHANGELOG. **Measured:** `npm run check`, `npm test` (43),
+`npm run build`; in a real browser against the API over stub agents the answer arrived as
+`--key AddressType=AddressTypeID --key-reason '…' --accept` and the run went on to sign-off. **Not as the invariant
+asks:** the three Vitest guards were written with the change, not before it; shown red against the previous page
+afterwards (two of three fail there). **Überprüft.** The browser run named above (Chromium, the built bundle, no
+model call). **Nur angenommen.** The page with several contested keys at once and on a small viewport. **Bewusst
+nicht getan.** No composite key in the form — the terminal takes it; C45's button rule and C52's checkbox wording
+stay as recorded.

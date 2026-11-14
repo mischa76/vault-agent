@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { Checkpoint, Decision, ReviewItem, Run, StageBinding } from "../types";
+import type { Checkpoint, Decision, KeyAnswer, ReviewItem, Run, StageBinding } from "../types";
 import { Button, Empty, ErrorNote, Pill, Section } from "../components/ui";
 
 const FALLBACK_ANSWERS = ["NEW", "same_as_candidate", "unresolved"];
@@ -43,6 +43,9 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   const [bindings, setBindings] = useState<Record<string, { relation: string; aliases: string }>>({}); // WP82
   const [mappings, setMappings] = useState<Record<string, string>>({}); // WP82: --map
   const [bridges, setBridges] = useState<Record<string, boolean>>({}); // WP115: --bridge / --no-bridge
+  // WP126 (ADR-0021): the chosen key per contested table and the reason a technical key needs.
+  const [keys, setKeys] = useState<Record<string, string>>({});
+  const [keyReasons, setKeyReasons] = useState<Record<string, string>>({});
   const [showDisclosures, setShowDisclosures] = useState(false);
   const groups = useMemo(() => groupItems(checkpoint?.items ?? []), [checkpoint]);
 
@@ -58,6 +61,24 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   const declined = Object.values(links).filter((v) => v === false).length;
   const pendingBindings = atResolution ? [] : (checkpoint.bindings ?? []);
   const pendingBridges = atResolution ? [] : (checkpoint.bridges ?? []);
+  const pendingKeys = atResolution ? (checkpoint.keys ?? []) : [];
+  const joined = (columns: string[]): string => columns.join("+");
+  const chosenKey = (k: { table: string; default: string[] }): string => keys[k.table] ?? joined(k.default);
+  // The technical primary key is the one answer that needs a reason — as `--key-reason` does.
+  const needsReason = (k: { table: string; default: string[]; primary_key: string[] }): boolean =>
+    chosenKey(k) === joined(k.primary_key) && chosenKey(k) !== joined(k.default);
+  const keysAnswerable = pendingKeys.every((k) => !needsReason(k) || (keyReasons[k.table] ?? "").trim() !== "");
+  // Only a named answer is sent; a key left at its default takes the declared natural key anyway.
+  const keyAnswers = (): Record<string, KeyAnswer> => {
+    const out: Record<string, KeyAnswer> = {};
+    for (const k of pendingKeys) {
+      const choice = chosenKey(k);
+      if (choice === joined(k.default)) continue;
+      const reason = (keyReasons[k.table] ?? "").trim();
+      out[k.table] = { columns: choice.split("+"), reason: needsReason(k) ? reason : null };
+    }
+    return out;
+  };
   // Every proposal is answered, unchecked = declined: a bridge is never built by default.
   const bridgeAnswers = (): Record<string, boolean> =>
     Object.fromEntries(pendingBridges.map((b) => [b.path, bridges[b.path] === true]));
@@ -79,23 +100,24 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
     bindings: atResolution ? {} : boundStages(),
     mappings: atResolution ? {} : Object.fromEntries(Object.entries(mappings).filter(([, v]) => v.trim())),
     bridges: atResolution ? {} : bridgeAnswers(),
+    keys: atResolution ? keyAnswers() : {},
   });
 
   return (
     <div className="grid gap-4">
       <Section title={atResolution ? "Resolution checkpoint — before the modeler" : "Sign-off checkpoint"}
         aside={<span className="flex gap-2">
-          {atResolution ? <><Pill tone="warn">{checkpoint.links.length} proposals</Pill><Pill tone="warn">{checkpoint.resolutions.length} resolutions</Pill></>
+          {atResolution ? <><Pill tone="warn">{checkpoint.links.length} proposals</Pill><Pill tone="warn">{checkpoint.resolutions.length} resolutions</Pill>{pendingKeys.length ? <Pill tone="warn">{pendingKeys.length} hub keys</Pill> : null}</>
             : <><Pill tone="warn">{checkpoint.decisions} decisions</Pill><Pill>{checkpoint.disclosures} disclosures</Pill>{checkpoint.blocked ? <Pill tone="bad">blocked</Pill> : <Pill tone="ok">not blocked</Pill>}</>}
         </span>}>
         <p className="text-sm text-ink-dim">
           {atResolution
-            ? "The run paused before the model is built: declared keys and entity resolutions need a decision that steers the modeler. Everything left as proposed is ratified by accept — the CLI's --accept. Owners and the model's review come at sign-off, after the modeler."
+            ? "The run paused before the model is built: declared keys, entity resolutions and contested hub keys need a decision that steers the modeler. Everything left as proposed is ratified by accept — the CLI's --accept; a contested hub key then takes the declared natural key. Owners and the model's review come at sign-off, after the modeler."
             : checkpoint.blocked ? "Something blocks agreement — a validation error or a contract without an owner. Answer the decisions, then accept, or discard the run." : "Nothing blocks agreement. Review the decisions and accept, or discard."}
         </p>
         <ErrorNote error={error} />
         <div className="mt-3 flex flex-wrap items-center gap-3">
-          <Button onClick={() => onDecide(decision(true))} disabled={busy || (!atResolution && checkpoint.blocked && !ownersFilled)} title={!atResolution && checkpoint.blocked && !ownersFilled ? "every contract needs an owner: 'Name <email>' or an email address" : undefined}>
+          <Button onClick={() => onDecide(decision(true))} disabled={busy || (!atResolution && checkpoint.blocked && !ownersFilled) || !keysAnswerable} title={!keysAnswerable ? "a hub on its technical primary key needs a reason" : !atResolution && checkpoint.blocked && !ownersFilled ? "every contract needs an owner: 'Name <email>' or an email address" : undefined}>
             {atResolution ? (declined ? `Ratify the rest, decline ${declined}, and build the model` : "Ratify as proposed and build the model") : "Accept and continue"}
           </Button>
           {!atResolution ? <Button kind="ghost" onClick={() => onDecide(decision(false))} disabled={busy} title={checkpoint.blocked ? "record owners and resolutions without accepting; the run stays paused" : "record owners and resolutions without accepting — nothing blocks, so the run finishes"}>Record without accepting</Button> : null}
@@ -123,6 +145,41 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
                   </div>
                   <p className="mt-1 text-xs text-ink-dim">{l.note}</p>
                   {l.evidence.map((e, i) => <p key={i} className="text-xs text-ink-faint">{e}</p>)}
+                </li>
+              );
+            })}
+          </ul>
+        </Section>
+      ) : null}
+
+      {pendingKeys.length > 0 ? (
+        <Section title="Hub keys — a technical primary key against a declared natural key">
+          <p className="mb-2 text-xs text-ink-faint">Each table declares a natural key the requirements did not name first. Left as shown, the hub is keyed on the natural key — the CLI's default. Keying a hub on its technical primary key needs a reason, which goes into the proposed ADR (`--key`, `--key-reason`); a composite key is answered in the terminal.</p>
+          <ul className="grid gap-2 text-sm">
+            {pendingKeys.map((k) => {
+              const options = [...k.natural_keys.filter((c) => c !== joined(k.default)), joined(k.primary_key)];
+              return (
+                <li key={k.table} className="rounded-md border border-line bg-pane-2 p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <code className="font-mono text-xs text-accent">{k.table}</code>
+                    <span>→ hub key</span>
+                    <select value={chosenKey(k)} aria-label={`hub key for ${k.table}`}
+                      onChange={(e) => setKeys({ ...keys, [k.table]: e.target.value })}
+                      className="rounded-md border border-line bg-pane px-2 py-1 font-mono text-xs">
+                      <option value={joined(k.default)}>{joined(k.default)} — the declared natural key</option>
+                      {options.map((c) => <option key={c} value={c}>{c}{c === joined(k.primary_key) ? " — the technical primary key" : ""}</option>)}
+                    </select>
+                    {needsReason(k) ? (
+                      <label className="grid gap-1 text-xs">
+                        <input value={keyReasons[k.table] ?? ""} placeholder="why the technical key"
+                          aria-label={`reason for ${k.table}`}
+                          onChange={(e) => setKeyReasons({ ...keyReasons, [k.table]: e.target.value })}
+                          className="w-72 rounded-md border border-line bg-pane px-2 py-1 text-xs" />
+                        {(keyReasons[k.table] ?? "").trim() === "" ? <span className="text-bad">a reason is required for the technical key</span> : null}
+                      </label>
+                    ) : null}
+                  </div>
+                  {k.evidence.map((e, i) => <p key={i} className="text-xs text-ink-faint">{e}</p>)}
                 </li>
               );
             })}

@@ -25,6 +25,9 @@ is not the project's.
   the source's generated primary key — `hub_product` on `ProductID` against a requirement that names the product
   number. A model regenerated on a catalogue with declared keys gets other hub keys and more translated stages
   (manual 7.5, 8.2, 9); an existing vault's hubs are never re-keyed. Without declared keys nothing changes.
+- The workbench's Review page shows the contested hub keys at the resolution checkpoint: a selection per table
+  whose default is the declared natural key; the technical primary key takes a reason before the run can go on
+  (WP126).
 - Effectivity satellites in a generated project come with two dbt tests each — at most one open relationship per
   driving key, no record ending before it starts — and a README note that batches must be loaded in load order
   (WP124, C62). AutomateDV's effectivity satellite assumes that order; loaded in reverse it left two owners open.
