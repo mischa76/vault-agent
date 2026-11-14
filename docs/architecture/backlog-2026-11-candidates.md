@@ -572,3 +572,38 @@ typed `expression_reads` in the stage metadata.
 README that batches must come in load order, and carries two tests per such satellite that fail `dbt build` after an
 out-of-order load (measured: both fail on the reversed bank batches, both pass in order). **Open:** (c), an
 effectivity model of vault-agent's own that makes load order irrelevant.
+
+## C63 — The modeler keys hubs on the source's generated primary key against the requirement and the ranked candidates; nothing downstream objects (owner, 2026-11-14)
+
+**Found** on the owner's question whether the tool takes a column for a business key because it carries an id — the
+objection of a practitioner's public comment on agent-built vaults. **Measured from what is stored, at no cost.** The
+twenty-third chain's final model (2026-10-31) keys 29 of its 40 hubs on a single column ending in `ID`; 19 of the 35
+hubs keyed on their table's primary key sit on a table whose catalogue declares another unique, non-GUID key.
+`hub_product` is the clear case: `REQ-001` of the production document calls the product number the natural business
+key, the key agent ranked `ProductNumber` 0.95 against `ProductID` 0.15, and the modeler's **first** attempt keyed the
+hub on `ProductID` — its own words in the model: keyed on `ProductID` because every referencing relation carries only
+`ProductID`; the product number sits in a satellite. The same step put five more hubs on the id where the `Name` led
+the candidates (category, subcategory, model, location, scrap reason). **Why:** the modeler's prompt carries the
+preference as a preference (anchor hubs on the candidates, prefer higher-scored ones), the criterion that a business
+key is preferred over a surrogate reaches only the key agent, the steering line `masat_source_table` says the parent's
+business-key column must exist in a satellite's own relation, and nothing tells the modeler that ADR-0013's translation
+attaches such a relation to a hub on the natural key. It resolves the contradiction itself. **The counter-sample:** the
+drafted arm of 2026-10-30 — the same model, the same rules block — keyed `hub_product` on `ProductNumber` and the
+translation carried its history satellites, every gate green. So the vault can carry the natural key; whether it gets
+one is today the document's wording and the model's discretion. **Since when:** the 4.x chains keyed `hub_product` on
+the product number (log 2026-08-12, 2026-10-04); the first 5.5 chain had `link_translation` 1 against 9–11
+(2026-10-09), recorded as a lower review load, not as a key change — part of the 5.5 record's low decision count is
+this. **What it contradicts:** ADR-0013 rejected „key hubs on the surrogate when sources reference it" by name; the
+manual's chapter 2 says a hub key is never a system surrogate. **No gate compares** a hub's key with the candidates or
+the catalogue, the hub's key is no decision at either checkpoint, and the mapper confirms `ProductID` as `exact_name`,
+0.97. **Not established:** why 4.x decided otherwise (no 4.x trace on this machine); whether the steering line alone
+tips it (an ablation, paid).
+
+## C63 — taken up as ADR-0021 and WP125 (2026-11-14); WP126–WP128 follow
+
+On the owner's go (2026-11-14) on the proposal as presented: the key is decided from evidence before the modeler and
+given to it (`adrs/ADR-0021-hub-key-decided-from-evidence.md`), a gate refuses a deviation, the contested cases are a
+question at the resolution checkpoint whose default is the declared natural key, and a translation over a declared
+foreign key becomes a disclosure (a note appended to ADR-0013). WP125
+(`backlog-2026-07/wp125-hub-key-decision-spec.md`) builds the rule, the gate and the CLI's question; the workbench's
+question (WP126), the catalogue's generated-column property (WP127) and the translation's role (WP128) follow.

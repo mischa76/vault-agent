@@ -100,3 +100,20 @@ other. WP116 (`backlog-2026-07/wp116-translation-ratified-per-key-spec.md`) keep
 the per-construct flags are disclosures grouped by the key they translate to, and the decision is one per key
 (hub, relation joined through, natural key), the confirmation of the generated translation model asked once. The
 reviewer still sees every join; §3's reasoning stands, the counting is corrected. The ADR's text stays as drafted.
+
+
+## Note appended 2026-11-14 — the caveat came true; a translation over a declared key becomes a disclosure (ADR-0021)
+
+The caveat this ADR inherited from the audit — that `hub_product` on `ProductNumber` was one run's choice and that
+the capability's effectiveness „depends on the modeler continuing to choose natural keys" — came true with the 5.5
+models: the chains since 2026-10-09 key `hub_product` and most other hubs on the generated primary key, the
+alternative this ADR rejected by name, and the translation had almost no cases (C63, `docs/log.md` 2026-11-14).
+ADR-0021 takes the key out of the modeler's discretion; the translation therefore returns as the ordinary case.
+
+On the owner's go (2026-11-14) §3's review class changes once more. A translation that joins through a **declared**
+foreign key onto the hub's own table is fully determined by the catalogue and the decided key, and the generated
+tests refuse an unmatched reference at build time; it is a **disclosure**, grouped by its key as WP116 made it. The
+decision per key remains for a translation from an **inferred** key (ADR-0018) and for one that projects a homonym
+(WP89). The gates `E_LINK_TRANSLATION_UNRATIFIED`/`E_SAT_TRANSLATION_UNRATIFIED` are unchanged: the key licence a
+translation stands under is still ratified by a human at the resolution checkpoint. Built as WP128. The ADR's text
+stays as drafted.
