@@ -145,6 +145,12 @@ def _translation_key_decisions(flags: list[PipelineFlag]) -> list["ReviewItem"]:
             by_key.setdefault(flag.reason, []).append(flag)
     items: list[ReviewItem] = []
     for key, members in by_key.items():
+        # WP128 (ADR-0013's note of 2026-11-14): a key whose every translation joins through
+        # a DECLARED foreign key is fully determined by the catalogue and the decided key, and
+        # a human licensed it at the resolution checkpoint — nothing is left to confirm. The
+        # decision remains where a flag says so: an inferred key, a homonym.
+        if not any(member.confirm for member in members):
+            continue
         hub, _, through_and_key = key.partition("=")
         through, _, natural = through_and_key.partition(".")
         constructs = [m.asset or "?" for m in members]

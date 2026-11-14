@@ -109,10 +109,14 @@ a *surrogate* (`ShoppingCartItem.ProductID`) while the hub is keyed on the *natu
 (`ProductNumber`), and the note says so — `ProductID → PRODUCTNUMBER through
 Production.Product`. Ratifying it builds a link whose staging **joins through** the
 referenced relation (9.3); the review queue discloses one `link_translation` item per such
-link, grouped by the key it translates to, under **one decision per translated key** — the hub,
-the relation joined through and the natural key, confirmed once however many links and
-satellites translate to it (WP116; until then every item was its own decision, 60 of them on
-the C1 experiment's drafted arm for 21 relations).
+link, grouped by the key it translates to — the hub, the relation joined through and the natural
+key (WP116; until then every item was its own decision, 60 of them on the C1 experiment's
+drafted arm for 21 relations). **Since WP128 a translation over a declared foreign key is a
+disclosure and nothing more**: the catalogue declares the join, a human licensed the key at
+this pause, and the generated tests refuse an unmatched reference at build time. **One decision
+per translated key remains** where something is left to confirm — the key was *inferred from
+data* (ADR-0018), or the relation carries a column of the hub key's name that the translation
+does not read (a homonym, WP89); the flag carries that as a typed marker (`confirm`).
 Since WP39 the join may end one table further: a key into a table that has no hub of its own
 (`SalesOrderHeader.SalesPersonID → SalesPerson`), whose key is itself a declared foreign key
 (`SalesPerson.BusinessEntityID → Employee`), is translated through that end table, and the
@@ -139,7 +143,7 @@ keyed on `NationalIDNumber`. When the schema declares that join, the rendering a
 feed — accepted, SalesPerson gets no hub and its satellites on hub_employee join
 NATIONALIDNUMBER through Employee"*, and that is what accepting does: no second hub, the
 subtype table's satellites on the supertype hub, staged through a translation view (9.3), one
-`sat_translation` disclosure each under the same per-key decision (WP116). Without a declared join, accepting keeps
+`sat_translation` disclosure each, grouped by the key (WP116; no decision over a declared join, WP128). Without a declared join, accepting keeps
 the concept as its own hub, because a join nobody declared is a guess. Since WP39 the feed also covers the
 tables keyed on the subtype's key (`SalesPersonQuotaHistory.BusinessEntityID → SalesPerson`), and
 the rendering names them; a table that merely references the subtype through another column

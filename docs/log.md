@@ -13557,3 +13557,23 @@ arm of 2026-10-30 is the only evidence, on another document. **Bewusst nicht get
 WP128, pre-registered); inferred keys as evidence — a catalogue without declared keys gets no decision; composite
 natural keys are never chosen by the rule; no re-keying of an existing hub; no release cut (output-changing: a
 minor, the owner's call).
+
+## [2026-11-14] WP128 built and measured (keyless): a translation over a declared key is a disclosure; the decision per key remains for an inferred key and a homonym (ADR-0013's note of 2026-11-14)
+
+**Autor:** Claude Code
+
+On the owner's go (the proposal's fifth building block). Spec and guards first (`153bfb9`, five red). **Why:** with
+hubs on natural keys (WP125) the translation is the ordinary case, and WP116's one decision per key would add about
+55 confirmations per chain (the C1 finding, 2026-10-31) of joins the catalogue declares and a human has licensed at
+the resolution checkpoint — the load under which a reviewer accepts defaults. **Built:** `PipelineFlag.confirm`, a
+typed boolean, omitted from the dump where false; set at the raise sites of `link_translation` and
+`sat_translation` when the key's provenance is `inferred` (ADR-0018) or the relation carries a homonym of the hub
+key (WP89) — never read from the message. `_translation_key_decisions` synthesises the decision per key only for a
+key with such a flag. The gates `E_LINK_TRANSLATION_UNRATIFIED` / `E_SAT_TRANSLATION_UNRATIFIED` and what is
+ratified at the resolution checkpoint are unchanged. **Measured (spec §5):** suite 1766 / 5 skipped with no key
+reachable, ruff, bare mypy; three WP116 guards changed deliberately; no artefact baseline moved. Manual 7.5,
+CHANGELOG (Changed). **Überprüft.** Keyless, on synthetic flags and on WP36's miniature (declared: no decision;
+the same proposal marked inferred: one decision). **Nur angenommen.** That the remaining decisions on a real chain
+are few — not counted on a stored chain, because the stored chains have almost no translations (C63). **Bewusst
+nicht getan.** The review record's stored samples are not recomputed; a chain under ADR-0021 starts a new
+generation.

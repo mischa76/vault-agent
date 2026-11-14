@@ -30,6 +30,10 @@ is not the project's.
   (WP124, C62). AutomateDV's effectivity satellite assumes that order; loaded in reverse it left two owners open.
 
 ### Changed
+- A translation over a declared foreign key is a disclosure in the review queue, no longer one decision per key
+  (WP128, ADR-0013's note of 2026-11-14). The decision per key remains where the key was inferred from data or a
+  homonym stands beside it. With hubs on natural keys (WP125) the translation is the ordinary case; confirming each
+  declared join had cost about 55 decisions per AdventureWorks chain.
 - **Output-changing: hashdiffs keep the letter case** (WP123, C61). AutomateDV upper-cases hash input by default for
   keys and hashdiffs alike, so a change of case only was never historised. Each hashdiff column is now hashed as the
   hex of its UTF-8 bytes; hash keys are unchanged. An existing vault's satellites gain one row per key on the first

@@ -44,3 +44,18 @@ inferred one still declined by the bulk answer). No change to the generated tran
   decision per key for a declared translation; the catalogue's two flag meanings; the manual. No artefact baseline.
 - **P3** the review-record generations (`eval/wp34_check.py`): the count of a stored chain is not recomputed — a
   chain under ADR-0021 starts a new generation (the paid chain's pre-registration says so).
+
+## 5 Measured (2026-11-14, keyless)
+
+- **P1 ✔.** Five guards red at `153bfb9` (one green by design: a translation flag without a key stays a
+  decision), six green after.
+- **P2 ✔.** Suite with no key reachable 1766 passed / 5 skipped, ruff, bare mypy. Changed deliberately: three of
+  WP116's guards (`test_wp116_translation_per_key.py` — the proposer's declared translation is now a disclosure
+  without a decision; the two grouping guards mark their flags `confirm=True`, so they keep pinning one decision
+  per key where one is due), the catalogue's two flag meanings, manual 7.5. No artefact baseline moved; a flag
+  that needs no confirmation serialises without the new field.
+- **P3 ✔ by construction.** `eval/wp34_check.py` and its recorded samples are untouched.
+- **Built as specified**, with one precision: on a satellite of a hub the flag is to confirm when *any* ratified
+  key of its group into that hub was inferred (the group shares one translation).
+- **Not measured:** a chain's review queue under WP125 and WP128 together — how many decisions remain is the paid
+  chain's question.

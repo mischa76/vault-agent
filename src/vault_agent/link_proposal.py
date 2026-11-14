@@ -748,6 +748,7 @@ def apply_ratified_link_proposals(
                 kind=FlagKind.LINK_TRANSLATION,
                 asset=f"{proposal.source_table}.{proposal.source_column}",
                 reason=translation_key(proposal.translation, proposal.target_hub),  # WP116
+                confirm=proposal.provenance == "inferred",  # WP128
             )
         delta.links.append(
             Link(
@@ -885,6 +886,9 @@ class _Grant:
     translation: KeyTranslation | None
     alias: str | None
     by_override: bool
+    # WP128: the key was inferred from data (ADR-0018), not declared — its translation is
+    # still a human's to confirm.
+    inferred: bool = False
 
 
 def _pair_participations(
@@ -997,13 +1001,15 @@ def apply_key_licenses(
         )
         lic.target_hub, lic.key_translation, lic.source_key_column = hub.name, translation, alias
         lic.resolved_by_applier = True
-        grants.append(_Grant(lic.source_table, lic.source_column, hub, translation, alias, False))
+        grants.append(_Grant(lic.source_table, lic.source_column, hub, translation, alias, False,
+                             inferred=lic.provenance == "inferred"))
     for proposal in ratified:
         target = hubs.get(proposal.target_hub)
         if target is not None:
             grants.append(_Grant(
                 proposal.source_table, proposal.source_column, target, proposal.translation,
                 proposal.source_column if proposal.needs_alias else None, True,
+                inferred=proposal.provenance == "inferred",
             ))
     groups: dict[tuple[str, str], list[_Grant]] = {}
     for grant in grants:
@@ -1065,6 +1071,7 @@ def apply_key_licenses(
                         kind=FlagKind.LINK_TRANSLATION,
                         asset=f"{table}.{t.referencing_column}",
                         reason=translation_key(t, ref.hub),  # WP116
+                        confirm=grant.inferred or bool(homonym),  # WP128
                     )
                 else:
                     ref.source_key_column = grant.alias if ref.role is None else grant.column
@@ -1095,6 +1102,7 @@ def apply_key_licenses(
                     kind=FlagKind.SAT_TRANSLATION,
                     asset=sat.name,
                     reason=translation_key(t, hub.name),  # WP116
+                    confirm=any(g.inferred for g in group) or bool(homonym),  # WP128
                 )
                 continue
             parent = links_by_name.get(sat.parent)
@@ -1126,6 +1134,7 @@ def apply_key_licenses(
                     kind=FlagKind.SAT_TRANSLATION,
                     asset=sat.name,
                     reason=translation_key(t, hub.name),  # WP116
+                    confirm=grant.inferred or bool(homonym),  # WP128
                 )
     return delta
 

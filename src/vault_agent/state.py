@@ -4,7 +4,14 @@ from collections.abc import Sequence
 from datetime import date
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from vault_agent.rules.naming import NamingProfile
 from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
@@ -120,6 +127,18 @@ class PipelineFlag(BaseModel):
     # WP47: a typed reason code where the kind has a vocabulary (``SourceBindingReason`` for
     # source bindings). Consumers branch on it; the message never carries it alone.
     reason: str | None = None
+    # WP128 (ADR-0013's note of 2026-11-14): the flag discloses something a human must still
+    # confirm — a translation that stands on a key inferred from data, or one whose relation
+    # carries a column of the hub key's name that it does not read. Typed, never read from the
+    # message; omitted from the dump where false, so every other flag serialises as before.
+    confirm: bool = False
+
+    @model_serializer(mode="wrap")
+    def _omit_confirm_when_false(self, handler: Any) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if not self.confirm:
+            data.pop("confirm", None)
+        return data
 
     def __str__(self) -> str:
         return f"{self.agent}: {self.message}"
@@ -1292,12 +1311,14 @@ class VaultAgentState(BaseModel):
         kind: str = FlagKind.GENERIC,
         asset: str | None = None,
         reason: str | None = None,
+        confirm: bool = False,
     ) -> None:
         """Raise a typed pipeline flag (convenience helper for the agents). ``reason`` is
-        WP47's typed reason code — WP116 uses it to carry a translation flag's key."""
+        WP47's typed reason code — WP116 uses it to carry a translation flag's key; ``confirm``
+        (WP128) marks a disclosure a human must still confirm."""
         self.flags.append(
             PipelineFlag(
                 agent=agent, message=message, severity=severity, kind=kind, asset=asset,
-                reason=reason,
+                reason=reason, confirm=confirm,
             )
         )

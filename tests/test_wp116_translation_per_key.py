@@ -37,15 +37,15 @@ def test_the_key_is_the_hub_the_relation_and_the_natural_key() -> None:
     assert translation_key(other, "hub_product") == translation_key(_t(), "hub_product")
 
 
-def test_the_proposers_translated_link_carries_its_key_and_the_queue_asks_once() -> None:
+def test_the_proposers_translated_link_carries_its_key_and_is_disclosed_under_it() -> None:
     state = _ratified_state(with_product=True)
     [flag] = [f for f in state.flags if f.kind == FlagKind.LINK_TRANSLATION]
     assert flag.reason == "hub_product=Product.PRODUCTNUMBER"
     queue = assemble_review_queue(state)
-    decisions = [i for i in queue.decisions if i.kind == "review_flag"]
-    assert [i.asset for i in decisions] == ["hub_product=Product.PRODUCTNUMBER"]
-    assert "1 construct" in decisions[0].summary and "Product" in decisions[0].summary
-    assert flag.asset in decisions[0].detail
+    # WP128 (2026-11-14): this translation joins through a DECLARED foreign key — a disclosure
+    # under its key and no decision. Until then the queue asked once per key here; the asking
+    # is pinned below on flags that say a confirmation is due (an inferred key, a homonym).
+    assert [i for i in queue.decisions if i.kind == "review_flag"] == []
     [disclosed] = [i for i in queue.disclosures if i.kind == "review_flag"]
     assert disclosed.asset == flag.asset
     assert disclosed.group == "translation:hub_product=Product.PRODUCTNUMBER"
@@ -55,13 +55,15 @@ def _five_flags_two_keys() -> VaultAgentState:
     state = VaultAgentState()
     product = translation_key(_t(), "hub_product")
     model = translation_key(_t("ProductModel", "NAME"), "hub_product_model")
+    # WP128: `confirm=True` — the keys here are to be confirmed (inferred, or beside a
+    # homonym); a declared key's translation raises no decision (test_wp128).
     for n in range(3):
         state.flag("link_proposer", f"link {n} translates", kind=FlagKind.LINK_TRANSLATION,
-                   asset=f"Table{n}.ProductID", reason=product)
+                   asset=f"Table{n}.ProductID", reason=product, confirm=True)
     state.flag("link_proposer", "sat translates", kind=FlagKind.SAT_TRANSLATION,
-               asset="sat_product_cost_history", reason=product)
+               asset="sat_product_cost_history", reason=product, confirm=True)
     state.flag("subtype_feed", "sat translates", kind=FlagKind.SAT_TRANSLATION,
-               asset="sat_product_model_details", reason=model)
+               asset="sat_product_model_details", reason=model, confirm=True)
     return state
 
 

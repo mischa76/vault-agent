@@ -225,12 +225,14 @@ FLAGS: dict[str, str] = {
     ),
     FlagKind.LINK_TRANSLATION: (
         "A link participation joins through another relation (a surrogate-to-natural-key "
-        "translation) under a ratified key; a disclosure grouped by its key, confirmed once "
-        "per key (WP116)."
+        "translation) under a ratified key; a disclosure grouped by its key. Over a declared "
+        "key nothing is left to confirm; an inferred key or a homonym is confirmed once per "
+        "key (WP116, WP128)."
     ),
     FlagKind.SAT_TRANSLATION: (
         "A satellite joins through another relation (a key translation) under a ratified key; "
-        "a disclosure grouped by its key, confirmed once per key (WP116)."
+        "a disclosure grouped by its key. Over a declared key nothing is left to confirm; an "
+        "inferred key or a homonym is confirmed once per key (WP116, WP128)."
     ),
     FlagKind.LINK_RELATIONSHIP_INCOMPLETE: (
         "A proposed link's relationship could not be completed; decide it."
