@@ -13739,3 +13739,37 @@ PostgreSQL. All git-ignored, one copy, this machine. The built schema `chain26` 
 a repository for the results. Until then every measurement entry since this one cites files that have no mirror.
 **Überprüft.** The four commands above and their answers. **Bewusst nicht getan.** No other host tried — none is
 configured here; nothing changed on `tank`.
+
+## [2026-11-14] The eval evidence has its second copy again: `eval/results/` is a git repository of its own, pushed to `tank`
+
+**Autor:** Claude Code
+
+Closes the open item of the correction above („how the evidence gets its second copy"). **Why the old way was
+closed:** every key of the `git` user on `tank` is restricted to `git-shell` since 2026-11-12 (the owner's
+hardening, recorded in his wiki chronicle of that day) — `rsync` needs the shell that was removed on purpose, and
+the check before that change searched scripts and crontabs, not the manual step in this project's skill. **The
+owner's decision (2026-11-14):** the copy stays on `tank`, as a repository; he created the bare repository
+`/tank/git/vault-agent-eval-results.git` himself. A first reading of his word — version the results inside this
+repository — was dropped before anything was changed: it would have published the LLM traces on GitHub.
+
+**Changed.** `eval/results/` is now a repository (remote `tank:/tank/git/vault-agent-eval-results.git`, branch
+`master` — the bare repository's `HEAD` names it, and a clone of `main` checked out nothing). One commit,
+`f53d613`: the 1667 files this machine held — the twenty-second, twenty-third and twenty-sixth chain, the aborted
+first start of the twenty-sixth, the drafted arm of 2026-10-30, the twenty-sixth chain's kept projects and build
+logs — plus a `README.md` saying what the directory is. This repository still ignores it (`.gitignore:72`
+unchanged); nothing of it goes to GitHub. The skill's section „Securing the evidence of a paid run" names the three
+git commands instead of `rsync` and says why `rsync` is refused; `eval/README.md` points there.
+
+**Überprüft.** `git ls-remote origin` names `f53d613` for `HEAD` and `refs/heads/master`; a fresh clone from
+`tank` into a scratch directory is identical to the local directory (`diff -rq`, 1668 files on both sides);
+`git status` of this repository shows only the two edited documents — the nested repository is invisible to it.
+Scanned before the first reading was dropped: no API key, no e-mail address in the results; the checkout path and
+one connection line with a masked password are in them. Suite with no key reachable, ruff, bare mypy: see the
+commit.
+
+**Nur angenommen.** That `tank`'s pool is itself backed up — the repository is a second copy, not a third.
+
+**Bewusst nicht getan.** The chains up to 2026-10-31 that were mirrored with `rsync` are in the plain directory
+`/tank/git/vault-agent-eval-results/` on `tank` and, by the entry of 2026-10-10, on the machine that ran them;
+this machine does not hold them, so they are not in the repository — whoever has them commits them there. No
+`pre-receive` guard on the new repository. Nothing changed on `tank` from here.

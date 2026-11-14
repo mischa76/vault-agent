@@ -38,15 +38,28 @@ Ask in this order and stop at the first yes.
 
 `eval/results/` (result JSON, step files, `review.json`, LLM transcripts, ablation comparisons)
 is git-ignored and exists only on this machine, yet every measurement entry in `docs/log.md`
-cites it by stamp. After recording a run — or at the latest in the same session — mirror it:
+cites it by stamp. Since 2026-11-14 the directory is **a git repository of its own** (remote
+`tank:/tank/git/vault-agent-eval-results.git`, branch `master`). After recording a run — or at
+the latest in the same session — commit and push it:
 
 ```bash
-rsync -a eval/results/ tank:/tank/git/vault-agent-eval-results/
+git -C eval/results add -A
+git -C eval/results commit -m "<what was run, with its stamp>"
+git -C eval/results push
 ```
 
-The SSH identity on `tank` is the `git` user, which may write under `/tank/git/` only (checked
-2026-10-10; `/tank/backup` is another account's). Verify with a file count on both sides. The
-mirror is the evidence's second copy, not a dataset: nothing reads it back.
+Verify with `git -C eval/results status -sb` (nothing ahead) and `git -C eval/results ls-remote
+origin` naming the commit. On a checkout without the directory: `git clone
+tank:/tank/git/vault-agent-eval-results.git eval/results`. Kept projects of a run
+(`--keep-outputs`) go under `eval/results/kept-outputs/<case>/<stamp>/` without dbt's `target/`.
+The repository is the evidence's second copy, not a dataset: nothing reads it back, and it never
+goes to GitHub.
+
+**Not `rsync`:** every key of the `git` user on `tank` is restricted to `git-shell` since
+2026-11-12, so `rsync`, `scp` and a shell are refused — deliberately; do not look for a way
+round it. A new repository on `tank` is the owner's to create. The chains up to 2026-10-31
+that were mirrored with `rsync` sit in the plain directory `/tank/git/vault-agent-eval-results/`
+on `tank`; they are not in the repository.
 
 ## The admission rule for CLAUDE.md
 

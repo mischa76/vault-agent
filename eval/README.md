@@ -213,7 +213,9 @@ uv run python -m eval.run --dataset bank --out eval/results
   that conflation, not the catalogue's binding effect; `docs/log.md` of that day.
 - Per run, one JSON result is written to
   `eval/results/<case>/<UTC-timestamp>-run<i>.json` (scores, per-scorer diff details,
-  model ids from `get_settings()`, git SHA). `eval/results/` is git-ignored.
+  model ids from `get_settings()`, git SHA). `eval/results/` is git-ignored here and a
+  repository of its own since 2026-11-14 (remote on the owner's server, never GitHub; how a run
+  is committed there: `.claude/skills/project-docs/SKILL.md`).
 - Beside every result (and every chain step's result) sit its **review material**
   (2026-10-04): `<stem>.review-queue.md`, byte-identical to the CLI's `review-queue.md`, and
   `<stem>.review.json` — the typed flags, the validation issues (the `info` inventory
