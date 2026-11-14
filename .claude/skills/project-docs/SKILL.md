@@ -43,9 +43,10 @@ cites it by stamp. Since 2026-11-14 the directory is **a git repository of its o
 the latest in the same session — commit and push it:
 
 ```bash
+git -C eval/results pull --ff-only     # a second machine (ZEUS) pushes there too
 git -C eval/results add -A
 git -C eval/results commit -m "<what was run, with its stamp>"
-git -C eval/results push
+git -C eval/results push               # never --force: the remote refuses it, by the owner's setting
 ```
 
 Verify with `git -C eval/results status -sb` (nothing ahead) and `git -C eval/results ls-remote
@@ -57,9 +58,11 @@ goes to GitHub.
 
 **Not `rsync`:** every key of the `git` user on `tank` is restricted to `git-shell` since
 2026-11-12, so `rsync`, `scp` and a shell are refused — deliberately; do not look for a way
-round it. A new repository on `tank` is the owner's to create. The chains up to 2026-10-31
-that were mirrored with `rsync` sit in the plain directory `/tank/git/vault-agent-eval-results/`
-on `tank`; they are not in the repository.
+round it. A new repository on `tank` is the owner's to create. The repository holds every
+run since 2026-07-08 (ZEUS's 858 files were merged in on 2026-11-14); the plain directory
+`/tank/git/vault-agent-eval-results/` on `tank` is the former `rsync` mirror of the same
+material. The remote has `receive.denyNonFastForwards` and `receive.denyDeletes` set — do not
+test that with a real force-push.
 
 ## The admission rule for CLAUDE.md
 

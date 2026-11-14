@@ -13797,3 +13797,30 @@ this entry name only the prefix). `CLAUDE.md` at 238 of 250 lines.
 links are unopenable. No git note in the link's place — considered and dropped by the owner: the links arise only
 in cloud sessions, whose clone is discarded, so an unpushed note would be lost with it. No hook or CI check: a
 check after the push would only report what is already public.
+
+## [2026-11-14] The results repository on `tank` holds every run since 2026-07-08, and its history is protected
+
+**Autor:** Claude Code
+
+Closes the two points the entry „The eval evidence has its second copy again" left under „Bewusst nicht getan".
+**Done by the owner with a second session on ZEUS, read from here afterwards.** (1) The 858 files ZEUS held under
+its plain `eval/results/` (2026-07-08 to 2026-10-17, 151 MB) were merged into the repository: commit `5ca1e07`,
+858 files added, none changed, on top of `f53d613`. (2) On `tank` the owner set `receive.denyNonFastForwards` and
+`receive.denyDeletes` on `/tank/git/vault-agent-eval-results.git` — no hook of its own, git's settings. **Changed
+here:** the repository's `README.md` (third commit, pushed fast-forward), the skill's section (pull before the
+commit, never force, where the older runs are).
+
+**Überprüft, from this machine.** `git fetch` showed `5ca1e07` as `origin/master`, one commit ahead, `858 A` and
+nothing else in `git diff --name-status`; pulled fast-forward, 2526 files (1668 + 858), 166 MB. **Two tests that
+were skipped here now run and pass** because the archived results they read are on disk: suite with no key
+reachable 1776 passed / 3 skipped (1774 / 5 before), the three left are two regeneration helpers and the
+AutomateDV install check. Ruff and bare mypy clean.
+
+**Nur angenommen.** That the two settings are in force — this machine has no shell on `tank` and a real
+force-push is not a test (were the setting absent, the history would be gone); the owner reported both done. That
+the plain directory `/tank/git/vault-agent-eval-results/` holds nothing the repository lacks: it was the `rsync`
+mirror of the same two machines, not compared file by file.
+
+**Bewusst nicht getan.** The plain directory on `tank` and ZEUS's `.vault-agent/results-zeus-old` are not
+removed — the owner's. ZEUS's scan of its 858 files (no key, no password) is that session's word, not re-run
+here; the files do not go to GitHub either way.
