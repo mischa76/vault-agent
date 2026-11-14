@@ -241,6 +241,18 @@ class SourceColumn(BaseModel):
     # WP94: whether the source allows NULL here — `None` when the catalogue does not say (every
     # catalogue before 2026-10-26). Read by the optional-participant gate; carried by the catalogue.
     nullable: bool | None = None
+    # WP127 (ADR-0021): whether the database generates the value — an identity, a serial, a
+    # sequence default. `None` when the catalogue cannot say (every catalogue before 2026-11-14,
+    # and every dialect whose reflection does not read it). Read by `rules.key_decision` before
+    # the type; omitted from the dump where unknown, so such a column serialises as before.
+    generated: bool | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_generated_when_unknown(self, handler: Any) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if self.generated is None:
+            data.pop("generated", None)
+        return data
 
 
 class ForeignKeyRef(BaseModel):

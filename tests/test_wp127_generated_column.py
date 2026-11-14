@@ -21,7 +21,6 @@ from vault_agent.source_schema_reader import (
 from vault_agent.state import (
     BusinessKeyCandidate,
     DVModel,
-    ForeignKeyRef,
     Hub,
     ParsedRequirement,
     Satellite,
@@ -136,15 +135,24 @@ def _decisions(state: VaultAgentState) -> dict[str, Any]:
 def test_a_generated_key_is_technical_whatever_its_type() -> None:
     from vault_agent.rules.key_decision import column_kind
 
-    table = SourceTable(table="Partner", columns=[_col("PartnerID", "numeric(18, 0)", True),
-                                                  _col("PartnerCode", "varchar(12)")],
-                        primary_key=["PartnerID"], unique_keys=[["PartnerCode"]])
+    def partner(type_: str, generated: bool | None) -> SourceTable:
+        return SourceTable(table="Partner", columns=[_col("PartnerID", type_, generated),
+                                                     _col("PartnerCode", "varchar(12)")],
+                           primary_key=["PartnerID"], unique_keys=[["PartnerCode"]])
+
+    # a type that says nothing: generated decides
+    table = partner("rowid", True)
     assert column_kind(table, "PartnerID", [table]) == "technical"
     d = _decisions(_state([table], [("partner", "PartnerID", 0.6)]))["Partner"]
     assert (d.basis, d.pending, d.columns) == ("contested", True, ["PartnerCode"])
-    undeclared = table.model_copy(deep=True)
-    undeclared.columns[0] = _col("PartnerID", "numeric(18, 0)")
-    assert _decisions(_state([undeclared], [("partner", "PartnerID", 0.6)])) == {}  # as WP125
+    silent = partner("rowid", None)
+    assert column_kind(silent, "PartnerID", [silent]) == "unknown"
+    # Changed while building (spec §5): an exact numeric is technical by its type, like an
+    # integer — the `numeric` an Oracle or Db2 identity sits on, where the catalogue is silent.
+    numeric = partner("numeric(18, 0)", None)
+    assert column_kind(numeric, "PartnerID", [numeric]) == "technical"
+    d = _decisions(_state([numeric], [("partner", "PartnerID", 0.6)]))["Partner"]
+    assert (d.basis, d.pending, d.columns) == ("contested", True, ["PartnerCode"])
 
 
 def _customer(generated: bool | None) -> SourceTable:
@@ -153,36 +161,39 @@ def _customer(generated: bool | None) -> SourceTable:
                        primary_key=["CustomerNumber"], unique_keys=[["Email"]])
 
 
-def test_a_business_number_the_requirements_name_is_agreed() -> None:
-    d = _decisions(_state([_customer(False)], [("customer", "CustomerNumber", 0.9)]))["Customer"]
-    assert (d.columns, d.basis, d.pending) == (["CustomerNumber"], "agreed", False)
+def test_not_generated_is_no_evidence_that_the_business_assigns_the_key() -> None:
+    # Withdrawn while building (spec §5, P3): the spec's rule 4 made an integer key the
+    # catalogue calls not generated admissible where the requirements name it first. Read from
+    # the local PostgreSQL copy of AdventureWorks, EVERY column is `generated: false` — a copy
+    # or a landing zone has no identities — so the rule would have agreed on `AddressTypeID`.
+    for generated in (False, None):
+        named = _decisions(_state([_customer(generated)], [("customer", "CustomerNumber", 0.9)]))
+        assert (named["Customer"].basis, named["Customer"].columns) == ("contested", ["Email"])
+        silent = _decisions(_state([_customer(generated)], [("other", "x", 0.9)]))
+        assert (silent["Customer"].basis, silent["Customer"].columns) == ("contested", ["Email"])
 
 
-def test_an_integer_key_not_named_by_the_requirements_stays_contested() -> None:
-    d = _decisions(_state([_customer(False)], [("other", "x", 0.9)]))["Customer"]
-    assert (d.basis, d.pending, d.columns) == ("contested", True, ["Email"])
+def test_a_human_keys_the_hub_on_the_business_number_with_a_reason() -> None:
+    from vault_agent.agents.orchestrator import apply_key_decision
+    from vault_agent.rules.key_decision import check_key_answer
 
-
-def test_without_the_property_an_integer_key_is_what_the_type_says() -> None:
-    d = _decisions(_state([_customer(None)], [("customer", "CustomerNumber", 0.9)]))["Customer"]
-    assert (d.basis, d.pending, d.columns) == ("contested", True, ["Email"])
-
-
-def test_a_reference_to_a_technical_key_is_no_business_number() -> None:
-    person = SourceTable(table="Person", columns=[_col("PersonID", "int", True)],
-                         primary_key=["PersonID"])
-    order = SourceTable(
-        table="Booking", columns=[_col("PersonID", "int", False), _col("Code", "varchar(9)")],
-        primary_key=["PersonID"], unique_keys=[["Code"]],
-        foreign_keys=[ForeignKeyRef(columns=["PersonID"], references_table="Person",
-                                    references_columns=["PersonID"])],
-    )
-    assert _decisions(_state([person, order], [("booking", "PersonID", 0.9)])) == {}  # a subtype
+    state = _state([_customer(False)], [("customer", "CustomerNumber", 0.9)])
+    refused = check_key_answer(state, "Customer", ["CustomerNumber"], None)
+    assert refused is not None and refused.code == "reason_required"
+    why = "assigned by the branch, printed on every letter"
+    apply_key_decision(
+        state, {"keys": {"Customer": {"columns": ["CustomerNumber"], "reason": why}}})
+    d = _decisions(state)["Customer"]
+    assert (d.columns, d.basis, d.pending) == (["CustomerNumber"], "human", False)
 
 
 @pytest.mark.asyncio
-async def test_a_hub_on_an_agreed_business_number_is_not_disclosed_as_technical() -> None:
+async def test_that_hub_is_disclosed_with_the_humans_reason() -> None:
+    from vault_agent.agents.orchestrator import apply_key_decision
+
     state = _state([_customer(False)], [("customer", "CustomerNumber", 0.9)])
+    apply_key_decision(state, {"keys": {"Customer": {
+        "columns": ["CustomerNumber"], "reason": "assigned by the branch"}}})
     state.dv_model = DVModel(
         hubs=[Hub(name="hub_customer", business_key="CustomerNumber", source_entity="Customer",
                   description="c", requirement_ids=["REQ-001"])],
@@ -191,5 +202,6 @@ async def test_a_hub_on_an_agreed_business_number_is_not_disclosed_as_technical(
                               requirement_ids=["REQ-001"])],
     )
     result = await ValidatorAgent().run(state)
-    codes = {i.code for i in result.validation_report.issues}
-    assert "W_HUB_ON_TECHNICAL_KEY" not in codes and "E_HUB_KEY_NOT_AS_DECIDED" not in codes
+    issues = {i.code: i for i in result.validation_report.issues}
+    assert "E_HUB_KEY_NOT_AS_DECIDED" not in issues
+    assert "assigned by the branch" in issues["W_HUB_ON_TECHNICAL_KEY"].message

@@ -13595,3 +13595,27 @@ afterwards (two of three fail there). **Überprüft.** The browser run named abo
 model call). **Nur angenommen.** The page with several contested keys at once and on a small viewport. **Bewusst
 nicht getan.** No composite key in the form — the terminal takes it; C45's button rule and C52's checkbox wording
 stay as recorded.
+
+## [2026-11-14] WP127 built and measured: the catalogue says whether a column is generated — and a copy says „no" for every column, so the rule reads only „yes"
+
+**Autor:** Claude Code
+
+On the owner's go. Spec and guards first (seven red). **Read before writing the call:** SQLAlchemy 2.1.6 as
+installed — `ReflectedColumn.identity` and `.autoincrement` (`engine/interfaces.py`); PostgreSQL sets
+`autoincrement` from a `nextval` default on an integer or an identity (`dialects/postgresql/base.py`), SQL Server
+from `is_identity` (`dialects/mssql/base.py`), SQLite sets `False` for every column (`dialects/sqlite/base.py`).
+**Built:** `SourceColumn.generated` (omitted from the dump where unknown), read by `InspectorReader.columns`,
+written to the house file where known; `rules/key_decision.py` takes a generated column as technical whatever its
+type, and an exact numeric as technical by its type. **Measured, and the spec's rule 4 fell:** read from the local
+PostgreSQL copy of AdventureWorks all 601 columns are `generated: false` — the copy has no identities, as no landing
+zone has. The spec had made an integer key the catalogue calls not generated admissible where the requirements name
+it (a business number); on this catalogue that would have agreed `AddressTypeID`. Withdrawn before the commit; „not
+generated" is recorded and read by nothing; a business number takes a named answer with a reason. **Correction to
+ADR-0021's wording:** its consequence says the rule reads the type „until the reader delivers" the property — the
+type keeps deciding wherever the catalogue does not say *generated*, which is every copy and landing zone. On the
+real catalogue (PostgreSQL spellings) the rule contests the same six tables as on the datasets. Suite 1774 / 5
+skipped with no key reachable, ruff, bare mypy; no baseline moved. Manual 6.1 and 7.5, CHANGELOG. **Überprüft.**
+The reader against the live PostgreSQL catalogue (no row read); the `false` path there; the rule on that file.
+**Nur angenommen.** The `true` path on a real source — guarded on the reflected shapes of the three dialects, not
+run against a database with identities. **Bewusst nicht getan.** The AdventureWorks datasets are not regenerated;
+no reader for Oracle's or Db2's sequences without a default.

@@ -52,3 +52,28 @@ left as they are; the chain's decisions do not depend on it (every key WP125 con
 - **P3** on the local PostgreSQL copy of AdventureWorks, if reachable: the catalogue read by `source-schema` marks
   the identity and serial columns generated and the rest of the integer columns not generated; recorded with the
   counts, or as not measured with the reason.
+
+## 5 Measured (2026-11-14)
+
+- **P1 ✔.** Seven guards red at the spec's commit, three green by design; after the build ten guards green — not
+  the same ten: see rule 4.
+- **P3 measured, and it falsified rule 4.** The five AdventureWorks schemas read from the local PostgreSQL 16 copy
+  (`aw_source`, `source-schema` over `postgresql+psycopg2`): 68 tables, 601 columns — **`generated: false` on all
+  601, `true` on none.** The copy was loaded without identities, as a landing zone or a replica is; its 40
+  single-column integer primary keys are the original system's identities and the catalogue truthfully says this
+  database does not generate them. Under rule 4 each of them would have been admissible, and `AddressTypeID`,
+  which the requirements name first, *agreed* — the defect WP125 closes, through the back door.
+  **Rule 4 is withdrawn**: `generated: false` is recorded and carried, and no rule reads it. A business number the
+  database does not generate is keyed by a named answer with a reason (`--key`, `--key-reason`), and disclosed
+  with that reason; two guards pin that instead of the withdrawn rule's three.
+- **Changed while building:** an exact numeric (`decimal`, `numeric`, `number`) is technical by its type, like an
+  integer — the type an Oracle or Db2 identity sits on, where the catalogue is silent. Before, such a primary key
+  named first by the requirements would have been *agreed* as a column „whose type says nothing".
+- **Rules 1–3 and 5 as specified.** The reader: `identity` or `autoincrement: True` → generated; `False` → not
+  generated on PostgreSQL and SQL Server only; SQLite and every other dialect → unknown.
+- **The rule on the real catalogue** (PostgreSQL spellings, lower-case names), with the twenty-third chain's
+  candidates over all five schemas at once: 12 agreed (`Product=productnumber` among them), 1 natural primary key,
+  **6 contested** — the same six tables as on the datasets (WP125 §5).
+- **P2 ✔.** Suite with no key reachable 1774 passed / 5 skipped, ruff, bare mypy; no baseline moved.
+- **Not measured:** a source with identities read through the reader (SQL Server, or a PostgreSQL with serial
+  columns) — the `true` path is covered by the guards on the dialects' reflected shapes only; Oracle and Db2.

@@ -29,10 +29,12 @@ from vault_agent.state import (
 
 # The type decides, never the name (ADR-0019 §2 said it for the row GUID; ADR-0021 for the key).
 GUID_TYPES = frozenset({"uniqueidentifier", "uuid"})
-# Until the catalogue says whether a column is generated (WP127), an integer key is taken as
-# the source system's own: an identity, a sequence, a serial.
+# Where the catalogue does not say whether a column is generated (WP127), an exact numeric key
+# is taken as the source system's own: an identity, a sequence, a serial — an integer, or the
+# `numeric` / `number` an Oracle or Db2 identity sits on.
 INTEGER_TYPES = frozenset({
     "int", "integer", "bigint", "smallint", "tinyint", "serial", "bigserial", "smallserial",
+    "decimal", "numeric", "number",
 })
 CHARACTER_TYPES = frozenset({
     "char", "nchar", "varchar", "nvarchar", "text", "ntext", "string", "character", "bpchar",
@@ -52,33 +54,49 @@ def _column(table: SourceTable, name: str) -> SourceColumn | None:
     return next((c for c in table.column_refs if fold(c.name) == wanted), None)
 
 
+def _references_technical(
+    table: SourceTable, column: str, tables: Sequence[SourceTable],
+    _seen: frozenset[tuple[str, str]] = frozenset(),
+) -> bool:
+    """Is the column a single-column foreign key onto a technical column of another declared
+    table? A subtype's primary key is its supertype's. Cycle-safe."""
+    here = (fold(table.table), fold(column))
+    if here in _seen:
+        return False
+    by_name = {fold(t.table): t for t in tables}
+    for fk in table.foreign_keys:
+        if not fk.is_single_column or fold(fk.columns[0]) != here[1]:
+            continue
+        target = by_name.get(fold(fk.references_table))
+        if target is not None and target is not table and column_kind(
+            target, fk.references_columns[0], tables, _seen | {here}
+        ) == "technical":
+            return True
+    return False
+
+
 def column_kind(
     table: SourceTable, column: str, tables: Sequence[SourceTable],
     _seen: frozenset[tuple[str, str]] = frozenset(),
 ) -> ColumnKind:
     """Is this column a key the source system made up, one the business uses, or neither?
 
-    Technical: a GUID; a single-column foreign key onto a technical column of another table (a
-    subtype's primary key is its supertype's); an integer. Natural: a character column that is
-    none of these. Anything else — no declared type, a date, a decimal — is evidence for
-    neither."""
+    Technical: a GUID; a column the catalogue says is generated (WP127); a single-column
+    foreign key onto a technical column of another table; an exact numeric. Natural: a
+    character column that is none of these. Anything else — no declared type, a date, a
+    `hierarchyid` — is evidence for neither."""
     ref = _column(table, column)
     if ref is None:
         return "unknown"
     base = _type_base(ref.type)
-    if base in GUID_TYPES:
+    # WP127: a column the catalogue says is generated is technical whatever its type. The
+    # converse is NOT read: `generated: false` says only that THIS database does not generate
+    # the value — a landing zone, a replica or a data copy reports it for every column of a
+    # source whose keys are identities (measured on the AdventureWorks copy, 2026-11-14).
+    if base in GUID_TYPES or ref.generated is True:
         return "technical"
-    here = (fold(table.table), fold(column))
-    if here not in _seen:
-        by_name = {fold(t.table): t for t in tables}
-        for fk in table.foreign_keys:
-            if not fk.is_single_column or fold(fk.columns[0]) != here[1]:
-                continue
-            target = by_name.get(fold(fk.references_table))
-            if target is not None and target is not table and column_kind(
-                target, fk.references_columns[0], tables, _seen | {here}
-            ) == "technical":
-                return "technical"
+    if _references_technical(table, column, tables, _seen):
+        return "technical"
     if base in INTEGER_TYPES:
         return "technical"
     if base in CHARACTER_TYPES:
