@@ -165,6 +165,48 @@ class BusinessKeyCandidate(BaseModel):
     rationale: str
 
 
+# WP125 (ADR-0021): how a table's hub key was decided — never by the modeler.
+#   agreed              the requirements' first choice is a declared natural key
+#   natural_primary_key the primary key is itself a natural key and nothing argues for another
+#   contested           pending: a technical primary key against a declared natural key the
+#                       requirements did not choose — a question at the resolution checkpoint
+#   catalogue_default   a contested case answered in bulk: the declared natural key
+#   human               a named answer; a technical key carries the human's reason
+#   existing            a hub of the existing vault is built from the table; its key stands
+KeyBasis = Literal[
+    "agreed", "natural_primary_key", "contested", "catalogue_default", "human", "existing"
+]
+
+
+class KeyAnswer(BaseModel):
+    """A human's answer to a contested key (WP125): the columns, the reason a technical key
+    needs, and whether the bulk answer recorded the default rather than a named choice."""
+
+    columns: list[str]
+    reason: str | None = None
+    by_default: bool = False
+
+
+class KeyDecision(BaseModel):
+    """The key a hub built from one declared table is given (WP125, ADR-0021).
+
+    Derived, never stored: ``rules.key_decision.decide_keys`` recomputes it from the catalogue,
+    the key agent's candidates, the existing vault and ``VaultAgentState.key_answers``. While
+    ``pending`` the columns are the default the bulk answer would take."""
+
+    table: str
+    columns: list[str]
+    basis: KeyBasis
+    pending: bool = False
+    primary_key: list[str] = Field(default_factory=list)
+    primary_key_technical: bool = False
+    natural_keys: list[str] = Field(default_factory=list)
+    first_choice: str | None = None  # the requirements' best-scored candidate on this table
+    first_choice_score: float | None = None
+    reason: str | None = None
+    evidence: list[str] = Field(default_factory=list)
+
+
 class SourceColumn(BaseModel):
     """One declared source column, optionally carrying its type and documentation (WP9 §3.1).
 
@@ -1168,6 +1210,10 @@ class VaultAgentState(BaseModel):
     # grounding gate as `resolutions` — an existing model AND a declared schema — so
     # greenfield and ungrounded runs keep it empty and stay byte-identical.
     link_proposals: LinkProposals = Field(default_factory=LinkProposals)
+    # WP125 (ADR-0021): the human's answers to contested hub keys, by declared table name. The
+    # decisions themselves are derived (``rules.key_decision.decide_keys``); empty on every run
+    # whose catalogue contests nothing, so such a state is byte-identical.
+    key_answers: dict[str, KeyAnswer] = Field(default_factory=dict)
     # WP115: bridge paths proposed from the model's citations while the Business Vault is on;
     # empty otherwise, so a run without one keeps its review queue byte-identical.
     bridge_proposals: list[BridgeProposal] = Field(default_factory=list)

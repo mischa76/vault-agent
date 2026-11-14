@@ -258,7 +258,7 @@ is **single-slot**: one unfinished run per output directory (concurrent runs int
 `--out` are unsupported).
 
 **A paused run** (`phase: paused` — the HITL checkpoint). With **decision flags**
-(`--owner`, `--accept`, `--map`, `--mappings` — semantics in chapter 7) it applies the
+(`--owner`, `--accept`, `--map`, `--mappings`, `--link`, `--key` — semantics in chapter 7) it applies the
 decision and continues. With **no flags in a TTY** it loads the paused state, re-prints
 the review queue, and drives the checkpoint interactively; on a non-TTY it prints the
 flag instructions instead.

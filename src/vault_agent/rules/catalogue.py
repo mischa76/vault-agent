@@ -40,6 +40,15 @@ GATES: dict[str, str] = {
         "A hub of this increment is built from a declared table whose payload columns no "
         "satellite reads — the vault would silently drop them."
     ),
+    "E_HUB_KEY_NOT_AS_DECIDED": (
+        "A hub of this run is keyed on another column than the key decided for its table — "
+        "from the requirements and the declared unique keys, or by a human (ADR-0021); the "
+        "generated primary key is the usual case."
+    ),
+    "W_HUB_ON_TECHNICAL_KEY": (
+        "A hub is keyed on its table's technical primary key — no natural key is declared, or "
+        "a human chose it; a second source of the concept cannot be integrated by key."
+    ),
     "W_HUB_NO_SAT": (
         "A hub has no satellite: no descriptive data captured; fine for a pure reference hub."
     ),

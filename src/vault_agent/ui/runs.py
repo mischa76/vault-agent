@@ -32,6 +32,7 @@ from vault_agent.existing_model import (
 )
 from vault_agent.link_proposal import pending_link_decisions, proposal_key
 from vault_agent.profiling import load_profiling
+from vault_agent.rules.key_decision import pending_key_decisions
 from vault_agent.rules.naming import NamingProfile
 from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.source_schema import load_source_schemas
@@ -68,6 +69,19 @@ def _pending_links(state: VaultAgentState) -> list[dict[str, Any]]:
             "note": cli._link_category_note(p), "evidence": list(p.evidence),
         })
     return out
+
+
+def _pending_keys(state: VaultAgentState) -> list[dict[str, Any]]:
+    """The contested hub keys as the CLI prints them at the resolution checkpoint (WP125): the
+    table, the default the bulk answer takes, what else could be named, and the evidence."""
+    return [
+        {
+            "table": d.table, "default": list(d.columns), "primary_key": list(d.primary_key),
+            "natural_keys": list(d.natural_keys), "first_choice": d.first_choice,
+            "first_choice_score": d.first_choice_score, "evidence": list(d.evidence),
+        }
+        for d in pending_key_decisions(state)
+    ]
 
 
 def _pending_resolutions(state: VaultAgentState) -> list[dict[str, Any]]:
@@ -429,6 +443,7 @@ class RunManager:
             "phase": "resolution" if at_resolution else "signoff",
             "links": _pending_links(state) if at_resolution else [],
             "resolutions": _pending_resolutions(state) if at_resolution else [],
+            "keys": _pending_keys(state) if at_resolution else [],  # WP125
             "answers": list(RESOLUTION_ANSWERS),
             "blocked": queue.requires_signoff,
             "decisions": len(queue.decisions),
@@ -462,6 +477,7 @@ class RunManager:
         mappings: dict[str, str] | None = None,
         mapping_sources: dict[str, list[dict[str, str]]] | None = None,
         bridges: dict[str, bool] | None = None,
+        keys: dict[str, dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         meta = self.read(run_id)
         allowed = {"paused"} | (CONTINUABLE if discard else set())
@@ -499,12 +515,28 @@ class RunManager:
                 raise ValueError("cannot bind: " + "; ".join(errors))
             for stage, binding in bindings.items():
                 equivalent += ["--bind", format_bind(stage, binding)]
+        if keys:  # WP125: the CLI's --key / --key-reason, checked against the paused state first
+            answers: dict[str, dict[str, Any]] = {
+                table: {"columns": [str(c) for c in a.get("columns") or []],
+                        "reason": a.get("reason")}
+                for table, a in keys.items()
+            }
+            errors = cli._check_key_answers(state, answers)
+            if errors:
+                raise ValueError("cannot key: " + "; ".join(errors))
+            for table, key_answer in answers.items():
+                columns: list[str] = key_answer["columns"]
+                equivalent += ["--key", f"{table}={'+'.join(columns)}"]
+                if key_answer["reason"]:
+                    equivalent += ["--key-reason", f"{table}={key_answer['reason']}"]
+            keys = answers
         if accept:
             equivalent.append("--accept")
         decision = cli._build_decision(
             owner_specs, accept, mappings=mappings or None,
             mapping_sources=mapping_sources or None, resolutions=resolutions or None,
             links=links or None, bindings=bindings or None, bridges=bridges or None,
+            keys=keys or None,
         )
         phase = "resolution" if cli._paused_at_resolution(state) else "signoff"
         command = shlex.join(equivalent)

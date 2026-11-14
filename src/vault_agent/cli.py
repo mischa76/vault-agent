@@ -66,6 +66,7 @@ from vault_agent.models.contract import ContractOwner
 from vault_agent.profiling import load_profiling
 from vault_agent.report import build_report
 from vault_agent.rules.dv2_rules import normalize_identifier
+from vault_agent.rules.key_decision import pending_key_decisions
 from vault_agent.rules.naming import NamingProfile
 from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
 from vault_agent.source_schema import load_source_schemas
@@ -77,6 +78,7 @@ from vault_agent.state import (
     DVModel,
     EntityResolution,
     FlagKind,
+    KeyDecision,
     KeyLicense,
     LinkProposal,
     ProposedMapping,
@@ -986,6 +988,7 @@ def _build_decision(
     links: dict[str, bool] | None = None,
     bindings: dict[str, StageBinding] | None = None,
     bridges: dict[str, bool] | None = None,
+    keys: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     parsed: dict[str, dict[str, str | None]] = {}
     for spec in owners:
@@ -1006,7 +1009,47 @@ def _build_decision(
         # WP115: {"<path>": build it / decline it} over the proposed bridge paths — the same
         # applier for the flags, the prompt and the workbench (ADR-0007: ratified, never default).
         "bridges": bridges or {},
+        # WP125 (ADR-0021): {"<Table>": {"columns": [...], "reason": str | None}} — the answers
+        # to contested hub keys; what is left unanswered takes the declared natural key.
+        "keys": keys or {},
     }
+
+
+def _parse_key_answers(
+    key: list[str] | None, key_reason: list[str] | None
+) -> dict[str, dict[str, Any]]:
+    """``--key "Table=Column[+Column]"`` and ``--key-reason "Table=text"`` as the decision's
+    ``keys`` payload (WP125). A reason without its ``--key`` is a usage error: it would be
+    recorded for a key nobody chose."""
+    answers: dict[str, dict[str, Any]] = {}
+    for spec in key or []:
+        table, sep, columns = spec.partition("=")
+        names = [c.strip() for c in columns.split("+") if c.strip()]
+        if not sep or not table.strip() or not names:
+            raise ValueError(f"--key expects 'Table=Column[+Column]', got {spec!r}")
+        answers[table.strip()] = {"columns": names, "reason": None}
+    for spec in key_reason or []:
+        table, sep, reason = spec.partition("=")
+        if not sep or not table.strip() or not reason.strip():
+            raise ValueError(f"--key-reason expects 'Table=text', got {spec!r}")
+        if table.strip() not in answers:
+            raise ValueError(
+                f"--key-reason names {table.strip()!r}, but no --key answers that table"
+            )
+        answers[table.strip()]["reason"] = reason.strip()
+    return answers
+
+
+def _check_key_answers(state: VaultAgentState, answers: dict[str, dict[str, Any]]) -> list[str]:
+    """The refusals of :func:`rules.key_decision.check_key_answer`, as sentences (WP125)."""
+    from vault_agent.rules.key_decision import check_key_answer
+
+    errors: list[str] = []
+    for table, answer in answers.items():
+        error = check_key_answer(state, table, answer["columns"], answer["reason"])
+        if error is not None:
+            errors.append(error.message)
+    return errors
 
 
 # --- WP12: interactive checkpoint prompt (UI-track stage 1.5) -----------------------------
@@ -1053,6 +1096,7 @@ def _has_decision_flags(
     bind: list[str] | None = None,
     bridge: list[str] | None = None,
     no_bridge: list[str] | None = None,
+    key: list[str] | None = None,
 ) -> bool:
     """True when ``resume`` was given any explicit decision — flags win, no prompt is shown."""
     return (
@@ -1067,6 +1111,7 @@ def _has_decision_flags(
         or bool(bind)
         or bool(bridge)
         or bool(no_bridge)
+        or bool(key)
     )
 
 
@@ -1249,11 +1294,13 @@ def _interactive_checkpoint(
         links: dict[str, bool]
         bindings: dict[str, StageBinding]
         bridges: dict[str, bool]
+        keys: dict[str, dict[str, Any]] = {}
         try:
             if at_resolution:
                 owners, overrides, bindings, bridges = [], {}, {}, {}
                 resolutions = _collect_resolution_decision(console, state)
                 links = _collect_link_decision(console, state)
+                keys = _collect_key_decision(console, state)  # WP125
                 confirm = "Ratify the remaining proposal(s) as shown and build the model?"
             else:
                 owners, overrides = _collect_decision(console, state)
@@ -1275,7 +1322,8 @@ def _interactive_checkpoint(
             return state
 
         decision = _build_decision(
-            owners, True, overrides, {}, resolutions, links, bindings, bridges=bridges
+            owners, True, overrides, {}, resolutions, links, bindings, bridges=bridges,
+            keys=keys,
         )
         state, paused = asyncio.run(_resume_pipeline(out, thread_id, decision, trace))
         _print_summary(console, state)
@@ -1381,6 +1429,56 @@ def _collect_link_decision(console: Console, state: VaultAgentState) -> dict[str
             answers[key] = answer
         elif not answer:
             answers[key] = False
+    return answers
+
+
+def _print_pending_key(console: Console, decision: KeyDecision) -> None:
+    """One contested hub key with its evidence (WP125) — shared by the pause report and the
+    prompt, so both show the same thing."""
+    console.print(
+        f"  [yellow]{decision.table}[/yellow] → key [cyan]{'+'.join(decision.columns)}[/cyan] "
+        f"[dim](the declared natural key; primary key {'+'.join(decision.primary_key)})[/dim]"
+    )
+    for line in decision.evidence:
+        console.print(f"    [dim]{line}[/dim]")
+
+
+def _collect_key_decision(
+    console: Console, state: VaultAgentState
+) -> dict[str, dict[str, Any]]:
+    """Walk the contested hub keys, collecting a named answer where the human gives one (WP125).
+
+    Capability-parity with ``--key`` / ``--key-reason``: the same strings, the same check, the
+    same ``_build_decision`` → ``apply_key_decision`` path. Enter keeps the default — the
+    declared natural key — which the confirm that follows records. A refused answer is said
+    and dropped, so the default stands; nothing here can produce the technical key without a
+    reason."""
+    from vault_agent.rules.key_decision import check_key_answer, pending_key_decisions
+
+    answers: dict[str, dict[str, Any]] = {}
+    for decision in pending_key_decisions(state):
+        _print_pending_key(console, decision)
+        answer = _prompter.text(
+            console,
+            f"Key for {decision.table!r} (Column or Column+Column; Enter keeps "
+            f"{'+'.join(decision.columns)})",
+        ).strip()
+        if not answer:
+            continue
+        columns = [c.strip() for c in answer.split("+") if c.strip()]
+        reason: str | None = None
+        error = check_key_answer(state, decision.table, columns, None)
+        if error is not None and error.code == "reason_required":
+            console.print(f"    [yellow]{error.message}[/yellow]")
+            reason = _prompter.text(console, f"Reason for {decision.table!r}").strip() or None
+            error = check_key_answer(state, decision.table, columns, reason)
+        if error is not None:
+            console.print(
+                f"    [red]{error.message}[/red] — not applied; "
+                f"{'+'.join(decision.columns)} stands"
+            )
+            continue
+        answers[decision.table] = {"columns": columns, "reason": reason}
     return answers
 
 
@@ -1602,6 +1700,7 @@ def _paused_at_resolution(state: VaultAgentState) -> bool:
     return state.modeling_attempts == 0 and bool(
         pending_resolution_decisions(state.resolutions)
         or pending_link_decisions(state.link_proposals)
+        or pending_key_decisions(state)  # WP125: a contested hub key pauses the same node
     )
 
 
@@ -1648,6 +1747,23 @@ def _report_paused_at_resolution(
                 f"[cyan]{target}[/cyan] "
                 f"[dim]({_link_category_note(link_proposal)})[/dim]"
             )
+    # WP125 (ADR-0021): the contested hub keys — a technical primary key against a declared
+    # natural key the requirements did not choose. Their own section: a run can pause for them
+    # alone.
+    keys = pending_key_decisions(state)
+    if keys:
+        console.print(
+            f"\n[bold yellow]{len(keys)} hub key(s) are contested.[/bold yellow] Each table "
+            f"declares a natural key the requirements did not name first; unanswered, the hub "
+            f"is keyed on the natural key shown:"
+        )
+        for key_decision in keys:
+            _print_pending_key(console, key_decision)
+        console.print(
+            f"\n  [cyan]vault-agent resume --out {out} --key \"<Table>=<Column>\"[/cyan]   "
+            "(key one hub otherwise; the technical primary key needs "
+            "--key-reason \"<Table>=<why>\")"
+        )
     console.print(
         "\n  [cyan]vault-agent resume --out "
         f"{out} --resolve \"<concept>=<construct>\"[/cyan]  (decide one; repeat per concept)\n"
@@ -1940,6 +2056,8 @@ def _resume_paused(
     bind: list[str] | None = None,
     bridge: list[str] | None = None,
     no_bridge: list[str] | None = None,
+    key: list[str] | None = None,
+    key_reason: list[str] | None = None,
 ) -> None:
     """Answer the HITL checkpoint of a paused run — the flag path and the WP12 prompt.
 
@@ -1956,7 +2074,7 @@ def _resume_paused(
     if (
         not _has_decision_flags(
             owner, accept, mappings, map_, resolutions, resolve, link, no_link, bind,
-            bridge, no_bridge,
+            bridge, no_bridge, key,
         )
         and write
         and _is_interactive(interactive)
@@ -1998,9 +2116,16 @@ def _resume_paused(
         # WP115: as for links, an explicit --no-bridge wins over --bridge for the same path.
         bridge_answers: dict[str, bool] = {spec: True for spec in bridge or []}
         bridge_answers.update({spec: False for spec in no_bridge or []})
+        # WP125: a key answer is checked against the paused state before anything resumes —
+        # an unknown table or column, or the technical key without its reason, is refused here.
+        key_answers = _parse_key_answers(key, key_reason)
+        if key_answers:
+            errors = _check_key_answers(asyncio.run(_paused_state(out, thread_id)), key_answers)
+            if errors:
+                raise ValueError("cannot key:\n  " + "\n  ".join(errors))
         decision = _build_decision(
             owner or [], accept, overrides, multi, ratified, link_answers, bindings,
-            bridges=bridge_answers,
+            bridges=bridge_answers, keys=key_answers,
         )
     except (ValueError, OSError) as exc:
         console.print(f"[bold red]{exc}[/bold red]")
@@ -2123,6 +2248,22 @@ def resume(
             help="Decline a proposed bridge: its path (WP115).",
         ),
     ] = None,
+    key: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--key",
+            help="Key a hub whose key is contested: 'Table=Column' or 'Table=Column+Column' "
+                 "(WP125); unanswered, it takes the declared natural key.",
+        ),
+    ] = None,
+    key_reason: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--key-reason",
+            help="Why a --key answer is the technical primary key, or columns the source does "
+                 "not declare unique: 'Table=reason' (WP125); recorded in the ADR.",
+        ),
+    ] = None,
     trace: Annotated[
         bool,
         typer.Option(
@@ -2228,7 +2369,7 @@ def resume(
         pending = {"thread_id": thread_id, "input": str(input_path)}
         if not _has_decision_flags(
             owner, accept, mappings, map_, resolutions, resolve, link, no_link, bind,
-            bridge, no_bridge,
+            bridge, no_bridge, key,
         ):
             if write and _is_interactive(interactive):
                 state = _interactive_checkpoint(console, out, thread_id, state, trace)
@@ -2242,6 +2383,7 @@ def resume(
         owner=owner, accept=accept, mappings=mappings, map_=map_,
         resolutions=resolutions, resolve=resolve, link=link, no_link=no_link, bind=bind,
         bridge=bridge, no_bridge=no_bridge,  # WP115
+        key=key, key_reason=key_reason,  # WP125
         trace=trace, interactive=interactive, write=write,
     )
 

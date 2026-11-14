@@ -36,6 +36,7 @@ from vault_agent.state import (
     FlagKind,
     Hub,
     HubSource,
+    KeyAnswer,
     KeyLicense,
     LinkProposal,
     PipelineFlag,
@@ -731,6 +732,49 @@ def apply_link_decision(state: VaultAgentState, decision: Any) -> list[str]:
             )
             proposal.ratification_status = "overridden" if inferred else "accepted"
             decided.append(key)
+    return decided
+
+
+def apply_key_decision(state: VaultAgentState, decision: Any) -> list[str]:
+    """Apply a human's answers to the contested hub keys (WP125, ADR-0021); returns the tables
+    decided, in the catalogue's spelling.
+
+    ``decision["keys"]`` is ``{"<Table>": {"columns": [...], "reason": str | None}}``. An
+    answer that :func:`rules.key_decision.check_key_answer` refuses is not applied — the CLI
+    and the workbench refuse it before anything resumes; this is the same check on the path
+    that has no such front door. **Every key still contested afterwards takes its default, the
+    declared natural key** — with ``accept`` and without it: the human saw the question at
+    this pause, and a resume that answers something else must not leave the key to the
+    modeler's discretion again, which is the defect this decision exists to close. The default
+    is never the technical key."""
+    from vault_agent.rules.key_decision import (
+        canonical_answer,
+        check_key_answer,
+        pending_key_decisions,
+    )
+
+    answers = decision.get("keys", {}) if isinstance(decision, dict) else {}
+    if not isinstance(answers, dict):
+        answers = {}
+    decided: list[str] = []
+    for name, answer in answers.items():
+        if not isinstance(answer, dict):
+            continue
+        columns = [str(c) for c in answer.get("columns") or []]
+        reason = answer.get("reason")
+        reason = str(reason).strip() if isinstance(reason, str) and reason.strip() else None
+        error = check_key_answer(state, str(name), columns, reason)
+        if error is not None:
+            logger.warning("key answer ignored — %s", error.message)
+            continue
+        table, spelled = canonical_answer(state, str(name), columns)
+        state.key_answers[table] = KeyAnswer(columns=spelled, reason=reason)
+        decided.append(table)
+    for pending in pending_key_decisions(state):
+        state.key_answers[pending.table] = KeyAnswer(
+            columns=list(pending.columns), by_default=True
+        )
+        decided.append(pending.table)
     return decided
 
 

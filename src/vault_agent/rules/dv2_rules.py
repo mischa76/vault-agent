@@ -296,6 +296,32 @@ DV_MODELING_RULES = [
         "ratified resolver merge all present. Resolution answers \"is this concept the existing "
         "one\"; nothing asked whether the RELATIONSHIP should span domains",
     ),
+    SteeringRule(
+        id="decided_key_is_given",
+        text="If the input contains `decided_keys`, each entry is a decision already taken — "
+        "from the requirements and the source's declared unique keys, or by a human — and not "
+        "a suggestion: a hub whose source_entity is that table is keyed on exactly those "
+        "columns, never on another column of the table and in particular not on its generated "
+        "primary key; the ranked `business_keys` matter only for tables no entry names",
+        origin="WP125 / ADR-0021 (2026-11-14), C63: on the twenty-third chain the modeler keyed "
+        "hub_product on ProductID in its first attempt, against REQ-001 and a candidate score "
+        "of 0.95 for ProductNumber — the key was a preference it weighed. Gated by "
+        "E_HUB_KEY_NOT_AS_DECIDED; the gate is the guarantee, this line saves the attempt",
+    ),
+    SteeringRule(
+        id="reference_attaches_by_translation",
+        text="A relation that carries only a reference to another table's primary key — a "
+        "price history holding a product id while the product hub is keyed on the product "
+        "number — still attaches to that hub: name it as the satellite's source_table, or "
+        "build the link from it, as usual. Where the source declares the foreign key, staging "
+        "joins the hub's key in through it; the hub's key column need not exist in such a "
+        "relation, and a hub is never re-keyed to make its referencing relations fit",
+        origin="WP125 / ADR-0021 (2026-11-14), C63: the modeler's own reason for the surrogate "
+        "was that every referencing relation carries only ProductID — `masat_source_table` "
+        "demands the parent's key column in the relation, and nothing told the modeler that "
+        "ADR-0013's translation (WP36/WP38/WP40) attaches such a relation. The drafted arm of "
+        "2026-10-30 did it unprompted and every gate was green",
+    ),
 ]
 
 # Ablation seam (WP16 §2.2). Module-level, mirroring llm.set_usage_recorder: the harness

@@ -101,6 +101,14 @@ class ConsoleQuestion(BaseModel):
     text: str
 
 
+class KeyAnswerBody(BaseModel):
+    """WP125: one answer to a contested hub key — `--key Table=Column[+Column]` and its
+    `--key-reason`."""
+
+    columns: list[str]
+    reason: str | None = None
+
+
 class Decision(BaseModel):
     accept: bool = False
     discard: bool = False
@@ -113,6 +121,9 @@ class Decision(BaseModel):
     mappings: dict[str, str] = Field(default_factory=dict)
     mapping_sources: dict[str, list[dict[str, str]]] = Field(default_factory=dict)
     bridges: dict[str, bool] = Field(default_factory=dict)  # WP115: --bridge / --no-bridge
+    # WP125 (ADR-0021): --key / --key-reason, by declared table; unanswered contested keys take
+    # the declared natural key.
+    keys: dict[str, KeyAnswerBody] = Field(default_factory=dict)
 
 
 def create_app(root: Path, static: Path | None = None) -> FastAPI:
@@ -410,6 +421,7 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
                 bindings=body.bindings, mappings=body.mappings,  # WP82
                 mapping_sources=body.mapping_sources,
                 bridges=body.bridges,  # WP115
+                keys={t: a.model_dump() for t, a in body.keys.items()},  # WP125
             )
         except (ProjectError, ValueError) as exc:
             if isinstance(exc, ProjectError):

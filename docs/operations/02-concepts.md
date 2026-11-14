@@ -5,7 +5,9 @@
 Data Vault separates *what identifies* a business object from *what describes* it and
 from *how objects relate*. A **hub** holds exactly one business concept, identified by
 its **business key** — the stable, business-recognised natural identifier (an account
-number, a national customer id), never a system surrogate. A **link** records a
+number, a national customer id), never a system surrogate (since WP125 the key is decided
+from the requirements and the source's declared unique keys before the modeler runs, and a
+hub on a technical key is refused or disclosed — 7.5, ADR-0021). A **link** records a
 relationship between two or more hubs and nothing else. A **satellite** hangs off one
 hub or link and carries the descriptive, changing attributes — historised, so every
 state the source ever showed is preserved.

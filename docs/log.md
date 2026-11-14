@@ -13494,3 +13494,66 @@ each, in order both pass; the fifth chain project gains six passing tests, `PASS
 Manual 9.4 and CHANGELOG (Added). **Nur angenommen.** The Databricks rendering of the tests — AutomateDV's macros,
 not built there. **Bewusst nicht getan.** (c), an own effectivity model; no repair automation. **On the way:** the
 scratchpad copy of my baseline script was gone; continued from the copy on vault-dev.
+
+## [2026-11-14] Candidate C63 recorded and ADR-0021 accepted — the modeler keys hubs on the source's generated primary key against the requirement and the ranked candidates; the key is taken out of its discretion
+
+**Autor:** Claude Code
+
+On the owner's question whether the tool takes a column for a business key because it carries an id (a
+practitioner's public objection to agent-built vaults). **Found, from what is stored, at no cost.** The twenty-third
+chain's final model (`20261031T032606335763Z`) keys 29 of 40 hubs on a single column ending in `ID`; of the 35 hubs on
+their table's primary key, 19 sit on a table whose catalogue declares another unique, non-GUID key. The trace of the
+production step: the key agent ranked `ProductNumber` 0.95 and `ProductID` 0.15, the modeler saw exactly that, and its
+**first** attempt (no validation issue before it) keyed `hub_product` on `ProductID` — in its own words because every
+referencing relation carries only `ProductID`; five more hubs of that step went to the id where `Name` led the
+candidates. The twenty-second chain (2026-10-30) did the same. **Why:** the prompt says to *prefer* the higher-scored
+candidate; the criterion that a business key is preferred over a surrogate reaches only the key agent
+(`BUSINESS_KEY_CRITERIA` is injected in `business_key_identifier.py` alone); `masat_source_table` demands the parent's
+key column in a satellite's own relation; and the words translation and surrogate do not occur in the modeler's
+system prompt. **Counter-sample:** the drafted arm of 2026-10-30, same model and the same rules block, keyed
+`hub_product` on `ProductNumber` and hung its history satellites on the referencing tables; the translation carried
+them. **History:** the 4.x chains had `hub_product` on the product number (entries of 2026-08-12 and 2026-10-04);
+the first 5.5 chain's `link_translation` 1 against 9–11 (2026-10-09) was this change, recorded as a lower review
+load. **Corrections to earlier entries.** (1) 2026-10-30, the C1 experiment, and ADR-0019 say the analyst's
+documents had lost the natural keys: for the product they had not — `REQ-001` of the production document, unchanged
+since 2026-07-29, calls the product number the natural business key. The loss was the modeler's. (2) The 5.5 review
+record's decision counts (83–95) were measured on surrogate-keyed hubs, which need no translation; „the lowest on
+any model" is partly that. **Decided** on the owner's go: ADR-0021 (the key is decided from evidence before the
+modeler; a gate; the contested key a question whose default is the natural key), a note appended to ADR-0013 (its
+caveat came true; a translation over a declared key becomes a disclosure), WP125–WP128. **Überprüft.** The two
+traces, the stored models, the catalogue's declared keys, the requirements file's history (`git log --follow`), the
+modeler's system prompt as sent. **Nur angenommen.** That the model generation is the cause — no 4.x trace is on
+this machine; that the steering line alone tips it — an ablation, paid. **Bewusst nicht getan.** No paid run; no
+change to the shipped demo yet (it carries the surrogate keys until a chain under ADR-0021 regenerates it).
+
+## [2026-11-14] WP125 built and measured (keyless): a hub's key is decided from evidence before the modeler — the rule, the given key, the gate, the question at the resolution checkpoint (C63, ADR-0021)
+
+**Autor:** Claude Code
+
+On the owner's go. Spec and guards first (`a5f6070`, 25 red). **Built:** `rules/key_decision.py` — `decide_keys`,
+pure and recomputed where it is read, so no node was added: per declared table, from the key agent's candidates and
+the catalogue's declared single-column unique keys; a column is technical by its type (a GUID, an integer, a
+reference onto a technical key), never by its name. *Agreed* (the requirements' first choice is a declared unique
+key that is not technical), *natural primary key* (a code stays), *contested* (a technical primary key against a
+declared natural key the requirements did not name first). The modeler's payload carries `decided_keys` when there
+are any, with two registered steering lines (`decided_key_is_given`, `reference_attaches_by_translation`). The
+validator refuses a hub of this run keyed otherwise (`E_HUB_KEY_NOT_AS_DECIDED`, with a remedy) and discloses a hub
+on a technical primary key (`W_HUB_ON_TECHNICAL_KEY`). The resolution checkpoint pauses on a contested key;
+`resume --key "Table=Column[+Column]"` answers it, `--key-reason` is required for the technical key or undeclared
+columns, and **whatever a resume leaves unanswered takes the declared natural key**. The workbench's API takes and
+shows the keys (parity guard); its page is WP126. The proposed ADR lists the decided keys with their basis.
+**Measured (spec §5):** suite 1760 / 5 skipped with no key reachable, ruff, bare mypy, `vault_agent.ui` coverage
+95 %; no baseline moved but the steering fixture. **The replay:** the stored first attempt of the twenty-third
+chain's production step is refused on six hubs (`hub_product` → `ProductNumber`; category, subcategory, model,
+location, scrap reason → `Name`). **The count:** with that chain's candidates the rule takes 19 decisions over the
+five steps — 11 agreed, 2 natural primary keys, **6 contested** (`AddressType`, `ContactType`, `StateProvince`,
+`ShipMethod`, `SalesTerritory`, `CreditCard`). **Narrowed while building** (spec §5): a subtype table gets no
+decision (`Vendor` would have been a seventh question for a hub nobody builds, and WP50 owns that shape); a first
+choice whose type says nothing is admissible (AdventureWorks stores `AS` for computed columns); a refused `--key`
+exits 1 like a refused `--bind`. **Überprüft.** Keyless only: the rule, the gate against a real stored model, the
+checkpoint through CLI functions and the API with stub agents. **Nur angenommen.** That the 5.5 modeler follows a
+given key in its first attempt, and that the gates stay green on a chain with natural keys throughout — the drafted
+arm of 2026-10-30 is the only evidence, on another document. **Bewusst nicht getan.** No paid run (it follows
+WP128, pre-registered); inferred keys as evidence — a catalogue without declared keys gets no decision; composite
+natural keys are never chosen by the rule; no re-keying of an existing hub; no release cut (output-changing: a
+minor, the owner's call).

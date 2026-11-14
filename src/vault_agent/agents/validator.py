@@ -61,6 +61,13 @@ from vault_agent.rules.dv2_rules import (
     unread_payload,
     zero_key_incapable_type,
 )
+from vault_agent.rules.key_decision import (
+    basis_phrase,
+    column_kind,
+    fold,
+    given_keys,
+    key_remedy,
+)
 from vault_agent.state import (
     Hub,
     IssueSeverity,
@@ -570,6 +577,7 @@ class ValidatorAgent(BaseAgent):
         issues.extend(self._check_cross_construct(state))
         issues.extend(self._check_additive_extension(state))
         issues.extend(self._check_source_grounding(state))
+        issues.extend(self._check_key_decisions(state))
         issues.extend(self._check_artifact_columns(state.artifacts.automatedv_yaml))
 
         errors = [issue for issue in issues if issue.severity == "error"]
@@ -1000,6 +1008,71 @@ class ValidatorAgent(BaseAgent):
                 )
             )
 
+        return issues
+
+    @staticmethod
+    def _check_key_decisions(state: VaultAgentState) -> list[ValidationIssue]:
+        """WP125 (ADR-0021): a hub's key is the decided one, and a technical key is disclosed.
+
+        Inert without a declared schema, and for every table the rule decides nothing about.
+        Hubs of the vault being extended are not judged — an existing hub is never re-keyed."""
+        if not state.source_schemas:
+            return []
+        tables = {fold(t.table): t for t in state.source_schemas}
+        decided = {fold(d.table): d for d in given_keys(state)}
+        pre_existing = _pre_existing_names(state)
+        issues: list[ValidationIssue] = []
+        for hub in state.dv_model.hubs:
+            if hub.name in pre_existing:
+                continue
+            entity = fold(hub.source_entity or "")
+            table = tables.get(entity)
+            if table is None:
+                continue
+            if hub.sources:
+                feed = next(
+                    (src for src in hub.sources if fold(src.source_table) == entity), None
+                )
+                if feed is None:
+                    continue
+                actual = [feed.business_key_column]
+            else:
+                actual = list(hub.business_key_columns) or [hub.business_key]
+            decision = decided.get(entity)
+            # E_HUB_KEY_NOT_AS_DECIDED: the key was decided from the requirements and the
+            # catalogue's declared keys (or by a human) and given to the modeler; a hub on
+            # another column — the generated primary key is the case C63 measured — is refused.
+            # A gate, not a backstop: re-keying changes what the hub's satellites must carry.
+            if decision is not None and [fold(c) for c in actual] != [
+                fold(c) for c in decision.columns
+            ]:
+                issues.append(_issue(
+                    "error", "E_HUB_KEY_NOT_AS_DECIDED", hub.name,
+                    f"hub {hub.name!r} is keyed on {', '.join(actual)}, but the key of "
+                    f"{table.table} is decided: {', '.join(decision.columns)} — "
+                    f"{basis_phrase(decision)} ({'; '.join(decision.evidence)})",
+                    remedy=key_remedy(hub.name, actual, decision),
+                ))
+                continue
+            # W_HUB_ON_TECHNICAL_KEY: a disclosure. The hub sits on a key the source system
+            # made up — because the table declares no natural one, or because a human chose
+            # it. It loads correctly and cannot integrate a second source system by key.
+            pk = table.primary_key
+            if len(pk) == 1 and [fold(c) for c in actual] == [fold(pk[0])] and column_kind(
+                table, pk[0], state.source_schemas
+            ) == "technical":
+                why = (
+                    f"chosen by a human over the declared natural key "
+                    f"{', '.join(decision.natural_keys)}: {decision.reason}"
+                    if decision is not None and decision.reason
+                    else f"{table.table} declares no natural key"
+                )
+                issues.append(_issue(
+                    "warning", "W_HUB_ON_TECHNICAL_KEY", hub.name,
+                    f"hub {hub.name!r} is keyed on {pk[0]}, {table.table}'s technical primary "
+                    f"key — {why}; it identifies a row in this source system only, so a second "
+                    f"source of the same concept cannot be integrated by key",
+                ))
         return issues
 
     @staticmethod

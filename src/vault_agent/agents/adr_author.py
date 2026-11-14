@@ -41,6 +41,7 @@ from datetime import date
 
 from vault_agent.agents.base import BaseAgent
 from vault_agent.rules.dv2_rules import canonical_hub_key_column
+from vault_agent.rules.key_decision import basis_phrase, given_keys
 from vault_agent.state import (
     DVModel,
     FlagKind,
@@ -97,6 +98,28 @@ def _hub_line(hub: Hub) -> str:
         f"- **{hub.name}** — business key `{hub.business_key}`. {hub.description}"
         f"{integration} _(requirements: {_ids(hub.requirement_ids)})_"
     )
+
+
+def _key_decisions_section(state: VaultAgentState) -> list[str]:
+    """WP125 (ADR-0021): how each decided hub key came about — the basis, the requirements'
+    first choice, and a human's reason for a technical key. Empty when nothing was decided, so
+    an ungrounded or key-less run's ADR is byte-identical."""
+    decided = given_keys(state)
+    if not decided:
+        return []
+    lines = ["", f"### Hub keys decided before modelling ({len(decided)})", ""]
+    for d in decided:
+        first = (
+            f"; the requirements' first choice was `{d.first_choice}` "
+            f"({d.first_choice_score:.2f})"
+            if d.first_choice is not None and d.first_choice_score is not None else ""
+        )
+        reason = f" Reason given: {d.reason}" if d.reason else ""
+        lines.append(
+            f"- **{d.table}** — key `{'+'.join(d.columns)}`: {basis_phrase(d)}{first}; "
+            f"primary key `{'+'.join(d.primary_key)}`.{reason}"
+        )
+    return lines
 
 
 def _link_line(link: Link) -> str:
@@ -356,6 +379,7 @@ class AdrAuthorAgent(BaseAgent):
         lines += ["", f"### Satellites ({len(sats)})", ""]
         lines += [_sat_line(sat) for sat in sats]
 
+        lines += _key_decisions_section(state)
         lines += _mappings_section(state.mappings)
         extends = _extends_section(state)
         if extends:

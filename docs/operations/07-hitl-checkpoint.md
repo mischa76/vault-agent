@@ -96,6 +96,8 @@ vault-agent resume --owner "customer=Jane Doe <jane@bank.example>" \
 | `--bridge "<path>"` | yes | WP115: builds one proposed bridge path (`hub,link,hub[,link,hub…]`, a role as `hub:role`; 9.7) — or names one the run did not propose, if the model parses it and the run has as-of bounds. Unanswered proposals are **declined** at `--accept`: a bridge is Business Vault logic the human ratifies (ADR-0007), never a default |
 | `--no-bridge "<path>"` | yes | Declines one proposed bridge path; wins over `--bridge` for the same one |
 | `--link "Table.*"` / `--no-link "Table.*"` | yes | Ratifies or declines the **relationship-table** link proposed for a whole table (WP37) — one decision per table, not per key |
+| `--key "Table=Column"` / `--key "Table=Column+Column"` | yes | WP125 (ADR-0021): keys the hub built from one declared table where the key is **contested** (below). A declared natural key needs nothing more; the technical primary key, or columns the source does not declare unique, need `--key-reason`. Checked before anything resumes — an unknown table or column, or a missing reason, is refused and nothing is applied |
+| `--key-reason "Table=why"` | yes | The reason for a `--key` answer that is not a declared natural key; recorded in the proposed ADR and in the `W_HUB_ON_TECHNICAL_KEY` disclosure. Without its `--key` it is a usage error |
 | `--resolve "concept=answer"` | yes | Ratifies one entity resolution (WP29): `answer` is an existing construct's name, `NEW`, `same_as_candidate` or `unresolved` |
 | `--resolutions <file>` | no | Ratifies an edited `resolutions.review.yml` wholesale (WP29) |
 | `--accept` | — | Signs off and proceeds past the checkpoint; ratifies every pending proposal and license whose key the catalogue **declares**, and declines (`overridden`, on the record) every one **inferred from data** that no `--link` named (WP99, ADR-0018 §4) |
@@ -169,6 +171,27 @@ without foreign keys never pauses. A license also repairs role-qualified partici
 takes the key when it is its hub's only participation in the link, or the key whose column its role
 names (`component` → `ComponentID`). An unqualified participation beside another of the same hub is
 never repaired — which key it means is not in the catalogue.
+
+**Since WP125, a hub's key is decided before the modeler runs, and a contested one is asked here**
+(ADR-0021). The key agent ranks candidates from the requirements; the source catalogue declares
+keys. `rules/key_decision.py` puts the two together per declared table: where the requirements'
+first choice is a declared unique key that is not technical, that is the key (*agreed*); where the
+primary key is itself a natural key — a code, a character column — it stays (*natural primary
+key*); and the modeler is **given** these keys, it does not weigh them (`E_HUB_KEY_NOT_AS_DECIDED`
+refuses a deviation, 8.2). A key is **contested** when the primary key is technical — an integer
+or a GUID; the type decides, never the column's name —, the table declares a natural key, and the
+requirements did not name it first. The resolution checkpoint pauses on those and prints each with
+its evidence: the requirements' first choice and its score, the declared natural keys, the
+primary key, and any composite unique key. **Unanswered, a contested hub is keyed on the declared
+natural key** — with `--accept`, in the terminal on Enter, and equally when a resume answers
+something else and says nothing about the key; the default is never the technical key. Keying the
+hub on its technical primary key takes `--key "Table=Column"` with `--key-reason`, and the reason
+goes into the proposed ADR. A table without a declared natural key gets no decision — the modeler
+chooses as before, and a hub that lands on a technical primary key is disclosed
+(`W_HUB_ON_TECHNICAL_KEY`). Not asked about: a table whose primary key references another table (a
+subtype — whether it has a hub at all is the resolver's question), a table an existing hub is
+built from (its key stands), and any catalogue that declares no keys. The proposed ADR lists every
+decided key with its basis under *Hub keys decided before modelling*.
 
 **`--accept` ratifies link proposals too.** That matters for unattended runs: an automated
 resume accepts every foreign-key-derived link without anyone reading it. Decline individually

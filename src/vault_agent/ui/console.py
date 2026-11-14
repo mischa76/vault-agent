@@ -15,6 +15,7 @@ from vault_agent.agents.orchestrator import ReviewItem, assemble_review_queue
 from vault_agent.link_proposal import pending_link_decisions, proposal_key
 from vault_agent.rules.catalogue import FLAGS, GATES
 from vault_agent.rules.dv2_rules import active_modeling_rules
+from vault_agent.rules.key_decision import pending_key_decisions
 from vault_agent.state import Link, VaultAgentState
 
 Kind = str  # "answer" | "help" | "unknown" | "unavailable"
@@ -107,6 +108,8 @@ class Console:
         self.pending_resolutions = (
             pending_resolution_decisions(state.resolutions) if self.at_resolution else []
         )
+        # WP125: the contested hub keys, pending at the same pause.
+        self.pending_keys = pending_key_decisions(state) if self.at_resolution else []
 
     # ----- dispatch --------------------------------------------------------------------------
     def answer(self, text: str) -> ConsoleAnswer:
@@ -191,6 +194,11 @@ class Console:
                 lines.append(f"- {proposal_key(link)} ({type(link).__name__})")
             for res in self.pending_resolutions:
                 lines.append(f"- {res.concept}: proposed {res.resolution}")
+            for key in self.pending_keys:  # WP125
+                lines.append(
+                    f"- hub key of {key.table}: {'+'.join(key.columns)} unless answered "
+                    f"(--key; the primary key {'+'.join(key.primary_key)} needs --key-reason)"
+                )
             lines.append("The queue below is sign-off's; its owner decisions are answered there.")
         for n, item in enumerate(items, 1):
             if which == "decisions" and item.role != "decision":

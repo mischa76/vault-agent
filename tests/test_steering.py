@@ -56,6 +56,9 @@ def test_rendered_rules_are_byte_identical_to_pre_wp16() -> None:
     # WP31 `attribute_one_satellite` (2026-07-30) added, for the E_SAT_ATTR_OVERLAP class
     # ADR-0012 keeps as an error. WP57 `repair_not_redraft` (2026-10-09) added: the retry
     # carries the previous model and the line tells the modeler to repair it, not redraw.
+    # WP125 `decided_key_is_given` and `reference_attaches_by_translation` (2026-11-14, C63,
+    # ADR-0021) added: the hub key is given, and a relation holding only a reference attaches
+    # by translation — the modeler had keyed hub_product on ProductID to make them fit.
     # The pre-WP16 block remains a byte-identical prefix — a deletion of a rule ADDED
     # after WP16 cannot disturb it, which is exactly why the pin is written that way, and
     # each addition above was verified to preserve the prefix while regenerating.

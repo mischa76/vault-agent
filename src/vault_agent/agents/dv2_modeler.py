@@ -34,6 +34,7 @@ from vault_agent.rules.dv2_rules import (
     normalize_identifier,
     source_table_on_multi_source_hub,
 )
+from vault_agent.rules.key_decision import given_keys
 from vault_agent.state import DVModel, FlagKind, Hub, Link, Satellite, VaultAgentState
 
 logger = logging.getLogger(__name__)
@@ -492,6 +493,16 @@ class Dv2ModelerAgent(BaseAgent):
             "requirements": [req.model_dump() for req in state.requirements],
             "business_keys": [bk.model_dump() for bk in state.business_keys],
         }
+        # WP125 (ADR-0021): the keys decided from the requirements and the catalogue's declared
+        # keys are GIVEN — the modeler does not weigh them (C63: it keyed hub_product on
+        # ProductID against a candidate score of 0.95). Absent when nothing is decided, so an
+        # ungrounded or key-less run's payload is byte-identical.
+        decided = given_keys(state)
+        if decided:
+            payload["decided_keys"] = [
+                {"source_entity": d.table, "business_key": list(d.columns), "basis": d.basis}
+                for d in decided
+            ]
         # On a retry the validator has populated issues; feed the *blocking* ones back
         # so the model converges instead of repeating the same mistakes. Warnings are
         # advisory for humans, not steering input — sending them dilutes the correction

@@ -15,6 +15,16 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- **Output-changing: a hub's key is decided before the modeler runs** (WP125, C63, ADR-0021). From the key
+  agent's candidates and the source catalogue's declared unique keys: where the requirements' first choice is a
+  declared unique key, that is the key; a primary key that is itself a code stays. The modeler is given the key,
+  and a new gate, `E_HUB_KEY_NOT_AS_DECIDED`, refuses a hub keyed otherwise. Where a technical primary key stands
+  against a declared natural key the requirements did not name first, the resolution checkpoint asks
+  (`resume --key "Table=Column"`, with `--key-reason` for the technical key); unanswered, the hub takes the natural
+  key. A hub on a technical key is disclosed (`W_HUB_ON_TECHNICAL_KEY`). Before, the 5.5 models keyed most hubs on
+  the source's generated primary key — `hub_product` on `ProductID` against a requirement that names the product
+  number. A model regenerated on a catalogue with declared keys gets other hub keys and more translated stages
+  (manual 7.5, 8.2, 9); an existing vault's hubs are never re-keyed. Without declared keys nothing changes.
 - Effectivity satellites in a generated project come with two dbt tests each — at most one open relationship per
   driving key, no record ending before it starts — and a README note that batches must be loaded in load order
   (WP124, C62). AutomateDV's effectivity satellite assumes that order; loaded in reverse it left two owners open.

@@ -33,10 +33,15 @@ from typing import Any, Protocol, cast
 from langgraph.types import interrupt
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.agents.orchestrator import apply_link_decision, apply_resolution_decision
+from vault_agent.agents.orchestrator import (
+    apply_key_decision,
+    apply_link_decision,
+    apply_resolution_decision,
+)
 from vault_agent.link_proposal import pending_link_decisions
 from vault_agent.llm import call_with_truncation_split, decoded_field
 from vault_agent.rules.dv2_rules import normalize_identifier, resolution_category
+from vault_agent.rules.key_decision import pending_key_decisions
 from vault_agent.state import (
     RESOLUTION_CLASSES,
     RESOLUTION_SAME_AS,
@@ -562,13 +567,18 @@ class ResolutionCheckpointAgent(BaseAgent):
         # delta the decision it would inform has already been made.
         pending = pending_resolution_decisions(state.resolutions)
         pending_links = pending_link_decisions(state.link_proposals)
-        if not pending and not pending_links:
+        # WP125 (ADR-0021): a contested hub key is decided here for the same reason — the
+        # modeler is GIVEN the key, so the question has to be answered before it runs.
+        pending_keys = pending_key_decisions(state)
+        if not pending and not pending_links and not pending_keys:
             return state
 
         logger.info(
-            "resolution checkpoint: %d resolution(s) and %d link(s) await a decision",
+            "resolution checkpoint: %d resolution(s), %d link(s) and %d hub key(s) await a "
+            "decision",
             len(pending),
             len(pending_links),
+            len(pending_keys),
         )
         # No state mutation above this line — see the class docstring.
         decision = interrupt(
@@ -576,25 +586,32 @@ class ResolutionCheckpointAgent(BaseAgent):
                 "checkpoint": "resolution",
                 "pending": [p.model_dump() for p in pending],
                 "pending_links": [p.model_dump() for p in pending_links],
+                "pending_keys": [p.model_dump() for p in pending_keys],
                 "instructions": (
                     "Decide these before the model is built: resume with "
                     "vault-agent resume --resolve \"<concept>=<construct>\", an edited "
                     "resolutions.review.yml via --resolutions, --link \"<Table>.<Column>\" "
-                    "to build a proposed link (--no-link to decline it), or --accept to "
-                    "ratify everything as proposed."
+                    "to build a proposed link (--no-link to decline it), --key "
+                    "\"<Table>=<Column>\" to key a hub (a technical key needs --key-reason), "
+                    "or --accept to ratify everything as proposed — a contested hub key then "
+                    "takes the declared natural key."
                 ),
             }
         )
         decided = apply_resolution_decision(state, decision)
         decided_links = apply_link_decision(state, decision)
-        state.decisions.append(
-            {
-                "agent": "resolution_checkpoint",
-                "pending": len(pending),
-                "decided": len(decided),
-                "pending_links": len(pending_links),
-                "decided_links": len(decided_links),
-                "steering": len(pending_resolution_decisions(state.resolutions)) < len(pending),
-            }
-        )
+        decided_keys = apply_key_decision(state, decision)
+        record: dict[str, Any] = {
+            "agent": "resolution_checkpoint",
+            "pending": len(pending),
+            "decided": len(decided),
+            "pending_links": len(pending_links),
+            "decided_links": len(decided_links),
+            "steering": len(pending_resolution_decisions(state.resolutions)) < len(pending),
+        }
+        if pending_keys:
+            # Only when a key was contested: every other run's record is byte-identical.
+            record["pending_keys"] = len(pending_keys)
+            record["decided_keys"] = len(decided_keys)
+        state.decisions.append(record)
         return state

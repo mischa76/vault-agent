@@ -83,3 +83,39 @@ to the pause that asks.
 - **P5** an ungrounded run and a grounded run whose catalogue declares no unique keys: no decision, no pause, the
   modeler's payload byte-identical to today's.
 - **Not in this WP:** a paid chain. It follows WP128, pre-registered on its own.
+
+## 5 Measured (2026-11-14, keyless)
+
+- **P1 ✔.** 25 guards red at `a5f6070` (4 green by design: they pin what must not change), 36 green after — seven
+  added while building (the ADR section, the terminal's report and prompt, the API).
+- **P2 ✔.** Suite with no key reachable 1760 passed / 5 skipped, ruff, bare mypy; `vault_agent.ui` coverage 95 %.
+  Changed deliberately: the steering fixture (19 → 21 lines, the earlier block a byte-identical prefix), the gate
+  count in the README (37 → 38) and the manual's chapter 8, the two parity guards (`test_wp82_parity.py`,
+  `test_build_decision_collects_owners`: the decision payload gains `keys`). **No other baseline moved** — no
+  raw-vault, staging, contract, report or ADR fixture.
+- **P3 ✔ exactly.** The stored first attempt of the twenty-third chain's production step is refused on six hubs —
+  `hub_product` (decided `ProductNumber`) and category, subcategory, model, location, scrap reason (decided `Name`) —
+  each with a remedy naming the decided key; the other nine pass.
+- **P4 ✔, six.** With the twenty-third chain's candidates over the five steps the rule takes 19 decisions: 11
+  *agreed* (`Product=ProductNumber`; `Department`, `Shift`, `Location`, `ProductCategory`, `ProductModel`,
+  `ProductSubcategory`, `ScrapReason` on `Name`; `Culture`, `Currency`, `Document` on their own primary key), 2
+  *natural primary key* (`CountryRegion`, `UnitMeasure`), and **6 contested**: `AddressType`, `ContactType`,
+  `StateProvince`, `ShipMethod`, `SalesTerritory` (default `Name`) and `CreditCard` (default `CardNumber`).
+- **P5 ✔.** Guards: no decision, no pause and today's payload without a schema and on a catalogue without a natural
+  key; the checkpoint leaves such a state untouched.
+
+**Narrowed and changed while building** (the rules of §2 as built, where they differ from the text above):
+
+- **A subtype table gets no decision** — a table whose single-column primary key is a declared foreign key onto
+  another table (`Employee`, `Vendor`). Whether it has a hub at all is the resolver's question and WP50's gate; a
+  second remedy on the same hub would contradict theirs. Without this `Vendor` was a seventh contested table for a
+  hub no chain builds.
+- **The requirements' first choice may name a declared unique key whose type says nothing** (*agreed*): a computed
+  column the catalogue stores as `AS`, a `hierarchyid`, an untyped file. Only a technical column is excluded. A
+  **contest** still needs a column known to be natural, and a single-column primary key known to be technical; a
+  composite primary key is never contested.
+- **Every resume takes the default for a key it does not name**, not only `--accept` — a resume that answers a link
+  and says nothing about the key must not hand the key back to the modeler.
+- **A refused `--key` exits 1**, as a refused `--bind` does (WP82), not 2.
+- **Not measured:** any live run — the modeler has not yet been given a decided key by this code; the workbench's
+  form (the API takes and shows the keys, the page does not yet); Databricks.

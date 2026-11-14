@@ -51,6 +51,8 @@ RESUME = {
     "bind": ("bindings",),
     "bridge": ("bridges",),  # WP115
     "no_bridge": ("bridges",),
+    "key": ("keys",),  # WP125: a contested hub key, by declared table
+    "key_reason": ("keys",),
     "discard": ("discard",),
     "out": PROCESS,
     "write": PROCESS,

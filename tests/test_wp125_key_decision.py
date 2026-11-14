@@ -89,7 +89,9 @@ def _bk(entity: str, field: str, score: float) -> BusinessKeyCandidate:
     return BusinessKeyCandidate(entity=entity, field=field, score=score, rationale="r")
 
 
-def _state(tables: list[SourceTable], keys: list[BusinessKeyCandidate], **kw: Any) -> VaultAgentState:
+def _state(
+    tables: list[SourceTable], keys: list[BusinessKeyCandidate], **kw: Any
+) -> VaultAgentState:
     return VaultAgentState(
         source_schemas=tables, business_keys=keys,
         requirements=[ParsedRequirement(id="REQ-001", text="t", category="functional")], **kw,
@@ -133,15 +135,21 @@ def test_a_primary_key_that_is_a_code_stays_without_a_question() -> None:
 
 
 def test_a_table_without_a_declared_natural_key_gets_no_decision() -> None:
-    assert _decisions(_state([WORK_ORDER, COST_HISTORY], [_bk("work order", "WorkOrderID", 0.7)])) == {}
+    state = _state([WORK_ORDER, COST_HISTORY], [_bk("work order", "WorkOrderID", 0.7)])
+    assert _decisions(state) == {}
 
 
-def test_a_subtypes_primary_key_is_technical_and_the_national_id_is_agreed() -> None:
-    d = _decisions(_state([PERSON, EMPLOYEE], [_bk("employee", "NationalIDNumber", 0.85),
-                                               _bk("employee", "BusinessEntityID", 0.7)]))
-    assert "Person" not in d
-    assert (d["Employee"].columns, d["Employee"].basis) == (["NationalIDNumber"], "agreed")
-    assert d["Employee"].natural_keys == ["NationalIDNumber", "LoginID"]
+def test_a_subtype_table_gets_no_decision() -> None:
+    # Narrowed while building (spec §5): a table whose primary key references another table is
+    # identified through its supertype; whether it has a hub at all is the resolver's question
+    # and WP50's gate, and a second remedy on the same hub would contradict theirs.
+    from vault_agent.rules.key_decision import column_kind, natural_keys
+
+    tables = [PERSON, EMPLOYEE]
+    assert column_kind(EMPLOYEE, "BusinessEntityID", tables) == "technical"
+    assert natural_keys(EMPLOYEE, tables) == ["NationalIDNumber", "LoginID"]
+    assert _decisions(_state(tables, [_bk("employee", "NationalIDNumber", 0.85),
+                                      _bk("employee", "BusinessEntityID", 0.7)])) == {}
 
 
 def test_a_nullable_unique_column_is_no_natural_key() -> None:
@@ -159,10 +167,15 @@ def test_a_candidate_is_matched_by_a_column_only_its_table_declares() -> None:
         ["SalesOrderNumber"], "agreed")
 
 
-def test_an_untyped_catalogue_decides_nothing() -> None:
+def test_an_untyped_catalogue_agrees_with_the_requirements_and_never_contests() -> None:
+    # Changed while building (spec §5): a declared unique key the requirements name first is
+    # two-sided evidence even where the type says nothing (AdventureWorks stores `AS` for the
+    # computed AccountNumber and SalesOrderNumber). A contest needs a column known to be natural.
     bare = SourceTable(table="Product", columns=["ProductID", "ProductNumber"],
                        primary_key=["ProductID"], unique_keys=[["ProductNumber"]])
-    assert _decisions(_state([bare], [_bk("product", "ProductNumber", 0.95)])) == {}
+    d = _decisions(_state([bare], [_bk("product", "ProductNumber", 0.95)]))["Product"]
+    assert (d.columns, d.basis, d.pending) == (["ProductNumber"], "agreed", False)
+    assert _decisions(_state([bare], [_bk("other", "x", 0.9)])) == {}
 
 
 def test_a_table_an_existing_hub_is_built_from_keeps_that_hubs_key() -> None:
@@ -205,7 +218,8 @@ def test_the_technical_key_needs_a_reason_and_carries_it() -> None:
     state = _contested()
     error = check_key_answer(state, "AddressType", ["AddressTypeID"], None)
     assert error is not None and error.code == "reason_required"
-    assert check_key_answer(state, "AddressType", ["AddressTypeID"], "the name is renamed yearly") is None
+    why = "the name is renamed yearly"
+    assert check_key_answer(state, "AddressType", ["AddressTypeID"], why) is None
     apply_key_decision(state, {"keys": {"AddressType": {
         "columns": ["AddressTypeID"], "reason": "the name is renamed yearly"}}})
     d = _decisions(state)["AddressType"]
@@ -441,3 +455,172 @@ def test_the_cli_parses_a_key_answer_and_its_reason() -> None:
         "AddressType": {"columns": ["AddressTypeID"], "reason": "the name is renamed yearly"},
         "StateProvince": {"columns": ["StateProvinceCode", "CountryRegionCode"], "reason": None},
     }
+
+
+# --- the record ----------------------------------------------------------------------------
+
+
+def test_the_proposed_adr_lists_the_decided_keys_and_a_humans_reason() -> None:
+    from vault_agent.agents.adr_author import _key_decisions_section
+    from vault_agent.agents.orchestrator import apply_key_decision
+
+    candidates = [_bk("product", "ProductNumber", 0.95), _bk("address type", "AddressTypeID", 0.6)]
+    state = _state([PRODUCT, ADDRESS_TYPE, WORK_ORDER], candidates)
+    apply_key_decision(state, {"keys": {"AddressType": {
+        "columns": ["AddressTypeID"], "reason": "the name is renamed yearly"}}})
+    text = "\n".join(_key_decisions_section(state))
+    assert "### Hub keys decided before modelling (2)" in text
+    assert "**Product** — key `ProductNumber`" in text and "(0.95)" in text
+    assert "**AddressType** — key `AddressTypeID`" in text
+    assert "Reason given: the name is renamed yearly" in text
+    plain = _state([WORK_ORDER], [_bk("work order", "WorkOrderID", 0.7)])
+    assert _key_decisions_section(plain) == []
+
+
+# --- the terminal ---------------------------------------------------------------------------
+
+
+class _Answers:
+    def __init__(self, texts: list[str]) -> None:
+        self.texts = texts
+        self.asked: list[str] = []
+
+    def text(self, console: Any, message: str) -> str:
+        self.asked.append(message)
+        return self.texts.pop(0) if self.texts else ""
+
+    def confirm(self, console: Any, message: str, *, default: bool = False) -> bool:
+        return default
+
+
+def _console() -> tuple[Any, Any]:
+    import io
+
+    from rich.console import Console
+
+    buffer = io.StringIO()
+    return Console(file=buffer, width=200, force_terminal=False), buffer
+
+
+def test_the_pause_report_names_the_contested_key_and_how_to_answer(tmp_path: Path) -> None:
+    from vault_agent import cli
+
+    state = _contested()
+    assert cli._paused_at_resolution(state) is True
+    console, buffer = _console()
+    cli._report_paused_at_resolution(console, tmp_path, state)
+    text = buffer.getvalue()
+    assert "1 hub key(s) are contested" in text and "AddressType" in text and "Name" in text
+    assert "--key" in text and "--key-reason" in text
+
+
+def test_the_prompt_keeps_the_default_on_enter_and_asks_the_reason_for_the_technical_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from vault_agent import cli
+
+    console, buffer = _console()
+    monkeypatch.setattr(cli, "_prompter", _Answers([""]))
+    assert cli._collect_key_decision(console, _contested()) == {}
+    asks = _Answers(["AddressTypeID", "the name is renamed yearly"])
+    monkeypatch.setattr(cli, "_prompter", asks)
+    assert cli._collect_key_decision(console, _contested()) == {
+        "AddressType": {"columns": ["AddressTypeID"], "reason": "the name is renamed yearly"}}
+    assert len(asks.asked) == 2 and "Reason" in asks.asked[1]
+    monkeypatch.setattr(cli, "_prompter", _Answers(["AddressTypeID", ""]))
+    assert cli._collect_key_decision(console, _contested()) == {}  # no reason: refused, default
+    monkeypatch.setattr(cli, "_prompter", _Answers(["Colour"]))
+    assert cli._collect_key_decision(console, _contested()) == {}
+    assert "not applied" in buffer.getvalue()
+
+
+def test_a_reason_without_its_key_and_a_malformed_key_are_usage_errors() -> None:
+    from vault_agent.cli import _check_key_answers, _parse_key_answers
+
+    with pytest.raises(ValueError, match="no --key answers"):
+        _parse_key_answers([], ["AddressType=why"])
+    with pytest.raises(ValueError, match="Table=Column"):
+        _parse_key_answers(["AddressType"], [])
+    errors = _check_key_answers(_contested(), _parse_key_answers(["AddressType=AddressTypeID"], []))
+    assert len(errors) == 1 and "--key-reason" in errors[0]
+
+
+# --- the workbench's API (its form is WP126) -------------------------------------------------
+
+
+def _agents_with_a_contested_key() -> dict[str, object]:
+    from tests.test_cli import _sqlite_stub_agents
+    from vault_agent.agents.entity_resolver import ResolutionCheckpointAgent
+
+    agents = _sqlite_stub_agents(block_signoff=True)
+    proposer = agents["link_proposer"]
+    inner = proposer.run  # type: ignore[attr-defined]
+
+    async def propose(state: VaultAgentState) -> Any:
+        if not any(t.table == "AddressType" for t in state.source_schemas):
+            state.source_schemas.append(ADDRESS_TYPE.model_copy(deep=True))
+        return await inner(state)
+
+    proposer.run = propose  # type: ignore[attr-defined]
+    agents["resolution_checkpoint"] = ResolutionCheckpointAgent()  # the real pause
+    return agents
+
+
+@pytest.fixture
+def api(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Any:
+    from fastapi.testclient import TestClient
+
+    from vault_agent import cli
+    from vault_agent.graph import build_graph
+    from vault_agent.ui.app import create_app
+
+    monkeypatch.setattr(cli, "build_graph", lambda: build_graph(_agents_with_a_contested_key()))
+    return TestClient(create_app(tmp_path / "projects"))
+
+
+def _paused_run(api: Any) -> dict[str, Any]:
+    from tests.test_wp66_workbench_api import _project_with_inputs
+
+    pid = _project_with_inputs(api)
+    run = api.post(f"/api/projects/{pid}/runs?wait=true",
+                   json={"requirements": "req.md", "schema": "schema.yml"}).json()
+    assert run["status"] == "paused", run
+    return dict(run)
+
+
+def test_the_api_pauses_for_the_contested_key_and_shows_it(api: Any) -> None:
+    run = _paused_run(api)
+    cp = api.get(f"/api/runs/{run['id']}/checkpoint").json()
+    assert cp["phase"] == "resolution"
+    [key] = cp["keys"]
+    assert (key["table"], key["default"], key["primary_key"]) == (
+        "AddressType", ["Name"], ["AddressTypeID"])
+    assert key["natural_keys"] == ["Name"] and key["evidence"]
+    items = api.post(f"/api/runs/{run['id']}/console", json={"text": "items"}).json()["text"]
+    assert "hub key of AddressType" in items and "--key-reason" in items
+
+
+def test_the_api_refuses_the_technical_key_without_a_reason_and_takes_it_with_one(api: Any) -> None:
+    run = _paused_run(api)
+    refused = api.post(f"/api/runs/{run['id']}/checkpoint?wait=true",
+                       json={"keys": {"AddressType": {"columns": ["AddressTypeID"]}}})
+    assert refused.status_code == 400 and "cannot key" in refused.json()["detail"]
+    assert api.get(f"/api/runs/{run['id']}/checkpoint").json()["phase"] == "resolution"
+    taken = api.post(
+        f"/api/runs/{run['id']}/checkpoint?wait=true",
+        json={"keys": {"AddressType": {"columns": ["AddressTypeID"], "reason": "renamed yearly"}},
+              "accept": True})
+    assert taken.status_code == 200, taken.text
+    command = taken.json()["cli_equivalents"][-1]
+    assert "--key AddressType=AddressTypeID" in command and "--key-reason" in command
+    cp = api.get(f"/api/runs/{run['id']}/checkpoint").json()
+    assert cp["phase"] == "signoff" and cp["keys"] == []
+
+
+def test_the_api_bulk_answer_takes_the_natural_key(api: Any) -> None:
+    run = _paused_run(api)
+    r = api.post(f"/api/runs/{run['id']}/checkpoint?wait=true", json={"accept": True})
+    assert r.status_code == 200 and r.json()["status"] == "paused"
+    assert r.json()["cli_equivalents"][-1].endswith("--accept")
+    cp = api.get(f"/api/runs/{run['id']}/checkpoint").json()
+    assert cp["phase"] == "signoff" and cp["keys"] == []
