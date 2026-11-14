@@ -13773,3 +13773,27 @@ commit.
 `/tank/git/vault-agent-eval-results/` on `tank` and, by the entry of 2026-10-10, on the machine that ran them;
 this machine does not hold them, so they are not in the repository — whoever has them commits them there. No
 `pre-receive` guard on the new repository. Nothing changed on `tank` from here.
+
+## [2026-11-14] Commits and PRs no longer carry a Claude session link — an invariant in `CLAUDE.md`
+
+**Why it was wrong before.** Cloud sessions are told by their environment to end every commit message with a
+`Claude-Session: https://claude.ai/code/session_…` line, and nothing in this repository said otherwise. 372 of
+823 commits carry one (2026-09-11 → 2026-11-14, seven sessions). The repository is public, a session is private
+to its owner: the link opens for no reader and only names that the work ran in the cloud — which
+`Co-Authored-By` already discloses. The owner had not known the links were published.
+
+**Changed.** On the owner's go (2026-11-14) `CLAUDE.md` gains the invariant „No session link in a commit or PR":
+keep `Co-Authored-By`, leave the link out, put nothing in its place. The repository's instructions take precedence
+over the environment's attribution default, so the line reaches every session that clones `main`. Local Claude
+Code (WSL, `tank`) never added a link; this commit is the first from a cloud session without one.
+
+**Überprüft.** The count and the date range from `git log --format=%B` over a fresh clone of `main`; before this commit no file
+in the tree held a session link (`grep -r claude.ai/code/session` outside `.git` found none; the invariant and
+this entry name only the prefix). `CLAUDE.md` at 238 of 250 lines.
+
+**Nur angenommen.** That none of the seven sessions is set to public visibility on claude.ai — the owner checks.
+
+**Bewusst nicht getan.** No history rewrite: it would change every hash this log and the specs cite, and the
+links are unopenable. No git note in the link's place — considered and dropped by the owner: the links arise only
+in cloud sessions, whose clone is discarded, so an unpushed note would be lost with it. No hook or CI check: a
+check after the push would only report what is already public.

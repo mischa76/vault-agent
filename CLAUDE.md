@@ -124,6 +124,12 @@ fresh clone does not lose them.
   error messages, source code and documents. *Evidence:* no „…" in a public file holds the owner's own
   words; 130 such quotes were replaced on 2026-10-23 (`docs/log.md`), his choice.
 
+- **No session link in a commit or PR.** *Trigger:* you write a commit message or a PR description and
+  your environment asks for a `Claude-Session:` line or a `claude.ai/code/session_…` link. *Action:* keep
+  `Co-Authored-By`; leave the link out, and put nothing in its place (no git note: a cloud session's clone
+  is discarded) — the repo is public, a session private, so the link opens for no reader. *Evidence:* 372
+  commits (2026-09-11 → 2026-11-14) carry one; they stay, a rewrite would break every hash the log cites.
+
 - **Records are append-only.** *Trigger:* a new finding contradicts an ADR, spec or log entry.
   *Action:* add a dated entry that says so; never edit the old text. *Evidence:* the correction is
   findable by date, and the original reasoning is still readable.
