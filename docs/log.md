@@ -13619,3 +13619,45 @@ The reader against the live PostgreSQL catalogue (no row read); the `false` path
 **Nur angenommen.** The `true` path on a real source — guarded on the reflected shapes of the three dialects, not
 run against a database with identities. **Bewusst nicht getan.** The AdventureWorks datasets are not regenerated;
 no reader for Oracle's or Db2's sequences without a default.
+
+## [2026-11-14] Pre-registration for the twenty-sixth chain run — the first under ADR-0021 (WP125–WP128): the hub keys are decided before the modeler; written before the run
+
+**Autor:** Claude Code
+
+On the owner's go (2026-11-14; the paid chain was the last step of the proposal he approved). **Setup.**
+`uv run python -m eval.run --dataset adventureworks_incremental --repeat 1` at the commit carrying this entry; the
+authored requirements documents and the derived schemas of `eval/datasets/adventureworks_*`; Sonnet 5.5 / Opus 5.5
+by default; the harness resumes every pause with `accept` and no owners, so **every contested key takes its default,
+the declared natural key, unread** — the configuration the record has always had for proposals. Prices as verified
+2026-10-09. Code since the twenty-third (2026-10-31, `ba7e20b`): WP105–WP124 as listed on 2026-11-05 and after, and
+WP125 (the key rule, `decided_keys`, the gate, the question), WP127 (generated columns; inert here — the derived
+schemas do not carry the property), WP128 (a declared translation is a disclosure).
+
+**Audited first, at no cost** (the stored chains, today): the gate refuses the twenty-third chain's stored first
+attempt on six hubs (WP125 §5); the drafted arm's five stored models — hubs on natural keys, built by the same
+modeler — pass the rule and the gate with 19 agreed decisions and **no refusal**.
+
+**P1 — all five steps green** (`validation_gate` 1.0 on each). The risk named: the modeler is given keys for the
+first time, and a natural-key vault needs the translations ADR-0013 built — the drafted arm was green on them once.
+**P2 — the keys are the decided ones.** No `E_HUB_KEY_NOT_AS_DECIDED` survives into a step's final report;
+`hub_product` is keyed on `ProductNumber`; every hub whose table has a given decision carries that key. The gate's
+fires within attempts are counted from the step reports and traces: predicted **at most 2 over the chain** — the
+steering line is meant to save the attempt. **P3 — hubs on a single column ending in `ID`: 15 ± 3** of the final
+model's hubs (the twenty-third: 29 of 40) — what remains are tables that declare no natural key, each disclosed by
+`W_HUB_ON_TECHNICAL_KEY` (predicted 12–18 such disclosures in the fifth step's report). **P4 — the contested keys:**
+at most 8 over the chain; with the twenty-third's candidates they would be `AddressType`, `ContactType`,
+`StateProvince`, `ShipMethod`, `SalesTerritory`, `CreditCard` — the key agent's ranking varies per run, so the set
+is recorded, not predicted; none of their hubs ends on the technical key. **P5 — translations return:** at least 20
+`link_translation` / `sat_translation` flags over the chain (the twenty-third: next to none); every one over a
+declared key is a disclosure. **Translation decisions remain only for homonyms** — a relation with a `Name` of its
+own that references a hub keyed on `Name` is exactly WP89's case — predicted 3 to 12 keys, counted. **P6 — review
+decisions: recorded as the first sample of a new product generation, not judged.** Expected 85–105 (the
+twenty-third's 95, less WP108's 7 generator flags, plus the homonym keys of P5). The harness will print WP34 §6's
+review clause against the second generation's record at run time; **that verdict is not this chain's** — the
+boundary (`REVIEW_GENERATIONS`, „WP125–WP128, decided keys") is set in the docs commit with the chain's stamp, as
+WP104 did. **P7 — cost ≤ 6.5 USD and ≤ 35 min** (the twenty-third: 4.36 USD, 24.6 min; more attempts are possible
+with a new gate). **Not predicted:** attempts per step, the shapes, the number of hubs and links, which reference
+tables the modeler hubs at all. **If P1 fails:** the traces are read before any second run (the invariant), and a
+red step on the new gate after three attempts is a finding about the steering, recorded as such. **Afterwards,
+keyless, as far as it goes today:** the fifth project parsed and built on the local PostgreSQL copy — recorded as
+done or as not done with the reason; a wrong-data finding there restarts criterion 2's count.
