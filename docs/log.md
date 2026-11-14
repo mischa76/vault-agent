@@ -13719,3 +13719,23 @@ source schemas. **Nur angenommen.** That the two system rows are WP86's zero key
 `hub_product` (`-1`, `-2`, record source `SYSTEM`), inferred for the rest from the count. **Bewusst nicht getan.**
 No second chain; the shipped demo is not regenerated (the owner's build, or a decision to ship this chain's
 projects); C64 not traced; no release cut. Results mirrored to `tank` with this commit.
+
+## [2026-11-14] Correction — the twenty-sixth chain's results are NOT mirrored to `tank`: its `git` user refuses `rsync` now; they exist on this machine only
+
+**Autor:** Claude Code
+
+The chain's entry of today ends „Results mirrored to `tank` with this commit". They were not. `rsync -a
+eval/results/ tank:/tank/git/vault-agent-eval-results/` — the skill's command, which worked on 2026-10-31 — is
+answered with `fatal: unrecognized command 'rsync --server …'`: the `git` account on `tank` runs a shell that
+accepts git commands only. Tried with the access this session has (`~/.ssh/config` knows one host, `tank`, one
+user, `git`): `scp` and `sftp` are closed the same way; `git ls-remote tank:/tank/git/wiki.git` works, so the
+route and the key are fine; no repository exists at `/tank/git/vault-agent-eval-results.git` and that account
+cannot create one. **What exists:** `eval/results/adventureworks_incremental/20261114T075106294006Z-*` (the chain
+file, five step files with models and review files, the trace) and, copied out of the session's scratchpad so that
+they survive it, `eval/results/kept-outputs/adventureworks_incremental/20261114T075106294006Z/` — the five kept
+projects without dbt's `target/`, the two build logs, the harness's console log and the catalogue WP127 read from
+PostgreSQL. All git-ignored, one copy, this machine. The built schema `chain26` is left in the local database
+`vault`. **Open, the owner's:** how the evidence gets its second copy — `rsync` allowed again for that account, or
+a repository for the results. Until then every measurement entry since this one cites files that have no mirror.
+**Überprüft.** The four commands above and their answers. **Bewusst nicht getan.** No other host tried — none is
+configured here; nothing changed on `tank`.
