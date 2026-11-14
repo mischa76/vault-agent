@@ -13824,3 +13824,16 @@ mirror of the same two machines, not compared file by file.
 **Bewusst nicht getan.** The plain directory on `tank` and ZEUS's `.vault-agent/results-zeus-old` are not
 removed — the owner's. ZEUS's scan of its 858 files (no key, no password) is that session's word, not re-run
 here; the files do not go to GitHub either way.
+
+## [2026-11-15] Correction — the former `rsync` mirror on `tank` and ZEUS's set-aside directory are both removed
+
+Corrects the entry above („The results repository on `tank` holds every run since 2026-07-08"), which lists both
+as kept. **Changed:** the owner removed the plain directory `/tank/git/vault-agent-eval-results/` on `tank` and
+ZEUS's `.vault-agent/results-zeus-old` (2026-11-15). The skill's section now says the repository is the only copy
+besides the working machines' clones.
+
+**Überprüft.** On ZEUS `.vault-agent/results-zeus-old` no longer exists and `eval/results` is the repository at
+`5ca1e07` with 2526 files, nothing ahead of `origin/master`. **Nur angenommen.** The removal on `tank` — the
+owner's report; this machine has no shell there. **Bewusst nicht getan, and now no longer possible:** the mirror
+was never compared file by file with the repository. Runs that only the mirror held — if any, from 2026-10-18 to
+2026-10-29 on a machine other than ZEUS — are gone.

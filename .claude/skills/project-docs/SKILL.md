@@ -59,10 +59,10 @@ goes to GitHub.
 **Not `rsync`:** every key of the `git` user on `tank` is restricted to `git-shell` since
 2026-11-12, so `rsync`, `scp` and a shell are refused — deliberately; do not look for a way
 round it. A new repository on `tank` is the owner's to create. The repository holds every
-run since 2026-07-08 (ZEUS's 858 files were merged in on 2026-11-14); the plain directory
-`/tank/git/vault-agent-eval-results/` on `tank` is the former `rsync` mirror of the same
-material. The remote has `receive.denyNonFastForwards` and `receive.denyDeletes` set — do not
-test that with a real force-push.
+run since 2026-07-08 (ZEUS's 858 files were merged in on 2026-11-14) and is the only copy
+besides the working machines: the former `rsync` mirror on `tank` was removed by the owner on
+2026-11-15, without a file-by-file comparison. The remote has `receive.denyNonFastForwards`
+and `receive.denyDeletes` set — do not test that with a real force-push.
 
 ## The admission rule for CLAUDE.md
 
