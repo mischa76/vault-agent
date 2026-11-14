@@ -208,12 +208,14 @@ platform and when: `docs/log.md` and `docs/index.md` — never from memory.
   files. **The eighth chain lost two tables' payload** (`TransactionHistory`, `PurchaseOrderDetail`,
   no satellite read them) — **WP54 (2026-10-07) refuses that** (`E_HUB_PAYLOAD_UNREAD`); live on the
   ninth to eleventh chains, followed within the attempts except the tenth's step 3.
-- **Hub keys: decided since WP125 (2026-11-14, ADR-0021), unmeasured live.** The 5.5 chains keyed most hubs on the
-  source's generated primary key (C63: `hub_product` on `ProductID` against `REQ-001`; 29 of 40 hubs). The key is now
-  decided in `rules/key_decision.py` from the candidates and the declared unique keys, given to the modeler, gated
-  (`E_HUB_KEY_NOT_AS_DECIDED`), and asked only where contested. No chain has run under it; the shipped demo still
-  carries surrogate keys; **the 5.5 review record's decision counts were measured on surrogate-keyed hubs** — do not
-  compare a chain under ADR-0021 against them.
+- **Hub keys: decided since WP125 (2026-11-14, ADR-0021), live on one chain.** The 5.5 chains keyed most hubs on
+  the source's generated primary key (C63: `hub_product` on `ProductID` against `REQ-001`; 29 of 40 hubs). The key is
+  now decided in `rules/key_decision.py` from the candidates and the declared unique keys, given to the modeler, gated
+  (`E_HUB_KEY_NOT_AS_DECIDED`), and asked only where contested. The twenty-sixth chain (2026-11-14) was green, the
+  gate fired 0 times, the built hubs equal the source's natural keys — **one chain, contested keys answered unread**.
+  A catalogue without declared keys gets no decision; `generated: false` is no evidence (a copy says it for every
+  column); the shipped demo still carries surrogate keys; **the review record's third generation starts there** — do
+  not compare its 90 decisions with the counts measured on surrogate-keyed hubs.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **Databricks builds (manual 9.6, log 2026-10-16 → 2026-10-18).** `demo-databricks` (dbt-core 1.11)
   conflicts with `demo` (dbt-core 1.9): `uv sync` installs one or the other, never both. **Drop the

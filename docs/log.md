@@ -13661,3 +13661,61 @@ tables the modeler hubs at all. **If P1 fails:** the traces are read before any 
 red step on the new gate after three attempts is a finding about the steering, recorded as such. **Afterwards,
 keyless, as far as it goes today:** the fifth project parsed and built on the local PostgreSQL copy — recorded as
 done or as not done with the reason; a wrong-data finding there restarts criterion 2's count.
+
+## [2026-11-14] Twenty-sixth chain run measured — the first under ADR-0021: all five steps green, the modeler followed every given key in its first attempt, 24 of 40 hubs off the `…ID` column; the fifth project built on PostgreSQL with the natural-key hubs equal to the source
+
+**Autor:** Claude Code
+
+Stamp `20261114T075106294006Z`, commit `00fbfae` (the pre-registration of the same day), Sonnet 5.5 / Opus 5.5,
+unattended. **A first start was stopped in step 1**: it lacked `--keep-outputs`, without which the fifth project
+is not kept for the build; 17 calls, about 0.34 USD at uncached rates, its trace `20261114T074835499891Z` kept
+beside the results. The pre-registration names the command without the flag; nothing else differs.
+
+**P1 ✔** five of five steps `validation_gate` 1.0, `pipeline_health` 1.0, `project_self_contained` 1.0; modeler
+attempts 2, 2, 2, 1, 2. What the first attempts were refused for: `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` (steps
+1, 2, 5), `E_SAT_GRAIN_NOT_UNIQUE` (3), `E_HUB_HK_COLLISION` (5) — the classes of the earlier chains.
+**P2 ✔, better than predicted.** `E_HUB_KEY_NOT_AS_DECIDED` fired **0 times** over the chain (predicted at most
+2): every one of the 19 given keys was followed in the first attempt. `hub_product` is keyed on `ProductNumber`.
+**P3 ✔ on the model, ✗ as worded on the disclosures.** 16 of 40 hubs on a single column ending in `ID` (predicted
+15 ± 3; the twenty-third: 29) — tables that declare no natural key, plus `CultureID`, a code. I predicted 12–18
+`W_HUB_ON_TECHNICAL_KEY` „in the fifth step's report": the report of a step judges that step's hubs only, so the
+fifth has 3 and the chain 14 (3, 1, 6, 1, 3). The number was right, the place was wrong.
+**P4 ✔ at its limit.** 8 contested keys, all answered by the bulk answer with the declared natural key:
+`AddressType`, `ContactType`, `StateProvince` (step 1), `Department`, `Shift` (2), `ShipMethod` (4), `CreditCard`,
+`SalesTerritory` (5). `Department` and `Shift` were *agreed* with the twenty-third's candidates and contested with
+this run's — the key agent's ranking varies, as said; the hub's key is the same either way. None on the technical
+key. 10 keys agreed, 1 a natural primary key (`UnitMeasure`).
+**P5 ✔.** 53 translation flags over the chain (5, 2, 23, 5, 18; the twenty-third's fifth step had 4); 48 are
+disclosures; **5 keys to confirm, each beside a homonym**: `hub_product_category`, `hub_product_subcategory`,
+`hub_product_model` (`Name`), `hub_state_province` (`Name`), `hub_customer` (`AccountNumber`) — predicted 3 to 12.
+**P6 — 90 decisions** (13, 6, 32, 6, 33; expected 85–105), 144 disclosures; the first sample of the third 5.5
+generation, drawn in `REVIEW_GENERATIONS` with this entry as pre-registered, not judged. Of the 90: 68 contract
+owners, 10 `link_binding_evidence`, 5 homonym keys, 3 unresolved mappings, 2 undetermined types, 1 unresolved
+resolution, 1 generation gap. `wp34_check`: links 19 cross-domain (held),
+invention 0 (held), joins 0 / 0 (held), review cannot be judged.
+**P7 ✔.** 4.93 USD (Sonnet 2.74, Opus 2.19; from the trace at the rates of 2026-10-09 with cache read and write),
+22.9 min, 110 calls.
+
+**The build, keyless** (local PostgreSQL 16, database `vault`, fresh schema `chain26`, dbt 1.9.10, the kept fifth
+project as written): `dbt parse` clean; `dbt build --full-refresh` **PASS=557 ERROR=3 SKIP=9 of 569**; a second
+plain `dbt build` the same, row counts unchanged. The three errors, each disclosed in the review queue or known:
+the inferred-bound `stg_product_work_order_routing` (C64, new as a shape); a translation view whose name is 67
+characters (`generation_gap`, WP102's flag — the satellite needs a shorter name); `ProductReview.productid` stored
+as `text` in the copy (the known artefact). **The data.** Ten natural-key hubs against their source tables —
+product, product category, address type, credit card, sales territory, department, location, ship method, state or
+province, customer, sales order: each holds exactly the source's distinct keys (plus the two system rows where the
+hub takes part in an optional participation); no source key missing. Through translation:
+`link_product_sales_order_line` 121 317 rows = `SalesOrderDetail`, 266 distinct products on both sides, no product
+hash key outside the hub; `link_product_purchase_order_line` 8 845 = `PurchaseOrderDetail`, none outside;
+`sat_product_cost_history` and `sat_product_list_price_history` 395 rows each = their tables, every parent in the
+hub. 44 translation views built, their `not_null` and `relationships` tests among the passes.
+
+**What this does and does not show.** One chain is a shape, not a distribution: that the modeler follows a given
+key is measured once, on one document set. The contested keys were answered unread — the harness's configuration;
+that a human reads the question is not measured. The comparison with the 5.5 record's decision counts is not made:
+this is another product. **Überprüft.** The chain file, the five step files and their `review.json`, the trace
+(every modeler call's `decided_keys` and issues), `wp34_check`, the build logs and `psql` against `chain26` and the
+source schemas. **Nur angenommen.** That the two system rows are WP86's zero keys in all ten hubs — read on
+`hub_product` (`-1`, `-2`, record source `SYSTEM`), inferred for the rest from the count. **Bewusst nicht getan.**
+No second chain; the shipped demo is not regenerated (the owner's build, or a decision to ship this chain's
+projects); C64 not traced; no release cut. Results mirrored to `tank` with this commit.

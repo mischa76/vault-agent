@@ -14,6 +14,7 @@ from eval.wp34_check import REVIEW_DECISION_SAMPLES, check
 from tests.test_wp34_check import _chain
 
 TWENTY_SECOND = "20261030T184653194084Z"
+TWENTY_SIXTH = "20261114T075106294006Z"  # seeds the third generation (ADR-0021, 2026-11-14)
 ARCHIVED = Path(f"eval/results/adventureworks_incremental/{TWENTY_SECOND}-run1.json")
 FIRST_GENERATION = (
     # stamp, decisions, the ceiling it was judged against, the chains before it (docs/log.md)
@@ -38,9 +39,11 @@ def _review_line(result: dict[str, Any]) -> tuple[bool, str]:
     return held, line
 
 
-def test_the_5_5_record_has_two_generations_and_keeps_every_sample() -> None:
+def test_the_5_5_record_has_three_generations_and_keeps_every_sample() -> None:
+    # Two until 2026-11-14; the twenty-sixth chain, the first with decided hub keys (WP125–WP128),
+    # seeds the third: its predecessors were measured on surrogate-keyed hubs (C63).
     generations = wp34_check.REVIEW_GENERATIONS["claude-opus-5-5"]
-    assert [since for since, _ in generations][-1] == TWENTY_SECOND
+    assert [since for since, _ in generations] == ["", TWENTY_SECOND, TWENTY_SIXTH]
     assert all(label for _, label in generations)
     assert "claude-opus-4-8" not in wp34_check.REVIEW_GENERATIONS  # one generation, unlabelled
     # Nothing pruned: the eight 5.5 chains up to the twenty-second, then the second
@@ -58,18 +61,21 @@ def test_the_twenty_second_chain_seeds_its_generation_and_is_no_longer_judged() 
     assert not held
     assert "91 decision(s)" in line and "cannot be judged" in line
     assert "0 recorded chain(s)" in line
-    [(_, label)] = wp34_check.REVIEW_GENERATIONS["claude-opus-5-5"][-1:]
+    [label] = [lab for since, lab in wp34_check.REVIEW_GENERATIONS["claude-opus-5-5"]
+               if since == TWENTY_SECOND]
     assert label in line
 
 
-def test_an_unrecorded_5_5_chain_is_judged_against_the_second_generation() -> None:
+def test_an_unrecorded_5_5_chain_is_judged_against_the_latest_generation() -> None:
+    # The second generation until 2026-11-14 — it ended at two samples and never judged a
+    # chain; the third begins with the twenty-sixth.
     held, line = _review_line(_five_five(86))
-    second = [s for s, _ in REVIEW_DECISION_SAMPLES["claude-opus-5-5"] if s >= TWENTY_SECOND]
-    if len(second) < wp34_check.MIN_REVIEW_SAMPLES:
+    latest = [s for s, _ in REVIEW_DECISION_SAMPLES["claude-opus-5-5"] if s >= TWENTY_SIXTH]
+    if len(latest) < wp34_check.MIN_REVIEW_SAMPLES:
         assert not held and "cannot be judged" in line
-        assert f"{len(second)} recorded chain(s), need 3" in line
-    else:  # from the twenty-fifth on the generation judges
-        assert f"{len(second)} recorded chain(s)" in line and "generation" in line
+        assert f"{len(latest)} recorded chain(s), need 3" in line
+    else:  # from the fourth chain of the generation on, it judges
+        assert f"{len(latest)} recorded chain(s)" in line and "generation" in line
 
 
 @pytest.mark.parametrize(("stamp", "decisions", "ceiling", "before"), FIRST_GENERATION)

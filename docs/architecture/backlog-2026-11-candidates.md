@@ -607,3 +607,16 @@ question at the resolution checkpoint whose default is the declared natural key,
 foreign key becomes a disclosure (a note appended to ADR-0013). WP125
 (`backlog-2026-07/wp125-hub-key-decision-spec.md`) builds the rule, the gate and the CLI's question; the workbench's
 question (WP126), the catalogue's generated-column property (WP127) and the translation's role (WP128) follow.
+
+## C64 — A link between a composite-key hub and a hub reached by translation was left on an inferred stage (2026-11-14)
+
+**Found** by the twenty-sixth chain's keyless build. `link_product_work_order_routing` connects
+`hub_work_order_routing` (keyed on `WorkOrderID` + `OperationSequence`, built from `WorkOrderRouting`) and
+`hub_product`, which since WP125 is keyed on `ProductNumber`. `WorkOrderRouting` carries `ProductID`. The link's stage
+was bound to no declared relation (`source_binding`, reason `none`: it reads `raw_product_work_order_routing`), is
+disclosed as such in the review queue, and fails the build with its link (1 error, 1 skip of 569). **Not
+established:** why the binder offered `WorkOrderRouting` nothing — whether the freely chosen link name, or the
+combination `E_HUB_COMPOSITE_UNSUPPORTED` names (a composite-key hub in a link with a translation is a shape „not
+built yet"). On the surrogate-keyed chains the participation needed no translation. **Options:** trace it on the
+kept project first (zero cost); then either bind such a link by the composite hub's own table, or build the
+per-column translation for a composite participant. **Not decided**, no WP number.

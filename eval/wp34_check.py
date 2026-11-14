@@ -101,6 +101,13 @@ REVIEW_DECISION_SAMPLES: dict[str, tuple[tuple[str, int], ...]] = {
         #                                   green, 24.6 min, 4.36 USD; the second generation's
         #                                   second sample, not judged (two of three). Measured
         #                                   95; re-read to 94 under WP116 (4 flags, 3 keys).
+        ("20261114T075106294006Z", 90),  # twenty-sixth, 2026-11-14 — the first under ADR-0021
+        #                                   (WP125–WP128): the hub keys decided before the
+        #                                   modeler, green, 22.9 min, 4.93 USD; 24 of 40 hubs off
+        #                                   a single `…ID` column (the twenty-third: 11), 53
+        #                                   translation flags, 5 of the 90 decisions are keys
+        #                                   to confirm beside a homonym. The seed of the third
+        #                                   5.5 generation, not judged.
     ),
 }
 DEFAULT_RECORD_MODEL = "claude-opus-4-8"  # every archived result without `models`
@@ -119,6 +126,12 @@ REVIEW_GENERATIONS: dict[str, tuple[tuple[str, str], ...]] = {
     "claude-opus-5-5": (
         ("", "WP62–WP78"),  # fourteenth → twenty-first, 2026-10-09 → 2026-10-17 (seven chains)
         ("20261030T184653194084Z", "WP79–WP99 (link_binding_evidence, link_translation)"),
+        # WP125–WP128 (ADR-0021, 2026-11-14): the hub keys are decided before the modeler and a
+        # translation over a declared key is a disclosure. The second generation's counts were
+        # measured on hubs keyed on the source's generated primary keys, which need no
+        # translation (C63) — a different product, so a different population. Drawn in the
+        # twenty-sixth chain's pre-registration, before the chain ran.
+        ("20261114T075106294006Z", "WP125–WP128 (decided hub keys, translations disclosed)"),
     ),
 }
 MIN_REVIEW_SAMPLES = 3
