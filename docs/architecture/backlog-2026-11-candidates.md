@@ -630,3 +630,12 @@ the satellite and its tests were skipped. WP102 flags such a name (`generation_g
 construct name, which no checkpoint answer can give. Since WP125 a translation is the ordinary case, so the class is
 no longer rare. **Taken up as WP129** (`backlog-2026-07/wp129-translation-name-always-fits-spec.md`): the view's
 name is the generator's alone and may be cut; the stage's is not.
+
+## C66 — Since WP123 a sign-off binding of any stage with a hashdiff is refused: the check takes expression text for column names (2026-11-15)
+
+**Found** at the third step's sign-off of the demo's chain. `bindings.stage_key_needs` reads every derived
+column's source; WP123's hashdiff inputs are derived columns whose value is an expression, so the check demanded
+`ENCODE(CONVERT_TO(…ACTUALCOST…), 'hex')` of the relation and refused `stg_work_order_operation` →
+`WorkOrderRouting`. The validator's gate got the typed `expression_reads` with WP123; this second derivation of the
+same reading did not. No sign-off binding had been tried since WP123 (2026-11-10). **Taken up as WP130**
+(`backlog-2026-07/wp130-binding-reads-columns-spec.md`).
