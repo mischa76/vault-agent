@@ -56,3 +56,14 @@ surrogate is a zero-key participant on both readings.
   in step 3 and on no other satellite of a translated stage in any step.
 - **P4** live: in the demo's next chain the modeler is refused that satellite (or builds it multi-active at once),
   follows the remedy, and the project's second build inserts nothing (recorded in `docs/log.md`).
+
+## 5 Measured (2026-11-15)
+
+- **P1 ✔ with a deviation.** Three of five red at `0ee6123`, not the two announced: the guard for metadata
+  without `reads` deletes the field and so failed on its absence. Five green after.
+- **P2 ✔.** Numbers in `docs/log.md`.
+- **P3 ✔.** One fire on a translated stage over five steps: `sat_product_assembly_component_details` in step 3
+  („unique on ProductAssemblyID + ComponentID + StartDate, but its key covers only COMPONENTID, PRODUCTASSEMBLYID,
+  UNITMEASURECODE"). Steps 1, 2, 4, 5: none. (Step 3's second fire, on `sat_work_order_operation_details`, is
+  the replay knowing the sign-off binding — WP132 §5, C70 — and not a translated stage.)
+- **P4** in `docs/log.md` with the chain.

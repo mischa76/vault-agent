@@ -110,6 +110,35 @@ def stage_key_needs(meta: dict[str, Any]) -> list[str]:
     return needs
 
 
+def translation_projects(meta: dict[str, Any]) -> list[str]:
+    """The columns a stage's translation view adds to its relation's, from the stored metadata
+    (WP132, C68): each join's ``projects`` — one column, or a composite key's list. ``[]`` for a
+    stage that reads its relation directly."""
+    out: list[str] = []
+    for join in (meta.get("key_translation") or {}).get("joins") or []:
+        projects = join.get("projects")
+        for column in projects if isinstance(projects, list) else [projects]:
+            if column and str(column) not in out:
+                out.append(str(column))
+    return out
+
+
+def translation_reads(meta: dict[str, Any]) -> dict[str, str] | None:
+    """Which column of the stage's own relation each translated key stands for (WP133, C69):
+    projected column → the join's ``reads``, normalised. ``{}`` for a stage without a
+    translation; ``None`` when a join does not say (metadata stored before WP133) — the caller
+    cannot judge such a stage and must not guess from the join's text."""
+    out: dict[str, str] = {}
+    for join in (meta.get("key_translation") or {}).get("joins") or []:
+        reads = join.get("reads")
+        if not reads:
+            return None
+        projects = join.get("projects")
+        for column in projects if isinstance(projects, list) else [projects]:
+            out[normalize_identifier(str(column))] = normalize_identifier(str(reads))
+    return out
+
+
 def declared_relations(state: VaultAgentState) -> dict[str, SourceTable]:
     """Every relation a stage may bind to, the increment's tables before the carried ones."""
     out: dict[str, SourceTable] = {}

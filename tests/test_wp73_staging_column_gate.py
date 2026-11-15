@@ -126,7 +126,10 @@ async def test_the_validator_refuses_a_stage_whose_relation_lacks_a_hashed_key()
         "stg_translated": {"source_model": {"raw": "EmployeePayHistory"},
                            "source_binding": "declared",
                            "hashed_columns": {"X_HK": "NOPE"}, "expected_source_columns": ["NOPE"],
-                           "key_translation": {"model": "stg_x", "joins": []}},
+                           # WP132 (C68): judged since — against the relation plus what the
+                           # view projects; this stage's view projects the column it reads.
+                           "key_translation": {"model": "stg_x", "joins": [
+                               {"through_table": "X", "on": "XID = XID", "projects": "NOPE"}]}},
     }}
     await ValidatorAgent().run(state)
     hits = [i for i in state.validation_report.issues

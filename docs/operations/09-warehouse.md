@@ -160,7 +160,12 @@ PostgreSQL since 2026-09-14 (`demo/fk_links_postgres`).
 participation's key gets that participation's translation, or alias, from a ratified key license
 or link proposal. The link's stage and a link satellite's stage then read one view with one LEFT
 JOIN per translated participation (`stg_product_inventory_via_product_and_location`). Nothing is
-built that the modeler did not build. Built on PostgreSQL since 2026-09-15.
+built that the modeler did not build. Built on PostgreSQL since 2026-09-15. A link that takes one hub twice
+pairs each role with the key its name is contained in (`component` → `ComponentID`); a participation
+without a role then reads the one ratified key the roles leave, when the relation carries the hub's key
+under no name of its own (WP131, 2026-11-15 — the assembly of a bill of materials; before, it got no key
+and the stage could not build). Two keys left, or a role still without its key, pair nothing: the binding
+is then refused and the stage disclosed (`binding_rejected`, WP132).
 
 **Role columns** (WP41): a role-qualified participation stops demanding `ROLE_<key>` from its
 relation once a ratified key pairs with it. A same-named key is derived into the role column

@@ -54,6 +54,16 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- A link that takes one hub twice gets both keys (WP131, C67). Where one participation carries a role and the
+  other none — the component and the assembly of a bill of materials — only the role-named one got its key
+  translation; the stage hashed a column its relation does not carry and the warehouse refused it. The
+  participation without a role now reads the one ratified key the roles leave.
+- A stage that reads through a translation view is checked like any other (WP132, C68; WP133, C69). Neither the
+  column check (`E_STAGE_COLUMN_NOT_IN_SOURCE`, and the refusal of a binding) nor the satellite grain gate
+  (`E_SAT_GRAIN_NOT_UNIQUE`) looked at such a stage — and since hubs sit on natural keys (WP125) most link stages
+  are one. A binding whose relation and view carry not every key is refused and disclosed; a satellite whose key
+  does not cover a unique key of its relation is refused with the multi-active remedy. `metadata/automatedv.yml`
+  names, per translation join, the relation's column the projected key stands for (`reads`).
 - A stage can be bound at sign-off again when it carries a hashdiff (WP130, C66). Since hashdiffs keep the letter case
   (WP123) the check behind `resume --bind` and the workbench's sign-off took the generated expressions for column names
   and refused every such binding; the checkpoint listed the expressions as expected columns.

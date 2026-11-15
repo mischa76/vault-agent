@@ -55,3 +55,20 @@ pair (`participation_translations` / `participation_aliases`).
   code nothing but the bill of materials' stage differs.
 - **P4** keyless build of the replayed fifth project on PostgreSQL: no error, no skip.
 - **P5** live: the demo's next chain builds the link (recorded in `docs/log.md`).
+
+## 5 Measured (2026-11-15)
+
+- **P1 ✔.** Seven of nine red at `0ee6123`, nine green after.
+- **Supersedes WP41 §2 rule 3** („an unqualified participation beside others of the same hub: never paired")
+  for the case of §2 above, and WP41 §5's note that such a link keeps a stage that cannot build. Not seen when
+  this spec was written: WP41's own guard pinned the rule and failed on the fix. It is flipped in the fix
+  commit, deliberately (`tests/test_wp41_role_columns_guard.py`, renamed, reason in its docstring).
+- **P2 ✔.** Numbers in `docs/log.md`.
+- **P3 ✔.** Unchanged code: five of five steps „model as stored", no stage changed. Fixed code: steps 3–5 differ in
+  `stg_product_assembly_component` alone — two joins through `Product`, `PRODUCTASSEMBLYID` → `PRODUCTNUMBER` and
+  `COMPONENTID` → `COMPONENT_PRODUCTNUMBER` — and one more `LINK_TRANSLATION` flag in step 3.
+- **P4 ✔ keyless build.** PASS=539, ERROR=0, SKIP=0 of 539 (two tests more than the 537: the second join's).
+  `link_product_assembly_component` holds 2 484 rows = the distinct (assembly, component, unit) of
+  `BillOfMaterials`' 2 679; every row's assembly key and component key joins `hub_product` (2 484 and 2 484). The
+  second build found the satellite re-inserting — WP133.
+- **P5** in `docs/log.md` with the chain.

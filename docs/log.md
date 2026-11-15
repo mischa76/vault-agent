@@ -13971,3 +13971,64 @@ read by a person; not entered into the review record (no eval harness); no relea
 left in `aw_source`. **Evidence:** traces, checkpoint payloads, driver, report and build logs in the results
 repository under `kept-outputs/workbench-chain-20261115/` (`ec428f1` and `03821d0`, pushed to `tank`; the scripts as `.py.txt`, because bare mypy reads `eval/` and took them for project code). **A slip:** the C66
 candidate's first draft dated WP123 2026-11-03; corrected to 2026-11-10 by amending the commit before it was pushed.
+
+## [2026-11-15] WP131–WP133 built: a hub taken twice gets both keys (C67); a stage that reads through a translation view is column-checked (C68) and its satellite's grain judged (C69) — keyless, replayed on the demo's stored runs, built on PostgreSQL; the live case is the demo's second chain
+
+**Autor:** Claude Code
+
+On the owner's go (2026-11-15): fix C67 and C68, then run the demo's chain again. Specs
+`backlog-2026-07/wp131-pair-by-elimination-spec.md`, `wp132-translation-stage-column-check-spec.md`,
+`wp133-translated-satellite-grain-spec.md`; red guards `0ee6123`.
+
+**What was wrong.** (1) C67: `_pair_participations` gave a ratified key to a participation of a hub taken twice
+only when its role named the key's column; the participation without a role got none — WP41 §2 rule 3, on purpose
+(„which key it means is not in the catalogue"), and WP41 §5 had already written that such a bill of materials
+keeps a stage that cannot build. (2) C68: WP73's column check — in the validator and where a binding is made —
+skipped every stage that reads through a translation view, so nothing judged the stage of (1). The replay showed
+the gate alone would not have sufficed: the stage was unbound when the validator ran and was bound by the mapper's
+re-bind afterwards. (3) C69, found while verifying (1): WP85's grain gate skipped such stages as well, and since
+WP125 the bill of materials — the case that gate was built for (C13) — reads through one.
+
+**What changed.** WP131: after the role-named pairs, one participation without a role reads the one ratified key
+left, when the relation carries the hub's key under no name of its own and every role-named participation is
+settled; anything less certain pairs nothing. WP132: a translated stage is checked against its relation plus what
+its view projects — in `bind_sources` (a failing binding is refused and disclosed, `BINDING_REJECTED`) and in
+`E_STAGE_COLUMN_NOT_IN_SOURCE` (`bindings.translation_projects`). WP133: each join of a stage's `key_translation`
+names, typed, the relation's column its projected key stands for (`reads`); `E_SAT_GRAIN_NOT_UNIQUE` maps a
+translated key back through it (`bindings.translation_reads`); metadata without `reads` is not judged.
+**Output-changing in `metadata/automatedv.yml` only** (one key per translation join) and in the one stage shape
+of (1). Two guards updated deliberately: WP41's „never repaired" (flipped, renamed) and WP73's skipped translated
+stage (its view now projects the column it reads).
+
+**Verified — zero-cost replay** of the demo's five stored runs (stored delta → licences → merge → generator →
+validator → re-bind with the stored mappings and ratified bindings; each step extending the replayed model before
+it). On the unchanged code (`36c27c8`, a separate worktree) the replay reproduces every stored model and all
+staging metadata exactly, five of five — so what follows is the code's doing. With WP132 alone: the bill of
+materials' binding is refused in steps 3–5 (one `BINDING_REJECTED` each), no other stage changes. With WP131 too:
+nothing but `stg_product_assembly_component` changes — two joins through `Product` — no binding refused, no
+column gate on any of the 45 translated stages. With WP133: one grain fire on a translated stage over five steps,
+`sat_product_assembly_component_details` in step 3.
+
+**Verified — keyless build** of the replayed fifth project (WP131 and WP132 in, the satellite as the stored run
+modelled it) on PostgreSQL, schema `replay_20261115` of `aw_source`, with the demo's one hand view: **PASS=539,
+ERROR=0, SKIP=0 of 539** (537 plus the second join's two tests). `link_product_assembly_component` holds 2 484
+rows — the distinct (assembly, component, unit) of `BillOfMaterials`' 2 679 — and every row's assembly key and
+component key joins `hub_product`. The second build: 182 of 183 incremental models `INSERT 0 0`, and
+`sat_product_assembly_component_details` +343 (the first build had inserted 195 rows more than once per key) —
+C69, which the demo of this morning could not show because C67 failed the stage first.
+
+**Definition of done:** `uv run pytest` with no key reachable **1807 passed, 3 skipped**; `ruff check --no-cache`
+and bare `mypy` clean; CI of the push below.
+
+**Found and not built — C70:** replayed with its sign-off binding known from the start
+(`stg_work_order_operation` → `WorkOrderRouting`), step 3's validator refuses `sat_work_order_operation_details`
+(`E_SAT_GRAIN_NOT_UNIQUE`: unique on WorkOrderID + ProductID + OperationSequence, key covers two of them). The
+live run was never told: the binding is made at sign-off, after the validator. In AdventureWorks' data the two
+columns are unique (nothing re-inserted), so the demo is not wrong; the gate was simply not asked.
+
+**Not verified:** how the modeler answers the grain gate on the bill of materials under ADR-0021 (the remedy was
+followed on the surrogate-keyed chains) — a paid matter, the next entry. **Not done:** the translation view's
+header names no referencing column and repeats one sentence per join; the view's name `…_via_product_and_product`.
+**A slip:** the specs went into the red commit announcing two red guards for WP133; three were red (the third
+fails on the missing field itself) — said in the spec's measured section. A `git stash` typed into a command for
+no reason was refused by the harness before it ran; nothing was lost.

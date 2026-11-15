@@ -28,7 +28,7 @@ import logging
 from typing import Any
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.bindings import stage_key_needs
+from vault_agent.bindings import stage_key_needs, translation_projects, translation_reads
 from vault_agent.grounding import is_grounded, known_columns
 from vault_agent.link_proposal import component_keys, resolve_fk_target
 from vault_agent.rules.dv2_rules import (
@@ -1546,7 +1546,7 @@ class ValidatorAgent(BaseAgent):
         # those tables never carried, and no chain could see it without a build.
         declared_tables = {normalize_identifier(t.table): t for t in state.source_schemas}
         for stage_name, meta in (state.artifacts.automatedv_yaml.get("staging") or {}).items():
-            if meta.get("source_binding") != "declared" or meta.get("key_translation"):
+            if meta.get("source_binding") != "declared":
                 continue
             source = meta.get("source_model")
             relation = next(iter(source.values())) if isinstance(source, dict) else source
@@ -1559,8 +1559,28 @@ class ValidatorAgent(BaseAgent):
             # generator expression (WP121's cast, WP123's hex) by the columns it reads, never
             # by its text. A hashdiff's attributes are W_ATTR_NOT_IN_SOURCE's, not keys.
             stage_needs = stage_key_needs(meta)
-            missing = sorted({normalize_identifier(c) for c in stage_needs} - stage_declared)
-            if missing:
+            # WP132 (C68): a stage that reads through a translation view is judged too — against
+            # its relation plus what the view projects. Until then every such stage was skipped,
+            # and since WP125 a translation is the ordinary case: the demo's bill of materials
+            # hashed a PRODUCTNUMBER neither carried, passed, and PostgreSQL refused it.
+            projected = translation_projects(meta)
+            missing = sorted(
+                {normalize_identifier(c) for c in stage_needs} - stage_declared
+                - {normalize_identifier(c) for c in projected}
+            )
+            if missing and projected:
+                view = (meta.get("key_translation") or {}).get("model")
+                issues.append(
+                    _issue(
+                        "error", "E_STAGE_COLUMN_NOT_IN_SOURCE", stage_name,
+                        f"staging model reads {table.table} through its translation view "
+                        f"{view}, which projects {', '.join(projected)}; neither carries "
+                        f"{', '.join(missing)} that the stage hashes or derives, so it would "
+                        f"fail at dbt build — a participation whose key the relation holds "
+                        f"under another column needs the role that names that column",
+                    )
+                )
+            elif missing:
                 issues.append(
                     _issue(
                         "error", "E_STAGE_COLUMN_NOT_IN_SOURCE", stage_name,
@@ -1584,8 +1604,16 @@ class ValidatorAgent(BaseAgent):
                 continue  # an existing construct, or effectivity (its grain is the driving key)
             stage_name = str(sat_meta.get("source_model") or "")
             stage = staging_meta.get(stage_name)
-            if not stage or stage.get("key_translation"):
+            if not stage:
                 continue
+            # WP133 (C69): a stage that reads through a translation view is judged too — a
+            # translated key stands for the relation's referencing column (the join's typed
+            # `reads`). The gate skipped every such stage, and since WP125 the bill of materials'
+            # satellite — C13's own case — reads through one: +195 rows on every build.
+            stands_for = translation_reads(stage)
+            if stands_for is None:
+                continue  # metadata stored before WP133: not judged, never guessed
+            reads_of: dict[str, str] = dict(stands_for)
             if stage.get("source_binding") == "declared":
                 source = stage.get("source_model")
                 relation_name = (
@@ -1603,11 +1631,15 @@ class ValidatorAgent(BaseAgent):
                 continue
             derived = stage.get("derived_columns") or {}
 
-            def relation_column(column: str, derived: dict[str, Any] = derived) -> str:
+            def relation_column(
+                column: str, derived: dict[str, Any] = derived,
+                translated: dict[str, str] = reads_of,
+            ) -> str:
                 value = derived.get(column)
                 if isinstance(value, dict):
                     value = value.get("source_column")
-                return normalize_identifier(str(value if value else column))
+                name = normalize_identifier(str(value if value else column))
+                return translated.get(name, name)
 
             pk_value = (stage.get("hashed_columns") or {}).get(str(sat_meta.get("src_pk")))
             pk_columns: list[Any] = (

@@ -901,7 +901,13 @@ def _pair_participations(
     that hub from the relation being read, ``key`` the hub's canonical key column, ``present``
     the relation's declared columns (``None`` when undeclared), ``declares_key`` whether the
     relation declares its same-named column as a key into the hub (WP89). Decided per relation and
-    hub, never per key alone: two keys into one hub are a question only a role can answer."""
+    hub, never per key alone: two keys into one hub are a question only a role can answer.
+
+    WP131 (C67): … or the roles have answered already. Where every role-named participation is
+    settled, exactly one participation carries no role and exactly one ratified key is left, and
+    the relation carries the hub's key under no name of its own, that participation reads that
+    key — the assembly beside the `component` of a bill of materials. Anything less certain
+    (two keys left, a role still without its key, the hub's key in the relation) pairs nothing."""
     by_column = {normalize_identifier(g.column): g for g in grants}
     if len(refs) == 1 and refs[0].role is None:
         if key in by_column or declares_key or len(by_column) != 1:
@@ -927,6 +933,19 @@ def _pair_participations(
         ]
         if len(rivals) == 1:
             pairs.append((ref, named[0]))
+    unnamed = [ref for ref in refs if ref.role is None]
+    taken = {normalize_identifier(grant.column) for _, grant in pairs}
+    left = [g for column, g in by_column.items() if column not in taken]
+    paired = {id(ref) for ref, _ in pairs}
+    if (
+        len(unnamed) == 1 and len(left) == 1
+        and present is not None and key not in present and not declares_key
+        and all(
+            id(ref) in paired or not _needs_repair(ref, key, present)
+            for ref in refs if ref.role is not None
+        )
+    ):
+        pairs.append((unnamed[0], left[0]))  # WP131: by elimination
     return pairs
 
 

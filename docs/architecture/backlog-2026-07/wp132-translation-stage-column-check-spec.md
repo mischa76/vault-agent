@@ -55,3 +55,20 @@ it.
   materials' binding is refused in steps 3–5 and nothing else changes — no translated stage that built is refused.
 - **P4** live: the demo's next chain raises no `BINDING_REJECTED` and no `E_STAGE_COLUMN_NOT_IN_SOURCE` on a stage
   that then builds (recorded in `docs/log.md`).
+
+## 5 Measured (2026-11-15)
+
+- **P1 ✔.** Four of seven red at `0ee6123` (the three that pin what stays green by design), seven green after;
+  WP73's guard updated in the fix commit as announced.
+- **P2 ✔.** Numbers in `docs/log.md`.
+- **P3 ✔.** With this WP alone, `stg_product_assembly_component` is refused in steps 3, 4 and 5 (`declared` 70 → 69,
+  86 → 85, 142 → 141; one `BINDING_REJECTED` each) and stays on `raw_product_assembly_component`; no other stage
+  changes in any step. With WP131 too, no binding is refused and no gate fires on a translated stage (45 of them in
+  step 5).
+- **Found by the replay, not fixed:** replaying step 3 with its sign-off binding already known
+  (`stg_work_order_operation` → `WorkOrderRouting`) makes the validator refuse `sat_work_order_operation_details`
+  (`E_SAT_GRAIN_NOT_UNIQUE`: the relation is unique on WorkOrderID + ProductID + OperationSequence, the satellite's
+  key covers two of them). The live run never said so: the binding is made at sign-off, after the validator, and
+  nothing validates again. In the data the two columns are unique (the satellite inserted nothing on the second
+  build), so the demo is not wrong — but the gate was not asked. C70.
+- **P4** in `docs/log.md` with the chain.

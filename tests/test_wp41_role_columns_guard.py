@@ -14,7 +14,9 @@ proposer, modeler (stub extractor), generator and validator:
 * ``test_the_contact_link_stage_derives_role_columns_and_its_satellite_passes`` — FLIPPED.
 * ``test_an_unqualified_person_from_the_organisation_column_is_repaired`` — FLIPPED.
 * ``test_the_bill_of_materials_stage_reads_both_roles_through_the_view`` — FLIPPED.
-* ``test_an_unqualified_participation_beside_a_role_of_the_same_hub_is_not_repaired`` — never.
+* ``test_an_unqualified_participation_beside_a_role_of_the_same_hub_reads_the_key_left`` —
+  pinned by WP41 as „never" (rule 3: not repaired); FLIPPED by WP131 (2026-11-15, C67): once the
+  role has taken its key, one participation and one ratified key are left.
 * ``test_declined_licenses_leave_greenfield_artifacts_byte_identical`` — never.
 * ``test_nothing_is_built_the_modeler_did_not_build`` — never.
 """
@@ -200,11 +202,15 @@ async def test_the_bill_of_materials_stage_reads_both_roles_through_the_view() -
     )
 
 
-async def test_an_unqualified_participation_beside_a_role_of_the_same_hub_is_not_repaired() -> None:
+async def test_an_unqualified_participation_beside_a_role_of_the_same_hub_reads_the_key_left(
+) -> None:
+    """Flipped by WP131 (pinned by WP41 as: neither translation nor alias — a stage that cannot
+    build, which the demo's chain of 2026-11-15 shipped)."""
     state = await run_greenfield(bom_payload(assembly_role=None), bom_schema())
     [link] = state.dv_model.links
     [plain] = [r for r in link.hub_refs if r.hub == "hub_product" and r.role is None]
-    assert plain.key_translation is None and plain.source_key_column is None
+    assert plain.key_translation is not None
+    assert plain.key_translation.referencing_column == "ProductAssemblyID"
 
 
 async def test_declined_licenses_leave_greenfield_artifacts_byte_identical() -> None:

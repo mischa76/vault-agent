@@ -763,9 +763,13 @@ def missing_stage_columns(spec: StagingSpec, table: SourceTable) -> list[str]:
     """The key columns a stage hashes or derives that ``table`` does not declare (WP73). A
     hash may read a DERIVED column (a role alias such as ``ORGANISATION_BUSINESSENTITYID``,
     WP41) — AutomateDV derives before it hashes — so derived names count as available; the
-    derived columns' own sources must be declared."""
+    derived columns' own sources must be declared. WP132 (C68): a key that arrives through the
+    stage's translation view counts as available under the name the view projects it."""
     available = {normalize_identifier(c) for c in table.column_names}
     available |= {normalize_identifier(name) for name in spec.derived}
+    available |= {
+        normalize_identifier(c) for columns in spec.translation_columns for c in _projected(columns)
+    }
     return [c for c in stage_key_columns(spec) if c not in available]
 
 
@@ -847,10 +851,11 @@ def bind_sources(
     declared_tables = {normalize_identifier(t.table): t for t in source_schemas}
 
     def _rejected(spec: StagingSpec, table_name: str) -> bool:
-        """WP73: a declared relation must carry every column the stage hashes or derives. A
-        translated stage joins through another relation and is judged by its own gates."""
+        """WP73: a declared relation must carry every column the stage hashes or derives.
+        WP132 (C68): a translated stage too — its view adds the keys it projects and nothing
+        else (it was skipped here, and no other gate judged it)."""
         table = declared_tables.get(normalize_identifier(table_name))
-        if table is None or spec.translations:
+        if table is None:
             return False
         # WP95: a role's column the relation carries under its foreign key's name is derived
         # first, so the relation is judged with it — the alias a human typed before.
@@ -1254,6 +1259,9 @@ def _stage_metadata(
                     "on": f"{_to_column(t.referencing_column)} = "
                           f"{_to_column(t.surrogate_column)}",
                     "projects": column,
+                    # WP133: the relation's own column the projected key stands for, typed —
+                    # the validator's grain gate maps a translated key back through it.
+                    "reads": _to_column(t.referencing_column),
                 }
                 for t, column in zip(spec.translations, spec.translation_columns, strict=True)
             ],
