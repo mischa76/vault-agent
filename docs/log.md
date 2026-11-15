@@ -14032,3 +14032,39 @@ header names no referencing column and repeats one sentence per join; the view's
 **A slip:** the specs went into the red commit announcing two red guards for WP133; three were red (the third
 fails on the missing field itself) — said in the spec's measured section. A `git stash` typed into a command for
 no reason was refused by the harness before it ran; nothing was lost.
+
+## [2026-11-15] Pre-registration: the demo's chain a second time, on the generator with WP131–WP133 — to ship a demo whose last project builds whole
+
+**Autor:** Claude Code
+
+On the owner's go (2026-11-15): after C67 and C68, run the chain again. Written before the run. The shipped demo
+(this morning's chain, entry above) builds PASS=533 with one error and three skips; a finished run cannot be
+repaired without a model call — the replay above shows what the fixed code makes of the stored model, but the
+bill of materials' satellite needs the modeler's answer to a gate it was never shown (C69).
+
+**The run.** As this morning (`459d300`): a fresh workbench on today's code (`ad23a43` plus this entry) on port
+8766, root `workbench/chain-20261115b/` (git-ignored), project `adventureworks`, the same ten input files, five
+runs person → sales through the API by the same driver. **The checkpoints, answered by this session, not by a
+human, by this morning's rule:** the bulk answer at the resolution checkpoint; a contested hub key left to the
+declared natural key; a same-as claim `unresolved`; every contract owner `John Doe <john.doe@acme.com>`; a stage
+no rule could bind is bound at sign-off where one declared relation carries the columns the checkpoint lists,
+otherwise it gets a hand view. Every checkpoint's payload is kept.
+
+**Predictions.** **P1** all five runs finish with a passing validation. **P2** no final report carries
+`E_HUB_KEY_NOT_AS_DECIDED`; `hub_product` on `ProductNumber`; every key given is the hub's key. **P3** (WP131)
+if the modeler builds the bill of materials with `hub_product` twice and one participation without a role, both
+participations carry their translation and the stage is bound to `BillOfMaterials`; if it names both roles, WP131
+has no live case and that is said. **P4** (WP132) no `BINDING_REJECTED` flag and no
+`E_STAGE_COLUMN_NOT_IN_SOURCE` in a final report. **P5** (WP133) the bill of materials' detail satellite is
+either refused by `E_SAT_GRAIN_NOT_UNIQUE` inside the attempts and remedied, or built multi-active at once; the
+grain gate may fire on other satellites of translated stages — counted, not predicted, each followed within the
+attempts. **P6** the fifth project builds whole on PostgreSQL (`aw_source`, a fresh schema) after the bindings or
+views for its inferred stages: **no error, no skip**, and the second build inserts nothing in any incremental
+model. **P7** 4.5–7 USD (this morning 5.25; one more gate can cost an attempt), 20–40 minutes.
+
+**Rules for the run.** A step that ends red is not re-run on a hunch: its traces are read first, and a second
+paid attempt is the owner's decision. No code change while the chain runs; if a defect blocks a checkpoint (as
+C66 did this morning), the chain stops there and the owner is asked. **What is shipped:** if P1 and P6 hold, the
+five runs replace `demo/workbench-adventureworks/` as this morning; if not, this morning's demo stays and the
+result is reported. **Not entered into the review record** (no eval harness). Evidence goes to the results
+repository under `kept-outputs/workbench-chain-20261115b/`.
