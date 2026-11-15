@@ -663,3 +663,31 @@ view's, and the gate was written before translations were the ordinary case. Sin
 demo's last project), so the gate is silent on a growing share of stages. **Option:** judge such a stage against
 the relation's columns plus what its translation view projects (the natural-key columns under their projected
 names). **Not decided**, no WP number.
+
+**C67 taken up as WP131** (2026-11-15, `backlog-2026-07/wp131-pair-by-elimination-spec.md`): pairing by
+elimination, the first option. **C68 taken up as WP132** (`backlog-2026-07/wp132-translation-stage-column-check-spec.md`):
+the option above, and the same check where a binding is made — the demo's stage was unbound when the validator ran
+and bound by the mapper's re-bind afterwards, so the validator's gate alone would not have seen it in its own run.
+
+## C69 — The satellite grain gate does not look at a stage that reads through a translation view (2026-11-15)
+
+**Found** by building the demo's fifth project replayed with C67 repaired (zero cost, PostgreSQL): PASS=539 of 539,
+and the second build inserts 343 rows into `sat_product_assembly_component_details`. `E_SAT_GRAIN_NOT_UNIQUE`
+(WP85) skips every stage whose metadata carries a `key_translation`, as WP73's gate did (C68) — and since WP125 the
+bill of materials, the case the gate was built for (C13), reads through one. The demo of 2026-11-15 did not show
+it because C67 failed the stage first. **Taken up as WP133**
+(`backlog-2026-07/wp133-translated-satellite-grain-spec.md`): a translated key stands for the relation's
+referencing column, which the stage's metadata now names, typed.
+
+## C70 — A binding ratified at sign-off is not validated (2026-11-15)
+
+**Found** by the same replay. The demo's third step bound `stg_work_order_operation` to `WorkOrderRouting` at
+sign-off. Replayed with that binding known from the start, the validator refuses
+`sat_work_order_operation_details` (`E_SAT_GRAIN_NOT_UNIQUE`: the relation is unique on WorkOrderID + ProductID +
+OperationSequence, the satellite's key covers WorkOrderID + OperationSequence). The live run never said so: the
+stage was unbound when the validator ran, the binding came after it, and nothing validates again — WP82 checks a
+binding's columns, not what the gates that judge a stage by its relation would say. In AdventureWorks' data the two
+columns are unique (the satellite inserted nothing on the second build of the demo), so nothing is wrong in the
+demo; on other data such a binding re-inserts on every load, unseen. **Options:** run the relation-reading gates
+on the stages a sign-off binds and refuse the binding with their message; or re-validate after the re-bind and
+show the result as a decision. **Not decided**, no WP number.
