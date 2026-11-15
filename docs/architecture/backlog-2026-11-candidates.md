@@ -620,3 +620,13 @@ combination `E_HUB_COMPOSITE_UNSUPPORTED` names (a composite-key hub in a link w
 built yet"). On the surrogate-keyed chains the participation needed no translation. **Options:** trace it on the
 kept project first (zero cost); then either bind such a link by the composite hub's own table, or build the
 per-column translation for a composite participant. **Not decided**, no WP number.
+
+## C65 — A translation view cannot be named on PostgreSQL once its stage is longer than 50 characters (2026-11-15)
+
+**Found** by the twenty-sixth chain's keyless build (2026-11-14) and read again before the shipped demo is
+regenerated. WP102's short form `<stage>_via_<n>_<digest>` adds 13 characters to the stage's name;
+`stg_business_entity_sales_territory_assignment_details` (54, legal) got a view of 67 and dbt-postgres refused it —
+the satellite and its tests were skipped. WP102 flags such a name (`generation_gap`) and asks for a shorter
+construct name, which no checkpoint answer can give. Since WP125 a translation is the ordinary case, so the class is
+no longer rare. **Taken up as WP129** (`backlog-2026-07/wp129-translation-name-always-fits-spec.md`): the view's
+name is the generator's alone and may be cut; the stage's is not.
