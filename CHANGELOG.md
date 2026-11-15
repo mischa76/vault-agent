@@ -50,6 +50,10 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- A translation view's name always fits the platform's identifier limit when its stage's name does (WP129, C65). The
+  short form `<stage>_via_<n>_<digest>` adds 13 characters, so on PostgreSQL a stage longer than 50 characters got a
+  view the warehouse refused — one satellite of the twenty-sixth AdventureWorks chain. The view now keeps as much of
+  the stage's name as fits. Names that fitted are unchanged.
 - The validator's column gate (`E_STAGE_COLUMN_NOT_IN_SOURCE`) refused a stage whose derived column is a generator
   expression — WP121's `xml` cast among them, so a run on a relation with such a column would have been refused. The
   stage metadata now records the column each expression reads (`expression_reads`), and the gate judges that.

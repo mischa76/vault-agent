@@ -1317,7 +1317,14 @@ def translation_model_name(spec: StagingSpec, limit: int | None = None) -> str:
     ``stg_<link>_via_<n>_<digest>``: the count of joined relations and six hex digits of a
     SHA-256 over the joined list, deterministic and distinct per list. The joined relations stay
     readable in the view's header, its schema.yml and the stage's ``key_translation`` metadata.
-    A name that fits is unchanged, so every existing output is byte-identical."""
+    A name that fits is unchanged, so every existing output is byte-identical.
+
+    WP129 (C65): the short form adds 13 characters to the stage's name, so a stage that fits could
+    still get a view that does not (the twenty-sixth chain: 54 → 67). The view's name is the
+    generator's alone — nothing but the stage written in the same pass refers to it — so where
+    the short form does not fit either, the stage's name is cut to the room the suffix leaves
+    and the digest covers the stage's whole name too: two stages sharing a head never share a
+    view. The stage's own name is never cut (WP102 rule 3)."""
     assert spec.translations
     via = "_and_".join(
         normalize_identifier(construct_base_name(t.through_table)).lower()
@@ -1326,8 +1333,13 @@ def translation_model_name(spec: StagingSpec, limit: int | None = None) -> str:
     full = f"{spec.name}_via_{via}"
     if limit is None or len(full) <= limit:
         return full
-    digest = hashlib.sha256(via.encode("utf-8")).hexdigest()[:6]
-    return f"{spec.name}_via_{len(spec.translations)}_{digest}"
+    count = len(spec.translations)
+    short = f"{spec.name}_via_{count}_{hashlib.sha256(via.encode('utf-8')).hexdigest()[:6]}"
+    if len(short) <= limit:
+        return short
+    digest = hashlib.sha256(f"{spec.name}|{via}".encode()).hexdigest()[:6]
+    suffix = f"_via_{count}_{digest}"
+    return spec.name[: max(limit - len(suffix), 0)].rstrip("_") + suffix
 
 
 def render_translation_model(

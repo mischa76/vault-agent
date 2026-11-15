@@ -50,3 +50,13 @@ today.
 - **P3** live: the paid chain that regenerates the demo (pre-registered separately) builds on PostgreSQL with no
   relation refused for its length. If no stage over 50 characters reads through a translation there, P3 stays
   unmeasured live and the entry says so.
+
+## 5 Measured (2026-11-15, keyless)
+
+- **P1 ✔.** Three of five guards red at `b9660a8` (green by design: the pin of WP102's short form, and the
+  distinct name per joined table, which the digest gave already); five green after.
+- **P2 ✔.** Suite with no key reachable 1781 passed / 3 skipped, ruff, bare mypy. No fixture moved; WP102's six
+  guards unchanged and green.
+- **Built as specified.** The chain's stage now gets
+  `stg_business_entity_sales_territory_assignment_det_via_1_d45f39` (63 characters).
+- **P3 not measured yet** — the paid chain that regenerates the demo follows.

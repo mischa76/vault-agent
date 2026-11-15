@@ -13837,3 +13837,27 @@ besides the working machines' clones.
 owner's report; this machine has no shell there. **Bewusst nicht getan, and now no longer possible:** the mirror
 was never compared file by file with the repository. Runs that only the mirror held — if any, from 2026-10-18 to
 2026-10-29 on a machine other than ZEUS — are gone.
+
+## [2026-11-15] WP129 built: a translation view's name fits the identifier limit whenever its stage's does (C65) — keyless; the live case waits for the demo's chain
+
+**Autor:** Claude Code
+
+Done ahead of the demo's regeneration (the owner's instruction of 2026-11-15), because the twenty-sixth chain's
+build had one error no checkpoint answer can remove. **What was wrong:** WP102's short form
+`<stage>_via_<n>_<digest>` adds 13 characters to the stage's name. `stg_business_entity_sales_territory_assignment_details`
+(54, legal on PostgreSQL) got a view of 67; dbt-postgres refused it, the satellite and its tests were skipped. The
+generator flagged it (`generation_gap`) and asked for a shorter construct name — WP102 had met the case only for a
+construct whose own name is too long. Since WP125 a translation is the ordinary case, so every stage over 50
+characters that reads through one was unbuildable on PostgreSQL. **Changed:** `translation_model_name` — where the
+short form does not fit either, the view keeps the head of the stage's name and the digest covers the stage's whole
+name and the joined list. The view's name is the generator's alone (the stage's `source_model`, the file and its
+`schema.yml` are written in the same pass); the stage's own name is still never cut and still flagged when too
+long. Manual 9, CHANGELOG (Fixed), index, candidate C65, spec `wp129-translation-name-always-fits-spec.md`.
+
+**Überprüft, keyless.** Guards red first (`b9660a8`, three of five), green after; WP102's six guards unchanged;
+suite with no key reachable 1781 passed / 3 skipped, ruff `--no-cache`, bare mypy. Names that fitted are byte for
+byte what they were (WP102's short form pinned with its digest). **Nur angenommen.** That no other generated
+relation name has the same arithmetic — zero-key views and stages are checked by WP102's flag, not shortened.
+**Bewusst nicht getan.** No gate on a raw-vault construct's length (open since WP102). Not built on PostgreSQL yet:
+the twenty-sixth chain's state is not stored whole, so its project cannot be regenerated keyless; the demo's chain
+is the live case if such a stage occurs.
