@@ -1,0 +1,98 @@
+spec-version: 1.0.0
+name: ProductInventory
+namespace: source
+dataAssetResourceName: datastore://source/ProductInventory
+doc: Product inventory records from the source system, describing the quantity of
+  each product held at a given storage location (shelf and bin). This draft contract
+  enforces the declared schema and business keys; ownership and agreement are to be
+  finalized at the human review checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductID
+  description: Identifier of the product held in inventory; refers to a Product record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: LocationID
+  description: Identifier of the inventory location where the product is stored; refers
+    to a Location record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Shelf
+  description: Storage compartment (shelf) identifier within the inventory location.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Bin
+  description: Identifier of the bin where the product is stored within the shelf/location.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Quantity
+  description: Number of units of the product available at the location.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (GUID) for the row, used by the source system
+    for row identification.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source system.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

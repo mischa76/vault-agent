@@ -1,0 +1,89 @@
+spec-version: 1.0.0
+name: EmployeeDepartmentHistory
+namespace: source
+dataAssetResourceName: datastore://source/EmployeeDepartmentHistory
+doc: Source-to-staging asset recording the history of an employee's assignments to
+  departments and shifts over time, with start and end dates for each assignment.
+  The contract enforces the declared schema and business-key integrity; value-level
+  constraints are limited to those grounded in stated requirements. Ownership and
+  agreement status are to be confirmed at the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the employee (business entity) assigned to the department;
+    refers to the Employee's BusinessEntityID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: DepartmentID
+  description: Identifier of the department the employee was assigned to; refers to
+    the Department's DepartmentID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ShiftID
+  description: Identifier of the shift the employee worked during the assignment;
+    refers to the Shift's ShiftID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StartDate
+  description: Date the employee started the assignment in the department and shift.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EndDate
+  description: Date the employee's assignment in the department and shift ended; may
+    be empty for a current assignment.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

@@ -13900,3 +13900,74 @@ review record** — the eval harness is not used (as on 2026-10-23). **What will
 `state.json` only from `.vault-agent/`, local paths made repo-relative, no traces, no `target/`; the traces and
 checkpoint payloads go to the results repository. The shipped demo's fifth `state.json`, which three guards
 read (WP93–WP95), moves to `tests/fixtures/` in the same commit, so the guards keep their evidence.
+
+## [2026-11-15] The demo's chain through the workbench API: five runs green under ADR-0021, the shipped demo regenerated — and one link the warehouse refuses although every gate passed (C67, C68); WP130 built on the way (C66)
+
+**Autor:** Claude Code
+
+Pre-registered today (`459d300`). Five runs person → sales on a fresh workbench (port 8766, root
+`workbench/chain-20261115/`), driven by a script through the API, checkpoints answered as pre-registered. Run
+stamps `20261115T081946810763Z` … `20261115T084203154127Z`. **The code was not one commit:** the runs started on
+`459d300`; at the third run's sign-off a binding was refused by a defect (C66, below), the run stayed paused, WP130
+was built keyless and the workbench restarted on it — from that sign-off on the chain ran with WP130.
+
+- **P1 ✔** all five finished with a passing validation (3.6, 3.1, 11.6 — most of it paused —, 3.3, 8.8 min; modeler
+  calls 2, 2, 1, 1, 3). Final models 7/4/17 → 10/6/26 → 26/23/56 → 29/29/65 → **40 hubs, 53 links, 90 satellites**.
+- **P2 ✔** `E_HUB_KEY_NOT_AS_DECIDED` in no final report and **0 times** inside the attempts.
+- **P3 ✔** `hub_product` on `ProductNumber`; all 19 given keys are the hubs' keys (12 agreed, 6 catalogue default,
+  1 natural primary key). **15 of 40** hubs on a single `…ID` column — 14 disclosed (`W_HUB_ON_TECHNICAL_KEY`) and
+  `hub_culture`, whose `CultureID` is a code. The demo shipped until today: **28 of 40**.
+- **P4 ✔** the contested keys came through the API's `keys` payload at three resolution checkpoints — six tables
+  (`AddressType`, `ContactType`, `StateProvince`, `ShipMethod`, `CreditCard`, `SalesTerritory`), all among the
+  twenty-sixth chain's eight; `Department` and `Shift` were agreed this time. Left unanswered, they took the
+  declared natural key.
+- **P5 ✗ in part.** The fifth project, built whole into `demo_20261115` of the loader's database `aw_source`
+  (dbt 1.9.10, one hand view): **PASS=533, ERROR=1, SKIP=3 of 537**; predicted: no error. The second build is the
+  same and inserts nothing — **180 of 180** incremental models `INSERT 0 0`. No relation was refused for its length;
+  WP129's P3 stays unmeasured live (the one stage over 50 characters reads no translation view). The copy's type
+  artefact is gone with the database (`ProductReview.productid` is `integer` there).
+- **P6 ✔** **5.25 USD** at the prices recorded on 2026-10-09 (Sonnet 107 calls, Opus 9), 31.0 minutes from the first
+  start to the last finish, pauses included.
+- **Not predicted:** 86 decisions at the five sign-offs (13, 6, 31, 6, 30 — 68 of them contract owners), 143
+  disclosures; 48 translation flags, 5 keys to confirm (three homonyms in production, `hub_customer` and
+  `hub_state_province` in sales); 45 translation views in the last project.
+
+**The one error — C67, and why no gate saw it — C68.** `link_product_assembly_component` takes `hub_product` twice.
+Both foreign keys of `BillOfMaterials` were licensed; the pairing gives a ratified key only to a participation
+whose role names its column, so the `component` participation got its translation and the unqualified assembly
+none. The stage hashes a `PRODUCTNUMBER` the relation does not carry: the link and its two satellites are skipped.
+The run passed validation, because `E_STAGE_COLUMN_NOT_IN_SOURCE` skips every stage that reads through a
+translation view — written when such a stage was rare; since WP125 it is the ordinary case. Both recorded as
+candidates, **not built**: the fix cannot reach the finished runs without another paid chain, which is the owner's
+call. The demo ships the defect as found and its README says so.
+
+**C66, found and closed on the way (WP130).** `bindings.stage_key_needs` read every derived column's source;
+since WP123 a hashdiff's inputs are derived columns whose value is an expression, so `--bind
+stg_work_order_operation=WorkOrderRouting` was refused for „declaring none of ENCODE(…)" and the checkpoint listed
+expressions as expected columns. The validator had been given the typed `expression_reads` with WP123; this second
+derivation of the same reading had not. Now one function, called by both. Guards red first (`dcd5ae3`, four of
+five), green after; **live:** the paused run's checkpoint named ten columns after the restart, the binding was
+accepted, the stage is `declared` and built. The second unbound stage (`stg_work_order_operation_location`, C64's
+class) needs a join no binding can express — the hand view in `inferred_views.sql`.
+
+**Data, read from the build.** Sixteen hubs on natural keys against their source tables: each holds exactly the
+distinct keys, fourteen of them plus the two zero-key rows (`-1`, `-2`, `SYSTEM`, read on `hub_product`: 506
+against 504), `hub_customer` 19 820 and `hub_sales_order` 31 465 without. `link_sales_order_line_product` 121 317
+rows = `SalesOrderDetail`, 266 distinct products on both sides, 0 hashes outside `hub_product`.
+
+**The demo.** `demo/workbench-adventureworks/` holds the five runs (`state.json` only from `.vault-agent/`, local
+paths made repo-relative, no traces, no `target/`), one view in `inferred_views.sql`, the README rewritten; every
+workbench view answers through the API on it (model, report, project check, artefacts, five runs). The fifth
+`state.json` of the demo of 2026-10-23 moved to `tests/fixtures/demo_20261023/sales_state.json`; the three guards
+that read it (WP93–WP95) read it there, unchanged otherwise. Top-level README, index, CHANGELOG, `CLAUDE.md`'s
+open item.
+
+**Überprüft.** The five run records and states, the traces (calls, tokens, the modeler's issues), ten checkpoint
+payloads, both build logs, the counts by SQL. Suite with no key reachable, ruff `--no-cache`, bare mypy: in the
+commit. **Nur angenommen.** The prices. That the fourteen hubs' two extra rows are the zero keys — read on
+`hub_product`, concluded from the number elsewhere. **Bewusst nicht getan.** No second chain to get the bill of
+materials built; C67 and C68 not built; C64 not traced; the checkpoints were answered by this session by rule, not
+read by a person; not entered into the review record (no eval harness); no release. The schema `demo_20261115` is
+left in `aw_source`. **Evidence:** traces, checkpoint payloads, driver, report and build logs in the results
+repository under `kept-outputs/workbench-chain-20261115/` (`ec428f1` and `03821d0`, pushed to `tank`; the scripts as `.py.txt`, because bare mypy reads `eval/` and took them for project code). **A slip:** the C66
+candidate's first draft dated WP123 2026-11-03; corrected to 2026-11-10 by amending the commit before it was pushed.

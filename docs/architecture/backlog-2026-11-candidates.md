@@ -639,3 +639,27 @@ column's source; WP123's hashdiff inputs are derived columns whose value is an e
 `WorkOrderRouting`. The validator's gate got the typed `expression_reads` with WP123; this second derivation of the
 same reading did not. No sign-off binding had been tried since WP123 (2026-11-10). **Taken up as WP130**
 (`backlog-2026-07/wp130-binding-reads-columns-spec.md`).
+
+## C67 — A hub taken twice by one link gets its key translation only on the role-named participation (2026-11-15)
+
+**Found** by the keyless build of the demo's chain. `link_product_assembly_component` (from `BillOfMaterials`) takes
+`hub_product` twice: unqualified for the assembly, with role `component` for the component. Both foreign keys
+(`ProductAssemblyID`, `ComponentID` → `Product.ProductID`) were licensed at the resolution checkpoint. The pairing
+(`link_proposal._pair_participations`) gives a ratified key to a participation only when its role names the key's
+column; an unqualified participation beside another of the same hub is skipped by design („two keys into one hub
+are a question only a role can answer"). So the component got its translation, the assembly none, and
+`stg_product_assembly_component` hashes a `PRODUCTNUMBER` that `BillOfMaterials` does not carry — 1 error, 3 skips
+of 537. Since WP125 `hub_product` is keyed on the product number; on the surrogate-keyed chains the unqualified
+participation read `ProductID`… which the relation does not carry either (`ProductAssemblyID`), so the shape may be
+older than this chain — not checked. **Options:** pair by elimination where it is unambiguous (one unpaired
+participation, one unpaired ratified key, the hub's key absent from the relation); or a gate with a remedy that
+asks the modeler for a role. **Not decided**, no WP number.
+
+## C68 — The validator's column gate does not look at a stage that reads through a translation view (2026-11-15)
+
+**Found** with C67: the run passed validation and the warehouse refused the stage. `E_STAGE_COLUMN_NOT_IN_SOURCE`
+(WP73) skips every stage whose metadata carries a `key_translation` — the relation's columns are then not the
+view's, and the gate was written before translations were the ordinary case. Since WP125 they are (45 views in the
+demo's last project), so the gate is silent on a growing share of stages. **Option:** judge such a stage against
+the relation's columns plus what its translation view projects (the natural-key columns under their projected
+names). **Not decided**, no WP number.

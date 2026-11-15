@@ -28,6 +28,7 @@ import logging
 from typing import Any
 
 from vault_agent.agents.base import BaseAgent
+from vault_agent.bindings import stage_key_needs
 from vault_agent.grounding import is_grounded, known_columns
 from vault_agent.link_proposal import component_keys, resolve_fk_target
 from vault_agent.rules.dv2_rules import (
@@ -1553,25 +1554,11 @@ class ValidatorAgent(BaseAgent):
             if table is None:
                 continue
             stage_declared = {normalize_identifier(c) for c in table.column_names}
-            # a hash may read a derived column (a role alias, WP41): derived names are available
-            stage_declared |= {
-                normalize_identifier(str(name)) for name in (meta.get("derived_columns") or {})
-            }
-            stage_needs: list[str] = []
-            for value in (meta.get("hashed_columns") or {}).values():
-                if isinstance(value, dict):
-                    continue  # a hashdiff: its attributes are W_ATTR_NOT_IN_SOURCE's, not keys
-                key_columns: list[Any] = list(value) if isinstance(value, list) else [value]
-                stage_needs.extend(str(c) for c in key_columns)
-            expression_reads = meta.get("expression_reads") or {}
-            for name, derived in (meta.get("derived_columns") or {}).items():
-                if name in expression_reads:
-                    # WP123: a generator expression (WP121 cast, WP123 hex) — the column it reads
-                    stage_needs.extend(str(c) for c in expression_reads[name])
-                    continue
-                # WP79: an escaped derived column carries its source in the mapping form
-                source_col = derived.get("source_column") if isinstance(derived, dict) else derived
-                stage_needs.append(str(source_col))
+            # WP130 (C66): one reading of the metadata for this gate and for a sign-off binding —
+            # a hash key's columns (a derived one, a role alias of WP41, by its source), a
+            # generator expression (WP121's cast, WP123's hex) by the columns it reads, never
+            # by its text. A hashdiff's attributes are W_ATTR_NOT_IN_SOURCE's, not keys.
+            stage_needs = stage_key_needs(meta)
             missing = sorted({normalize_identifier(c) for c in stage_needs} - stage_declared)
             if missing:
                 issues.append(

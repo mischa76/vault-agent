@@ -1,0 +1,185 @@
+spec-version: 1.0.0
+name: Document
+namespace: source
+dataAssetResourceName: datastore://source/Document
+doc: 'Staging contract for Document: product documentation records (e.g. maintenance
+  or repair documents) with hierarchy position, title, owner, file details, revision/status
+  metadata, binary content and audit timestamp. Schema, primary-key and not-null breaches
+  are enforced deterministically; value-level semantics are advisory pending producer/consumer
+  review.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: DocumentNode
+  description: Hierarchical node identifier locating the document within the document
+    tree.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: DocumentLevel
+  description: Depth of the document within the document hierarchy.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type:
+    - 'null'
+    - integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Title
+  description: Title of the document.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Owner
+  description: Identifier of the employee who owns the document.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: FolderFlag
+  description: Indicates whether the record is a folder (true) or a document file
+    (false).
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: boolean
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: FileName
+  description: File name of the document.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: FileExtension
+  description: File extension of the document, indicating file type.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Revision
+  description: Revision number of the document.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ChangeNumber
+  description: Engineering change approval number for the document.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Status
+  description: Processing status of the document in its lifecycle.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: DocumentSummary
+  description: Summary text describing the document contents.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Document
+  description: Binary content of the document file.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (ROWGUIDCOL) for the row.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

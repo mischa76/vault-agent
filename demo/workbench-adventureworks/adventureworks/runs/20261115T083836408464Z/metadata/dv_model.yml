@@ -1,0 +1,2549 @@
+hubs:
+- business_key: BusinessEntityID
+  business_key_columns: []
+  description: Company-wide party register (customers, vendors, employees, persons);
+    persons share the same party number and are not a separate hub. Email, phone and
+    credential relations are registered as feeds since they carry the same party number.
+  name: hub_business_entity
+  requirement_ids:
+  - REQ-001
+  - REQ-002
+  - REQ-003
+  - REQ-004
+  - REQ-005
+  - REQ-009
+  - REQ-010
+  - REQ-065
+  source_entity: BusinessEntity
+  sources:
+  - business_key_column: BusinessEntityID
+    source_table: BusinessEntity
+  - business_key_column: BusinessEntityID
+    source_table: Person
+  - business_key_column: BusinessEntityID
+    source_table: EmailAddress
+  - business_key_column: BusinessEntityID
+    source_table: PersonPhone
+  - business_key_column: BusinessEntityID
+    source_table: Password
+  - business_key_column: BusinessEntityID
+    source_table: Employee
+  - business_key_column: BusinessEntityID
+    source_table: EmployeePayHistory
+  - business_key_column: BusinessEntityID
+    source_table: Vendor
+- business_key: AddressID
+  business_key_columns: []
+  description: Postal address identified by its own address number, shareable across
+    parties.
+  name: hub_address
+  requirement_ids:
+  - REQ-001-2
+  - REQ-007-2
+  source_entity: Address
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: Address type reference (Billing, Home, Shipping), keyed on name per
+    decided key.
+  name: hub_address_type
+  requirement_ids:
+  - REQ-011-2
+  - REQ-014-2
+  - REQ-056
+  source_entity: AddressType
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: Contact type reference describing the role a person plays for an organisation,
+    keyed on name per decided key.
+  name: hub_contact_type
+  requirement_ids:
+  - REQ-035-2
+  - REQ-036-2
+  - REQ-056
+  source_entity: ContactType
+  sources: []
+- business_key: PhoneNumberTypeID
+  business_key_columns: []
+  description: Phone number type reference (home, work, mobile).
+  name: hub_phone_number_type
+  requirement_ids:
+  - REQ-040
+  - REQ-041
+  - REQ-045
+  - REQ-056
+  source_entity: PhoneNumberType
+  sources: []
+- business_key: CountryRegionCode
+  business_key_columns: []
+  description: Country or region identified by ISO code.
+  name: hub_country_region
+  requirement_ids:
+  - REQ-020-2
+  - REQ-056
+  source_entity: CountryRegion
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: State or province reference, keyed on name per decided key.
+  name: hub_state_province
+  requirement_ids:
+  - REQ-021-2
+  - REQ-056
+  source_entity: StateProvince
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: Register of departments, the organisational units people work in, keyed
+    on department name (agreed decided key).
+  name: hub_department
+  requirement_ids:
+  - REQ-030
+  - REQ-031
+  - REQ-034
+  source_entity: Department
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: Register of eight-hour working shifts, keyed on shift name (agreed
+    decided key).
+  name: hub_shift
+  requirement_ids:
+  - REQ-037
+  - REQ-038
+  source_entity: Shift
+  sources: []
+- business_key: JobCandidateID
+  business_key_columns: []
+  description: 'Job candidates: people who applied for a position and whose application
+    is held by HR.'
+  name: hub_job_candidate
+  requirement_ids:
+  - REQ-029-2
+  - REQ-034-2
+  - REQ-052
+  source_entity: JobCandidate
+  sources: []
+- business_key: ProductNumber
+  business_key_columns: []
+  description: A product, identified by its unique product number.
+  name: hub_product
+  requirement_ids:
+  - REQ-001
+  - REQ-002
+  - REQ-004
+  source_entity: Product
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: Top level of the merchandising hierarchy, identified by name.
+  name: hub_product_category
+  requirement_ids:
+  - REQ-032
+  - REQ-033
+  source_entity: ProductCategory
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: Second level of the merchandising hierarchy, identified by name.
+  name: hub_product_subcategory
+  requirement_ids:
+  - REQ-032
+  - REQ-034
+  source_entity: ProductSubcategory
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: Product model, identified by name; the level for design, catalogue
+    and instructions.
+  name: hub_product_model
+  requirement_ids:
+  - REQ-039
+  - REQ-041
+  source_entity: ProductModel
+  sources: []
+- business_key: CultureID
+  business_key_columns: []
+  description: Language/locale designation identified by culture code.
+  name: hub_culture
+  requirement_ids:
+  - REQ-002-2
+  source_entity: Culture
+  sources: []
+- business_key: ProductDescriptionID
+  business_key_columns: []
+  description: Free-text marketing description held in a library independent of products.
+  name: hub_product_description
+  requirement_ids:
+  - REQ-001-2
+  source_entity: ProductDescription
+  sources: []
+- business_key: ProductPhotoID
+  business_key_columns: []
+  description: Product photograph in the photo library.
+  name: hub_product_photo
+  requirement_ids:
+  - REQ-008-2
+  source_entity: ProductPhoto
+  sources: []
+- business_key: IllustrationID
+  business_key_columns: []
+  description: Technical illustration used in manufacturing instructions.
+  name: hub_illustration
+  requirement_ids:
+  - REQ-016-2
+  - REQ-017-2
+  source_entity: Illustration
+  sources: []
+- business_key: DocumentNode
+  business_key_columns: []
+  description: Entry (document or folder) of the controlled document library, identified
+    by its hierarchy node.
+  name: hub_document
+  requirement_ids:
+  - REQ-020-2
+  - REQ-021-2
+  - REQ-023-2
+  source_entity: Document
+  sources: []
+- business_key: UnitMeasureCode
+  business_key_columns: []
+  description: Standard unit of measure identified by short code.
+  name: hub_unit_measure
+  requirement_ids:
+  - REQ-056
+  - REQ-057
+  - REQ-058
+  source_entity: UnitMeasure
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: Manufacturing location / work centre, also an inventory-holding location,
+    identified by name.
+  name: hub_location
+  requirement_ids:
+  - REQ-001-3
+  - REQ-002-3
+  - REQ-007-3
+  source_entity: Location
+  sources: []
+- business_key: WorkOrderID
+  business_key_columns: []
+  description: Work order raised to manufacture a product.
+  name: hub_work_order
+  requirement_ids:
+  - REQ-018-3
+  - REQ-019-3
+  source_entity: WorkOrder
+  sources: []
+- business_key: work_order_operation
+  business_key_columns:
+  - WorkOrderID
+  - OperationSequence
+  description: An operation of a work order, identified by work order and operation
+    sequence.
+  name: hub_work_order_operation
+  requirement_ids:
+  - REQ-035-3
+  - REQ-036-3
+  source_entity: WorkOrderRouting
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: Standard scrap reason (failure description).
+  name: hub_scrap_reason
+  requirement_ids:
+  - REQ-025-3
+  - REQ-026-3
+  source_entity: ScrapReason
+  sources: []
+- business_key: TransactionID
+  business_key_columns: []
+  description: Inventory transaction (stock movement), from live and archive stores
+    as one continuous history.
+  name: hub_inventory_transaction
+  requirement_ids:
+  - REQ-001-4
+  - REQ-002-4
+  - REQ-018-4
+  - REQ-019-4
+  - REQ-020-4
+  - REQ-023-4
+  source_entity: TransactionHistory
+  sources:
+  - business_key_column: TransactionID
+    source_table: TransactionHistory
+  - business_key_column: TransactionID
+    source_table: TransactionHistoryArchive
+- business_key: ProductReviewID
+  business_key_columns: []
+  description: Customer review of a product.
+  name: hub_product_review
+  requirement_ids:
+  - REQ-024-4
+  - REQ-025-4
+  source_entity: ProductReview
+  sources: []
+- business_key: PurchaseOrderID
+  business_key_columns: []
+  description: A purchase order placed with a vendor, identified by its purchase order
+    number.
+  name: hub_purchase_order
+  requirement_ids:
+  - REQ-033
+  - REQ-034
+  - REQ-042-2
+  source_entity: PurchaseOrderHeader
+  sources: []
+- business_key: purchase_order_line
+  business_key_columns:
+  - PurchaseOrderID
+  - PurchaseOrderDetailID
+  description: A purchase order line, identified by its purchase order together with
+    its line number.
+  name: hub_purchase_order_line
+  requirement_ids:
+  - REQ-001-2
+  - REQ-002-2
+  - REQ-008-2
+  - REQ-033-2
+  source_entity: PurchaseOrderDetail
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: A shipping method (shipping company and rate agreement) for inbound
+    purchases, identified by the shipping company name.
+  name: hub_ship_method
+  requirement_ids:
+  - REQ-020-2
+  - REQ-021-2
+  - REQ-022-2
+  - REQ-039
+  source_entity: ShipMethod
+  sources: []
+links:
+- connected_hubs:
+  - hub: hub_address
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_state_province
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: StateProvinceID
+      surrogate_column: StateProvinceID
+      through_schema: Person
+      through_table: StateProvince
+    role: null
+    source_key_column: null
+  description: The state or province in which an address sits (country derived via
+    state).
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_address_state_province
+  payload: []
+  requirement_ids:
+  - REQ-002-2
+  - REQ-003-2
+  - REQ-005-2
+  unit_of_work: AddressID + StateProvince
+- connected_hubs:
+  - hub: hub_state_province
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_country_region
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: Every state or province belongs to exactly one country or region.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_state_province_country_region
+  payload: []
+  requirement_ids:
+  - REQ-022-2
+  - REQ-023-2
+  - REQ-003-2
+  unit_of_work: StateProvince + CountryRegionCode
+- connected_hubs:
+  - hub: hub_business_entity
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_address
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_address_type
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: AddressTypeID
+      surrogate_column: AddressTypeID
+      through_schema: Person
+      through_table: AddressType
+    role: null
+    source_key_column: null
+  description: Party-address relationship qualified by address type; party, address
+    and type together are unique.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_business_entity_address
+  payload: []
+  requirement_ids:
+  - REQ-009-2
+  - REQ-010-2
+  - REQ-011-2
+  - REQ-012-2
+  - REQ-013-2
+  - REQ-015-2
+  - REQ-016-2
+  - REQ-018-2
+  unit_of_work: BusinessEntityID + AddressID + AddressType
+- connected_hubs:
+  - hub: hub_business_entity
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_business_entity
+    key_translation: null
+    role: person
+    source_key_column: PersonID
+  - hub: hub_contact_type
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ContactTypeID
+      surrogate_column: ContactTypeID
+      through_schema: Person
+      through_table: ContactType
+    role: null
+    source_key_column: null
+  description: 'Organisational contact relationship: organisation party, person party
+    acting as contact, and contact role.'
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_business_entity_contact
+  payload: []
+  requirement_ids:
+  - REQ-033-2
+  - REQ-034-2
+  - REQ-035-2
+  - REQ-037-2
+  - REQ-038-2
+  - REQ-039-2
+  - REQ-040-2
+  - REQ-042-2
+  - REQ-043-2
+  unit_of_work: BusinessEntityID (organisation) + PersonID + ContactType
+- connected_hubs:
+  - hub: hub_business_entity
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_department
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: DepartmentID
+      surrogate_column: DepartmentID
+      through_schema: HumanResources
+      through_table: Department
+    role: null
+    source_key_column: null
+  - hub: hub_shift
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ShiftID
+      surrogate_column: ShiftID
+      through_schema: HumanResources
+      through_table: Shift
+    role: null
+    source_key_column: null
+  description: Employee assignment to a department and shift over time, from EmployeeDepartmentHistory.
+    Supports headcount at a point in time, mobility and movement reporting, and tracking
+    how long an employee stays in an assignment.
+  driving_key:
+  - hub_business_entity
+  event_timestamp: null
+  link_type: standard
+  name: link_business_entity_department_shift
+  payload: []
+  requirement_ids:
+  - REQ-001-2
+  - REQ-002-2
+  - REQ-007-2
+  - REQ-008-2
+  - REQ-009-2
+  - REQ-010-2
+  - REQ-015-2
+  - REQ-040
+  - REQ-049
+  unit_of_work: BusinessEntityID + DepartmentID + ShiftID (one assignment, starting
+    on StartDate)
+- connected_hubs:
+  - hub: hub_job_candidate
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_business_entity
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: Links a candidate record to the employee hired from it. A candidate
+    with no link was not hired, or has not been hired yet.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_job_candidate_business_entity
+  payload: []
+  requirement_ids:
+  - REQ-032-2
+  - REQ-033-2
+  - REQ-035-2
+  - REQ-036-2
+  - REQ-034-2
+  unit_of_work: JobCandidateID + BusinessEntityID (hire of a candidate)
+- connected_hubs:
+  - hub: hub_product
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_product_subcategory
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ProductSubcategoryID
+      surrogate_column: ProductSubcategoryID
+      through_schema: Production
+      through_table: ProductSubcategory
+    role: null
+    source_key_column: null
+  description: Product placed in (at most one) subcategory.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_product_subcategory
+  payload: []
+  requirement_ids:
+  - REQ-036
+  - REQ-038
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_product_subcategory
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_product_category
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ProductCategoryID
+      surrogate_column: ProductCategoryID
+      through_schema: Production
+      through_table: ProductCategory
+    role: null
+    source_key_column: null
+  description: Subcategory belongs to exactly one category.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_subcategory_product_category
+  payload: []
+  requirement_ids:
+  - REQ-035
+  - REQ-038
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_product
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_product_model
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ProductModelID
+      surrogate_column: ProductModelID
+      through_schema: Production
+      through_table: ProductModel
+    role: null
+    source_key_column: null
+  description: Product belongs to at most one product model.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_product_model
+  payload: []
+  requirement_ids:
+  - REQ-040
+  - REQ-041
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_product
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_unit_measure
+    key_translation: null
+    role: size
+    source_key_column: SizeUnitMeasureCode
+  description: Unit of measure in which the product size is expressed.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_size_unit_measure
+  payload: []
+  requirement_ids:
+  - REQ-010
+  - REQ-011
+  - REQ-057
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_product
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_unit_measure
+    key_translation: null
+    role: weight
+    source_key_column: WeightUnitMeasureCode
+  description: Unit of measure in which the product weight is expressed.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_weight_unit_measure
+  payload: []
+  requirement_ids:
+  - REQ-012
+  - REQ-013
+  - REQ-057
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_product_model
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ProductModelID
+      surrogate_column: ProductModelID
+      through_schema: Production
+      through_table: ProductModel
+    role: null
+    source_key_column: null
+  - hub: hub_product_description
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_culture
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: A product model's description in a specific culture.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_model_description_culture
+  payload: []
+  requirement_ids:
+  - REQ-003-2
+  - REQ-004-2
+  - REQ-005-2
+  - REQ-006-2
+  - REQ-007-2
+  - REQ-047-3
+  - REQ-048-3
+  unit_of_work: ProductModel + ProductDescription + Culture
+- connected_hubs:
+  - hub: hub_product
+    key_translation:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ProductID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+    role: null
+    source_key_column: null
+  - hub: hub_product_photo
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: Many-to-many association of products and photographs.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_product_photo
+  payload: []
+  requirement_ids:
+  - REQ-011-2
+  - REQ-012-2
+  - REQ-014-2
+  - REQ-047-3
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_product_model
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ProductModelID
+      surrogate_column: ProductModelID
+      through_schema: Production
+      through_table: ProductModel
+    role: null
+    source_key_column: null
+  - hub: hub_illustration
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: Illustrations supporting product models.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_model_illustration
+  payload: []
+  requirement_ids:
+  - REQ-018-2
+  - REQ-019-2
+  - REQ-047-3
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_product
+    key_translation:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ProductID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+    role: null
+    source_key_column: null
+  - hub: hub_document
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: Documents associated with products (many-to-many).
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_document
+  payload: []
+  requirement_ids:
+  - REQ-039-2
+  - REQ-040-2
+  - REQ-047-3
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_document
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_business_entity
+    key_translation: null
+    role: null
+    source_key_column: Owner
+  description: Document owner (an employee), joined to the HR area's business entity
+    hub.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_document_business_entity
+  payload: []
+  requirement_ids:
+  - REQ-025-2
+  - REQ-026-2
+  - REQ-027-2
+  - REQ-049-3
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_product
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_product
+    key_translation:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ComponentID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+    role: component
+    source_key_column: null
+  - hub: hub_unit_measure
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: 'Bill of materials: a component product used in an assembly product,
+    quantity expressed in a unit of measure.'
+  driving_key:
+  - hub_product
+  - hub_product:component
+  event_timestamp: null
+  link_type: standard
+  name: link_product_assembly_component
+  payload: []
+  requirement_ids:
+  - REQ-041-2
+  - REQ-042-2
+  - REQ-043-2
+  - REQ-045-2
+  - REQ-047
+  - REQ-053
+  unit_of_work: ProductAssemblyID + ComponentID (+ UnitMeasureCode)
+- connected_hubs:
+  - hub: hub_work_order
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_product
+    key_translation:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ProductID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+    role: null
+    source_key_column: null
+  description: Product being manufactured by a work order.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_work_order_product
+  payload: []
+  requirement_ids:
+  - REQ-020-3
+  - REQ-034-3
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_work_order
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_scrap_reason
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ScrapReasonID
+      surrogate_column: ScrapReasonID
+      through_schema: Production
+      through_table: ScrapReason
+    role: null
+    source_key_column: null
+  description: Scrap reason recorded on a work order (optional).
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_work_order_scrap_reason
+  payload: []
+  requirement_ids:
+  - REQ-025-3
+  - REQ-027-3
+  - REQ-028-3
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_work_order_operation
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_work_order
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_product
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_location
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: A work order operation, its work order, product manufactured and location
+    where performed.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_work_order_operation_location
+  payload: []
+  requirement_ids:
+  - REQ-035-3
+  - REQ-037-3
+  - REQ-038-3
+  - REQ-051-2
+  - REQ-052-2
+  unit_of_work: 'WorkOrderRouting row: WorkOrderID, OperationSequence, ProductID,
+    LocationID'
+- connected_hubs:
+  - hub: hub_product
+    key_translation:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ProductID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+    role: null
+    source_key_column: null
+  - hub: hub_location
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: LocationID
+      surrogate_column: LocationID
+      through_schema: Production
+      through_table: Location
+    role: null
+    source_key_column: null
+  description: Inventory of a product held at a location.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_location
+  payload: []
+  requirement_ids:
+  - REQ-009-3
+  - REQ-012-3
+  - REQ-013-3
+  - REQ-014-3
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_inventory_transaction
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_product
+    key_translation:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ProductID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+    role: null
+    source_key_column: null
+  description: Product moved by an inventory transaction.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_inventory_transaction_product
+  payload: []
+  requirement_ids:
+  - REQ-003-4
+  - REQ-017-4
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_product_review
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_product
+    key_translation:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ProductID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+    role: null
+    source_key_column: null
+  description: Product a review relates to.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_review_product
+  payload: []
+  requirement_ids:
+  - REQ-026-4
+  - REQ-032-4
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_product
+    key_translation:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ProductID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+    role: null
+    source_key_column: null
+  - hub: hub_business_entity
+    key_translation: null
+    role: vendor
+    source_key_column: BusinessEntityID
+  - hub: hub_unit_measure
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: 'Product-vendor supply relationship from ProductVendor: a product bought
+    from a vendor in a given unit of measure.'
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_product_vendor
+  payload: []
+  requirement_ids:
+  - REQ-016
+  - REQ-017
+  - REQ-018
+  - REQ-027
+  - REQ-028
+  - REQ-028-2
+  - REQ-029-2
+  - REQ-031
+  - REQ-032
+  - REQ-040-2
+  unit_of_work: ProductID + BusinessEntityID (vendor) with UnitMeasureCode of the
+    supply terms
+- connected_hubs:
+  - hub: hub_purchase_order
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_business_entity
+    key_translation: null
+    role: vendor
+    source_key_column: VendorID
+  description: The vendor a purchase order is placed with (PurchaseOrderHeader.VendorID).
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_purchase_order_vendor
+  payload: []
+  requirement_ids:
+  - REQ-035
+  - REQ-030-2
+  - REQ-008
+  - REQ-014
+  - REQ-055
+  unit_of_work: PurchaseOrderID + VendorID
+- connected_hubs:
+  - hub: hub_purchase_order
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_business_entity
+    key_translation: null
+    role: employee
+    source_key_column: EmployeeID
+  description: The employee (buyer) who created the purchase order (PurchaseOrderHeader.EmployeeID).
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_purchase_order_employee
+  payload: []
+  requirement_ids:
+  - REQ-036
+  - REQ-031-2
+  - REQ-037
+  - REQ-038
+  - REQ-055
+  unit_of_work: PurchaseOrderID + EmployeeID
+- connected_hubs:
+  - hub: hub_purchase_order
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_ship_method
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ShipMethodID
+      surrogate_column: ShipMethodID
+      through_schema: Purchasing
+      through_table: ShipMethod
+    role: null
+    source_key_column: null
+  description: The shipping method specified on a purchase order (PurchaseOrderHeader.ShipMethodID).
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_purchase_order_ship_method
+  payload: []
+  requirement_ids:
+  - REQ-039
+  - REQ-032-2
+  - REQ-024-2
+  - REQ-025-2
+  - REQ-055
+  unit_of_work: PurchaseOrderID + ShipMethodID
+- connected_hubs:
+  - hub: hub_purchase_order_line
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_purchase_order
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_product
+    key_translation:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ProductID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+    role: null
+    source_key_column: null
+  description: A purchase order line belonging to its purchase order and referring
+    to exactly one product (PurchaseOrderDetail).
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_purchase_order_line
+  payload: []
+  requirement_ids:
+  - REQ-001-2
+  - REQ-002-2
+  - REQ-003-2
+  - REQ-013-2
+  - REQ-014-2
+  - REQ-034-2
+  - REQ-031
+  - REQ-032
+  unit_of_work: PurchaseOrderID + PurchaseOrderDetailID + ProductID
+- connected_hubs:
+  - hub: hub_purchase_order_line
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_product
+    key_translation:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ProductID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+    role: null
+    source_key_column: null
+  description: Declared foreign key PurchaseOrderDetail.ProductID references PRODUCTNUMBER;
+    ratified from the source catalogue (WP34).
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_purchase_order_line_product
+  payload: []
+  requirement_ids: []
+  unit_of_work: null
+satellites:
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Business entity register last-changed timestamp; rowguid excluded as
+    technical metadata.
+  key_translation: null
+  name: sat_business_entity_details
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-006
+  - REQ-007
+  - REQ-008
+  sat_type: standard
+  source_table: BusinessEntity
+  split_rationale: null
+- attributes:
+  - PersonType
+  - NameStyle
+  - Title
+  - FirstName
+  - MiddleName
+  - LastName
+  - Suffix
+  - ModifiedDate
+  child_dependent_key: []
+  description: Person type and name details with history.
+  key_translation: null
+  name: sat_business_entity_person_name
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-011
+  - REQ-012
+  - REQ-013
+  - REQ-014
+  - REQ-015
+  - REQ-016
+  - REQ-017
+  - REQ-018
+  - REQ-019
+  - REQ-020
+  - REQ-021
+  - REQ-032
+  - REQ-049-2
+  sat_type: standard
+  source_table: Person
+  split_rationale: Ordinary name/type reporting data; carries the Person last-modified
+    timestamp.
+- attributes:
+  - EmailPromotion
+  child_dependent_key: []
+  description: Email promotion consent with full history.
+  key_translation: null
+  name: sat_business_entity_person_consent
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-022
+  - REQ-023
+  - REQ-024
+  - REQ-025
+  - REQ-026
+  - REQ-027
+  - REQ-062
+  - REQ-063
+  sat_type: standard
+  source_table: Person
+  split_rationale: Compliance-sensitive consent split out for audit history and access
+    control.
+- attributes:
+  - AdditionalContactInfo
+  - Demographics
+  child_dependent_key: []
+  description: Sensitive XML additional contact info and demographics.
+  key_translation: null
+  name: sat_business_entity_person_sensitive
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-028
+  - REQ-029
+  - REQ-030
+  - REQ-031
+  - REQ-058
+  sat_type: standard
+  source_table: Person
+  split_rationale: Sensitive classification and XML data type; restricted separately.
+- attributes:
+  - EmailAddress
+  - ModifiedDate
+  child_dependent_key:
+  - EmailAddressID
+  description: All email addresses of a person, numbered within the person, with history.
+  key_translation: null
+  name: sat_business_entity_email
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-033
+  - REQ-034
+  - REQ-035
+  - REQ-036
+  - REQ-037
+  - REQ-038
+  - REQ-049-2
+  sat_type: multi_active
+  source_table: EmailAddress
+  split_rationale: null
+- attributes:
+  - ModifiedDate
+  child_dependent_key:
+  - PhoneNumberTypeID
+  - PhoneNumber
+  description: All telephone numbers of a person qualified by phone number type, with
+    history.
+  key_translation: null
+  name: sat_business_entity_phone
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-039
+  - REQ-040
+  - REQ-042
+  - REQ-043
+  - REQ-044
+  - REQ-049-2
+  sat_type: multi_active
+  source_table: PersonPhone
+  split_rationale: null
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Existence and last-change of a sign-in credential only; hash and salt
+    excluded.
+  key_translation: null
+  name: sat_business_entity_credential
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-046
+  - REQ-047
+  - REQ-048
+  - REQ-050
+  - REQ-061
+  sat_type: standard
+  source_table: Password
+  split_rationale: Separate source; credential values never loaded.
+- attributes:
+  - AddressLine1
+  - AddressLine2
+  - City
+  - PostalCode
+  - ModifiedDate
+  child_dependent_key: []
+  description: Street address details with history.
+  key_translation: null
+  name: sat_address_details
+  parent: hub_address
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-002-2
+  - REQ-005-2
+  - REQ-006-2
+  - REQ-008-2
+  - REQ-049-2
+  sat_type: standard
+  source_table: Address
+  split_rationale: null
+- attributes:
+  - SpatialLocation
+  child_dependent_key: []
+  description: Geographic coordinates of an address.
+  key_translation: null
+  name: sat_address_location
+  parent: hub_address
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-004-2
+  - REQ-054
+  - REQ-058
+  sat_type: standard
+  source_table: Address
+  split_rationale: Personal geographic data and spatial data type.
+- attributes:
+  - AddressTypeID
+  - ModifiedDate
+  child_dependent_key: []
+  description: Address type source identifier and last change.
+  key_translation: null
+  name: sat_address_type_details
+  parent: hub_address_type
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-014-2
+  sat_type: standard
+  source_table: AddressType
+  split_rationale: null
+- attributes:
+  - ContactTypeID
+  - ModifiedDate
+  child_dependent_key: []
+  description: Contact type source identifier and last change.
+  key_translation: null
+  name: sat_contact_type_details
+  parent: hub_contact_type
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-036-2
+  sat_type: standard
+  source_table: ContactType
+  split_rationale: null
+- attributes:
+  - Name
+  - ModifiedDate
+  child_dependent_key: []
+  description: Phone number type name with history of renames.
+  key_translation: null
+  name: sat_phone_number_type_details
+  parent: hub_phone_number_type
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-041
+  - REQ-045
+  sat_type: standard
+  source_table: PhoneNumberType
+  split_rationale: null
+- attributes:
+  - Name
+  - ModifiedDate
+  child_dependent_key: []
+  description: Country or region name with visible renames.
+  key_translation: null
+  name: sat_country_region_details
+  parent: hub_country_region
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-020-2
+  - REQ-031-2
+  - REQ-032-2
+  sat_type: standard
+  source_table: CountryRegion
+  split_rationale: null
+- attributes:
+  - StateProvinceID
+  - StateProvinceCode
+  - IsOnlyStateProvinceFlag
+  - ModifiedDate
+  child_dependent_key: []
+  description: State or province code, no-genuine-code flag and identifier.
+  key_translation: null
+  name: sat_state_province_details
+  parent: hub_state_province
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-021-2
+  - REQ-024-2
+  - REQ-025-2
+  - REQ-031-2
+  - REQ-055
+  sat_type: standard
+  source_table: StateProvince
+  split_rationale: null
+- attributes:
+  - TerritoryID
+  child_dependent_key: []
+  description: Sales territory assignment of a state or province, tracked over time;
+    territory descriptions come from the sales area.
+  key_translation: null
+  name: sat_state_province_territory
+  parent: hub_state_province
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-026-2
+  - REQ-027-2
+  - REQ-028-2
+  - REQ-029-2
+  - REQ-030-2
+  - REQ-049-2
+  sat_type: standard
+  source_table: StateProvince
+  split_rationale: Territory assignment changes independently and needs its own history.
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Last-changed timestamp of the party-address relationship.
+  key_translation: null
+  name: sat_business_entity_address_details
+  parent: link_business_entity_address
+  participation_aliases: {}
+  participation_translations:
+    hub_address_type:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: AddressTypeID
+      surrogate_column: AddressTypeID
+      through_schema: Person
+      through_table: AddressType
+  requirement_ids:
+  - REQ-017-2
+  - REQ-018-2
+  sat_type: standard
+  source_table: BusinessEntityAddress
+  split_rationale: null
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Last-changed timestamp of the contact relationship.
+  key_translation: null
+  name: sat_business_entity_contact_details
+  parent: link_business_entity_contact
+  participation_aliases:
+    hub_business_entity:person: PersonID
+  participation_translations:
+    hub_contact_type:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ContactTypeID
+      surrogate_column: ContactTypeID
+      through_schema: Person
+      through_table: ContactType
+  requirement_ids:
+  - REQ-041-2
+  - REQ-042-2
+  sat_type: standard
+  source_table: BusinessEntityContact
+  split_rationale: null
+- attributes:
+  - JobTitle
+  - HireDate
+  - SalariedFlag
+  - CurrentFlag
+  - LoginID
+  - ModifiedDate
+  child_dependent_key: []
+  description: 'Employee job and employment-status attributes: job title, hire date,
+    salaried/hourly flag, active/inactive flag, network login, and the last-modified
+    timestamp.'
+  key_translation: null
+  name: sat_business_entity_employee_details
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-005
+  - REQ-007
+  - REQ-008
+  - REQ-009
+  - REQ-010
+  - REQ-012
+  - REQ-013
+  - REQ-014
+  - REQ-039-2
+  - REQ-040-2
+  - REQ-043
+  sat_type: standard
+  source_table: Employee
+  split_rationale: Employment attributes that are not sensitive and change slowly.
+    ModifiedDate is kept only here. rowguid is left out because it has no business
+    meaning (REQ-006).
+- attributes:
+  - NationalIDNumber
+  - BirthDate
+  - Gender
+  - MaritalStatus
+  child_dependent_key: []
+  description: 'Restricted personal data about employees: national ID number, date
+    of birth, gender and marital status.'
+  key_translation: null
+  name: sat_business_entity_employee_sensitive
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-002
+  - REQ-015
+  - REQ-016
+  - REQ-017
+  - REQ-018
+  - REQ-019
+  - REQ-020
+  sat_type: standard
+  source_table: Employee
+  split_rationale: Split out by data classification (PII), so access can be restricted
+    to authorised HR users.
+- attributes:
+  - VacationHours
+  - SickLeaveHours
+  child_dependent_key: []
+  description: Leave balances (vacation and sick-leave hours remaining). The satellite
+    builds a history of balance readings over time.
+  key_translation: null
+  name: sat_business_entity_employee_leave
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-021
+  - REQ-022
+  - REQ-023
+  - REQ-024
+  - REQ-051
+  sat_type: standard
+  source_table: Employee
+  split_rationale: Leave balances change much more often than other employee attributes.
+- attributes:
+  - OrganizationNode
+  - OrganizationLevel
+  child_dependent_key: []
+  description: The employee's position and level in the corporate hierarchy. History
+    builds up as changes are captured.
+  key_translation: null
+  name: sat_business_entity_employee_hierarchy
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-025
+  - REQ-026
+  - REQ-027
+  - REQ-028
+  - REQ-029
+  sat_type: standard
+  source_table: Employee
+  split_rationale: Hierarchy position changes at its own rate and is used for reporting-line
+    analysis.
+- attributes:
+  - Rate
+  - PayFrequency
+  - ModifiedDate
+  child_dependent_key:
+  - RateChangeDate
+  description: 'Pay-rate history per employee: one row per effective rate-change date,
+    with the hourly rate and the pay frequency.'
+  key_translation: null
+  name: sat_business_entity_employee_pay
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-016-2
+  - REQ-017-2
+  - REQ-018-2
+  - REQ-019-2
+  - REQ-020-2
+  - REQ-021-2
+  - REQ-022-2
+  - REQ-023-2
+  - REQ-024-2
+  - REQ-050
+  sat_type: multi_active
+  source_table: EmployeePayHistory
+  split_rationale: Comes from its own source relation at a finer grain (employee +
+    RateChangeDate), and the source keeps its history. EmployeePayHistory is now declared
+    as a feed of hub_business_entity so this binding is valid.
+- attributes:
+  - GroupName
+  - ModifiedDate
+  child_dependent_key: []
+  description: Department group membership and last-change timestamp. History is captured
+    over time to support as-was reporting.
+  key_translation: null
+  name: sat_department_details
+  parent: hub_department
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-032
+  - REQ-033
+  - REQ-034
+  - REQ-035
+  - REQ-036
+  - REQ-044
+  sat_type: standard
+  source_table: Department
+  split_rationale: null
+- attributes:
+  - StartTime
+  - EndTime
+  - ModifiedDate
+  child_dependent_key: []
+  description: Shift start and end times. Captured historically because shift definitions
+    can be adjusted.
+  key_translation: null
+  name: sat_shift_details
+  parent: hub_shift
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-039
+  - REQ-041
+  - REQ-042
+  sat_type: standard
+  source_table: Shift
+  split_rationale: null
+- attributes:
+  - Resume
+  - ModifiedDate
+  child_dependent_key: []
+  description: "The candidate's r\xE9sum\xE9 (a structured document) and the last-modified\
+    \ timestamp."
+  key_translation: null
+  name: sat_job_candidate_details
+  parent: hub_job_candidate
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-030-2
+  - REQ-031-2
+  - REQ-037-2
+  - REQ-039-2
+  sat_type: standard
+  source_table: JobCandidate
+  split_rationale: null
+- attributes:
+  - StartDate
+  - EndDate
+  child_dependent_key: []
+  description: Active period of each department/shift assignment. A missing EndDate
+    marks the current assignment.
+  key_translation: null
+  name: sat_business_entity_department_shift_effectivity
+  parent: link_business_entity_department_shift
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-003-2
+  - REQ-004-2
+  - REQ-005-2
+  - REQ-006-2
+  - REQ-011-2
+  - REQ-012-2
+  - REQ-013-2
+  - REQ-014-2
+  - REQ-025-2
+  sat_type: effectivity
+  source_table: EmployeeDepartmentHistory
+  split_rationale: null
+- attributes:
+  - Name
+  - MakeFlag
+  - FinishedGoodsFlag
+  - Color
+  - Size
+  - Weight
+  - DaysToManufacture
+  - ProductLine
+  - Class
+  - Style
+  - SafetyStockLevel
+  - ReorderPoint
+  - ModifiedDate
+  child_dependent_key: []
+  description: Descriptive product attributes.
+  key_translation: null
+  name: sat_product_details
+  parent: hub_product
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-003
+  - REQ-005
+  - REQ-007
+  - REQ-009
+  - REQ-010
+  - REQ-012
+  - REQ-014
+  - REQ-015
+  - REQ-017
+  - REQ-019
+  - REQ-024
+  - REQ-025
+  - REQ-040-4
+  sat_type: standard
+  source_table: null
+  split_rationale: Slowly changing descriptive master data.
+- attributes:
+  - StandardCost
+  - ListPrice
+  child_dependent_key: []
+  description: Current standard cost and list price on the product record.
+  key_translation: null
+  name: sat_product_pricing
+  parent: hub_product
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-021
+  - REQ-022
+  - REQ-023
+  - REQ-058-2
+  - REQ-066
+  sat_type: standard
+  source_table: null
+  split_rationale: Financial figures change more often than descriptive data.
+- attributes:
+  - SellStartDate
+  - SellEndDate
+  - DiscontinuedDate
+  child_dependent_key: []
+  description: Sale availability and discontinuation dates.
+  key_translation: null
+  name: sat_product_lifecycle
+  parent: hub_product
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-027
+  - REQ-028
+  - REQ-029
+  - REQ-030
+  - REQ-031
+  sat_type: standard
+  source_table: null
+  split_rationale: Lifecycle events change independently.
+- attributes:
+  - EndDate
+  - StandardCost
+  - ModifiedDate
+  child_dependent_key:
+  - StartDate
+  description: Standard cost history periods.
+  key_translation:
+    natural_key_column: PRODUCTNUMBER
+    natural_key_columns: []
+    referencing_column: ProductID
+    surrogate_column: ProductID
+    through_schema: Production
+    through_table: Product
+  name: sat_product_cost_history
+  parent: hub_product
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-053-2
+  - REQ-054-2
+  - REQ-055-2
+  - REQ-056-2
+  - REQ-057-2
+  - REQ-060-2
+  sat_type: multi_active
+  source_table: ProductCostHistory
+  split_rationale: null
+- attributes:
+  - EndDate
+  - ListPrice
+  - ModifiedDate
+  child_dependent_key:
+  - StartDate
+  description: List price history periods.
+  key_translation:
+    natural_key_column: PRODUCTNUMBER
+    natural_key_columns: []
+    referencing_column: ProductID
+    surrogate_column: ProductID
+    through_schema: Production
+    through_table: Product
+  name: sat_product_list_price_history
+  parent: hub_product
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-061-2
+  - REQ-062
+  - REQ-063
+  - REQ-064
+  - REQ-065
+  - REQ-068
+  - REQ-069
+  sat_type: multi_active
+  source_table: ProductListPriceHistory
+  split_rationale: null
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Product category audit attributes.
+  key_translation: null
+  name: sat_product_category_details
+  parent: hub_product_category
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-033
+  - REQ-040-4
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Product subcategory audit attributes.
+  key_translation: null
+  name: sat_product_subcategory_details
+  parent: hub_product_subcategory
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-034
+  - REQ-040-4
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Product model audit attributes.
+  key_translation: null
+  name: sat_product_model_details
+  parent: hub_product_model
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-039
+  - REQ-040-4
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - CatalogDescription
+  child_dependent_key: []
+  description: Structured catalogue content of the model.
+  key_translation: null
+  name: sat_product_model_catalogue
+  parent: hub_product_model
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-042
+  - REQ-043
+  sat_type: standard
+  source_table: null
+  split_rationale: Structured document content, separate data type.
+- attributes:
+  - Instructions
+  child_dependent_key: []
+  description: Structured manufacturing instructions of the model.
+  key_translation: null
+  name: sat_product_model_instructions
+  parent: hub_product_model
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-044
+  - REQ-045
+  - REQ-046
+  sat_type: standard
+  source_table: null
+  split_rationale: Structured document content, separate data type and audience.
+- attributes:
+  - Name
+  - ModifiedDate
+  child_dependent_key: []
+  description: Culture descriptive name.
+  key_translation: null
+  name: sat_culture_details
+  parent: hub_culture
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-002-2
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - Description
+  - ModifiedDate
+  child_dependent_key: []
+  description: Free-text marketing description.
+  key_translation: null
+  name: sat_product_description_details
+  parent: hub_product_description
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-001-2
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - ThumbnailPhotoFileName
+  - LargePhotoFileName
+  - ModifiedDate
+  child_dependent_key: []
+  description: Photograph file names.
+  key_translation: null
+  name: sat_product_photo_details
+  parent: hub_product_photo
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-009-2
+  - REQ-010-2
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - ThumbNailPhoto
+  - LargePhoto
+  child_dependent_key: []
+  description: Binary photograph images.
+  key_translation: null
+  name: sat_product_photo_images
+  parent: hub_product_photo
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-009-2
+  - REQ-010-2
+  - REQ-051-3
+  sat_type: standard
+  source_table: null
+  split_rationale: Binary content split from simple fields.
+- attributes:
+  - Diagram
+  - ModifiedDate
+  child_dependent_key: []
+  description: Illustration diagram.
+  key_translation: null
+  name: sat_illustration_details
+  parent: hub_illustration
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-016-2
+  - REQ-017-2
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - DocumentLevel
+  - Title
+  - FolderFlag
+  - FileName
+  - FileExtension
+  - Revision
+  - ChangeNumber
+  - Status
+  - DocumentSummary
+  - ModifiedDate
+  child_dependent_key: []
+  description: Document metadata, revision and approval control.
+  key_translation: null
+  name: sat_document_details
+  parent: hub_document
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-021-2
+  - REQ-022-2
+  - REQ-024-2
+  - REQ-028-2
+  - REQ-029-2
+  - REQ-030-2
+  - REQ-031-2
+  - REQ-032-2
+  - REQ-033-2
+  - REQ-035-2
+  - REQ-036-2
+  - REQ-037-2
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - Document
+  child_dependent_key: []
+  description: Full binary document content.
+  key_translation: null
+  name: sat_document_content
+  parent: hub_document
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-038-2
+  - REQ-051-3
+  sat_type: standard
+  source_table: null
+  split_rationale: Binary content, inclusion to be confirmed.
+- attributes:
+  - Name
+  - ModifiedDate
+  child_dependent_key: []
+  description: Unit of measure name.
+  key_translation: null
+  name: sat_unit_measure_details
+  parent: hub_unit_measure
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-056
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - CostRate
+  - Availability
+  - ModifiedDate
+  child_dependent_key: []
+  description: Location hourly cost rate and capacity.
+  key_translation: null
+  name: sat_location_details
+  parent: hub_location
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-003-3
+  - REQ-004-3
+  - REQ-005-3
+  - REQ-006-3
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Scrap reason audit attributes.
+  key_translation: null
+  name: sat_scrap_reason_details
+  parent: hub_scrap_reason
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-026-3
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - OrderQty
+  - StockedQty
+  - ScrappedQty
+  - StartDate
+  - EndDate
+  - DueDate
+  - ModifiedDate
+  child_dependent_key: []
+  description: Work order quantities and dates.
+  key_translation: null
+  name: sat_work_order_details
+  parent: hub_work_order
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-021-3
+  - REQ-022-3
+  - REQ-023-3
+  - REQ-024-3
+  - REQ-029-3
+  - REQ-030-3
+  - REQ-031-3
+  - REQ-032-3
+  - REQ-033-3
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - ScheduledStartDate
+  - ScheduledEndDate
+  - ActualStartDate
+  - ActualEndDate
+  - ActualResourceHrs
+  - PlannedCost
+  - ActualCost
+  - ModifiedDate
+  child_dependent_key: []
+  description: Operation schedule, actuals, hours and costs.
+  key_translation: null
+  name: sat_work_order_operation_details
+  parent: hub_work_order_operation
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-039-3
+  - REQ-040-3
+  - REQ-041-3
+  - REQ-042-3
+  - REQ-043-3
+  - REQ-045-3
+  - REQ-046-3
+  - REQ-047-2
+  - REQ-048-2
+  - REQ-049-2
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - ReferenceOrderID
+  - ReferenceOrderLineID
+  - TransactionDate
+  - TransactionType
+  - Quantity
+  - ActualCost
+  - ModifiedDate
+  child_dependent_key: []
+  description: Live inventory transaction details.
+  key_translation: null
+  name: sat_inventory_transaction_details
+  parent: hub_inventory_transaction
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-004-4
+  - REQ-005-4
+  - REQ-006-4
+  - REQ-008-4
+  - REQ-009-4
+  - REQ-011-4
+  - REQ-050-3
+  sat_type: standard
+  source_table: TransactionHistory
+  split_rationale: 'Split by source: live store.'
+- attributes:
+  - ReferenceOrderID
+  - ReferenceOrderLineID
+  - TransactionDate
+  - TransactionType
+  - Quantity
+  - ActualCost
+  - ModifiedDate
+  child_dependent_key: []
+  description: Archived inventory transaction details.
+  key_translation: null
+  name: sat_inventory_transaction_archive_details
+  parent: hub_inventory_transaction
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-018-4
+  - REQ-019-4
+  - REQ-020-4
+  sat_type: standard
+  source_table: TransactionHistoryArchive
+  split_rationale: 'Split by source: archive store.'
+- attributes:
+  - ReviewDate
+  - Rating
+  - Comments
+  - ModifiedDate
+  child_dependent_key: []
+  description: Review date, rating and comments.
+  key_translation: null
+  name: sat_product_review_details
+  parent: hub_product_review
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-029-4
+  - REQ-030-4
+  - REQ-031-4
+  - REQ-033-4
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - ReviewerName
+  - EmailAddress
+  child_dependent_key: []
+  description: Reviewer identity (personal data).
+  key_translation: null
+  name: sat_product_review_reviewer_pii
+  parent: hub_product_review
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-027-4
+  - REQ-028-4
+  - REQ-036-4
+  - REQ-037-4
+  - REQ-038-4
+  sat_type: standard
+  source_table: null
+  split_rationale: PII classification split.
+- attributes:
+  - Shelf
+  - Bin
+  - Quantity
+  - ModifiedDate
+  child_dependent_key: []
+  description: Current quantity at shelf and bin.
+  key_translation: null
+  name: sat_product_location_inventory
+  parent: link_product_location
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-009-3
+  - REQ-010-3
+  - REQ-011-3
+  - REQ-016-3
+  - REQ-017-3
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - Primary
+  - ModifiedDate
+  child_dependent_key: []
+  description: Principal-image indicator.
+  key_translation: null
+  name: sat_product_product_photo_details
+  parent: link_product_product_photo
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-012-2
+  - REQ-013-2
+  - REQ-015-2
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - StartDate
+  - EndDate
+  child_dependent_key: []
+  description: Active period of a component in an assembly.
+  key_translation: null
+  name: sat_product_assembly_component_effectivity
+  parent: link_product_assembly_component
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-049
+  - REQ-050
+  - REQ-051
+  - REQ-052
+  sat_type: effectivity
+  source_table: null
+  split_rationale: null
+- attributes:
+  - BOMLevel
+  - PerAssemblyQty
+  - ModifiedDate
+  child_dependent_key: []
+  description: Component quantity per assembly and BOM level.
+  key_translation: null
+  name: sat_product_assembly_component_details
+  parent: link_product_assembly_component
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-044-2
+  - REQ-046-2
+  - REQ-048
+  - REQ-054
+  - REQ-055
+  sat_type: standard
+  source_table: null
+  split_rationale: null
+- attributes:
+  - AccountNumber
+  - Name
+  - PurchasingWebServiceURL
+  child_dependent_key: []
+  description: 'Vendor identifying and descriptive attributes: vendor account number,
+    company name and optional purchasing web service address.'
+  key_translation: null
+  name: sat_business_entity_vendor_details
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-002
+  - REQ-003
+  - REQ-004
+  - REQ-011
+  - REQ-012
+  sat_type: standard
+  source_table: Vendor
+  split_rationale: Slowly changing identity/description of the vendor, separated from
+    the status codes that change more often.
+- attributes:
+  - CreditRating
+  - PreferredVendorStatus
+  - ActiveFlag
+  - ModifiedDate
+  child_dependent_key: []
+  description: 'Vendor status codes with history: credit rating, preferred vendor
+    status and active flag.'
+  key_translation: null
+  name: sat_business_entity_vendor_status
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-005
+  - REQ-006
+  - REQ-007
+  - REQ-008
+  - REQ-009
+  - REQ-010
+  - REQ-013
+  - REQ-014
+  - REQ-035-2
+  - REQ-038-2
+  sat_type: standard
+  source_table: Vendor
+  split_rationale: Status codes change at a different rate and need tracked history;
+    carries the vendor ModifiedDate once.
+- attributes:
+  - AverageLeadTime
+  - StandardPrice
+  - MinOrderQty
+  - MaxOrderQty
+  - ModifiedDate
+  child_dependent_key: []
+  description: 'Agreed standing supply terms per product and vendor: lead time, standard
+    price and order quantity bounds.'
+  key_translation: null
+  name: sat_product_vendor_terms
+  parent: link_product_vendor
+  participation_aliases:
+    hub_business_entity:vendor: BusinessEntityID
+  participation_translations:
+    hub_product:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ProductID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+  requirement_ids:
+  - REQ-019
+  - REQ-020
+  - REQ-023
+  - REQ-024
+  - REQ-025
+  - REQ-029
+  - REQ-029-2
+  - REQ-009-2
+  - REQ-019-2
+  - REQ-035-2
+  sat_type: standard
+  source_table: ProductVendor
+  split_rationale: Agreed contractual terms change rarely; split from operational
+    running values.
+- attributes:
+  - LastReceiptCost
+  - LastReceiptDate
+  - OnOrderQty
+  child_dependent_key: []
+  description: 'Running operational values on the supply relationship: last receipt
+    cost and date, and quantity currently on order.'
+  key_translation: null
+  name: sat_product_vendor_receipts
+  parent: link_product_vendor
+  participation_aliases:
+    hub_business_entity:vendor: BusinessEntityID
+  participation_translations:
+    hub_product:
+      natural_key_column: PRODUCTNUMBER
+      natural_key_columns: []
+      referencing_column: ProductID
+      surrogate_column: ProductID
+      through_schema: Production
+      through_table: Product
+  requirement_ids:
+  - REQ-021
+  - REQ-022
+  - REQ-023
+  - REQ-026
+  - REQ-030
+  - REQ-018-2
+  sat_type: standard
+  source_table: ProductVendor
+  split_rationale: Running values change with every receipt/order, far faster than
+    the agreed terms.
+- attributes:
+  - RevisionNumber
+  - Status
+  - OrderDate
+  - ShipDate
+  - ModifiedDate
+  child_dependent_key: []
+  description: 'Purchase order header state with history: revision number, status,
+    order date and estimated shipment date.'
+  key_translation: null
+  name: sat_purchase_order_details
+  parent: hub_purchase_order
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-040
+  - REQ-041
+  - REQ-042
+  - REQ-043
+  - REQ-044
+  - REQ-045
+  - REQ-046
+  - REQ-047
+  - REQ-048
+  - REQ-049
+  - REQ-050
+  - REQ-035-2
+  sat_type: standard
+  source_table: PurchaseOrderHeader
+  split_rationale: Lifecycle/status attributes tracked for status transitions and
+    revisions.
+- attributes:
+  - SubTotal
+  - TaxAmt
+  - Freight
+  - TotalDue
+  child_dependent_key: []
+  description: 'Purchase order monetary amounts: subtotal, tax, freight and total
+    due.'
+  key_translation: null
+  name: sat_purchase_order_amounts
+  parent: hub_purchase_order
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-051
+  - REQ-052
+  - REQ-053
+  - REQ-054
+  - REQ-055
+  - REQ-056
+  - REQ-057
+  - REQ-058
+  - REQ-025-2
+  - REQ-037-2
+  sat_type: standard
+  source_table: PurchaseOrderHeader
+  split_rationale: Monetary amounts (different data type/concern) separated from lifecycle
+    status.
+- attributes:
+  - DueDate
+  - OrderQty
+  - UnitPrice
+  - LineTotal
+  - ModifiedDate
+  child_dependent_key: []
+  description: 'Ordered terms of a purchase order line: due date, ordered quantity,
+    unit price and line total.'
+  key_translation: null
+  name: sat_purchase_order_line_details
+  parent: hub_purchase_order_line
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-004-2
+  - REQ-005-2
+  - REQ-006-2
+  - REQ-007-2
+  - REQ-008-2
+  - REQ-009-2
+  - REQ-017-2
+  - REQ-035-2
+  sat_type: standard
+  source_table: PurchaseOrderDetail
+  split_rationale: Order terms set at ordering, rarely changing; split from receipt
+    progression.
+- attributes:
+  - ReceivedQty
+  - RejectedQty
+  - StockedQty
+  child_dependent_key: []
+  description: 'Cumulative receipt and inspection outcomes per line: received, rejected
+    and accepted (stocked) quantities, with history of progression.'
+  key_translation: null
+  name: sat_purchase_order_line_receipt
+  parent: hub_purchase_order_line
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-010-2
+  - REQ-011-2
+  - REQ-012-2
+  - REQ-013-2
+  - REQ-014-2
+  - REQ-015-2
+  - REQ-016-2
+  - REQ-033-2
+  sat_type: standard
+  source_table: PurchaseOrderDetail
+  split_rationale: Receipt quantities change repeatedly over the order life; separate
+    rate of change from ordered terms.
+- attributes:
+  - ShipBase
+  - ShipRate
+  - ModifiedDate
+  child_dependent_key: []
+  description: 'Shipping method rate terms with history: minimum charge (ship base)
+    and charge per pound (ship rate). rowguid excluded as it has no business meaning.'
+  key_translation: null
+  name: sat_ship_method_details
+  parent: hub_ship_method
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-023-2
+  - REQ-024-2
+  - REQ-025-2
+  - REQ-026-2
+  - REQ-027-2
+  sat_type: standard
+  source_table: ShipMethod
+  split_rationale: null

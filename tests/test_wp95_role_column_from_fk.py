@@ -25,9 +25,10 @@ from vault_agent.state import (
     VaultAgentState,
 )
 
+# The fifth run's state of the demo shipped from 2026-10-23 to 2026-11-15 (surrogate-keyed hubs);
+# a fixture since the demo was regenerated under ADR-0021 — the guards keep their evidence.
 _DEMO_STATE = (
-    Path(__file__).resolve().parents[1] / "demo" / "workbench-adventureworks" / "adventureworks"
-    / "runs" / "20261022T234439976097Z" / ".vault-agent" / "state.json"
+    Path(__file__).resolve().parent / "fixtures" / "demo_20261023" / "sales_state.json"
 )
 _REMAINING = {
     "stg_work_order_operation", "stg_product_model", "stg_product_subcategory",
@@ -174,7 +175,7 @@ def _inferred(state: VaultAgentState) -> list[str]:
     return sorted(n for n, m in staging.items() if m.get("source_binding") == "inferred")
 
 
-@pytest.mark.skipif(not _DEMO_STATE.is_file(), reason="the shipped demo is not checked out")
+@pytest.mark.skipif(not _DEMO_STATE.is_file(), reason="the fixture is not checked out")
 async def test_the_demo_s_last_step_needs_four_bindings_not_seven() -> None:
     state = await _replayed()
     assert set(_inferred(state)) == _REMAINING, _inferred(state)

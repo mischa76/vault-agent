@@ -53,6 +53,8 @@ Verify with `git -C eval/results status -sb` (nothing ahead) and `git -C eval/re
 origin` naming the commit. On a checkout without the directory: `git clone
 tank:/tank/git/vault-agent-eval-results.git eval/results`. Kept projects of a run
 (`--keep-outputs`) go under `eval/results/kept-outputs/<case>/<stamp>/` without dbt's `target/`.
+A script kept there as evidence is stored as `.py.txt`: bare `mypy` reads `eval/` and takes a `.py`
+file for project code (2026-11-15).
 The repository is the evidence's second copy, not a dataset: nothing reads it back, and it never
 goes to GitHub.
 

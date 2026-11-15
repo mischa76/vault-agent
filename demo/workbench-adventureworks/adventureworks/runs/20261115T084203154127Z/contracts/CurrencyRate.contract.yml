@@ -1,0 +1,101 @@
+spec-version: 1.0.0
+name: CurrencyRate
+namespace: source
+dataAssetResourceName: datastore://source/CurrencyRate
+doc: Currency exchange rates between a source and target currency for a given date,
+  staged from the Sales.CurrencyRate source table. The contract enforces the declared
+  schema, business key identity and not-null rules; value-level semantics are advisory
+  unless noted.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: CurrencyRateID
+  description: Unique identifier of the currency rate record (surrogate key in the
+    source).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CurrencyRateDate
+  description: Date and time at which the currency exchange rate applies.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: FromCurrencyCode
+  description: Currency code of the source currency being converted from; references
+    Currency.CurrencyCode.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ToCurrencyCode
+  description: Currency code of the target currency being converted to; references
+    Currency.CurrencyCode.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: AverageRate
+  description: Average exchange rate for the day from the source currency to the target
+    currency.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EndOfDayRate
+  description: Exchange rate at the close of the day from the source currency to the
+    target currency.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

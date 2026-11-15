@@ -1,0 +1,75 @@
+spec-version: 1.0.0
+name: ProductSubcategory
+namespace: source
+dataAssetResourceName: datastore://source/ProductSubcategory
+doc: Product subcategories that group products within a product category. Each row
+  is one subcategory, identified by ProductSubcategoryID and linked to its parent
+  ProductCategory via ProductCategoryID. The contract enforces the declared schema,
+  primary key and not-null rules; no value-level thresholds have been stated in the
+  requirements.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductSubcategoryID
+  description: Unique identifier of the product subcategory.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductCategoryID
+  description: Identifier of the parent product category this subcategory belongs
+    to (reference to ProductCategory.ProductCategoryID).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the product subcategory.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (ROWGUID) for the row, used for replication/row
+    identification.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the row was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

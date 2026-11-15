@@ -27,9 +27,10 @@ from vault_agent.state import (
 )
 
 ERROR, WARNING = "E_LINK_OPTIONAL_PARTICIPANT", "W_LINK_OPTIONAL_PARTICIPANT"
+# The fifth run's state of the demo shipped from 2026-10-23 to 2026-11-15 (surrogate-keyed hubs);
+# a fixture since the demo was regenerated under ADR-0021 — the guards keep their evidence.
 _DEMO_STATE = (
-    Path(__file__).resolve().parents[1] / "demo" / "workbench-adventureworks" / "adventureworks"
-    / "runs" / "20261022T234439976097Z" / ".vault-agent" / "state.json"
+    Path(__file__).resolve().parent / "fixtures" / "demo_20261023" / "sales_state.json"
 )
 
 
@@ -135,7 +136,7 @@ async def test_an_integer_keyed_participation_is_never_named() -> None:
 
 # --- P2: the demo's last step --------------------------------------------------------------------
 
-@pytest.mark.skipif(not _DEMO_STATE.is_file(), reason="the shipped demo is not checked out")
+@pytest.mark.skipif(not _DEMO_STATE.is_file(), reason="the fixture is not checked out")
 async def test_the_demo_s_order_link_is_warned_and_refused_once_the_column_is_nullable() -> None:
     state = VaultAgentState.model_validate_json(_DEMO_STATE.read_text(encoding="utf-8"))
     ex = state.existing_model

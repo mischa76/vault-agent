@@ -1,0 +1,101 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: vendor::AccountNumber (vendor account number)
+  resolution: unresolved
+  category: comment_grounded
+  evidence:
+  - Vendor.AccountNumber is nvarchar(15), a vendor-specific identifier. No existing
+    hub uses it as a business key.
+  - Vendor.BusinessEntityID is an FK to BusinessEntity, so the vendor is a business
+    entity. AccountNumber is a different, alternate key for that same thing.
+  - No mapping or comment states whether AccountNumber should be its own hub or an
+    attribute of hub_business_entity, so a human should decide.
+  confidence: 0.4
+  ratification_status: accepted
+- concept: vendor::BusinessEntityID (internal business entity identifier)
+  resolution: hub_business_entity
+  category: comment_grounded
+  evidence:
+  - 'Vendor.BusinessEntityID comment: ''Foreign key to BusinessEntity.BusinessEntityID''.
+    This is an explicit cross-reference.'
+  - hub_business_entity has business key BusinessEntityID and source entity BusinessEntity.
+    It is already fed by Person and Employee, which share the same key, so a vendor
+    is another role of the same key.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: purchase order::PurchaseOrderID (purchase order number)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - No existing hub has a purchase order business key or source entity. The existing
+    hubs cover work orders, inventory transactions and product reviews.
+  - PurchaseOrderHeader.PurchaseOrderID is the primary key of a new header table.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: purchase order line::PurchaseOrderID + PurchaseOrderDetailID (purchase
+    order with line number)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - The composite key PurchaseOrderID + PurchaseOrderDetailID has no counterpart among
+    existing hubs.
+  - hub_work_order_operation is a composite-key hub for work order routing. It is
+    a different concept, and nothing links it to purchase order lines.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: product::ProductID
+  resolution: hub_product
+  category: key_overlap
+  evidence:
+  - ProductVendor.ProductID and PurchaseOrderDetail.ProductID are both documented
+    as 'Foreign key to Product.ProductID'. hub_product has source_entity Product.
+  - The hub's business key is ProductNumber, not ProductID. ProductID therefore has
+    to be mapped to ProductNumber through the Product table. That is why confidence
+    is below the level of an exact key match.
+  confidence: 0.7
+  ratification_status: accepted
+- concept: product-vendor supply relationship::ProductID + BusinessEntityID (product
+    and vendor pairing)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductVendor is described as a cross-reference table mapping vendors to the products
+    they supply.
+  - No existing link connects hub_product to a vendor, that is, to hub_business_entity.
+    link_product_product_model, link_product_location and the others connect different
+    hubs.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: shipping method::Name (shipping company name)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - ShipMethod is a 'Shipping company lookup table'. No existing hub or source entity
+    covers shipping methods.
+  - hub_location, hub_shift and the other hubs keyed on Name are unrelated concepts.
+    A shared column name is not evidence.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: shipping method::ShipMethodID (internal shipping method identifier)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ShipMethod.ShipMethodID is the primary key of a new lookup table. No existing
+    hub models shipping methods.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: employee::EmployeeID
+  resolution: hub_business_entity
+  category: comment_grounded
+  evidence:
+  - 'PurchaseOrderHeader.EmployeeID comment: ''Foreign key to Employee.BusinessEntityID''.
+    This is an explicit cross-reference.'
+  - hub_business_entity is fed by Employee and uses BusinessEntityID as its business
+    key.
+  confidence: 0.93
+  ratification_status: accepted

@@ -1,0 +1,49 @@
+spec-version: 1.0.0
+name: Illustration
+namespace: source
+dataAssetResourceName: datastore://source/Illustration
+doc: Source-to-staging asset for product illustrations (bicycle assembly diagrams).
+  Each record is identified by IllustrationID and carries the diagram content and
+  a last-modified timestamp. The contract enforces the declared schema, primary key
+  and not-null rules; value-level constraints are not specified by the requirements.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: IllustrationID
+  description: Unique identifier of the illustration record (business key).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Diagram
+  description: Illustrative diagram content for the product assembly. The exact storage
+    format is not specified in the requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the illustration record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

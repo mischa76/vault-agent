@@ -1,0 +1,86 @@
+spec-version: 1.0.0
+name: Store
+namespace: source
+dataAssetResourceName: datastore://source/Store
+doc: 'Source-to-staging asset for Store: customer stores (resellers) from the Sales
+  source schema. The contract enforces the declared schema and business-key propagation;
+  ownership and agreement are to be confirmed at the human-in-the-loop checkpoint.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the business entity that represents the store; business
+    key for the Store asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the store.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: SalesPersonID
+  description: Identifier of the sales person assigned to the store (references SalesPerson.BusinessEntityID).
+    May be absent for some stores.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Demographics
+  description: Demographic information about the store, supplied by the source. Structure
+    not specified in requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) assigned by the source system.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

@@ -1,0 +1,50 @@
+spec-version: 1.0.0
+name: SalesOrderHeaderSalesReason
+namespace: source
+dataAssetResourceName: datastore://source/SalesOrderHeaderSalesReason
+doc: Association between sales order headers and the sales reasons recorded for them
+  (many-to-many link). The contract enforces the presence and schema of the SalesOrderID
+  and SalesReasonID keys and the ModifiedDate audit timestamp. Ownership and agreement
+  are to be confirmed at the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: SalesOrderID
+  description: Identifier of the sales order (SalesOrderHeader) to which the sales
+    reason applies.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: SalesReasonID
+  description: Identifier of the sales reason (SalesReason) recorded for the sales
+    order.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source system.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

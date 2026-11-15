@@ -32,9 +32,10 @@ from vault_agent.state import (
 
 RATE_COLUMNS = ["CurrencyRateDate", "FromCurrencyCode", "ToCurrencyCode"]
 RATE_NORMALISED = ["CURRENCYRATEDATE", "FROMCURRENCYCODE", "TOCURRENCYCODE"]
+# The fifth run's state of the demo shipped from 2026-10-23 to 2026-11-15 (surrogate-keyed hubs);
+# a fixture since the demo was regenerated under ADR-0021 — the guards keep their evidence.
 _DEMO_STATE = (
-    Path(__file__).resolve().parents[1] / "demo" / "workbench-adventureworks" / "adventureworks"
-    / "runs" / "20261022T234439976097Z" / ".vault-agent" / "state.json"
+    Path(__file__).resolve().parent / "fixtures" / "demo_20261023" / "sales_state.json"
 )
 _WP82_BINDINGS = {
     "stg_work_order_operation": {"relation": "WorkOrderRouting"},
@@ -273,7 +274,7 @@ def test_zero_key_types_for_a_translated_participation_come_from_the_through_rel
 
 # --- P3: the paid chain's last step, replayed ------------------------------------------------
 
-@pytest.mark.skipif(not _DEMO_STATE.is_file(), reason="the shipped demo is not checked out")
+@pytest.mark.skipif(not _DEMO_STATE.is_file(), reason="the fixture is not checked out")
 async def test_the_demo_s_last_step_needs_no_hand_view_any_more() -> None:
     state = VaultAgentState.model_validate_json(_DEMO_STATE.read_text(encoding="utf-8"))
     existing_names = {h.name for h in state.existing_model.hubs}

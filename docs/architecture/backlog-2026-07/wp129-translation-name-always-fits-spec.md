@@ -60,3 +60,10 @@ today.
 - **Built as specified.** The chain's stage now gets
   `stg_business_entity_sales_territory_assignment_det_via_1_d45f39` (63 characters).
 - **P3 not measured yet** — the paid chain that regenerates the demo follows.
+
+## 6 After the demo's chain (2026-11-15)
+
+- **P3 not measured live.** The chain's fifth project has one stage over 50 characters
+  (`stg_inventory_transaction_transactionhistoryarchive`, 51) and it reads no translation view; none of the 45
+  views needed the short form. No relation was refused for its length (PASS=533, the one error is C67's).
+- **Correction:** §5 names the red guards' commit `b9660a8`; a rebase onto `e9661db` made it `cd48859`.

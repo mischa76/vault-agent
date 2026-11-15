@@ -1,0 +1,77 @@
+spec-version: 1.0.0
+name: BusinessEntityAddress
+namespace: source
+dataAssetResourceName: datastore://source/BusinessEntityAddress
+doc: 'Source-to-staging asset for BusinessEntityAddress: associates a business entity
+  with an address and the address type (role) it plays for that entity. The contract
+  enforces the declared schema and the deterministic business-key, primary-key and
+  not-null rules; ownership and agreement are to be confirmed at the human-in-the-loop
+  checkpoint.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the business entity (e.g. person, store, vendor) the
+    address is linked to. Refers to BusinessEntity.BusinessEntityID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: AddressID
+  description: Identifier of the address linked to the business entity. Refers to
+    Address.AddressID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: AddressTypeID
+  description: Identifier of the type of address (role) for this business entity/address
+    link. Refers to AddressType.AddressTypeID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (GUID) for the row, used by the source system
+    for row identification.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source row was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

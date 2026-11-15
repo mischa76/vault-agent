@@ -353,7 +353,7 @@ Python 3.12+ · [uv](https://github.com/astral-sh/uv) · [LangGraph](https://lan
 Actively built in the open. The **pipeline runs end-to-end** — CLI and browser workbench — with the
 methodology rules in code and a self-correcting validation loop. Its main instrument is AdventureWorks:
 a five-step brownfield chain (person → sales, 68 tables) run more than twenty times and built on
-PostgreSQL and Databricks; the owner's own step-by-step build of it ships as
+PostgreSQL and Databricks; a chain of it through the workbench ships as
 [`demo/workbench-adventureworks/`](demo/workbench-adventureworks/README.md). Not yet: a second real
 domain, a real customer project. Day-by-day evidence: [`docs/log.md`](docs/log.md).
 

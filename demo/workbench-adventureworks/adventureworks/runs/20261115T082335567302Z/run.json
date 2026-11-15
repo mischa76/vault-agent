@@ -1,0 +1,51 @@
+{
+  "id": "adventureworks:20261115T082335567302Z",
+  "project": "adventureworks",
+  "status": "finished",
+  "thread_id": "7b430bdcc9594de98839e897ae019405",
+  "out_dir": "demo/workbench-adventureworks/adventureworks/runs/20261115T082335567302Z",
+  "requirements": "hr_requirements.md",
+  "schema": "hr_source_schema.yml",
+  "existing_run": "adventureworks:20261115T081946810763Z",
+  "profiling": null,
+  "target_platform": "postgres",
+  "llm": {
+    "primary_model": null,
+    "heavy_model": null,
+    "anthropic_base_url": null
+  },
+  "naming": {
+    "staging_prefix": "stg_",
+    "hashkey_suffix": "_HK",
+    "hashdiff_suffix": "_HASHDIFF",
+    "load_datetime": "LOAD_DATETIME",
+    "record_source": "RECORD_SOURCE",
+    "applied_dts": "APPLIED_DTS",
+    "technical_case": "upper"
+  },
+  "business_vault": {
+    "pit": false,
+    "bridges": [],
+    "as_of_start": null,
+    "as_of_end": null,
+    "as_of_grain": "day"
+  },
+  "started": "2026-11-15T08:23:35+00:00",
+  "finished": "2026-11-15T08:26:43+00:00",
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run demo/workbench-adventureworks/adventureworks/inputs/hr_requirements.md --out demo/workbench-adventureworks/adventureworks/runs/20261115T082335567302Z --source-schema demo/workbench-adventureworks/adventureworks/inputs/hr_source_schema.yml --existing demo/workbench-adventureworks/adventureworks/runs/20261115T081946810763Z",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T082335567302Z --accept",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T082335567302Z --owner 'Department=John Doe <john.doe@acme.com>' --owner 'Employee=John Doe <john.doe@acme.com>' --owner 'EmployeeDepartmentHistory=John Doe <john.doe@acme.com>' --owner 'EmployeePayHistory=John Doe <john.doe@acme.com>' --owner 'JobCandidate=John Doe <john.doe@acme.com>' --owner 'Shift=John Doe <john.doe@acme.com>' --accept"
+  ],
+  "checkpoints": [
+    {
+      "phase": "resolution",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T082335567302Z --accept"
+    },
+    {
+      "phase": "signoff",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T082335567302Z --owner 'Department=John Doe <john.doe@acme.com>' --owner 'Employee=John Doe <john.doe@acme.com>' --owner 'EmployeeDepartmentHistory=John Doe <john.doe@acme.com>' --owner 'EmployeePayHistory=John Doe <john.doe@acme.com>' --owner 'JobCandidate=John Doe <john.doe@acme.com>' --owner 'Shift=John Doe <john.doe@acme.com>' --accept"
+    }
+  ]
+}

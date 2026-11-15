@@ -79,7 +79,11 @@ def coerce_bindings(raw: Any) -> dict[str, StageBinding]:
 def stage_key_needs(meta: dict[str, Any]) -> list[str]:
     """The relation columns a stage's KEYS read, from its stored metadata: every hash key's
     source column(s) and every derived column's source (the validator's WP73 reading of the same
-    metadata). Hashdiff attributes are not keys. Order kept, duplicates dropped."""
+    metadata). Hashdiff attributes are not keys. Order kept, duplicates dropped.
+
+    WP130 (C66): columns only. A derived column that is a generator expression (WP121's cast,
+    WP123's hex of a hashdiff input) contributes the columns its typed ``expression_reads`` entry
+    names, never the expression's text — the validator's gate reads this same function."""
     needs: list[str] = []
 
     def add(column: Any) -> None:
@@ -88,6 +92,7 @@ def stage_key_needs(meta: dict[str, Any]) -> list[str]:
             needs.append(text)
 
     derived = meta.get("derived_columns") or {}
+    expression_reads = meta.get("expression_reads") or {}
     for value in (meta.get("hashed_columns") or {}).values():
         if isinstance(value, dict):
             continue  # a hashdiff
@@ -95,7 +100,12 @@ def stage_key_needs(meta: dict[str, Any]) -> list[str]:
             if str(column) in derived:
                 continue  # read through the derived column; its own source is added below
             add(column)
-    for value in derived.values():
+    for name, value in derived.items():
+        if name in expression_reads:
+            for column in expression_reads[name]:
+                add(column)
+            continue
+        # WP79: an escaped derived column carries its source in the mapping form
         add(value.get("source_column") if isinstance(value, dict) else value)
     return needs
 

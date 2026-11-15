@@ -220,8 +220,10 @@ platform and when: `docs/log.md` and `docs/index.md` — never from memory.
   (`E_HUB_KEY_NOT_AS_DECIDED`), and asked only where contested. The twenty-sixth chain (2026-11-14) was green, the
   gate fired 0 times, the built hubs equal the source's natural keys — **one chain, contested keys answered unread**.
   A catalogue without declared keys gets no decision; `generated: false` is no evidence (a copy says it for every
-  column); the shipped demo still carries surrogate keys; **the review record's third generation starts there** — do
-  not compare its 90 decisions with the counts measured on surrogate-keyed hubs.
+  column); the shipped demo is a second green chain under it (2026-11-15, through the workbench), **with one link
+  the warehouse refuses and every gate passed** (C67, C68 — a stage reading through a translation view is not
+  column-checked); **the review record's third generation starts there** — do not compare its 90 decisions with
+  the counts measured on surrogate-keyed hubs.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **Databricks builds (manual 9.6, log 2026-10-16 → 2026-10-18).** `demo-databricks` (dbt-core 1.11)
   conflicts with `demo` (dbt-core 1.9): `uv sync` installs one or the other, never both. **Drop the

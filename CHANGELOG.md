@@ -35,6 +35,10 @@ is not the project's.
   (WP124, C62). AutomateDV's effectivity satellite assumes that order; loaded in reverse it left two owners open.
 
 ### Changed
+- The shipped workbench demo (`demo/workbench-adventureworks/`) is regenerated under ADR-0021: five runs of 2026-11-15, hubs on
+  natural keys (`hub_product` on `ProductNumber`; 15 of 40 hubs on a single `…ID` column, 28 before). Its last project
+  builds PASS=533 with one disclosed error: the bill-of-materials link (C67, C68). The demo of 2026-10-23 is in the git
+  history.
 - A translation over a declared foreign key is a disclosure in the review queue, no longer one decision per key
   (WP128, ADR-0013's note of 2026-11-14). The decision per key remains where the key was inferred from data or a
   homonym stands beside it. With hubs on natural keys (WP125) the translation is the ordinary case; confirming each
@@ -50,6 +54,9 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- A stage can be bound at sign-off again when it carries a hashdiff (WP130, C66). Since hashdiffs keep the letter case
+  (WP123) the check behind `resume --bind` and the workbench's sign-off took the generated expressions for column names
+  and refused every such binding; the checkpoint listed the expressions as expected columns.
 - A translation view's name always fits the platform's identifier limit when its stage's name does (WP129, C65). The
   short form `<stage>_via_<n>_<digest>` adds 13 characters, so on PostgreSQL a stage longer than 50 characters got a
   view the warehouse refused — one satellite of the twenty-sixth AdventureWorks chain. The view now keeps as much of

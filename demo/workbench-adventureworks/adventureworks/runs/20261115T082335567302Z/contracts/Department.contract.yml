@@ -1,0 +1,60 @@
+spec-version: 1.0.0
+name: Department
+namespace: source
+dataAssetResourceName: datastore://source/Department
+doc: 'Source-to-staging contract for the Department asset: organizational departments
+  of the company, each belonging to a department group. DepartmentID identifies a
+  department. Ownership and agreement status are to be confirmed at the human-in-the-loop
+  checkpoint.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: DepartmentID
+  description: Identifier of the department; business key for the Department asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the department.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: GroupName
+  description: Name of the group to which the department belongs.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the department record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

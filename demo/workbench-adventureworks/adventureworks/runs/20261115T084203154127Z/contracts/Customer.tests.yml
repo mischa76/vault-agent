@@ -1,0 +1,20 @@
+version: 2
+models:
+- name: stg_Customer
+  columns:
+  - name: CUSTOMERID
+    tests:
+    - unique
+    - not_null
+  - name: PERSONID
+    tests:
+    - unique
+    - not_null
+  - name: TERRITORYID
+    tests:
+    - unique
+    - not_null
+  - name: ACCOUNTNUMBER
+    tests:
+    - unique
+    - not_null

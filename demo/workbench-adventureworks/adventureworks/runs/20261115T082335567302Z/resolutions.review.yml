@@ -1,0 +1,103 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: employee::NationalIDNumber
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Employee.NationalIDNumber is a national ID (e.g. social security number) with
+    no counterpart in the vault; hub_business_entity is keyed on BusinessEntityID,
+    not a national ID.
+  - Employee is keyed by BusinessEntityID; NationalIDNumber is more likely an attribute/alternate
+    key than a separate hub, but no existing construct holds it.
+  confidence: 0.5
+  ratification_status: accepted
+- concept: employee::BusinessEntityID
+  resolution: hub_business_entity
+  category: exact_key
+  evidence:
+  - 'Employee.BusinessEntityID comment: ''Foreign key to BusinessEntity.BusinessEntityID'';
+    same column name and key as hub_business_entity''s business key BusinessEntityID.'
+  - Explicit cross-reference to the BusinessEntity source entity that feeds hub_business_entity.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: employee::LoginID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - LoginID is a network login on Employee ('Network login.'); no existing hub has
+    it as business key.
+  - sat_business_entity_credential exists on hub_business_entity but is fed by Password;
+    no statement links LoginID to it. Likely an attribute rather than a hub.
+  confidence: 0.4
+  ratification_status: accepted
+- concept: department::DepartmentID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Department is a lookup table of company departments; no existing hub models departments.
+  - DepartmentID is a distinct smallint key, not matching any existing business key.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: department::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Department.Name is the name of the department; same as the Department entity,
+    whose key DepartmentID is new.
+  - Existing hubs with business key 'Name' (address_type, contact_type, state_province)
+    are different concepts; a shared column name is not evidence.
+  confidence: 0.6
+  ratification_status: accepted
+- concept: shift::ShiftID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Shift is a work-shift lookup table; no existing hub models shifts.
+  - ShiftID tinyint matches no existing business key.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: shift::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Shift.Name is a shift description belonging to the Shift entity, which is not
+    in the vault.
+  - Shared column name 'Name' with other hubs (address_type, contact_type, state_province)
+    is not evidence of identity.
+  confidence: 0.6
+  ratification_status: accepted
+- concept: employee department history::BusinessEntityID + DepartmentID + ShiftID
+    + StartDate
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Composite key of an employee/department/shift assignment over time; no existing
+    link connects employee, department and shift.
+  - Existing links connect business_entity to address/contact only.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: employee pay history::BusinessEntityID + RateChangeDate
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Pay history keyed by employee and RateChangeDate; no existing construct models
+    pay rates.
+  - Likely a satellite on the employee/business entity hub, but no existing construct
+    covers it.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: job candidate::JobCandidateID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - JobCandidateID is the primary key of résumés submitted by applicants; no existing
+    hub has this key.
+  - JobCandidate.BusinessEntityID is only populated if hired (FK to Employee), so
+    a candidate is a distinct concept from the business entity.
+  confidence: 0.85
+  ratification_status: accepted

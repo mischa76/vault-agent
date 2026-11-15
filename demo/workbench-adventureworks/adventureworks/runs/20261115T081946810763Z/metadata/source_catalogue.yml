@@ -1,0 +1,411 @@
+source_schemas:
+- table: Address
+  columns:
+  - name: AddressID
+    type: int
+    nullable: false
+  - name: AddressLine1
+    type: nvarchar(60)
+    nullable: false
+  - name: AddressLine2
+    type: nvarchar(60)
+    nullable: true
+  - name: City
+    type: nvarchar(30)
+    nullable: false
+  - name: StateProvinceID
+    type: int
+    nullable: false
+  - name: PostalCode
+    type: nvarchar(15)
+    nullable: false
+  - name: SpatialLocation
+    type: geography
+    nullable: true
+  - name: rowguid
+    type: uniqueidentifier
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  foreign_keys:
+  - columns:
+    - StateProvinceID
+    references_table: StateProvince
+    references_columns:
+    - StateProvinceID
+    references_schema: Person
+  primary_key:
+  - AddressID
+- table: AddressType
+  columns:
+  - name: AddressTypeID
+    type: int
+    nullable: false
+  - name: Name
+    type: nvarchar(50)
+    nullable: false
+  - name: rowguid
+    type: uniqueidentifier
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  primary_key:
+  - AddressTypeID
+  unique_keys:
+  - - Name
+- table: BusinessEntity
+  columns:
+  - name: BusinessEntityID
+    type: int
+    nullable: false
+  - name: rowguid
+    type: uniqueidentifier
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  primary_key:
+  - BusinessEntityID
+- table: BusinessEntityAddress
+  columns:
+  - name: BusinessEntityID
+    type: int
+    nullable: false
+  - name: AddressID
+    type: int
+    nullable: false
+  - name: AddressTypeID
+    type: int
+    nullable: false
+  - name: rowguid
+    type: uniqueidentifier
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  foreign_keys:
+  - columns:
+    - AddressID
+    references_table: Address
+    references_columns:
+    - AddressID
+    references_schema: Person
+  - columns:
+    - AddressTypeID
+    references_table: AddressType
+    references_columns:
+    - AddressTypeID
+    references_schema: Person
+  - columns:
+    - BusinessEntityID
+    references_table: BusinessEntity
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - AddressID
+  - AddressTypeID
+- table: BusinessEntityContact
+  columns:
+  - name: BusinessEntityID
+    type: int
+    nullable: false
+  - name: PersonID
+    type: int
+    nullable: false
+  - name: ContactTypeID
+    type: int
+    nullable: false
+  - name: rowguid
+    type: uniqueidentifier
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  foreign_keys:
+  - columns:
+    - PersonID
+    references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
+  - columns:
+    - ContactTypeID
+    references_table: ContactType
+    references_columns:
+    - ContactTypeID
+    references_schema: Person
+  - columns:
+    - BusinessEntityID
+    references_table: BusinessEntity
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - PersonID
+  - ContactTypeID
+- table: ContactType
+  columns:
+  - name: ContactTypeID
+    type: int
+    nullable: false
+  - name: Name
+    type: nvarchar(50)
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  primary_key:
+  - ContactTypeID
+  unique_keys:
+  - - Name
+- table: CountryRegion
+  columns:
+  - name: CountryRegionCode
+    type: nvarchar(3)
+    nullable: false
+  - name: Name
+    type: nvarchar(50)
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  primary_key:
+  - CountryRegionCode
+  unique_keys:
+  - - Name
+- table: EmailAddress
+  columns:
+  - name: BusinessEntityID
+    type: int
+    nullable: false
+  - name: EmailAddressID
+    type: int
+    nullable: false
+  - name: EmailAddress
+    type: nvarchar(50)
+    nullable: true
+  - name: rowguid
+    type: uniqueidentifier
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - EmailAddressID
+- table: Password
+  columns:
+  - name: BusinessEntityID
+    type: int
+    nullable: false
+  - name: PasswordHash
+    type: varchar(128)
+    nullable: false
+  - name: PasswordSalt
+    type: varchar(10)
+    nullable: false
+  - name: rowguid
+    type: uniqueidentifier
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
+  primary_key:
+  - BusinessEntityID
+- table: Person
+  columns:
+  - name: BusinessEntityID
+    type: int
+    nullable: false
+  - name: PersonType
+    type: nchar(2)
+    nullable: false
+  - name: NameStyle
+    type: bit
+    nullable: false
+  - name: Title
+    type: nvarchar(8)
+    nullable: true
+  - name: FirstName
+    type: nvarchar(50)
+    nullable: false
+  - name: MiddleName
+    type: nvarchar(50)
+    nullable: true
+  - name: LastName
+    type: nvarchar(50)
+    nullable: false
+  - name: Suffix
+    type: nvarchar(10)
+    nullable: true
+  - name: EmailPromotion
+    type: int
+    nullable: false
+  - name: AdditionalContactInfo
+    type: XML(Person.AdditionalContactInfoSchemaCollection)
+    nullable: true
+  - name: Demographics
+    type: XML(Person.IndividualSurveySchemaCollection)
+    nullable: true
+  - name: rowguid
+    type: uniqueidentifier
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: BusinessEntity
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
+  primary_key:
+  - BusinessEntityID
+- table: PersonPhone
+  columns:
+  - name: BusinessEntityID
+    type: int
+    nullable: false
+  - name: PhoneNumber
+    type: nvarchar(25)
+    nullable: false
+  - name: PhoneNumberTypeID
+    type: int
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  foreign_keys:
+  - columns:
+    - BusinessEntityID
+    references_table: Person
+    references_columns:
+    - BusinessEntityID
+    references_schema: Person
+  - columns:
+    - PhoneNumberTypeID
+    references_table: PhoneNumberType
+    references_columns:
+    - PhoneNumberTypeID
+    references_schema: Person
+  primary_key:
+  - BusinessEntityID
+  - PhoneNumber
+  - PhoneNumberTypeID
+- table: PhoneNumberType
+  columns:
+  - name: PhoneNumberTypeID
+    type: int
+    nullable: false
+  - name: Name
+    type: nvarchar(50)
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  primary_key:
+  - PhoneNumberTypeID
+- table: StateProvince
+  columns:
+  - name: StateProvinceID
+    type: int
+    nullable: false
+  - name: StateProvinceCode
+    type: nchar(3)
+    nullable: false
+  - name: CountryRegionCode
+    type: nvarchar(3)
+    nullable: false
+  - name: IsOnlyStateProvinceFlag
+    type: bit
+    nullable: false
+  - name: Name
+    type: nvarchar(50)
+    nullable: false
+  - name: TerritoryID
+    type: int
+    nullable: false
+  - name: rowguid
+    type: uniqueidentifier
+    nullable: false
+  - name: ModifiedDate
+    type: datetime
+    nullable: false
+  schema: Person
+  foreign_keys:
+  - columns:
+    - CountryRegionCode
+    references_table: CountryRegion
+    references_columns:
+    - CountryRegionCode
+    references_schema: Person
+  - columns:
+    - TerritoryID
+    references_table: SalesTerritory
+    references_columns:
+    - TerritoryID
+    references_schema: Sales
+  primary_key:
+  - StateProvinceID
+  unique_keys:
+  - - Name
+  - - StateProvinceCode
+    - CountryRegionCode
+stage_bindings:
+  stg_address: Address
+  stg_address_details: Address
+  stg_address_location: Address
+  stg_address_state_province: Address
+  stg_address_type: AddressType
+  stg_address_type_details: AddressType
+  stg_business_entity_address: BusinessEntityAddress
+  stg_business_entity_address_details: BusinessEntityAddress
+  stg_business_entity_businessentity: BusinessEntity
+  stg_business_entity_contact: BusinessEntityContact
+  stg_business_entity_contact_details: BusinessEntityContact
+  stg_business_entity_emailaddress: EmailAddress
+  stg_business_entity_password: Password
+  stg_business_entity_person: Person
+  stg_business_entity_personphone: PersonPhone
+  stg_contact_type: ContactType
+  stg_contact_type_details: ContactType
+  stg_country_region: CountryRegion
+  stg_country_region_details: CountryRegion
+  stg_phone_number_type: PhoneNumberType
+  stg_phone_number_type_details: PhoneNumberType
+  stg_state_province: StateProvince
+  stg_state_province_country_region: StateProvince
+  stg_state_province_details: StateProvince
+  stg_state_province_territory: StateProvince
