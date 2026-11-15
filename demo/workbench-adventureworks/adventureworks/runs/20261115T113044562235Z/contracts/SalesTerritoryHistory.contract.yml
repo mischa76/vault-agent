@@ -1,0 +1,87 @@
+spec-version: 1.0.0
+name: SalesTerritoryHistory
+namespace: source
+dataAssetResourceName: datastore://source/SalesTerritoryHistory
+doc: Historical record of the sales territories assigned to each salesperson over
+  time, with the start and end dates of each assignment. Staged from the source SalesTerritoryHistory
+  table. The contract enforces the declared schema and business-key constraints. Ownership
+  and agreement status are left for human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the salesperson (business entity) assigned to the territory.
+    Refers to the SalesPerson entity.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: TerritoryID
+  description: Identifier of the sales territory the salesperson was assigned to.
+    Refers to the SalesTerritory entity.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StartDate
+  description: Date and time when the salesperson's assignment to the territory began.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EndDate
+  description: Date and time when the salesperson's assignment to the territory ended.
+    Empty when the assignment is still current.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (GUID) for the row.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time when the row was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

@@ -14068,3 +14068,74 @@ C66 did this morning), the chain stops there and the owner is asked. **What is s
 five runs replace `demo/workbench-adventureworks/` as this morning; if not, this morning's demo stays and the
 result is reported. **Not entered into the review record** (no eval harness). Evidence goes to the results
 repository under `kept-outputs/workbench-chain-20261115b/`.
+
+## [2026-11-15] The demo's second chain: five runs green on the generator with WP131–WP133, the last project builds whole (PASS=575 of 575, a second build inserts nothing) — the shipped demo replaced; two stages on hand views (C64's class, and C71 new)
+
+**Autor:** Claude Code
+
+Pre-registered above (`e6d82ae`), run on `ad23a43`, no code change during the chain. Workbench on port 8766, root
+`workbench/chain-20261115b/`, the same ten inputs and driver as this morning. Runs `20261115T111031038199Z`
+(Person, 7/5/17), `20261115T111446973899Z` (HR, 10/7/28), `20261115T111823849877Z` (Production, 26/23/61),
+`20261115T112757570638Z` (Purchasing, 29/28/72), `20261115T113044562235Z` (Sales, 40/48/98).
+
+**Against the predictions.**
+- **P1 ✔.** Five of five finished with a passing validation; modeler calls 2, 2, 2, 1, 2.
+- **P2 ✔.** `E_HUB_KEY_NOT_AS_DECIDED` 0 in the reports and 0 inside the attempts. 19 keys given (9 agreed, 8
+  `catalogue_default`, 2 natural primary keys), all followed; `hub_product` on `ProductNumber`. 15 of 40 hubs on a
+  single `…ID` column, as this morning.
+- **P3 ✔ live (WP131).** The modeler built the bill of materials as `hub_product` without a role plus
+  `hub_product:component`. Both participations carry their translation (`ProductAssemblyID`, `ComponentID`), the
+  stage is bound to `BillOfMaterials`.
+- **P4 — failed in the letter.** No final report carries `E_STAGE_COLUMN_NOT_IN_SOURCE`, and no translated stage
+  was refused (43 in the fifth project, all built). But steps 3–5 carry one `BINDING_REJECTED`:
+  `stg_product_subcategory`, a stage without a translation, refused by WP73's check as before WP132 — the modeler
+  named the product–subcategory link `link_product_subcategory`, and the name rule tried the table of that name
+  (C71, recorded, not built). The prediction should have said „none on a translated stage". WP132's own case did
+  not occur live.
+- **P5 ✔ live (WP133).** Read from the traces: step 3's first draft was refused
+  `sat_product_assembly_component_details` (`E_SAT_GRAIN_NOT_UNIQUE`) and the second call made it multi-active on
+  `StartDate`; step 2 the same on `sat_business_entity_department_shift_details`. Two fires on translated stages,
+  two more on `WorkOrderRouting`'s satellites (no translation), all four followed in the next attempt. The other
+  gates fed back: `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` (steps 1, 2, 5), `E_LINK_OPTIONAL_PARTICIPANT` (step 5).
+- **P6 ✔ keyless build.** The fifth project on PostgreSQL (`aw_source`, schema `demo_20261115b`, dbt 1.9.10) after
+  two hand views: **PASS=575, ERROR=0, SKIP=0 of 575**; the second build 186 of 186 incremental models
+  `INSERT 0 0`. Counted against the source: 16 natural-key hubs hold exactly the source's distinct keys (14 plus
+  the two zero-key rows; `hub_customer` 19 820 and `hub_sales_order` 31 465 exact);
+  `link_product_assembly_component` 2 484 rows = the distinct (assembly, component, unit) of 2 679, every assembly
+  and component key joining `hub_product`; its satellite 2 679 rows; `link_sales_order_line_product` 121 317 =
+  `SalesOrderDetail`, 266 products on both sides; `link_product_subcategory` 295 = the products with a
+  subcategory; `link_work_order_operation` and its hub 67 131 = `WorkOrderRouting`.
+- **P7 ✔.** 5.02 USD (Sonnet 5.5 103 calls, Opus 5.5 9; the prices of 2026-10-09), 26.9 minutes wall, about one
+  of them the inspection of step 3's sign-off.
+
+**Not predicted.** 85 decisions at the five sign-offs (13, 7, 29, 7, 29 — 68 of them contract owners), 146
+disclosures; 54 translation flags, 4 to confirm; 43 translation views; 11 multi-active satellites. **Eight**
+contested keys came through the API (this morning six): `AddressType`, `ContactType`, `StateProvince`,
+`Department`, `Shift`, `ShipMethod`, `CreditCard`, `SalesTerritory` — all left to the declared natural key.
+WP129's live case is still missing: the one stage over 50 characters reads no translation view.
+
+**The two inferred stages, and a judgement.** `stg_work_order_operation` (C64's class, shared by a hub and a
+link) and `stg_product_subcategory` (C71) were left unbound and get a hand view each
+(`demo/workbench-adventureworks/inferred_views.sql`). The pre-registered rule would bind a stage at sign-off
+„where one declared relation carries the columns the checkpoint lists". `Product` carries a `Name` and a
+`ProductNumber` — and its `Name` is the product's, not the subcategory's: the binding would have passed WP82's
+check and loaded wrong keys. Not bound; the rule is read by meaning, and that reading is this session's. The
+product–subcategory view is an inner join: a product without a subcategory has no row in that link.
+
+**Shipped.** `demo/workbench-adventureworks/adventureworks/` replaced by the five runs (`state.json` only from
+`.vault-agent/`, paths made repo-relative, scan: no address but `john.doe@acme.com`), README rewritten, two views
+in `inferred_views.sql`; the API answers run, model, report, project and artefacts for all five. This morning's
+demo is in the git history (`36c27c8`). CHANGELOG, index and `CLAUDE.md`'s open item follow. **A correction:**
+`CLAUDE.md` gave this morning's chain „90 decisions"; the entry above says 86 at the sign-offs, and 86 is right
+(90 is that chain's satellite count) — corrected in the same edit.
+
+**Verified how.** Modelling: one paid chain (traces read, not only the reports). Warehouse: two keyless builds
+on PostgreSQL and the counts above. **Not verified:** the checkpoints were answered by rule, not read by a
+person; one chain is one shape — the modeler might name both roles of the bill of materials next time, or build
+no doubled hub at all; WP132's refusal of a translated stage and WP129's long name have no live case; C70 did not
+come up (nothing was bound at sign-off). **Not done:** C70 and C71 are not built; no release cut (output-changing
+since 0.12.2 — the owner's call); not entered into the review record (no eval harness). **Left in place:**
+schemas `demo_20261115` (this morning's build), `replay_20261115` and `demo_20261115b` in `aw_source`;
+`workbench/chain-20261115/` and `chain-20261115b/` (git-ignored). **Evidence:** results repository,
+`kept-outputs/workbench-chain-20261115b/` (`421970b`, pushed to `tank`): traces, the ten checkpoint payloads,
+report, attempts, both builds' logs, the data check, and the replay that preceded the chain.

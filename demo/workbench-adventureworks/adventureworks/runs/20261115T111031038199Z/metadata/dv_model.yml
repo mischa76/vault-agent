@@ -1,0 +1,592 @@
+hubs:
+- business_key: BusinessEntityID
+  business_key_columns: []
+  description: Company-wide party (business entity) register; persons share the same
+    business entity number and therefore the same hub (one hub per business key).
+    Integration point for sales, HR, purchasing and marketing. Email addresses and
+    sign-in credentials attach via the same business entity number and are declared
+    as feeds so their satellites bind to their own source relations.
+  name: hub_business_entity
+  requirement_ids:
+  - REQ-001
+  - REQ-002
+  - REQ-003
+  - REQ-004
+  - REQ-005
+  - REQ-006
+  - REQ-011
+  - REQ-012
+  - REQ-037
+  - REQ-055
+  - REQ-076
+  source_entity: BusinessEntity
+  sources:
+  - business_key_column: BusinessEntityID
+    source_table: BusinessEntity
+  - business_key_column: BusinessEntityID
+    source_table: Person
+  - business_key_column: BusinessEntityID
+    source_table: EmailAddress
+  - business_key_column: BusinessEntityID
+    source_table: Password
+- business_key: AddressID
+  business_key_columns: []
+  description: Postal address identified by its own address number, shareable by several
+    parties.
+  name: hub_address
+  requirement_ids:
+  - REQ-001-2
+  - REQ-007-2
+  source_entity: Address
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: Reference list of address types (Billing, Home, Shipping), keyed on
+    name per decided key.
+  name: hub_address_type
+  requirement_ids:
+  - REQ-011-2
+  - REQ-012-2
+  - REQ-016-2
+  - REQ-067
+  source_entity: AddressType
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: Reference list of contact types (role a person plays for an organisation),
+    keyed on name per decided key.
+  name: hub_contact_type
+  requirement_ids:
+  - REQ-037-2
+  - REQ-038-2
+  - REQ-067
+  source_entity: ContactType
+  sources: []
+- business_key: PhoneNumberTypeID
+  business_key_columns: []
+  description: Reference list of phone number types (home, work, mobile).
+  name: hub_phone_number_type
+  requirement_ids:
+  - REQ-045
+  - REQ-049
+  - REQ-067
+  source_entity: PhoneNumberType
+  sources: []
+- business_key: CountryRegionCode
+  business_key_columns: []
+  description: Country or region identified by its ISO code.
+  name: hub_country_region
+  requirement_ids:
+  - REQ-022-2
+  - REQ-025-2
+  - REQ-067
+  source_entity: CountryRegion
+  sources: []
+- business_key: Name
+  business_key_columns: []
+  description: State or province reference list, keyed on name per decided key.
+  name: hub_state_province
+  requirement_ids:
+  - REQ-023-2
+  - REQ-024-2
+  - REQ-067
+  source_entity: StateProvince
+  sources: []
+links:
+- connected_hubs:
+  - hub: hub_business_entity
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_address
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_address_type
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: AddressTypeID
+      surrogate_column: AddressTypeID
+      through_schema: Person
+      through_table: AddressType
+    role: null
+    source_key_column: null
+  description: 'Party-address relationship: which address a party uses and in what
+    capacity (address type). Many-to-many.'
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_business_entity_address
+  payload: []
+  requirement_ids:
+  - REQ-009-2
+  - REQ-010-2
+  - REQ-011-2
+  - REQ-013-2
+  - REQ-014-2
+  - REQ-015-2
+  - REQ-017-2
+  - REQ-018-2
+  - REQ-021-2
+  - REQ-055-2
+  unit_of_work: BusinessEntityID + AddressID + AddressTypeID (BusinessEntityAddress)
+- connected_hubs:
+  - hub: hub_business_entity
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_business_entity
+    key_translation: null
+    role: person
+    source_key_column: PersonID
+  - hub: hub_contact_type
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ContactTypeID
+      surrogate_column: ContactTypeID
+      through_schema: Person
+      through_table: ContactType
+    role: null
+    source_key_column: null
+  description: 'Contact relationship: organisation (business entity), the person acting
+    as its contact (role-qualified), and the contact type.'
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_business_entity_contact
+  payload: []
+  requirement_ids:
+  - REQ-035-2
+  - REQ-036-2
+  - REQ-037-2
+  - REQ-039-2
+  - REQ-040-2
+  - REQ-041-2
+  - REQ-042-2
+  - REQ-043-2
+  - REQ-046-2
+  - REQ-056-2
+  unit_of_work: BusinessEntityID + PersonID + ContactTypeID (BusinessEntityContact)
+- connected_hubs:
+  - hub: hub_business_entity
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_phone_number_type
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: A person's telephone numbers qualified by phone number type (PersonPhone).
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_business_entity_phone_number_type
+  payload: []
+  requirement_ids:
+  - REQ-043
+  - REQ-044
+  - REQ-046
+  - REQ-047
+  - REQ-062
+  unit_of_work: BusinessEntityID + PhoneNumberTypeID (PersonPhone)
+- connected_hubs:
+  - hub: hub_address
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_state_province
+    key_translation:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: StateProvinceID
+      surrogate_column: StateProvinceID
+      through_schema: Person
+      through_table: StateProvince
+    role: null
+    source_key_column: null
+  description: The state or province an address sits in (country derived via the state).
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_address_state_province
+  payload: []
+  requirement_ids:
+  - REQ-002-2
+  - REQ-003-2
+  - REQ-005-2
+  - REQ-029-2
+  unit_of_work: null
+- connected_hubs:
+  - hub: hub_state_province
+    key_translation: null
+    role: null
+    source_key_column: null
+  - hub: hub_country_region
+    key_translation: null
+    role: null
+    source_key_column: null
+  description: Each state or province belongs to exactly one country or region.
+  driving_key: []
+  event_timestamp: null
+  link_type: standard
+  name: link_state_province_country_region
+  payload: []
+  requirement_ids:
+  - REQ-024-2
+  - REQ-025-2
+  - REQ-005-2
+  unit_of_work: null
+satellites:
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Business entity existence and last-changed timestamp; rowguid excluded
+    as technical metadata.
+  key_translation: null
+  name: sat_business_entity_details
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-007
+  - REQ-009
+  - REQ-010
+  sat_type: standard
+  source_table: BusinessEntity
+  split_rationale: null
+- attributes:
+  - PersonType
+  - NameStyle
+  - Title
+  - FirstName
+  - MiddleName
+  - LastName
+  - Suffix
+  - ModifiedDate
+  child_dependent_key: []
+  description: Person type and name details with full history.
+  key_translation: null
+  name: sat_business_entity_person_name
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-013
+  - REQ-014
+  - REQ-015
+  - REQ-016
+  - REQ-017
+  - REQ-018
+  - REQ-019
+  - REQ-020
+  - REQ-021
+  - REQ-022
+  - REQ-023
+  - REQ-034
+  - REQ-051-2
+  sat_type: standard
+  source_table: Person
+  split_rationale: Ordinary name/contact data, separated from compliance-sensitive
+    consent and sensitive demographics.
+- attributes:
+  - EmailPromotion
+  child_dependent_key: []
+  description: Email promotion preference (marketing consent) with history built by
+    the warehouse.
+  key_translation: null
+  name: sat_business_entity_person_consent
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-024
+  - REQ-025
+  - REQ-026
+  - REQ-027
+  - REQ-028
+  - REQ-029
+  - REQ-052-2
+  - REQ-073
+  - REQ-074
+  sat_type: standard
+  source_table: Person
+  split_rationale: Compliance-sensitive classification; history tracked separately.
+- attributes:
+  - AdditionalContactInfo
+  - Demographics
+  child_dependent_key: []
+  description: Additional contact information and demographics (XML), access restricted.
+  key_translation: null
+  name: sat_business_entity_person_sensitive
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-030
+  - REQ-031
+  - REQ-032
+  - REQ-033
+  - REQ-069
+  - REQ-070
+  sat_type: standard
+  source_table: Person
+  split_rationale: Sensitive data classification and XML data type; restricted separately
+    from name reporting.
+- attributes:
+  - EmailAddress
+  - ModifiedDate
+  child_dependent_key:
+  - EmailAddressID
+  description: A person's email addresses, numbered within the person, with history
+    of superseded values.
+  key_translation: null
+  name: sat_business_entity_email
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-035
+  - REQ-036
+  - REQ-037
+  - REQ-038
+  - REQ-039
+  - REQ-040
+  - REQ-041
+  - REQ-042
+  - REQ-053-2
+  - REQ-061
+  sat_type: multi_active
+  source_table: EmailAddress
+  split_rationale: Own source relation at finer grain (several per person); EmailAddress
+    is declared as a feed of the hub.
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Existence and last-change of a person's sign-in credential; hash and
+    salt deliberately excluded.
+  key_translation: null
+  name: sat_business_entity_credential
+  parent: hub_business_entity
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-050
+  - REQ-051
+  - REQ-052
+  - REQ-053
+  - REQ-055
+  - REQ-056
+  - REQ-072
+  sat_type: standard
+  source_table: Password
+  split_rationale: Separate source (declared as a hub feed); credential values excluded
+    from analytical use.
+- attributes:
+  - ModifiedDate
+  child_dependent_key:
+  - PhoneNumber
+  description: Telephone numbers of a person per phone number type, with history.
+  key_translation: null
+  name: sat_business_entity_phone_number_type_numbers
+  parent: link_business_entity_phone_number_type
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-043
+  - REQ-044
+  - REQ-048
+  - REQ-053-2
+  sat_type: multi_active
+  source_table: PersonPhone
+  split_rationale: null
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Last-changed timestamp of the party-address relationship; history of
+    relationships retained.
+  key_translation: null
+  name: sat_business_entity_address_details
+  parent: link_business_entity_address
+  participation_aliases: {}
+  participation_translations:
+    hub_address_type:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: AddressTypeID
+      surrogate_column: AddressTypeID
+      through_schema: Person
+      through_table: AddressType
+  requirement_ids:
+  - REQ-019-2
+  - REQ-020-2
+  - REQ-055-2
+  sat_type: standard
+  source_table: BusinessEntityAddress
+  split_rationale: null
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Last-changed timestamp of the contact relationship; history retained.
+  key_translation: null
+  name: sat_business_entity_contact_details
+  parent: link_business_entity_contact
+  participation_aliases:
+    hub_business_entity:person: PersonID
+  participation_translations:
+    hub_contact_type:
+      natural_key_column: NAME
+      natural_key_columns: []
+      referencing_column: ContactTypeID
+      surrogate_column: ContactTypeID
+      through_schema: Person
+      through_table: ContactType
+  requirement_ids:
+  - REQ-044-2
+  - REQ-045-2
+  - REQ-056-2
+  sat_type: standard
+  source_table: BusinessEntityContact
+  split_rationale: null
+- attributes:
+  - AddressLine1
+  - AddressLine2
+  - City
+  - PostalCode
+  - ModifiedDate
+  child_dependent_key: []
+  description: Street, city and postal details of an address with full history.
+  key_translation: null
+  name: sat_address_details
+  parent: hub_address
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-002-2
+  - REQ-005-2
+  - REQ-006-2
+  - REQ-008-2
+  - REQ-054-2
+  sat_type: standard
+  source_table: Address
+  split_rationale: null
+- attributes:
+  - SpatialLocation
+  child_dependent_key: []
+  description: Geographic location (latitude/longitude) of an address.
+  key_translation: null
+  name: sat_address_location
+  parent: hub_address
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-004-2
+  - REQ-065
+  - REQ-069
+  sat_type: standard
+  source_table: Address
+  split_rationale: Spatial data type and personal-data classification (geographic
+    coordinates).
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Address type reference metadata.
+  key_translation: null
+  name: sat_address_type_details
+  parent: hub_address_type
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-016-2
+  sat_type: standard
+  source_table: AddressType
+  split_rationale: null
+- attributes:
+  - ModifiedDate
+  child_dependent_key: []
+  description: Contact type reference metadata.
+  key_translation: null
+  name: sat_contact_type_details
+  parent: hub_contact_type
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-038-2
+  sat_type: standard
+  source_table: ContactType
+  split_rationale: null
+- attributes:
+  - Name
+  - ModifiedDate
+  child_dependent_key: []
+  description: Phone number type name, with history of renames.
+  key_translation: null
+  name: sat_phone_number_type_details
+  parent: hub_phone_number_type
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-045
+  - REQ-049
+  sat_type: standard
+  source_table: PhoneNumberType
+  split_rationale: null
+- attributes:
+  - Name
+  - ModifiedDate
+  child_dependent_key: []
+  description: Country or region name with visible rename history.
+  key_translation: null
+  name: sat_country_region_details
+  parent: hub_country_region
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-022-2
+  - REQ-032-2
+  - REQ-033-2
+  - REQ-034-2
+  sat_type: standard
+  source_table: CountryRegion
+  split_rationale: null
+- attributes:
+  - StateProvinceCode
+  - IsOnlyStateProvinceFlag
+  - ModifiedDate
+  child_dependent_key: []
+  description: State or province ISO code and no-genuine-code flag.
+  key_translation: null
+  name: sat_state_province_details
+  parent: hub_state_province
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-023-2
+  - REQ-026-2
+  - REQ-027-2
+  - REQ-032-2
+  - REQ-066
+  sat_type: standard
+  source_table: StateProvince
+  split_rationale: null
+- attributes:
+  - TerritoryID
+  child_dependent_key: []
+  description: Sales territory assignment of a state or province, history preserved;
+    territory descriptions come from the sales area.
+  key_translation: null
+  name: sat_state_province_territory
+  parent: hub_state_province
+  participation_aliases: {}
+  participation_translations: {}
+  requirement_ids:
+  - REQ-028-2
+  - REQ-029-2
+  - REQ-030-2
+  - REQ-031-2
+  - REQ-057
+  sat_type: standard
+  source_table: StateProvince
+  split_rationale: Different rate of change and business meaning (territory reassignment)
+    from code/flag details.

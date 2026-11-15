@@ -1,0 +1,258 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: product::ProductNumber
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Product.ProductNumber is 'Unique product identification number'. No existing hub
+    models products; the vault covers business entity, address, contact/phone type,
+    country, state, department, shift and job candidate.
+  confidence: 0.93
+  ratification_status: accepted
+- concept: product::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Product.Name is the name of a product. Existing hubs keyed on 'Name' (address
+    type, contact type, state/province, department, shift) are different concepts.
+    A shared column name is not evidence.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: product::ProductID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Product.ProductID is the primary key for products. No existing hub holds products.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: product category::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - ProductCategory.Name is a category description. No existing hub models product
+    categories.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: product category::ProductCategoryID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Primary key of ProductCategory. No existing product category hub.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: product subcategory::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - ProductSubcategory.Name is a subcategory description. No existing hub models it.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: product subcategory::ProductSubcategoryID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Primary key of ProductSubcategory. No existing hub models it.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: product model::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - ProductModel.Name is a product model description. No existing hub models product
+    models.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: product model::ProductModelID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Primary key of ProductModel. No existing hub models it.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: culture::CultureID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Culture.CultureID is the primary key (nchar(6)) of a language lookup. The vault
+    has no culture or language hub. hub_country_region is keyed on CountryRegionCode,
+    which is a different concept.
+  confidence: 0.92
+  ratification_status: accepted
+- concept: culture::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Culture.Name is a language/culture description. No existing hub models it.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: unit of measure::UnitMeasureCode
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - UnitMeasure.UnitMeasureCode is the primary key of a unit-of-measure lookup. The
+    vault has no such hub.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: unit of measure::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - UnitMeasure.Name is a unit-of-measure description. No existing hub models it.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: product description::ProductDescriptionID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Primary key of ProductDescription. No existing hub models product descriptions.
+  confidence: 0.93
+  ratification_status: accepted
+- concept: product photograph::ProductPhotoID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Primary key of ProductPhoto (product images). No existing hub models it.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: product photograph::LargePhotoFileName
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - ProductPhoto.LargePhotoFileName is a file name attribute of a product photo. No
+    existing hub models it.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: illustration::IllustrationID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Primary key of Illustration (bicycle assembly diagrams). No existing hub models
+    it.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: document::DocumentNode
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - Document.DocumentNode is the primary key (hierarchyid) of product maintenance
+    documents. Document.Owner references Employee.BusinessEntityID, but that is only
+    a relationship to hub_business_entity, not the same concept. The vault has no
+    document hub.
+  confidence: 0.92
+  ratification_status: accepted
+- concept: document::rowguid
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Document.rowguid is a row GUID that uniquely identifies a document record. No
+    existing hub models documents.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: document::Title
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Document.Title is the title of a document. No existing hub models documents.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: location::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Location.Name describes a product inventory or manufacturing location. hub_address
+    (AddressID) models postal addresses, and no cross-reference links the two. A shared
+    word or stem is not evidence.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: location::LocationID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Location.LocationID is the primary key of manufacturing and inventory locations
+    (smallint, with CostRate and Availability). hub_address is keyed on AddressID,
+    which is a different identifier and concept.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: work order::WorkOrderID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - WorkOrder.WorkOrderID is the key of manufacturing work orders. No existing hub
+    models work orders.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: work order operation::WorkOrderID + OperationSequence
+  resolution: NEW
+  category: semantic
+  evidence:
+  - WorkOrderRouting is keyed by WorkOrderID, ProductID and OperationSequence. It
+    is a routing step within a work order, and no existing construct models it.
+  confidence: 0.93
+  ratification_status: accepted
+- concept: scrap reason::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - ScrapReason.Name is a failure description in a manufacturing lookup. No existing
+    hub models it.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: scrap reason::ScrapReasonID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Primary key of ScrapReason. No existing hub models it.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: inventory transaction::TransactionID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - TransactionHistory.TransactionID is the primary key of inventory transactions.
+    No existing construct models transactions.
+  confidence: 0.93
+  ratification_status: accepted
+- concept: inventory transaction::ReferenceOrderID + ReferenceOrderLineID + TransactionType
+  resolution: NEW
+  category: semantic
+  evidence:
+  - This is a composite reference to the originating purchase, sales or work order
+    line. No existing construct models it.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: inventory::ProductID + LocationID + Shelf + Bin
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductInventory is keyed by product, location, shelf and bin. No existing construct
+    models inventory.
+  confidence: 0.92
+  ratification_status: accepted
+- concept: product review::ProductReviewID
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - Primary key of ProductReview. The reviewer is only a name and an e-mail address,
+    with no BusinessEntityID. No existing construct models reviews.
+  confidence: 0.94
+  ratification_status: accepted
+- concept: bill of materials::ProductAssemblyID + ComponentID + StartDate
+  resolution: NEW
+  category: semantic
+  evidence:
+  - This is a composite business key of parent product, component and start date in
+    BillOfMaterials. No existing construct models it.
+  confidence: 0.92
+  ratification_status: accepted
+- concept: bill of materials::BillOfMaterialsID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Primary key of BillOfMaterials. No existing construct models it.
+  confidence: 0.93
+  ratification_status: accepted

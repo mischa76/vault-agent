@@ -1,0 +1,75 @@
+spec-version: 1.0.0
+name: EmailAddress
+namespace: source
+dataAssetResourceName: datastore://source/EmailAddress
+doc: Email addresses associated with a business entity (person), sourced from the
+  EmailAddress source table and landed in staging. The contract enforces the declared
+  schema and business-key constraints; value-level checks are alerting only pending
+  producer/consumer review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the business entity (person) that owns this email address.
+    References the BusinessEntity/Person record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EmailAddressID
+  description: Identifier of the email address row, distinguishing multiple email
+    addresses for the same business entity.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EmailAddress
+  description: The email address string for the business entity.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (GUID) for the row, used by the source system
+    for replication.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source row was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

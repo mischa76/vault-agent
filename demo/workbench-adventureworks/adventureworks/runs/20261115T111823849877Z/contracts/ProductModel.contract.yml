@@ -1,0 +1,87 @@
+spec-version: 1.0.0
+name: ProductModel
+namespace: source
+dataAssetResourceName: datastore://source/ProductModel
+doc: Product model master data from the source ProductModel table, staged one row
+  per product model. Each row holds the model's name, catalog description, manufacturing
+  instructions, a row GUID and a last-modified timestamp. The contract enforces the
+  declared schema, the business key and not-null rules. Ownership and agreement are
+  left to human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductModelID
+  description: Identifier of the product model. It is the business key for this asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the product model.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CatalogDescription
+  description: Catalog description of the product model. The source type is not stated
+    in the requirements, so it needs human review.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Instructions
+  description: Manufacturing instructions for the product model. The source type is
+    not stated in the requirements, so it needs human review.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier for the row.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the row was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

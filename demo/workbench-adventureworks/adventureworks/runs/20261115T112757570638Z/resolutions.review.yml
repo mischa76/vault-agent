@@ -1,0 +1,101 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: vendor::AccountNumber (vendor account number)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - Vendor.AccountNumber is 'Vendor account (identification) number', an identifier
+    distinct from BusinessEntityID.
+  - No existing hub has AccountNumber as its business key, and no cross-reference
+    ties it to an existing hub key.
+  - The vendor is identified in the vault by BusinessEntityID, so a reviewer may decide
+    that AccountNumber is only an alternate key or attribute. I am not merging it
+    into hub_business_entity.
+  confidence: 0.5
+  ratification_status: accepted
+- concept: vendor::BusinessEntityID (internal business entity identifier)
+  resolution: hub_business_entity
+  category: comment_grounded
+  evidence:
+  - 'Vendor.BusinessEntityID comment: ''Foreign key to BusinessEntity.BusinessEntityID''.'
+  - hub_business_entity has business key BusinessEntityID and source entity BusinessEntity,
+    so the key and its format match.
+  confidence: 0.93
+  ratification_status: accepted
+- concept: purchase order::PurchaseOrderID (purchase order number)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - No existing hub models purchase orders. The vault only has work orders (WorkOrderID)
+    and inventory transactions.
+  - PurchaseOrderHeader.PurchaseOrderID is the primary key of a distinct concept.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: purchase order line::PurchaseOrderID + PurchaseOrderDetailID (purchase
+    order with line number)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - No existing construct models purchase order lines.
+  - The composite key of PurchaseOrderID and PurchaseOrderDetailID has no counterpart
+    in the vault.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: vendor-product supply relationship::ProductID + BusinessEntityID (product
+    and vendor pairing)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ProductVendor is a cross-reference between product and vendor. No existing link
+    joins hub_product to hub_business_entity as a supplier.
+  - The existing link_product_* links connect product to subcategory, model, unit
+    measure, photo, document, location and similar hubs, not to a vendor.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: shipping method::Name (shipping company name)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - ShipMethod is a shipping company lookup. No existing hub or satellite models shipping
+    methods.
+  - The existing hubs keyed on Name are address type, contact type, department, shift
+    and similar hubs, which are unrelated concepts.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: shipping method::ShipMethodID (internal shipping method identifier)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ShipMethod.ShipMethodID is the primary key of the ShipMethod lookup, which has
+    no existing hub in the vault.
+  - No existing construct carries a ship method key.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: product::ProductID
+  resolution: unresolved
+  category: key_overlap
+  evidence:
+  - PurchaseOrderDetail.ProductID and ProductVendor.ProductID comments say 'Foreign
+    key to Product.ProductID'. hub_product has source entity Product, so the concept
+    is the same real-world product.
+  - hub_product's business key is ProductNumber, and the new source carries only ProductID.
+    The keys differ and no mapping table is provided in this source.
+  - Different keys cannot hash to one hub, so I am flagging it for a human instead
+    of merging.
+  - human ratification
+  confidence: 0.6
+  ratification_status: overridden
+- concept: employee::EmployeeID
+  resolution: hub_business_entity
+  category: comment_grounded
+  evidence:
+  - 'PurchaseOrderHeader.EmployeeID comment: ''Foreign key to Employee.BusinessEntityID''.'
+  - hub_business_entity is fed by Employee and keyed on BusinessEntityID, so the values
+    and format match.
+  confidence: 0.88
+  ratification_status: accepted

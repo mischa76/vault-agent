@@ -1,0 +1,109 @@
+spec-version: 1.0.0
+name: ProductReview
+namespace: source
+dataAssetResourceName: datastore://source/ProductReview
+doc: Customer reviews of products, one record per review, staged from the source ProductReview
+  table. The contract enforces the declared schema and business key (ProductReviewID).
+  Value-level semantics are not constrained, because no requirements specify them.
+  Ownership and agreement are left to human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductReviewID
+  description: Unique identifier of a product review (business key).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductID
+  description: Identifier of the product being reviewed; references the Product asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ReviewerName
+  description: Name of the person who submitted the review.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ReviewDate
+  description: Date and time the review was submitted.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EmailAddress
+  description: Email address of the reviewer.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Rating
+  description: Rating the reviewer gave the product. The allowed scale is not stated
+    in the requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Comments
+  description: Free-text comments from the reviewer.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

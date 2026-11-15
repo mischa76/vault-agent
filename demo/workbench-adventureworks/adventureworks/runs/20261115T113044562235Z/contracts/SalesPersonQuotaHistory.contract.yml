@@ -1,0 +1,73 @@
+spec-version: 1.0.0
+name: SalesPersonQuotaHistory
+namespace: source
+dataAssetResourceName: datastore://source/SalesPersonQuotaHistory
+doc: Historical record of sales quotas assigned to sales persons, one row per sales
+  person and quota date. The contract enforces the declared schema and business-key
+  uniqueness/not-null; value-level semantics are advisory. Ownership and agreement
+  status are to be resolved at the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the sales person (business entity) to whom the quota
+    was assigned.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: QuotaDate
+  description: Date on which the sales quota took effect for the sales person.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: SalesQuota
+  description: Sales quota amount assigned to the sales person as of the quota date.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Row-level globally unique identifier (GUID) for the record.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Timestamp of when the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

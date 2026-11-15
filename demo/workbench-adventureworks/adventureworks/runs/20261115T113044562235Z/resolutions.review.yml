@@ -1,0 +1,178 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: customer::AccountNumber
+  resolution: NEW
+  category: semantic
+  evidence:
+  - Customer.AccountNumber is 'number identifying the customer assigned by the accounting
+    system'. No customer hub exists in the vault, and no existing hub has a matching
+    business key.
+  confidence: 0.7
+  ratification_status: accepted
+- concept: customer::CustomerID
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - Customer.CustomerID is the primary key of Customer. The vault has no customer
+    hub.
+  - Customer has its own surrogate key. PersonID and StoreID are only foreign keys
+    to other concepts.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: store::BusinessEntityID
+  resolution: hub_business_entity
+  category: exact_key
+  evidence:
+  - Store.BusinessEntityID is an int primary key with the same name and format as
+    hub_business_entity's key BusinessEntityID.
+  - Person, Employee and Vendor already feed hub_business_entity with this key, so
+    Store looks like another BusinessEntity subtype.
+  - The column comment says 'Foreign key to Customer.BusinessEntityID', but Customer
+    has no such column. That comment is unreliable, and no explicit cross-reference
+    to BusinessEntity is given.
+  confidence: 0.7
+  ratification_status: accepted
+- concept: sales order::SalesOrderNumber
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - SalesOrderNumber is a computed identifier of the sales order. The vault has no
+    sales order hub.
+  - hub_purchase_order is keyed on PurchaseOrderID, a different concept (purchasing,
+    not selling).
+  confidence: 0.8
+  ratification_status: accepted
+- concept: sales order::SalesOrderID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - SalesOrderHeader.SalesOrderID is the primary key of the sales order. No sales
+    order hub exists.
+  - hub_purchase_order is a different business concept.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: sales order line::SalesOrderDetailID
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - SalesOrderDetail is a sales order line. The only line hub in the vault is hub_purchase_order_line,
+    which is for purchasing and is a different concept.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: sales representative::BusinessEntityID
+  resolution: hub_business_entity
+  category: exact_key
+  evidence:
+  - 'SalesPerson.BusinessEntityID comment: ''Foreign key to Employee.BusinessEntityID''.'
+  - Employee already feeds hub_business_entity under the BusinessEntityID key, so
+    this is the same key.
+  confidence: 0.75
+  ratification_status: accepted
+- concept: sales territory::TerritoryID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesTerritory.TerritoryID is the primary key of a sales territory lookup. No
+    territory hub exists.
+  - hub_state_province has a sat 'territory', but that is an attribute and not a territory
+    hub.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: sales territory::Name
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesTerritory.Name is the territory description, an alternate key. No sales territory
+    hub exists, and the other hubs keyed on Name are unrelated concepts.
+  confidence: 0.75
+  ratification_status: accepted
+- concept: credit card::CreditCardID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - CreditCard.CreditCardID is the primary key of credit card records. Nothing in
+    the vault models credit cards.
+  confidence: 0.9
+  ratification_status: accepted
+- concept: credit card::CardNumber
+  resolution: NEW
+  category: semantic
+  evidence:
+  - CardNumber is a candidate key of the credit card. There is no existing credit
+    card hub, so it belongs to a new one.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: currency::CurrencyCode
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Currency.CurrencyCode is the ISO currency code and the primary key of the Currency
+    lookup. No currency hub exists.
+  - hub_country_region is keyed on CountryRegionCode, a different key. CountryRegionCurrency
+    only links the two.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: currency rate::CurrencyRateID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - CurrencyRate.CurrencyRateID is the surrogate primary key of exchange rates. No
+    existing construct models it.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: currency rate::CurrencyRateDate + FromCurrencyCode + ToCurrencyCode
+  resolution: NEW
+  category: semantic
+  evidence:
+  - This is the natural composite key of the exchange rate (date plus from and to
+    currency). No existing hub models exchange rates.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: special offer::SpecialOfferID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - SpecialOffer.SpecialOfferID is the primary key of a discount lookup. The vault
+    has no promotion or discount hub.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: sales reason::SalesReasonID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesReason.SalesReasonID is the primary key of the lookup of customer purchase
+    reasons. Nothing similar exists in the vault.
+  - hub_scrap_reason is a manufacturing concept and unrelated.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: shopping cart item::ShoppingCartID + ShoppingCartItemID
+  resolution: NEW
+  category: semantic
+  evidence:
+  - ShoppingCartItem holds online cart items until an order is submitted. No shopping
+    cart construct exists in the vault.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: sales tax rate::SalesTaxRateID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - SalesTaxRate.SalesTaxRateID is the primary key of the tax rate lookup. No tax
+    rate hub exists.
+  - StateProvinceID is only a foreign key to state/province.
+  confidence: 0.88
+  ratification_status: accepted
+- concept: person::BusinessEntityID
+  resolution: hub_business_entity
+  category: exact_key
+  evidence:
+  - Person is already listed in hub_business_entity's fed_by, and the key BusinessEntityID
+    is identical.
+  - 'PersonCreditCard.BusinessEntityID comment: ''Foreign key to Person.BusinessEntityID''.'
+  confidence: 0.93
+  ratification_status: accepted

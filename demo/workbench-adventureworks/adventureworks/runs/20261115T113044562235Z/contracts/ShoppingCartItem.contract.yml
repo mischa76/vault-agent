@@ -1,0 +1,84 @@
+spec-version: 1.0.0
+name: ShoppingCartItem
+namespace: source
+dataAssetResourceName: datastore://source/ShoppingCartItem
+doc: Items placed in an online shopping cart, as captured in the Sales source. Each
+  row is one product line in a cart. The contract enforces the declared schema, business-key
+  uniqueness and not-null rules; value-level constraints are not stated in the requirements.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ShoppingCartItemID
+  description: Unique identifier for the shopping cart item row.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ShoppingCartID
+  description: Identifier of the shopping cart that the item belongs to.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Quantity
+  description: Quantity of the product in the shopping cart.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductID
+  description: Identifier of the product placed in the cart; refers to a product in
+    the product catalog.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: DateCreated
+  description: Date and time the item was added to the shopping cart.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the row was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

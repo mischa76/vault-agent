@@ -1,0 +1,81 @@
+# Extension diff
+
+This run extended the vault at `demo/workbench-adventureworks/adventureworks/runs/20261115T111446973899Z`: **45 unchanged**, **0 extended**, **65 new** construct(s).
+
+Unchanged constructs render byte-identically, so their tables are untouched by a rebuild. The files listed under *extended* are the ones that genuinely changed.
+
+## Unchanged (45)
+
+`hub_business_entity`, `hub_address`, `hub_address_type`, `hub_contact_type`, `hub_phone_number_type`, `hub_country_region`, `hub_state_province`, `hub_department`, `hub_shift`, `hub_job_candidate`, `link_business_entity_address`, `link_business_entity_contact`, `link_business_entity_phone_number_type`, `link_address_state_province`, `link_state_province_country_region`, `link_business_entity_department_shift`, `link_job_candidate_business_entity`, `sat_business_entity_details`, `sat_business_entity_person_name`, `sat_business_entity_person_consent`, `sat_business_entity_person_sensitive`, `sat_business_entity_email`, `sat_business_entity_credential`, `sat_business_entity_phone_number_type_numbers`, `sat_business_entity_address_details`, `sat_business_entity_contact_details`, `sat_address_details`, `sat_address_location`, `sat_address_type_details`, `sat_contact_type_details`, `sat_phone_number_type_details`, `sat_country_region_details`, `sat_state_province_details`, `sat_state_province_territory`, `sat_business_entity_employee_identifiers`, `sat_business_entity_employee_job`, `sat_business_entity_employee_personal`, `sat_business_entity_employee_leave`, `sat_business_entity_employee_hierarchy`, `sat_business_entity_employee_pay`, `sat_department_details`, `sat_shift_details`, `sat_business_entity_department_shift_effectivity`, `sat_business_entity_department_shift_details`, `sat_job_candidate_resume`
+
+## Extended (0)
+
+—
+
+## New (65)
+
+- **hub_product**
+- **hub_product_category**
+- **hub_product_subcategory**
+- **hub_product_model**
+- **hub_culture**
+- **hub_unit_measure**
+- **hub_product_description**
+- **hub_product_photo**
+- **hub_illustration**
+- **hub_document**
+- **hub_location**
+- **hub_work_order**
+- **hub_work_order_operation**
+- **hub_scrap_reason**
+- **hub_inventory_transaction**
+- **hub_product_review**
+- **link_product_subcategory**
+- **link_product_subcategory_category**
+- **link_product_product_model**
+- **link_product_unit_measure**
+- **link_product_model_description_culture**
+- **link_product_product_photo**
+- **link_product_model_illustration**
+- **link_product_document**
+- **link_document_business_entity**
+- **link_product_assembly_component**
+- **link_product_location**
+- **link_work_order_product**
+- **link_work_order_scrap_reason**
+- **link_work_order_operation**
+- **link_inventory_transaction_product**
+- **link_product_review_product**
+- **sat_product_details** — on `hub_product`
+- **sat_product_pricing** — on `hub_product`
+- **sat_product_inventory_policy** — on `hub_product`
+- **sat_product_lifecycle** — on `hub_product`
+- **sat_product_cost_history** — on `hub_product`
+- **sat_product_list_price_history** — on `hub_product`
+- **sat_product_category_details** — on `hub_product_category`
+- **sat_product_subcategory_details** — on `hub_product_subcategory`
+- **sat_product_model_catalog** — on `hub_product_model`
+- **sat_product_model_instructions** — on `hub_product_model`
+- **sat_culture_details** — on `hub_culture`
+- **sat_unit_measure_details** — on `hub_unit_measure`
+- **sat_product_description_details** — on `hub_product_description`
+- **sat_product_photo_thumbnail** — on `hub_product_photo`
+- **sat_product_photo_large** — on `hub_product_photo`
+- **sat_product_product_photo_details** — on `link_product_product_photo`
+- **sat_illustration_details** — on `hub_illustration`
+- **sat_document_details** — on `hub_document`
+- **sat_document_revision** — on `hub_document`
+- **sat_document_content** — on `hub_document`
+- **sat_product_assembly_component_effectivity** — on `link_product_assembly_component`
+- **sat_product_assembly_component_details** — on `link_product_assembly_component`
+- **sat_location_details** — on `hub_location`
+- **sat_product_location_inventory** — on `link_product_location`
+- **sat_work_order_quantities** — on `hub_work_order`
+- **sat_work_order_schedule** — on `hub_work_order`
+- **sat_work_order_operation_schedule** — on `hub_work_order_operation`
+- **sat_work_order_operation_cost** — on `hub_work_order_operation`
+- **sat_scrap_reason_details** — on `hub_scrap_reason`
+- **sat_inventory_transaction_details** — on `hub_inventory_transaction`
+- **sat_inventory_transaction_archive_details** — on `hub_inventory_transaction`
+- **sat_product_review_details** — on `hub_product_review`
+- **sat_product_review_reviewer_pii** — on `hub_product_review`

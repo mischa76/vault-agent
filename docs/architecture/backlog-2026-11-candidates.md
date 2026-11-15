@@ -691,3 +691,17 @@ columns are unique (the satellite inserted nothing on the second build of the de
 demo; on other data such a binding re-inserts on every load, unseen. **Options:** run the relation-reading gates
 on the stages a sign-off binds and refuse the binding with their message; or re-validate after the re-bind and
 show the result as a decision. **Not decided**, no WP number.
+
+## C71 — A link named like a table is bound to that table by name before its declared keys are asked (2026-11-15)
+
+**Found** by the demo's second chain. The modeler named the link between product and subcategory
+`link_product_subcategory` (the first chain of the day: `link_product_product_subcategory`). Its stage is
+`stg_product_subcategory`, and `resolve_link_relation` answers `ProductSubcategory` by the name rule — the table
+of the subcategory hub, not the relation the link reads (`Product`, whose `ProductSubcategoryID` is the declared
+and ratified key into the hub). So the licence's translation was never applied (the link does not „read"
+`Product`), the name-bound relation carries no product number, WP73's check refused the binding
+(`BINDING_REJECTED`, a decision at sign-off in steps 3–5), and the stage stayed on `raw_product_subcategory`. The
+outcome is honest — refused and disclosed — but a rule could have bound it: `Product` declares a key into each of
+the link's two hubs. **Options:** let the declared keys outrank the name rule for a link (the relation that
+declares a key into every participant), or fall back to them when the name-bound relation fails the column check.
+**Not decided**, no WP number. The demo provides the relation as a hand view.

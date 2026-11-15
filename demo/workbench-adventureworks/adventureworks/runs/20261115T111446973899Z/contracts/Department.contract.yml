@@ -1,0 +1,60 @@
+spec-version: 1.0.0
+name: Department
+namespace: source
+dataAssetResourceName: datastore://source/Department
+doc: 'Staging contract for the Department source table: organizational departments
+  and the group each belongs to. DepartmentID identifies each record; schema, primary-key
+  and not-null breaches are enforced as hard failures. Ownership and agreement remain
+  to be confirmed at the human-in-the-loop checkpoint.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: DepartmentID
+  description: Unique identifier of the department (business key).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the department.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: GroupName
+  description: Name of the department group to which the department belongs.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the department record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

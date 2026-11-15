@@ -1,0 +1,99 @@
+spec-version: 1.0.0
+name: Customer
+namespace: source
+dataAssetResourceName: datastore://source/Customer
+doc: Customer records from the Sales source, staged as-is. Each row represents a customer,
+  who may be an individual (PersonID) or a store (StoreID), optionally assigned to
+  a sales territory. The contract enforces the declared schema, business key and not-null
+  rules; value-level semantics are left for producer/consumer negotiation.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: CustomerID
+  description: Unique identifier of the customer; business key of the asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: PersonID
+  description: Identifier of the individual person who is the customer. Reference
+    to a person record; may be absent for store customers.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StoreID
+  description: Identifier of the store that is the customer. Reference to a store
+    record; may be absent for individual customers.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: TerritoryID
+  description: Identifier of the sales territory the customer belongs to. Reference
+    to SalesTerritory.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: AccountNumber
+  description: Customer account number used to identify the customer in business transactions.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) for the record.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

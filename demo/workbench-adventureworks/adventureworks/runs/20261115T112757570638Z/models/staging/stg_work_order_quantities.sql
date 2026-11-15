@@ -1,0 +1,27 @@
+-- Generated AutomateDV staging model for the raw-vault constructs on 'work_order_quantities'.
+-- Computes the hash keys / hashdiffs the raw-vault models reference and passes
+-- the source columns through (source binding: declared source schema).
+{{ config(materialized='view') }}
+{%- set yaml_metadata -%}
+source_model:
+  raw_4: 'WorkOrder'
+derived_columns:
+  ORDERQTY__CS: 'ENCODE(CONVERT_TO(NULLIF(TRIM(CAST(ORDERQTY AS text)), ''''), ''UTF8''), ''hex'')'
+  STOCKEDQTY__CS: 'ENCODE(CONVERT_TO(NULLIF(TRIM(CAST(STOCKEDQTY AS text)), ''''), ''UTF8''), ''hex'')'
+  SCRAPPEDQTY__CS: 'ENCODE(CONVERT_TO(NULLIF(TRIM(CAST(SCRAPPEDQTY AS text)), ''''), ''UTF8''), ''hex'')'
+hashed_columns:
+  WORKORDER_HK: 'WORKORDERID'
+  WORK_ORDER_QUANTITIES_HASHDIFF:
+    is_hashdiff: true
+    columns:
+      - 'ORDERQTY__CS'
+      - 'STOCKEDQTY__CS'
+      - 'SCRAPPEDQTY__CS'
+{%- endset -%}
+{% set metadata_dict = fromyaml(yaml_metadata) %}
+
+{{ automate_dv.stage(include_source_columns=true,
+                     source_model=metadata_dict['source_model'],
+                     derived_columns=metadata_dict['derived_columns'],
+                     hashed_columns=metadata_dict['hashed_columns'],
+                     ranked_columns=none) }}

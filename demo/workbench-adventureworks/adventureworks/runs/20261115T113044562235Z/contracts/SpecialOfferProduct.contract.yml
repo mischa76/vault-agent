@@ -1,0 +1,61 @@
+spec-version: 1.0.0
+name: SpecialOfferProduct
+namespace: source
+dataAssetResourceName: datastore://source/SpecialOfferProduct
+doc: Associative record linking a special offer to a product it applies to (many-to-many
+  between SpecialOffer and Product). The contract enforces the schema and the business
+  keys (SpecialOfferID, ProductID); ownership and agreement are to be confirmed at
+  human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: SpecialOfferID
+  description: Identifier of the special offer; references SpecialOffer.SpecialOfferID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductID
+  description: Identifier of the product the special offer applies to; references
+    a product in the product catalog.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) for the record.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

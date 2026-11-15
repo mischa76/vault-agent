@@ -72,3 +72,9 @@ pair (`participation_translations` / `participation_aliases`).
   `BillOfMaterials`' 2 679; every row's assembly key and component key joins `hub_product` (2 484 and 2 484). The
   second build found the satellite re-inserting — WP133.
 - **P5** in `docs/log.md` with the chain.
+- **P5 ✔ live** (2026-11-15, the demo's second chain, run `20261115T111823849877Z`; `docs/log.md`, „The demo's
+  second chain …"). The modeler built `link_product_assembly_component` as `hub_product` without a role plus
+  `hub_product:component`; the unqualified participation carries the translation over `ProductAssemblyID`, the
+  component the one over `ComponentID`, the stage is bound to `BillOfMaterials`. Built on PostgreSQL with the fifth
+  project (PASS=575 of 575): 2 484 link rows = the distinct (assembly, component, unit) of the table's 2 679; every
+  assembly key and every component key joins `hub_product`. One chain, one case.

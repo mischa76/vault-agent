@@ -1,0 +1,113 @@
+# Entity resolution against the existing vault — review & ratify (WP29).
+# resolution: <existing construct name> | NEW | same_as_candidate | unresolved
+# Then:  vault-agent resume --resolutions <this file>
+# Or:    vault-agent resume --resolve "concept=hub_name"
+# A merge is applied ONLY after you ratify it — an unratified proposal never
+# steers the modeler, because a wrong merge writes foreign keys into live history.
+resolutions:
+- concept: employee::national identification number (NationalIDNumber)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - Employee.NationalIDNumber is a national ID (e.g. social security number). No existing
+    hub has this as a business key.
+  - No cross-reference ties it to BusinessEntityID or to any existing hub.
+  confidence: 0.6
+  ratification_status: accepted
+- concept: employee::company-wide business entity number (BusinessEntityID)
+  resolution: hub_business_entity
+  category: comment_grounded
+  evidence:
+  - 'Employee.BusinessEntityID comment: ''Foreign key to BusinessEntity.BusinessEntityID''.'
+  - hub_business_entity already uses BusinessEntityID as its business key, so the
+    key is the same identifier.
+  confidence: 0.95
+  ratification_status: accepted
+- concept: employee::network login (LoginID)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - LoginID is a network login on Employee. No existing hub keys on it.
+  - sat_business_entity_credential holds credentials, but nothing states LoginID is
+    the same data, and a similar name is not evidence.
+  confidence: 0.55
+  ratification_status: accepted
+- concept: employee::technical row identifier (rowguid)
+  resolution: unresolved
+  category: semantic
+  evidence:
+  - rowguid is a technical merge-replication GUID, not a business key.
+  - Nothing in the vault or the source says whether it maps to an existing construct.
+  confidence: 0.4
+  ratification_status: accepted
+- concept: department::department name (Name)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - Department is a new lookup table. No existing hub models departments.
+  - The existing hubs keyed on Name are address type, contact type and state province.
+    A shared column name is not evidence of the same concept.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: department::DepartmentID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Department.DepartmentID is the primary key of a department lookup. No existing
+    hub models departments.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: department group::group name (GroupName)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - GroupName is the name of the group a department belongs to. No existing construct
+    models it.
+  - It may be only an attribute of Department, but the vault has nothing it could
+    match.
+  confidence: 0.6
+  ratification_status: accepted
+- concept: shift::shift name (Name)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - Shift is a new work-shift lookup. No existing hub models shifts.
+  - A shared 'Name' column with other hubs is not evidence.
+  confidence: 0.8
+  ratification_status: accepted
+- concept: shift::ShiftID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - Shift.ShiftID is the primary key of a work shift lookup. No existing hub models
+    shifts.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: employee department assignment::BusinessEntityID + DepartmentID + ShiftID
+    + StartDate (composite)
+  resolution: NEW
+  category: semantic
+  evidence:
+  - The composite key links Employee, Department and Shift with a start date. No existing
+    link connects these hubs.
+  - The existing links cover address, contact and phone relationships only.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: employee pay rate::BusinessEntityID + RateChangeDate (composite)
+  resolution: NEW
+  category: comment_grounded
+  evidence:
+  - EmployeePayHistory is keyed by BusinessEntityID and RateChangeDate. No existing
+    construct models pay history.
+  confidence: 0.85
+  ratification_status: accepted
+- concept: job candidate::JobCandidateID
+  resolution: NEW
+  category: key_overlap
+  evidence:
+  - JobCandidate.JobCandidateID is its own primary key. No existing hub models job
+    candidates.
+  - JobCandidate.BusinessEntityID is only an optional link to Employee, set if the
+    applicant was hired.
+  confidence: 0.85
+  ratification_status: accepted

@@ -1,0 +1,75 @@
+spec-version: 1.0.0
+name: BusinessEntityAddress
+namespace: source
+dataAssetResourceName: datastore://source/BusinessEntityAddress
+doc: Source-to-staging asset linking a business entity (e.g. person, store, vendor)
+  to an address, qualified by an address type. The contract enforces the declared
+  schema and the business-key/not-null rules propagated by the deterministic core;
+  ownership and agreement are to be confirmed at the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the business entity that the address is associated with.
+    Refers to the BusinessEntity source record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: AddressID
+  description: Identifier of the address linked to the business entity. Refers to
+    the Address source record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: AddressTypeID
+  description: Identifier of the type of address (the role the address plays for the
+    business entity). Refers to the AddressType source record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (GUID) for the source row.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source row was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

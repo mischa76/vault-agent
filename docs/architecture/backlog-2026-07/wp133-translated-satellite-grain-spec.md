@@ -67,3 +67,10 @@ surrogate is a zero-key participant on both readings.
   UNITMEASURECODE"). Steps 1, 2, 4, 5: none. (Step 3's second fire, on `sat_work_order_operation_details`, is
   the replay knowing the sign-off binding — WP132 §5, C70 — and not a translated stage.)
 - **P4** in `docs/log.md` with the chain.
+- **P4 ✔ live** (2026-11-15, the demo's second chain; `docs/log.md`). Read from the traces: in step 3 the
+  modeler's first draft was refused `sat_product_assembly_component_details` (`E_SAT_GRAIN_NOT_UNIQUE`), the second
+  call made it multi-active with `StartDate` as child-dependent key; in step 2 the same on
+  `sat_business_entity_department_shift_details` (a stage translating `DepartmentID` and `ShiftID`). Two fires on
+  translated stages, both followed in the next attempt; two more in step 3 on stages without a translation (WP85's
+  ordinary case). The fifth project's second build inserts nothing (186 of 186 incremental models `INSERT 0 0`);
+  the bill of materials' satellite holds 2 679 rows, the table's.

@@ -72,3 +72,10 @@ it.
   nothing validates again. In the data the two columns are unique (the satellite inserted nothing on the second
   build), so the demo is not wrong — but the gate was not asked. C70.
 - **P4** in `docs/log.md` with the chain.
+- **P4 — the letter failed, the rule held** (2026-11-15, the demo's second chain; `docs/log.md`). No final report
+  carries `E_STAGE_COLUMN_NOT_IN_SOURCE`, and none of the 43 translated stages of the fifth project was refused —
+  all of them built (PASS=575 of 575). But a `BINDING_REJECTED` there was, in steps 3–5, on
+  `stg_product_subcategory`: a stage **without** a translation, refused by WP73's check as it would have been
+  before this WP (the name rule had tried the wrong table — C71). The prediction said „no `BINDING_REJECTED`" and
+  should have said „none on a translated stage". **This WP's own case — a translated stage refused — did not
+  occur live**; it stands on the guards and on the replay of §5.

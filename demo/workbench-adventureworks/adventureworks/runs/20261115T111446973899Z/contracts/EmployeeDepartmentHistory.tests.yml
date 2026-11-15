@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_EmployeeDepartmentHistory
+  columns:
+  - name: DEPARTMENTID
+    tests:
+    - unique
+    - not_null
+  - name: SHIFTID
+    tests:
+    - unique
+    - not_null

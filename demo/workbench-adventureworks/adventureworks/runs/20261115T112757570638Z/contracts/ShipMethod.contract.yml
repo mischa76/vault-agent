@@ -1,0 +1,85 @@
+spec-version: 1.0.0
+name: ShipMethod
+namespace: source
+dataAssetResourceName: datastore://source/ShipMethod
+doc: Shipping method reference data (source ShipMethod) staged from the purchasing
+  source. Each row is a shipping method with its base and per-unit rate. The contract
+  enforces the declared schema, the business key (ShipMethodID) and not-null rules;
+  value-level semantics are advisory.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ShipMethodID
+  description: Unique identifier of the shipping method; business key.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the shipping method.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ShipBase
+  description: Minimum shipping charge for the method.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ShipRate
+  description: Shipping charge per unit of weight or quantity, added to the base charge.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (GUID) for the row, used by the source for
+    replication.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source row was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

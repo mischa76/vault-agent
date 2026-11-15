@@ -1,0 +1,63 @@
+spec-version: 1.0.0
+name: JobCandidate
+namespace: source
+dataAssetResourceName: datastore://source/JobCandidate
+doc: Source-to-staging asset for job candidates (applicants) in the HR domain. Each
+  record is a candidate identified by JobCandidateID, optionally linked to an employee
+  via BusinessEntityID, with a resume and a last-modified timestamp. The contract
+  enforces the declared schema, business key and not-null rules; ownership and agreement
+  are to be confirmed at the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: JobCandidateID
+  description: Unique identifier of the job candidate record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: BusinessEntityID
+  description: Identifier of the employee (business entity) the candidate was hired
+    as, if any. Reference to the Employee asset.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Resume
+  description: Resume content of the candidate. Format and structure are not specified
+    in the requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

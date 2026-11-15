@@ -1,0 +1,62 @@
+spec-version: 1.0.0
+name: ProductProductPhoto
+namespace: source
+dataAssetResourceName: datastore://source/ProductProductPhoto
+doc: Link between products and product photos in the source Production schema. Each
+  record associates a product (ProductID) with a photo (ProductPhotoID) and indicates
+  whether it is the primary photo. The contract enforces the declared schema and business
+  keys; ownership and agreement are pending human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductID
+  description: Identifier of the product the photo is associated with; references
+    the Product asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductPhotoID
+  description: Identifier of the photo associated with the product; references the
+    ProductPhoto asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Primary
+  description: Flag indicating whether this photo is the primary photo for the product.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: boolean
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source system.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
