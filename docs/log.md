@@ -13861,3 +13861,42 @@ relation name has the same arithmetic — zero-key views and stages are checked 
 **Bewusst nicht getan.** No gate on a raw-vault construct's length (open since WP102). Not built on PostgreSQL yet:
 the twenty-sixth chain's state is not stored whole, so its project cannot be regenerated keyless; the demo's chain
 is the live case if such a stage occurs.
+
+## [2026-11-15] Pre-registration: one paid AdventureWorks chain through the workbench API on today's generator — the shipped demo regenerated from it, the first under ADR-0021
+
+**Autor:** Claude Code
+
+On the owner's instruction (2026-11-15) to regenerate the shipped demo: `demo/workbench-adventureworks/` still
+holds the chain of 2026-10-23, whose hubs sit on the source's generated keys (C63). Written before the run.
+**A correction first:** the WP129 entry above and the spec's §5 name the red guards' commit `b9660a8`; a rebase
+onto `e9661db` made it `cd48859` — same content, the old hash is on no branch.
+
+**The run.** As on 2026-10-23: a fresh workbench (today's code, `c14a753` plus this entry) on port 8766, root
+`workbench/chain-20261115/` (git-ignored), project `adventureworks`, the five eval cases' requirements and
+catalogues as they are today (`eval/datasets/adventureworks_<domain>/`, the inputs of the twenty-sixth chain),
+five runs person → sales, each extending the previous one, driven by a script through the API. **The checkpoints,
+answered by this session, not by a human:** at the resolution checkpoint the bulk answer (`--accept`) — every
+declared link proposal and licence taken, a contested hub key left unanswered so that it takes the declared
+natural key (`catalogue_default`; an explicit answer would record a human's decision nobody made); a resolution
+proposal that claims „equivalent but keyed differently" answered `unresolved`. At sign-off every contract owner
+`John Doe <john.doe@acme.com>`, then accept. A stage no rule could bind is bound at sign-off (WP82) where a
+declared relation carries its keys; otherwise it gets a hand view, as the shipped demo's `inferred_views.sql`
+does. Every checkpoint's payload is kept as a file.
+
+**Predictions.** **P1** all five runs finish with a passing validation (re-model attempts allowed). **P2** no
+final report carries `E_HUB_KEY_NOT_AS_DECIDED`; fires inside the attempts are counted, not predicted. **P3**
+`hub_product` is keyed on `ProductNumber`; every key given to the modeler is the hub's key in the final model;
+14–18 of the final model's hubs sit on a single `…ID` column (the twenty-sixth: 16 of 40; the shipped demo: to be
+counted from its state for the comparison). **P4** the contested keys appear at the resolution checkpoint through
+the API (`keys` in the payload) — the first time outside the eval harness; 6–8 tables over the chain, all among
+the eight the twenty-sixth chain named. **P5** the fifth project builds whole on PostgreSQL into a fresh schema of
+the database the project's loader fills (`aw_source`; the `vault` copy types `ProductReview.productid` as text):
+after the bindings or views for its inferred stages, **no error** and no relation refused for its length (WP129's
+P3 — measured only if a stage over 50 characters reads through a translation); a second build inserts nothing.
+**P6** 4–6 USD, 20–35 minutes.
+
+**Not predicted:** construct counts, decisions per step, the number of inferred stages. **Not entered into the
+review record** — the eval harness is not used (as on 2026-10-23). **What will be shipped:** the five runs with
+`state.json` only from `.vault-agent/`, local paths made repo-relative, no traces, no `target/`; the traces and
+checkpoint payloads go to the results repository. The shipped demo's fifth `state.json`, which three guards
+read (WP93–WP95), moves to `tests/fixtures/` in the same commit, so the guards keep their evidence.
