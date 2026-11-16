@@ -80,6 +80,18 @@ def load_existing_model(path: Path) -> DVModel | None:
     return model
 
 
+def existing_construct_names(existing: DVModel | None) -> set[str]:
+    """The constructs of the vault being extended — not this run's (WP23). One reading for the
+    validator's gates and the sign-off's judgement of a binding (WP134)."""
+    if existing is None:
+        return set()
+    return (
+        {hub.name for hub in existing.hubs}
+        | {link.name for link in existing.links}
+        | {sat.name for sat in existing.satellites}
+    )
+
+
 def _resolve(path: Path) -> Path:
     """The YAML file to read, from a directory or a direct file path."""
     if not path.exists():

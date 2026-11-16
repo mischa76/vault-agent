@@ -726,3 +726,11 @@ the code is written (architecture, specs and review by the owner, code AI-assist
 the repo, ADR or not, since it lives only under `demo/` (CLAUDE.md: no new framework without an ADR).
 
 **Not decided**, no WP number. Not before 2026-12-07.
+
+## C70 — taken up as WP134 (2026-11-16)
+
+On the owner's go (2026-11-16). `backlog-2026-07/wp134-sign-off-binding-judged-spec.md`: the candidate's first
+option — the judgements that read a stage's relation are made on a sign-off binding and a failing binding is
+refused; the second (apply, re-validate, disclose) is argued against in its §2. Found on the way: the sign-off's
+check had kept the reading of a translated stage that WP132 corrected in the validator, and refused every binding
+of such a stage (213 of 213 on the stored runs of 2026-11-15). Built, keyless; no live case.

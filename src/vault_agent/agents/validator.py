@@ -28,7 +28,8 @@ import logging
 from typing import Any
 
 from vault_agent.agents.base import BaseAgent
-from vault_agent.bindings import stage_key_needs, translation_projects, translation_reads
+from vault_agent.bindings import satellite_grain_gap, stage_key_needs, translation_projects
+from vault_agent.existing_model import existing_construct_names
 from vault_agent.grounding import is_grounded, known_columns
 from vault_agent.link_proposal import component_keys, resolve_fk_target
 from vault_agent.rules.dv2_rules import (
@@ -218,13 +219,7 @@ def _optional_participants(
 
 def _pre_existing_names(state: VaultAgentState) -> set[str]:
     """The constructs of the vault being extended — not this run's (WP23)."""
-    if state.existing_model is None:
-        return set()
-    return (
-        {hub.name for hub in state.existing_model.hubs}
-        | {link.name for link in state.existing_model.links}
-        | {sat.name for sat in state.existing_model.satellites}
-    )
+    return existing_construct_names(state.existing_model)
 
 
 def _issue(
@@ -1609,11 +1604,8 @@ class ValidatorAgent(BaseAgent):
             # WP133 (C69): a stage that reads through a translation view is judged too — a
             # translated key stands for the relation's referencing column (the join's typed
             # `reads`). The gate skipped every such stage, and since WP125 the bill of materials'
-            # satellite — C13's own case — reads through one: +195 rows on every build.
-            stands_for = translation_reads(stage)
-            if stands_for is None:
-                continue  # metadata stored before WP133: not judged, never guessed
-            reads_of: dict[str, str] = dict(stands_for)
+            # satellite — C13's own case — reads through one: +195 rows on every build. A
+            # translation stored before WP133 (no `reads`) is not judged, never guessed.
             if stage.get("source_binding") == "declared":
                 source = stage.get("source_model")
                 relation_name = (
@@ -1626,45 +1618,18 @@ class ValidatorAgent(BaseAgent):
             table = declared_tables.get(normalize_identifier(str(relation_name or "")))
             if table is None:
                 continue
-            unique_keys = [k for k in [table.primary_key, *table.unique_keys] if k]
-            if not unique_keys:
+            # WP134 (C70): the judgement itself lives in `bindings` — the sign-off asks it of a
+            # binding a human makes after this gate has run.
+            gap = satellite_grain_gap(sat_meta, stage, table)
+            if gap is None:
                 continue
-            derived = stage.get("derived_columns") or {}
-
-            def relation_column(
-                column: str, derived: dict[str, Any] = derived,
-                translated: dict[str, str] = reads_of,
-            ) -> str:
-                value = derived.get(column)
-                if isinstance(value, dict):
-                    value = value.get("source_column")
-                name = normalize_identifier(str(value if value else column))
-                return translated.get(name, name)
-
-            pk_value = (stage.get("hashed_columns") or {}).get(str(sat_meta.get("src_pk")))
-            pk_columns: list[Any] = (
-                list(pk_value) if isinstance(pk_value, list) else [pk_value] if pk_value else []
-            )
-            cdk = sat_meta.get("src_cdk") or []
-            grain = {relation_column(str(c)) for c in [*pk_columns, *cdk]}
-            if any({normalize_identifier(c) for c in key} <= grain for key in unique_keys):
-                continue
-            # The key the satellite is closest to: most columns already in its grain, then the
-            # fewest missing — a surrogate primary key never wins over the natural unique key.
-            nearest = min(
-                unique_keys,
-                key=lambda k: (
-                    -len({normalize_identifier(c) for c in k} & grain),
-                    len({normalize_identifier(c) for c in k} - grain),
-                ),
-            )
-            missing = [c for c in nearest if normalize_identifier(c) not in grain]
+            nearest, grain, missing = gap.nearest, gap.grain, gap.missing
             issues.append(
                 _issue(
                     "error", "E_SAT_GRAIN_NOT_UNIQUE", sat_name,
                     f"satellite reads {table.table}, which is unique on "
                     f"{' + '.join(nearest)}, but its key covers only "
-                    f"{', '.join(sorted(grain)) or 'nothing'} — {', '.join(missing)} would repeat "
+                    f"{', '.join(grain) or 'nothing'} — {', '.join(missing)} would repeat "
                     f"per key and load date, so the satellite would hold several rows per key and "
                     f"re-insert on every load",
                     remedy=(

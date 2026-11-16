@@ -55,6 +55,12 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- A binding made at sign-off is judged by the gates that read a stage's relation (WP134, C70). The validator
+  runs before the sign-off, so a stage a human bound there was never grain-judged: a binding whose relation is
+  unique on more columns than a satellite on the stage covers is now refused with `E_SAT_GRAIN_NOT_UNIQUE`'s
+  finding, before anything resumes. The same check no longer asks a relation for the keys a stage's translation
+  view projects — it refused every binding of such a stage — and asks for the columns the view joins on instead;
+  the checkpoint's list of expected columns follows.
 - A link that takes one hub twice gets both keys (WP131, C67). Where one participation carries a role and the
   other none — the component and the assembly of a bill of materials — only the role-named one got its key
   translation; the stage hashed a column its relation does not carry and the warehouse refused it. The

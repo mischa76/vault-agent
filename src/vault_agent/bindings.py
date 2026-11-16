@@ -10,12 +10,19 @@ One grammar, one check, one payload for every path (WP12's capability-parity rul
 The check runs before anything resumes: a stage this run has, a declared relation, alias targets
 the relation declares, and — WP73's rule — every column the stage hashes or derives present in
 the relation after the aliases. An error names the stage, the relation and the columns.
+
+WP134 (C70): the validator runs before the sign-off, so a stage bound here was unbound when its
+gates looked. The two judgements that read a stage's relation are therefore made here too, from
+the same functions the validator calls — what a translated stage reads from its relation
+(:func:`binding_needs`) and whether a satellite's key covers a unique key of the relation
+(:func:`satellite_grain_gap`). A binding that fails either is refused.
 """
 from __future__ import annotations
 
 import re
-from typing import Any
+from typing import Any, NamedTuple
 
+from vault_agent.existing_model import existing_construct_names
 from vault_agent.rules.dv2_rules import normalize_identifier
 from vault_agent.state import FlagKind, SourceTable, StageBinding, VaultAgentState
 
@@ -139,6 +146,84 @@ def translation_reads(meta: dict[str, Any]) -> dict[str, str] | None:
     return out
 
 
+def binding_needs(meta: dict[str, Any]) -> list[str]:
+    """What a stage's RELATION must carry for its keys (WP134): :func:`stage_key_needs` less the
+    columns the stage's translation view projects — they arrive through the view, WP132's reading
+    — plus the column each join reads on the relation's side (the typed ``reads``, WP133; a join
+    stored without it adds nothing). For a stage without a translation, ``stage_key_needs``."""
+    projected = {normalize_identifier(c) for c in translation_projects(meta)}
+    needs = [c for c in stage_key_needs(meta) if normalize_identifier(c) not in projected]
+    for join in (meta.get("key_translation") or {}).get("joins") or []:
+        reads = join.get("reads")
+        if reads and str(reads) not in needs:
+            needs.append(str(reads))
+    return needs
+
+
+class GrainGap(NamedTuple):
+    """A satellite whose key does not cover a unique key of the relation its stage reads."""
+
+    nearest: list[str]  # the relation's unique key the satellite is closest to, as declared
+    grain: list[str]  # the relation columns the satellite's key covers, normalised, sorted
+    missing: list[str]  # the columns of ``nearest`` the key lacks, as declared
+
+
+def satellite_grain_gap(
+    sat_meta: dict[str, Any], stage_meta: dict[str, Any], table: SourceTable,
+    aliases: dict[str, str] | None = None,
+) -> GrainGap | None:
+    """WP85's judgement, in one place since WP134: does the satellite's key — its parent-hash
+    columns and child-dependent key, mapped back to the relation — cover a declared unique key of
+    ``table``? ``None`` when it does, and when the satellite is not judged: an effectivity
+    satellite (its grain is the driving key), a relation without a declared key, a stage whose
+    stored translation does not say what its keys stand for (before WP133 — never guessed).
+
+    A key column is mapped through the stage's derived columns, then through ``aliases`` — a
+    sign-off binding's ``{STAGE_COLUMN: relation column}``, which become derived columns once the
+    binding is applied — then through the translation's ``reads`` (WP133: a translated key stands
+    for the relation's referencing column)."""
+    if "src_dfk" in sat_meta or "src_eff" in sat_meta:
+        return None
+    stands_for = translation_reads(stage_meta)
+    if stands_for is None:
+        return None
+    unique_keys = [k for k in [table.primary_key, *table.unique_keys] if k]
+    if not unique_keys:
+        return None
+    derived = stage_meta.get("derived_columns") or {}
+    renamed = {
+        normalize_identifier(k): normalize_identifier(v) for k, v in (aliases or {}).items()
+    }
+
+    def relation_column(column: str) -> str:
+        value = derived.get(column)
+        if isinstance(value, dict):
+            value = value.get("source_column")
+        name = normalize_identifier(str(value if value else column))
+        name = renamed.get(name, name)
+        return stands_for.get(name, name)
+
+    pk_value = (stage_meta.get("hashed_columns") or {}).get(str(sat_meta.get("src_pk")))
+    pk_columns: list[Any] = (
+        list(pk_value) if isinstance(pk_value, list) else [pk_value] if pk_value else []
+    )
+    cdk = sat_meta.get("src_cdk") or []
+    grain = {relation_column(str(c)) for c in [*pk_columns, *cdk]}
+    if any({normalize_identifier(c) for c in key} <= grain for key in unique_keys):
+        return None
+    # The key the satellite is closest to: most columns already in its grain, then the fewest
+    # missing — a surrogate primary key never wins over the natural unique key.
+    nearest = min(
+        unique_keys,
+        key=lambda k: (
+            -len({normalize_identifier(c) for c in k} & grain),
+            len({normalize_identifier(c) for c in k} - grain),
+        ),
+    )
+    missing = [c for c in nearest if normalize_identifier(c) not in grain]
+    return GrainGap(list(nearest), sorted(grain), missing)
+
+
 def declared_relations(state: VaultAgentState) -> dict[str, SourceTable]:
     """Every relation a stage may bind to, the increment's tables before the carried ones."""
     out: dict[str, SourceTable] = {}
@@ -152,6 +237,8 @@ def check_stage_bindings(
 ) -> list[str]:
     """Why a binding cannot be applied — ``[]`` when every one can. One message per defect."""
     staging = state.artifacts.automatedv_yaml.get("staging") or {}
+    satellites = state.artifacts.automatedv_yaml.get("satellites") or {}
+    pre_existing = existing_construct_names(state.existing_model)
     relations = declared_relations(state)
     errors: list[str] = []
     for stage, binding in bindings.items():
@@ -175,8 +262,10 @@ def check_stage_bindings(
             )
             continue
         available = columns | {normalize_identifier(c) for c in binding.columns}
+        # WP134: what the relation itself must carry — a translated stage's projected keys
+        # arrive through its view, its referencing columns do not.
         missing = [
-            column for column in stage_key_needs(meta)
+            column for column in binding_needs(meta)
             if normalize_identifier(column) not in available
         ]
         if missing:
@@ -185,6 +274,28 @@ def check_stage_bindings(
                 f"stage hashes or derives — name the relation's column for each as an alias "
                 f"(STAGE_COLUMN=column)"
             )
+            continue
+        # WP134 (C70): the grain gate's judgement, which the validator could not make on a stage
+        # that was unbound when it ran. One message per binding: the first satellite that fails.
+        for sat_name, sat_meta in satellites.items():
+            if (
+                not isinstance(sat_meta, dict) or sat_meta.get("source_model") != stage
+                or sat_name in pre_existing
+            ):
+                continue
+            gap = satellite_grain_gap(sat_meta, meta, table, binding.columns)
+            if gap is None:
+                continue
+            errors.append(
+                f"{stage}: {binding.relation} is unique on {' + '.join(gap.nearest)}, but "
+                f"{sat_name}, which reads this stage, covers only "
+                f"{', '.join(gap.grain) or 'nothing'} — bound to it, {', '.join(gap.missing)} "
+                f"would repeat per key and load date and the satellite would re-insert on every "
+                f"load (E_SAT_GRAIN_NOT_UNIQUE). Leave the stage unbound and provide a relation "
+                f"unique on the satellite's key, or run again with {sat_name} multi-active on "
+                f"{', '.join(gap.missing)}"
+            )
+            break
     return errors
 
 
@@ -211,7 +322,7 @@ def pending_stage_bindings(state: VaultAgentState) -> list[dict[str, Any]]:
             "reads": str(reads or ""),
             "reason": reason,
             "tried": tried,
-            "expected_columns": stage_key_needs(meta),
+            "expected_columns": binding_needs(meta),  # WP134: of the relation, not the view
             "role": "decision" if reason in ("rejected", "ambiguous") else "disclosure",
         })
     return out

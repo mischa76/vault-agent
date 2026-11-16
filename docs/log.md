@@ -14186,3 +14186,40 @@ found one further copy, in `docs/index.md`: WP35's line still read keyless-only,
 names WP72 stage 1, where WP35's live acceptances 7–10 held — a status pointer, corrected with the guide.
 **Not changed:** the guide carries no frontmatter date and got none; nothing else in it was
 read for staleness. Docs only — suite with no key reachable, ruff, bare mypy as in the entry above.
+
+## [2026-11-16] WP134 built: a binding made at sign-off is judged by the gates that read a stage's relation — grain, and a translated stage's columns (C70); keyless, swept over the stored runs of 2026-11-15
+
+**Autor:** Claude Code
+
+On the owner's go (2026-11-16): fix C70 and C71. This entry is C70; C71 follows separately. Spec
+`backlog-2026-07/wp134-sign-off-binding-judged-spec.md`, red guards `4c2867c`.
+
+**What was wrong.** The validator runs before the sign-off. A stage no rule could bind is unbound when the two
+gates that judge a stage by its relation look — the column gate (WP73, WP132) and the satellite grain gate (WP85,
+WP133) — and a human's binding at sign-off (WP82) came after them, checked only by `check_stage_bindings`, a
+second reading of the same metadata. That reading had no grain judgement (the first demo chain's
+`stg_work_order_operation` → `WorkOrderRouting`: the relation is unique on three columns, the stage's satellite
+covers two, nobody was told), and it had kept the reading of a translated stage that WP132 corrected in the
+validator: it asked the relation for the keys the stage's view projects.
+
+**What changed.** The grain judgement is one function (`bindings.satellite_grain_gap`) that the validator's gate
+and the sign-off check both call; the gate's code, message and remedy are unchanged to the letter. A sign-off
+binding that fails it is refused before anything resumes, in all three paths (CLI, workbench, prompt), with the
+relation's key, the satellite, the missing columns and the gate's code; the stage stays inferred. A translated
+stage is asked for what it reads from its relation (`bindings.binding_needs`: its keys less the projected ones,
+plus each join's typed `reads`); the checkpoint's `expected_columns` use the same reading. Refused rather than
+applied and disclosed: after the sign-off the run ends, and nobody is left to act on a decision (spec §2).
+
+**Measured, keyless.** Guards: 7 of 12 red at `4c2867c`, 12 green. Suite with no key reachable 1819 passed /
+3 skipped, `ruff check --no-cache` clean, bare `mypy` clean (78 files). **Sweep over the ten stored runs of
+2026-11-15** (the sign-off check asked about each of the 796 bindings the runs ended with — 358 and 438): before,
+213 refused, every one a translated stage, and the first chain's sign-off binding accepted; after, four refused —
+that binding, by the grain judgement, and the first chain's bill-of-materials stage in steps 3 to 5, for the
+`PRODUCTNUMBER` neither its relation nor its view carried (C67's stage, which the warehouse refused). The spec had
+announced one refusal; the three are right and were forgotten in the prediction. The second chain's 438: none.
+
+**Not verified.** No live case: no sign-off has met the refusal, and no translated stage has been bound at one.
+The workbench shows the API's error text; the screen was not opened. **Not done:** no second validator pass after
+a re-bind; the mapper's own re-bind of a hub's stage is not grain-judged (not observed as a defect); a binding to
+a relation with same-named columns of another meaning passes — names cannot tell. Not output-changing: no
+generated file differs; the checkpoint payload's `expected_columns` change for a translated stage.

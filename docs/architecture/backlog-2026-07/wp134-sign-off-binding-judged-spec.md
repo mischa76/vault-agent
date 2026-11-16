@@ -82,3 +82,23 @@ satellite's key (the view every inferred stage needs anyway), or run again with 
 ## 5 Measured
 
 Appended when built.
+
+### Measured (2026-11-16)
+
+- **P1 ✔.** Seven of twelve red at `4c2867c`, twelve green after.
+- **P2 ✔.** Numbers in `docs/log.md`. The guards of WP82, WP85, WP130, WP132 and WP133 untouched and green; the
+  validator's gate now calls `bindings.satellite_grain_gap` and its message is byte for byte what they pin.
+- **P3 ✔ with a deviation.** Before (`4c2867c`): 213 refusals, all on translated stages, all for the keys their
+  views project; the first chain's sign-off binding accepted. After: of those 213, 210 pass. **Four bindings
+  are refused, not the one announced:** the first chain's step 3, `stg_work_order_operation` →
+  `WorkOrderRouting`, by the grain judgement („unique on WorkOrderID + ProductID + OperationSequence, but
+  sat_work_order_operation_details … covers only OPERATIONSEQUENCE, WORKORDERID") — the announced one; and the
+  first chain's `stg_product_assembly_component` → `BillOfMaterials` in steps 3, 4 and 5, for `PRODUCTNUMBER`.
+  That is C67's stage, the one the warehouse refused (WP131, WP132): its assembly key was hashed from a column
+  neither the relation nor the view carried. The sweep asks about the bindings the runs ended with, and that
+  binding was wrong; the prediction forgot it. The second chain: 438 bindings over five steps, none refused (the first: 358). In
+  steps 4 and 5 of the first chain the work-order stage is not refused: its satellite belongs to the vault being
+  extended there, exempt as in the gate.
+- **P4** not measured: no sign-off has met the refusal live.
+- **Not announced, done:** the validator's helper for the names of the vault being extended moved to
+  `existing_model.existing_construct_names`, so that the sign-off's exemption reads the same set.
