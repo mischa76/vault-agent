@@ -734,3 +734,16 @@ option — the judgements that read a stage's relation are made on a sign-off bi
 refused; the second (apply, re-validate, disclose) is argued against in its §2. Found on the way: the sign-off's
 check had kept the reading of a translated stage that WP132 corrected in the validator, and refused every binding
 of such a stage (213 of 213 on the stored runs of 2026-11-15). Built, keyless; no live case.
+
+## C71 — corrected and taken up as WP135 (2026-11-16)
+
+On the owner's go (2026-11-16). **The candidate's diagnosis was incomplete, and neither of its options would
+have repaired the case.** Traced on the stored run: `link_product_subcategory` and `hub_product_subcategory`
+have one base and therefore one staging model; the hub reads `ProductSubcategory`, the link's participations
+are offered by `Product` alone. The shared stage cannot read both — the hub's binding was refused for the link's
+column and the hub lost its declared relation too. Letting the declared keys outrank the name rule changes
+which relation the link is said to read, not which stage it is staged by. Measured on the 36 stored chain
+models: 60 links of this shape (`link_product_subcategory` 24, `link_product_model` 19, `link_product_photo`
+17). Three ways were laid before the owner — rename the link after its hubs, give it a stage of its own under
+its name, a gate with a remedy; he chose the rename.
+`backlog-2026-07/wp135-link-off-hub-stage-spec.md`.
