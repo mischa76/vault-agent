@@ -836,3 +836,12 @@ most referenced table of the catalogue — can be inferred or recorded as tied o
 2026-10-30; what changed in the copy since is not looked into. The numbers of WP136 to WP138 are of 63
 tables. **Options:** count only the columns whose type family the inference reads (the `other` family is
 never a candidate anyway); or retry such a table without the refused columns. **Not decided**, no WP number.
+
+## C76 — taken up as WP139 (2026-11-16)
+
+On the owner's go of that day. The second option, in the profiler's form: a refused table is counted again
+column by column, and only the column still refused is named and left out.
+`backlog-2026-07/wp139-infer-keys-refused-column-spec.md`. Built, keyless; on the data copy 68 of 68 tables
+are read; on the catalogue without declarations 94 inferred foreign keys where there were 83, none lost. The
+first option was not taken: a `uuid` column is of the family the inference does not read as a reference and
+is an inferred unique key today.

@@ -14471,3 +14471,54 @@ reads 63 of 68 tables — `Person`, `Store`, `ProductModel`, `Illustration` and 
 for the type) and left without inferences and out of the key columns a reference may point at; WP99 read
 68 on 2026-10-30. Evidence:
 `eval/results/kept-outputs/wp138-20261116/`.
+
+## [2026-11-16] WP139 built: `infer-keys` leaves out the column the database refuses to count, not its table (C76) — keyless; on the data copy 68 of 68 tables read where there were 63, without declarations 94 inferred foreign keys where there were 83; one prediction missed
+
+On the owner's go of the day (fix C76). Spec `architecture/backlog-2026-07/wp139-infer-keys-refused-column-spec.md`;
+guards red at `17b8fd9`, the change in this commit. No model call, no paid run.
+
+**Why it was wrong.** `key_inference._reflect` counts every column of a table in one statement. PostgreSQL
+has no equality for `xml` and refuses `count(distinct …)` (`UndefinedFunction`); the function then left the
+whole table without inferences, and — because the key columns are collected from the tables that were read —
+out of everything a reference may point at. On the data copy: `Person.Person`, `Sales.Store`,
+`Production.ProductModel`, `Production.Illustration`, `HumanResources.JobCandidate`, seven `xml` columns. The
+profiler has answered the same refusal per column since WP98.
+
+**What changed.** `_reflect_by_column`: after the refusal the rows are counted alone, then each column in
+its own statement; a column still refused is named on stderr (`…: left out, the database refused its counts
+(UndefinedFunction)`) and has no counts — no unique key, no inferred reference, no key column. A table whose
+row count is refused stays named and without inferences. A table the database does not refuse is read by the
+one statement as before. Of C76's two options the second; the first (count only the type families the
+inference reads) would have dropped every inferred unique key on a `uuid` column.
+
+**Measured, all keyless.** Suite 1859 passed, 3 skipped with no key reachable; `ruff check --no-cache` and a
+bare `mypy` clean; three of four new guards red before (the refusal injected at SQLite's cursor), the guards
+of WP99, WP137 and WP138 unchanged and green. `infer-keys` over the full catalogue against the data copy
+(PostgreSQL `aw_source`, read-only): **68 of 68 tables read**, the seven `xml` columns named; 68 inferred
+unique keys (the 64 of before and four of the five tables); the same 4 inferred foreign keys, each as before;
+two runs byte-identical. The proposer over the stored chain: the same 2 inferred licences; WP136's replay:
+the fifth project byte-identical to the built one. **The catalogue with every declared key removed** (WP99's
+case), table-level refusal patched back in against the new code: 63 and 68 tables, 127 and 137 inferred
+unique keys, **83 and 94 inferred foreign keys**, none lost — seven references into `Person`, `Store`,
+`ProductModel` and `Illustration` that could not be inferred (`Customer.personid → Person`,
+`Customer.storeid → Store`, `Product.productmodelid → ProductModel` among them), four on columns of the five
+tables, and `Person.businessentityid` now in the tied or wider list of ten others. Scored against the
+catalogue's declarations: ten of the eleven name exactly the declared target; `Person.businessentityid` names
+`EmailAddress` (equal domain) with the declared `BusinessEntity` as wider.
+
+**Prediction missed.** The spec predicted 139 and 92 for that last case, from WP99's record of 2026-10-30
+(139 unique, 95 foreign of which WP138 found three false). Measured 137 and 94. The condition the prediction
+named does not hold: the copy is not the one WP99 read — `Person.Person` has 19 972 rows (WP99: 19 973),
+`ProductReview.productid` is `integer` (WP99: `text`), and WP99 read all 68 tables without a refusal, which
+the seven `xml` columns would not have allowed. WP99's file was not kept, so the two differences are not
+reconciled pair by pair. **This also bounds today's earlier entries:** WP136's, WP137's and WP138's counts
+are of 63 tables; on the catalogue with its declarations the five tables add four unique keys and no foreign
+key, so their foreign-key counts (36, 7, 4) and checkpoint counts stand.
+
+**Überprüft.** The seven `xml` columns in `information_schema.columns`; the refusal reproduced by SQL; both
+`infer-keys` runs and their stderr; the key-less comparison; `ProductReview.productid`'s type and `Person`'s
+row count by SQL; the proposer on the stored states; the replay's `diff -r`. **Nur angenommen.** That another
+database refuses in a way SQLAlchemy raises as `DBAPIError` (the guard injects exactly that). **Bewusst
+nicht getan.** No list of types without equality; no inference on a refused column
+by casting; why and when the copy changed since 2026-10-30; the type tier against the data copy; C74; no
+chain on this code; no demo regenerated; no release. Evidence: `eval/results/kept-outputs/wp139-20261116/`.

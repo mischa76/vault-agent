@@ -142,7 +142,11 @@ proposals with provenance `inferred`, and **`--accept` declines them**: only
 `resume --link Table.Column` or a *yes* at
 the prompt (whose default for an inferred proposal is *no*) builds one (7). Two reads of one
 database give one byte-identical file; measured against AdventureWorks' own declarations on
-the key-less data copy (`docs/log.md`, 2026-10-30).
+the key-less data copy (`docs/log.md`, 2026-10-30). A column the database refuses to count —
+PostgreSQL has no equality for `xml` — is named on stderr and left out: no unique key, no
+reference from it or to it; the rest of its table is read (WP139, 2026-11-16, as the profiler
+does above). Before, the whole table was left out and nothing could be inferred into it — on
+the AdventureWorks copy five tables, `Person` among them; write an older file again.
 
 **Drafting the requirements from the catalogue (WP117, ADR-0019).** A customer with a catalogue
 and no documents cannot start a run — the modeler models only what the requirements support,

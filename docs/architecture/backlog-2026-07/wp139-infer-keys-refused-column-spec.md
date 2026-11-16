@@ -76,3 +76,31 @@ candidate tiers, the inclusion check, WP137's and WP138's rules.
   and 60 and 30 declared; WP136's replay writes the fifth project byte-identical to the built one.
 
 No paid run: nothing here touches a model call.
+
+## 5 Measured (2026-11-16)
+
+All keyless, no model call. Evidence: `eval/results/kept-outputs/wp139-20261116/`.
+
+- **P1 held.** Three of the four guards red at `17b8fd9`, four green with the change; the pin green on both.
+- **P2 held.** The guards of WP99, WP137 and WP138 unchanged and green. Suite 1859 passed, 3 skipped with no
+  key reachable; `ruff check --no-cache` and a bare `mypy` clean; no byte-identity fixture changed.
+- **P3 held.** `infer-keys` over the full catalogue against the data copy: **68 of 68 tables read**, exactly
+  the seven `xml` columns named, each with `UndefinedFunction`. 68 inferred unique keys — the 64 of before and
+  four of the five tables (`rowguid` of `Person`, `Store`, `ProductModel`; `Illustration.modifieddate`). The
+  same 4 inferred foreign keys, each equal to its earlier entry; no fifth. Two runs byte-identical.
+- **P4 missed.** Predicted 139 inferred unique keys and 92 inferred foreign keys on the catalogue without
+  declarations; measured **137 and 94** (127 and 83 with the table-level refusal patched back in). The
+  prediction was conditional on the copy's rows being those of 2026-10-30, and they are not:
+  `Person.Person` has 19 972 rows where WP99 recorded 19 973, and `ProductReview.productid` is `integer`
+  where WP99 recorded `text`. WP99's file was not kept, so the difference of two on each side cannot be
+  reconciled pair by pair. What the comparison on today's copy does show: nothing inferred on 63 tables is
+  lost; **eleven inferred foreign keys are gained**, seven of them references into `Person`, `Store`,
+  `ProductModel` and `Illustration` from other tables and four on columns of the five tables; ten of the
+  eleven name exactly the target AdventureWorks declares for the column, the eleventh
+  (`Person.businessentityid`) names a table of equal domain and carries the declared one as wider. Ten
+  earlier inferences gain `Person.businessentityid` in their tied or wider list; ten unique keys are
+  gained; no pair within one table.
+- **P5 held.** The proposer over the stored chain with the new file: the same 2 inferred licences, 60 and 30
+  declared. WP136's replay writes the fifth project byte-identical to the built one.
+- **Not measured.** A database other than PostgreSQL refusing a count (the guard injects the refusal on
+  SQLite); the type tier against the data copy; why the copy differs from the one of 2026-10-30.

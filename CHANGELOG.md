@@ -55,6 +55,12 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- `infer-keys` left out a whole table when the database refused to count one of its columns (WP139, C76):
+  PostgreSQL has no equality for `xml`, and on the AdventureWorks copy five tables — `Person` among them —
+  got no inferences and could not be the target of one. The table is now counted again column by column, as
+  the profiler does; only the refused column is named and left out. On a catalogue without declared keys
+  that is 94 inferred foreign keys where there were 83, none lost; on the catalogue with its declarations
+  four more inferred unique keys and the same four foreign keys. Write an older file again.
 - `infer-keys` checked an inclusion within one table against the wrong statement (WP138, C75): it asked
   whether any row carries the same value in both columns. A pair therefore „held“ as soon as one such row
   existed — three false inferred foreign keys on AdventureWorks, among them `Department.groupname →

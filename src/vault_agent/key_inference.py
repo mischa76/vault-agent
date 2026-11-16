@@ -72,7 +72,7 @@ class _Reflected:
     declared: SourceTable
     table: sa.Table
     row_count: int
-    counts: dict[str, tuple[int, int]]  # column -> (non-null, distinct)
+    counts: dict[str, tuple[int, int]]  # column -> (non-null, distinct); a refused one absent
 
 
 def _declared_unique(table: SourceTable) -> set[str]:
@@ -103,13 +103,44 @@ def _reflect(
         [row] = connection.execute(sa.select(*expressions).select_from(table)).all()
     except sa.exc.DBAPIError:
         connection.rollback()
-        warn(f"{schema}.{declared.table}: the database refused its counts, left without inferences")
-        return None
+        return _reflect_by_column(connection, declared, table, warn)
     counts = {
         str(column.name): (int(row[1 + 2 * i]), int(row[2 + 2 * i]))
         for i, column in enumerate(columns)
     }
     return _Reflected(declared, table, int(row[0]), counts)
+
+
+def _reflect_by_column(
+    connection: Connection, declared: SourceTable, table: sa.Table, warn: Warn
+) -> _Reflected | None:
+    """WP139: the table's one statement was refused — a type without equality (`xml` on
+    PostgreSQL) refuses ``count(distinct c)`` — so count it again as the profiler does (WP98):
+    the rows, then column by column. A column still refused is named and has no counts: no
+    unique key, no inferred reference, no key column. The table is lost only with its rows."""
+    handle = f"{declared.schema_name}.{declared.table}"
+    try:
+        row_count = int(
+            connection.execute(sa.select(sa.func.count()).select_from(table)).scalar_one()
+        )
+    except sa.exc.DBAPIError:
+        connection.rollback()
+        warn(f"{handle}: the database refused its counts, left without inferences")
+        return None
+    counts: dict[str, tuple[int, int]] = {}
+    for column in table.columns:
+        statement = sa.select(
+            sa.func.count(column), sa.func.count(sa.distinct(column))
+        ).select_from(table)
+        try:
+            [row] = connection.execute(statement).all()
+        except sa.exc.DBAPIError as exc:
+            connection.rollback()
+            warn(f"{handle}.{column.name}: left out, the database refused its counts "
+                 f"({type(exc.orig).__name__})")
+            continue
+        counts[str(column.name)] = (int(row[0]), int(row[1]))
+    return _Reflected(declared, table, row_count, counts)
 
 
 def _inclusion_holds(
@@ -165,6 +196,8 @@ def infer_keys(
             declared_keys = _declared_unique(r.declared)
             unique[handle] = []
             for column in r.table.columns:
+                if str(column.name) not in r.counts:  # WP139: refused, named, left out
+                    continue
                 non_null, distinct = r.counts[str(column.name)]
                 key = _Key(r.declared.schema_name or "", r.declared.table, column, distinct)
                 is_declared = normalize_identifier(str(column.name)) in declared_keys
@@ -199,6 +232,8 @@ def infer_keys(
             own = normalize_identifier(r.declared.table)
             for column in r.table.columns:
                 name = str(column.name)
+                if name not in r.counts:  # WP139
+                    continue
                 non_null, distinct = r.counts[name]
                 if non_null == 0 or _kind(column.type) == "other":
                     continue
