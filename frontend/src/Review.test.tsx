@@ -64,6 +64,36 @@ describe("Review at the resolution checkpoint", () => {
   });
 });
 
+// WP140 (C74): an inferred key is declined by the bulk answer unless a human names it (ADR-0018 §4).
+// The screen showed it under "Declared keys" with its box checked and sent nothing for it.
+const withInferred: Checkpoint = {
+  ...resolution,
+  links: [
+    { key: "Account.CustomerID", kind: "license", target: "Customer (no hub yet)", note: "declared_fk_pending: builds nothing", evidence: [], provenance: "declared" },
+    { key: "WorkOrderRouting.productid", kind: "license", target: "Product (no hub yet)", note: "inferred from data, not declared — declared_fk_pending: builds nothing", evidence: ["67131 rows, 149 distinct values, all among 504"], provenance: "inferred" },
+  ],
+};
+
+describe("Review — an inferred key at the resolution checkpoint (WP140)", () => {
+  it("shows it unchecked in a section of its own and sends no yes for it", () => {
+    const onDecide = vi.fn();
+    render(<ReviewPerspective run={run} checkpoint={withInferred} onDecide={onDecide} busy={false} error={null} />);
+    expect(screen.getByText(/^Inferred keys/)).toBeInTheDocument();
+    expect(screen.getByLabelText("build WorkOrderRouting.productid")).not.toBeChecked();
+    expect(screen.getByLabelText("build Account.CustomerID")).toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: /build the model/ }));
+    expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ accept: true, links: {} }));
+  });
+
+  it("sends the yes when a human checks it", () => {
+    const onDecide = vi.fn();
+    render(<ReviewPerspective run={run} checkpoint={withInferred} onDecide={onDecide} busy={false} error={null} />);
+    fireEvent.click(screen.getByLabelText("build WorkOrderRouting.productid"));
+    fireEvent.click(screen.getByRole("button", { name: /allow 1 inferred/ }));
+    expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ accept: true, links: { "WorkOrderRouting.productid": true } }));
+  });
+});
+
 // WP82: bindings at sign-off — a relation and its column aliases for every stage no rule could bind,
 // and the `--map` field on an unresolved mapping; both reach the decision the API takes.
 const withBindings: Checkpoint = {

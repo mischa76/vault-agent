@@ -14,6 +14,10 @@ vi.mock("./api", () => ({
       file: { kind: "schema", name: "source_schema.yml", bytes: 10 }, command: "vault-agent source-schema --schema Sales --out inputs/source_schema.yml",
       warnings: [], summary: { tables: 2, columns: 7, comments: 0, foreign_keys: 1 },
     })),
+    inferKeys: vi.fn(async () => ({
+      file: { kind: "schema", name: "sales_source_schema.yml", bytes: 10 }, command: "vault-agent infer-keys --source-schema inputs/sales_source_schema.yml --candidates name --out inputs/sales_source_schema.yml",
+      refused: ["Sales.Store.demographics: left out, the database refused its counts (UndefinedFunction)"], summary: { tables: 2, tables_read: 2, unique: 3, foreign: 1 },
+    })),
     makeProfile: vi.fn(async () => ({
       file: { kind: "profiling", name: "profiling.yml", bytes: 10 }, command: "vault-agent profile --schema Sales --out inputs/profiling.yml",
       refused: [], summary: { tables: 1, columns: 3, rows: 5, checks: ["range", "lengths", "patterns"] },
@@ -98,5 +102,42 @@ describe("Source — file names per schema choice (WP119 follow-up)", () => {
     fireEvent.click(screen.getByRole("button", { name: "read catalogue" }));
     await waitFor(() => expect(api.readCatalogue).toHaveBeenCalledWith("stores",
       { schemas: ["Sales", "Person"], views: false, name: "step3.yml" }));
+  });
+});
+
+// WP140 (C74): `vault-agent infer-keys` from the workbench — over a schema input of the project,
+// the row read confirmed before it is asked, the file handed on as the run's schema.
+describe("Source — infer keys (WP140)", () => {
+  const files = [
+    { kind: "requirements" as const, name: "brd.md", bytes: 1 },
+    { kind: "schema" as const, name: "person_source_schema.yml", bytes: 10 },
+    { kind: "schema" as const, name: "sales_source_schema.yml", bytes: 10 },
+  ];
+
+  it("offers the project's schema inputs, asks before the row read and posts the choice", async () => {
+    vi.mocked(api.source).mockResolvedValue(ok);
+    const onProduced = vi.fn();
+    render(<SourceSection projectId="stores" files={files} onChanged={() => undefined} onProduced={onProduced} busy={false} />);
+    const pick = await screen.findByLabelText("schema file");
+    expect(Array.from(pick.querySelectorAll("option")).map((o) => o.value)).toEqual(["person_source_schema.yml", "sales_source_schema.yml"]);
+    expect(pick).toHaveValue("sales_source_schema.yml"); // the input added last
+    expect(screen.getByLabelText("inferred file name")).toHaveValue("sales_source_schema.yml");
+    const confirm = vi.spyOn(window, "confirm").mockReturnValueOnce(false).mockReturnValueOnce(true);
+    fireEvent.click(screen.getByRole("button", { name: "infer keys" }));
+    expect(api.inferKeys).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "infer keys" }));
+    await waitFor(() => expect(api.inferKeys).toHaveBeenCalledWith("stores", {
+      schema: "sales_source_schema.yml", name: "sales_source_schema.yml", candidates: "name", reads_rows: true,
+    }));
+    expect(confirm.mock.calls[1]?.[0]).toMatch(/reads rows/);
+    expect(await screen.findByText(/2 of 2 tables read, 3 inferred unique keys, 1 inferred foreign keys/)).toBeInTheDocument();
+    expect(screen.getByText(/Sales\.Store\.demographics/)).toBeInTheDocument();
+    expect(onProduced).toHaveBeenCalledWith(expect.objectContaining({ kind: "schema", name: "sales_source_schema.yml" }));
+  });
+
+  it("has nothing to infer from while the project holds no schema input", async () => {
+    vi.mocked(api.source).mockResolvedValue(ok);
+    render(<SourceSection projectId="stores" files={[files[0]!]} onChanged={() => undefined} busy={false} />);
+    expect(await screen.findByRole("button", { name: "infer keys" })).toBeDisabled();
   });
 });
