@@ -107,5 +107,7 @@ finding in this project has been traced so far.
 
 Known limits worth knowing before you judge: scale is verified at about 30 tables per increment
 of real variety; Business Vault logic and mart semantics are flagged for ratification, never
-generated as authoritative; the Databricks target is built but has never run on a workspace.
+generated as authoritative; the Databricks target is verified through dbt on a Databricks SQL
+warehouse only (since 2026-10-16: the bank demo and the AdventureWorks chain's projects —
+operations manual 9.6).
 The full catalogue of what is verified, and how: `docs/index.md` and `CLAUDE.md` (open items).

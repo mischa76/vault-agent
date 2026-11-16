@@ -14168,3 +14168,21 @@ that shape (the candidate asks for it, nothing was tried — to verify against t
 what such a run costs.
 
 **Not done:** no spec, no kick-off, no code, no change to the README or the evaluator guide.
+
+## [2026-11-16] Correction — the evaluator guide still said the Databricks target had never run on a workspace
+
+**Autor:** Claude Code
+
+On the owner's yes (2026-11-16) to the finding of the entry above. `docs/evaluator-guide.md`, in its paragraph of
+known limits, said the Databricks target was built but had never run on a workspace. That was true when the guide
+was written and has been wrong since 2026-10-16 (WP72, stages 1–3, and the builds of 2026-10-17 in this log): the
+bank demo and the AdventureWorks chain's generated projects were built on a Databricks SQL warehouse. The sentence
+now says what is verified and where its limit is — through dbt on a SQL warehouse only — and points to manual 9.6.
+The same stale claim was corrected in the manual's chapter 1 on 2026-11-03; the guide was missed then.
+
+**Checked:** the wording against the README's Databricks section and the log's entries of 2026-10-16 and
+2026-10-17; `rg -i "never run on a workspace|no workspace build"` over `docs/` (records excepted) and the README
+found one further copy, in `docs/index.md`: WP35's line still read keyless-only, no workspace build yet. It now
+names WP72 stage 1, where WP35's live acceptances 7–10 held — a status pointer, corrected with the guide.
+**Not changed:** the guide carries no frontmatter date and got none; nothing else in it was
+read for staleness. Docs only — suite with no key reachable, ruff, bare mypy as in the entry above.
