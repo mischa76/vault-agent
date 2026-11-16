@@ -90,6 +90,10 @@ class FlagKind:
     # WP135: a new link that would have shared a hub's stage while reading another relation was
     # renamed after its hubs (a disclosure); `asset` is the new name, `reason` the old one.
     LINK_RENAMED = "link_renamed"
+    # WP136: a new link no relation offers, where one relation is a key short of offering it and
+    # carries a column named like that key (a disclosure); `asset` is the link, `reason` the
+    # relation. A pointer for a human — nothing binds on the name.
+    LINK_KEY_MISSING = "link_key_missing"
     # WP56: a relation-less satellite's attributes are all columns of exactly one declared
     # table — the schema, not a guess, named its relation (a disclosure).
     RELATION_INFERRED = "relation_inferred"

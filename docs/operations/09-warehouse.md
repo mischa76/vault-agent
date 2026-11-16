@@ -149,6 +149,27 @@ is built from does; its satellites follow, the rename is a `link_renamed` disclo
 then has a stage of its own, bound by its offer. A name already taken is not taken twice: nothing
 is renamed and the refusal stands. Links of a vault being extended keep their names.
 
+**A new hub named after the concept is bound to the table its model names** (WP136, 2026-11-16).
+`hub_work_order_operation` is built from `WorkOrderRouting` (`source_entity`); the name rule
+binds nothing, and such a hub used to get its relation from the mapper's proposal — after the
+validator, and for a composite key's label (`work_order_operation` names no column) not at all.
+A single-source hub of the increment whose model names exactly one table of the increment is now
+bound to it when staging is generated, as the last tier (after a sign-off binding, an override,
+a carried binding and the name rule), under the same column check. Bound before the validator,
+its satellites are grain-judged in the attempt (8.2, `E_SAT_GRAIN_NOT_UNIQUE`) instead of bound
+behind the gate. A hub of a vault being extended keeps the binding it carries.
+
+**A link that takes a hub no key leads to** (WP136). The modeler takes `hub_product` into the
+link over `WorkOrderRouting` because the table carries `ProductID`; the catalogue declares no
+foreign key there, so no relation offers the link and its stage reads an inferred relation (one
+such link in each of the 36 stored chains). Nothing binds on the name — a wrong join loads wrong
+keys with every gate green. The review names what is missing instead: a `link_key_missing`
+disclosure says which relation offers the link's other participations, which hub it has no key
+into, and which of its columns is named like that hub's primary key. Two ways to supply the key:
+declare the foreign key in the source schema, or run `vault-agent infer-keys` (6.1) and accept
+the inferred key at the resolution checkpoint (7) — the link then binds and is translated like
+any other. Told only when exactly one relation is pointed at; a tie tells nothing.
+
 **Link bound by evidence** (WP90, 2026-10-23): when two or more relations offer a link's
 participations, the catalogue may still single one out — first the relation that declares
 **every** attribute of the link's satellites (reason `payload`; a generic column such as

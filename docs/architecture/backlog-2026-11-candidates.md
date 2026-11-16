@@ -747,3 +747,45 @@ models: 60 links of this shape (`link_product_subcategory` 24, `link_product_mod
 17). Three ways were laid before the owner — rename the link after its hubs, give it a stage of its own under
 its name, a gate with a remedy; he chose the rename.
 `backlog-2026-07/wp135-link-off-hub-stage-spec.md`.
+
+## C64 — traced, corrected and taken up as WP136 (2026-11-16)
+
+On the owner's go (2026-11-16). **Neither cause the candidate named is the cause, and neither of its options
+would have repaired the case.** Traced at zero cost on the stored runs: `WorkOrderRouting` carries `ProductID`
+(part of its primary key) and declares no foreign key to `Product`; the modeler takes `hub_product` into the
+link over it all the same — one such link in each of the 36 stored chain models, under eight names. No
+relation then offers the link, nothing licenses the translation to the product number, and its stage is
+inferred. The link's free name and the composite hub play no part. Found on the way: an inferred key a human
+accepted (ADR-0018) was read by nobody — the offer counts declared foreign keys only; and a hub named after
+the concept had no binding of its own until the mapper's model named a column for its key, after the
+validator, and for a composite key's label not at all. `backlog-2026-07/wp136-link-key-not-declared-spec.md`:
+an accepted inferred key is a key of its relation for the link's resolution; a new hub is bound to the table
+its model names before the validator; the review names the missing key. Built, keyless; no live case. What
+the tool does where no key evidence exists is unchanged — C74.
+
+## C73 — `infer-keys` over a catalogue that declares keys infers the next-best target for an already declared key (2026-11-16)
+
+**Found** by WP136's run of `infer-keys` over the full AdventureWorks catalogue (68 tables, declared keys)
+against the data copy: 36 inferred foreign keys, 25 of them on a column that already has a declared
+single-column foreign key. The inference skips the declared pair and reports the next key column that contains
+every value — `WorkOrder.productid → ProductProductPhoto.productid` beside the declared key to `Product`, and
+the same for the other tables that declare `ProductID → Product`. The proposer skips an inference whose target,
+tied or wider view is the declared pair; here the declared target is no longer among them, so each becomes a
+pending licence at the resolution checkpoint (the production step shows 11 inferred licences, one of them the
+key WP136 is about). The bulk answer declines them and nothing is built
+on them; they are noise a human reads past to find the one that matters. WP99 was measured live on a catalogue
+with no declarations, where this cannot show. **Options:** infer nothing for a column that has a declared
+single-column foreign key; or keep the inference and have the proposer skip it. **Not decided**, no WP number.
+
+## C74 — A link takes a hub that no key of its relation leads to, and nothing stops it (2026-11-16)
+
+**Left open by WP136.** Without a declared or accepted key, the link over `WorkOrderRouting` with
+`hub_product` is still built, its stage is still inferred, and the project still needs a relation provided by
+hand; since WP136 the review says which key is missing (`link_key_missing`) and how to supply it. Whether the
+tool should do more is a modelling decision: (a) leave it — the disclosure is the product's answer to a gap in
+the catalogue, and `infer-keys` plus one yes closes it; (b) a gate that refuses the link with the remedy to
+leave the hub out (the product is reachable through the work order, whose key to `Product` is declared) —
+changes what the modeler builds in every chain measured so far, costs an attempt in most, needs a paid chain
+to see the modeler follow it; (c) run `infer-keys` as part of the demo's and the workbench's intake, so that
+the key is on the table at the checkpoint — touches ADR-0008 #4 (the pipeline holds no connection). Binding
+on the column's name stays out (WP34, ADR-0018). **Not decided**, no WP number.

@@ -20,6 +20,23 @@ def normalize_identifier(label: str) -> str:
     return re.sub(r"[^0-9a-zA-Z]+", "_", label).strip("_").upper()
 
 
+def compact_name(name: str) -> str:
+    """Letters and digits only, uppercased — the spelling the name rules compare."""
+    return re.sub(r"[^0-9A-Za-z]", "", name).upper()
+
+
+def is_name_candidate(column: str, key_table: str, key_column: str) -> bool:
+    """WP99's ``name`` tier: the same compact name; the referencing name ends in the key's name
+    and is longer (``ShipToAddressID`` → ``AddressID``); or it is the key table's name plus
+    ``ID`` (``SalesPersonID`` → ``SalesPerson``'s key, whatever that key is called).
+
+    Promoted here from ``key_inference`` (WP136): a name coincidence is a CANDIDATE — what
+    ``infer-keys`` checks against the data, and what a disclosure may point a human at. It is
+    never a key: nothing binds, joins or translates on it (WP34's rejected name-only tier)."""
+    c, k, t = compact_name(column), compact_name(key_column), compact_name(key_table)
+    return c == k or (len(c) > len(k) and c.endswith(k)) or c == t + "ID"
+
+
 def construct_base_from_table(table: str) -> str:
     """A source table's name as a construct base: ``ProductVendor`` -> ``product_vendor``.
 

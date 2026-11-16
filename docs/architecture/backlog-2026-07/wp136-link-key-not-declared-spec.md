@@ -141,3 +141,51 @@ P5 are not.
 ## 6 Measured
 
 Appended when built.
+
+### Measured (2026-11-16)
+
+- **P1 ✔.** Nine of fourteen red at `8759e10`, fourteen green after.
+- **P2 ✔.** Numbers in `docs/log.md`. No byte-identity fixture changed; the guards of WP42, WP73, WP85, WP90,
+  WP99, WP134 and WP135 untouched and green.
+- **P3 — rule 3 ✔, rule 2's prediction was wrong.** Rule 3 over the 36 stored fifth-step models (1 955
+  links): 25 told, one per model, every one over `WorkOrderRouting` for `hub_product`
+  („WorkOrderRouting.ProductID is named like Product.ProductID"). **Rule 2 binds five hubs per chain, not the
+  one announced:** `hub_work_order_operation` in step 3, and `hub_purchase_order`, `hub_purchase_order_line`
+  (step 4), `hub_sales_order`, `hub_sales_order_line` (step 5) — hubs named after the concept whose tables are
+  the header and detail tables. The prediction was measured on the rule's first form (a fallback where the
+  mapper has no answer, §3) and carried over unchecked when the rule moved in front of the validator. The four
+  are the hubs the mapper bound to the same tables after the validator: their final staging is unchanged
+  (byte for byte in the replay), they are now bound when the gates look, and no gate objects — no validation
+  error in any of the ten replayed steps that the stored runs did not have.
+- **P4a ✔.** Second chain, no key: steps 1 and 2 as stored; step 3 refuses `stg_work_order_operation` →
+  `WorkOrderRouting` („declares none of PRODUCTNUMBER, NAME that the stage hashes or derives") and tells
+  `link_key_missing`; the `shared` disclosure is gone; one inferred stage in steps 3 to 5 (98 / 115 / 168
+  declared); no validation error; no stage differs from WP135's replay. First chain: one `link_key_missing` in
+  step 3 (`link_work_order_operation_location`); its two validation errors in step 3 are the ones its replay
+  has had since WP133 and WP134 (the bill of materials before the remedy, and the satellite on the stage a
+  human bound at sign-off).
+- **P4b ✔.** `infer-keys` over the full catalogue against the data copy: 63 of 68 tables read, 36 inferred
+  foreign keys, among them `WorkOrderRouting.productid → Product.productid` (67 131 rows, 149 distinct values,
+  504 on the other side, candidate by name, tied with `ProductProductPhoto.productid`). The real proposer on
+  step 3's increment: 28 declared proposals and licences, 11 inferred licences; the bulk answer accepts the 28
+  and declines the 11; one explicit yes takes `WorkOrderRouting.productid`. Then: `stg_work_order_operation`
+  declared on `WorkOrderRouting` **at validation**, two joins (`Product` reading `PRODUCTID`, `Location`
+  reading `LOCATIONID`); declared stages 99 / 116 / 169, **inferred 0** in steps 3 to 5; no validation error;
+  the product translation flagged to confirm; `link_product_location` (kept on `ProductInventory`, by payload)
+  and `link_work_order_product` (kept on `WorkOrder`, by key) become bindings by evidence — two more decisions
+  in step 3. One zero-key stage more (`stg_work_order_operation_zero_keys`). First chain with the key:
+  `stg_work_order_operation_location` declared on `WorkOrderRouting` with the same two joins, inferred 0.
+- **P5 ✔.** The replayed fifth project of the second chain, built on PostgreSQL (database `aw_source`, schema
+  `replay_wp136`) **with no hand view** — no relation named `raw_…` exists in the schema: PASS=586, ERROR=0,
+  SKIP=0 of 586 (the demo: 575 with two hand views; WP135's replay: 579 with one); second build 186 of 186
+  incremental models `INSERT 0 0`. `link_work_order_operation`: 67 131 rows — `WorkOrderRouting`'s; its (work
+  order, sequence, product number, location name) tuples equal the source's through its joins both ways (0
+  missing, 0 extra); every product and location key joins its hub, none on a zero key; 149 distinct products on
+  both sides. `hub_work_order_operation`: 67 133 rows, two of them system rows.
+- **P6** not measured: no chain has run on this code. In the second chain the satellites on
+  `hub_work_order_operation` were already multi-active (the modeler had been refused them on another stage),
+  so the replay does not show the grain gate firing on a stage bound by rule 2; the guard does.
+- **Not announced, found while building:** the name candidate (`is_name_candidate`) moved from
+  `key_inference` to `rules/dv2_rules` so that the disclosure reads it without importing the module that
+  reads rows; `key_inference` re-exports it. The translation flag's asset spells the column as the inference
+  does (`WorkOrderRouting.productid`), the stage as the table declares it (`PRODUCTID`).

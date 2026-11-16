@@ -31,8 +31,11 @@ from vault_agent.rules.dv2_rules import (
     construct_base_name,
     hub_binds_to_source_table,
     hub_key_columns,
+    is_composite_key,
+    is_name_candidate,
     is_valid_construct_name,
     link_relation_candidates,
+    link_relation_offer,
     normalize_identifier,
     participation_key,
     resolve_link_relation,
@@ -644,6 +647,50 @@ def pending_link_decisions(
     return pending
 
 
+def keyed_schemas(state: VaultAgentState) -> list[SourceTable]:
+    """WP136 (C64): the increment's tables as a link's relation resolution reads them — their
+    declared foreign keys, and every key inferred from data that a human accepted as a licence.
+
+    A licence over a DECLARED key worked because the declaration is in the catalogue: the
+    relation offers the hub (WP42), the link reads the relation, the key repair translates. An
+    accepted INFERRED licence (ADR-0018) was resolved, ratified — and read by nobody: the offer
+    counts ``foreign_keys``, the inference lives beside them, so the link it was accepted for
+    stayed unoffered and unbound (the demo's ``link_work_order_operation``:
+    ``WorkOrderRouting.ProductID`` is a product by the data and by no declaration). An accepted
+    key is a key of its relation from then on, for this resolution and nothing else: the
+    catalogue, the prompt and staging's own reading stay as declared (WP99 rule 7).
+
+    The column is spelled as the table declares it (a data copy reflects ``productid``). The
+    list itself, unchanged, when nothing inferred was accepted. An accepted inferred link
+    PROPOSAL needs none of this: it names its hub and binds by the proposal's own override."""
+    accepted: dict[str, list[KeyLicense]] = {}
+    for lic in state.link_proposals.ratified_licenses():
+        if lic.provenance == "inferred":
+            accepted.setdefault(normalize_identifier(lic.source_table), []).append(lic)
+    if not accepted:
+        return state.source_schemas
+    schemas: list[SourceTable] = []
+    for table in state.source_schemas:
+        spelled = {normalize_identifier(c): c for c in table.column_names}
+        known = {_pair(fk) for fk in table.foreign_keys if fk.is_single_column}
+        keys: list[ForeignKeyRef] = []
+        for lic in accepted.get(normalize_identifier(table.table), []):
+            key = ForeignKeyRef(
+                columns=[spelled.get(normalize_identifier(lic.source_column), lic.source_column)],
+                references_table=lic.references_table,
+                references_columns=[lic.references_column],
+                references_schema=lic.references_schema,
+            )
+            if _pair(key) not in known:
+                known.add(_pair(key))
+                keys.append(key)
+        schemas.append(
+            table.model_copy(update={"foreign_keys": [*table.foreign_keys, *keys]})
+            if keys else table
+        )
+    return schemas
+
+
 def _link_name(near: str, target: str) -> str:
     """``hub_customer`` + ``hub_person`` -> ``link_customer_person`` (E_BAD_NAME-shaped)."""
     return "link_" + "_".join(
@@ -700,7 +747,8 @@ def rename_links_off_hub_stages(
     merged = DVModel(hubs=[*existing.hubs, *delta.hubs],
                      satellites=[*existing.satellites, *delta.satellites])
     declared = {normalize_identifier(t.table): t for t in state.source_schemas}
-    catalogue = [*state.source_schemas, *state.carried_schemas]
+    keyed = keyed_schemas(state)  # WP136
+    catalogue = [*keyed, *state.carried_schemas]
     hub_of_base = {
         normalize_identifier(construct_base_name(hub.name)): hub
         for hub in merged.hubs if not hub.sources
@@ -723,7 +771,7 @@ def rename_links_off_hub_stages(
         hub = hub_of_base.get(normalize_identifier(construct_base_name(link.name)))
         if hub is None or link.name in materialised:
             continue
-        offering = link_relation_candidates(link, merged, state.source_schemas, resolve, expand)
+        offering = link_relation_candidates(link, merged, keyed, resolve, expand)
         if not offering:
             continue  # nothing says which relation the link reads (C64's class)
         home = [t for t in catalogue if hub_binds_to_source_table(hub, t.table)]
@@ -1147,6 +1195,7 @@ def apply_key_licenses(
         groups.setdefault((normalize_identifier(grant.table), grant.hub.name), []).append(grant)
 
     links_by_name = {link.name: link for link in [*existing.links, *delta.links]}
+    keyed = keyed_schemas(state)  # WP136: an accepted inferred key is a key of its relation
     for (table_key, _), group in groups.items():
         table, hub = group[0].table, group[0].hub
         by_override = any(g.by_override for g in group)
@@ -1167,7 +1216,7 @@ def apply_key_licenses(
             # links freely (`link_bom` from `BillOfMaterials`), and over six chains only 84 of
             # 348 new links bound by name — the repair never saw the rest.
             gelesen, _ = resolve_link_relation(
-                link, merged, state.source_schemas,
+                link, merged, keyed,
                 lambda _relation, fk: resolve_fk_target(merged, fk, declared)[0],
                 expand=lambda fk: component_keys(fk, declared),
                 carried_bindings=state.carried_bindings,  # WP105
@@ -1293,13 +1342,14 @@ def link_source_overrides(state: VaultAgentState) -> dict[str, str]:
     # it: this override would replace the hub's mapped binding, and a stage serving two constructs
     # is not the link's to repoint. Ratified bindings below are decisions and overwrite these.
     declared = {normalize_identifier(t.table): t for t in state.source_schemas}
+    keyed = keyed_schemas(state)  # WP136
     hub_bases = {normalize_identifier(construct_base_name(hub.name)) for hub in state.dv_model.hubs}
     for link in state.dv_model.links:
         base = normalize_identifier(construct_base_name(link.name))
         if base in hub_bases:
             continue
         relation, grund = resolve_link_relation(
-            link, state.dv_model, state.source_schemas,
+            link, state.dv_model, keyed,
             lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
             expand=lambda fk: component_keys(fk, declared),
             carried_bindings=state.carried_bindings,  # WP105
@@ -1344,6 +1394,7 @@ def link_binding_evidence_flags(state: VaultAgentState) -> list[PipelineFlag]:
     names the chosen relation and its rivals, and is raised only where the evidence binding is the
     one staging uses — a ratified binding that overrides it is a decision already."""
     declared = {normalize_identifier(t.table): t for t in state.source_schemas}
+    keyed = keyed_schemas(state)  # WP136
     hub_bases = {normalize_identifier(construct_base_name(hub.name)) for hub in state.dv_model.hubs}
     overrides = link_source_overrides(state)
     flags: list[PipelineFlag] = []
@@ -1358,7 +1409,7 @@ def link_binding_evidence_flags(state: VaultAgentState) -> list[PipelineFlag]:
             return component_keys(fk, declared)
 
         relation, grund = resolve_link_relation(
-            link, state.dv_model, state.source_schemas, resolve, expand=expand,
+            link, state.dv_model, keyed, resolve, expand=expand,
             carried_bindings=state.carried_bindings,  # WP105
             carried_schemas=state.carried_schemas,
             naming=state.naming,  # WP114
@@ -1367,7 +1418,7 @@ def link_binding_evidence_flags(state: VaultAgentState) -> list[PipelineFlag]:
             continue
         rivals = [
             t.table for t in link_relation_candidates(
-                link, state.dv_model, state.source_schemas, resolve, expand
+                link, state.dv_model, keyed, resolve, expand
             ) if t.table != relation.table
         ]
         why = (
@@ -1388,6 +1439,126 @@ def link_binding_evidence_flags(state: VaultAgentState) -> list[PipelineFlag]:
     return flags
 
 
+def link_key_gap_flags(state: VaultAgentState) -> list[PipelineFlag]:
+    """WP136 (C64): one disclosure per new link that no relation offers while exactly one is a
+    key short of offering it — which relation, which hub, and the column named like its key.
+
+    The modeler takes a hub into a link because the table carries its id
+    (``WorkOrderRouting.ProductID``); the catalogue declares no foreign key there, so nothing
+    offers the link, its stage reads an inferred relation, and the review said only that „no
+    declared source table matched". This says what is missing and how a human supplies it — a
+    declaration in the source schema, or ``infer-keys`` and a yes at the resolution checkpoint
+    (:func:`keyed_schemas`). The name is a pointer, never a key: nothing binds on it.
+
+    Told only when it is unambiguous: among the relations that offer the most of the link's
+    participations, exactly one carries, for every hub it does not offer, a column that is a
+    name candidate (WP99's tier) for the single-column primary key of a table that hub is
+    built from. A composite or multi-source hub has no such key; a tie tells nothing."""
+    if not state.source_schemas or state.dv_model is None:
+        return []
+    declared = {normalize_identifier(t.table): t for t in state.source_schemas}
+    keyed = keyed_schemas(state)
+    catalogue = [*state.source_schemas, *state.carried_schemas]
+    hubs = {hub.name: hub for hub in state.dv_model.hubs}
+    existing = (
+        {link.name for link in state.existing_model.links}
+        if state.existing_model is not None else set()
+    )
+
+    def resolve(_relation: Any, fk: ForeignKeyRef) -> Any:
+        return resolve_fk_target(state.dv_model, fk, declared)[0]
+
+    def expand(fk: ForeignKeyRef) -> list[ForeignKeyRef]:
+        return component_keys(fk, declared)
+
+    def candidates(relation: SourceTable, hub: Hub) -> list[tuple[str, str]]:
+        """(column of the relation, the key it is named like) for one hub it does not offer."""
+        if hub.sources or is_composite_key(hub):
+            return []
+        # Not a column the relation declares a key into something else, and not its own
+        # single-column primary key: a key two tables share (`BusinessEntityID`) says nothing
+        # about which references which.
+        spoken_for = {
+            normalize_identifier(fk.columns[0])
+            for fk in relation.foreign_keys if fk.is_single_column
+        } | ({normalize_identifier(relation.primary_key[0])}
+             if len(relation.primary_key) == 1 else set())
+        found: list[tuple[str, str]] = []
+        for home in catalogue:
+            if (
+                normalize_identifier(home.table) == normalize_identifier(relation.table)
+                or len(home.primary_key) != 1
+                or not hub_binds_to_source_table(hub, home.table)
+            ):
+                continue
+            # The primary key only: a natural key's name (`AccountNumber`, `Name`) recurs as an
+            # attribute of other tables, a surrogate's hardly does.
+            key = home.primary_key[0]
+            found += [
+                (column, f"{home.table}.{key}") for column in relation.column_names
+                if normalize_identifier(column) not in spoken_for
+                and is_name_candidate(column, home.table, key)
+            ]
+        return found
+
+    flags: list[PipelineFlag] = []
+    for link in state.dv_model.links:
+        if link.name in existing or any(ref.hub not in hubs for ref in link.hub_refs):
+            continue
+        relation, grund = resolve_link_relation(
+            link, state.dv_model, keyed, resolve, expand=expand,
+            carried_bindings=state.carried_bindings, carried_schemas=state.carried_schemas,
+            naming=state.naming,
+        )
+        if relation is not None or grund != "none":
+            continue
+        wanted: dict[str, int] = {}
+        for ref in link.hub_refs:
+            wanted[ref.hub] = wanted.get(ref.hub, 0) + 1
+        partial: list[tuple[int, SourceTable, list[str]]] = []
+        for table in keyed:
+            offer = link_relation_offer(
+                table, state.dv_model, lambda fk, _t=table: resolve(_t, fk), expand
+            )
+            got = sum(min(n, offer.get(hub, 0)) for hub, n in wanted.items())
+            missing = [hub for hub, n in wanted.items() if offer.get(hub, 0) < n]
+            partial.append((got, table, missing))
+        most = max((got for got, _, _ in partial), default=0)
+        if most == 0:
+            continue
+        pointed = []
+        for got, table, missing in partial:
+            if got != most:
+                continue
+            named = {hub: candidates(table, hubs[hub]) for hub in missing}
+            if all(named.values()):
+                pointed.append((table, missing, named))
+        if len(pointed) != 1:
+            continue
+        table, missing, named = pointed[0]
+        offered = [hub for hub in wanted if hub not in missing]
+        hints = "; ".join(
+            f"{table.table}.{column} is named like {key}"
+            for hub in missing for column, key in named[hub]
+        )
+        flags.append(PipelineFlag(
+            agent="link_proposer",
+            message=(
+                f"link {link.name} takes {', '.join(missing)}, and no declared relation offers "
+                f"that: {table.table} offers its other participations "
+                f"({', '.join(offered)}) but declares no foreign key into {', '.join(missing)} "
+                f"({hints}). If that column is the key, declare the foreign key in the source "
+                f"schema, or run `vault-agent infer-keys` and accept the inferred key at the "
+                f"resolution checkpoint — the link then reads {table.table}. Until then its "
+                f"stage reads an inferred relation"
+            ),
+            kind=FlagKind.LINK_KEY_MISSING,
+            asset=link.name,
+            reason=table.table,
+        ))
+    return flags
+
+
 def link_binding_reasons(state: VaultAgentState) -> dict[str, str]:
     """WP47: why a link's staging binding is inferred, keyed like ``link_source_overrides``.
 
@@ -1397,6 +1568,7 @@ def link_binding_reasons(state: VaultAgentState) -> dict[str, str]:
     not inferred. Hubs are not links: a hub stage with no declared table is ``none`` by
     default in ``bind_sources``."""
     declared = {normalize_identifier(t.table): t for t in state.source_schemas}
+    keyed = keyed_schemas(state)  # WP136
     hub_bases = {normalize_identifier(construct_base_name(hub.name)) for hub in state.dv_model.hubs}
     reasons: dict[str, str] = {}
     for link in state.dv_model.links:
@@ -1405,7 +1577,7 @@ def link_binding_reasons(state: VaultAgentState) -> dict[str, str]:
             reasons[base] = "shared"
             continue
         _, grund = resolve_link_relation(
-            link, state.dv_model, state.source_schemas,
+            link, state.dv_model, keyed,
             lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
             expand=lambda fk: component_keys(fk, declared),
             carried_bindings=state.carried_bindings,  # WP105

@@ -30,6 +30,7 @@ from vault_agent.rules.dv2_rules import (
     canonical_hub_key_column,
     construct_base_name,
     construct_binds_to_source_table,
+    hub_binds_to_source_table,
     hub_key_columns,
     is_composite_key,
     is_reserved_column,
@@ -817,6 +818,33 @@ def apply_stage_aliases(
     spec.source_columns = expected
 
 
+def hub_provenance(
+    model: DVModel, source_schemas: list[SourceTable], existing: DVModel | None = None
+) -> dict[str, str]:
+    """WP136 (C64): the declared table each NEW single-source hub is built from by its own
+    model's word (``source_entity``), keyed by normalised construct base — where the name rule
+    binds nothing.
+
+    A hub named after the concept (`hub_work_order_operation` from `WorkOrderRouting`) had no
+    binding until the mapper's model named a column for its key — after the validator, and for
+    a composite key's label often not at all: the stage stayed inferred while the model itself
+    said which table it reads. Bound here, before the validator, the gates that read a stage's
+    relation (the column gate, the satellite grain gate) judge it like a name-bound one. Exactly
+    one table of the increment, never a hub of the vault being extended (it keeps the binding it
+    carries), never a multi-source hub (its feeds are bound on the construct)."""
+    carried = {hub.name for hub in existing.hubs} if existing is not None else set()
+    bound: dict[str, str] = {}
+    for hub in model.hubs:
+        if hub.name in carried or hub.sources:
+            continue
+        if any(construct_binds_to_source_table(hub.name, t.table) for t in source_schemas):
+            continue
+        named = [t.table for t in source_schemas if hub_binds_to_source_table(hub, t.table)]
+        if len(named) == 1:
+            bound[normalize_identifier(_base_name(hub.name))] = named[0]
+    return bound
+
+
 def bind_sources(
     specs: dict[str, StagingSpec],
     source_schemas: list[SourceTable],
@@ -825,6 +853,7 @@ def bind_sources(
     carried_bindings: dict[str, str] | None = None,
     ratified: dict[str, str] | None = None,
     carried_aliases: dict[str, dict[str, str]] | None = None,
+    provenance: dict[str, str] | None = None,
 ) -> list[PipelineFlag]:
     """Bind each staging model to its raw relation; flag every *inferred* binding.
 
@@ -839,7 +868,12 @@ def bind_sources(
     ``carried_bindings`` (WP77) maps a stage model's name to the relation an earlier increment
     bound it to; it is applied after this run's overrides and before the name match, only when
     the relation is declared here (increment or catalogue) and carries every column the stage
-    hashes — and raises no flag: it was reviewed when it was made."""
+    hashes — and raises no flag: it was reviewed when it was made.
+
+    ``provenance`` (WP136) maps a normalised construct base to the declared table a new hub's
+    own model names (:func:`hub_provenance`); it is the LAST tier, tried where no decision, no
+    override, no carried binding and no name bound the stage, and judged by the same column
+    check."""
     overrides = source_overrides or {}
     carried = carried_bindings or {}
     decided = ratified or {}  # WP82: by stage name, before every rule
@@ -928,6 +962,16 @@ def bind_sources(
                 spec.bound = True
                 break
         else:
+            named = (provenance or {}).get(normalize_identifier(spec.base))
+            if named:
+                # WP136: the hub's own model names its table; refused like any other binding
+                # when the relation lacks a column the stage hashes (the flag says so).
+                if _rejected(spec, named):
+                    spec.source_model = inferred
+                else:
+                    spec.source_model = named
+                    spec.bound = True
+                continue
             spec.source_model = inferred
             flags.append(
                 PipelineFlag(
@@ -1875,6 +1919,7 @@ def build_staging(
         specs, binding_schemas, source_overrides, binding_reasons, carried_bindings,
         ratified={name: b.relation for name, b in (ratified_bindings or {}).items()},
         carried_aliases=carried_aliases,
+        provenance=hub_provenance(model, source_schemas, existing),  # WP136
     )
     # Grounded runs only (ungrounded: no blocks, no source_name — byte-identical output).
     blocks = group_sources(specs, binding_schemas)

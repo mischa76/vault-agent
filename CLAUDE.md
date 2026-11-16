@@ -225,7 +225,8 @@ platform and when: `docs/log.md` and `docs/index.md` — never from memory.
   grain-judged — C67–C69, WP131–WP133); **the second is the shipped demo and builds whole** (PASS=575, a second
   build inserts nothing, two hand views). **The review record's third generation starts there** — 86 and 85
   sign-off decisions, not comparable with the counts on surrogate-keyed hubs. Closed keyless on 2026-11-16, no live
-  case yet: a sign-off binding is grain-judged (WP134); a link on a hub's stage is renamed (WP135). Open: C64.
+  case yet: a sign-off binding is grain-judged (WP134); a link on a hub's stage is renamed (WP135); an accepted
+  inferred key binds its link, without one the review names the missing key (WP136). Open: C73, C74.
 - **WP18 acceptance #1 is unverified** (it costs a live run).
 - **Databricks builds (manual 9.6, log 2026-10-16 → 2026-10-18).** `demo-databricks` (dbt-core 1.11)
   conflicts with `demo` (dbt-core 1.9): `uv sync` installs one or the other, never both. **Drop the

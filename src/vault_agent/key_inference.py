@@ -19,7 +19,6 @@ Like the profiler, an explicitly invoked, read-only, scoped command (ADR-0008 #4
 itself still holds no connection."""
 from __future__ import annotations
 
-import re
 import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
@@ -28,7 +27,8 @@ from typing import TYPE_CHECKING, Any
 import sqlalchemy as sa
 
 from vault_agent.profiler import _kind
-from vault_agent.rules.dv2_rules import normalize_identifier
+from vault_agent.rules.dv2_rules import compact_name as compact
+from vault_agent.rules.dv2_rules import is_name_candidate, normalize_identifier
 from vault_agent.source_schema_reader import hidden_url
 from vault_agent.state import (
     CandidateTier,
@@ -49,17 +49,7 @@ def _stderr(message: str) -> None:
     print(f"infer-keys: {message}", file=sys.stderr)
 
 
-def compact(name: str) -> str:
-    """Letters and digits only, uppercased — the spelling the name rules compare."""
-    return re.sub(r"[^0-9A-Za-z]", "", name).upper()
-
-
-def is_name_candidate(column: str, key_table: str, key_column: str) -> bool:
-    """The ``name`` tier: the same compact name; the referencing name ends in the key's name and
-    is longer (``ShipToAddressID`` → ``AddressID``); or it is the key table's name plus ``ID``
-    (``SalesPersonID`` → ``SalesPerson``'s key, whatever that key is called)."""
-    c, k, t = compact(column), compact(key_column), compact(key_table)
-    return c == k or (len(c) > len(k) and c.endswith(k)) or c == t + "ID"
+__all__ = ["CANDIDATE_TIERS", "compact", "infer_keys", "is_name_candidate", "provenance"]
 
 
 @dataclass(frozen=True)

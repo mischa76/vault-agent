@@ -31,7 +31,7 @@ from vault_agent.agents.base import BaseAgent
 from vault_agent.bindings import satellite_grain_gap, stage_key_needs, translation_projects
 from vault_agent.existing_model import existing_construct_names
 from vault_agent.grounding import is_grounded, known_columns
-from vault_agent.link_proposal import component_keys, resolve_fk_target
+from vault_agent.link_proposal import component_keys, keyed_schemas, resolve_fk_target
 from vault_agent.rules.dv2_rules import (
     CONSTRUCT_NAME_PATTERN,
     REQUIRED_HUB_COLUMNS,
@@ -1170,6 +1170,8 @@ class ValidatorAgent(BaseAgent):
         # WP42: das Tabellenverzeichnis, das die FK-Aufloesung und damit die Link-Bindung
         # braucht — hier angelegt, weil beide Link-Gates es nutzen.
         declared_tables = {normalize_identifier(t.table): t for t in state.source_schemas}
+        # WP136: an inferred key a human accepted is a key of its relation — as the binder reads.
+        keyed = keyed_schemas(state)
         ratified_translations = {
             (p.target_hub, normalize_identifier(p.translation.referencing_column))
             for p in state.link_proposals.ratified()
@@ -1192,7 +1194,7 @@ class ValidatorAgent(BaseAgent):
                 continue
             # WP42: name first, then the relation whose offer covers this link's participations.
             gelesen, _ = resolve_link_relation(
-                link, state.dv_model, state.source_schemas,
+                link, state.dv_model, keyed,  # WP136
                 lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared_tables)[0],
                 expand=lambda fk: component_keys(fk, declared_tables),
                 carried_bindings=state.carried_bindings,  # WP105
@@ -1289,7 +1291,7 @@ class ValidatorAgent(BaseAgent):
                 continue
             # WP42: dieselbe Bindung wie im Gate darueber — Name, sonst eindeutiges Angebot.
             gelesen, _ = resolve_link_relation(
-                link, state.dv_model, state.source_schemas,
+                link, state.dv_model, keyed,  # WP136
                 lambda _relation, fk: resolve_fk_target(state.dv_model, fk, declared)[0],
                 expand=lambda fk: component_keys(fk, declared),
                 carried_bindings=state.carried_bindings,  # WP105

@@ -52,8 +52,9 @@ multi-active satellites; links whose participant may be missing carry zero keys 
 models).
 
 **Known open points** (backlog `docs/architecture/backlog-2026-11-candidates.md`). Two stages are inferred and
-need the views: `stg_work_order_operation` (C64's class: a link between a composite-key hub and hubs reached by
-translation), and `stg_product_subcategory` — the modeler named the link between product and subcategory
+need the views: `stg_work_order_operation` (C64: the link takes `hub_product`, and `WorkOrderRouting` declares no
+foreign key to `Product` — since WP136, 2026-11-16, the review names that key, and a run that accepts it as an
+inferred key binds the stage; this demo was generated before that), and `stg_product_subcategory` — the modeler named the link between product and subcategory
 `link_product_subcategory`, the name rule tried the table of that name, the column check refused the binding
 (the review queue's `binding-rejected` decision), and no rule then looked for the relation the link really reads
 (`Product`; C71). Later runs rename such a link after its hubs and bind it (WP135, 2026-11-16); this demo was

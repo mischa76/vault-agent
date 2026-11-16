@@ -14282,3 +14282,84 @@ step's delta against its increment. **Not done:** a stage of its own under the l
 not examined); C64 (`link_work_order_operation`, the demo's other hand view); the shipped demo is not
 regenerated — a paid chain, the owner's decision. The schema `replay_wp135` is left in `aw_source` beside the
 three of 2026-11-15. Evidence: `eval/results/kept-outputs/wp134-wp135-20261116/`.
+
+## [2026-11-16] WP136 built: a link that takes a hub no declared key leads to — C64 traced and corrected; an accepted inferred key binds, a new hub is bound to its model's table before the validator, the missing key is named; keyless, the replayed fifth project builds with no hand view
+
+**Autor:** Claude Code
+
+On the owner's go (2026-11-16): fix C64. Spec `backlog-2026-07/wp136-link-key-not-declared-spec.md`, red guards
+`8759e10`. No paid run.
+
+**The candidate was wrong about the cause.** C64 (2026-11-14) suspected the link's free name or the composite
+hub in a link with a translation, and named two options on that footing. Traced at zero cost on the stored
+runs of the three chains that carry the shape: `WorkOrderRouting` carries `ProductID` — part of its primary
+key — and declares foreign keys to `WorkOrder` and `Location` only. The modeler takes `hub_product` into the
+link over it all the same. So the relation offers three of the link's four hubs, no relation offers all four,
+the link reads nothing (`none`), and nothing licenses the translation to the product number the hub is keyed
+on since WP125. Over the 36 stored chain models (1 955 links, the full catalogue) 54 links are offered by no
+relation; 36 of them, one per chain under eight names, are this link. Neither option would have bound it:
+bound to the hub's own table the stage lacks the product number (WP73 refuses), and there is no composite
+participant to translate.
+
+**Three things were wrong, and they are what was built.**
+(1) *An accepted inferred key was read by nobody.* `infer-keys` (ADR-0018, WP99) finds the key in the data copy
+— `WorkOrderRouting.productid → Product.productid`, 67 131 rows, 149 distinct values, all among the 504 — the
+proposer offers it as a licence of provenance `inferred`, a human may accept it, and the binder's offer counted
+declared `foreign_keys` only. Replayed with the licence accepted, the stage did not change. Now
+`link_proposal.keyed_schemas` reads the increment's tables with their declared keys and the accepted inferred
+licences, wherever a link's relation is resolved (the key repair, the offer and evidence tiers, both link
+gates, WP135's rename, the binding reasons); from there the declared path runs unchanged. An inference nobody
+accepted changes nothing.
+(2) *A hub named after the concept had no binding of its own.* `hub_work_order_operation`
+(`source_entity: WorkOrderRouting`) got its relation from the mapper's proposal — after the validator, and here
+never: the mapper's concept is the composite key's label, which names no column. `staging_generator.
+hub_provenance` binds a new single-source hub to the one table of the increment its model names, as the last
+tier, under WP73's column check — when staging is generated, so the validator's gates judge the stage. The
+first form of this rule was a fallback behind the validator; it was dropped before the spec because it would
+have made silently the binding WP134 refuses from a human at sign-off (a relation unique on three columns
+under a hub keyed on two).
+(3) *The review did not say what was missing.* New disclosure `link_key_missing` (asset the link, reason the
+relation): which relation offers the link's other participations, which hub it has no key into, which of its
+columns is named like that hub's primary key, and the two ways to supply the key. The name is a pointer;
+nothing binds on it (WP34's name-only tier stays rejected).
+
+**Measured, all keyless.** Guards nine of fourteen red at `8759e10`, green after. Suite with no key reachable
+1843 passed / 3 skipped; `ruff check --no-cache` clean; bare `mypy` clean over 78 files; no byte-identity
+fixture changed. *Reach:* `link_key_missing` is told for 25 links over the 36 stored models, one per model, all
+over `WorkOrderRouting` for `hub_product` (the other 11 are bound by name). *Replay of the second chain of
+2026-11-15, no key:* step 3 refuses `stg_work_order_operation` → `WorkOrderRouting` for `PRODUCTNUMBER, NAME`
+and tells the missing key; one inferred stage stays, as before. *With the key:* the real proposer on step 3's
+increment, read with the keys inferred from the data copy, offers 11 inferred licences beside 28 declared
+proposals and licences; the bulk answer declines the 11; one explicit yes takes `WorkOrderRouting.productid`.
+The stage is then declared on `WorkOrderRouting` at validation with two joins, **no inferred stage is left in
+steps 3 to 5** (declared 99 / 116 / 169), no validation error. *Build* of that fifth project on PostgreSQL
+(`aw_source`, schema `replay_wp136`, dbt 1.9) **with no hand view**: PASS=586, ERROR=0, SKIP=0 of 586; second
+build 186 of 186 incremental models `INSERT 0 0`; `link_work_order_operation` 67 131 rows, its tuples equal to
+the source's through its joins both ways, every key in its hub.
+
+**Deviations from the pre-registration.** The hub rule binds five hubs per chain, not the one announced —
+besides the operation hub the purchase-order and sales-order header and line hubs. The number was measured on
+the rule's first form and carried over unchecked. Those four the mapper had bound to the same tables after the
+validator; their final staging is unchanged and no gate objects, but they are now judged in the attempt, which
+the stored chains cannot show for a model that would fail. Two guards that pin what stays were red for the
+absence of the new function (nine red, not seven; corrected in the spec before its commit).
+
+**What changes for a run.** Output-changing where a run meets a shape: an accepted inferred licence binds and
+translates its link; a hub named after the concept is bound before the validator (in the measured chains to
+the table the mapper chose anyway). In the review of a run without inferred keys: one `link_key_missing`
+disclosure per such link; a hub's stage refused for a link's columns is a `binding_rejected` decision where it
+was a `source_binding` disclosure (one decision more in that step). With the key: the translation is a
+decision to confirm (WP128), and two links the relation now also offers become bindings by evidence — two
+decisions more, their relations unchanged.
+
+**Überprüft.** The stored states of both chains of 2026-11-15 and the 36 stored fifth-step models; the four
+replays; `infer-keys` against `aw_source`; both build logs; the counts by SQL. **Nur angenommen.** That a human
+at the checkpoint finds the one inferred key among eleven — the replay answers by name. That the modeler
+follows the grain gate's remedy on a stage bound by the hub rule: WP85's loop is measured live on other
+stages, not on this one. **Bewusst nicht getan.** No gate for the case without a key and no binding on a
+column's name (C74, the owner's decision); `infer-keys`' noise on a catalogue with declared keys (C73: 25 of
+36 inferences sit on a column that already has a declared key); the shipped demo is not regenerated — it
+would need a catalogue with inferred keys and one yes, a paid chain; an accepted inferred link *proposal* is
+left to its own override (read, not measured); no chain on this code; no release. The schema `replay_wp136`
+is left in `aw_source` beside the four before it. Evidence:
+`eval/results/kept-outputs/wp136-20261116/`.

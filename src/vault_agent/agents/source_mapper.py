@@ -32,6 +32,7 @@ from vault_agent.agents.base import BaseAgent
 from vault_agent.link_proposal import (
     link_binding_evidence_flags,
     link_binding_reasons,
+    link_key_gap_flags,
     link_source_overrides,
 )
 from vault_agent.llm import (
@@ -582,7 +583,8 @@ def rebind_staging(state: VaultAgentState) -> None:
     # nineteenth chain's step 1 showed one refused stage as three identical decisions.
     # WP90: an evidence binding's decision is re-derived with the binding it describes.
     rebound = (
-        FlagKind.SOURCE_BINDING, FlagKind.BINDING_REJECTED, FlagKind.LINK_BINDING_EVIDENCE
+        FlagKind.SOURCE_BINDING, FlagKind.BINDING_REJECTED, FlagKind.LINK_BINDING_EVIDENCE,
+        FlagKind.LINK_KEY_MISSING,
     )
     from vault_agent.agents.staging_generator import construct_stage_name
 
@@ -591,6 +593,13 @@ def rebind_staging(state: VaultAgentState) -> None:
         f for f in link_binding_evidence_flags(state)
         if construct_stage_name(f.asset or "", state.naming) not in refused  # WP73's refusal stands
     ]
+    # WP136: which key an unoffered link's relation lacks — told where its stage stayed inferred.
+    gaps = [
+        f for f in link_key_gap_flags(state)
+        if (result.metadata.get(construct_stage_name(f.asset or "", state.naming)) or {}).get(
+            "source_binding"
+        ) == "inferred"
+    ]
     state.flags = dedupe_flags(
-        [f for f in state.flags if f.kind not in rebound] + result.flags + evidence
+        [f for f in state.flags if f.kind not in rebound] + result.flags + evidence + gaps
     )

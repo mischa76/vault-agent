@@ -55,6 +55,14 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- A link that takes a hub no declared key leads to (WP136, C64 — `WorkOrderRouting.ProductID` has no foreign key
+  to `Product`; one such link in each of 36 stored chains). An inferred key accepted at the resolution checkpoint
+  is now read by the binder — it was ratified and had no effect; the link binds and is translated as under a
+  declared key. A new hub named after the concept is bound to the table its model names when staging is
+  generated, so the validator's gates judge it. **Output-changing** for a run that meets either shape; a run
+  without inferred keys changes only in the review: the unbound link's `link_key_missing` disclosure names the
+  relation, the hub and the column, and a hub's stage refused for a link's columns is a `binding_rejected`
+  decision where it was a `source_binding` disclosure.
 - A link named like a hub that reads another relation no longer takes the hub's stage down with it (WP135, C71).
   `link_product_subcategory` and `hub_product_subcategory` are staged by one model; the hub reads
   `ProductSubcategory`, the link `Product`, and the binding was refused for both (60 links over 36 stored

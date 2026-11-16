@@ -250,6 +250,10 @@ FLAGS: dict[str, str] = {
         "A link named like a hub that reads another relation was renamed after its hubs, so that "
         "each gets a staging model of its own."
     ),
+    FlagKind.LINK_KEY_MISSING: (
+        "A link takes a hub that no declared or accepted key of its relation leads to; the "
+        "relation carries a column named like that hub's key."
+    ),
     FlagKind.RELATION_INFERRED: (
         "The declared schema named a satellite's relation where the model left it open."
     ),

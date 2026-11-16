@@ -168,6 +168,15 @@ only `--link` or a *yes* builds it. The eval harness's unattended resume is `--a
 measured chain builds nothing from an inference; its `link_proposals.by_provenance` says how
 many were offered.
 
+**An inferred licence you accept is a key of its relation from then on** (WP136, 2026-11-16).
+Until then it was resolved, ratified and read by nobody: the binder's offer counted declared
+foreign keys only, so the link it was accepted for stayed unbound. Now the relation offers the
+hub, the link reads the relation and the licence translates — exactly as a key declared in the
+catalogue does; the translation built on it is a decision to confirm at sign-off (WP128). The
+case it was built on: `WorkOrderRouting.ProductID`, a product by the data (67 131 rows, all
+among `Product`'s 504 ids) and by no declaration. A link whose relation lacks such a key says so
+in the review (`link_key_missing`, 9.3).
+
 **Since WP41, key licenses appear in greenfield runs too.** With a declared schema and no
 `--existing` vault, every declared single-column key into another table of the same input is a key
 license, and the resolution checkpoint pauses on them; nothing else is proposed there, and a schema
