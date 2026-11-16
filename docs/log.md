@@ -14139,3 +14139,32 @@ schemas `demo_20261115` (this morning's build), `replay_20261115` and `demo_2026
 `workbench/chain-20261115/` and `chain-20261115b/` (git-ignored). **Evidence:** results repository,
 `kept-outputs/workbench-chain-20261115b/` (`421970b`, pushed to `tank`): traces, the ten checkpoint payloads,
 report, attempts, both builds' logs, the data check, and the replay that preceded the chain.
+
+## [2026-11-16] Candidate C72 recorded — a Databricks lakehouse demo for evaluators (bronze by PySpark, the raw vault as silver, one gold table, deployed as an Asset Bundle)
+
+**Autor:** Claude Code
+
+On the owner's request (2026-11-16) his candidate is appended to
+`docs/architecture/backlog-2026-11-candidates.md` as C72, in his wording, and listed in `docs/index.md`. It is a
+demo for a reader who judges Databricks practice, not product work: nothing under `src/` changes. Not decided, no
+WP number, not before 2026-12-07.
+
+**Checked against the tree when recording** (`36c27c8`..`0133176`, README of 439 lines): `demo/bank_databricks`
+exists and is the only Databricks demo; the README's Databricks section starts at line 255 (a second one, on
+building, at line 323) — before it the platform is named in the architecture diagram (line 71) and in one bullet
+of the feature list (line 111), no section; `docs/evaluator-guide.md` exists (111 lines) and names Databricks
+once; no file in the repository mentions PySpark, so point (5) of the candidate — whether a framework that lives
+only under `demo/` needs an ADR — is a real open question and the owner's.
+
+**Found while checking, not changed:** that one sentence of the evaluator guide (line 110, last touched
+2026-10-22) says the Databricks target is built but has never run on a workspace. The record says otherwise since
+2026-10-16 (WP72: the bank demo, the person step and the whole AdventureWorks chain built on a Databricks SQL
+warehouse; README line 111 says so). The page an evaluator is sent to undersells the one piece of Databricks
+evidence the repository has. A correction changes what the guide claims, so it is the owner's call; it would be
+part of the candidate's point (4) at the latest.
+
+**Not checked:** the screening the candidate cites; whether the Free Edition runs an Asset Bundle with a job of
+that shape (the candidate asks for it, nothing was tried — to verify against the platform before a spec says so);
+what such a run costs.
+
+**Not done:** no spec, no kick-off, no code, no change to the README or the evaluator guide.

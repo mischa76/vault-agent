@@ -705,3 +705,24 @@ outcome is honest — refused and disclosed — but a rule could have bound it: 
 the link's two hubs. **Options:** let the declared keys outrank the name rule for a link (the relation that
 declares a key into every participant), or fall back to them when the name-bound relation fails the column check.
 **Not decided**, no WP number. The demo provides the relation as a hand view.
+
+## C72 — A Databricks lakehouse demo for evaluators: the vault inside a medallion pipeline, not only on a SQL warehouse (owner, 2026-11-16)
+
+**Observed by the owner** after a client screening (2026-11-12): a reviewer who opens the repository for ten
+minutes to judge Databricks practice finds dbt on a SQL warehouse (`demo/bank_databricks`, WP72) and nothing of
+what a data engineer on the platform does day to day: PySpark, Delta tables and their upkeep, jobs, deployment,
+distribution and cost. The README opens with agentic AI; the Databricks evidence starts at line 255.
+
+**Why:** the repository is also read as evidence of the owner's skills. The product does not need this, an
+evaluator does. It is therefore a demo, not product code: nothing under `src/` changes.
+
+**Shape of a WP:** (1) `demo/lakehouse_databricks/` beside `bank_databricks`: source data landed as bronze Delta
+tables by a small PySpark job, the vault-agent raw vault as silver via dbt, one business-facing gold table;
+(2) deployed as a Databricks Asset Bundle with one job (ingest, dbt build, tests), runnable on the Free Edition;
+(3) a short note on physical design: how hubs and satellites are laid out on Delta (clustering, file sizes,
+MERGE vs insert-only) and what a run costs, measured, not claimed; (4) a five-line entry in
+`docs/evaluator-guide.md` pointing to the demo, the DV2.0 gates and the Databricks builds, with one sentence on how
+the code is written (architecture, specs and review by the owner, code AI-assisted); (5) open: PySpark is new to
+the repo, ADR or not, since it lives only under `demo/` (CLAUDE.md: no new framework without an ADR).
+
+**Not decided**, no WP number. Not before 2026-12-07.
