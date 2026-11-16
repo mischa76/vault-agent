@@ -14363,3 +14363,55 @@ would need a catalogue with inferred keys and one yes, a paid chain; an accepted
 left to its own override (read, not measured); no chain on this code; no release. The schema `replay_wp136`
 is left in `aw_source` beside the four before it. Evidence:
 `eval/results/kept-outputs/wp136-20261116/`.
+
+## [2026-11-16] WP137 built: beside declared keys `infer-keys` no longer infers what the declarations already answer (C73, and two further shapes of the same cause found by measuring it) — keyless, on the data copy 36 inferred foreign keys become 7, at one chain's checkpoints 29 inferred offers become 2
+
+On the owner's go of the day (fix C73). Spec `architecture/backlog-2026-07/wp137-inference-beside-declarations-spec.md`;
+guards red at `491a19a`, the change in this commit. No model call, no paid run.
+
+**Why it was wrong.** WP99 was measured on a catalogue without declarations. On one that declares its keys
+(the full AdventureWorks catalogue, WP136's run) the command wrote 36 inferred foreign keys, classified here
+against the declarations: **25** on a column that already has a declared single-column foreign key — rule 4
+of WP99 takes the declared pair out of the candidates, and the next key column that holds every value then
+wins (`WorkOrder.ProductID → ProductProductPhoto.productid`, the photo table's column being unique in this
+copy); **4** a declared key read backwards (`Product.productid → ProductProductPhoto.productid`, and the same
+for `Address`, `CreditCard`, `ProductDescription`); **2** a component of `SalesOrderDetail`'s declared composite
+key, which the proposer already reads onward to the same target (WP46) and then offered a second time as
+inferred, under the inference's spelling of the column; **3** the name rule within one table; **2** keys the
+catalogue lacks. At the resolution checkpoints of the second chain of 2026-11-15, read with those keys, the
+real proposer offered 29 inferred licences and proposals (4, 3, 11, 1, 10 per step) — two of them real.
+
+**What changed.** (1) `key_inference.infer_keys`: a column with a declared single-column foreign key gets no
+inferred foreign key — the column, not the pair. The candidate left the place open (the inference or the
+proposer); the inference was taken because the file is read and edited by a human too. (2) The same function:
+a pair a declaration states the other way round is no candidate. (3) `link_proposal.propose_links`: the pairs
+an inference is compared with gain the derived keys of every declared composite key (`component_keys`), so the
+duplicate is skipped as WP99's rule 5 skips a duplicate of a single-column declaration; the inference stays in
+the file. **Rules 2 and 3 go beyond C73's text** — same cause, found by measuring its case; said in the spec,
+the backlog and to the owner, his to strike.
+
+**Measured, all keyless.** Suite 1851 passed, 3 skipped with no key reachable; `ruff check --no-cache` and a
+bare `mypy` clean; five of eight new guards red before, WP99's guards unchanged and green; no byte-identity
+fixture changed. `infer-keys` over the full catalogue against the data copy (PostgreSQL `aw_source`,
+read-only): 63 of 68 tables read, the same 64 inferred unique keys, **7 inferred foreign keys** (36), two runs
+byte-identical, each of the seven equal to its entry in the earlier file. The proposer over the chain's five
+increments with the new file: **2 inferred licences** (29), both in the production step (11) —
+`WorkOrderRouting.productid` and `TransactionHistoryArchive.productid`, to `Product`; declared 60 licences and
+30 proposals as before. WP136's replay with the new file and the one yes: steps 3 to 5 as in WP136, and the
+fifth project byte-identical to the one built on PostgreSQL that day (562 files) — no new build. All six
+predictions of the spec held.
+
+**What changes for a user.** What `infer-keys` writes for a catalogue with declared foreign keys, and what the
+proposer offers from a file carrying a composite key's component; a file written before still carries shapes 1
+and 2 until the command is run again (27 of its 29 offers remain on the new code). A catalogue without
+declared foreign keys and every run without inferred keys: unchanged. This also corrects one sentence of
+WP136's entry above for the future reader: the human at the checkpoint now looks for one inferred key among
+two, not among eleven — still assumed, not measured.
+
+**Überprüft.** The classification of both files with the house loader; both `infer-keys` runs; the proposer on
+the stored states; the replay and the `diff -r` of the two projects. **Nur angenommen.** That the data copy's
+case stands for other declared catalogues: a parent whose every row has exactly one child row, and a unique
+child column, are properties of this copy. That nobody uses a file written before this change. **Bewusst nicht
+getan.** No second skip in the proposer for an older file; the name rule within one table (candidate C75,
+recorded, not decided); the type tier against the data copy; C74; no chain on this code; no demo regenerated;
+no release. Evidence: `eval/results/kept-outputs/wp137-20261116/`.

@@ -126,9 +126,15 @@ column. Which pairs are checked, `--candidates`: `name`
 (default) — the same compact name, a name ending in the key's (`ShipToAddressID` →
 `AddressID`), or the key table's name plus `ID` (`SalesPersonID` → `SalesPerson`'s key);
 `type` — every pair of the same type family, complete and noisy (a two-valued status column is
-contained in every integer key) and expensive (one anti-join per pair). A pair the catalogue
-declares is never inferred. The proposer reads the block as proposals with provenance
-`inferred`, and **`--accept` declines them**: only `resume --link Table.Column` or a *yes* at
+contained in every integer key) and expensive (one anti-join per pair). Beside declared keys
+only what no declaration answers is inferred (WP137): a column with a declared single-column
+foreign key gets no inference — not the declared pair and not the next key column that happens
+to hold its values — and a declared key is not inferred backwards (that every product has one
+photo row does not make the photo table the product's parent). A component of a declared
+composite key keeps its inference in the file; the proposer offers it only where the
+declaration is not already read onward to the same key (7). The proposer reads the block as
+proposals with provenance `inferred`, and **`--accept` declines them**: only
+`resume --link Table.Column` or a *yes* at
 the prompt (whose default for an inferred proposal is *no*) builds one (7). Two reads of one
 database give one byte-identical file; measured against AdventureWorks' own declarations on
 the key-less data copy (`docs/log.md`, 2026-10-30).

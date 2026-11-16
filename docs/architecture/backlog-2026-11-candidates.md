@@ -789,3 +789,27 @@ changes what the modeler builds in every chain measured so far, costs an attempt
 to see the modeler follow it; (c) run `infer-keys` as part of the demo's and the workbench's intake, so that
 the key is on the table at the checkpoint — touches ADR-0008 #4 (the pipeline holds no connection). Binding
 on the column's name stays out (WP34, ADR-0018). **Not decided**, no WP number.
+
+## C73 — taken up as WP137 (2026-11-16)
+
+On the owner's go of that day. The first option — the inference, not the proposer — and, found by measuring
+the candidate's own case, two further shapes of the same cause: a declared key inferred backwards (4 of the 36)
+and a composite key's component offered once declared and once inferred (2).
+`backlog-2026-07/wp137-inference-beside-declarations-spec.md`: a column with a declared single-column foreign
+key gets no inference; a pair a declaration states the other way round is no candidate; the proposer counts
+the onward-read component as declared. Built, keyless; on the data copy 36 inferred foreign keys become 7, at
+the checkpoints of one stored chain 29 inferred offers become 2. The two further shapes go beyond this
+candidate's text and are the owner's to strike.
+
+## C75 — The name rule „the key table's name plus `ID`" pairs a column with every key column of that table, its own included (2026-11-16)
+
+**Found** by WP137's classification: three of the seven inferred foreign keys that remain on the full
+AdventureWorks catalogue reference a column of the table they stand in —
+`EmailAddress.emailaddressid → EmailAddress.businessentityid`,
+`ShoppingCartItem.shoppingcartitemid → ShoppingCartItem.quantity` (three rows) and, by the ends-with rule,
+`Department.groupname → Department.name`. The data holds each inclusion; none is a key. WP99's first guard
+pins the first of them as the rule's reading, on a catalogue without declarations, so this is older than the
+declared case and not part of C73. None becomes a licence or a proposal in the measured chain; over the whole
+catalogue the proposer answers each with a `no_hub_for_key` skip. **Options:** leave it; no candidate within
+one table; or, where the table declares a primary key, the table-name rule pairs with that key only.
+**Not decided**, no WP number.

@@ -15,6 +15,11 @@ coincidence is a candidate, and only the anti-join makes it an inference. Where 
 columns contain every value, the one with the fewest distinct values is the inference and the
 others are recorded as ``wider`` — an employee is a person before it is a business entity.
 
+Beside declared keys (WP137): a column with a declared single-column foreign key gets no
+inference — leaving only its declared pair out made the next key column that holds its values
+the inference — and a pair a declaration states the other way round is no candidate: that every
+parent row has one child row does not make the child the parent.
+
 Like the profiler, an explicitly invoked, read-only, scoped command (ADR-0008 #4); the pipeline
 itself still holds no connection."""
 from __future__ import annotations
@@ -168,17 +173,28 @@ def infer_keys(
         keys.sort(key=lambda k: (k.schema, k.table, str(k.column.name)))
         # Rule 4: inclusion dependencies, the tightest domain wins, the wider ones recorded.
         foreign: dict[str, list[InferredForeignKey]] = {}
+        # WP137: every declared single-column key, read from its referenced side — the pairs
+        # that would infer a declaration backwards.
+        backwards = {
+            (normalize_identifier(fk.references_table),
+             normalize_identifier(fk.references_columns[0]),
+             normalize_identifier(t.table), normalize_identifier(fk.columns[0]))
+            for t in ordered for fk in t.foreign_keys if fk.is_single_column
+        }
         for handle, r in reflected.items():
             foreign[handle] = []
-            declared_pairs = {
-                (normalize_identifier(fk.columns[0]), normalize_identifier(fk.references_table),
-                 normalize_identifier(fk.references_columns[0]))
+            # WP137: the column, not the pair — a declared key answers for its column.
+            declared_columns = {
+                normalize_identifier(fk.columns[0])
                 for fk in r.declared.foreign_keys if fk.is_single_column
             }
+            own = normalize_identifier(r.declared.table)
             for column in r.table.columns:
                 name = str(column.name)
                 non_null, distinct = r.counts[name]
                 if non_null == 0 or _kind(column.type) == "other":
+                    continue
+                if normalize_identifier(name) in declared_columns:
                     continue
                 holding: list[_Key] = []
                 for key in keys:
@@ -189,8 +205,8 @@ def infer_keys(
                     ) else "type"
                     if tier == "type" and candidates != "type":
                         continue
-                    if (normalize_identifier(name), normalize_identifier(key.table),
-                            normalize_identifier(str(key.column.name))) in declared_pairs:
+                    if (own, normalize_identifier(name), normalize_identifier(key.table),
+                            normalize_identifier(str(key.column.name))) in backwards:
                         continue
                     if _inclusion_holds(
                         connection, column, key.column, warn,

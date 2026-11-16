@@ -386,9 +386,14 @@ def propose_links(
                 continue
             _propose_for_key(existing, declared, table, fk, asset, proposals, skipped, licenses)
         # WP99 (ADR-0018 §3): the inferred keys after the declared ones, on the same path, with
-        # their provenance. A pair the catalogue declares is the declaration's to propose.
+        # their provenance. A pair the catalogue declares is the declaration's to propose —
+        # WP137: also the pair a composite key's component reads onward to (WP46), which the
+        # loop above has just proposed.
         declared_pairs = {
             _pair(fk) for fk in table.foreign_keys if fk.is_single_column
+        } | {
+            _pair(derived) for fk in table.foreign_keys
+            for derived in component_keys(fk, declared)
         }
         for inferred in (table.inferred_keys.foreign if table.inferred_keys else []):
             views = _views(inferred)

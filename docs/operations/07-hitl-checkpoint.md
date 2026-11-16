@@ -168,6 +168,14 @@ only `--link` or a *yes* builds it. The eval harness's unattended resume is `--a
 measured chain builds nothing from an inference; its `link_proposals.by_provenance` says how
 many were offered.
 
+**On a catalogue that declares keys, an inferred offer is a key the catalogue lacks** (WP137,
+2026-11-16). Until then the command inferred, beside every declared key, the next key column
+holding the same values, and declared keys backwards, and a composite key's component was
+offered once declared and once inferred: over one chain on the full AdventureWorks catalogue
+29 inferred offers, 2 of them real. Write the file again with `infer-keys` (6.1) if yours is
+older; the two that remain there are `WorkOrderRouting.productid` and
+`TransactionHistoryArchive.productid`, both to `Product`.
+
 **An inferred licence you accept is a key of its relation from then on** (WP136, 2026-11-16).
 Until then it was resolved, ratified and read by nobody: the binder's offer counted declared
 foreign keys only, so the link it was accepted for stayed unbound. Now the relation offers the

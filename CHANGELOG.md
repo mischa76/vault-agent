@@ -55,6 +55,14 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- `infer-keys` over a catalogue that declares keys no longer infers what the declarations already answer
+  (WP137, C73). A column with a declared single-column foreign key got the next key column holding its values
+  as inferred target (`WorkOrder.ProductID → ProductProductPhoto.productid`), a declared key was inferred
+  backwards, and a composite key's component was offered twice, once declared and once inferred. On the full
+  AdventureWorks catalogue the command wrote 36 inferred foreign keys and writes 7; at the resolution
+  checkpoints of one chain 29 inferred offers become 2, both keys the catalogue lacks. This changes what
+  `infer-keys` writes and what the proposer offers from a file with inferred keys — write an older file
+  again. A catalogue without declared foreign keys, and every run without inferred keys, is unchanged.
 - A link that takes a hub no declared key leads to (WP136, C64 — `WorkOrderRouting.ProductID` has no foreign key
   to `Product`; one such link in each of 36 stored chains). An inferred key accepted at the resolution checkpoint
   is now read by the binder — it was ratified and had no effect; the link binds and is translated as under a

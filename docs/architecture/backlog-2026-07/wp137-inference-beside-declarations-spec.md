@@ -105,3 +105,28 @@ that carries such an inference. No run without inferred keys changes: no byte-id
   project byte-identical to the one WP136 built on PostgreSQL — the build of 2026-11-16 then stands for it.
 
 No paid run: nothing here touches a model call.
+
+## 5 Measured (2026-11-16)
+
+All keyless, no model call. Evidence: `eval/results/kept-outputs/wp137-20261116/`.
+
+- **P1, P2 held.** Five of the eight guards red at `491a19a` (the three rules of P1, the type tier's reading of
+  them, P2's double offer), eight green with the change; the three pins green on both.
+- **P3 held.** `tests/test_wp99_inferred_keys.py` unchanged and green. Suite 1851 passed, 3 skipped with no key
+  reachable; `ruff check --no-cache` and a bare `mypy` clean; no byte-identity fixture changed.
+- **P4 held.** `infer-keys` over the full catalogue against the data copy (PostgreSQL, read-only): 63 of 68
+  tables read, 64 inferred unique keys — the same 64 — and **7 inferred foreign keys** where it wrote 36; two
+  runs byte-identical. The seven: `WorkOrderRouting.productid` and `TransactionHistoryArchive.productid` to
+  `Product`, the two components of `SalesOrderDetail`'s composite key, the three of the name rule within one
+  table (C75). Each equals its entry in the earlier file — target, numbers, tied and wider.
+- **P5 held.** The real proposer over the five increments of the second chain of 2026-11-15: **2 inferred
+  licences** where there were 29 inferred licences and proposals, both in the production step (11 before);
+  declared 60 licences and 30 proposals, unchanged. The earlier file on the new code offers 27 — rule 3 alone
+  takes two; §3's first point, counted.
+- **P6 held.** WP136's replay with the new file: the production step's proposer offers 28 declared and 2
+  inferred, the bulk answer declines the 2, the one yes takes `WorkOrderRouting.productid`; steps 3 to 5 as in
+  WP136 (declared 99, 116, 169; inferred 0; no validation error). The fifth project it writes is byte-identical
+  to the one WP136 built on PostgreSQL (562 files by `diff -r`, dbt's own lock file aside).
+- **No deviation from the pre-registration.**
+- **Not measured.** The type tier against the data copy (guards only); a catalogue of another source; a chain
+  on this code. No new build: P6 makes it the same project.
