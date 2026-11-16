@@ -116,3 +116,37 @@ not.
 ## 6 Measured
 
 Appended when built.
+
+### Measured (2026-11-16)
+
+- **P1 ✔.** Six of ten red at `b4f5eac`, ten green after.
+- **P2 ✔.** Numbers in `docs/log.md`. No byte-identity fixture changed; WP42's, WP73's and WP105's guards
+  untouched.
+- **P3 ✔.** The rule over the 36 stored models (1 955 links): 60 renames in 24 models, exactly the 60 of §1 —
+  `link_product_subcategory` → `link_product_product_subcategory` 24, `link_product_model` →
+  `link_product_product_model` 19, `link_product_photo` → `link_product_product_photo` 17. None declined by
+  rule 4; no other link renamed.
+- **P4 — the second chain ✔, the first chain's prediction was worded wrongly.** Second chain: one rename, in
+  step 3; steps 1 and 2 unchanged; in steps 3, 4 and 5 exactly two stages differ from the stored run —
+  `stg_product_subcategory` (declared, `ProductSubcategory`, as it was at validation and now stays) and
+  `stg_product_product_subcategory` (declared, `Product`, one join through `ProductSubcategory` projecting
+  `NAME_VIA_PRODUCTSUBCATEGORY`, reads `PRODUCTSUBCATEGORYID`); declared stages 96 → 98, 113 → 115, 166 → 168,
+  inferred 2 → 1 in each; no `BINDING_REJECTED`; no validation error; one more `LINK_TRANSLATION` flag and one
+  `link_renamed` in step 3. The replay carries its own bindings forward (unchanged code: identical to the stored
+  ones in every step). **First chain:** no rename fires in any step — it had named the link
+  `link_product_product_subcategory` itself — so WP135 changes nothing there. But „five of five model as stored,
+  no stage changes" does not hold and could not: WP131 to WP133 already change that chain's replay (the bill of
+  materials' second translation, `reads` on every join). The prediction should have said „no rename".
+- **P5 ✔ with a deviation.** The replayed fifth project of the second chain, built on PostgreSQL (database
+  `aw_source`, schema `replay_wp135`) with **one** hand view (`raw_work_order_operation`): PASS=579, ERROR=0,
+  SKIP=0 of 579 (four more than the demo's 575); second build 186 of 186 incremental models
+  `INSERT 0 0`. `hub_product_subcategory`: 39 rows — the table's 37 names and the two zero keys.
+  `link_product_product_subcategory`: **504 rows, not the 295 announced** — 295 pairs equal to the source's
+  (product number, subcategory name) both ways (none missing, none extra), and 209 products without a
+  subcategory on the zero key: the participant is optional and the stage says so (`null_columns`, WP83). The
+  demo's hand view had inner-joined them away; the prediction copied that. All 504 product keys join
+  `hub_product`.
+- **P6** not measured: no chain has run on this code.
+- **Not announced, found while building:** a delta that re-emits a link of the vault being extended by name is
+  left alone (it is that link); the rule reads the carried catalogue for the hub's relation only — the offer is
+  the increment's.

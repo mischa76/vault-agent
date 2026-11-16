@@ -14223,3 +14223,62 @@ The workbench shows the API's error text; the screen was not opened. **Not done:
 a re-bind; the mapper's own re-bind of a hub's stage is not grain-judged (not observed as a defect); a binding to
 a relation with same-named columns of another meaning passes — names cannot tell. Not output-changing: no
 generated file differs; the checkpoint payload's `expected_columns` change for a translated stage.
+
+## [2026-11-16] WP135 built: a link that would share a hub's stage while reading another relation is renamed after its hubs (C71, diagnosis corrected) — keyless, measured on 36 stored chains, replayed on both chains of 2026-11-15, built on PostgreSQL with one hand view
+
+**Autor:** Claude Code
+
+On the owner's go (2026-11-16): fix C70 and C71; this entry is C71. Spec
+`backlog-2026-07/wp135-link-off-hub-stage-spec.md`, red guards `b4f5eac`.
+
+**C71 was recorded wrongly.** It said (2026-11-15) that a link named like a table is bound to that table by name
+before its declared keys are asked, and offered two ways to let the keys speak first. Traced on the stored run,
+neither would have helped: `link_product_subcategory` and `hub_product_subcategory` have one base and therefore
+**one staging model**. The hub is built from `ProductSubcategory`; the link's participations are offered by
+`Product` alone. The shared stage hashed a column of each, the hub's binding was refused for the link's (WP73),
+and the hub lost its declared relation with the link. The correction is appended to the backlog.
+
+**How common.** Over the 36 stored chain models (1 955 links, the full catalogue): 91 links on a single-source
+hub's stage, 60 of them where the hub's relation offers the link nothing while another does —
+`link_product_subcategory` 24, `link_product_model` 19, `link_product_photo` 17. About two per chain, each a
+refused binding and a decision at sign-off since WP73; not a case of yesterday's chain.
+
+**The decision.** Three ways were laid before the owner: rename the link after its hubs; give it a stage of its
+own under its name (the stage name derives from the construct name at more than a dozen call sites — a second
+naming rule at each, and a field on the model); a gate with a remedy (an attempt in most chains). He chose the
+rename.
+
+**What changed.** A backstop in the modeler, `link_off_hub_stage`, on the delta as emitted, before the repair
+memory and the remembered delta. A link of the increment is renamed `link_<its hubs' bases in participation
+order, a role after its hub>` when a single-source hub has its base, a relation of the increment offers all its
+participations, no relation the hub is built from does (increment or carried catalogue), and the new name is
+valid, free and no hub's base. Its satellites follow. One `link_renamed` disclosure (new kind) and one backstop
+trace event per rename. When the name is taken nothing is renamed and WP73's refusal stands. Links of a vault
+being extended keep their names. **Output-changing** for a run that meets the shape: the link's name, and with
+it its table, hash key and stage.
+
+**Measured, keyless.** Guards 6 of 10 red at `b4f5eac`, 10 green. Suite with no key reachable 1829 passed /
+3 skipped, `ruff check --no-cache` clean, bare `mypy` clean (78 files); no byte-identity fixture changed.
+**Corpus:** the rule renames exactly the 60, in 24 of 36 models, none declined. **Replay** (stored delta →
+rename → licences → merge → generator → validator → re-bind, bindings carried forward): the second chain of
+2026-11-15 renames one link in step 3; in steps 3 to 5 the hub's stage stays on `ProductSubcategory`, the link's
+own stage is bound to `Product` with one translation, declared stages 96 → 98, 113 → 115, 166 → 168, inferred
+2 → 1, no `BINDING_REJECTED`, no validation error, no other stage changed. The first chain: no rename (it had
+named the link after its hubs itself). **Build** of the replayed fifth project on PostgreSQL (`aw_source`,
+schema `replay_wp135`) with one hand view instead of two: PASS=579, ERROR=0, SKIP=0 of 579; second build 186 of
+186 `INSERT 0 0`. The link's 295 pairs equal the source's both ways; `hub_product_subcategory` holds the
+table's 37 names and two zero keys.
+
+**Two predictions were wrong in the letter** (spec §6). The first chain's replay was announced „model as
+stored": it cannot be, WP131 to WP133 change it; what holds is „no rename". The link was announced with 295
+rows: it has 504 — the 295, and 209 products without a subcategory on the zero key, as an optional participant
+is staged (WP83); the demo's hand view had inner-joined them away.
+
+**Not verified.** No chain has run on this code: whether the modeler keeps the new name on a retry, and how the
+review record moves (up to three `binding_rejected` decisions fewer per chain, one disclosure each instead), is
+unmeasured. The corpus applies the rule to whole fifth-step models against the full catalogue, not to each
+step's delta against its increment. **Not done:** a stage of its own under the link's name; the name tier of
+`resolve_link_relation` (2 of 1 955 links are named like a table that offers them nothing, on no hub's stage —
+not examined); C64 (`link_work_order_operation`, the demo's other hand view); the shipped demo is not
+regenerated — a paid chain, the owner's decision. The schema `replay_wp135` is left in `aw_source` beside the
+three of 2026-11-15. Evidence: `eval/results/kept-outputs/wp134-wp135-20261116/`.

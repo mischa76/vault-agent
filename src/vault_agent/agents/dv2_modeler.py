@@ -541,6 +541,22 @@ class Dv2ModelerAgent(BaseAgent):
         raw = await extractor.model(system_prompt=system_prompt, payload_json=payload_json)
 
         model = self._validate_model(raw, state)
+        # WP135 backstop `link_off_hub_stage`: before the repair memory and the remembered delta,
+        # so that the memory, a retry's payload and the validator all see one name.
+        from vault_agent.link_proposal import rename_links_off_hub_stages
+
+        for rename in rename_links_off_hub_stages(
+            model, state.existing_model or DVModel(), state
+        ):
+            emit_trace(
+                TraceEvent(
+                    kind="backstop",
+                    backstop_id="link_off_hub_stage",
+                    detail={"link": rename.old, "renamed_to": rename.new, "hub": rename.hub,
+                            "hub_relations": list(rename.hub_relations),
+                            "offered_by": list(rename.offered_by)},
+                )
+            )
         model = drop_retired(model, state)
         # WP57: remembered for the next attempt's payload — the delta as emitted and repaired
         # by the memory, before any merge into an existing vault.

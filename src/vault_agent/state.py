@@ -87,6 +87,9 @@ class FlagKind:
     # WP55: a link with one hub is that hub's satellite feed — the parser collapsed it and
     # moved its satellites to the hub (a disclosure: the payload found its home).
     LINK_COLLAPSED = "link_collapsed"
+    # WP135: a new link that would have shared a hub's stage while reading another relation was
+    # renamed after its hubs (a disclosure); `asset` is the new name, `reason` the old one.
+    LINK_RENAMED = "link_renamed"
     # WP56: a relation-less satellite's attributes are all columns of exactly one declared
     # table — the schema, not a guess, named its relation (a disclosure).
     RELATION_INFERRED = "relation_inferred"

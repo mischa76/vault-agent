@@ -246,6 +246,10 @@ FLAGS: dict[str, str] = {
     ),
     FlagKind.RETIRED_REPARENTED: "A dropped hub's payload moved to its kept twin.",
     FlagKind.LINK_COLLAPSED: "A one-hub link was collapsed; its satellite moved to the hub.",
+    FlagKind.LINK_RENAMED: (
+        "A link named like a hub that reads another relation was renamed after its hubs, so that "
+        "each gets a staging model of its own."
+    ),
     FlagKind.RELATION_INFERRED: (
         "The declared schema named a satellite's relation where the model left it open."
     ),

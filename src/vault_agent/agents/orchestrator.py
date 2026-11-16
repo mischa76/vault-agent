@@ -92,6 +92,7 @@ REVIEW_FLAG_ROLES: dict[str, ReviewRole] = {
     FlagKind.RETIRED_ORPHAN: "decision",  # WP44: a dependent's payload needs a home
     FlagKind.RETIRED_REPARENTED: "disclosure",  # WP51: the payload found its home, the twin
     FlagKind.LINK_COLLAPSED: "disclosure",  # WP55: a one-hub link's satellite moved to the hub
+    FlagKind.LINK_RENAMED: "disclosure",  # WP135: renamed off a hub's stage, deterministically
     FlagKind.RELATION_INFERRED: "disclosure",  # WP56: the schema named a satellite's relation
     FlagKind.BINDING_REJECTED: "decision",  # WP73: the relation lacks a hashed column; map it
     FlagKind.LINK_BINDING_EVIDENCE: "decision",  # WP90: bound by evidence, in place of ambiguous

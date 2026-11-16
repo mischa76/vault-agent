@@ -55,6 +55,12 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- A link named like a hub that reads another relation no longer takes the hub's stage down with it (WP135, C71).
+  `link_product_subcategory` and `hub_product_subcategory` are staged by one model; the hub reads
+  `ProductSubcategory`, the link `Product`, and the binding was refused for both (60 links over 36 stored
+  chains). **Output-changing:** such a link of a new increment is renamed after its hubs
+  (`link_product_product_subcategory`), gets a stage of its own and is bound by its offer; the rename is a
+  `link_renamed` disclosure. Existing links keep their names.
 - A binding made at sign-off is judged by the gates that read a stage's relation (WP134, C70). The validator
   runs before the sign-off, so a stage a human bound there was never grain-judged: a binding whose relation is
   unique on more columns than a satellite on the stage covers is now refused with `E_SAT_GRAIN_NOT_UNIQUE`'s

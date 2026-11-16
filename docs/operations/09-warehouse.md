@@ -137,6 +137,18 @@ stage a hub shares by name (`link_vendor_business_entity` beside `hub_vendor_bus
 where the hub's binding decides. Built on PostgreSQL in the same
 demo since 2026-09-17.
 
+**A link on a hub's stage that reads another relation is renamed** (WP135, 2026-11-16). A stage is
+named after its construct's base, so `link_product_subcategory` and `hub_product_subcategory` are
+staged by one model. That is right while both read one relation and cannot build when they read
+two: the hub is built from `ProductSubcategory`, the link's participations are offered by
+`Product` alone, the hub's binding was refused for the link's column and both ended on an
+inferred relation (60 links over 36 stored chains). The modeler's backstop `link_off_hub_stage`
+(chapter 8) renames such a link of the increment after its hubs — `link_product_product_subcategory`,
+a role after its hub — when a relation of the increment offers its participations and none the hub
+is built from does; its satellites follow, the rename is a `link_renamed` disclosure. The link
+then has a stage of its own, bound by its offer. A name already taken is not taken twice: nothing
+is renamed and the refusal stands. Links of a vault being extended keep their names.
+
 **Link bound by evidence** (WP90, 2026-10-23): when two or more relations offer a link's
 participations, the catalogue may still single one out — first the relation that declares
 **every** attribute of the link's satellites (reason `payload`; a generic column such as

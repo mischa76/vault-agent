@@ -31,6 +31,7 @@ from vault_agent.rules.dv2_rules import (
     construct_base_name,
     hub_binds_to_source_table,
     hub_key_columns,
+    is_valid_construct_name,
     link_relation_candidates,
     normalize_identifier,
     participation_key,
@@ -648,6 +649,117 @@ def _link_name(near: str, target: str) -> str:
     return "link_" + "_".join(
         normalize_identifier(construct_base_name(name)).lower() for name in (near, target)
     )
+
+
+def link_name_from_hubs(link: Link) -> str:
+    """WP135: a link's name from its participations, in their order, a role after its hub —
+    ``hub_product`` + ``hub_product_subcategory`` -> ``link_product_product_subcategory``,
+    ``hub_product`` + ``hub_product:component`` -> ``link_product_product_component``. For two
+    unqualified hubs it is :func:`_link_name`, the proposer's form."""
+    parts: list[str] = []
+    for ref in link.hub_refs:
+        parts.append(normalize_identifier(construct_base_name(ref.hub)).lower())
+        if ref.role:
+            parts.append(normalize_identifier(ref.role).lower())
+    return "link_" + "_".join(parts)
+
+
+@dataclass(frozen=True)
+class LinkRename:
+    """One fire of the ``link_off_hub_stage`` backstop (WP135)."""
+
+    old: str
+    new: str
+    hub: str
+    hub_relations: tuple[str, ...]  # the declared relations the hub is built from
+    offered_by: tuple[str, ...]  # the increment's relations that offer the link's participations
+
+
+def rename_links_off_hub_stages(
+    delta: DVModel, existing: DVModel, state: VaultAgentState
+) -> list[LinkRename]:
+    """WP135 (C71): a new link that would share a hub's stage while reading another relation is
+    renamed after its hubs — in place, with the satellites on it — and the renames returned.
+
+    A stage is named after its construct's base, so ``link_product_subcategory`` and
+    ``hub_product_subcategory`` are staged by one model. That is right when both read one
+    relation (``hub_product_review`` and ``link_product_review`` over ``ProductReview``) and
+    cannot build when they read two: the hub is built from ``ProductSubcategory``, the link's
+    participations are offered by ``Product`` alone, the shared stage hashes a column of each, the
+    hub's binding is refused for the link's (WP73) and both end on an inferred relation — 60 links
+    over the 36 stored chain models. Under a name of its own the link is bound by its offer and
+    its ratified keys repair it like any other.
+
+    Renamed only when the catalogue says so, never on the name alone: a single-source hub has the
+    link's base; at least one relation of the increment offers every participation (WP42's offer);
+    no relation the hub is built from — increment or carried catalogue — does; and the new name
+    is valid, free, and no hub's base. Otherwise nothing changes and WP73's refusal stands. A
+    link of the vault being extended is never renamed: its name is materialised."""
+    if not state.source_schemas or not delta.links:
+        return []
+    merged = DVModel(hubs=[*existing.hubs, *delta.hubs],
+                     satellites=[*existing.satellites, *delta.satellites])
+    declared = {normalize_identifier(t.table): t for t in state.source_schemas}
+    catalogue = [*state.source_schemas, *state.carried_schemas]
+    hub_of_base = {
+        normalize_identifier(construct_base_name(hub.name)): hub
+        for hub in merged.hubs if not hub.sources
+    }
+    hub_bases = {normalize_identifier(construct_base_name(hub.name)) for hub in merged.hubs}
+    materialised = {link.name for link in existing.links}
+    taken = (
+        {hub.name for hub in merged.hubs} | {sat.name for sat in merged.satellites}
+        | materialised | {link.name for link in delta.links}
+    )
+
+    def resolve(_relation: Any, fk: ForeignKeyRef) -> Any:
+        return resolve_fk_target(merged, fk, declared)[0]
+
+    def expand(fk: ForeignKeyRef) -> list[ForeignKeyRef]:
+        return component_keys(fk, declared)
+
+    renames: list[LinkRename] = []
+    for link in delta.links:
+        hub = hub_of_base.get(normalize_identifier(construct_base_name(link.name)))
+        if hub is None or link.name in materialised:
+            continue
+        offering = link_relation_candidates(link, merged, state.source_schemas, resolve, expand)
+        if not offering:
+            continue  # nothing says which relation the link reads (C64's class)
+        home = [t for t in catalogue if hub_binds_to_source_table(hub, t.table)]
+        if any(link_relation_candidates(link, merged, [h], resolve, expand) for h in home):
+            continue  # the hub's relation offers the link: one stage for both is right
+        new = link_name_from_hubs(link)
+        if (
+            not is_valid_construct_name(new) or new in taken
+            or normalize_identifier(construct_base_name(new)) in hub_bases
+        ):
+            continue  # never a second construct of one name; WP73's refusal stands
+        old = link.name
+        for sat in delta.satellites:
+            if sat.parent == old:
+                sat.parent = new
+        link.name = new
+        taken.add(new)
+        rename = LinkRename(
+            old=old, new=new, hub=hub.name,
+            hub_relations=tuple(t.table for t in home),
+            offered_by=tuple(t.table for t in offering),
+        )
+        renames.append(rename)
+        state.flag(
+            "dv2_modeler",
+            f"link {old} was renamed {new}: under its own name it would have shared the staging "
+            f"model of {hub.name}, which is built from "
+            f"{', '.join(rename.hub_relations) or 'no declared relation'}, while its "
+            f"participations are offered by {', '.join(rename.offered_by)} — one staging model "
+            f"cannot read both; the link is named after its hubs and staged on its own",
+            kind=FlagKind.LINK_RENAMED,
+            asset=new,
+            reason=old,
+        )
+        logger.info("link %s renamed %s (off the stage of %s)", old, new, hub.name)
+    return renames
 
 
 def _grain(link: Link) -> frozenset[str]:

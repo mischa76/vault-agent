@@ -56,7 +56,8 @@ need the views: `stg_work_order_operation` (C64's class: a link between a compos
 translation), and `stg_product_subcategory` — the modeler named the link between product and subcategory
 `link_product_subcategory`, the name rule tried the table of that name, the column check refused the binding
 (the review queue's `binding-rejected` decision), and no rule then looked for the relation the link really reads
-(`Product`; C71).
+(`Product`; C71). Later runs rename such a link after its hubs and bind it (WP135, 2026-11-16); this demo was
+generated before that.
 
 **Building it yourself** needs the AdventureWorks tables in PostgreSQL under the schemas the generated
 `sources.yml` names (`"Person"`, `"HumanResources"`, …) with `load_datetime` and `record_source` added. Microsoft's
