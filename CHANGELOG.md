@@ -55,6 +55,13 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- `infer-keys` checked an inclusion within one table against the wrong statement (WP138, C75): it asked
+  whether any row carries the same value in both columns. A pair therefore „held“ as soon as one such row
+  existed — three false inferred foreign keys on AdventureWorks, among them `Department.groupname →
+  Department.name` with 11 of 16 rows violating it — and a real reference into the own table, a hierarchy's
+  parent column, was never inferred. The key's side is now an alias of the table. On the full catalogue the
+  command writes 4 inferred foreign keys (7 after WP137); pairs across two tables are unchanged. A file
+  written before carries the false ones: write it again.
 - `infer-keys` over a catalogue that declares keys no longer infers what the declarations already answer
   (WP137, C73). A column with a declared single-column foreign key got the next key column holding its values
   as inferred target (`WorkOrder.ProductID → ProductProductPhoto.productid`), a declared key was inferred

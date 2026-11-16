@@ -96,3 +96,25 @@ inclusion truly holds there, and the pin stays as it is.
   built on PostgreSQL on 2026-11-16.
 
 No paid run: nothing here touches a model call.
+
+## 5 Measured (2026-11-16)
+
+All keyless, no model call. Evidence: `eval/results/kept-outputs/wp138-20261116/`.
+
+- **P1 held.** Three of the four guards red at `ce6476a`, four green with the change; the pin across two
+  tables green on both.
+- **P2 held.** WP99's and WP137's guards unchanged and green. Suite 1855 passed, 3 skipped with no key
+  reachable; `ruff check --no-cache` and a bare `mypy` clean; no byte-identity fixture changed.
+- **P3 held.** `infer-keys` over the full catalogue against the data copy: 63 of 68 tables read, the same 64
+  inferred unique keys, **4 inferred foreign keys** (7); two runs byte-identical; the four equal their earlier
+  entries; no fifth.
+- **P4 held.** The proposer over the chain's five increments: the same 2 inferred licences, 60 and 30
+  declared; the `link_proposal_skipped` flags on the three columns 2 → 0.
+- **P5 held.** WP136's replay with the new file writes the fifth project byte-identical to the built one.
+- **Beyond the pre-registration: WP99's own case.** The same catalogue with every declared key removed,
+  inferred with the old statement patched in and with the new one: 86 and 83 inferred foreign keys, 127
+  unique keys both; only the three pairs differ, no pair within one table remains, none appears.
+- **No deviation from the pre-registration.**
+- **Not measured.** A real reference into the own table in real data — AdventureWorks has none on a name
+  path, the guard's hierarchy is a miniature; the type tier against the data copy; a dialect other than
+  PostgreSQL and SQLite.

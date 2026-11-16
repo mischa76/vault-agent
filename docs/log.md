@@ -14415,3 +14415,59 @@ child column, are properties of this copy. That nobody uses a file written befor
 getan.** No second skip in the proposer for an older file; the name rule within one table (candidate C75,
 recorded, not decided); the type tier against the data copy; C74; no chain on this code; no demo regenerated;
 no release. Evidence: `eval/results/kept-outputs/wp137-20261116/`.
+
+## [2026-11-16] WP138 built: `infer-keys`' inclusion check within one table compared each row with itself (C75, diagnosis corrected) — three inferences recorded since 2026-10-30 as holding are false; keyless, on the data copy 7 inferred foreign keys become 4
+
+On the owner's go of the day (fix C75). Spec `architecture/backlog-2026-07/wp138-inclusion-within-one-table-spec.md`;
+guards red at `ce6476a`, the change in this commit. No model call, no paid run.
+
+**Three corrections of the record first.** (1) The WP99 entry of 2026-10-30 lists, among the eleven inferences
+without a declaration, three „coincidences" — `Department.GroupName ⊆ Department.Name`,
+`EmailAddress.EmailAddressID ⊆ …BusinessEntityID`, `ShoppingCartItem.ShoppingCartItemID ⊆ …Quantity` — as
+inclusions the data holds by chance. **The data holds none of them**: 11 of 16, 805 of 19 972 and 2 of 3 rows
+violate them. Its „0 name a target the truth does not contain" stands (it counts against declared keys); its 95
+inferred foreign keys contain three that are no inclusions. (2) WP137's spec, log entry and changelog line of
+today call the same three „the name rule within one table" and count them among the 7 the command writes.
+(3) Candidate C75, written by this session an hour before, says the data holds each inclusion. All three
+statements were taken from the command's output; nobody had read the rows — this session included.
+
+**Why it was wrong.** `key_inference._inclusion_holds` builds `NOT EXISTS (… WHERE key == referencing)` from
+the two column objects. Across two tables SQLAlchemy renders the key's table inside the subquery and
+correlates the referencing one. Within one table both columns belong to one table object, and the subquery
+is rendered over that table with no reference to the outer row (2.1.6, compiled statement in the evidence):
+it is true for every outer row as soon as *any* row carries the same value in both columns — two departments
+named like their group, 291 e-mail rows whose two ids coincide, one cart item with quantity 4 and id 4 — and
+false for every row otherwise. So a pair within one table was inferred on one coincident row, and a real
+reference into the own table, a hierarchy's parent column where no row is its own parent, never was. The
+name rule only decided which pairs reached the check.
+
+**What changed.** Within one table the key's side of the anti-join is an alias of the table
+(`key.table.alias().c[key.key]`; `FromClause.alias(name=None, flat=False)` read from the installed package).
+The statement across two tables is untouched. The name rule is untouched, and none of C75's three options is
+taken: with the check corrected they would remove only true inclusions.
+
+**Measured, all keyless.** Suite 1855 passed, 3 skipped with no key reachable; `ruff check --no-cache` and a
+bare `mypy` clean; three of four new guards red before (a coincident row, a missing parent hidden by a root
+that is its own parent, a hierarchy not inferred), WP99's and WP137's guards unchanged and green — WP99's
+miniature pins `EmailAddressID → BusinessEntityID` within one table where every row carries the same value in
+both, a true inclusion. `infer-keys` over the full catalogue against the data copy (PostgreSQL `aw_source`,
+read-only): 63 of 68 tables read, the same 64 inferred unique keys, **4 inferred foreign keys** (7), two runs
+byte-identical — the two keys to `Product` the catalogue lacks and the two components of `SalesOrderDetail`'s
+composite key, each as before. The same catalogue with every declared key removed, old statement patched in
+against the new one: 86 and 83, only the three differ, no pair within one table remains and none appears.
+The proposer over the stored chain: the same 2 inferred licences; the two `link_proposal_skipped` flags the
+false keys raised (steps 2 and 5) are gone. WP136's replay with the new file: the fifth project
+byte-identical to the built one. All five predictions held.
+
+**Überprüft.** The compiled statement and the three true anti-joins by SQL; the rows of `Department` and
+`ShoppingCartItem` read; both `infer-keys` runs; the key-less comparison; the proposer on the stored states;
+the replay's `diff -r`. **Nur angenommen.** That a real reference into the own table is inferred in real
+data as in the guard's miniature — AdventureWorks has none on a name path. Dialects other than PostgreSQL and
+SQLite (the alias is plain SQL; not run). **Bewusst nicht getan.** No change to the name rule; no correction
+inside the earlier records, this entry is the correction; the type tier against the data copy; C74; no chain
+on this code; no demo regenerated; no release. **Found beside it, recorded as C76, not fixed:** the command
+reads 63 of 68 tables — `Person`, `Store`, `ProductModel`, `Illustration` and `JobCandidate`, each with an
+`xml` column, are refused by PostgreSQL at `count(distinct …)` (`UndefinedFunction`, no equality operator
+for the type) and left without inferences and out of the key columns a reference may point at; WP99 read
+68 on 2026-10-30. Evidence:
+`eval/results/kept-outputs/wp138-20261116/`.

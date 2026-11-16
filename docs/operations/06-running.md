@@ -122,7 +122,12 @@ one id — which data alone cannot tell apart; the tie is broken by a stated pre
 named after its own table first, and the proposer tries the tied and the wider ones for an
 existing hub), and the `wider` key columns that contain every value with more (the inference
 is the tightest; an employee is a person before it is a business entity). One inference per
-column. Which pairs are checked, `--candidates`: `name`
+column. A key column of the same table counts like any other — a parent column of a hierarchy
+is inferred where every parent exists. (Until WP138, 2026-11-16, the check within one table
+compared each row with itself: it held as soon as one row carried the same value in both
+columns and never for a hierarchy. A file written before carries such inferences — on
+AdventureWorks three, none of them true; write it again.) Which pairs are checked,
+`--candidates`: `name`
 (default) — the same compact name, a name ending in the key's (`ShipToAddressID` →
 `AddressID`), or the key table's name plus `ID` (`SalesPersonID` → `SalesPerson`'s key);
 `type` — every pair of the same type family, complete and noisy (a two-valued status column is

@@ -117,11 +117,19 @@ def _inclusion_holds(
     label: str,
 ) -> bool:
     """``count(*) FROM R WHERE R.c IS NOT NULL AND NOT EXISTS (SELECT 1 FROM T WHERE T.k = R.c)``
-    is zero — the anti-join of the spec's rule 4."""
+    is zero — the anti-join of the spec's rule 4.
+
+    Within one table the key's side is an alias of it (WP138). Two columns of one table object
+    render a subquery over that table with no reference to the outer row — „does any row carry
+    the same value in both columns" — which held for three pairs of the data copy that are no
+    inclusions and could never hold for a hierarchy, where no row is its own parent."""
+    key_side: sa.ColumnElement[Any] = key
+    if key.table is referencing.table:
+        key_side = key.table.alias().c[key.key]
     statement = (
         sa.select(sa.func.count())
         .select_from(referencing.table)
-        .where(referencing.isnot(None), ~sa.exists().where(key == referencing))
+        .where(referencing.isnot(None), ~sa.exists().where(key_side == referencing))
     )
     try:
         violations = connection.execute(statement).scalar_one()

@@ -813,3 +813,26 @@ declared case and not part of C73. None becomes a licence or a proposal in the m
 catalogue the proposer answers each with a `no_hub_for_key` skip. **Options:** leave it; no candidate within
 one table; or, where the table declares a primary key, the table-name rule pairs with that key only.
 **Not decided**, no WP number.
+
+## C75 — traced, corrected and taken up as WP138 (2026-11-16)
+
+On the owner's go of that day. **The entry above is wrong in its second sentence and in its cause.** The data
+holds none of the three inclusions (11 of 16, 805 of 19 972 and 2 of 3 rows violate them), and the name rule
+only chose the pairs: `infer-keys`' anti-join, built from two columns of one table object, was rendered
+without a reference to the outer row and asked whether any row carries the same value in both columns.
+`backlog-2026-07/wp138-inclusion-within-one-table-spec.md`: within one table the key's side is an alias of
+the table. None of the three options above is taken — with the check corrected they would remove only true
+inclusions. Built, keyless; on the data copy 7 inferred foreign keys become 4, on the catalogue without
+declarations 86 become 83.
+
+## C76 — `infer-keys` leaves out every table with a column the database cannot count distinct (2026-11-16)
+
+**Found** beside WP138: on the data copy the command reads 63 of 68 tables. `Person.Person`,
+`Sales.Store`, `Production.ProductModel`, `Production.Illustration` and `HumanResources.JobCandidate` each
+carry an `xml` column; `_reflect` counts `count(distinct c)` for every column in one statement, PostgreSQL
+answers `UndefinedFunction` (no equality operator for the type), and the whole table is named on stderr and
+left without inferences. Its columns are then no key columns either, so no reference into `Person` — the
+most referenced table of the catalogue — can be inferred or recorded as tied or wider. WP99 read all 68 on
+2026-10-30; what changed in the copy since is not looked into. The numbers of WP136 to WP138 are of 63
+tables. **Options:** count only the columns whose type family the inference reads (the `other` family is
+never a candidate anyway); or retry such a table without the refused columns. **Not decided**, no WP number.
