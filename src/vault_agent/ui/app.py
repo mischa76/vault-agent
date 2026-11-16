@@ -14,7 +14,7 @@ from vault_agent.config import LLMOptions, source_url_from_environment
 from vault_agent.report import build_model_mermaid, build_report
 from vault_agent.rules.naming import NamingProfile
 from vault_agent.rules.platforms import TargetPlatform
-from vault_agent.state import BusinessVaultOptions, StageBinding
+from vault_agent.state import BusinessVaultOptions, CandidateTier, StageBinding
 from vault_agent.ui.console import ConsoleAnswer, answer
 from vault_agent.ui.graphs import area_views, build_source_mermaid, node_catalogue
 from vault_agent.ui.projects import (
@@ -94,6 +94,16 @@ class MakeProfile(BaseModel):
     sample: int = Field(default=10_000, ge=1)
     examples: int = Field(default=0, ge=0)
     name: str = "profiling.yml"
+    reads_rows: bool = False
+
+
+class InferKeys(BaseModel):
+    """WP140: the body of `vault-agent infer-keys` over a schema input of the project;
+    ``reads_rows`` acknowledges the row read. ``name`` unset writes onto the input."""
+
+    schema_file: str = Field(alias="schema")
+    name: str | None = None
+    candidates: CandidateTier = "name"
     reads_rows: bool = False
 
 
@@ -319,6 +329,55 @@ def create_app(root: Path, static: Path | None = None) -> FastAPI:
                 "summary": {"tables": produced.tables, "columns": produced.columns,
                             "comments": produced.comments,
                             "foreign_keys": produced.foreign_keys}}
+
+    @app.post("/api/projects/{project_id}/infer-keys", status_code=201)
+    def infer_project_keys(project_id: str, body: InferKeys) -> dict[str, Any]:
+        """WP140 (C74): `vault-agent infer-keys` over a schema input — the command's file,
+        stored as a schema input. Explicitly invoked, read-only, scoped (ADR-0008 #4)."""
+        try:
+            project = store.get(project_id)
+            path = store.input_path(project_id, body.schema_file)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        kind = next((f["kind"] for f in project["files"] if f["name"] == body.schema_file), None)
+        if kind != "schema":
+            raise HTTPException(
+                status_code=422,
+                detail=f"{body.schema_file} is a {kind or 'stray'} input, not a source schema: "
+                       "keys are inferred for the tables a schema input names",
+            )
+        if not body.reads_rows:
+            raise HTTPException(
+                status_code=422,
+                detail="inferring keys reads rows of the source database: send reads_rows: "
+                       "true to acknowledge it (ADR-0008 #4, manual 6.1)",
+            )
+        url = _need_source()
+        from vault_agent.key_inference import produce_inferred_keys, schema_file_header
+        from vault_agent.source_schema import load_source_schemas
+        from vault_agent.source_schema_reader import SourceError
+
+        try:
+            tables = load_source_schemas(path)
+        except ValueError as exc:  # edited on disk since the store validated it
+            raise HTTPException(status_code=422, detail=f"{body.schema_file}: {exc}") from exc
+        try:
+            produced = produce_inferred_keys(
+                url, tables, schema_file_header(path.read_text(encoding="utf-8")),
+                candidates=body.candidates,
+            )
+        except SourceError as exc:
+            raise _source_status(exc) from exc
+        name = body.name or body.schema_file
+        command = (f"vault-agent infer-keys --source-schema inputs/{body.schema_file} "
+                   f"--candidates {body.candidates} --out inputs/{name}")
+        try:
+            entry = store.add_file(project_id, "schema", name, produced.text, command=command)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        return {"file": entry, "command": command, "refused": produced.refused,
+                "summary": {"tables": produced.tables, "tables_read": produced.tables_read,
+                            "unique": produced.unique, "foreign": produced.foreign}}
 
     @app.post("/api/projects/{project_id}/profile", status_code=201)
     def make_profile(project_id: str, body: MakeProfile) -> dict[str, Any]:

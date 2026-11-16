@@ -54,7 +54,12 @@ def _stderr(message: str) -> None:
     print(f"infer-keys: {message}", file=sys.stderr)
 
 
-__all__ = ["CANDIDATE_TIERS", "compact", "infer_keys", "is_name_candidate", "provenance"]
+warn_on_stderr: Warn = _stderr  # the command's sink; the workbench collects instead (WP140)
+
+__all__ = [
+    "CANDIDATE_TIERS", "ProducedKeys", "compact", "infer_keys", "is_name_candidate",
+    "produce_inferred_keys", "provenance", "schema_file_header", "warn_on_stderr",
+]
 
 
 @dataclass(frozen=True)
@@ -314,4 +319,64 @@ def provenance(url: str, schema_header: str, *, candidates: str) -> str:
         + f"inferred keys by vault-agent infer-keys from {hidden_url(url)} — candidates: "
         f"{candidates}; unique columns over all rows, inclusion dependencies by anti-join; an "
         "inference, not a declaration (ADR-0018). Edit freely, the loader validates."
+    )
+
+
+def schema_file_header(text: str) -> str:
+    """The comment lines of a schema file, uncommented — what :func:`provenance` keeps the
+    first line of."""
+    return "\n".join(
+        line[2:] if line.startswith("# ") else line[1:]
+        for line in text.splitlines() if line.startswith("#")
+    )
+
+
+@dataclass(frozen=True)
+class ProducedKeys:
+    text: str
+    tables: int
+    tables_read: int
+    unique: int
+    foreign: int
+    refused: list[str]
+
+
+def produce_inferred_keys(
+    url: str,
+    tables: Sequence[SourceTable],
+    schema_header: str,
+    *,
+    candidates: str = "name",
+    warn: Warn | None = None,
+) -> ProducedKeys:
+    """`vault-agent infer-keys` without the terminal (WP140, as WP119 §2 rule 2 for the other
+    two producers). **Reads rows.** ``tables`` and ``schema_header`` are the declared schema
+    file's, loaded by the caller. Everything the database refused or does not hold is collected
+    in ``refused`` (and passed to ``warn`` when given); refusals of the source itself are
+    :class:`~vault_agent.source_schema_reader.SourceError` subtypes."""
+    from vault_agent import source_schema_reader as reader
+
+    refused: list[str] = []
+
+    def collect(message: str) -> None:
+        refused.append(message)
+        if warn is not None:
+            warn(message)
+
+    try:
+        engine = reader.source_engine(url)
+        inferred = infer_keys(engine, tables, candidates=candidates, warn=collect)
+    except ModuleNotFoundError as exc:
+        raise reader.SourceDriverMissingError(url, exc.name) from exc
+    except (sa.exc.SQLAlchemyError, OSError) as exc:
+        raise reader.SourceUnreachableError(url, exc, verb="read") from exc
+    return ProducedKeys(
+        text=reader.render_source_schema(
+            inferred, header=provenance(url, schema_header, candidates=candidates)
+        ),
+        tables=len(tables),
+        tables_read=sum(1 for t in inferred if t.inferred_keys is not None),
+        unique=sum(len(t.inferred_keys.unique) for t in inferred if t.inferred_keys),
+        foreign=sum(len(t.inferred_keys.foreign) for t in inferred if t.inferred_keys),
+        refused=refused,
     )

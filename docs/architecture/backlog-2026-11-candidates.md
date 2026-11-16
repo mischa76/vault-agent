@@ -845,3 +845,26 @@ column by column, and only the column still refused is named and left out.
 are read; on the catalogue without declarations 94 inferred foreign keys where there were 83, none lost. The
 first option was not taken: a `uuid` column is of the family the inference does not read as a reference and
 is an inferred unique key today.
+
+## C74 — the third option taken up as WP140, as an action a human starts (2026-11-16)
+
+On the owner's decision (2026-11-16), after the options were laid out again in plain words: (c), but not
+automatic. `backlog-2026-07/wp140-infer-keys-in-workbench-spec.md`: the workbench's Source section runs
+`infer-keys` over a schema input of the project, one core with the command, the row read acknowledged in the
+request. **The candidate's text is corrected in one point:** it said option (c) touches ADR-0008 #4. An
+explicitly invoked action does not — it is what #4 allows, as the profile in the workbench (WP119); only a
+workbench that inferred keys by itself would, and that is not built. The check the owner asked for first
+found that the Review perspective showed an inferred key with its box checked among the declared keys while
+the bulk answer declined it; repaired in the same WP. Options (a) and (b) are thereby not taken: the link
+over `WorkOrderRouting` with `hub_product` is neither refused nor left to a disclosure alone. Built,
+keyless, walked in a real browser on stub agents; no live chain.
+
+## C77 — An upload refused by the loader deletes the input it would have replaced (2026-11-16)
+
+**Found** beside WP140, not repaired. `ProjectStore.add_file` writes the content to `inputs/<name>`, then
+validates a schema with the house loader and removes the file when the loader refuses it. Where an input of
+that name existed, it has been overwritten by then: after a refused upload the earlier, valid file is gone
+from disk and the project still lists it (reproduced through the API: a schema uploaded, a second upload of
+the same name declaring no tables answered 400, the file absent, the entry present). WP140's route writes
+only what the house renderer produced, which the loader reads, and does not reach this. **Option:** validate
+a temporary file and replace the input only once it loads. **Not decided**, no WP number.

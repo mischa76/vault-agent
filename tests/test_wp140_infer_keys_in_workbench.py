@@ -185,7 +185,8 @@ def test_g4_a_refused_column_is_named_in_the_answer(
     assert r.status_code == 201, r.text
     refused = r.json()["refused"]
     assert len(refused) == 1 and refused[0].startswith("main.Routing.Note:"), refused
-    assert r.json()["summary"] == {"tables": 2, "tables_read": 2, "unique": 0, "foreign": 1}
+    # `Routing` is still read: its reference to `Product` is inferred, as without the refusal.
+    assert r.json()["summary"] == {"tables": 2, "tables_read": 2, "unique": 1, "foreign": 1}
 
 
 # ── G5 the pending list says what a key is, as a field ────────────────────────────────────

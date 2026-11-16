@@ -30,6 +30,14 @@ export interface MakeProfileBody {
   schemas: string[]; tables: string[]; checks: string[]; sample: number; examples: number; reads_rows: boolean;
   name?: string;
 }
+// WP140 (C74): `vault-agent infer-keys` over a schema input of the project.
+export interface InferKeysBody {
+  schema: string; name?: string; candidates: "name" | "type"; reads_rows: boolean;
+}
+export interface InferKeysResult {
+  file: ProjectFile; command: string; refused: string[];
+  summary: { tables: number; tables_read: number; unique: number; foreign: number };
+}
 export interface MakeProfileResult {
   file: ProjectFile; command: string; refused: string[];
   summary: { tables: number; columns: number; rows: number; checks: string[] };
@@ -137,6 +145,8 @@ export interface LinkDecision {
   target: string;
   note: string;
   evidence: string[];
+  // WP140: `inferred` = found in the data by `infer-keys`; the bulk answer declines it (ADR-0018 §4).
+  provenance?: "declared" | "inferred";
 }
 
 export interface ResolutionDecision {

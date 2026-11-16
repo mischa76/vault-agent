@@ -15,6 +15,11 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- Keys are inferred from the workbench (WP140, C74): *infer keys* in the Source section runs
+  `vault-agent infer-keys` over a schema input of the project and stores the byte-identical file
+  (`POST /api/projects/{id}/infer-keys`, refused without `reads_rows: true`). A source that lacks a foreign
+  key its data holds — `WorkOrderRouting.ProductID` in AdventureWorks — gets the key onto the resolution
+  checkpoint without leaving the workbench. Nothing runs by itself: the action is a human's (ADR-0008 #4).
 - **Output-changing: a hub's key is decided before the modeler runs** (WP125, C63, ADR-0021). From the key
   agent's candidates and the source catalogue's declared unique keys: where the requirements' first choice is a
   declared unique key, that is the key; a primary key that is itself a code stays. The modeler is given the key,
@@ -55,6 +60,10 @@ is not the project's.
   `_issue` (`tests/test_c44_gate_count_pinned.py`): a drifted number or a missing catalogue row fails the suite.
 
 ### Fixed
+- The workbench's resolution checkpoint showed an inferred key as allowed and declined it (WP140): it stood
+  among the declared keys with its box checked, and the page sent no answer for an untouched box — which the
+  bulk answer declines for an inference. Inferred keys now have a section of their own, unchecked; a check is
+  the yes (`--link`). The checkpoint API's entry carries `provenance` as a field.
 - `infer-keys` left out a whole table when the database refused to count one of its columns (WP139, C76):
   PostgreSQL has no equality for `xml`, and on the AdventureWorks copy five tables — `Person` among them —
   got no inferences and could not be the target of one. The table is now counted again column by column, as

@@ -168,6 +168,13 @@ only `--link` or a *yes* builds it. The eval harness's unattended resume is `--a
 measured chain builds nothing from an inference; its `link_proposals.by_provenance` says how
 many were offered.
 
+**In the workbench an inferred key stands apart and unchecked** (WP140, 2026-11-16). The Review
+perspective lists it under *Inferred keys — found in the data, declared nowhere*: declined unless
+checked, and a check is `--link`. Until then it stood among the declared ones with its box
+checked, and was declined all the same — the page sends an answer only for a box someone touched,
+and the bulk answer declines an inference nobody named. The API's entry carries `provenance`
+(`declared` | `inferred`) as a field.
+
 **On a catalogue that declares keys, an inferred offer is a key the catalogue lacks** (WP137,
 2026-11-16). Until then the command inferred, beside every declared key, the next key column
 holding the same values, and declared keys backwards, and a composite key's component was

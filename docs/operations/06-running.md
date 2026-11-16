@@ -148,6 +148,12 @@ reference from it or to it; the rest of its table is read (WP139, 2026-11-16, as
 does above). Before, the whole table was left out and nothing could be inferred into it — on
 the AdventureWorks copy five tables, `Person` among them; write an older file again.
 
+The workbench has this command too (WP140, 2026-11-16, 14.2): *infer keys* in its *Source* section,
+over a schema input of the project — the byte-identical file, written onto the input unless another
+name is typed, the row read confirmed before the request and acknowledged in it (`reads_rows`), the
+refused columns in the answer. The name tier only; `--candidates type` stays the command's. It runs
+when someone presses it: reading a catalogue or starting a run infers nothing (ADR-0008 #4).
+
 **Drafting the requirements from the catalogue (WP117, ADR-0019).** A customer with a catalogue
 and no documents cannot start a run — the modeler models only what the requirements support,
 and there is no source-driven mode (ADR-0019 says why). The third command writes the document

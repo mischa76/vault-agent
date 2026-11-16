@@ -104,3 +104,14 @@ All keyless, no model call. Evidence: `eval/results/kept-outputs/wp139-20261116/
   declared. WP136's replay writes the fifth project byte-identical to the built one.
 - **Not measured.** A database other than PostgreSQL refusing a count (the guard injects the refusal on
   SQLite); the type tier against the data copy; why the copy differs from the one of 2026-10-30.
+
+### Corrected (2026-11-16, found during WP140): P4 holds — it was measured on the wrong copy
+
+There are two local copies. WP99 measured on the database `vault` (key-less, `Person.Person` 19 973 rows,
+`ProductReview.productid` `text`, no `xml` column); the measurement above was taken on `aw_source` (90
+declared foreign keys, 19 972 rows, `integer`, seven `xml` columns). Nothing changed between 2026-10-30 and
+today. Today's code over the catalogue without declarations against `vault`: 68 of 68 tables read, **139
+inferred unique keys and 92 inferred foreign keys**, none within one table — the prediction, exactly. „P4
+missed" and „why the copy differs from the one of 2026-10-30" above are wrong in that sense; the numbers for
+`aw_source` (137 and 94, eleven gained over the table-level refusal) stand as measurements of that copy.
+`docs/log.md`, 2026-11-16, „Correction to WP139".

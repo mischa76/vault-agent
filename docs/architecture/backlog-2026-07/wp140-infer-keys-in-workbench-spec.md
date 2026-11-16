@@ -105,3 +105,37 @@ the bulk answer. A run started without inferred keys: nothing differs; no byte-i
 
 No paid run: nothing here touches a model call. That a human finds the action and gives the yes in a live
 chain is the next chain's to show.
+
+## 6 Measured (2026-11-16)
+
+No model call. Evidence: `eval/results/kept-outputs/wp140-20261116/`.
+
+- **P1 held.** Six Python guards and four Vitest cases red at `683b3de`, green with the change; WP99's command
+  tests, WP119's and WP139's guards unchanged and green. Suite 1865 passed, 3 skipped with no key reachable;
+  `ruff check --no-cache` and a bare `mypy` clean; `tsc` clean, Vitest 47 passed, the bundle built;
+  `vault_agent.ui` coverage 95 % locally (floor 85). No byte-identity fixture changed. **One guard was wrong as
+  committed:** G4 expected no inferred unique key beside the refused column; `Product.Name` is one with or
+  without the refusal. The number was corrected with the change (1), the assertion's point — the table of the
+  refused column is still read — is the inferred reference from it.
+- **P2 held.** The route over the full AdventureWorks catalogue against the data copy (PostgreSQL,
+  read-only): 422 without `reads_rows`, then 201 in 3.5 s — 68 of 68 tables read, 68 inferred unique keys, 4
+  inferred foreign keys, the seven `xml` columns in `refused`. The file equals the command's byte for byte
+  and, with the connection masked on both, WP139's kept file.
+- **P3 held.** The API's pending list over the five steps of the second chain of 2026-11-15, each increment
+  read with that file: 13, 7, 30, 12 and 42 entries; the two of provenance `inferred` are in the production
+  step (`TransactionHistoryArchive.productid`, `WorkOrderRouting.productid`). What the page sends, applied by
+  the real `apply_link_decision`: nothing for an untouched box — both declined, the 28 declared accepted; a
+  check on `WorkOrderRouting.productid` — that one accepted, the other declined.
+- **P4 done.** A real Chromium against the built bundle, the data copy and stub agents (every agent that
+  calls a model stubbed; orchestrator, link proposer and both checkpoints real): „infer keys" disabled while
+  the project holds no schema input; the Production catalogue read (25 tables, 28 declared foreign keys);
+  the confirmation shown; 25 of 25 tables read, 13 inferred unique keys, 2 inferred foreign keys, three `xml`
+  columns named, 1.4 s; the run paused at the resolution checkpoint with 27 boxes checked under „Declared
+  keys" and the two inferred ones unchecked in their own section; after one check the button read „Ratify
+  the rest, allow 1 inferred, and build the model" and the run recorded `resume … --link
+  WorkOrderRouting.productid --accept`.
+- **Seen on the way, in a real browser only:** a button inside a folded `<details>` has no accessible role
+  until the block is opened — jsdom finds it either way; the walk opens the block first, as a user does.
+- **Not measured.** A live chain in which a human finds the action and gives the yes; the time on a large
+  source; the page with many inferred keys or on a small viewport; a database other than PostgreSQL and
+  SQLite.

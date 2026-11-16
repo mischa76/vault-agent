@@ -67,6 +67,10 @@ def _pending_links(state: VaultAgentState) -> list[dict[str, Any]]:
         out.append({
             "key": proposal_key(p), "kind": kind, "target": cli._link_target(p),
             "note": cli._link_category_note(p), "evidence": list(p.evidence),
+            # WP140: what the bulk answer does with it hangs on this (ADR-0018 §4) — a field,
+            # not the note's first words. A relationship table is read from declared keys only.
+            "provenance": (p.provenance if isinstance(p, LinkProposal | KeyLicense)
+                           else "declared"),
         })
     return out
 

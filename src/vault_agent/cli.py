@@ -2564,11 +2564,17 @@ def infer_keys_command(
 
     This command reads rows. The proposer reads the inferences as proposals with provenance
     `inferred`; `--accept` declines them, `--link Table.Column` builds one. Manual 6.1, 7."""
-    import sqlalchemy.exc
-
-    from vault_agent.key_inference import CANDIDATE_TIERS, infer_keys
-    from vault_agent.key_inference import provenance as infer_provenance
-    from vault_agent.source_schema_reader import hidden_url, render_source_schema, source_engine
+    from vault_agent.key_inference import (
+        CANDIDATE_TIERS,
+        produce_inferred_keys,
+        schema_file_header,
+        warn_on_stderr,
+    )
+    from vault_agent.source_schema_reader import (
+        SourceDriverMissingError,
+        SourceError,
+        hidden_url,
+    )
 
     console = Console()
     source_url = url or source_url_from_environment()
@@ -2588,39 +2594,24 @@ def infer_keys_command(
     except ValueError as exc:
         console.print(f"[bold red]Cannot read {source_schema}:[/bold red] {exc}")
         raise typer.Exit(code=2) from exc
-    header = source_schema.read_text(encoding="utf-8")
-    header = "\n".join(
-        line[2:] if line.startswith("# ") else line[1:]
-        for line in header.splitlines() if line.startswith("#")
-    )
     try:
-        engine = source_engine(source_url)
-        inferred = infer_keys(engine, tables, candidates=candidates)
-    except ModuleNotFoundError as exc:
-        console.print(
-            f"[bold red]The driver for {hidden_url(source_url)} is not installed:[/bold red] "
-            f"{exc.name} — install it into this environment (manual 6.1)."
+        produced = produce_inferred_keys(
+            source_url, tables, schema_file_header(source_schema.read_text(encoding="utf-8")),
+            candidates=candidates, warn=warn_on_stderr,
         )
+    except SourceDriverMissingError as exc:
+        _print_source_error(console, exc, f"The driver for {exc.url} is not installed:",
+                            f"{exc.module} — install it into this environment (manual 6.1).")
         raise typer.Exit(code=1) from exc
-    except (sqlalchemy.exc.SQLAlchemyError, OSError) as exc:
-        console.print(
-            f"[bold red]Could not read {hidden_url(source_url)}:[/bold red] "
-            f"{type(exc).__name__}: {_without_password(str(exc), source_url)}"
-        )
+    except SourceError as exc:
+        _print_source_error(console, exc)
         raise typer.Exit(code=1) from exc
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(
-        render_source_schema(
-            inferred, header=infer_provenance(source_url, header, candidates=candidates)
-        ),
-        encoding="utf-8",
-    )
-    n_unique = sum(len(t.inferred_keys.unique) for t in inferred if t.inferred_keys)
-    n_foreign = sum(len(t.inferred_keys.foreign) for t in inferred if t.inferred_keys)
-    n_tables = sum(1 for t in inferred if t.inferred_keys is not None)
+    out.write_text(produced.text, encoding="utf-8")
     console.print(
-        f"[bold]{out}[/bold]: {n_tables} of {len(tables)} tables read, {n_unique} inferred "
-        f"unique keys, {n_foreign} inferred foreign keys (candidates: {candidates}) — from "
+        f"[bold]{out}[/bold]: {produced.tables_read} of {produced.tables} tables read, "
+        f"{produced.unique} inferred unique keys, {produced.foreign} inferred foreign keys "
+        f"(candidates: {candidates}) — from "
         f"{hidden_url(source_url)}. An inference, not a declaration: the checkpoint asks."
     )
 
@@ -2725,13 +2716,6 @@ def profile_command(
         f"{produced.rows} rows counted; checks {', '.join(produced.checks) or 'none'} — from "
         f"{hidden_url(source_url)}, schemas {', '.join(schema or [])}."
     )
-
-
-def _without_password(message: str, url: str) -> str:
-    """A dialect's message may echo the URL; the password never reaches the terminal."""
-    from vault_agent.source_schema_reader import without_password
-
-    return without_password(message, url)
 
 
 if __name__ == "__main__":

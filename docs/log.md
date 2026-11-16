@@ -14522,3 +14522,90 @@ database refuses in a way SQLAlchemy raises as `DBAPIError` (the guard injects e
 nicht getan.** No list of types without equality; no inference on a refused column
 by casting; why and when the copy changed since 2026-10-30; the type tier against the data copy; C74; no
 chain on this code; no demo regenerated; no release. Evidence: `eval/results/kept-outputs/wp139-20261116/`.
+
+## [2026-11-16] WP140 built: keys are inferred from the workbench, and its checkpoint shows an inferred key unchecked where it showed it as allowed and declined it (C74, the third option as an explicit action) — keyless; byte-identical to the command on the data copy; walked in a real browser on stub agents; no live chain
+
+On the owner's decision of the day: of C74's three options the third — `infer-keys` where the workbench user
+is — as an action a human starts, after one check he asked for first. Spec
+`architecture/backlog-2026-07/wp140-infer-keys-in-workbench-spec.md`; guards red at `683b3de`, the change in
+this commit. No model call, no paid run.
+
+**The check, and what it found.** Whether the workbench's checkpoint can take the single yes an inferred key
+needs: the API could (`links: {key: true}`), the page could not be trusted with it. The Review perspective
+listed every pending proposal under „Declared keys" with its box checked and sent an answer only for a box
+someone touched; `apply_link_decision` declines an inferred proposal nobody named (ADR-0018 §4). An inferred
+licence therefore stood on the screen as „allow" and was declined, and accepting it meant clearing the box
+and setting it again. The provenance reached the page only as the first words of a note.
+
+**What changed.** `key_inference.produce_inferred_keys` is the command's body (WP119's rule: one core, two
+callers); `vault-agent infer-keys` calls it and keeps its exit codes and messages. `POST
+/api/projects/{id}/infer-keys {schema, name, candidates, reads_rows}` runs it over a schema input of the
+project and stores the file as a schema input with the command that writes it; 422 without `reads_rows:
+true`. The Source section gains „infer keys": a choice among the project's schema inputs, the file name, a
+confirmation that rows are read. The checkpoint API's entry gains `provenance`; the Review perspective shows
+inferred keys in a section of their own, unchecked, and a check is the yes. `cli._without_password`, left
+without a caller by the move, is removed.
+
+**Why (c) and not the others.** A gate (b) would refuse a link the data carries — `ProductID` is part of
+`WorkOrderRouting`'s primary key; what is missing is a declaration. Leaving it (a) leaves a workbench user
+with a disclosure that names a command he cannot run where he is. An automatic inference at intake would read
+rows unasked and needs an amendment of ADR-0008 #4; the explicit action is what #4 allows. C74's text had
+said the option touches that decision — corrected in the backlog.
+
+**Measured.** Suite 1865 passed, 3 skipped with no key reachable; `ruff check --no-cache`, bare `mypy`,
+`tsc` clean; Vitest 47 passed; the bundle built; `vault_agent.ui` coverage 95 %. Six Python guards and four
+Vitest cases red before. **Against the data copy** (PostgreSQL `aw_source`, read-only), the route over the
+full AdventureWorks catalogue: 68 of 68 tables read in 3.5 s, 68 inferred unique keys, 4 inferred foreign
+keys, the seven `xml` columns in the answer; the file equal to the command's byte for byte and to WP139's
+kept file. **The pending list** over the stored second chain of 2026-11-15 with that file: two entries of
+provenance `inferred`, both in the production step; applied by the real bulk answer as the page now sends
+them — untouched both declined, one checked that one accepted, the 28 declared accepted either way. **In a
+real Chromium** against the built bundle, the data copy and stub agents (no model call; orchestrator, link
+proposer and both checkpoints real): catalogue of `Production` read, keys inferred (25 of 25 tables, 13
+unique, 2 foreign, 1.4 s), the run paused with 27 declared boxes checked and the two inferred unchecked in
+their section, one checked, and the run recorded `resume … --link WorkOrderRouting.productid --accept`.
+
+**One guard was wrong as committed.** G4 expected no inferred unique key beside the refused column;
+`Product.Name` is one either way. Corrected with the change, said in the spec's results.
+
+**Seen on the way.** The catalogue the workbench read from `aw_source` declares its keys (28 foreign keys
+in `Production`), where WP99's entry of 2026-10-30 describes a copy carrying none. Followed up at once: there
+are two copies, and WP139's prediction recorded as missed holds on the one WP99 read — the next entry. And
+candidate C77: an upload the loader refuses deletes the input it would have replaced — reproduced, not
+repaired.
+
+**Überprüft.** Everything under *Measured*, by the runs named; the page by screenshot of the checkpoint.
+**Nur angenommen.** That a user finds the fold in the Source section before the first run — the disclosure
+`link_key_missing` still names only the command. **Bewusst nicht getan.** No automatic inference; no gate;
+the type tier in the page; progress or cancel for a long inference; no chain on this code; no demo
+regenerated; no release; C77. Evidence: `eval/results/kept-outputs/wp140-20261116/`.
+
+## [2026-11-16] Correction to WP139: the prediction recorded as missed holds — WP99 measured another copy (database `vault`), not an earlier state of `aw_source`
+
+Found while measuring WP140; corrects WP139's spec (§5, P4), its log entry above and what was reported to
+the owner with it. WP139 predicted, for the catalogue without declarations, 139 inferred unique keys and 92
+inferred foreign keys — on the condition that the copy's rows were those of 2026-10-30 — measured 137 and 94
+on `aw_source`, and wrote that the copy was no longer the one WP99 read and that when and why it changed had
+not been looked into. **Nothing changed. There are two local copies of AdventureWorks**, and the two
+measurements were taken on different ones:
+
+| database | `Person.Person` rows | `ProductReview.productid` | declared foreign keys | `xml` columns | key-less catalogue, today's code |
+|---|---|---|---|---|---|
+| `vault` — the one WP99 read | 19 973 | `text` | 0 | 0 | 68 of 68 tables, **139** unique, **92** foreign, nothing on stderr |
+| `aw_source` — WP136 to WP140 | 19 972 | `integer` | 90 | 7 | 68 of 68 tables, 137 unique, 94 foreign, 7 columns left out |
+
+Every fact WP139 listed as a difference „since 2026-10-30" is a difference between the two databases, and
+WP99's own entry names its copy as the one in `vault` (key-less, „68 tables, 0 keys"). On that copy today's
+code infers exactly what WP139 predicted: WP99's 139 unique keys, and its 95 foreign keys less the three
+within one table that WP138 showed to be false. **P4 of WP139 therefore holds; the miss was a measurement
+on the wrong database, by the same session that wrote the prediction.** WP139's other results stand — they
+are about `aw_source`, where the five tables with `xml` columns exist. WP99's file still was not kept; the
+comparison is of counts, and of the three false pairs being gone, not pair by pair.
+
+**Überprüft.** Both databases read-only through the workbench's connection with the database name
+exchanged: the four facts by SQL, the inference by `key_inference.infer_keys` over
+`eval/datasets/adventureworks_full/source_schema.yml` with every declared key removed
+(`eval/results/kept-outputs/wp140-20261116/wp140-wp99-copy.txt`). **Nur angenommen.** That `vault` has not
+changed since 2026-10-30 — its numbers are the ones WP99 recorded. **Bewusst nicht getan.** No edit of
+WP139's entry or spec text (a dated note is appended to the spec); which copy the project should measure
+`infer-keys` on from here is not decided here — `aw_source` is the one the demo and the chains read.

@@ -1,6 +1,6 @@
 // A thin typed client over the WP66 API. Every call here is one the CLI could make; the run
 // records the equivalent (`cli_equivalents`).
-import type { MakeProfileBody, MakeProfileResult, ReadCatalogueResult, SourceView, ProjectSettings, ProjectSettingsView, Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, ParseResult, Project, ProjectCheck, ProjectFile, ProjectSummary, Run, StartRunBody } from "./types";
+import type { InferKeysBody, InferKeysResult, MakeProfileBody, MakeProfileResult, ReadCatalogueResult, SourceView, ProjectSettings, ProjectSettingsView, Artefact, Checkpoint, ConsoleAnswer, Decision, Events, GraphNode, ModelView, ParseResult, Project, ProjectCheck, ProjectFile, ProjectSummary, Run, StartRunBody } from "./types";
 
 // WP91: the CLI's --pit / --as-of-* on the run start; the server validates the bounds.
 export type BusinessVault = { pit: boolean; as_of_start: string; as_of_end: string; as_of_grain: "day" | "month" };
@@ -83,4 +83,7 @@ export const api = {
     call<ReadCatalogueResult>(`/api/projects/${encodeURIComponent(id)}/source-schema`, json(body)),
   makeProfile: (id: string, body: MakeProfileBody) =>
     call<MakeProfileResult>(`/api/projects/${encodeURIComponent(id)}/profile`, json(body)),
+  // WP140 (C74): keys inferred from the data, for the tables a schema input names — reads rows.
+  inferKeys: (id: string, body: InferKeysBody) =>
+    call<InferKeysResult>(`/api/projects/${encodeURIComponent(id)}/infer-keys`, json(body)),
 };

@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import type { Checkpoint, Decision, KeyAnswer, ReviewItem, Run, StageBinding } from "../types";
+import type { Checkpoint, Decision, KeyAnswer, LinkDecision, ReviewItem, Run, StageBinding } from "../types";
 import { Button, Empty, ErrorNote, Pill, Section } from "../components/ui";
 
 const FALLBACK_ANSWERS = ["NEW", "same_as_candidate", "unresolved"];
@@ -58,7 +58,14 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   const answers = checkpoint.answers?.length ? checkpoint.answers : FALLBACK_ANSWERS;
   const ownerItems = atResolution ? [] : checkpoint.items.filter((i) => i.kind === "contract_owner" && i.asset);
   const ownersFilled = ownerItems.every((i) => ownerValid(owners[i.asset!] ?? ""));
-  const declined = Object.values(links).filter((v) => v === false).length;
+  // WP140 (C74): an inferred key is declined by the bulk answer unless a human names it (ADR-0018 §4,
+  // `apply_link_decision`) — so it is shown unchecked, apart from the declared ones, and a check is the yes.
+  const allLinks = atResolution ? checkpoint.links : [];
+  const declaredLinks = allLinks.filter((l) => l.provenance !== "inferred");
+  const inferredLinks = allLinks.filter((l) => l.provenance === "inferred");
+  const declined = declaredLinks.filter((l) => links[l.key] === false).length;
+  const allowedInferred = inferredLinks.filter((l) => links[l.key] === true).length;
+  const changes = [declined ? `decline ${declined}` : null, allowedInferred ? `allow ${allowedInferred} inferred` : null].filter(Boolean);
   const pendingBindings = atResolution ? [] : (checkpoint.bindings ?? []);
   const pendingBridges = atResolution ? [] : (checkpoint.bridges ?? []);
   const pendingKeys = atResolution ? (checkpoint.keys ?? []) : [];
@@ -103,6 +110,23 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
     keys: atResolution ? keyAnswers() : {},
   });
 
+  const linkRow = (l: LinkDecision, build: boolean) => (
+    <li key={l.key} className="rounded-md border border-line bg-pane-2 p-3">
+      <div className="flex flex-wrap items-center gap-2">
+        <code className="font-mono text-xs text-accent">{l.key}</code>
+        <span>→ {l.target}</span>
+        <Pill>{l.kind}</Pill>
+        <label className="ml-auto flex items-center gap-2 text-xs">
+          <input type="checkbox" checked={build} aria-label={`build ${l.key}`}
+            onChange={(e) => setLinks({ ...links, [l.key]: e.target.checked })} />
+          {build ? (l.kind === "license" ? "allow" : "build") : "decline"}
+        </label>
+      </div>
+      <p className="mt-1 text-xs text-ink-dim">{l.note}</p>
+      {l.evidence.map((e, i) => <p key={i} className="text-xs text-ink-faint">{e}</p>)}
+    </li>
+  );
+
   return (
     <div className="grid gap-4">
       <Section title={atResolution ? "Resolution checkpoint — before the modeler" : "Sign-off checkpoint"}
@@ -112,43 +136,30 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
         </span>}>
         <p className="text-sm text-ink-dim">
           {atResolution
-            ? "The run paused before the model is built: declared keys, entity resolutions and contested hub keys need a decision that steers the modeler. Everything left as proposed is ratified by accept — the CLI's --accept; a contested hub key then takes the declared natural key. Owners and the model's review come at sign-off, after the modeler."
+            ? `The run paused before the model is built: declared keys, entity resolutions and contested hub keys need a decision that steers the modeler. Everything left as proposed is ratified by accept — the CLI's --accept; a contested hub key then takes the declared natural key.${inferredLinks.length ? " An inferred key is the exception: it is declined unless checked below." : ""} Owners and the model's review come at sign-off, after the modeler.`
             : checkpoint.blocked ? "Something blocks agreement — a validation error or a contract without an owner. Answer the decisions, then accept, or discard the run." : "Nothing blocks agreement. Review the decisions and accept, or discard."}
         </p>
         <ErrorNote error={error} />
         <div className="mt-3 flex flex-wrap items-center gap-3">
           <Button onClick={() => onDecide(decision(true))} disabled={busy || (!atResolution && checkpoint.blocked && !ownersFilled) || !keysAnswerable} title={!keysAnswerable ? "a hub on its technical primary key needs a reason" : !atResolution && checkpoint.blocked && !ownersFilled ? "every contract needs an owner: 'Name <email>' or an email address" : undefined}>
-            {atResolution ? (declined ? `Ratify the rest, decline ${declined}, and build the model` : "Ratify as proposed and build the model") : "Accept and continue"}
+            {atResolution ? (changes.length ? `Ratify the rest, ${changes.join(", ")}, and build the model` : "Ratify as proposed and build the model") : "Accept and continue"}
           </Button>
           {!atResolution ? <Button kind="ghost" onClick={() => onDecide(decision(false))} disabled={busy} title={checkpoint.blocked ? "record owners and resolutions without accepting; the run stays paused" : "record owners and resolutions without accepting — nothing blocks, so the run finishes"}>Record without accepting</Button> : null}
           <Button kind="danger" onClick={() => onDecide({ discard: true })} disabled={busy}>Discard the run</Button>
         </div>
       </Section>
 
-      {atResolution && checkpoint.links.length > 0 ? (
+      {declaredLinks.length > 0 ? (
         <Section title="Declared keys — links, relationship tables and key licenses">
           <p className="mb-2 text-xs text-ink-faint">Proposed from the source's own foreign keys. Build is the default, as in the CLI's prompt (`--link`); decline is the exception (`--no-link`). A license builds nothing: it allows the translation or alias the modeler will need.</p>
-          <ul className="grid gap-2 text-sm">
-            {checkpoint.links.map((l) => {
-              const build = links[l.key] !== false;
-              return (
-                <li key={l.key} className="rounded-md border border-line bg-pane-2 p-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <code className="font-mono text-xs text-accent">{l.key}</code>
-                    <span>→ {l.target}</span>
-                    <Pill>{l.kind}</Pill>
-                    <label className="ml-auto flex items-center gap-2 text-xs">
-                      <input type="checkbox" checked={build} aria-label={`build ${l.key}`}
-                        onChange={(e) => setLinks({ ...links, [l.key]: e.target.checked })} />
-                      {build ? (l.kind === "license" ? "allow" : "build") : "decline"}
-                    </label>
-                  </div>
-                  <p className="mt-1 text-xs text-ink-dim">{l.note}</p>
-                  {l.evidence.map((e, i) => <p key={i} className="text-xs text-ink-faint">{e}</p>)}
-                </li>
-              );
-            })}
-          </ul>
+          <ul className="grid gap-2 text-sm">{declaredLinks.map((l) => linkRow(l, links[l.key] !== false))}</ul>
+        </Section>
+      ) : null}
+
+      {inferredLinks.length > 0 ? (
+        <Section title="Inferred keys — found in the data, declared nowhere" aside={<Pill tone="warn">{inferredLinks.length} inferred</Pill>}>
+          <p className="mb-2 text-xs text-ink-dim">`vault-agent infer-keys` found that every value of the column occurs in the key it names. That is evidence, not a declaration — it can hold by coincidence. <strong>Declined unless you check it</strong>, as the CLI's `--accept` declines it; checked, it is the CLI's `--link`: the link built on it is bound and its key translated like a declared one, and the translation is flagged to confirm at sign-off.</p>
+          <ul className="grid gap-2 text-sm">{inferredLinks.map((l) => linkRow(l, links[l.key] === true))}</ul>
         </Section>
       ) : null}
 
