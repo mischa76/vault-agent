@@ -176,7 +176,7 @@ export function App() {
             <form className="flex gap-2" onSubmit={(e) => { e.preventDefault(); void createProject(); }}>
               <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="new project" aria-label="new project name"
                 className="min-w-0 flex-1 rounded-md border border-line bg-pane-2 px-2 py-1 text-sm" />
-              <Button type="submit" disabled={busy || !newName.trim()}>+</Button>
+              <Button kind="add" type="submit" disabled={busy || !newName.trim()}>+</Button>
             </form>
           </div>
           <nav className="min-h-0 flex-1 overflow-auto p-2" aria-label="projects">

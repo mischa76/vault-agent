@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { api, ApiError } from "../api";
 import { formatBytes } from "../derive";
 import { DEFAULT_NAMING, PLATFORMS, type NamingProfile, type Platform, type Project, type ProjectFile, type ProjectSettingsView, type RunSummary } from "../types";
-import { Button, Dot, Empty, ErrorNote, KV, Pill, Section } from "../components/ui";
+import { Button, Dot, Empty, ErrorNote, FileButton, KV, Pill, Section } from "../components/ui";
 import { SourceSection } from "../components/Source";
 
 // A browser upload is text: .md/.txt requirements and .yml/.yaml/.json schemas. A PDF
@@ -171,7 +171,7 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
           </div>
         </details>
         <div className="mt-3 flex items-center gap-3">
-          <Button kind="ghost" onClick={() => void saveSettings()} disabled={busy}>save settings</Button>
+          <Button kind="add" onClick={() => void saveSettings()} disabled={busy}>save settings</Button>
           <span className="text-xs text-ink-faint">{savedNote ?? `route: ${view?.environment.route ?? view?.environment.llm_provider ?? "…"} — secrets stay in .env; every run records these and its CLI equivalent carries them`}</span>
         </div>
       </Section>
@@ -185,20 +185,15 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
             <li key={f.name} className="flex items-center justify-between py-1.5">
               <span className="font-mono text-xs">{f.name}</span>
               <span className="flex items-center gap-2 text-xs text-ink-faint"><Pill>{f.kind}</Pill>{formatBytes(f.bytes)}
-                <button type="button" aria-label={`delete file ${f.name}`} title="Kept while a run has read it"
-                  className="rounded border border-line px-1.5 py-0.5 hover:bg-pane-2"
-                  onClick={() => void remove(`input ${f.name}`, () => api.deleteFile(project.id, f.name), onChanged)}>delete</button>
+                <Button kind="danger" size="sm" ariaLabel={`delete file ${f.name}`} title="Kept while a run has read it"
+                  onClick={() => void remove(`input ${f.name}`, () => api.deleteFile(project.id, f.name), onChanged)}>delete</Button>
               </span>
             </li>
           ))}
         </ul>
         <div className="mt-3 flex flex-wrap gap-3">
           {(["requirements", "schema", "profiling"] as const).map((kind) => (
-            <label key={kind} className="cursor-pointer rounded-md border border-line px-3 py-1.5 text-sm hover:bg-pane-2">
-              attach {kind}
-              <input type="file" accept={ACCEPT[kind]} className="hidden" aria-label={`attach ${kind}`}
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) void upload(kind, f); e.target.value = ""; }} />
-            </label>
+            <FileButton key={kind} accept={ACCEPT[kind]} ariaLabel={`attach ${kind}`} onFile={(f) => void upload(kind, f)}>attach {kind}</FileButton>
           ))}
         </div>
         <p className="mt-2 text-xs text-ink-faint">A schema is validated by the house loader on upload and refused with its message. PDF requirements go through the CLI.</p>
@@ -280,11 +275,10 @@ export function ProjectPerspective({ project, onChanged, onOpenRun, onDeleted, b
           <ul className="divide-y divide-line text-sm">
             {project.runs.map((r) => (
               <li key={r.id} className="flex items-center gap-2">
-                <button type="button" aria-label={`delete run ${stamp(r)}`}
+                <Button kind="danger" size="sm" ariaLabel={`delete run ${stamp(r)}`}
                   disabled={r.status === "running" || r.status === "paused"}
                   title={r.status === "running" ? "cancel first" : r.status === "paused" ? "decide or discard first" : "Kept while another run extends it"}
-                  className="rounded border border-line px-1.5 py-0.5 text-xs text-ink-faint hover:bg-pane-2 disabled:opacity-40"
-                  onClick={() => void remove(`run ${stamp(r)}`, () => api.deleteRun(r.id), onChanged)}>delete</button>
+                  onClick={() => void remove(`run ${stamp(r)}`, () => api.deleteRun(r.id), onChanged)}>delete</Button>
                 <button type="button" onClick={() => onOpenRun(r.id)} className="flex w-full items-center justify-between gap-3 py-2 text-left hover:bg-pane-2">
                   <span className="flex items-center gap-2"><Dot status={r.status} /><span className="font-mono text-xs">{stamp(r)}</span></span>
                   <span className="flex items-center gap-2 text-xs text-ink-faint">

@@ -143,6 +143,19 @@ What it does not know: anything the API does not say. Node order and tool names 
 `GET /api/graph`; there is no price table in the bundle (tokens, not money); model text is
 rendered as text, Mermaid runs under `securityLevel: 'strict'` as the report does.
 
+**The buttons follow one rule** (WP141, C45; `BUTTON_KINDS` in `frontend/src/components/ui.tsx` owns it, every
+button carries its kind as `data-kind`):
+
+| kind | look | for |
+|---|---|---|
+| `primary` | filled accent | the one step that moves the project forward — at most one per perspective: run the generator, open the checkpoint, ratify or accept, continue |
+| `add` | accent outline | adds something and destroys nothing: attach a file, read the catalogue, make a profile, infer keys, save settings, record without accepting, parse, create a project |
+| `danger` | red outline | destroys or abandons, at every size: delete a project, a file or a run; discard; cancel |
+| `ghost` | grey outline | navigation and toggles |
+
+A new control takes the kind its action has, not the one that looks right beside its neighbours. The error
+colour (`--color-bad`) is a red of its own hue, 24° from the accent, so that `danger` does not read as the accent.
+
 ## 14.5 Replaying a workbench run from the terminal
 
 Every action is recorded in `run.json` as the CLI invocation it is equivalent to and shown in

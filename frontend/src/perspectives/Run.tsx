@@ -105,7 +105,7 @@ export function ProjectSection({ check, onParse, parsing }: { check: ProjectChec
         ["dbt", dbt ? `dbt-core ${dbt.version} with ${dbt.adapter}` : "not installed in the workbench's environment"],
       ]} />
       <div className="mt-3 flex items-center gap-3">
-        <Button kind="ghost" onClick={onParse} disabled={parsing || !onParse || !dbt} title={dbt ? "dbt deps && dbt parse, keyless — no connection is opened" : "install the demo extra for dbt-postgres"}>
+        <Button kind="add" onClick={onParse} disabled={parsing || !onParse || !dbt} title={dbt ? "dbt deps && dbt parse, keyless — no connection is opened" : "install the demo extra for dbt-postgres"}>
           {parsing ? "parsing…" : "dbt parse"}
         </Button>
         {parse ? (

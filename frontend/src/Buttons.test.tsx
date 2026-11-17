@@ -94,7 +94,7 @@ describe("Button kinds (WP141)", () => {
   });
 
   it("G5 the palette: danger is a hue of its own and readable on every surface", () => {
-    const css = readFileSync("src/styles.css", "utf8");
+    const css = readFileSync("src/styles.css", "utf8"); // Vitest hands a test no stylesheet text
     const token = (name: string) => /#[0-9a-f]{6}/i.exec(css.slice(css.indexOf(`--color-${name}:`)))![0];
     const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255) as [number, number, number];
     const hue = (hex: string) => {

@@ -23,20 +23,45 @@ export function Pill({ children, tone = "line" }: { children: ReactNode; tone?: 
   return <span className={`rounded-full border px-2 py-0.5 text-xs ${tones[tone]}`}>{children}</span>;
 }
 
-export function Button({ children, onClick, disabled, kind = "primary", type = "button", title }: {
-  children: ReactNode; onClick?: () => void; disabled?: boolean; kind?: "primary" | "ghost" | "danger";
-  type?: "button" | "submit"; title?: string;
+// WP141 (C45): the rule, owned here and written out in manual 14.4 —
+//   primary  the one step that moves the project forward; at most one per perspective
+//   add      adds something to the project and destroys nothing (attach, read, record, create)
+//   danger   destroys or abandons, at every size (delete, discard, cancel)
+//   ghost    navigation and toggles
+export const BUTTON_KINDS = {
+  primary: "bg-accent text-bg hover:brightness-110",
+  add: "border border-accent text-accent hover:bg-accent-soft",
+  danger: "border border-bad text-bad hover:bg-bad/10",
+  ghost: "border border-line text-ink hover:bg-pane-2",
+} as const;
+export type ButtonKind = keyof typeof BUTTON_KINDS;
+const BUTTON_SIZES = { md: "rounded-md px-3 py-1.5 text-sm", sm: "rounded px-1.5 py-0.5 text-xs" } as const;
+const buttonClass = (kind: ButtonKind, size: keyof typeof BUTTON_SIZES) =>
+  `${BUTTON_SIZES[size]} font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${BUTTON_KINDS[kind]}`;
+
+export function Button({ children, onClick, disabled, kind = "primary", type = "button", title, size = "md", ariaLabel }: {
+  children: ReactNode; onClick?: () => void; disabled?: boolean; kind?: ButtonKind;
+  type?: "button" | "submit"; title?: string; size?: keyof typeof BUTTON_SIZES; ariaLabel?: string;
 }) {
-  const kinds = {
-    primary: "bg-accent text-bg hover:brightness-110",
-    ghost: "border border-line text-ink hover:bg-pane-2",
-    danger: "border border-bad text-bad hover:bg-bad/10",
-  };
   return (
-    <button type={type} onClick={onClick} disabled={disabled} title={title}
-      className={`rounded-md px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40 ${kinds[kind]}`}>
+    <button type={type} onClick={onClick} disabled={disabled} title={title} aria-label={ariaLabel}
+      data-kind={kind} className={buttonClass(kind, size)}>
       {children}
     </button>
+  );
+}
+
+/** A button of kind `add` that opens the file dialog: the label is the control, the hidden input
+ * keeps its accessible name (WP141 — the attach controls were a grey label below every kind). */
+export function FileButton({ children, accept, ariaLabel, onFile }: {
+  children: ReactNode; accept: string; ariaLabel: string; onFile: (file: File) => void;
+}) {
+  return (
+    <label data-kind="add" className={`cursor-pointer ${buttonClass("add", "md")} focus-within:ring-1 focus-within:ring-accent`}>
+      <span aria-hidden="true">+ </span>{children}
+      <input type="file" accept={accept} className="sr-only" aria-label={ariaLabel}
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onFile(f); e.target.value = ""; }} />
+    </label>
   );
 }
 

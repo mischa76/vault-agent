@@ -14609,3 +14609,29 @@ exchanged: the four facts by SQL, the inference by `key_inference.infer_keys` ov
 changed since 2026-10-30 — its numbers are the ones WP99 recorded. **Bewusst nicht getan.** No edit of
 WP139's entry or spec text (a dated note is appended to the spec); which copy the project should measure
 `infer-keys` on from here is not decided here — `aw_source` is the one the demo and the chains read.
+
+## [2026-11-17] WP141 built: the workbench's buttons follow a written rule — four kinds, the attach controls are buttons, every delete is `danger`, the error colour a hue apart from the accent (C45) — frontend only, Vitest and a browser walk
+
+On the owner's go of the day: all open workbench-usability candidates, bundled into work packages — WP141
+(C45), WP142 (C52, C51), WP143 (C49), WP144 (C53 option (a)). Spec
+`architecture/backlog-2026-07/wp141-button-kinds-spec.md`; guards red at `ad82950`, the change in this commit.
+
+**Why it was wrong.** Three button kinds whose use implied a rule nobody had written; the attach controls a
+grey `<label>` below the quietest kind; the per-file and per-run deletes grey; `danger` 7° of hue from the
+accent; a second filled button (the sidebar's „+") beside every perspective's own.
+
+**What changed.** `BUTTON_KINDS` in `components/ui.tsx` — `primary`, `add`, `danger`, `ghost` — with the rule
+as its comment and in manual 14.4; every `Button` carries `data-kind`; a `size` for the small ones.
+`FileButton` makes the attach controls buttons of kind `add` with a „+". The deletes are `danger`; save
+settings, the three source producers, record without accepting, parse and the sidebar's „+" are `add`.
+`--color-bad` is #f2647a (24° from the accent; 5.6, 5.1 and 4.6 : 1 against the three surfaces). **The
+author's decision, the owner's to revert:** that `danger` gets the new hue (C45's point 3 left it open); the
+token is the error colour everywhere, so notes, pills and the failed dot move with it.
+
+**Measured.** Five new Vitest cases red before, 52 green; `tsc`, the build. In a real Chromium on stub
+agents: the kinds as the rule says on the Project perspective, the paused run and the checkpoint; the attach
+control takes keyboard focus (its input was `display: none` before). **Überprüft.** The above, by the runs
+and screenshots. **Nur angenommen.** That the attach controls now read as buttons to the owner. **Bewusst
+nicht getan.** The diagram tools, log filters and area chooser stay hand-written toggles; no icons; no
+light theme. Also in this commit: the index's row for the November backlog gains C73–C77, which the
+entries of 2026-11-16 had not carried into it.

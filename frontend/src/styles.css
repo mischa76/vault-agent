@@ -14,7 +14,7 @@
   --color-accent-soft: #3d2a22;
   --color-ok: #5fb878;
   --color-warn: #e0a84a;
-  --color-bad: #e06c5b;
+  --color-bad: #f2647a; /* WP141: 24° of hue from the accent (was 7°) */
   --color-info: #6aa5e0;
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;

@@ -868,3 +868,13 @@ from disk and the project still lists it (reproduced through the API: a schema u
 the same name declaring no tables answered 400, the file absent, the entry present). WP140's route writes
 only what the house renderer produced, which the loader reads, and does not reach this. **Option:** validate
 a temporary file and replace the input only once it loads. **Not decided**, no WP number.
+
+## C45 — taken up as WP141 (2026-11-17)
+
+On the owner's go (2026-11-17) to take up every open workbench-usability candidate, bundled into four
+packages (WP141: C45; WP142: C52 and C51; WP143: C49; WP144: C53 option (a)).
+`backlog-2026-07/wp141-button-kinds-spec.md`: the rule is written (manual 14.4, `BUTTON_KINDS`) — `primary`
+at most once per perspective, `add` for what adds, `danger` for what destroys at every size, `ghost` for
+navigation; the attach controls are buttons of kind `add`; every delete is `danger`; the error colour is
+#f2647a, 24° of hue from the accent where it was 7°. The candidate's point (3), whether `danger` gets a hue
+apart, was decided by the author as yes — the owner's to revert.

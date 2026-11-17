@@ -144,7 +144,7 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
           <Button onClick={() => onDecide(decision(true))} disabled={busy || (!atResolution && checkpoint.blocked && !ownersFilled) || !keysAnswerable} title={!keysAnswerable ? "a hub on its technical primary key needs a reason" : !atResolution && checkpoint.blocked && !ownersFilled ? "every contract needs an owner: 'Name <email>' or an email address" : undefined}>
             {atResolution ? (changes.length ? `Ratify the rest, ${changes.join(", ")}, and build the model` : "Ratify as proposed and build the model") : "Accept and continue"}
           </Button>
-          {!atResolution ? <Button kind="ghost" onClick={() => onDecide(decision(false))} disabled={busy} title={checkpoint.blocked ? "record owners and resolutions without accepting; the run stays paused" : "record owners and resolutions without accepting — nothing blocks, so the run finishes"}>Record without accepting</Button> : null}
+          {!atResolution ? <Button kind="add" onClick={() => onDecide(decision(false))} disabled={busy} title={checkpoint.blocked ? "record owners and resolutions without accepting; the run stays paused" : "record owners and resolutions without accepting — nothing blocks, so the run finishes"}>Record without accepting</Button> : null}
           <Button kind="danger" onClick={() => onDecide({ discard: true })} disabled={busy}>Discard the run</Button>
         </div>
       </Section>

@@ -136,7 +136,7 @@ export function SourceSection({ projectId, files = [], onChanged, onProduced, bu
             </label>
             <input aria-label="catalogue file name" value={catalogueFile} onChange={(e) => setCatalogueName(e.target.value)}
               className="w-64 rounded-md border border-line bg-pane-2 px-2 py-1 font-mono text-xs" />
-            <Button kind="ghost" onClick={readCatalogue} disabled={busy || working || schemas.length === 0 || !catalogueFile.trim()}>read catalogue</Button>
+            <Button kind="add" onClick={readCatalogue} disabled={busy || working || schemas.length === 0 || !catalogueFile.trim()}>read catalogue</Button>
             <span className="text-xs text-ink-faint">metadata only — becomes a schema input; a file of the same name is replaced</span>
           </div>
           <details>
@@ -171,7 +171,7 @@ export function SourceSection({ projectId, files = [], onChanged, onProduced, bu
               <div className="flex items-center gap-3">
                 <input aria-label="profile file name" value={profileFile} onChange={(e) => setProfileName(e.target.value)}
                   className="w-64 rounded-md border border-line bg-pane-2 px-2 py-1 font-mono text-xs" />
-                <Button kind="ghost" onClick={makeProfile} disabled={busy || working || schemas.length === 0 || !profileFile.trim()}>make profile</Button>
+                <Button kind="add" onClick={makeProfile} disabled={busy || working || schemas.length === 0 || !profileFile.trim()}>make profile</Button>
                 <span className="text-xs text-ink-faint">counts over all rows; becomes a profiling input; a file of the same name is replaced</span>
               </div>
             </div>
@@ -187,7 +187,7 @@ export function SourceSection({ projectId, files = [], onChanged, onProduced, bu
                 </select>
                 <input aria-label="inferred file name" value={keysFile} onChange={(e) => setKeysName(e.target.value)}
                   className="w-64 rounded-md border border-line bg-pane-2 px-2 py-1 font-mono text-xs" />
-                <Button kind="ghost" onClick={inferKeys} disabled={busy || working || !keysSource || !keysFile.trim()}>infer keys</Button>
+                <Button kind="add" onClick={inferKeys} disabled={busy || working || !keysSource || !keysFile.trim()}>infer keys</Button>
                 <span className="text-xs text-ink-faint">{schemaFiles.length ? "counts over all rows; becomes a schema input; a file of the same name is replaced" : "read the catalogue or attach a schema first"}</span>
               </div>
             </div>

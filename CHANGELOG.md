@@ -40,6 +40,10 @@ is not the project's.
   (WP124, C62). AutomateDV's effectivity satellite assumes that order; loaded in reverse it left two owners open.
 
 ### Changed
+- The workbench's buttons follow a written rule (WP141, C45; manual 14.4): `primary` once per perspective,
+  `add` for what adds (the attach controls are buttons now, with a „+"), `danger` for everything that
+  destroys — the small per-file and per-run deletes included —, `ghost` for navigation. The error colour
+  moves to a red clearly apart from the accent.
 - The shipped workbench demo (`demo/workbench-adventureworks/`) is regenerated under ADR-0021: five runs of 2026-11-15, hubs on
   natural keys (`hub_product` on `ProductNumber`; 15 of 40 hubs on a single `…ID` column, 28 before). Its last project
   builds whole on PostgreSQL (PASS=575 of 575, a second build inserts nothing) once two hand views exist for the

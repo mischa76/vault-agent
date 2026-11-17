@@ -66,3 +66,20 @@ No icon set (a „+" is a character). No light theme. No restyling of tabs, pill
 - **P1** G1–G5 red before, green after; G6. `tsc`, the build; the Python suite untouched.
 - **P2** the Project perspective and a checkpoint in a real browser on stub agents, by screenshot.
 - **Not measured:** whether the owner now finds the attach controls at a glance — his to say.
+
+## 6 Measured (2026-11-17)
+
+- **P1 held.** Five Vitest cases red at `ad82950`, green with the change; the 47 earlier cases unchanged and
+  green (52). `tsc` clean, the bundle built; no Python file touched.
+- **P2 done.** A real Chromium against the built bundle on stub agents and a throwaway SQLite source: the
+  Project perspective shows eleven controls of kind `add` or `danger` and one `primary` („Run the
+  generator"); the attach controls render in the accent's colour, „delete project" in rgb(242, 100, 122);
+  the run paused with one `primary` („Open the checkpoint"), the checkpoint with one („Ratify as proposed
+  and build the model") and „Discard the run" as `danger`. Screenshots in
+  `eval/results/kept-outputs/wp141-144-20261117/`.
+- **Beyond the spec, with the change:** the attach control's file input is visually hidden instead of
+  `display: none`, so the control takes keyboard focus (seen in the browser: focus lands on „attach
+  schema"); a ring shows it. The palette guard reads `styles.css` through `node:fs`, declared for the type
+  checker in `src/node-fs.d.ts` — Vitest hands a test no stylesheet text, and the app's type roots stay the
+  browser's.
+- **Not measured.** Whether the owner finds the attach controls at a glance now.
