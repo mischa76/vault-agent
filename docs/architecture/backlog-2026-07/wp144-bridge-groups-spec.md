@@ -84,3 +84,26 @@ proposes no bridge and changes in nothing; no byte-identity fixture moves.
   second path chosen — `resume … --bridge <that path>` recorded with `--no-bridge` for the others.
 - **Not measured:** a live chain with the Business Vault on; whether one decision per pair is the right
   grain for the owner — C53's (c) would cut further.
+
+## 6 Measured (2026-11-17)
+
+- **P1 held.** The Python guards red by import at `3d03c98`; run once against the old code with the two
+  missing names stubbed, seven failed for their own reason and the fixture check and the pin G4 passed. Two
+  Vitest cases red. With the change: all green, WP115's and WP122's guards green (one WP115 assertion updated
+  in the red commit). Suite 1876 passed / 3 skipped with no key reachable, ruff, bare mypy, `tsc`, Vitest 61,
+  the build, `vault_agent.ui` coverage 95 %. No byte-identity fixture changed.
+- **P2 held.** The stored second chain of 2026-11-15 through the real proposer and the real flags, each
+  step with the earlier steps' paths declined: **22 decisions where there were 174** — per step 1, 2, 4, 3,
+  12 against 1, 8, 6, 10, 149; the largest decision carries 28 paths.
+- **P3 held.** A real Chromium on the canned stub state: three cards under „Bridges", the sign-off's count
+  4 decisions (WP142's walk on the same state: 6); the pair with two paths set to build offers both, the
+  first chosen; with the second chosen and the owner filled the run recorded `resume … --bridge
+  hub_branch,link_account_branch,hub_account,link_transfer,hub_account:counterparty` and `--no-bridge` for
+  the four others, finished, and wrote those four to `metadata/bridge_decisions.yml`.
+- **Looked like a defect, was not:** the first screenshot showed „Decline" still filled after „Build" was
+  chosen. The control fades between its states; read 400 ms later the colours are the chosen one's
+  (`aria-checked` was right at once).
+- **Beside the spec:** the Review perspective's group list is computed per render, not memoised — it sits
+  below the perspective's early returns, where a hook may not stand.
+- **Not measured.** A live chain with the Business Vault on; the prompt in a real terminal (the guard
+  scripts the prompter); a pair with 28 paths on the page — the list holds them, nobody has read it.

@@ -43,6 +43,7 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   const [bindings, setBindings] = useState<Record<string, { relation: string; aliases: string }>>({}); // WP82
   const [mappings, setMappings] = useState<Record<string, string>>({}); // WP82: --map
   const [bridges, setBridges] = useState<Record<string, boolean>>({}); // WP115: --bridge / --no-bridge
+  const [bridgePaths, setBridgePaths] = useState<Record<string, string>>({}); // WP144: the path of a built group
   // WP126 (ADR-0021): the chosen key per contested table and the reason a technical key needs.
   const [keys, setKeys] = useState<Record<string, string>>({});
   const [keyReasons, setKeyReasons] = useState<Record<string, string>>({});
@@ -93,9 +94,27 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
     }
     return out;
   };
-  // Every proposal is answered, unchecked = declined: a bridge is never built by default.
+  // WP144 (C53 a): one decision per group — the link pair and the hub they share; its paths differ
+  // in their ends. `bridges` holds the answer per group, `bridgePaths` the path chosen for a built one.
+  const bridgeGroups = (() => { // computed per render: this sits below the early returns, where a hook may not
+    const groups = new Map<string, { key: string; links: string[]; hub: string | null; paths: string[]; requirement_ids: string[]; evidence: string[] }>();
+    for (const b of pendingBridges) {
+      const key = b.group ?? b.path;
+      const g = groups.get(key) ?? { key, links: b.links ?? [], hub: b.hub ?? null, paths: [], requirement_ids: [], evidence: b.evidence };
+      g.paths.push(b.path);
+      for (const r of b.requirement_ids) if (!g.requirement_ids.includes(r)) g.requirement_ids.push(r);
+      groups.set(key, g);
+    }
+    return [...groups.values()];
+  })();
+  const chosenPath = (g: { key: string; paths: string[] }): string => {
+    const picked = bridgePaths[g.key];
+    return picked !== undefined && g.paths.includes(picked) ? picked : g.paths[0]!;
+  };
+  // Every path is answered: the chosen path of a group set to build is the yes, everything else is
+  // declined — a bridge is never built by default.
   const bridgeAnswers = (): Record<string, boolean> =>
-    Object.fromEntries(pendingBridges.map((b) => [b.path, bridges[b.path] === true]));
+    Object.fromEntries(bridgeGroups.flatMap((g) => g.paths.map((p) => [p, bridges[g.key] === true && p === chosenPath(g)])));
   const boundStages = (): Record<string, StageBinding> => {
     const out: Record<string, StageBinding> = {};
     for (const [stage, b] of Object.entries(bindings)) {
@@ -247,22 +266,36 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
         </Section>
       ) : null}
 
-      {pendingBridges.length > 0 ? (
-        <Section title="Bridge paths — proposed from the requirements, built only when you say so">
-          <p className="text-xs text-ink-dim">Each path below joins two links that cite the same requirement around a shared hub. A bridge is Business Vault logic (ADR-0007): left at decline it is declined, as the CLI's <code className="font-mono">--accept</code> declines an unanswered one; set to build it is built along the path — <code className="font-mono">--bridge</code>.</p>
+      {bridgeGroups.length > 0 ? (
+        <Section title="Bridges — proposed from the requirements, built only when you say so">
+          <p className="text-xs text-ink-dim">Each entry joins two links that cite the same requirement around a shared hub — one decision per link pair. A bridge is Business Vault logic (ADR-0007): left at decline every path of it is declined, as the CLI's <code className="font-mono">--accept</code> declines an unanswered one; set to build, the path shown is built — <code className="font-mono">--bridge</code>. Where a pair can be walked between several ends, choose the path; a second path of the same pair is the CLI's.</p>
           <ul className="mt-2 grid gap-2 text-sm">
-            {pendingBridges.map((b) => {
-              const build = bridges[b.path] === true;
+            {bridgeGroups.map((g) => {
+              const build = bridges[g.key] === true;
+              const chosen = chosenPath(g);
               return (
-                <li key={b.path} className="rounded-md border border-line bg-pane-2 p-3">
+                <li key={g.key} className="rounded-md border border-line bg-pane-2 p-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <code className="font-mono text-xs text-accent">{b.path}</code>
-                    {b.requirement_ids.map((r) => <Pill key={r}>{r}</Pill>)}
-                    <Choice label={`decision for bridge ${b.path}`} value={build ? "yes" : "no"}
-                      onChange={(v) => setBridges({ ...bridges, [b.path]: v === "yes" })}
+                    {g.links.length === 2
+                      ? <span><code className="font-mono text-xs text-accent">{g.links[0]}</code> and <code className="font-mono text-xs text-accent">{g.links[1]}</code> through <code className="font-mono text-xs">{g.hub}</code></span>
+                      : <code className="font-mono text-xs text-accent">{g.key}</code>}
+                    {g.requirement_ids.map((r) => <Pill key={r}>{r}</Pill>)}
+                    {g.paths.length > 1 ? <Pill>{g.paths.length} paths</Pill> : null}
+                    <Choice label={`decision for bridge ${g.key}`} value={build ? "yes" : "no"}
+                      onChange={(v) => setBridges({ ...bridges, [g.key]: v === "yes" })}
                       options={[NO, { value: "yes", label: "Build" }]} />
                   </div>
-                  {b.evidence.map((e, i) => <p key={i} className="mt-1 text-xs text-ink-faint">{e}</p>)}
+                  {build && g.paths.length > 1 ? (
+                    <label className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                      <span className="text-ink-faint">along</span>
+                      <select value={chosen} aria-label={`path for ${g.key}`}
+                        onChange={(e) => setBridgePaths({ ...bridgePaths, [g.key]: e.target.value })}
+                        className="max-w-full rounded-md border border-line bg-pane px-2 py-1 font-mono text-xs">
+                        {g.paths.map((p) => <option key={p} value={p}>{p}</option>)}
+                      </select>
+                    </label>
+                  ) : <p className="mt-1 font-mono text-xs text-ink-dim">{g.paths.length > 1 ? `${g.paths[0]} — and ${g.paths.length - 1} more with other ends` : g.paths[0]}</p>}
+                  {g.evidence.map((e, i) => <p key={i} className="mt-1 text-xs text-ink-faint">{e}</p>)}
                 </li>
               );
             })}

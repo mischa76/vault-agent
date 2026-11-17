@@ -910,3 +910,15 @@ diagram tile, both from the tile's own source in Mermaid's light theme with text
 author on the candidate's open points:** the browser's print dialog is the export (no server side, no new
 dependency); the sheet carries the tile's title and the run id; a subject-area view prints the area because
 it prints what the tile shows.
+
+## C53 — option (a) taken up as WP144 (2026-11-17); (c) and (d) not taken
+
+On the owner's go of the day (all open workbench-usability candidates; the owner had set (a) aside on
+2026-11-08 for when the checkpoint controls come — they came as WP142).
+`backlog-2026-07/wp144-bridge-groups-spec.md`: one `bridge_proposed` decision per link pair and shared hub,
+the paths of the pair named in it, the answer still by path; the prompt asks per pair and then which path;
+the workbench shows one card per pair. Output-changing for runs with the Business Vault on. Measured on the
+stored chain of 2026-11-15: 22 decisions where one per path was 174. The count of 2026-11-08 (25 on the
+twenty-fifth chain) could not be measured again — that chain's saved models are not on this machine.
+**Still open if wanted:** (c) propose only where the requirement names both ends, (d) disclosures instead of
+decisions while no bridge was asked for — neither decided.

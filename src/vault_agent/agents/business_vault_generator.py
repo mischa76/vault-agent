@@ -319,6 +319,27 @@ def _participation(hub: str, role: str | None) -> str:
     return hub if role is None else f"{hub}:{role}"
 
 
+def bridge_group_parts(path: str) -> tuple[str, str, str] | None:
+    """The link pair and the shared hub of a path as :func:`propose_bridge_paths` writes it —
+    ``start,first_link,shared_hub[:role],second_link,end`` — or ``None`` for a path of any other
+    shape (one an operator named)."""
+    tokens = [t.strip() for t in path.split(",")]
+    if len(tokens) != 5:
+        return None
+    return tokens[1], tokens[3], tokens[2].partition(":")[0]
+
+
+def bridge_group(path: str) -> str:
+    """WP144 (C53 option (a)): the decision a proposed path belongs to — its link pair and the hub
+    they share, ``first_link+second_link@shared_hub``. The paths of one group differ in their
+    ends only; a path of another shape is a group of its own."""
+    parts = bridge_group_parts(path)
+    if parts is None:
+        return path
+    first, second, hub = parts
+    return f"{first}+{second}@{hub}"
+
+
 def propose_bridge_paths(
     model: DVModel, declined: Collection[str] = frozenset()
 ) -> list[BridgeProposal]:

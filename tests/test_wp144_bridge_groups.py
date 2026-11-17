@@ -133,7 +133,8 @@ def test_g5_the_pending_list_says_which_group_a_path_belongs_to() -> None:
     state = VaultAgentState(dv_model=_model(), bridge_proposals=propose_bridge_paths(_model()))
     pending = {entry["path"]: entry for entry in _pending_bridges(state)}
     assert list(pending) == [AB_C, AB_T, AB_T_ROLE, AC_T, AC_T_ROLE]
-    assert (pending[AB_T_ROLE]["group"], pending[AB_T_ROLE]["links"], pending[AB_T_ROLE]["hub"]) == (
+    roled = pending[AB_T_ROLE]
+    assert (roled["group"], roled["links"], roled["hub"]) == (
         G_AB_T, ["link_account_branch", "link_transfer"], "hub_account")
     state.bridge_proposals[1].ratification_status = "overridden"
     assert AB_T not in {entry["path"] for entry in _pending_bridges(state)}

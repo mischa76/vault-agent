@@ -106,6 +106,25 @@ def _pending_resolutions(state: VaultAgentState) -> list[dict[str, Any]]:
     return out
 
 
+def _pending_bridges(state: VaultAgentState) -> list[dict[str, Any]]:
+    """The proposed bridge paths still unanswered (WP115) — decisions, declined unless answered.
+    WP144: each with the group it belongs to (one decision per link pair and shared hub); a path
+    of the operator's own shape has no pair."""
+    from vault_agent.agents.business_vault_generator import bridge_group, bridge_group_parts
+
+    out = []
+    for p in state.bridge_proposals:
+        if p.ratification_status != "proposed":
+            continue
+        parts = bridge_group_parts(p.path)
+        out.append({
+            "path": p.path, "requirement_ids": list(p.requirement_ids),
+            "evidence": list(p.evidence), "group": bridge_group(p.path),
+            "links": [parts[0], parts[1]] if parts else [], "hub": parts[2] if parts else None,
+        })
+    return out
+
+
 def _existing_hubs(state: VaultAgentState) -> list[str]:
     """WP142: the hubs of the vault being extended — the only constructs a resolution answer
     may name (`orchestrator._apply_resolution_decision`); none on a greenfield run."""
@@ -468,11 +487,7 @@ class RunManager:
             # WP82: the stages no rule could bind, with what a binding must say.
             "bindings": [] if at_resolution else pending_stage_bindings(state),
             # WP115: the proposed bridge paths — decisions, declined unless answered.
-            "bridges": [] if at_resolution else [
-                {"path": p.path, "requirement_ids": list(p.requirement_ids),
-                 "evidence": list(p.evidence)}
-                for p in state.bridge_proposals if p.ratification_status == "proposed"
-            ],
+            "bridges": [] if at_resolution else _pending_bridges(state),
             "unresolved": [
                 {"concept": c, "evidence": cli._unresolved_evidence(state, c)} for c in unresolved
             ],

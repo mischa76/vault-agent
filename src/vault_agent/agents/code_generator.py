@@ -476,21 +476,40 @@ def effectivity_load_order_tests(satellites: dict[str, dict[str, Any]]) -> dict[
 
 
 def bridge_proposal_flags(proposals: list[BridgeProposal]) -> list[PipelineFlag]:
-    """WP115: one ``bridge_proposed`` decision per proposal still unanswered, in proposal order
-    (the asset is the path, the one key every answer uses)."""
-    return [
-        PipelineFlag(
+    """One ``bridge_proposed`` decision per group that still has an unanswered path, in proposal
+    order (WP144, C53 option (a): the group is the link pair and the hub they share; its paths
+    differ in their ends only). The asset is the group; the answer is still by path — the
+    message names every pending one. WP115 raised one decision per path."""
+    from vault_agent.agents.business_vault_generator import bridge_group, bridge_group_parts
+
+    groups: dict[str, list[BridgeProposal]] = {}
+    for p in proposals:
+        if p.ratification_status == "proposed":
+            groups.setdefault(bridge_group(p.path), []).append(p)
+    flags: list[PipelineFlag] = []
+    for group, pending in groups.items():
+        parts = bridge_group_parts(pending[0].path)
+        what = (
+            f"a bridge over {parts[0]} and {parts[1]} through {parts[2]} proposed"
+            if parts is not None else f"bridge along {pending[0].path} proposed"
+        )
+        paths = "; ".join(f'"{p.path}"' for p in pending)
+        ends = (
+            f"{len(pending)} paths that differ in their ends: {paths}" if len(pending) > 1
+            else f"path {paths}"
+        )
+        flags.append(PipelineFlag(
             agent="code_generator",
             message=(
-                f"bridge along {p.path} proposed: {'; '.join(p.evidence)} — build it with "
-                f"`resume --bridge \"{p.path}\"`, decline it with `--no-bridge`; unanswered at "
-                "--accept it is declined (ADR-0007: Business Vault logic is human-ratified)"
+                f"{what}: {'; '.join(pending[0].evidence)} — {ends}. Build one with "
+                "`resume --bridge \"<path>\"`, decline one with `--no-bridge`; unanswered at "
+                "--accept every path is declined (ADR-0007: Business Vault logic is "
+                "human-ratified)"
             ),
             kind=FlagKind.BRIDGE_PROPOSED,
-            asset=p.path,
-        )
-        for p in proposals if p.ratification_status == "proposed"
-    ]
+            asset=group,
+        ))
+    return flags
 
 
 class CodeGeneratorAgent(BaseAgent):

@@ -270,8 +270,9 @@ FLAGS: dict[str, str] = {
         "deterministic from the model, its ghost entries are AutomateDV ghost records."
     ),
     FlagKind.BRIDGE_PROPOSED: (
-        "A bridge path was proposed from two links that cite the same requirement and share a "
-        "hub; a decision — build it (`--bridge PATH`) or decline it, unanswered it is declined."
+        "A bridge was proposed over two links that cite the same requirement and share a hub — "
+        "one decision per link pair and hub, its paths differing in their ends; build one "
+        "(`--bridge PATH`) or leave it, unanswered every path is declined."
     ),
     FlagKind.REQUIREMENTS_UNREVIEWED: (
         "An input document is a draft vault-agent wrote from the catalogue "

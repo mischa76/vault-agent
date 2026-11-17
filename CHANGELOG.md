@@ -43,6 +43,12 @@ is not the project's.
   (WP124, C62). AutomateDV's effectivity satellite assumes that order; loaded in reverse it left two owners open.
 
 ### Changed
+- **Output-changing for a run with the Business Vault on: a proposed bridge is one decision per link pair
+  and shared hub** (WP144, C53 option (a)), not one per path. The paths of a pair differ only in their ends;
+  the `bridge_proposed` item names them all, the answer stays by path (`--bridge "<path>"`), and a pair left
+  alone is declined whole. The terminal prompt asks once per pair and then which path; the workbench shows
+  one card per pair. Fewer review decisions (22 where there were 174 on a stored chain); a decision count
+  taken before is not comparable. A run without the Business Vault is unchanged.
 - The workbench's checkpoint decisions are named answers side by side (WP142, C52, C51): a link, a key
   licence, an inferred key and a bridge path each show both answers, the chosen one filled — no checkbox
   whose word is its state. An entity resolution is answered from a list in plain words, the proposal first

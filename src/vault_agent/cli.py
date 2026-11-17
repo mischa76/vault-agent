@@ -73,6 +73,7 @@ from vault_agent.source_schema import load_source_schemas
 from vault_agent.source_schema_reader import SOURCE_URL_ENV
 from vault_agent.state import (
     RESOLUTION_SAME_AS,
+    BridgeProposal,
     BusinessVaultOptions,
     ColumnProfile,
     DVModel,
@@ -1197,25 +1198,62 @@ def _collect_decision(
     return owners, overrides
 
 
+def _pending_bridge_groups(state: VaultAgentState) -> dict[str, list[BridgeProposal]]:
+    """WP144: the unanswered bridge paths by the decision they belong to, in proposal order."""
+    from vault_agent.agents.business_vault_generator import bridge_group
+
+    groups: dict[str, list[BridgeProposal]] = {}
+    for proposal in state.bridge_proposals:
+        if proposal.ratification_status == "proposed":
+            groups.setdefault(bridge_group(proposal.path), []).append(proposal)
+    return groups
+
+
+def _bridge_group_title(paths: list[BridgeProposal]) -> str:
+    from vault_agent.agents.business_vault_generator import bridge_group_parts
+
+    parts = bridge_group_parts(paths[0].path)
+    if parts is None:
+        return f"along {paths[0].path}"
+    return f"over {parts[0]} and {parts[1]} through {parts[2]}"
+
+
 def _collect_bridge_decision(console: Console, state: VaultAgentState) -> dict[str, bool]:
-    """WP115: walk the proposed bridge paths, asking build/decline each — default *no*, and the
-    answer recorded either way, because a bridge is Business Vault logic the human ratifies
-    (ADR-0007); the confirm that follows (`--accept`) would decline the unanswered ones. Parity
-    with ``--bridge`` / ``--no-bridge``: the same handles to the same applier."""
+    """WP115: walk the proposed bridges, asking build/decline — default *no*, and the answer
+    recorded either way, because a bridge is Business Vault logic the human ratifies (ADR-0007);
+    the confirm that follows (`--accept`) would decline the unanswered ones. WP144: one question
+    per group (the link pair and the hub they share), and on *yes* which of its paths — they
+    differ in their ends. Parity with ``--bridge`` / ``--no-bridge``: the answers are per path,
+    the same handles to the same applier."""
     answers: dict[str, bool] = {}
-    pending = [p for p in state.bridge_proposals if p.ratification_status == "proposed"]
-    if pending:
+    groups = _pending_bridge_groups(state)
+    if groups:
         console.print(
-            f"\n[bold yellow]{len(pending)} bridge path(s) proposed[/bold yellow] from links that "
+            f"\n[bold yellow]{len(groups)} bridge(s) proposed[/bold yellow] from links that "
             "cite the same requirement around a shared hub:"
         )
-    for proposal in pending:
-        console.print(f"  [yellow]{proposal.path}[/yellow]")
-        for line in proposal.evidence:
+    for paths in groups.values():
+        title = _bridge_group_title(paths)
+        console.print(f"  [yellow]{title}[/yellow]")
+        for line in paths[0].evidence:
             console.print(f"    [dim]{line}[/dim]")
-        answers[proposal.path] = _prompter.confirm(
-            console, f"Build the bridge along {proposal.path!r}?", default=False
-        )
+        for number, proposal in enumerate(paths, start=1):
+            console.print(f"    {number}. {proposal.path}")
+        chosen: BridgeProposal | None = None
+        if _prompter.confirm(console, f"Build a bridge {title}?", default=False):
+            chosen = paths[0]
+            while len(paths) > 1:
+                answer = _prompter.text(
+                    console, f"Which path (1–{len(paths)}; Enter for 1)"
+                ).strip()
+                if not answer:
+                    break
+                if answer.isdigit() and 1 <= int(answer) <= len(paths):
+                    chosen = paths[int(answer) - 1]
+                    break
+                console.print(f"[red]a number from 1 to {len(paths)}[/red]")
+        for proposal in paths:
+            answers[proposal.path] = proposal is chosen
     return answers
 
 
@@ -1637,18 +1675,17 @@ def _report_paused(
     no_owner_to_assign = state is not None and not any(
         item.kind == "contract_owner" for item in assemble_review_queue(state).items
     )
-    pending_bridges = [
-        p for p in (state.bridge_proposals if state is not None else [])
-        if p.ratification_status == "proposed"
-    ]
-    if pending_bridges:  # WP115: decisions, declined unless answered
+    bridge_groups = _pending_bridge_groups(state) if state is not None else {}
+    if bridge_groups:  # WP115: decisions, declined unless answered; WP144: one per link pair
         console.print(
-            f"\n[bold yellow]{len(pending_bridges)} bridge path(s) proposed[/bold yellow] "
+            f"\n[bold yellow]{len(bridge_groups)} bridge(s) proposed[/bold yellow] "
             "(two links citing one requirement around a shared hub) — unanswered at --accept "
-            "they are declined:"
+            "every path is declined:"
         )
-        for proposal in pending_bridges:
-            console.print(f"  [yellow]{proposal.path}[/yellow]")
+        for paths in bridge_groups.values():
+            console.print(f"  [yellow]{_bridge_group_title(paths)}[/yellow]")
+            for proposal in paths:
+                console.print(f"    {proposal.path}")
         console.print(
             f"  [cyan]vault-agent resume --out {out} --bridge \"<path>\"[/cyan]   (build one)\n"
             f"  [cyan]vault-agent resume --out {out} --no-bridge \"<path>\"[/cyan]  (decline one)"

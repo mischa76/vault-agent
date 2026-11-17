@@ -14700,3 +14700,38 @@ run line; only the sheet visible under print media; the screen's picture untouch
 above; both PDFs looked at. **Nur angenommen.** That a printer gives what the PDF shows. **Bewusst nicht
 getan.** No paging of a wide model, no PNG, no server-side export, nothing in the report or the CLI; no
 model of chain size was printed.
+
+## [2026-11-17] WP144 built: a proposed bridge is one decision per link pair and shared hub, the ends chosen when building (C53 option (a)) — output-changing for runs with the Business Vault on; keyless, 22 decisions where 174 on a stored chain, a browser walk; no live chain
+
+Last of the four packages of the day's go. Spec `architecture/backlog-2026-07/wp144-bridge-groups-spec.md`;
+guards red at `3d03c98`, the change in this commit. No model call, no paid run.
+
+**Why it was wrong.** The proposer emits one path per pair of links citing one requirement around a shared
+hub, per start and per exit, and each path was its own review decision. The paths of a pair differ only in
+their ends; a role-played hub multiplies them. The owner had chosen (b) on 2026-11-08 (WP122) and set (a)
+aside for the checkpoint controls.
+
+**What changed.** `business_vault_generator.bridge_group`: a proposed path belongs to
+`first_link+second_link@shared_hub`; a path of another shape is its own group. `bridge_proposal_flags`
+raises one `bridge_proposed` flag per group with an unanswered path — asset the group, message the pair,
+the hub and every pending path. Answers stay by path (`--bridge`, `--no-bridge`, `--accept` declining the
+rest), so what is stored per path and `metadata/bridge_decisions.yml` are as they were. The terminal prompt
+asks once per group and then which path by number; the pause report lists groups. The checkpoint API's
+`bridges` entries carry `group`, `links`, `hub`; the Review perspective shows one card per group with
+`Decline | Build` and, for a built group with several paths, the path to build. **WP115's rule of one
+decision per proposal is superseded.**
+
+**Output-changing.** Only where the Business Vault is on: fewer decisions in the review queue,
+`review-queue.md` and the eval's decision count. The twenty-fifth chain (PIT on, 2026-11-08) is not
+comparable in that count with a chain after this. No byte-identity fixture changed.
+
+**Measured.** Suite 1876 passed / 3 skipped with no key reachable, ruff, bare mypy, `tsc`, Vitest 61, the
+build, UI coverage 95 %. The stored second chain of 2026-11-15 through the real proposer and flags, each
+step with the earlier steps' paths declined: **22 decisions where there were 174** (1, 2, 4, 3, 12 against
+1, 8, 6, 10, 149). In a real Chromium on the canned stub state: three cards, 4 decisions at sign-off where
+WP142's walk showed 6, the second path of a pair chosen, and the run recorded `--bridge` for it and
+`--no-bridge` for the four others, finished, and carried the four as declined. **Überprüft.** The above.
+**Nur angenommen.** That one decision per pair is the grain the owner wants — a pair with 28 paths is one
+decision with a long list. **Bewusst nicht getan.** C53's (c) and (d); a handle to decline a group by name
+(leaving it declines it); no chain with the Business Vault on; the twenty-fifth chain's count not
+re-measured — its saved models are not on this machine.

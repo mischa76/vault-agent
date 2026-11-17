@@ -178,6 +178,11 @@ export interface BridgeProposal {
   path: string;
   requirement_ids: string[];
   evidence: string[];
+  // WP144: the decision the path belongs to — its link pair and the hub they share; a path an
+  // operator named has no pair and is a group of its own.
+  group?: string;
+  links?: string[];
+  hub?: string | null;
 }
 
 // WP125/WP126 (ADR-0021): a contested hub key — a technical primary key against a declared natural
