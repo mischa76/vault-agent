@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { groupItems, ReviewPerspective } from "./perspectives/Review";
 import type { Checkpoint, Run } from "./types";
@@ -50,15 +50,22 @@ const resolution: Checkpoint = {
   links: [{ key: "Account.CustomerID", kind: "license", target: "Customer (no hub yet)", note: "declared_fk_pending: builds nothing", evidence: ["Account.CustomerID → Customer.CustomerID"] }],
 };
 
+// WP142: a decision's radio group, and its answers in order with the chosen one marked.
+const choice = (name: string) => screen.getByRole("radiogroup", { name });
+const answers = (group: HTMLElement) => within(group).getAllByRole("radio").map((r) => `${r.textContent}${r.getAttribute("aria-checked") === "true" ? " ✓" : ""}`);
+
 describe("Review at the resolution checkpoint", () => {
-  it("shows the license with build as the default, no owner fields, and sends --no-link on decline", () => {
+  // WP142 (C52): the answer is a pair of named choices, not a checkbox whose word is its state.
+  it("shows the license with allow as the default, no owner fields, and sends --no-link on decline", () => {
     const onDecide = vi.fn();
     render(<ReviewPerspective run={run} checkpoint={resolution} onDecide={onDecide} busy={false} error={null} />);
     expect(screen.getByText(/Resolution checkpoint/)).toBeInTheDocument();
     expect(screen.queryByLabelText(/^owner for/)).not.toBeInTheDocument();
-    const box = screen.getByLabelText("build Account.CustomerID");
-    expect(box).toBeChecked();
-    fireEvent.click(box);
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    const group = choice("decision for Account.CustomerID");
+    expect(answers(group)).toEqual(["Allow ✓", "Decline"]);
+    fireEvent.click(within(group).getByRole("radio", { name: "Decline" }));
+    expect(answers(group)).toEqual(["Allow", "Decline ✓"]);
     fireEvent.click(screen.getByRole("button", { name: /decline 1/ }));
     expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ accept: true, links: { "Account.CustomerID": false }, owners: {} }));
   });
@@ -75,20 +82,20 @@ const withInferred: Checkpoint = {
 };
 
 describe("Review — an inferred key at the resolution checkpoint (WP140)", () => {
-  it("shows it unchecked in a section of its own and sends no yes for it", () => {
+  it("shows it declined in a section of its own and sends no yes for it", () => {
     const onDecide = vi.fn();
     render(<ReviewPerspective run={run} checkpoint={withInferred} onDecide={onDecide} busy={false} error={null} />);
     expect(screen.getByText(/^Inferred keys/)).toBeInTheDocument();
-    expect(screen.getByLabelText("build WorkOrderRouting.productid")).not.toBeChecked();
-    expect(screen.getByLabelText("build Account.CustomerID")).toBeChecked();
+    expect(answers(choice("decision for WorkOrderRouting.productid"))).toEqual(["Decline ✓", "Allow"]);
+    expect(answers(choice("decision for Account.CustomerID"))).toEqual(["Allow ✓", "Decline"]);
     fireEvent.click(screen.getByRole("button", { name: /build the model/ }));
     expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ accept: true, links: {} }));
   });
 
-  it("sends the yes when a human checks it", () => {
+  it("sends the yes when a human allows it", () => {
     const onDecide = vi.fn();
     render(<ReviewPerspective run={run} checkpoint={withInferred} onDecide={onDecide} busy={false} error={null} />);
-    fireEvent.click(screen.getByLabelText("build WorkOrderRouting.productid"));
+    fireEvent.click(within(choice("decision for WorkOrderRouting.productid")).getByRole("radio", { name: "Allow" }));
     fireEvent.click(screen.getByRole("button", { name: /allow 1 inferred/ }));
     expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({ accept: true, links: { "WorkOrderRouting.productid": true } }));
   });
@@ -143,7 +150,7 @@ describe("Review — bindings at sign-off (WP82)", () => {
 
 // WP115 (C22): a proposed bridge is a decision — unchecked until the human builds it.
 describe("Review — bridge proposals (WP115)", () => {
-  it("lists a proposed bridge unchecked and sends the answer with the decision", () => {
+  it("lists a proposed bridge declined and sends the answer with the decision", () => {
     const onDecide = vi.fn();
     const run2 = { id: "stores:1", project: "stores", status: "paused", thread_id: "t", out_dir: "/tmp/x", cli_equivalents: [],
       started: "", finished: null, requirements: "req.md", schema: null, existing_run: null, error: null, profiling: null, target_platform: "postgres" } as unknown as Run;
@@ -151,9 +158,9 @@ describe("Review — bridge proposals (WP115)", () => {
       items: [], bindings: [], unresolved: [],
       bridges: [{ path: "hub_customer,link_account_customer,hub_account", requirement_ids: ["REQ-007"], evidence: ["both links cite REQ-007"] }] } as unknown as Checkpoint;
     render(<ReviewPerspective run={run2} checkpoint={checkpoint2} onDecide={onDecide} busy={false} error={null} />);
-    const box = screen.getByLabelText("build bridge hub_customer,link_account_customer,hub_account") as HTMLInputElement;
-    expect(box.checked).toBe(false);
-    fireEvent.click(box);
+    const group = choice("decision for bridge hub_customer,link_account_customer,hub_account");
+    expect(answers(group)).toEqual(["Decline ✓", "Build"]);
+    fireEvent.click(within(group).getByRole("radio", { name: "Build" }));
     fireEvent.click(screen.getByRole("button", { name: /^accept and continue$/i }));
     expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({
       bridges: { "hub_customer,link_account_customer,hub_account": true },
@@ -198,5 +205,42 @@ describe("Review — contested hub keys (WP126)", () => {
   it("shows no key section at sign-off", () => {
     render(<ReviewPerspective run={run} checkpoint={{ ...checkpoint, keys: contested.keys }} onDecide={() => undefined} busy={false} error={null} />);
     expect(screen.queryByLabelText("hub key for AddressType")).not.toBeInTheDocument();
+  });
+});
+
+// WP142 (C51): an entity resolution is answered from a list in plain words — the proposal first and
+// preselected, the hubs of the vault by name; the CLI's tokens are what is sent, not what is read.
+describe("Review — the entity-resolution answer (WP142)", () => {
+  const pending: Checkpoint = {
+    ...resolution, links: [], hubs: ["hub_business_entity", "hub_person", "hub_vendor"],
+    resolutions: [
+      { concept: "employee::businessentityid", label: "businessentityid", entity: "employee", claim: "IS the existing 'hub_business_entity'", category: "exact_key", confidence: 0.9, evidence: ["the key is the hub's"], proposed: "hub_business_entity", same_as: null },
+      { concept: "contact::contactid", label: "contactid", entity: "contact", claim: "equivalent to 'hub_person' but keyed differently", category: "semantic", confidence: 0.7, evidence: [], proposed: "same_as_candidate", same_as: "hub_person" },
+    ],
+  };
+  const options = (el: HTMLElement) => Array.from(el.querySelectorAll("option")).map((o) => o.textContent);
+
+  it("offers the proposal first and selected, then the other answers in words and the hubs by name", () => {
+    render(<ReviewPerspective run={run} checkpoint={pending} onDecide={() => undefined} busy={false} error={null} />);
+    const merge = screen.getByLabelText("resolution for employee::businessentityid") as HTMLSelectElement;
+    expect(merge.tagName).toBe("SELECT");
+    expect(merge.selectedOptions[0]!.textContent).toBe("Keep the proposal — is hub_business_entity");
+    expect(options(merge)).toEqual(["Keep the proposal — is hub_business_entity", "New hub", "Leave unresolved", "hub_person", "hub_vendor"]);
+    const sameAs = screen.getByLabelText("resolution for contact::contactid") as HTMLSelectElement;
+    expect(sameAs.selectedOptions[0]!.textContent).toBe("Keep the proposal — same as hub_person, keyed differently");
+    expect(options(sameAs)).toEqual(["Keep the proposal — same as hub_person, keyed differently", "New hub", "Leave unresolved", "hub_business_entity", "hub_person", "hub_vendor"]);
+  });
+
+  it("sends nothing for a proposal left alone, and the CLI's value for another answer", () => {
+    const onDecide = vi.fn();
+    render(<ReviewPerspective run={run} checkpoint={pending} onDecide={onDecide} busy={false} error={null} />);
+    fireEvent.click(screen.getByRole("button", { name: /build the model/ }));
+    expect(onDecide).toHaveBeenLastCalledWith(expect.objectContaining({ accept: true, resolutions: {} }));
+    fireEvent.change(screen.getByLabelText("resolution for employee::businessentityid"), { target: { value: "NEW" } });
+    fireEvent.change(screen.getByLabelText("resolution for contact::contactid"), { target: { value: "hub_vendor" } });
+    fireEvent.click(screen.getByRole("button", { name: /build the model/ }));
+    expect(onDecide).toHaveBeenLastCalledWith(expect.objectContaining({
+      resolutions: { "employee::businessentityid": "NEW", "contact::contactid": "hub_vendor" },
+    }));
   });
 });
