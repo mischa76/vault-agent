@@ -168,6 +168,50 @@ describe("Review — bridge proposals (WP115)", () => {
   });
 });
 
+// WP144 (C53 a): one decision per link pair and shared hub; the ends are chosen when building.
+describe("Review — bridge proposals in groups (WP144)", () => {
+  const AB_T = "hub_branch,link_account_branch,hub_account,link_transfer,hub_account";
+  const AB_C = "hub_branch,link_account_branch,hub_account,link_account_customer,hub_customer";
+  const run2 = { id: "stores:1", project: "stores", status: "paused", thread_id: "t", out_dir: "/tmp/x", cli_equivalents: [],
+    started: "", finished: null, requirements: "req.md", schema: null, existing_run: null, error: null, profiling: null, target_platform: "postgres" } as unknown as Run;
+  const entry = (path: string, group: string, links: string[]) => ({ path, group, links, hub: "hub_account", requirement_ids: ["REQ-007"], evidence: ["both links cite REQ-007"] });
+  const grouped = { run: "stores:1", phase: "signoff", links: [], resolutions: [], answers: [], blocked: false, decisions: 2, disclosures: 0,
+    items: [], bindings: [], unresolved: [],
+    bridges: [
+      entry(AB_C, "link_account_branch+link_account_customer@hub_account", ["link_account_branch", "link_account_customer"]),
+      entry(AB_T, "link_account_branch+link_transfer@hub_account", ["link_account_branch", "link_transfer"]),
+      entry(AB_T + ":counterparty", "link_account_branch+link_transfer@hub_account", ["link_account_branch", "link_transfer"]),
+    ] } as unknown as Checkpoint;
+
+  it("shows one card per group and declines every path of a group left alone", () => {
+    const onDecide = vi.fn();
+    render(<ReviewPerspective run={run2} checkpoint={grouped} onDecide={onDecide} busy={false} error={null} />);
+    expect(screen.getAllByRole("radiogroup")).toHaveLength(2);
+    expect(answers(choice("decision for bridge link_account_branch+link_transfer@hub_account"))).toEqual(["Decline ✓", "Build"]);
+    expect(screen.queryByLabelText(/^path for /)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^accept and continue$/i }));
+    expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({
+      bridges: { [AB_C]: false, [AB_T]: false, [AB_T + ":counterparty"]: false },
+    }));
+  });
+
+  it("asks for the path once a group with several is built, and sends that path alone as the yes", () => {
+    const onDecide = vi.fn();
+    render(<ReviewPerspective run={run2} checkpoint={grouped} onDecide={onDecide} busy={false} error={null} />);
+    fireEvent.click(within(choice("decision for bridge link_account_branch+link_transfer@hub_account")).getByRole("radio", { name: "Build" }));
+    const pick = screen.getByLabelText("path for link_account_branch+link_transfer@hub_account") as HTMLSelectElement;
+    expect(Array.from(pick.options).map((o) => o.value)).toEqual([AB_T, AB_T + ":counterparty"]);
+    expect(pick.value).toBe(AB_T);
+    fireEvent.change(pick, { target: { value: AB_T + ":counterparty" } });
+    fireEvent.click(within(choice("decision for bridge link_account_branch+link_account_customer@hub_account")).getByRole("radio", { name: "Build" }));
+    expect(screen.queryByLabelText("path for link_account_branch+link_account_customer@hub_account")).not.toBeInTheDocument(); // one path: nothing to choose
+    fireEvent.click(screen.getByRole("button", { name: /^accept and continue$/i }));
+    expect(onDecide).toHaveBeenCalledWith(expect.objectContaining({
+      bridges: { [AB_C]: true, [AB_T]: false, [AB_T + ":counterparty"]: true },
+    }));
+  });
+});
+
 const contested: Checkpoint = {
   ...resolution, links: [],
   keys: [{

@@ -133,7 +133,9 @@ async def test_proposals_are_decisions_only_when_the_business_vault_is_on() -> N
         dv_model=_cited_model(), business_vault=BusinessVaultOptions(pit=True, **BOUNDS)))
     proposed = _flags(on, FlagKind.BRIDGE_PROPOSED)
     assert proposed
-    assert [f.asset for f in proposed] == [p.path for p in on.bridge_proposals]
+    # WP144: one decision per link pair and shared hub — the two paths here are one pair's ends.
+    assert [f.asset for f in proposed] == ["link_account_customer+link_transfer@hub_account"]
+    assert all(p.path in proposed[0].message for p in on.bridge_proposals)
     assert all(p.ratification_status == "proposed" for p in on.bridge_proposals)
     assert "--bridge" in proposed[0].message
 
