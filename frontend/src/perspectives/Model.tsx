@@ -44,8 +44,8 @@ export function ModelPerspective({ view, error }: { view: ModelView | null; erro
     <div className="grid gap-4">
       {areas.length > 1 ? <AreaStrip areas={areas} selected={areaName} onSelect={setAreaName} /> : null}
       <div className="grid gap-4 xl:grid-cols-2">
-        <Mermaid title={diagramTitle} source={area ? area.mermaid : view.output_mermaid} />
-        <Mermaid title="Input model — the declared source schema with its foreign keys" source={view.input_mermaid} />
+        <Mermaid title={diagramTitle} sheet={`run ${view.run}`} source={area ? area.mermaid : view.output_mermaid} />
+        <Mermaid title="Input model — the declared source schema with its foreign keys" sheet={`run ${view.run}`} source={view.input_mermaid} />
       </div>
       <Section title={area ? `Inventory — ${area.name}` : "Inventory"} aside={<span className="flex gap-2">{inventory.map(([k, v]) => <Pill key={k}>{v.length} {k}</Pill>)}{view.existing ? <Pill tone="info">brownfield: {existing.size} existing</Pill> : null}</span>}>
         <div className="grid gap-4 md:grid-cols-3">

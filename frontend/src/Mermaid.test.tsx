@@ -112,7 +112,30 @@ describe("Mermaid tile — print and save (WP143)", () => {
     const text = await new Promise<string>((resolve) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.readAsText(saved!); });
     expect(text).toMatch(/^<\?xml/);
     expect(text).toContain('xmlns="http://www.w3.org/2000/svg"');
-    expect(text).toContain("<g>");
+    expect(text).toMatch(/<g\s*\/?>/); // the XML serialiser writes an empty group as <g/>
+  });
+
+  // Found in the real browser, not by the mock above: Mermaid returns HTML-serialised markup — a label's
+  // `<br>` is not closed — so the file as first written did not parse as XML. And a label inside
+  // `<foreignObject>` is HTML, which only a browser draws; the light picture asks for SVG text.
+  it("G3b the saved file is well-formed XML, and the light picture asks for SVG text labels", async () => {
+    vi.mocked(mermaid.render).mockResolvedValueOnce({ svg: '<svg viewBox="0 0 10 10"><g></g></svg>' } as never)
+      .mockResolvedValueOnce({ svg: '<svg viewBox="0 0 10 10"><foreignObject><div>hub_customer<br>BK: customer_id</div></foreignObject></svg>' } as never);
+    let saved: Blob | null = null;
+    URL.createObjectURL = vi.fn((blob: Blob) => { saved = blob; return "blob:x"; });
+    URL.revokeObjectURL = vi.fn();
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    await mount("Model P3b");
+    fireEvent.click(screen.getByRole("button", { name: "save SVG" }));
+    await settle();
+    const text = await new Promise<string>((resolve) => { const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.readAsText(saved!); });
+    let wellFormed = true;
+    try {
+      wellFormed = new DOMParser().parseFromString(text, "image/svg+xml").querySelector("parsererror") === null;
+    } catch { wellFormed = false; }
+    expect(wellFormed).toBe(true);
+    const light = vi.mocked(mermaid.initialize).mock.calls.map(([config]) => config).find((config) => config.theme === "default");
+    expect(light?.htmlLabels).toBe(false);
   });
 
   it("G4 the stylesheet prints the sheet and nothing else", async () => {

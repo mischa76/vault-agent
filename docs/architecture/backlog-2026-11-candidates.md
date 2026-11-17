@@ -902,3 +902,11 @@ field does nothing. **Options:** (a) remove the field and say what the concept n
 as the CLI's pause report does); (b) build the multi-source answer into the page — a `sources` editor, the
 API's `mapping_sources` exists since WP82; (c) fold the entries into the mapping decisions below, which
 already carry a `--map` field for the single-source case. **Not decided**, no WP number.
+
+## C49 — taken up as WP143 (2026-11-17)
+
+On the owner's go of the day. `backlog-2026-07/wp143-diagram-print-spec.md`: „print" and „svg" on every
+diagram tile, both from the tile's own source in Mermaid's light theme with text labels. **Decided by the
+author on the candidate's open points:** the browser's print dialog is the export (no server side, no new
+dependency); the sheet carries the tile's title and the run id; a subject-area view prints the area because
+it prints what the tile shows.

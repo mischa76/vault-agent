@@ -15,6 +15,9 @@ is not the project's.
 ## [Unreleased]
 
 ### Added
+- The workbench's diagrams print and save (WP143, C49): every diagram tile of the Model perspective has
+  „print" — the picture drawn light on a sheet of its own, with its title and the run, through the browser's
+  print dialog — and „svg", the same picture as a well-formed SVG file with text labels.
 - Keys are inferred from the workbench (WP140, C74): *infer keys* in the Source section runs
   `vault-agent infer-keys` over a schema input of the project and stores the byte-identical file
   (`POST /api/projects/{id}/infer-keys`, refused without `reads_rows: true`). A source that lacks a foreign

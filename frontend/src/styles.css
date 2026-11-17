@@ -26,3 +26,17 @@ body { background: var(--color-bg); color: var(--color-ink); font-family: var(--
 ::-webkit-scrollbar-thumb { background: var(--color-line); border-radius: 4px; }
 /* WP88: the component sets width and max-width per zoom; fit is the default. */
 .mermaid-host svg { height: auto; }
+
+/* WP143 (C49): a diagram printed from its tile. The sheet is appended to <body> for the print
+   only; while it is there everything else is hidden, and the light picture takes the page. */
+.print-sheet { display: none; }
+@media print {
+  @page { size: landscape; margin: 12mm; }
+  html.printing, html.printing body { height: auto; background: #fff; color: #000; }
+  html.printing body > *:not(.print-sheet) { display: none !important; }
+  html.printing .print-sheet { display: block; font-family: var(--font-sans); }
+  /* the sheet's own heading and line only — a picture may carry <p> and <h1> of its own */
+  html.printing .print-sheet > h1 { margin: 0 0 6mm; font-size: 12pt; font-weight: 600; }
+  html.printing .print-sheet > p { margin: 4mm 0 0; font-size: 8pt; color: #555; }
+  html.printing .print-sheet svg { width: 100%; max-width: 100% !important; height: auto; max-height: 165mm; }
+}

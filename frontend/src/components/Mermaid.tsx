@@ -6,7 +6,15 @@ const STEP = 1.25;
 
 // Mermaid renders the source the API escaped (the report's rule) under securityLevel strict, as
 // the report does; the SVG is Mermaid's own output. Loaded on demand — it is the bundle's heaviest part.
-export function Mermaid({ source, title }: { source: string; title: string }) {
+const MERMAID = { startOnLoad: false, securityLevel: "strict", fontFamily: "inherit", layout: "dagre" } as const;
+
+// WP143 (C49): the file name a saved picture gets — the tile's title, in the characters every
+// file system takes.
+export const fileStem = (title: string): string =>
+  title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") || "diagram";
+
+// `sheet` is the line under a printed picture — the run it shows (WP143).
+export function Mermaid({ source, title, sheet }: { source: string; title: string; sheet?: string }) {
   const host = useRef<HTMLDivElement>(null);
   const natural = useRef<number | null>(null);
   const id = useId().replace(/[^a-zA-Z0-9]/g, "");
@@ -29,7 +37,7 @@ export function Mermaid({ source, title }: { source: string; title: string }) {
         const mermaid = (await import("mermaid")).default;
         // Mermaid 12 lays out with ELK by default (a 456 kB gzip chunk, fetched on first render); dagre is what
         // Mermaid 11 drew these diagrams with — pinned so the upgrade of 2026-10-24 changes no picture.
-        mermaid.initialize({ startOnLoad: false, securityLevel: "strict", theme: "dark", fontFamily: "inherit", layout: "dagre" });
+        mermaid.initialize({ ...MERMAID, theme: "dark" });
         const { svg } = await mermaid.render(`m${id}`, source);
         if (!cancelled && host.current) {
           host.current.innerHTML = svg;
@@ -83,6 +91,73 @@ export function Mermaid({ source, title }: { source: string; title: string }) {
     if (e.deltaY < 0) zoomIn(); else zoomOut();
   };
 
+  // WP143 (C49): the tile's own source drawn again in Mermaid's light theme — for paper and for a
+  // file. The picture on the screen stays the dark one; the next screen render sets its theme itself.
+  const lightSvg = useCallback(async (): Promise<string> => {
+    const mermaid = (await import("mermaid")).default;
+    // Labels as SVG text (mermaid 12.2.0, config.type.d.ts: root-level `htmlLabels`): an HTML label
+    // sits in a <foreignObject>, which a browser draws and most other SVG viewers do not.
+    // SVG text is wrapped at `flowchart.wrappingWidth` (200 by default), which breaks a construct's
+    // name in the middle (seen on paper: link_account_cus / tomer); wide enough, a name stays whole.
+    mermaid.initialize({ ...MERMAID, theme: "default", htmlLabels: false, flowchart: { wrappingWidth: 1200 } });
+    try {
+      const { svg } = await mermaid.render(`p${id}${Date.now()}`, source);
+      // Mermaid hands back HTML-serialised markup (an unclosed <br>); through the DOM and the XML
+      // serialiser it becomes a document any XML reader takes, with its namespaces.
+      const holder = document.createElement("div");
+      holder.innerHTML = svg;
+      const picture = holder.querySelector("svg");
+      return picture ? new XMLSerializer().serializeToString(picture) : svg;
+    } finally {
+      mermaid.initialize({ ...MERMAID, theme: "dark" });
+    }
+  }, [id, source]);
+
+  const print = useCallback(async () => {
+    setError(null);
+    try {
+      const svg = await lightSvg();
+      const page = document.createElement("div");
+      page.className = "print-sheet";
+      const heading = document.createElement("h1");
+      heading.textContent = title;
+      const picture = document.createElement("div");
+      picture.innerHTML = svg; // Mermaid's own output under securityLevel strict, as on the screen
+      page.append(heading, picture);
+      if (sheet) {
+        const line = document.createElement("p");
+        line.textContent = sheet;
+        page.append(line);
+      }
+      const done = () => {
+        page.remove();
+        document.documentElement.classList.remove("printing");
+        window.removeEventListener("afterprint", done);
+      };
+      window.addEventListener("afterprint", done);
+      document.body.append(page);
+      document.documentElement.classList.add("printing");
+      window.print();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [lightSvg, sheet, title]);
+
+  const save = useCallback(async () => {
+    setError(null);
+    try {
+      const svg = await lightSvg();
+      const url = URL.createObjectURL(new Blob([`<?xml version="1.0" encoding="UTF-8"?>\n${svg}`], { type: "image/svg+xml" }));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${fileStem(title)}.svg`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }, [lightSvg, title]);
+
   const empty = source.trim().split("\n").length <= 1;
   const tool = "rounded border border-line px-1.5 py-0.5 text-ink-dim hover:text-ink disabled:opacity-40";
   return (
@@ -101,6 +176,8 @@ export function Mermaid({ source, title }: { source: string; title: string }) {
               <button type="button" className={tool} aria-label="fit" title="fit the tile's width" onClick={() => setZoom(null)}>fit</button>
               <button type="button" className={tool} aria-label="actual size" title="1:1" onClick={() => setZoom(1)}>1:1</button>
               <button type="button" className={tool} aria-label="full screen" title={full ? "close (Esc)" : "full screen"} onClick={() => setFull(!full)}>{full ? "×" : "⛶"}</button>
+              <button type="button" className={tool} aria-label="print" title="print this diagram — light, on a sheet of its own" onClick={() => void print()}>print</button>
+              <button type="button" className={tool} aria-label="save SVG" title="save this diagram as an SVG file — light, scales without loss" onClick={() => void save()}>svg</button>
               <span className="ml-1 w-10 text-right tabular-nums">{zoom === null ? "fit" : `${Math.round(zoom * 100)}%`}</span>
             </>
           ) : null}

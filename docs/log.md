@@ -14670,3 +14670,33 @@ Routing.ProductID --accept` recorded; five bridge paths at sign-off, each `Decli
 **Überprüft.** The above. **Nur angenommen.** That the page reads right with a real resolver's proposals —
 the walk's are canned. **Bewusst nicht getan.** The contested keys' and the bindings' controls; C78; the
 bridge paths are still one decision per path (WP144).
+
+## [2026-11-17] WP143 built: a diagram tile prints and saves its picture — light, with text labels, on a sheet of its own or as a well-formed SVG file (C49) — Vitest, and a browser walk that found two defects the mocked tests could not
+
+Third of the four packages of the day's go. Spec `architecture/backlog-2026-07/wp143-diagram-print-spec.md`;
+guards red at `8149998`, the change in this commit.
+
+**What was missing.** The diagram tiles zoomed and went full screen; printing the page printed the whole dark
+perspective with the diagram cut off, and no picture could leave the workbench.
+
+**What changed.** `components/Mermaid.tsx`: two tools per non-empty tile. Both draw the tile's source again
+with Mermaid's light theme and SVG text labels (`htmlLabels: false`, `flowchart.wrappingWidth` wide), pass
+it through the DOM and `XMLSerializer`. „print" appends a sheet — title, picture, the run — to the page,
+marks `<html>` as printing, calls `window.print()` and removes the sheet on `afterprint`; `styles.css` hides
+everything but the sheet under `@media print` and suggests landscape. „svg" hands the picture to the browser
+as `<title>.svg`. The Model perspective passes the run as the sheet's line.
+
+**What the browser found.** With Mermaid mocked the guards were green on the first implementation; a real
+Chromium refused the saved file as XML (Mermaid's markup is HTML-serialised: an unclosed `<br>`), the labels
+were HTML in `<foreignObject>` (drawn by browsers only), the sheet's `p` rule restyled every label, and text
+labels then broke names mid-word on paper. All four repaired in this commit; the first has its own guard,
+written and seen red before the repair. Read for the options: mermaid 12.2.0, `dist/config.type.d.ts`
+(root-level `htmlLabels`; `FlowchartDiagramConfig.wrappingWidth`).
+
+**Measured.** Vitest 59 (four red before, a fifth added and seen red), `tsc`, the build. In Chromium on the
+canned stub state: output model and input model (`erDiagram`) each saved as an SVG that parses, without
+`foreignObject`, names whole; each printed by the browser to one landscape PDF page with title, picture and
+run line; only the sheet visible under print media; the screen's picture untouched. **Überprüft.** The
+above; both PDFs looked at. **Nur angenommen.** That a printer gives what the PDF shows. **Bewusst nicht
+getan.** No paging of a wide model, no PNG, no server-side export, nothing in the report or the CLI; no
+model of chain size was printed.

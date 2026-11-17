@@ -57,3 +57,27 @@ the inventory or of the whole perspective. Nothing in the report or the CLI.
   light SVG that parses; the print sheet rendered to PDF by the browser (headless `page.pdf` with the print
   media) is one landscape page with the title and the picture. Kept as files.
 - **Not measured:** a printer; a model of chain size on one sheet.
+
+## 6 Measured (2026-11-17)
+
+- **P1 held.** Four Vitest cases red at `8149998`, green with the change; WP88's five unchanged and green.
+  Vitest 59, `tsc`, the build. No Python file touched.
+- **P2 done — and it found two defects the mocked tests could not.** In a real Chromium on the canned stub
+  state:
+  1. **The file as first written was no XML.** Mermaid returns HTML-serialised markup (a label's `<br>` is
+     not closed); the browser's own XML parser refused the saved file. The picture now goes through the DOM
+     and `XMLSerializer`. Guard G3b added — red against the first implementation, green now.
+  2. **Labels were HTML inside `<foreignObject>`**, which a browser draws and most other SVG viewers do
+     not; and the sheet's rule for its own line (`.print-sheet p`) restyled every label paragraph. The
+     light picture is drawn with `htmlLabels: false` (mermaid 12.2.0, `config.type.d.ts`, root-level
+     `htmlLabels`), and the rule is scoped to the sheet's own children. With text labels a construct's name
+     was then broken mid-word on paper (`link_account_cus` / `tomer`): `flowchart.wrappingWidth` is set wide
+     for the light picture.
+  After that: both tools on the output and the input tile; the saved files parse as SVG (output model: 6
+  nodes, 12 text labels, no `foreignObject`; input model, an `erDiagram`: 45 text labels), names whole;
+  under print media only the sheet is visible; the browser's PDF of each sheet is one landscape page with
+  the title, the picture and the run line (kept as `wp143-print-sheet*.pdf`); after `afterprint` the sheet
+  is gone and the screen's picture is the one it was.
+- **G3 adjusted with the change:** the serialiser writes an empty group as `<g/>`; the guard takes both.
+- **Not measured.** A printer; a model of chain size on one sheet (the picture is scaled to the page, a wide
+  model becomes small — the SVG is the way out); a browser other than Chromium.
