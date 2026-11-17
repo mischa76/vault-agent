@@ -14635,3 +14635,38 @@ and screenshots. **Nur angenommen.** That the attach controls now read as button
 nicht getan.** The diagram tools, log filters and area chooser stay hand-written toggles; no icons; no
 light theme. Also in this commit: the index's row for the November backlog gains C73–C77, which the
 entries of 2026-11-16 had not carried into it.
+
+## [2026-11-17] WP142 built: the checkpoint's decision controls — two named answers side by side instead of a checkbox whose word is its state, and an entity resolution answered from a list in plain words (C52, C51) — Vitest, two Python guards, a browser walk on a canned stub state; C78 found
+
+Second of the four packages of the day's go. Spec
+`architecture/backlog-2026-07/wp142-checkpoint-decision-controls-spec.md`; guards red at `ecfb0be`, the
+change in this commit.
+
+**Why it was wrong.** A proposal's checkbox carried one word, and the word was the current answer: „decline"
+beside an empty box read as „tick to decline" (the owner, on the bridges). An entity resolution was a text
+field whose default — keep the proposal — was the empty field, with the CLI's three tokens as suggestions and
+no way to see which hubs exist.
+
+**What changed.** `Choice` in `components/ui.tsx`, a radio group of named answers, the chosen one filled,
+the default first: `Build`/`Allow` | `Decline` for declared links and licences, `Decline` | `Allow` for
+inferred keys, `Decline` | `Build` for bridge paths. The resolution field is a select: „Keep the proposal —
+is `<hub>`" (or „— same as `<hub>`, keyed differently") preselected, „New hub", „Leave unresolved", the
+vault's other hubs. The checkpoint API's pending resolution carries `proposed` and `same_as`, the checkpoint
+`hubs` (`ui/runs.py`). What the run receives is what it received before.
+
+**The author's decisions, the owner's to revert:** no default or hint by confidence; `same_as_candidate` not
+offered as its own answer in the page.
+
+**Found, not repaired — C78.** The section „Unresolved concepts (entity resolution)" lists multi-source
+*mapping* concepts, and its field sends an entity-resolution answer the applier drops silently. Read in the
+code, not measured. Left untouched; C51's wish to give that section the same list would have dressed a field
+that does nothing.
+
+**Measured.** Vitest 54 (four red before, one a pin), suite 1867 passed / 3 skipped with no key reachable,
+`tsc`, the build, ruff, bare mypy, UI coverage 95 %. In a real Chromium on a canned stub state (an existing
+vault, two pending resolutions, links citing one requirement; no model call): no checkbox on the resolution
+checkpoint, the lists as specified, and `resume … --resolve contact::contactid=hub_vendor --link
+Routing.ProductID --accept` recorded; five bridge paths at sign-off, each `Decline ✓ / Build`.
+**Überprüft.** The above. **Nur angenommen.** That the page reads right with a real resolver's proposals —
+the walk's are canned. **Bewusst nicht getan.** The contested keys' and the bindings' controls; C78; the
+bridge paths are still one decision per path (WP144).

@@ -65,6 +65,23 @@ export function FileButton({ children, accept, ariaLabel, onFile }: {
   );
 }
 
+/** WP142 (C52): a decision between named answers — a radio group, every answer visible, the chosen
+ * one filled, the default first. Never a checkbox whose word is its state. */
+export function Choice<T extends string>({ label, options, value, onChange }: {
+  label: string; options: readonly { value: T; label: string }[]; value: T; onChange: (value: T) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label={label} className="ml-auto inline-flex overflow-hidden rounded-md border border-line text-xs">
+      {options.map((o) => (
+        <button key={o.value} type="button" role="radio" aria-checked={o.value === value} onClick={() => onChange(o.value)}
+          className={`px-2.5 py-1 font-medium transition ${o.value === value ? "bg-accent-soft text-accent" : "text-ink-dim hover:bg-pane hover:text-ink"}`}>
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export function Section({ title, children, aside }: { title: string; children: ReactNode; aside?: ReactNode }) {
   return (
     <section className="rounded-lg border border-line bg-pane">

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import type { Checkpoint, Decision, KeyAnswer, LinkDecision, ReviewItem, Run, StageBinding } from "../types";
-import { Button, Empty, ErrorNote, Pill, Section } from "../components/ui";
+import type { Checkpoint, Decision, KeyAnswer, LinkDecision, ResolutionDecision, ReviewItem, Run, StageBinding } from "../types";
+import { Button, Choice, Empty, ErrorNote, Pill, Section } from "../components/ui";
 
 const FALLBACK_ANSWERS = ["NEW", "same_as_candidate", "unresolved"];
 
@@ -66,6 +66,13 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
   const declined = declaredLinks.filter((l) => links[l.key] === false).length;
   const allowedInferred = inferredLinks.filter((l) => links[l.key] === true).length;
   const changes = [declined ? `decline ${declined}` : null, allowedInferred ? `allow ${allowedInferred} inferred` : null].filter(Boolean);
+  // WP142 (C51): the proposal in words, and the hubs a resolution may name instead of it. The
+  // proposal's own hub is no "other" answer; a same-as proposal's candidate is (a merge onto it).
+  const keptAs = (p: ResolutionDecision): string =>
+    p.proposed === undefined ? `proposed ${p.claim}`
+      : p.proposed === "same_as_candidate" ? `same as ${p.same_as ?? "its candidate"}, keyed differently`
+        : `is ${p.proposed}`;
+  const otherHubs = (p: ResolutionDecision): string[] => (checkpoint.hubs ?? []).filter((h) => h !== p.proposed);
   const pendingBindings = atResolution ? [] : (checkpoint.bindings ?? []);
   const pendingBridges = atResolution ? [] : (checkpoint.bridges ?? []);
   const pendingKeys = atResolution ? (checkpoint.keys ?? []) : [];
@@ -110,17 +117,18 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
     keys: atResolution ? keyAnswers() : {},
   });
 
+  // WP142 (C52): two named answers, the default first — a licence allows, everything else builds.
+  const NO = { value: "no", label: "Decline" } as const;
+  const yes = (l: LinkDecision) => ({ value: "yes", label: l.kind === "license" ? "Allow" : "Build" } as const);
   const linkRow = (l: LinkDecision, build: boolean) => (
     <li key={l.key} className="rounded-md border border-line bg-pane-2 p-3">
       <div className="flex flex-wrap items-center gap-2">
         <code className="font-mono text-xs text-accent">{l.key}</code>
         <span>→ {l.target}</span>
         <Pill>{l.kind}</Pill>
-        <label className="ml-auto flex items-center gap-2 text-xs">
-          <input type="checkbox" checked={build} aria-label={`build ${l.key}`}
-            onChange={(e) => setLinks({ ...links, [l.key]: e.target.checked })} />
-          {build ? (l.kind === "license" ? "allow" : "build") : "decline"}
-        </label>
+        <Choice label={`decision for ${l.key}`} value={build ? "yes" : "no"}
+          onChange={(v) => setLinks({ ...links, [l.key]: v === "yes" })}
+          options={l.provenance === "inferred" ? [NO, yes(l)] : [yes(l), NO]} />
       </div>
       <p className="mt-1 text-xs text-ink-dim">{l.note}</p>
       {l.evidence.map((e, i) => <p key={i} className="text-xs text-ink-faint">{e}</p>)}
@@ -136,7 +144,7 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
         </span>}>
         <p className="text-sm text-ink-dim">
           {atResolution
-            ? `The run paused before the model is built: declared keys, entity resolutions and contested hub keys need a decision that steers the modeler. Everything left as proposed is ratified by accept — the CLI's --accept; a contested hub key then takes the declared natural key.${inferredLinks.length ? " An inferred key is the exception: it is declined unless checked below." : ""} Owners and the model's review come at sign-off, after the modeler.`
+            ? `The run paused before the model is built: declared keys, entity resolutions and contested hub keys need a decision that steers the modeler. Everything left as proposed is ratified by accept — the CLI's --accept; a contested hub key then takes the declared natural key.${inferredLinks.length ? " An inferred key is the exception: it is declined unless allowed below." : ""} Owners and the model's review come at sign-off, after the modeler.`
             : checkpoint.blocked ? "Something blocks agreement — a validation error or a contract without an owner. Answer the decisions, then accept, or discard the run." : "Nothing blocks agreement. Review the decisions and accept, or discard."}
         </p>
         <ErrorNote error={error} />
@@ -151,14 +159,14 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
 
       {declaredLinks.length > 0 ? (
         <Section title="Declared keys — links, relationship tables and key licenses">
-          <p className="mb-2 text-xs text-ink-faint">Proposed from the source's own foreign keys. Build is the default, as in the CLI's prompt (`--link`); decline is the exception (`--no-link`). A license builds nothing: it allows the translation or alias the modeler will need.</p>
+          <p className="mb-2 text-xs text-ink-faint">Proposed from the source's own foreign keys. Build (for a license: allow) is the default, as in the CLI's prompt (`--link`); decline is the exception (`--no-link`). A license builds nothing: it allows the translation or alias the modeler will need.</p>
           <ul className="grid gap-2 text-sm">{declaredLinks.map((l) => linkRow(l, links[l.key] !== false))}</ul>
         </Section>
       ) : null}
 
       {inferredLinks.length > 0 ? (
         <Section title="Inferred keys — found in the data, declared nowhere" aside={<Pill tone="warn">{inferredLinks.length} inferred</Pill>}>
-          <p className="mb-2 text-xs text-ink-dim">`vault-agent infer-keys` found that every value of the column occurs in the key it names. That is evidence, not a declaration — it can hold by coincidence. <strong>Declined unless you check it</strong>, as the CLI's `--accept` declines it; checked, it is the CLI's `--link`: the link built on it is bound and its key translated like a declared one, and the translation is flagged to confirm at sign-off.</p>
+          <p className="mb-2 text-xs text-ink-dim">`vault-agent infer-keys` found that every value of the column occurs in the key it names. That is evidence, not a declaration — it can hold by coincidence. <strong>Declined unless you allow it</strong>, as the CLI's `--accept` declines it; allowed, it is the CLI's `--link`: the link built on it is bound and its key translated like a declared one, and the translation is flagged to confirm at sign-off.</p>
           <ul className="grid gap-2 text-sm">{inferredLinks.map((l) => linkRow(l, links[l.key] === true))}</ul>
         </Section>
       ) : null}
@@ -205,15 +213,19 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
               <li key={p.concept} className="grid gap-1 rounded-md border border-line bg-pane-2 p-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <span><code className="font-mono text-accent">{p.label}</code>{p.entity ? <span className="text-ink-faint"> (from {p.entity})</span> : null}: proposed {p.claim} <span className="text-ink-faint">({p.category}, confidence {p.confidence.toFixed(2)})</span></span>
-                  <input list="resolution-answers" value={resolutions[p.concept] ?? ""} placeholder="leave as proposed, or NEW / a construct"
+                  <select value={resolutions[p.concept] ?? ""} aria-label={`resolution for ${p.concept}`}
                     onChange={(e) => setResolutions({ ...resolutions, [p.concept]: e.target.value })}
-                    className="w-72 rounded-md border border-line bg-pane px-2 py-1 font-mono text-xs" aria-label={`resolution for ${p.concept}`} />
+                    className="w-80 rounded-md border border-line bg-pane px-2 py-1 text-xs">
+                    <option value="">Keep the proposal — {keptAs(p)}</option>
+                    <option value="NEW">New hub</option>
+                    <option value="unresolved">Leave unresolved</option>
+                    {otherHubs(p).length ? <optgroup label="Another existing hub">{otherHubs(p).map((h) => <option key={h} value={h}>{h}</option>)}</optgroup> : null}
+                  </select>
                 </div>
                 {p.evidence.map((e, i) => <p key={i} className="text-xs text-ink-faint">{e}</p>)}
               </li>
             ))}
           </ul>
-          <datalist id="resolution-answers">{answers.map((a) => <option key={a} value={a} />)}</datalist>
         </Section>
       ) : null}
 
@@ -237,7 +249,7 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
 
       {pendingBridges.length > 0 ? (
         <Section title="Bridge paths — proposed from the requirements, built only when you say so">
-          <p className="text-xs text-ink-dim">Each path below joins two links that cite the same requirement around a shared hub. A bridge is Business Vault logic (ADR-0007): unchecked it is declined, as the CLI's <code className="font-mono">--accept</code> declines an unanswered one; checked it is built along the path — <code className="font-mono">--bridge</code>.</p>
+          <p className="text-xs text-ink-dim">Each path below joins two links that cite the same requirement around a shared hub. A bridge is Business Vault logic (ADR-0007): left at decline it is declined, as the CLI's <code className="font-mono">--accept</code> declines an unanswered one; set to build it is built along the path — <code className="font-mono">--bridge</code>.</p>
           <ul className="mt-2 grid gap-2 text-sm">
             {pendingBridges.map((b) => {
               const build = bridges[b.path] === true;
@@ -246,11 +258,9 @@ export function ReviewPerspective({ run, checkpoint, onDecide, busy, error }: {
                   <div className="flex flex-wrap items-center gap-2">
                     <code className="font-mono text-xs text-accent">{b.path}</code>
                     {b.requirement_ids.map((r) => <Pill key={r}>{r}</Pill>)}
-                    <label className="ml-auto flex items-center gap-2 text-xs">
-                      <input type="checkbox" checked={build} aria-label={`build bridge ${b.path}`}
-                        onChange={(e) => setBridges({ ...bridges, [b.path]: e.target.checked })} />
-                      {build ? "build" : "decline"}
-                    </label>
+                    <Choice label={`decision for bridge ${b.path}`} value={build ? "yes" : "no"}
+                      onChange={(v) => setBridges({ ...bridges, [b.path]: v === "yes" })}
+                      options={[NO, { value: "yes", label: "Build" }]} />
                   </div>
                   {b.evidence.map((e, i) => <p key={i} className="mt-1 text-xs text-ink-faint">{e}</p>)}
                 </li>

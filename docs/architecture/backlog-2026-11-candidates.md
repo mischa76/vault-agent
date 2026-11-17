@@ -878,3 +878,27 @@ at most once per perspective, `add` for what adds, `danger` for what destroys at
 navigation; the attach controls are buttons of kind `add`; every delete is `danger`; the error colour is
 #f2647a, 24° of hue from the accent where it was 7°. The candidate's point (3), whether `danger` gets a hue
 apart, was decided by the author as yes — the owner's to revert.
+
+## C52 and C51 — taken up as WP142 (2026-11-17)
+
+On the owner's go of the day (all open workbench-usability candidates).
+`backlog-2026-07/wp142-checkpoint-decision-controls-spec.md`: C52's first option — a segmented control of two
+named answers, the default first, for links, licences, inferred keys and bridge paths; C51's proposal — a
+list in plain words, „Keep the proposal" first and preselected, the vault's hubs by name, the machine value
+only in what is sent. **Decided by the author where the candidates left it open:** no default or hint by
+confidence (C51: a second decision rule in the page, and a threshold nobody has set); `same_as_candidate`
+is not offered as an answer of its own (against a merge proposal it asserts an equivalence to no named
+construct; the CLI still takes it). C51's last sentence — the unresolved section „the same" — is not
+built: see C78.
+
+## C78 — The Review perspective's „Unresolved concepts (entity resolution)" lists mapping concepts, and its field's answer is dropped (2026-11-17)
+
+**Read in the code while specifying WP142, not measured by a run.** The section (since WP67) shows
+`checkpoint.unresolved` — `cli._multi_source_unresolved`, the unresolved *mapping* concepts whose key is a
+column of two or more declared tables, which need a `sources:` list (`resume --mappings`). Its field is
+labelled and sent as an entity-resolution answer (`resolutions[concept]`); `_apply_resolution_decision`
+finds no resolution proposal for the concept and skips it without a warning. So the title is wrong and the
+field does nothing. **Options:** (a) remove the field and say what the concept needs (the `--mappings` file,
+as the CLI's pause report does); (b) build the multi-source answer into the page — a `sources` editor, the
+API's `mapping_sources` exists since WP82; (c) fold the entries into the mapping decisions below, which
+already carry a `--map` field for the single-source case. **Not decided**, no WP number.

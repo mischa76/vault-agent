@@ -75,3 +75,23 @@ No hint below a threshold either — a threshold would be a number nobody has se
 - **P2** a resolution checkpoint with a licence and an inferred key in a real browser on stub agents, by
   screenshot. A checkpoint with a pending entity resolution or a bridge needs an existing vault and a
   model — shown in the browser only if a stub state can carry them; otherwise Vitest only, and said so.
+
+## 6 Measured (2026-11-17)
+
+- **P1 held, with one case that was never red.** Four Vitest cases red at `ecfb0be` (three rewritten
+  deliberately onto the new control, the resolution list), green with the change; the fifth new case — what
+  is sent for a resolution left alone or answered — passed before as well and is a pin, as the commit said.
+  Two Python guards red by import, green. Vitest 54, suite 1867 passed / 3 skipped with no key reachable,
+  `tsc`, the build, ruff, bare mypy; `vault_agent.ui` coverage 95 %.
+- **P2 done, all of it.** A stub state could carry an existing vault, two pending resolutions and a model
+  whose links cite one requirement (`serve_stub2.py`, `canned.py` in the evidence folder; orchestrator, link
+  proposer and both checkpoints real, no model call). In a real Chromium: no checkbox left on the resolution
+  checkpoint; the declared licences `Allow ✓ / Decline`, the inferred key `Decline ✓ / Allow`; the merge
+  proposal's list „Keep the proposal — is hub_business_entity" selected, then „New hub", „Leave unresolved",
+  `hub_person`, `hub_vendor`; the same-as proposal's first entry naming `hub_person`. One inferred key
+  allowed and one resolution answered with another hub: the run recorded `resume … --resolve
+  contact::contactid=hub_vendor --link Routing.ProductID --accept`. At sign-off five bridge paths, each
+  `Decline ✓ / Build`.
+- **Changed after the first screenshot:** the answer not chosen was drawn in the faintest text colour and
+  read as disabled; it is the dim one now.
+- **Not measured.** A real extension run with a real resolver's proposals on the page.

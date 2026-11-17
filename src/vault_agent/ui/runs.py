@@ -99,8 +99,19 @@ def _pending_resolutions(state: VaultAgentState) -> list[dict[str, Any]]:
         out.append({
             "concept": p.concept, "label": label, "entity": entity or None, "claim": claim,
             "category": p.category, "confidence": p.confidence, "evidence": list(p.evidence),
+            # WP142 (C51): what was proposed, as fields — the page offers "keep the proposal"
+            # by name instead of an empty field beside a sentence.
+            "proposed": p.resolution, "same_as": p.same_as,
         })
     return out
+
+
+def _existing_hubs(state: VaultAgentState) -> list[str]:
+    """WP142: the hubs of the vault being extended — the only constructs a resolution answer
+    may name (`orchestrator._apply_resolution_decision`); none on a greenfield run."""
+    if state.existing_model is None:
+        return []
+    return sorted(h.name for h in state.existing_model.hubs)
 
 
 class RunConflictError(RuntimeError):
@@ -449,6 +460,7 @@ class RunManager:
             "resolutions": _pending_resolutions(state) if at_resolution else [],
             "keys": _pending_keys(state) if at_resolution else [],  # WP125
             "answers": list(RESOLUTION_ANSWERS),
+            "hubs": _existing_hubs(state) if at_resolution else [],  # WP142
             "blocked": queue.requires_signoff,
             "decisions": len(queue.decisions),
             "disclosures": len(queue.disclosures),

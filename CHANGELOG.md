@@ -40,6 +40,11 @@ is not the project's.
   (WP124, C62). AutomateDV's effectivity satellite assumes that order; loaded in reverse it left two owners open.
 
 ### Changed
+- The workbench's checkpoint decisions are named answers side by side (WP142, C52, C51): a link, a key
+  licence, an inferred key and a bridge path each show both answers, the chosen one filled — no checkbox
+  whose word is its state. An entity resolution is answered from a list in plain words, the proposal first
+  and preselected, the vault's hubs by name; the checkpoint API carries `proposed`, `same_as` and `hubs`
+  for it. What is sent to the run is unchanged.
 - The workbench's buttons follow a written rule (WP141, C45; manual 14.4): `primary` once per perspective,
   `add` for what adds (the attach controls are buttons now, with a „+"), `danger` for everything that
   destroys — the small per-file and per-run deletes included —, `ghost` for navigation. The error colour

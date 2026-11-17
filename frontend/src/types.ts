@@ -157,6 +157,9 @@ export interface ResolutionDecision {
   category: string;
   confidence: number;
   evidence: string[];
+  // WP142: what was proposed — an existing hub's name, or `same_as_candidate` with its candidate.
+  proposed?: string;
+  same_as?: string | null;
 }
 
 // WP82: a stage no rule could bind — what the human needs to bind it.
@@ -206,6 +209,7 @@ export interface Checkpoint {
   links: LinkDecision[];
   resolutions: ResolutionDecision[];
   answers: string[];
+  hubs?: string[]; // WP142: the hubs of the vault being extended — a resolution may name one
   bindings?: PendingBinding[]; // WP82
   bridges?: BridgeProposal[]; // WP115
   keys?: PendingKey[]; // WP125: contested hub keys, at the resolution checkpoint
