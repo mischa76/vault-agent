@@ -107,3 +107,16 @@ proposes no bridge and changes in nothing; no byte-identity fixture moves.
   below the perspective's early returns, where a hook may not stand.
 - **Not measured.** A live chain with the Business Vault on; the prompt in a real terminal (the guard
   scripts the prompter); a pair with 28 paths on the page — the list holds them, nobody has read it.
+
+### Corrected (2026-11-18): the twenty-fifth chain was on the machine, and is measured
+
+§1 and §6 say the twenty-fifth chain's saved models are not on this machine. They were — under
+`~/workbench/chain-20261107`, the workbench root the chain ran with; the search had looked inside the
+project and four levels deep in the home directory, one level short. Measured now with the same script
+logic (`eval/results/kept-outputs/wp141-144-20261117/wp144-p2-chain25.txt`): the five finished steps stored
+**89** proposals (1, 1, 7, 27, 53 — WP122's count), WP122's rules leave **49** paths (1, 0, 5, 20, 23 —
+WP122's count), and WP144 makes of them **21 decisions** (1, 0, 4, 4, 12). The note of 2026-11-08 said 25
+for (a) with (b); it is not reproduced — grouped by pair and hub, by pair, hub and the hub's role, by pair
+alone, per requirement, or with a pair declined as a whole, the chain gives 21, 22, 21, 21 and 21; how 25
+was counted is not recorded. The chain's folder is in the results repository since 2026-11-18
+(`kept-outputs/workbench-chain-20261107`).

@@ -49,6 +49,13 @@ git -C eval/results commit -m "<what was run, with its stamp>"
 git -C eval/results push               # never --force: the remote refuses it, by the owner's setting
 ```
 
+**A run through the workbench is not in `eval/results/`.** It is written under the workbench's root
+(`vault-agent ui --root …`), so the commands above do not see it. After a paid chain through the
+workbench, copy its project folder to `eval/results/kept-outputs/workbench-chain-<date>/` (without the
+`checkpoints.sqlite` files) and commit that. The twenty-fifth chain (2026-11-07/08) had one copy, under
+`~/workbench/`, until 2026-11-18 — and a record said its models were not on the machine
+(`docs/log.md`, 2026-11-18).
+
 Verify with `git -C eval/results status -sb` (nothing ahead) and `git -C eval/results ls-remote
 origin` naming the commit. On a checkout without the directory: `git clone
 tank:/tank/git/vault-agent-eval-results.git eval/results`. Kept projects of a run

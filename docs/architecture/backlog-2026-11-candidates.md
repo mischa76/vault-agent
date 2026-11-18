@@ -922,3 +922,10 @@ stored chain of 2026-11-15: 22 decisions where one per path was 174. The count o
 twenty-fifth chain) could not be measured again — that chain's saved models are not on this machine.
 **Still open if wanted:** (c) propose only where the requirement names both ends, (d) disclosures instead of
 decisions while no bridge was asked for — neither decided.
+
+## C53 — the twenty-fifth chain measured after all (2026-11-18): 49 paths, 21 decisions
+
+Corrects the entry of 2026-11-17 above: the chain's saved models were on the machine
+(`~/workbench/chain-20261107`). With WP144 its 49 paths (WP122) are **21 decisions**. The 25 noted on
+2026-11-08 is not reproduced by any grouping tried; how it was counted is not recorded.
+`backlog-2026-07/wp144-bridge-groups-spec.md`, „Corrected (2026-11-18)".

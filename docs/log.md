@@ -14735,3 +14735,39 @@ WP142's walk showed 6, the second path of a pair chosen, and the run recorded `-
 decision with a long list. **Bewusst nicht getan.** C53's (c) and (d); a handle to decline a group by name
 (leaving it declines it); no chain with the Business Vault on; the twenty-fifth chain's count not
 re-measured — its saved models are not on this machine.
+
+## [2026-11-18] Correction to WP144: the twenty-fifth chain's models were on this machine — measured, 49 paths become 21 decisions; the chain's folder had one copy and is now in the results repository
+
+The owner asked, on reading the report, whether all results of the live runs had not been put into the
+results repository. Two things were wrong.
+
+**The claim.** WP144's spec, its log entry and its backlog entry (2026-11-17) say the twenty-fifth chain's
+saved models are not on this machine, so the count of 2026-11-08 could not be measured again. They were
+there: `~/workbench/chain-20261107/chain-20261107/runs/`, five finished steps and the discarded false start
+— the root the chain's own log entry names. The search had looked inside the project and four levels deep
+in the home directory; the runs lie five deep. „Not measurable" was said after one failed search (the
+rule broken: the user-scope bootstrap rule on exhausting the means before reporting something as not
+checkable).
+
+**The measurement, now made** (read-only, the real proposer and flags, each step with the earlier steps'
+paths declined): 89 proposals as the runs stored them, 49 paths under WP122 (1, 0, 5, 20, 23 — both WP122's
+numbers), **21 decisions under WP144** (1, 0, 4, 4, 12). The note of 2026-11-08 predicted 25 for (a) with
+(b). Not reproduced: five ways of grouping give 21, 22, 21, 21, 21; how the 25 was counted is not recorded.
+WP144's result on the chain of 2026-11-15 (174 → 22) stands.
+
+**The gap behind the question.** The results repository (since 2026-11-14) was begun from `eval/results/`
+on two machines. A run through the workbench is written under the workbench's root, outside that
+directory. The two chains of 2026-11-15 were copied in when they ran; the twenty-fifth chain never was and
+existed in one copy. Copied in now as `kept-outputs/workbench-chain-20261107` (1775 files, the six
+`checkpoints.sqlite` left out; results repository `c7c953a`). The inventory made for it — every `run.json`
+under the home directory: the twenty-fifth chain, the two of 2026-11-15, and the shipped demo; the
+twenty-fourth chain's project (`~/workbench/chain-20261105`) holds inputs and no run, as its entry of
+2026-11-05 says. `.claude/skills/project-docs/SKILL.md` gains the sentence that a workbench chain's folder
+is copied after the run.
+
+**Überprüft.** The folder and its six runs by `ls` and `run.json`; the measurement by the script in
+`eval/results/kept-outputs/wp141-144-20261117/`; file counts of source and copy (1775 each); the push by
+`ls-remote`. **Nur angenommen.** That no workbench run lies outside the home directory of this machine or
+on ZEUS — only this machine was searched. **Bewusst nicht getan.** No edit of the entries of 2026-11-17 (a
+dated note is appended to the spec); the checkpoint databases not kept; the old plain directory on `tank`
+not compared — the `git` user there has no shell.
