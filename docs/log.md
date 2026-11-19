@@ -14771,3 +14771,42 @@ is copied after the run.
 on ZEUS — only this machine was searched. **Bewusst nicht getan.** No edit of the entries of 2026-11-17 (a
 dated note is appended to the spec); the checkpoint databases not kept; the old plain directory on `tank`
 not compared — the `git` user there has no shell.
+
+## [2026-11-19] Evidence secured — the datavault4dbt and TurboVault probes of 2026-11-09 lay in `/tmp` only, which is cleaned after ten days; one cited build log is already lost
+
+**Autor:** Claude Code
+
+The owner asked whether the tests on datavault4dbt and TurboVault were remembered — the day after the finding
+that a workbench chain had existed in one copy. They are recorded (2026-11-09, the `xml` probe, C56 in four
+rounds, C57 in two steps, C58; C60 on 2026-11-10). Looking for their evidence found the same gap in another
+place. **What was where:** C56's probe and oracle are in this repository (`eval/datavault4dbt/`, replayable),
+and C60's scenario too (`eval/automatedv/`). C57's material — the two converters, the converted models, the
+three build logs, TurboVault's workspace with the generated dbt projects — and C56's original round scripts and
+logs lay under `/tmp` on vault-dev and nowhere else; the entries of 2026-11-09 say so („throwaway under
+`/tmp/wp119`"), and nothing was copied. **Why that was wrong:** `/tmp` here is cleaned of everything older than
+ten days by a daily timer (`/usr/lib/tmpfiles.d/tmp.conf`: `q /tmp 1777 root root 10d`); the next run was 41
+minutes after the look, and the files dated from the morning of 2026-11-09 on. **Already lost:**
+`/tmp/wp119/build25.log`, the twenty-fifth chain's build log the entry of 2026-11-08 names as checked — its
+directory holds an emptied `dbt_packages` and nothing else. The chain's project is kept
+(`kept-outputs/workbench-chain-20261107`), so the build can be repeated without a model call; the log of the
+build that was read then cannot be shown any more.
+
+**Copied** to the results repository as `kept-outputs/c56-c57-probes-20261109/` (`a0a8d26`, `eac6c18`,
+`679aa69`): `turbovault/` (converters, probe files, workspace without packages and targets, the file list of
+the published 0.23.0 wheel — 181 entries, none under `generation/renderers`, defect T1 — and the upstream
+clone's commit), `datavault4dbt-rounds/` (the scratch project as run), `wp119-scratch/` (the session's scripts
+of C56–C61 and WP121–WP124, the regenerated projects `r121`/`r123`/`r124`, `build123.log`, `build124.log`).
+Every `profiles.yml` left out; the local database password, which ten round scripts and the first oracle
+carried, masked in the copies; scripts stored as `.py.txt`. `.claude/skills/project-docs/SKILL.md` gains the
+paragraph on `/tmp`.
+
+**Überprüft.** The build totals in the copied logs against the entries of 2026-11-09 (MCP schema PASS=106
+ERROR=6, round-trip PASS=131, the first round-trip attempt PASS=125 ERROR=1); a search of the copies for a
+password or a connection URL (none left); every `/tmp` path this log and the November backlog cite
+(`/tmp/dv4x`, `/tmp/wp119`, `/tmp/tv-venv` — the first two copied, the third an environment); the probe schemas
+still standing in `aw_source` (`dv4x`, `dv4x_src`, `tv_*`, `tvrt_*`, `tvrt2_*`); the pushes by `ls-remote`;
+bare mypy after the rename (the first copy, with `.py` files, broke it on a duplicate module name — the rule of
+2026-11-15, met again). **Nur angenommen.** That nothing else of value lay under `/tmp` and was cleaned
+earlier — only what the records cite by path was looked for. **Bewusst nicht getan.** The build of the
+twenty-fifth chain not repeated; the probe schemas neither dumped nor dropped; TurboVault's `db.sqlite3`, the
+virtual environment and the upstream clone not kept; nothing reported upstream (the owner's, as before).

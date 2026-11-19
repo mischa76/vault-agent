@@ -56,6 +56,13 @@ workbench, copy its project folder to `eval/results/kept-outputs/workbench-chain
 `~/workbench/`, until 2026-11-18 — and a record said its models were not on the machine
 (`docs/log.md`, 2026-11-18).
 
+**`/tmp` is cleaned after ten days** on vault-dev (`/usr/lib/tmpfiles.d/tmp.conf`, a daily timer). A
+scratch project, script or build log that an entry cites as evidence is copied to
+`eval/results/kept-outputs/<what>-<date>/` in the session that cites it — with every `profiles.yml` left
+out and a password in a script masked. `build25.log`, cited on 2026-11-08, was gone on 2026-11-19; the
+datavault4dbt and TurboVault probes of 2026-11-09 were copied 40 minutes before their turn
+(`docs/log.md`, 2026-11-19).
+
 Verify with `git -C eval/results status -sb` (nothing ahead) and `git -C eval/results ls-remote
 origin` naming the commit. On a checkout without the directory: `git clone
 tank:/tank/git/vault-agent-eval-results.git eval/results`. Kept projects of a run
