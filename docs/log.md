@@ -14836,3 +14836,32 @@ challenge's rules as the fetch agent reported them — one reading, today; the t
 one; the form's address was not found on the pages; whether the text forwarded on 2026-11-09 said the same.
 **Bewusst nicht getan.** Nothing filed, starred or submitted — the owner's, with his own account and data; no
 check whether the four defects have meanwhile been reported or fixed upstream.
+
+## [2026-11-19] Finding — upstream state of the C56 and C57 defects: T1 is fixed and released, T4's second half was already known, the four datavault4dbt defects are neither reported nor fixed
+
+**Autor:** Claude Code
+
+On the owner's request, after the challenge's rules (entry above). Read through GitHub's API (issues, pull
+requests, discussions, file contents, comparisons) and PyPI. **datavault4dbt:** 2.3.0 is still the latest
+release; `main` is six commits on (`2be6dc2`). Defect 1 (`postgres/sat_v0.sql`) and defect 2
+(`postgres/control_snap_v1.sql`) — both files identical to 2.3.0 on `main`; defect 3 — `hash.sql` identical, the
+default in `dbt_project.yml` untouched; defect 4 — `hash_standardization.sql` changed (#507, the multi-active cast
+type), its PostgreSQL macro still calls `REGEXP_REPLACE` without `g`. No issue, pull request or discussion names
+any of the four. Neighbours, not the same: #405 (unescaped columns on Databricks, 1.14.0 — closed as stale on
+2026-07-13, the maintainer could not reproduce it), #411 (the case flag inverted — fixed in 2.0.0, before the
+version measured here), #366 and #109 (hashing, other adapters). The challenge's discussion category holds one
+entry (#510, on mixing hash schemes after the v2 upgrade). **TurboVault Engine:** 0.24.0 since 2026-11-13.
+**T1 is fixed**: pull request #231 (merged 2026-11-12) adds the missing package, and the 0.24.0 wheel on PyPI
+carries it (4 entries under `generation/renderers`, 189 in all). **T4 is known in part, and was before the
+probe:** #214 (2026-10-20, open) — a proposal naming an existing hub with a new source is skipped — and #215
+(same day, open) — validation passes a stage that lacks a satellite's parent hash key, which is the six failing
+satellites of C57. **The search of 2026-11-09 looked for T1 only; C57's text reads as if T4 were new, and its
+second half was not.** Not found anywhere: the role lost in `hub_source_columns` (T4's first half; #225 is a
+neighbour), T2 (the import schema's documentation — `model_import_schema.py` and the docs unchanged), T3 (a link
+column dropped on import without a warning), and the hashdiff setting absent from the dbt output
+(`config_schema.py` and the schema page unchanged). **Überprüft.** Each file named, compared with the installed
+2.3.0 or the 0.23.0 clone; keyword searches over issues and pull requests of both repositories, all states; the
+discussions of both; the published wheel's file list. **Nur angenommen.** That an unchanged file means an
+unchanged behaviour — nothing was built against `main` or 0.24.0; that T3 still holds after the importer's changes
+for pre-stages (its files changed, none of the additions is about link columns). **Bewusst nicht getan.** No
+re-run of the probes; LinkedIn, the challenge's fourth channel, not searched; nothing filed.
