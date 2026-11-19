@@ -14810,3 +14810,29 @@ bare mypy after the rename (the first copy, with `.py` files, broke it on a dupl
 earlier — only what the records cite by path was looked for. **Bewusst nicht getan.** The build of the
 twenty-fifth chain not repeated; the probe schemas neither dumped nor dropped; TurboVault's `db.sqlite3`, the
 virtual environment and the upstream clone not kept; nothing reported upstream (the owner's, as before).
+
+## [2026-11-19] Finding — the rules of Scalefree's community challenge, read from its published pages: feedback counts only with a link in the entry form, closing 2026-12-11
+
+**Autor:** Claude Code
+
+The owner asked whether reporting the defects of C56 and C57 came with special requirements. The challenge he
+forwarded on 2026-11-09 is recorded here by name only, and that session's transcript is not on this machine; the
+rules were therefore read today from the organiser's pages (challenge page and terms of participation on
+scalefree.com, linked from datavault4dbt.com), by a fetch agent, not by me. **What they say:** feedback counts
+through four channels only — a GitHub discussion in the repository's challenge category, a GitHub issue, a pull
+request, or a LinkedIn post — and only if the **entry form carries a direct link** to it; the form asks for name,
+e-mail address, GitHub user name, country of residence and the package tested, and every entry needs a star on
+one of the two repositories from the entrant's own account. One entry per person. Feedback must be constructive,
+objective and well-founded; spam, plagiarism and **purely AI-generated text without added value** disqualify. A
+jury of the organiser's judges technical depth, how comprehensible the use case is, and the value to the
+community (2 000 and 1 000 EUR; three times 500 EUR by lot). **Closing: 2026-12-11, 23:59 CET**; winners named
+in a live stream in mid-December, by GitHub user name. No clause on rights to the feedback. **The repositories'
+own requirements** (read in the installed package and the clone): datavault4dbt's bug template asks for the dbt
+version, the package version, the platform, the model's SQL, the compiled SQL, the error message and logs;
+TurboVault's for steps to reproduce, expected and actual behaviour, operating system, Python version, engine
+version and installation method. A contributor licence agreement is asked for code only (TurboVault's README).
+**Überprüft.** The two templates and datavault4dbt's `CONTRIBUTING.md`, read in place. **Nur angenommen.** The
+challenge's rules as the fetch agent reported them — one reading, today; the terms' German text is the binding
+one; the form's address was not found on the pages; whether the text forwarded on 2026-11-09 said the same.
+**Bewusst nicht getan.** Nothing filed, starred or submitted — the owner's, with his own account and data; no
+check whether the four defects have meanwhile been reported or fixed upstream.
