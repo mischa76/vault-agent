@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_BillOfMaterials
+  columns:
+  - name: BILLOFMATERIALSID
+    tests:
+    - unique
+    - not_null
+  - name: UNITMEASURECODE
+    tests:
+    - unique
+    - not_null

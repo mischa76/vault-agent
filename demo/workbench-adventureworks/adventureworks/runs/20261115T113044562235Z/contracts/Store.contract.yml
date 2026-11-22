@@ -1,0 +1,87 @@
+spec-version: 1.0.0
+name: Store
+namespace: source
+dataAssetResourceName: datastore://source/Store
+doc: Source-to-staging asset representing stores (retail customers) from the Sales
+  schema. The contract enforces the declared field set and schema; primary key and
+  not-null rules are propagated deterministically from the business keys. Ownership
+  and agreement are to be confirmed at the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the business entity for the store. Business key for the
+    Store asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the store.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: SalesPersonID
+  description: Identifier of the sales person assigned to the store. Refers to a SalesPerson
+    business entity.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Demographics
+  description: Demographic information about the store. The format and structure are
+    not specified in the requirements and need human review.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) for the record.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

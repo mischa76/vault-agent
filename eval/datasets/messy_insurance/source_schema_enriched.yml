@@ -1,0 +1,156 @@
+# Enriched source schema for the messy_insurance mapping spike (D1).
+#
+# This is the substrate the mapping prototypes (spike/) receive. It is a RICHER shape than
+# the src/ SourceTable (which carries only table + bare column names): here every column
+# additionally declares a `type` and, where the source documentation has one, a `comment`.
+# ADR-0008 precondition (c) — "table/column names + types; ideally PK/FK, nullability,
+# cardinality, comments" — is exactly this artifact; output quality is capped by it.
+#
+# Anonymised throughout (ATLAS public-readiness convention). The physical names are the
+# cryptic legacy names from examples/inputs/messy_insurance_source_schema.yml; two columns
+# were added minimally to seat the §4 traps that the base schema did not carry:
+#   * VICTOR_PARTNER.KD_NR   — false-friend trap (see comment)
+#   * VICTOR_PARTNER.PARTN_GUID already present — statistics trap
+#
+# `comment: null` (or omitted) = the source ships no documentation for that column, which is
+# the common reality; the mapping must then lean on name + type + profiling alone.
+source_schemas:
+  # --- VICTOR (Legacy AS/400 flatfile export) — no real versioning, overwrites in place ---
+  - table: VICTOR_PARTNER
+    schema: legacy_victor
+    columns:
+      - name: PARTN_NR
+        type: varchar(10)
+        comment: "Partnernummer — the operational partner id VICTOR keys on (doc §2)."
+      - name: PARTN_GUID
+        type: char(36)
+        comment: "Technical surrogate id assigned by VICTOR (doc §3.1). Whether it should
+          serve as a business key is an OPEN question (doc §6)."
+      - name: KD_NR
+        type: varchar(6)
+        comment: "Legacy Kreis-/Geschäftsstellencode (branch office code). Historical
+          misnomer — despite the name this is NOT a customer number; retained for
+          backward compatibility only."
+      - name: AHV_NR
+        type: varchar(13)
+        comment: "AHV number — populated only for natural persons, and not for all (doc §3.1)."
+      - name: UID_NR
+        type: varchar(15)
+        comment: "Company UID — populated for legal entities only (doc §3.1)."
+      - name: PARTN_TYP
+        type: char(1)
+        comment: "P = natural person, F = company (Firma)."
+      - name: KD_NAME_1
+        type: varchar(60)
+        comment: "Primary name line (surname / company name)."
+      - name: KD_NAME_2
+        type: varchar(60)
+        comment: null
+      - name: KD_GEBDAT
+        type: date
+        comment: "Date of birth (persons only)."
+      - name: KD_STRASSE
+        type: varchar(60)
+        comment: null
+      - name: KD_PLZ
+        type: varchar(10)
+        comment: null
+      - name: KD_ORT
+        type: varchar(40)
+        comment: null
+      - name: MUT_DAT
+        type: timestamp
+        comment: "Last-changed timestamp; overwritten in place (no history kept)."
+  - table: VICTOR_VERTRAG
+    schema: legacy_victor
+    columns:
+      - name: VTG_NR
+        type: varchar(12)
+        comment: "Vertragsnummer (policy number)."
+      - name: PARTN_NR
+        type: varchar(10)
+        comment: "Policyholder — FK to VICTOR_PARTNER.PARTN_NR."
+      - name: SPARTE
+        type: varchar(4)
+        comment: "Line-of-business / Sparte code (catalogue delivered separately, doc §6)."
+      - name: VTG_STATUS
+        type: varchar(12)
+        comment: "offeriert | aktiv | sistiert | storniert (doc §3.3)."
+      - name: PRAEMIE
+        type: numeric(12,2)
+        comment: "Current premium amount."
+      - name: PRAEMIE_AB
+        type: date
+        comment: "Premium-valid-from date; premium changes are versioned by this (doc §3.4)."
+      - name: BEGINN_DAT
+        type: date
+        comment: "Policy start date."
+      - name: MUT_DAT
+        type: timestamp
+        comment: null
+  # --- CRM (Salesforce) — the 360° customer view, cross-referenced to VICTOR ---
+  - table: CRM_ACCOUNT
+    schema: crm
+    columns:
+      - name: AccountId
+        type: char(18)
+        comment: "Salesforce 18-char account id (technical, CRM-internal)."
+      - name: ExternalCustomerNo
+        type: varchar(10)
+        comment: "'External customer number' — SHOULD correspond to VICTOR PARTN_NR, but the
+          mapping is maintained for only ~70% of partners (doc §2, §6)."
+      - name: Name
+        type: varchar(120)
+        comment: null
+      - name: BillingStreet
+        type: varchar(120)
+        comment: null
+      - name: BillingPostalCode
+        type: varchar(10)
+        comment: null
+      - name: BillingCity
+        type: varchar(60)
+        comment: null
+      - name: LastModifiedDate
+        type: timestamp
+        comment: null
+  # --- ClaimsPro (claims) ---
+  - table: CLAIMSPRO_CLAIM
+    schema: claimspro
+    columns:
+      - name: ClaimNo
+        type: varchar(14)
+        comment: "Schadennummer (claim number)."
+      - name: PolicyNo
+        type: varchar(16)
+        comment: "Policy reference — a DIFFERENT format than VICTOR VTG_NR (doc §2)."
+      - name: ReportedDate
+        type: date
+        comment: "Meldedatum (claim reported date)."
+      - name: ClaimStatus
+        type: varchar(12)
+        comment: null
+      - name: ClaimAmount
+        type: numeric(14,2)
+        comment: "Schadensumme (claim amount)."
+  - table: CLAIMSPRO_PAYMENT
+    schema: claimspro
+    columns:
+      - name: PaymentRef
+        type: varchar(18)
+        comment: "Zahlungsreferenz (payment reference)."
+      - name: ClaimNo
+        type: varchar(14)
+        comment: "FK to CLAIMSPRO_CLAIM.ClaimNo."
+      - name: Amount
+        type: numeric(14,2)
+        comment: null
+      - name: Currency
+        type: char(3)
+        comment: null
+      - name: ValueDate
+        type: date
+        comment: "Valutadatum (value date)."
+      - name: PayeePartnerNo
+        type: varchar(10)
+        comment: "Beneficiary partner — refers to a partner number."

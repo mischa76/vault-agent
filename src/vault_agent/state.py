@@ -1,0 +1,1343 @@
+"""Shared state passed through the LangGraph nodes."""
+import warnings
+from collections.abc import Sequence
+from datetime import date
+from typing import Any, Literal
+
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
+
+from vault_agent.rules.naming import NamingProfile
+from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
+
+FlagSeverity = Literal["error", "advisory"]
+
+# WP47: why a staging binding was inferred rather than declared (``FlagKind.SOURCE_BINDING``).
+# ``none`` — no declared relation is named like the construct and no offer binds it;
+# ``ambiguous`` — two or more declared relations offer the link's participations (WP42 binds
+# nothing); ``shared`` — the link's stage base is a hub's, so the stage is not the link's to
+# repoint. Only ``ambiguous`` is a decision (WP43); the others are provenance.
+SourceBindingReason = Literal["none", "ambiguous", "shared"]
+
+
+class StageBinding(BaseModel):
+    """WP82: one stage's binding as a human ratifies it at sign-off — the declared relation the
+    stage reads and, where the relation carries a key under another name, the aliases
+    ``{STAGE_COLUMN: relation_column}`` (rendered as derived columns, WP41's mechanism). What a
+    hand-made view said until now: ``SELECT businessentityid AS storeid … FROM Store``."""
+
+    relation: str
+    columns: dict[str, str] = Field(default_factory=dict)
+
+
+class FlagKind:
+    """Stable, machine-readable categories for :class:`PipelineFlag`.
+
+    Consumers (review queue, HITL pruning, aggregation) branch on these — never on the
+    flag's human-readable message text."""
+
+    MISSING_INPUT = "missing_input"  # a stage ran without its required upstream output
+    DROPPED_RECORD = "dropped_record"  # an invalid LLM record was dropped, not guessed at
+    COLUMN_COLLISION = "column_collision"  # two labels normalise to the same identifier
+    GENERATION_GAP = "generation_gap"  # a construct could not be generated; human review
+    OWNER_PLACEHOLDER = "owner_placeholder"  # contract awaiting a real owner (blocking)
+    UNDETERMINED_TYPE = "undetermined_type"  # contract field type unknown; review required
+    NO_SOURCE_SCHEMA = "no_source_schema"  # contract inferred from prose, not a schema
+    SOURCE_BINDING = "source_binding"  # staging source relation inferred, not declared
+    INPUT_TRUNCATED = "input_truncated"  # oversized input document cut to the size guard
+    INPUT_SEGMENTED = "input_segmented"  # document extracted over several bounded calls
+    MAPPING_GAP = "mapping_gap"  # concept has no in-scope source (WP9; belongs downstream)
+    MAPPING_UNRESOLVED = "mapping_unresolved"  # concept's source undecided; human ratifies
+    # WP23 brownfield: the extension delta asks for something that is not an extension
+    # (an existing hub's key changed, an existing link/satellite re-stated). Never
+    # applied — flagged, and the additive gates fail the run.
+    EXTENSION_CONFLICT = "extension_conflict"
+    # WP29 brownfield Phase 2: the entity resolver's two human-facing outcomes. Neither
+    # blocks sign-off — an unresolved concept is honest output, as a mapping gap is.
+    RESOLUTION_UNRESOLVED = "resolution_unresolved"  # is this an existing construct? undecided
+    RESOLUTION_SAME_AS = "resolution_same_as"  # asserted equivalent, differently keyed
+    # WP36 (ADR-0013): a ratified link needed surrogate→natural-key translation through the
+    # referenced relation. Its own review class: the reviewer must see the join, not a rename.
+    LINK_TRANSLATION = "link_translation"
+    # WP38: the satellite side of the same — a subtype table's satellite on the supertype hub,
+    # its key joined in through the referenced relation. Its own review class for the same reason.
+    SAT_TRANSLATION = "sat_translation"
+    # WP37: a ratified relationship-table link was NOT built because a participation stayed
+    # unresolved or two hit the same hub — a partial link has a different grain, so nothing is
+    # built and the reviewer sees which participation failed.
+    LINK_RELATIONSHIP_INCOMPLETE = "link_relationship_incomplete"
+    # WP34: a declared foreign key the link proposer would not answer for — a composite key,
+    # or a referenced column several hubs share. Advisory: an unproposed link is an
+    # incomplete model, which is what this pass exists to reduce, not a broken one.
+    LINK_PROPOSAL_SKIPPED = "link_proposal_skipped"
+    # WP44: the re-model loop's repair memory. A construct the collision remedy retired came
+    # back in a later attempt and was refused (the backstop repaired it); a dependent of that
+    # construct lost its parent and its payload needs a home (a decision).
+    RETIRED_REEMITTED = "retired_reemitted"
+    RETIRED_ORPHAN = "retired_orphan"
+    # WP51: a dependent of a dropped hub moved to the hub's kept twin — the payload kept its
+    # meaning and found its home deterministically (a disclosure).
+    RETIRED_REPARENTED = "retired_reparented"
+    # WP55: a link with one hub is that hub's satellite feed — the parser collapsed it and
+    # moved its satellites to the hub (a disclosure: the payload found its home).
+    LINK_COLLAPSED = "link_collapsed"
+    # WP135: a new link that would have shared a hub's stage while reading another relation was
+    # renamed after its hubs (a disclosure); `asset` is the new name, `reason` the old one.
+    LINK_RENAMED = "link_renamed"
+    # WP136: a new link no relation offers, where one relation is a key short of offering it and
+    # carries a column named like that key (a disclosure); `asset` is the link, `reason` the
+    # relation. A pointer for a human — nothing binds on the name.
+    LINK_KEY_MISSING = "link_key_missing"
+    # WP56: a relation-less satellite's attributes are all columns of exactly one declared
+    # table — the schema, not a guess, named its relation (a disclosure).
+    RELATION_INFERRED = "relation_inferred"
+    # WP73: a binding to a declared relation that lacks a column the stage hashes or derives was
+    # refused in bind_sources; the stage fell back to the inferred relation. A human maps it.
+    BINDING_REJECTED = "binding_rejected"
+    # WP90: a link several declared relations offer was bound to the one its satellites' payload
+    # or its participations' key singles out; `reason` is the tier (`payload`/`key`).
+    LINK_BINDING_EVIDENCE = "link_binding_evidence"
+    # WP91: a point-in-time table was generated for a hub (ADR-0016) — deterministic from the
+    # model, a disclosure.
+    PIT_GENERATED = "pit_generated"
+    # WP115: a bridge path proposed from two links citing one requirement around a shared hub
+    # (ADR-0016: proposed from the requirements, ratified as a decision) — a decision, declined
+    # unless answered; and a bridge rendered along a named or ratified path — a disclosure.
+    BRIDGE_PROPOSED = "bridge_proposed"
+    BRIDGE_GENERATED = "bridge_generated"
+    # WP117 (ADR-0019): an input document is a draft vault-agent wrote from the catalogue and
+    # nobody has reviewed — a decision, so a skipped correction stands above the fold.
+    REQUIREMENTS_UNREVIEWED = "requirements_unreviewed"
+    GENERIC = "generic"
+
+
+class PipelineFlag(BaseModel):
+    """One typed flag raised by an agent for the audit trail / human review queue.
+
+    Replaces the former free-text ``state.errors`` strings: consumers match on ``kind``
+    and ``asset`` (exact), so rewording a message can never break classification,
+    de-duplication, or HITL pruning."""
+
+    agent: str  # the raising agent, e.g. "data_contract"
+    message: str  # human-readable description (presentation only — never parsed)
+    severity: FlagSeverity = "advisory"
+    kind: str = FlagKind.GENERIC
+    # The affected asset/construct (contract name, satellite name, "contract.field", …).
+    # Exact-match key for consumers, e.g. pruning resolved owner flags on resume.
+    asset: str | None = None
+    # WP47: a typed reason code where the kind has a vocabulary (``SourceBindingReason`` for
+    # source bindings). Consumers branch on it; the message never carries it alone.
+    reason: str | None = None
+    # WP128 (ADR-0013's note of 2026-11-14): the flag discloses something a human must still
+    # confirm — a translation that stands on a key inferred from data, or one whose relation
+    # carries a column of the hub key's name that it does not read. Typed, never read from the
+    # message; omitted from the dump where false, so every other flag serialises as before.
+    confirm: bool = False
+
+    @model_serializer(mode="wrap")
+    def _omit_confirm_when_false(self, handler: Any) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if not self.confirm:
+            data.pop("confirm", None)
+        return data
+
+    def __str__(self) -> str:
+        return f"{self.agent}: {self.message}"
+
+    def identity(self) -> tuple[str, str, str, str | None, str, str | None]:
+        """What makes two flags the same review item: everything but list position."""
+        return (self.agent, self.kind, self.severity, self.asset, self.message, self.reason)
+
+
+def dedupe_flags(flags: list[PipelineFlag]) -> list[PipelineFlag]:
+    """The flag list with each identical flag kept once, first occurrence, order preserved.
+
+    A re-model attempt re-runs the modeler (and the link applier inside it), the code
+    generator and the validator, and each APPENDS its flags; a resume re-executes a node the
+    same way. Three exhausted attempts once left three copies of every generator flag
+    (`source_binding` 182 against 50, 2026-09-13) and the review-load measurement read the
+    accumulation instead of the model. An identical flag twice says nothing the first did not."""
+    seen: set[tuple[str, str, str, str | None, str, str | None]] = set()
+    kept: list[PipelineFlag] = []
+    for flag in flags:
+        key = flag.identity()
+        if key in seen:
+            continue
+        seen.add(key)
+        kept.append(flag)
+    return kept
+
+
+class ParsedRequirement(BaseModel):
+    """One requirement extracted by the Requirements Parser."""
+    id: str
+    text: str
+    category: str  # functional | non-functional | business-rule | constraint
+    actor: str | None = None
+    action: str | None = None
+    obj: str | None = None  # 'object' is reserved
+
+
+class BusinessKeyCandidate(BaseModel):
+    entity: str
+    field: str
+    score: float
+    rationale: str
+
+
+# WP125 (ADR-0021): how a table's hub key was decided — never by the modeler.
+#   agreed              the requirements' first choice is a declared natural key
+#   natural_primary_key the primary key is itself a natural key and nothing argues for another
+#   contested           pending: a technical primary key against a declared natural key the
+#                       requirements did not choose — a question at the resolution checkpoint
+#   catalogue_default   a contested case answered in bulk: the declared natural key
+#   human               a named answer; a technical key carries the human's reason
+#   existing            a hub of the existing vault is built from the table; its key stands
+KeyBasis = Literal[
+    "agreed", "natural_primary_key", "contested", "catalogue_default", "human", "existing"
+]
+
+
+class KeyAnswer(BaseModel):
+    """A human's answer to a contested key (WP125): the columns, the reason a technical key
+    needs, and whether the bulk answer recorded the default rather than a named choice."""
+
+    columns: list[str]
+    reason: str | None = None
+    by_default: bool = False
+
+
+class KeyDecision(BaseModel):
+    """The key a hub built from one declared table is given (WP125, ADR-0021).
+
+    Derived, never stored: ``rules.key_decision.decide_keys`` recomputes it from the catalogue,
+    the key agent's candidates, the existing vault and ``VaultAgentState.key_answers``. While
+    ``pending`` the columns are the default the bulk answer would take."""
+
+    table: str
+    columns: list[str]
+    basis: KeyBasis
+    pending: bool = False
+    primary_key: list[str] = Field(default_factory=list)
+    primary_key_technical: bool = False
+    natural_keys: list[str] = Field(default_factory=list)
+    first_choice: str | None = None  # the requirements' best-scored candidate on this table
+    first_choice_score: float | None = None
+    reason: str | None = None
+    evidence: list[str] = Field(default_factory=list)
+
+
+class SourceColumn(BaseModel):
+    """One declared source column, optionally carrying its type and documentation (WP9 §3.1).
+
+    The richer form ADR-0008 precondition (c) wants — ``type`` and a source ``comment`` —
+    which the business↔source mapper reads to establish *intent* (a column named ``KD_NR``
+    whose comment says "branch code" is not a customer number). Both are optional: a bare
+    column name (the ADR-0004 shape) coerces to ``SourceColumn(name=...)`` with empty
+    type/comment, so pre-WP9 schemas stay byte-for-byte inert."""
+
+    name: str
+    type: str = ""
+    comment: str | None = None
+    # WP94: whether the source allows NULL here — `None` when the catalogue does not say (every
+    # catalogue before 2026-10-26). Read by the optional-participant gate; carried by the catalogue.
+    nullable: bool | None = None
+    # WP127 (ADR-0021): whether the database generates the value — an identity, a serial, a
+    # sequence default. `None` when the catalogue cannot say (every catalogue before 2026-11-14,
+    # and every dialect whose reflection does not read it). Read by `rules.key_decision` before
+    # the type; omitted from the dump where unknown, so such a column serialises as before.
+    generated: bool | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_generated_when_unknown(self, handler: Any) -> dict[str, Any]:
+        data: dict[str, Any] = handler(self)
+        if self.generated is None:
+            data.pop("generated", None)
+        return data
+
+
+class ForeignKeyRef(BaseModel):
+    """One declared foreign key of a source table (WP34 §3.1).
+
+    Optional input, like ``ColumnProfile``: transcribed from the source catalogue, never
+    inferred by this pipeline and never derived from data. It exists because the evidence a
+    cross-domain link needs was measurably absent — WP30.1-30.3 spent ~$46 asking the modeler
+    to relate a new increment to a prior vault while the foreign keys stating those relations
+    were being dropped by the schema derivation (``eval/adventureworks/derive.py``) before any
+    agent could see them.
+
+    Read by the deterministic link proposer and by nothing else. It is deliberately NOT
+    rendered into the modeler's prompt (§3.8): showing it would change a one-pass run's input
+    as well, and the arm comparison would then measure a changed input and a new mechanism at
+    once — pinned by ``tests/test_wp34_fk_inertness.py``.
+
+    ``columns`` and ``references_columns`` are parallel: same order, same arity."""
+
+    columns: list[str]
+    references_table: str
+    references_columns: list[str]
+    references_schema: str | None = None
+
+    @model_validator(mode="after")
+    def _check_arity(self) -> "ForeignKeyRef":
+        """A mismatched pair is malformed input, not something to guess a pairing for."""
+        if len(self.columns) != len(self.references_columns):
+            raise ValueError(
+                f"foreign key on {self.references_table!r} pairs {len(self.columns)} "
+                f"column(s) with {len(self.references_columns)} referenced column(s); "
+                "they must be parallel"
+            )
+        if not self.columns:
+            raise ValueError("a foreign key must name at least one column")
+        return self
+
+    @property
+    def is_single_column(self) -> bool:
+        """WP34 §3.2 condition 2: composite keys are flagged, never guessed at."""
+        return len(self.columns) == 1
+
+
+# WP99 (ADR-0018): which candidate tier paired an inferred foreign key — `name` (the columns
+# spell the same compact name, the referencing one ends in the key's, or it is the key table's
+# name plus ID) or `type` (every type-compatible pair: complete and noisy, never the default).
+CandidateTier = Literal["name", "type"]
+# Where a proposal or licence comes from: the catalogue's declaration, or an inference from
+# data. `declared` is the default, so every pre-WP99 shape is byte-identical; `inferred` is what
+# `--accept` declines and only an explicit answer builds (ADR-0018 §4).
+Provenance = Literal["declared", "inferred"]
+
+
+class InferredUniqueKey(BaseModel):
+    """WP99: a column unique and non-null over every one of ``rows`` rows — an inference from
+    data, never a declaration. Read by the key inference itself (the referenced side of an
+    inclusion) and by nothing else (ADR-0018 §3)."""
+
+    columns: list[str]
+    rows: int
+
+
+class InferredForeignKey(ForeignKeyRef):
+    """WP99: an inclusion dependency — every non-null value of the referencing column occurs in
+    the referenced key column — with the evidence a human decides on: the ``rows`` checked, the
+    ``distinct`` referencing values, the key's ``referenced_distinct`` values, the ``candidate``
+    tier that paired the columns, the ``tied`` key columns (``Table.column``) with exactly the
+    same number of distinct values — equal domains, which data alone cannot tell apart (the
+    first measurement's finding: tables keyed 1:1 on one id) — and the ``wider`` ones that
+    contain every value with more. One inference per referencing column: the tightest domain,
+    a tie broken by a stated preference (a key named after its own table, then the table the
+    referencing column names, then the name). The proposer tries the tied and the wider ones
+    for an existing hub. Read by the proposer after the declared keys, with
+    ``provenance="inferred"``; by nothing else."""
+
+    rows: int
+    distinct: int
+    referenced_distinct: int
+    candidate: CandidateTier
+    tied: list[str] = Field(default_factory=list)
+    wider: list[str] = Field(default_factory=list)
+
+
+class InferredKeys(BaseModel):
+    """WP99: what `vault-agent infer-keys` found for one table; absent when it never ran."""
+
+    unique: list[InferredUniqueKey] = Field(default_factory=list)
+    foreign: list[InferredForeignKey] = Field(default_factory=list)
+
+
+class SourceTable(BaseModel):
+    """A declared source table the model can be grounded against (ADR-0004).
+
+    Optional input: when ``VaultAgentState.source_schemas`` is non-empty the validator
+    flags business keys / attributes that match no declared column, and the modeler and
+    business-key prompts are steered toward these real columns.
+
+    ``columns`` accepts a bare name (``list[str]``, the ADR-0004 shape) or the enriched
+    ``{name, type, comment}`` form (WP9 §3.1); a before-validator normalises every entry to
+    :class:`SourceColumn`, and grounding/staging read the plain names through
+    :attr:`column_names` so bare-string inputs stay byte-identical.
+
+    ``schema_name`` / ``database`` (WP7 §7.2) locate the table physically; when
+    declared, grounded runs bind the matching staging model through a real dbt
+    ``source()`` mapping instead of a bare relation name. ``schema_name`` is aliased to
+    ``schema`` in input files (the natural key there) because ``schema`` collides with a
+    ``BaseModel`` attribute."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    table: str  # the source table / entity name
+    # Column definitions, as in the source. Union keeps bare-string YAML working; the
+    # before-validator normalises to SourceColumn so downstream sees one shape.
+    columns: list[str | SourceColumn] = Field(default_factory=list)
+    schema_name: str | None = Field(default=None, alias="schema")
+    database: str | None = None
+    # WP34 §3.1: declared foreign keys, transcribed from the source catalogue. Empty = the
+    # pre-WP34 shape, and every artifact stays byte-identical (test_wp34_fk_inertness.py).
+    # Read ONLY by the deterministic link proposer — never rendered to the modeler (§3.8).
+    foreign_keys: list[ForeignKeyRef] = Field(default_factory=list)
+    # WP85: the relation's primary key and unique keys, transcribed from the catalogue. Empty =
+    # not declared; read only by `E_SAT_GRAIN_NOT_UNIQUE` — never rendered to an agent.
+    primary_key: list[str] = Field(default_factory=list)
+    unique_keys: list[list[str]] = Field(default_factory=list)
+    # WP97 (C31): the table's own comment as the catalogue states it — verbatim, never authored.
+    # Read where column comments are read (the resolver's and the mapper's payloads); never
+    # rendered to the modeler (spec §2 rule 2) and not carried in the travelling catalogue.
+    comment: str | None = None
+    # WP99 (ADR-0018): keys inferred from data by `vault-agent infer-keys` — their own class,
+    # beside the declarations and never inside them. Read by the proposer only; never rendered
+    # to the modeler, never carried in the travelling catalogue (test_wp34_fk_inertness.py).
+    inferred_keys: InferredKeys | None = None
+
+    @field_validator("columns", mode="before")
+    @classmethod
+    def _normalise_columns(cls, value: Any) -> Any:
+        """Coerce every entry to a SourceColumn (WP9 §3.1; mirrors the WP8 LinkHubRef union).
+
+        Plain strings become bare ``SourceColumn(name=...)``; dicts/SourceColumns pass
+        through. Field assignment bypasses this, which is why :attr:`column_names` re-coerces
+        defensively."""
+        if isinstance(value, list):
+            return [SourceColumn(name=v) if isinstance(v, str) else v for v in value]
+        return value
+
+    @property
+    def column_names(self) -> list[str]:
+        """The plain column names — the single read path for grounding/staging (WP9 §3.1)."""
+        return [c.name if isinstance(c, SourceColumn) else c for c in self.columns]
+
+    @property
+    def column_refs(self) -> list[SourceColumn]:
+        """``columns`` as normalised :class:`SourceColumn`s (re-coerces post-assignment)."""
+        return [SourceColumn(name=c) if isinstance(c, str) else c for c in self.columns]
+
+
+class ValuePattern(BaseModel):
+    """WP98: one value shape of a character column — every digit ``9``, every letter ``A``,
+    every other character kept — with its share of the sampled non-null values."""
+
+    shape: str
+    share: float
+
+
+class ColumnProfile(BaseModel):
+    """Per-column profiling statistics (WP9 §3.2 / ADR-0008 #4).
+
+    A pre-step *input* artifact — produced ahead of time from a sanitised extract or a
+    metadata export, or by the explicitly invoked, scoped ``vault-agent profile`` (WP98,
+    ADR-0008 #4's read-only step) — never by the pipeline logging into a live source. The
+    mapper uses it as BK-plausibility and post-validation evidence, never as the primary
+    intent signal (the spike found comments/names carry intent; statistics establish
+    structure, not intent).
+
+    The first four fields are what the consumers read (the mapper's blurb, the validator's
+    nullability evidence). WP98's fields — ``min``/``max`` (numeric and temporal columns only,
+    rendered as text), ``min_length``/``max_length`` (character columns), ``patterns`` — reach
+    no model input (spec §2 rule 6); ``None``/empty means „not measured", never zero."""
+
+    name: str
+    uniqueness_ratio: float = 0.0
+    null_ratio: float = 0.0
+    distinct_count: int = 0
+    example_values: list[str] = Field(default_factory=list)
+    min: str | None = None
+    max: str | None = None
+    min_length: int | None = None
+    max_length: int | None = None
+    patterns: list[ValuePattern] = Field(default_factory=list)
+
+
+# The evidence-derived confidence tier (WP9 §7): a deterministic category the review queue
+# sorts/flags by, more robust than a raw self-reported confidence number across models.
+MappingCategory = Literal[
+    "exact_name", "comment_grounded", "profiled_key", "llm_semantic", "unresolved"
+]
+# Ratification lifecycle of one proposal (WP9 §5); a human accepts/overrides at the HITL.
+RatificationStatus = Literal["proposed", "accepted", "overridden"]
+
+
+CONCEPT_KEY_SEPARATOR = "::"
+
+
+def concept_key(concept: str, entity: str | None) -> str:
+    """The identity of a business concept in the mapping layer: (label, entity) (WP32).
+
+    The label ALONE is not an identity — three reference hubs can each be keyed ``Name`` — and
+    treating it as one made the mapper ask about the label once and then apply that one answer
+    to every hub carrying it, binding staging models to the wrong relation (WP30 §7.3
+    Finding 1, a wrong-DATA defect). Every site that identifies a concept — the mapper's
+    work-list and lookup, the staging re-bind, the ratification file and ``--map`` — imports
+    this; none re-derives it.
+
+    ``::`` deliberately, not ``.``: a key must never be confusable with the ``TABLE.COLUMN``
+    syntax the ratification file and ``--map`` already use. An entity-less concept keeps the
+    bare label, so a single-source vault's keys are byte-identical to pre-WP32."""
+    return f"{entity}{CONCEPT_KEY_SEPARATOR}{concept}" if entity else concept
+
+
+def concept_ref_matches(
+    ref: str, concept: str, entity: str | None, *, label_unique: bool
+) -> bool:
+    """Does ``ref`` refer to the concept ``(concept, entity)``? (WP32)
+
+    ONE matching rule, used everywhere a stored or human-typed reference has to be resolved:
+    **the key matches exactly, or the label matches and is unique in its universe.** The
+    label fallback is what keeps a human's ``--map "customer name=T.C"``, an edited review
+    file, and a checkpoint written before WP32 (whose lists hold bare labels) all working; the
+    uniqueness condition is what stops it from reinstating the defect, where one reference
+    resolved to several concepts at once.
+
+    ``label_unique`` is the caller's, because uniqueness is a property of the universe being
+    searched (a run's proposals, or a model's hubs), not of the pair."""
+    from vault_agent.rules.dv2_rules import normalize_identifier
+
+    if normalize_identifier(ref) == normalize_identifier(concept_key(concept, entity)):
+        return True
+    ref_label, ref_entity = split_concept_key(ref)
+    if not label_unique or normalize_identifier(ref_label) != normalize_identifier(concept):
+        return False
+    # Both sides naming an entity, and naming DIFFERENT ones, is a contradiction the label
+    # must not paper over: `AddressType::Name` never refers to ContactType's `Name`. The
+    # fallback exists for the mixed case — one side simply does not carry an entity.
+    return ref_entity is None or entity is None
+
+
+def match_concept_refs(
+    ref: str, candidates: Sequence[tuple[str, str | None]]
+) -> list[int]:
+    """Every candidate index ``ref`` could name (WP32) — exact key match, else label matches.
+
+    Returning the full list rather than one index is what lets callers tell **ambiguous**
+    (several matches: refuse to choose) from **unknown** (none: a concept the human is adding).
+    Collapsing those two into one "not found" answer would either drop a legitimate addition or
+    pick arbitrarily among siblings, and picking arbitrarily is the WP32 defect."""
+    from vault_agent.rules.dv2_rules import normalize_identifier
+
+    exact = [
+        i
+        for i, (concept, entity) in enumerate(candidates)
+        if normalize_identifier(ref) == normalize_identifier(concept_key(concept, entity))
+    ]
+    if exact:
+        return exact
+    ref_label, ref_entity = split_concept_key(ref)
+    label = normalize_identifier(ref_label)
+    return [
+        i
+        for i, (concept, entity) in enumerate(candidates)
+        if normalize_identifier(concept) == label
+        and (ref_entity is None or entity is None)
+    ]
+
+
+def resolve_concept_ref(
+    ref: str, candidates: Sequence[tuple[str, str | None]]
+) -> int | None:
+    """Index of the single concept ``ref`` names, else None (ambiguous or absent) — WP32.
+
+    Symmetric by design: it resolves a human's bare label against qualified candidates AND a
+    qualified key against candidates that carry no entity (a promoted human override), because
+    both directions occur and both must land on the same concept."""
+    matches = match_concept_refs(ref, candidates)
+    return matches[0] if len(matches) == 1 else None
+
+
+def split_concept_key(key: str) -> tuple[str, str | None]:
+    """Inverse of :func:`concept_key`: ``(label, entity)``; entity None for a bare label.
+
+    Used where a human hands back a key — ``resume --map``, an edited ``mappings.review.yml`` —
+    so a promoted proposal records the entity it belongs to instead of losing it. Splits on the
+    FIRST separator, since an entity name cannot contain it while a label conceivably could."""
+    entity, sep, label = key.partition(CONCEPT_KEY_SEPARATOR)
+    return (label, entity) if sep else (key, None)
+
+
+class Proposal(BaseModel):
+    """One proposed ``concept → (table, column)`` mapping with its evidence trail (WP9).
+
+    ``confidence`` (0..1) and ``evidence`` are the ADR-0008 assist-quality machinery — the
+    ratifying human sees *why* a column was proposed. ``category`` is the deterministic
+    confidence tier (§7); ``ratification_status`` tracks the HITL decision (§5)."""
+
+    concept: str
+    table: str
+    column: str
+    confidence: float = 0.0
+    evidence: list[str] = Field(default_factory=list)
+    entity: str | None = None
+    category: MappingCategory = "llm_semantic"
+    ratification_status: RatificationStatus = "proposed"
+
+    @property
+    def key(self) -> str:
+        """This proposal's concept identity (WP32) — never the bare label."""
+        return concept_key(self.concept, self.entity)
+
+
+class ProposedMapping(BaseModel):
+    """The mapper's full answer for one run: resolved proposals plus honest non-answers.
+
+    ``gaps`` are concepts with no in-scope source (ADR-0008 #3, a first-class output);
+    ``unresolved`` are concepts the mapper could not decide (incl. multi-candidate keys held
+    for WP10) — distinct from a gap, and the honest degraded-mode behaviour."""
+
+    proposals: list[Proposal] = Field(default_factory=list)
+    gaps: list[str] = Field(default_factory=list)
+    unresolved: list[str] = Field(default_factory=list)
+
+
+# Brownfield Phase 2 (WP29): what an entity resolution can say about one concept the new
+# source introduces. A construct NAME means "this IS that construct" — the only answer that
+# writes foreign keys into a table holding history, and therefore the one the spike's
+# zero-false-merge requirement is about. The three reserved words are the safe answers.
+RESOLUTION_NEW = "NEW"
+RESOLUTION_SAME_AS = "same_as_candidate"
+RESOLUTION_UNRESOLVED = "unresolved"
+RESOLUTION_CLASSES = (RESOLUTION_NEW, RESOLUTION_SAME_AS, RESOLUTION_UNRESOLVED)
+
+# Deterministic confidence tier, DERIVED from the evidence — never the model's own claim.
+# Measured reason (spike memo §3.3): the resolver reported "semantic" for every case,
+# including the exact-key ones where its answer was right.
+ResolutionCategory = Literal["exact_key", "key_overlap", "comment_grounded", "semantic"]
+
+
+class ResolutionProposal(BaseModel):
+    """One proposed answer to "is this new concept an existing construct?" (WP29).
+
+    ``resolution`` is an existing construct's name, or one of :data:`RESOLUTION_CLASSES`.
+    ``same_as`` names the construct a ``same_as_candidate`` corresponds to: asserted
+    equivalence on a DIFFERENT key produces two constructs plus this flag, never a merge
+    (brownfield charter §3.5, measured reliable in the Phase 2 spike)."""
+
+    concept: str
+    resolution: str
+    same_as: str | None = None
+    confidence: float = 0.0
+    category: ResolutionCategory = "semantic"
+    evidence: list[str] = Field(default_factory=list)
+    ratification_status: RatificationStatus = "proposed"
+
+    @property
+    def is_merge(self) -> bool:
+        """True when this claims the concept IS an existing construct — the unsafe direction."""
+        return self.resolution not in RESOLUTION_CLASSES
+
+
+class EntityResolution(BaseModel):
+    """The resolver's full answer for one extension run; empty on greenfield/ungrounded."""
+
+    proposals: list[ResolutionProposal] = Field(default_factory=list)
+
+    def by_concept(self) -> dict[str, ResolutionProposal]:
+        return {p.concept: p for p in self.proposals}
+
+
+# WP34: the deterministic tier of a link proposal, DERIVED from the declared foreign key and
+# never claimed by anything. Only two tiers can occur, because the proposer reads DECLARED
+# foreign keys and nothing else — see `link_proposal.propose_links` for why the spec's third
+# illustrative tier (`key_name_only`) is deliberately not implemented.
+LinkProposalCategory = Literal[
+    "declared_fk_same_name", "declared_fk_renamed", "declared_fk_translated"
+]
+
+
+class KeyTranslation(BaseModel):
+    """How a surrogate reference becomes the hub's natural key (WP36, ADR-0013).
+
+    The source declares referential integrity on a surrogate (``ShoppingCartItem.ProductID →
+    Product.ProductID``) while the vault keys ``hub_product`` on the natural key
+    ``ProductNumber``. Neither side is wrong, and no alias bridges them: the natural key is not
+    in the referencing table at all. Bridging is a JOIN through the referenced relation, and this
+    record is that join as facts — visible to the reviewer at the checkpoint and rendered as a
+    dedicated dbt model, never hidden in a mapping."""
+
+    referencing_column: str  # the surrogate as the referencing table calls it (T.X)
+    through_table: str  # the referenced relation R
+    through_schema: str | None = None
+    surrogate_column: str  # R's own name for the surrogate (R.Xref)
+    natural_key_column: str  # the hub's canonical key column, projected from R (R.Y)
+    # WP93: a composite hub's key columns in hashing order, each projected from R; empty for a
+    # single key, where `natural_key_column` is the whole key. Readers take `natural_keys`.
+    natural_key_columns: list[str] = Field(default_factory=list)
+
+    @property
+    def natural_keys(self) -> list[str]:
+        """The projected key columns — one for a single key, all of them for a composite."""
+        return list(self.natural_key_columns) or [self.natural_key_column]
+
+    @property
+    def natural_key_label(self) -> str:
+        """The key as a message shows it: `PRODUCTNUMBER`, or `A, B, C` for a composite."""
+        return ", ".join(self.natural_keys)
+
+# Why the proposer declined to answer for a declared foreign key. A CODE, not the sentence:
+# the 2026-08-12 run left 10 of 11 viable cross-schema foreign keys unaccounted for, and the
+# only record of each decision was a human-readable flag message — which nothing may branch
+# on and no analysis could count. Each member is one branch of `link_proposal._target_hub`
+# or of the composite-key condition above it.
+LinkSkipReason = Literal[
+    "composite_key",  # several columns; which pairs with which hub key is a modelling call
+    "no_hub_for_key",  # no existing hub is keyed on the referenced column
+    "ambiguous_hub",  # several hubs share that key and the referenced table breaks no tie
+    # WP36: a hub binds the referenced table but that table, declared in this increment,
+    # lacks the surrogate or the natural key — translation would join on a column that is
+    # not there, so it is declined rather than guessed.
+    "translation_key_missing",
+]
+
+
+class LinkSkip(BaseModel):
+    """One declared foreign key the proposer left alone, and why — typed, then phrased.
+
+    A skip is honest output, not a defect (WP34 §3.2). It is recorded so the *distribution* of
+    skips is countable: "the mechanism is shy" and "the vault is keyed differently than the
+    source references it" are different diagnoses that produce identical link counts, and
+    telling them apart is what this exists for."""
+
+    asset: str  # "Table.column" — the same handle the flag carries
+    reason: LinkSkipReason
+    message: str  # human-readable; presentation only, never parsed
+
+
+class LinkProposal(BaseModel):
+    """One link the source's own catalogue says exists (WP34 §3.2).
+
+    Proposed BEFORE the modeler runs and applied only once ratified, mirroring
+    :class:`ResolutionProposal`: a link writes join keys into a table holding history, so the
+    unsafe direction is the same one and gets the same treatment — propose, pause, ratify.
+
+    ``source_column`` is the referencing table's own name for the key; ``target_business_key``
+    is the hub's canonical one. When they differ the staging layer must ALIAS the first to the
+    second before hashing, which is what :attr:`LinkHubRef.source_key_column` carries and what
+    ``E_LINK_KEY_NOT_IN_SOURCE`` refuses to let go wrong."""
+
+    source_table: str
+    source_column: str
+    target_hub: str
+    target_business_key: str
+    category: LinkProposalCategory
+    evidence: list[str] = Field(default_factory=list)
+    ratification_status: RatificationStatus = "proposed"
+    # WP36: set exactly when category is declared_fk_translated — the join the staging layer
+    # must render for this link. None for the two WP34 categories (byte-identity).
+    translation: KeyTranslation | None = None
+    # WP99: `inferred` when the key behind this proposal came from data (ADR-0018 §3); `accept`
+    # declines such a proposal, an explicit answer builds it (§4).
+    provenance: Provenance = "declared"
+
+    @property
+    def needs_alias(self) -> bool:
+        """True when the referencing column is named differently from the hub's key."""
+        return self.category == "declared_fk_renamed"
+
+
+class Participation(BaseModel):
+    """One foreign key of a relationship table, as a participation in the link it implies (WP37).
+
+    ``target_hub`` is ``None`` while the participation is PENDING — the referenced table belongs
+    to this increment and has no hub until the modeler runs; the applier resolves it against the
+    merged model, with the same helpers and the same translation rule (WP36) as at proposal
+    time. Alias or translation are set exactly as :class:`LinkHubRef` carries them."""
+
+    referencing_column: str
+    references_table: str
+    references_column: str
+    references_schema: str | None = None
+    target_hub: str | None = None
+    target_business_key: str | None = None
+    source_key_column: str | None = None
+    key_translation: KeyTranslation | None = None
+    # True when the APPLIER resolved this participation against one attempt's merged model —
+    # a resolution that must be redone on the next attempt, because the hub it chose may be
+    # gone (2026-09-13: attempt 2 dropped the hub attempt 1 had resolved to, the link was
+    # still built to it). A proposer resolution against the existing vault is permanent.
+    resolved_by_applier: bool = False
+
+    @property
+    def resolved(self) -> bool:
+        return self.target_hub is not None
+
+
+class RelationshipLinkProposal(BaseModel):
+    """A hub-less table with two or more foreign keys IS the link among their targets (WP37).
+
+    `ProductVendor(ProductID, BusinessEntityID, UnitMeasureCode)` is not a business object; it
+    is `hub_product ↔ hub_vendor ↔ hub_unit_measure`. WP34's proposer needs a hub on the
+    referencing side and so could never say this; arm A said it six times out of sixteen
+    cross-domain links. One proposal per table, one decision (`Table.*`), applied only when
+    every participation resolves to a distinct hub and no hub was built for the table itself."""
+
+    source_table: str
+    participations: list[Participation]
+    evidence: list[str] = Field(default_factory=list)
+    ratification_status: RatificationStatus = "proposed"
+    category: Literal["relationship_table"] = "relationship_table"
+
+
+class KeyLicense(BaseModel):
+    """A declared foreign key into a table of THIS increment that has no hub yet (WP40).
+
+    It is not a link proposal: intra-increment relationships are the modeler's (WP37 §2), and a
+    license builds nothing. Ratified at the link checkpoint by its ``Table.Column`` key, it is
+    resolved after the modeler against the merged model — every attempt, marked
+    ``resolved_by_applier`` — and the translation or alias it resolves to repairs the staging of
+    links and satellites the modeler built from ``source_table`` (ADR-0013's trigger, extended
+    to a hub built in the same run)."""
+
+    source_table: str
+    source_column: str
+    references_table: str
+    references_column: str
+    references_schema: str | None = None
+    category: Literal["declared_fk_pending"] = "declared_fk_pending"
+    provenance: Provenance = "declared"  # WP99, as on LinkProposal
+    evidence: list[str] = Field(default_factory=list)
+    ratification_status: RatificationStatus = "proposed"
+    target_hub: str | None = None
+    key_translation: KeyTranslation | None = None
+    source_key_column: str | None = None
+    resolved_by_applier: bool = False
+
+
+class LinkProposals(BaseModel):
+    """The proposer's full answer for one run; empty on greenfield and ungrounded runs.
+
+    ``skipped`` is part of the answer, not exhaust: a foreign key the pass declined is a
+    relationship the model will not carry, and a run that proposes nothing looks identical to
+    a run that was never given foreign keys unless the declines are on the record."""
+
+    proposals: list[LinkProposal] = Field(default_factory=list)
+    skipped: list[LinkSkip] = Field(default_factory=list)
+    # WP37: one per relationship table; empty on every pre-WP37 shape (byte-identity).
+    relationships: list[RelationshipLinkProposal] = Field(default_factory=list)
+    # WP40: key licenses; empty on every pre-WP40 shape.
+    licenses: list[KeyLicense] = Field(default_factory=list)
+
+    def ratified_licenses(self) -> list[KeyLicense]:
+        return [lic for lic in self.licenses if lic.ratification_status == "accepted"]
+
+    def ratified_relationships(self) -> list[RelationshipLinkProposal]:
+        return [p for p in self.relationships if p.ratification_status == "accepted"]
+
+    def ratified(self) -> list[LinkProposal]:
+        """Only these may become links — the WP29 rule applied to relationships.
+
+        ``accepted`` ONLY, deliberately not "anything already decided". A resolution's
+        ``overridden`` carries a human's different *answer*, which still steers; a link's
+        ``overridden`` is a refusal, and there is nothing to build. Written the other way
+        first, and a test caught it building the very link a human had just declined."""
+        return [p for p in self.proposals if p.ratification_status == "accepted"]
+
+
+class HubSource(BaseModel):
+    """One source feeding a multi-source hub (WP10): the physical key column in that source.
+
+    ``business_key_column`` is the source's own name for the hub's business key (they differ
+    across systems — ``partner_id`` in one, ``customer_id`` in another). Staging aliases it to
+    the canonical name before hashing so the same key value hashes identically everywhere (the
+    hub's integration property)."""
+
+    source_table: str
+    business_key_column: str
+
+
+class Hub(BaseModel):
+    """A Data Vault hub: one business concept, anchored on its business key."""
+    name: str  # e.g. "hub_customer"
+    business_key: str  # the natural key field this hub is built on
+    source_entity: str  # the business object, e.g. "customer"
+    description: str
+    # WP45: a composite key names its source columns; the hash is taken over all of them, in
+    # this order. Empty = single-column key, where business_key names the column (today's
+    # behaviour, byte-identical). One entry is treated as empty.
+    business_key_columns: list[str] = Field(
+        default_factory=list,
+        description="When the business key is composite, the two or more source columns it "
+        "is made of, in order (e.g. [\"SalesOrderID\", \"SalesOrderDetailID\"]); then "
+        "business_key is the key's business label. Leave empty for a single-column key, "
+        "where business_key names the column itself.",
+    )
+    # WP10: when a business key lives in several sources, one HubSource per feed (the physical
+    # key column in each). Empty = single-source, today's behaviour (byte-identity guard). The
+    # canonical staging key name is computed once in rules.canonical_hub_key_column().
+    sources: list[HubSource] = Field(default_factory=list)
+    requirement_ids: list[str] = Field(default_factory=list)
+
+
+class LinkHubRef(BaseModel):
+    """One hub participation in a link, optionally role-qualified (ADR-0009).
+
+    A plain hub name in ``Link.connected_hubs`` coerces to ``LinkHubRef(hub=<name>)``
+    (unqualified, ``role=None``). A role qualifier disambiguates one hub participating
+    twice in different roles — e.g. ``hub_account`` as the unqualified payer side and as
+    the ``counterparty`` side of a transfer — so the generator can render distinct
+    role-prefixed FK columns (``ACCOUNT_HK`` vs ``COUNTERPARTY_ACCOUNT_HK``, via
+    :func:`rules.dv2_rules.role_fk_column`). Unqualified refs render byte-identically to
+    the pre-ADR-0009 plain-string behaviour."""
+
+    hub: str  # hub name, e.g. "hub_account"
+    role: str | None = None  # e.g. "counterparty"; None = unqualified
+    # WP34 §3.4: this participation's own physical name for the hub's key, when the relation
+    # feeding the link calls it something else (Sales.Customer.PersonID for a hub keyed on
+    # BusinessEntityID). Staging ALIASES it to the canonical name before hashing, exactly as
+    # HubSource.business_key_column does for a multi-source hub's feed — without which the
+    # staging model would demand a column the relation does not have, and the link would
+    # either fail to build or join on a same-named column meaning something else.
+    # None = today's behaviour and today's bytes. E_LINK_KEY_NOT_IN_SOURCE gates it.
+    source_key_column: str | None = None
+    # WP36 (ADR-0013): this participation's key is not in the feeding relation under ANY
+    # name — it is reached by joining through the referenced relation. Mutually exclusive
+    # with source_key_column by construction (an alias renames, a translation joins). The
+    # staging pass renders a translation model for it; None = today's bytes.
+    key_translation: KeyTranslation | None = None
+
+    def __str__(self) -> str:
+        return self.hub if self.role is None else f"{self.hub}:{self.role}"
+
+
+class Link(BaseModel):
+    """A Data Vault link: a relationship connecting two or more hubs."""
+    name: str  # e.g. "link_account_customer"
+    # Hub participations (>= 2). A plain string is a hub name (unqualified); a LinkHubRef
+    # (or ``{"hub": ..., "role": ...}`` dict) role-qualifies a participation so one hub can
+    # take part more than once (ADR-0009). The union keeps plain-string YAML/tool-schema
+    # inputs working; the before-validator normalises every entry to LinkHubRef so
+    # downstream code sees one shape — read it through ``hub_refs``.
+    connected_hubs: list[str | LinkHubRef]
+    description: str
+    # Discriminator the code generator dispatches on (standard -> automate_dv.link,
+    # transactional -> automate_dv.t_link, the non-historized/transactional link).
+    link_type: Literal["standard", "transactional"] = "standard"
+    # Hub reference(s) that stay fixed while the others rotate over time (the "one at a
+    # time" side of a relationship). Each entry names a connected participation — a bare
+    # hub name, or "hub:role" for a role-qualified one (ADR-0009); resolve via
+    # resolve_driving_refs(). Required when an effectivity satellite hangs off this link so
+    # it can end-date per driving key.
+    driving_key: list[str] = Field(default_factory=list)
+    # Optional: the modeler's rationale for the link's Unit of Work — which business keys
+    # form the one atomic event this link captures. Surfaced in the ADR trail, not enforced.
+    unit_of_work: str | None = None
+    # For a transactional link only: the transaction's data columns (automate_dv.t_link's
+    # src_payload) and the event-date column used as src_eff. event_timestamp is required to
+    # generate a t_link.
+    payload: list[str] = Field(default_factory=list)
+    event_timestamp: str | None = None
+    requirement_ids: list[str] = Field(default_factory=list)
+
+    @staticmethod
+    def _ref_from_string(value: str) -> "LinkHubRef":
+        """A plain participation string as a reference (WP58): ``name:role`` is a role-qualified
+        participation — the notation ``driving_key`` has always used — and anything else an
+        unqualified one. The tenth chain (2026-10-09) lost two links whose participations the
+        modeler wrote as ``hub_address:ship_to`` and ``hub_currency:from`` / ``:to``: read as hub
+        names, they were unknown hubs. An empty name or role is left as written for the gates."""
+        name, sep, role = value.partition(":")
+        if sep and name and role:
+            return LinkHubRef(hub=name, role=role)
+        return LinkHubRef(hub=value)
+
+    @field_validator("connected_hubs", mode="before")
+    @classmethod
+    def _normalise_hub_refs(cls, value: Any) -> Any:
+        """Coerce every entry to a LinkHubRef so downstream code sees one shape (ADR-0009).
+
+        Plain strings become refs (``name:role`` role-qualified, WP58); dicts/LinkHubRefs pass
+        through to pydantic. Runs on construction/validation; direct field assignment bypasses
+        it, which is why :attr:`hub_refs` re-coerces defensively."""
+        if isinstance(value, list):
+            return [cls._ref_from_string(v) if isinstance(v, str) else v for v in value]
+        return value
+
+    @property
+    def hub_refs(self) -> list[LinkHubRef]:
+        """``connected_hubs`` as normalised :class:`LinkHubRef`s — the single read path.
+
+        The before-validator already normalises validated input; this re-coerces any plain
+        string (e.g. from a post-construction field assignment that skips validation) so
+        every consumer can rely on ``.hub`` / ``.role`` without a union check."""
+        return [
+            self._ref_from_string(h) if isinstance(h, str) else h for h in self.connected_hubs
+        ]
+
+    def resolve_driving_refs(self) -> list["LinkHubRef"]:
+        """Resolve ``driving_key`` entries to the connected refs they name (ADR-0009).
+
+        An entry is a bare hub name (matches the unqualified connected ref) or ``"hub:role"``
+        (matches the role-qualified one). This is the single interpretation point for the
+        driving key; unmatched entries are dropped here and reported by the validator's
+        ``E_DRIVING_KEY_NOT_IN_LINK`` gate."""
+        refs = self.hub_refs
+        resolved: list[LinkHubRef] = []
+        for entry in self.driving_key:
+            hub, sep, role = entry.partition(":")
+            wanted = (hub, role if sep else None)
+            for ref in refs:
+                if (ref.hub, ref.role) == wanted:
+                    resolved.append(ref)
+                    break
+        return resolved
+
+
+class Satellite(BaseModel):
+    """A Data Vault satellite: descriptive attributes hanging off one parent."""
+    name: str  # e.g. "sat_customer_details"
+    parent: str  # the hub or link name this satellite describes
+    attributes: list[str] = Field(default_factory=list)  # descriptive payload columns
+    description: str
+    # Discriminator the code generator dispatches on (standard -> automate_dv.sat,
+    # multi_active -> automate_dv.ma_sat, effectivity -> automate_dv.eff_sat).
+    sat_type: Literal["standard", "multi_active", "effectivity"] = "standard"
+    # Child dependent key(s) that distinguish concurrently-active rows of a multi-active
+    # satellite (automate_dv.ma_sat's src_cdk). Required to generate a ma_sat.
+    child_dependent_key: list[str] = Field(default_factory=list)
+    # The raw relation this satellite's rows come from, when it differs from its parent's
+    # (WP7 §7.1): multi-active payloads usually live in their own finer-grain source
+    # table. When set, the staging generator emits a dedicated stg_<sat base> model bound
+    # to it VERBATIM (declared — never inferred, never flagged) and the satellite reads
+    # that staging model. The parent's business-key column(s) must exist in this relation
+    # — that is what makes the rows attachable to the parent's hash key. Ignored for
+    # effectivity satellites (their date pair lives in the relationship's own relation).
+    source_table: str | None = None
+    # WP38: set by the APPLIER, never by the modeler (stripped from its tool schema, gated by
+    # E_SAT_TRANSLATION_UNRATIFIED). The satellite's source table is a subtype keyed on the
+    # surrogate the parent hub's table uses (`SalesPerson.BusinessEntityID → Employee`), while
+    # the hub is keyed on the natural key (`NationalIDNumber`); its stage reads the WP36
+    # translation view, which joins that key in. Only for a ratified same-as whose join is
+    # declared (`subtype_feed.py`).
+    key_translation: KeyTranslation | None = None
+    # WP40: for a satellite on a LINK read from its own source table, the translation of each
+    # participation whose hub key that table does not carry — keyed by participation
+    # (`rules.participation_key`: the hub name, or `hub:role` since WP41). Set by the key-license
+    # applier only, stripped from the modeler's schema; {} = today.
+    participation_translations: dict[str, KeyTranslation] = Field(default_factory=dict)
+    # WP41: the same, for a participation whose key that table carries under another name — the
+    # referencing column its key column is derived from. Applier-owned, stripped; {} = today.
+    participation_aliases: dict[str, str] = Field(default_factory=dict)
+    # Optional: why this satellite's attributes are grouped/split as they are (rate of
+    # change, source, classification). Surfaced in the ADR trail, not enforced.
+    split_rationale: str | None = None
+    requirement_ids: list[str] = Field(default_factory=list)
+
+
+class DVModel(BaseModel):
+    hubs: list[Hub] = Field(default_factory=list)
+    links: list[Link] = Field(default_factory=list)
+    satellites: list[Satellite] = Field(default_factory=list)
+
+
+class BusinessVaultOptions(BaseModel):
+    """WP91 (ADR-0016): which Business Vault constructs a run generates, and their bounds.
+
+    ``pit`` asks for a point-in-time table per hub with two or more descriptive satellites. A PIT
+    is a cross join of hub keys and as-of dates, so both bounds are required — nothing in
+    the inputs says what the spine should span. ``as_of_end`` is exclusive
+    (``dbt_utils.date_spine``)."""
+
+    pit: bool = False
+    # WP115: bridges named at start, each a path `hub,link,hub[,link,hub…]` with `hub:role` for a
+    # role-qualified participation (the language: business_vault_generator.parse_bridge_path).
+    bridges: list[str] = Field(default_factory=list)
+    as_of_start: date | None = None
+    as_of_end: date | None = None
+    as_of_grain: Literal["day", "month"] = "day"
+
+    @property
+    def enabled(self) -> bool:
+        """The Business Vault is on: a PIT or a bridge was asked for, so the spine and
+        `dbt_utils` are part of the project and bridge paths may be proposed (WP115)."""
+        return self.pit or bool(self.bridges)
+
+    @model_validator(mode="after")
+    def _bounded(self) -> "BusinessVaultOptions":
+        if self.enabled:
+            if self.as_of_start is None or self.as_of_end is None:
+                raise ValueError("a PIT or a bridge needs as_of_start and as_of_end (YYYY-MM-DD)")
+            if self.as_of_start >= self.as_of_end:
+                raise ValueError("as_of_start must lie before as_of_end")
+        return self
+
+
+class BridgeProposal(BaseModel):
+    """WP115: one bridge path the run proposes or an operator named at sign-off (ADR-0016).
+
+    Proposed deterministically from the model's own citations — two links citing the same
+    requirement and sharing a hub — never by a prompt; a decision at sign-off (ADR-0007 keeps
+    Business Vault logic human-ratified), declined when unanswered. ``origin`` says whether the
+    citations (``model``) or the human (``operator``, a `--bridge PATH` no proposal carried) named
+    the path."""
+
+    path: str
+    requirement_ids: list[str] = Field(default_factory=list)
+    evidence: list[str] = Field(default_factory=list)
+    ratification_status: RatificationStatus = "proposed"
+    origin: Literal["model", "operator"] = "model"
+
+
+class Artifacts(BaseModel):
+    automatedv_yaml: dict[str, Any] = Field(default_factory=dict)
+    dbt_models: dict[str, str] = Field(default_factory=dict)
+    # WP91: Business Vault models (the as-of spine, one PIT per eligible hub), written under
+    # models/business_vault/. Empty unless the run asked for PITs.
+    business_vault_models: dict[str, str] = Field(default_factory=dict)
+    # One JSON-Schema-based data contract per source-to-staging asset (ADR-0005), each a
+    # plain JSON/YAML-round-trippable dict (DataContract.to_dict()).
+    contracts: list[dict[str, Any]] = Field(default_factory=list)
+    # dbt schema-test YAML derived from the contracts, keyed by asset name (one properties
+    # file per asset). Prevention runs inside the existing dbt pipeline.
+    dbt_tests: dict[str, str] = Field(default_factory=dict)
+    # Generated AutomateDV staging models (stg_* -> SQL), kept separate from the raw-vault
+    # dbt_models so each layer can be written/tested/asserted independently.
+    staging_models: dict[str, str] = Field(default_factory=dict)
+    # WP23 §2.7: the computed extension diff (unchanged/extended/changed_files/new) on a
+    # brownfield run; empty on greenfield. Plain dict so it round-trips the checkpointer,
+    # and so the Markdown artifact and the HTML report render the SAME data.
+    extension_diff: dict[str, Any] = Field(default_factory=dict)
+    # dbt project scaffolding (relative path -> content): dbt_project.yml, packages.yml,
+    # models/staging/sources.yml, README.md — what makes the output a runnable project.
+    scaffolding: dict[str, str] = Field(default_factory=dict)
+
+
+# "info" (WP43): a record the validator keeps — the extension inventory — that is neither a
+# defect nor a risk. It stays in the report; the review queue derives no item from it.
+IssueSeverity = Literal["error", "warning", "info"]
+
+
+# The DV term of art is "construct" (hub/link/satellite); pydantic warns because it
+# shadows the *deprecated* classmethod ``BaseModel.construct`` (v1 alias of
+# ``model_construct``), which this project never calls. Suppress that one definition-time
+# warning rather than bending the domain vocabulary.
+with warnings.catch_warnings():
+    warnings.filterwarnings("ignore", message='Field name "construct" in "ValidationIssue"')
+
+    class ValidationIssue(BaseModel):
+        """A single validator finding, keyed by a stable machine code.
+
+        Consumers branch on ``severity``/``code``/``construct``; ``message`` is
+        human-readable presentation only and is never parsed."""
+        severity: IssueSeverity
+        code: str  # stable machine code, e.g. "E_NO_HUBS" / "W_SAT_WIDE"
+        # The construct (or comma-joined constructs) concerned. The ignore matches the
+        # runtime suppression above: the shadowed classmethod is deprecated and unused.
+        construct: str  # type: ignore[assignment]
+        message: str  # human-readable; presentation only, never parsed
+        # What the re-model loop should DO about it, when the rule can say so
+        # deterministically (2026-09-13: `rules.hub_collision_remedy`). Sent to the modeler
+        # beside the diagnosis; presentation for the model, never parsed by code.
+        remedy: str | None = None
+        # WP44: the constructs that remedy retires, by name — the typed half of ``remedy``.
+        # The validator turns these into ``state.retired_constructs``; nothing parses the text.
+        retires: list[str] = Field(default_factory=list)
+        # WP48: attributes the remedy retires on a satellite — ``[satellite, attribute]`` pairs.
+        retires_attributes: list[list[str]] = Field(default_factory=list)
+        # WP51: the hub the remedy KEPT when it retired the ones in ``retires`` — the twin a
+        # dropped hub's dependents move to (``HubCollisionRemedy.keep``,
+        # ``SecondHubRemedy.parent``).
+        retires_into: str | None = None
+
+
+class RetiredConstruct(BaseModel):
+    """A construct a deterministic remedy removed from the model for the rest of the run (WP44).
+
+    Recorded by the validator from the remedy's typed ``drop``; the modeler refuses the
+    construct's return in every later attempt. ``code`` is the gate whose remedy retired it."""
+
+    name: str
+    kind: Literal["hub", "link", "satellite", "attribute"]
+    code: str
+    attempt: int = 0
+    # WP48: kind ``attribute`` — ``name`` is the satellite, ``attribute`` the label it must not
+    # carry again; the satellite itself stays, the column lives in the keeping satellite.
+    attribute: str | None = None
+    # WP49: a hub's identity is its source entity and key, not its name — the third chain
+    # re-emitted a retired hub under another name. Normalised key columns (``hub_key_columns``),
+    # so a composite key compares as a tuple. Empty on records written before WP49: name only.
+    source_entity: str | None = None
+    key_columns: list[str] = Field(default_factory=list)
+    # WP51: the hub the remedy kept in this hub's place; the dropped hub's satellites and link
+    # participations move there instead of becoming orphans. None: no twin, WP44's behaviour.
+    kept_twin: str | None = None
+    # WP46: a satellite is retired by the SHAPE the gate refused — its parent and relation —
+    # so a re-parented satellite of the same name passes and faces the gate again, while an
+    # unchanged copy is dropped. None for hubs, whose identity is their key.
+    parent: str | None = None
+    source_table: str | None = None
+
+
+class ValidationReport(BaseModel):
+    passed: bool = False
+    issues: list[ValidationIssue] = Field(default_factory=list)
+
+
+class ExecutionPlan(BaseModel):
+    """The orchestrator's record of what a run will execute (audit + observability).
+
+    Deterministic: the orchestrator writes it as the entry node so the trace shows the
+    planned stages, declared inputs, and whether source-schema grounding is active."""
+    stages: list[str] = Field(default_factory=list)  # node ids planned after planning
+    input_documents: int = 0
+    grounded: bool = False
+    # WP23: this run extends an existing vault (`--existing`) rather than modelling into
+    # an empty target. Observability only — the behaviour hangs off state.existing_model.
+    extending: bool = False
+    notes: list[str] = Field(default_factory=list)  # planning observations, e.g. missing inputs
+
+
+class VaultAgentState(BaseModel):
+    """Single state object shared across all agents in the graph."""
+    # Inputs
+    input_documents: list[str] = Field(default_factory=list)
+    # Optional source-column metadata for grounding (ADR-0004); empty = no grounding.
+    source_schemas: list[SourceTable] = Field(default_factory=list)
+    # Optional profiling evidence for the mapping step (WP9 §3.2 / ADR-0008 #4): a pre-step
+    # file, table -> column -> ColumnProfile. Empty = no profiling (mapper leans on
+    # names/comments, which the spike found sufficient for intent).
+    profiling: dict[str, dict[str, ColumnProfile]] = Field(default_factory=dict)
+    # WP23 brownfield mode: the logical model of the vault being EXTENDED, loaded from a
+    # previous run's metadata/dv_model.yml via `run --existing`. None = greenfield, which is
+    # the default and the byte-identity baseline. It is immutable context for the whole run:
+    # the modeler emits only a delta against it, the merger never mutates it, and the
+    # additive E_EXISTING_* gates compare the merged model back to it.
+    existing_model: DVModel | None = None
+    # The --existing path as the user gave it, for the diff artifact and the delta-ADR's
+    # "Extends" section. Presentation only — nothing branches on it.
+    existing_source: str | None = None
+    # WP74: the declared tables earlier increments bound to — the source catalogue that
+    # travels with the model (`metadata/source_catalogue.yml`). Read by staging only, so an
+    # existing construct's stage keeps its relation and block; never by the contract agent,
+    # the proposer, the resolver or the modeler's grounding (`source_schemas` stays the
+    # increment's — the typed split the project's conventions ask for).
+    carried_schemas: list[SourceTable] = Field(default_factory=list)
+    # WP77: the declared binding of every earlier increment's stage (`stage_bindings` in the
+    # same catalogue), keyed by stage model — kept by staging when this run's own resolution
+    # (a ratified mapping, a ratified proposal, the offer) says nothing about the stage. The
+    # twentieth chain lost 24 of 34 link and hub bindings step by step for want of it.
+    carried_bindings: dict[str, str] = Field(default_factory=dict)
+    # WP82: the aliases a human ratified with a carried binding (`stage_aliases` in the
+    # catalogue, ``{stage: {STAGE_COLUMN: relation_column}}``) — without them the next increment
+    # would refuse the carried relation for the very column the alias supplied.
+    carried_aliases: dict[str, dict[str, str]] = Field(default_factory=dict)
+    # WP82: the bindings a human ratified at sign-off, by stage model name. Applied last — a
+    # decision overwrites the name rule, the offer, the evidence tier and a ratified proposal.
+    # Empty on every run no human bound a stage in (byte-identity).
+    ratified_bindings: dict[str, StageBinding] = Field(default_factory=dict)
+    # WP35: the warehouse the generated dbt project is aimed at (`run --target-platform`).
+    # Read by the staging pass for seed column types and the README's profile hint —
+    # nothing else branches on it, the vault SQL is platform-neutral (AutomateDV dispatches
+    # per adapter). Persisted here so a resumed run keeps the choice without re-passing it.
+    target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM
+    # WP114 (C3): the physical naming profile the generators write under — the house style
+    # unless a run or a project pins another; persisted so a resumed run keeps it, and
+    # written beside the model (`metadata/naming.yml`) so an extension adopts its vault's.
+    naming: NamingProfile = Field(default_factory=NamingProfile)
+    # WP120 (C48): the naming profile's technical columns a landing table carries (`load_datetime`,
+    # `record_source`, `applied_dts`), dropped from `source_schemas` and `carried_schemas` — the
+    # pipeline adds them itself, and as payload they reach a hashdiff. Per `Schema.Table`.
+    technical_source_columns: dict[str, list[str]] = Field(default_factory=dict)
+    # WP91 (ADR-0016): Business Vault output the operator asked for — off by default, so every
+    # artifact is what it was. Persisted so a resumed run keeps the choice.
+    business_vault: BusinessVaultOptions = Field(default_factory=lambda: BusinessVaultOptions())
+    # WP29: entity-resolution proposals for an extension run (concept -> existing
+    # construct / NEW / same-as candidate / unresolved). Empty unless BOTH an existing
+    # model and a declared schema are present — the grounding gate.
+    resolutions: EntityResolution = Field(default_factory=EntityResolution)
+    # WP34: link proposals derived from the new source's DECLARED foreign keys. Same
+    # grounding gate as `resolutions` — an existing model AND a declared schema — so
+    # greenfield and ungrounded runs keep it empty and stay byte-identical.
+    link_proposals: LinkProposals = Field(default_factory=LinkProposals)
+    # WP125 (ADR-0021): the human's answers to contested hub keys, by declared table name. The
+    # decisions themselves are derived (``rules.key_decision.decide_keys``); empty on every run
+    # whose catalogue contests nothing, so such a state is byte-identical.
+    key_answers: dict[str, KeyAnswer] = Field(default_factory=dict)
+    # WP115: bridge paths proposed from the model's citations while the Business Vault is on;
+    # empty otherwise, so a run without one keeps its review queue byte-identical.
+    bridge_proposals: list[BridgeProposal] = Field(default_factory=list)
+    # WP122 (C53): bridge paths an earlier increment of this vault declined, carried from the
+    # existing output's `metadata/bridge_decisions.yml` so an extension does not propose them again.
+    declined_bridges: list[str] = Field(default_factory=list)
+    # Working state
+    # Business↔source mapping proposals (WP9): written by the source_mapper on grounded runs,
+    # ratified at the HITL checkpoint, and consumed by staging binding. Empty when ungrounded.
+    mappings: ProposedMapping = Field(default_factory=ProposedMapping)
+    requirements: list[ParsedRequirement] = Field(default_factory=list)
+    business_keys: list[BusinessKeyCandidate] = Field(default_factory=list)
+    dv_model: DVModel = Field(default_factory=DVModel)
+    artifacts: Artifacts = Field(default_factory=Artifacts)
+    validation_report: ValidationReport = Field(default_factory=ValidationReport)
+    # The orchestrator's execution plan, written by the entry node (None until it runs).
+    plan: ExecutionPlan | None = None
+    adrs: list[str] = Field(default_factory=list)
+    # Loop control: how many times the modeler has run. The validation retry guard reads
+    # this directly so control flow is decoupled from the audit log (decisions).
+    modeling_attempts: int = 0
+    # WP44: what a remedy retired in an earlier attempt; the modeler keeps it retired.
+    retired_constructs: list[RetiredConstruct] = Field(default_factory=list)
+    # WP57: the model the modeler emitted in its last attempt — after parsing and the memory's
+    # drops, before the brownfield merge (the delta, never the vault). A retry carries it as
+    # `previous_model`, so the retry is a repair of this and not a new draft.
+    previous_delta: DVModel | None = None
+    # Audit
+    decisions: list[dict[str, Any]] = Field(default_factory=list)
+    # Typed advisory/error flags raised by the agents (dropped records, generation gaps,
+    # contract review items, …). Consumers branch on kind/asset, never on message text.
+    flags: list[PipelineFlag] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _drop_technical_columns(self) -> "VaultAgentState":
+        """WP120 (C48): a declared column named like one of the profile's technical columns is
+        the landing zone's load metadata, not a source attribute — unless a declared key holds
+        it. The file stays a transcription (WP96); the drop happens here, where the model's
+        inputs are formed, and is recorded in ``technical_source_columns``. Idempotent."""
+        technical = {
+            self.naming.load_datetime.upper(), self.naming.record_source.upper(),
+            self.naming.applied_dts.upper(),
+        }
+        dropped: dict[str, list[str]] = dict(self.technical_source_columns)
+
+        def strip(tables: list[SourceTable], record: bool) -> list[SourceTable]:
+            kept: list[SourceTable] = []
+            for table in tables:
+                keyed = {c.upper() for c in table.primary_key}
+                keyed |= {c.upper() for key in table.unique_keys for c in key}
+                gone = [c.name for c in table.column_refs
+                        if c.name.upper() in technical and c.name.upper() not in keyed]
+                if not gone:
+                    kept.append(table)
+                    continue
+                kept.append(table.model_copy(update={
+                    "columns": [c for c in table.column_refs if c.name not in gone],
+                }))
+                if record:
+                    where = (f"{table.schema_name}.{table.table}" if table.schema_name
+                             else table.table)
+                    dropped[where] = list(dict.fromkeys([*dropped.get(where, []), *gone]))
+            return kept
+
+        self.source_schemas = strip(self.source_schemas, record=True)
+        self.carried_schemas = strip(self.carried_schemas, record=False)
+        self.technical_source_columns = dropped
+        return self
+
+    def flag(
+        self,
+        agent: str,
+        message: str,
+        *,
+        severity: FlagSeverity = "advisory",
+        kind: str = FlagKind.GENERIC,
+        asset: str | None = None,
+        reason: str | None = None,
+        confirm: bool = False,
+    ) -> None:
+        """Raise a typed pipeline flag (convenience helper for the agents). ``reason`` is
+        WP47's typed reason code — WP116 uses it to carry a translation flag's key; ``confirm``
+        (WP128) marks a disclosure a human must still confirm."""
+        self.flags.append(
+            PipelineFlag(
+                agent=agent, message=message, severity=severity, kind=kind, asset=asset,
+                reason=reason, confirm=confirm,
+            )
+        )

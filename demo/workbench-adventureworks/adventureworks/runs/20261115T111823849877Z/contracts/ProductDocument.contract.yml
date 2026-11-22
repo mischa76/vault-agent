@@ -1,0 +1,51 @@
+spec-version: 1.0.0
+name: ProductDocument
+namespace: source
+dataAssetResourceName: datastore://source/ProductDocument
+doc: Association between a product and a document (e.g., manuals or specifications)
+  in the source-to-staging load of the Production schema. The contract enforces the
+  presence and types of the composite business key (ProductID, DocumentNode) and the
+  ModifiedDate audit column. Ownership and agreement are to be confirmed at the human-in-the-loop
+  checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductID
+  description: Identifier of the product linked to the document. References the Product
+    asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: DocumentNode
+  description: Hierarchical node identifier of the document linked to the product.
+    References the Document asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the association row was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

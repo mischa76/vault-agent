@@ -1,0 +1,325 @@
+"""Typed loader for the golden eval datasets (wp6-eval-harness-spec.md §3).
+
+One directory per case under ``eval/datasets/``, each with a ``dataset.yml`` holding the
+input document, an optional declared source schema, the golden DV model, and tolerance
+expectations. Loading is I/O plus pydantic validation — deterministic and key-free, in the
+style of :func:`vault_agent.source_schema.load_source_schemas`: a malformed document raises
+a clear, attributable ``ValueError`` naming the file and the problem.
+
+Golden matching is *structural*, not textual: the scorers compare names and keys through
+``rules.normalize_identifier`` (see :mod:`eval.scorers`), so golden values may be written
+as business labels ("national customer ID") or identifiers (``NATIONAL_CUSTOMER_ID``).
+"""
+from pathlib import Path
+from typing import Any, Literal
+
+import yaml
+from pydantic import BaseModel, Field, ValidationError, model_validator
+
+# Where the shipped cases live; the runner and tests discover cases here by default.
+DATASETS_ROOT = Path(__file__).parent / "datasets"
+
+DATASET_FILENAME = "dataset.yml"
+
+# The golden-mapping filename a case ships (or a generated case materialises); mirrored from
+# eval.mapping.GOLDEN_MAPPING_FILENAME, kept local to avoid an import cycle at module load.
+GOLDEN_MAPPING_FILENAME = "golden_mapping.yml"
+# WP29.1: the resolution counterpart, discovered by the same convention. A case that ships one
+# gets the resolution scorer family; one that does not is a mapping/model case and skips it.
+GOLDEN_RESOLUTION_FILENAME = "golden_resolution.yml"
+
+# Mapping scorers keyed on the proposal's *concept* name (WP9/WP9.2). In "column"
+# mapping_match mode the modeler's free-form names diverge from the golden vocabulary, so
+# these become blind — reported but never a gate (WP14 §2.4). load_eval_case rejects a
+# column-mode case that names any of them in expectations.min_scores.
+_CONCEPT_COUPLED_SCORERS = frozenset(
+    {"mapping_accuracy", "gap_detection", "confidence_calibration"}
+)
+
+
+class GoldenHub(BaseModel):
+    """Expected hub: matched on normalised name *and* normalised business key."""
+
+    name: str
+    business_key: str
+
+
+class GoldenLink(BaseModel):
+    """Expected link: matched on *grain* (the normalised multiset of connected hubs), with
+    ``name`` only breaking a tie between two generated links of the same grain — see
+    ``scorers._resolve_link``.
+
+    ``driving_key`` (optional) feeds the ``driving_key_accuracy`` scorer; it is not part
+    of the ``construct_f1`` match."""
+
+    name: str
+    connected_hubs: list[str]
+    driving_key: list[str] = Field(default_factory=list)
+
+
+class GoldenSatellite(BaseModel):
+    """Expected satellite: matched on normalised name, parent, and ``sat_type``.
+
+    ``attributes`` may optionally be listed; the match then additionally requires the
+    generated satellite's normalised attribute *set* to equal the golden one."""
+
+    name: str
+    parent: str
+    sat_type: Literal["standard", "multi_active", "effectivity"] = "standard"
+    attributes: list[str] | None = None
+
+
+class GoldenModel(BaseModel):
+    hubs: list[GoldenHub] = Field(default_factory=list)
+    links: list[GoldenLink] = Field(default_factory=list)
+    satellites: list[GoldenSatellite] = Field(default_factory=list)
+
+
+class Expectations(BaseModel):
+    """Tolerances, not exactness: LLM output varies between runs (see docs/demos/README)."""
+
+    validation_passed: bool = True
+    # None = no warning-count gate; otherwise the validation_gate scorer fails the case
+    # when the run produced more warnings than this.
+    max_validation_warnings: int | None = None
+    # Optional per-scorer minimum *mean* scores: the live runner exits non-zero when a
+    # mean falls below its threshold (a manual pre-release gate, spec §5).
+    min_scores: dict[str, float] = Field(default_factory=dict)
+
+
+class GenerateSpec(BaseModel):
+    """A generated case (WP13): the inputs are synthesised on demand from ``(tables, seed)``
+    by ``eval.scale.generate`` instead of committed, so the large scale steps (100/300) do
+    not check hundreds of KB of synthetic YAML into the repo."""
+
+    tables: int
+    seed: int
+
+
+class ChainSpec(BaseModel):
+    """A CHAINED case (WP30 §2.7): each step extends the vault the previous step produced.
+
+    Distinct from ``existing``, which names a *static*, checked-in vault (``bank_extension``
+    ships one). Here step N+1's existing model is step N's **output** — the same
+    ``metadata/dv_model.yml`` the CLI writes and ``--existing`` reads, threaded through a
+    working directory rather than short-circuited, so a chain exercises the real WP23 path.
+
+    ``steps`` names other cases in dependency order. One repeat = one full chain; a repeat
+    re-runs the whole chain from step 1, because a chain's later steps are not meaningful
+    without the earlier ones that built the vault they extend."""
+
+    steps: list[str] = Field(min_length=2)
+    # WP47: when true, step N also receives the declared schemas of steps 1 … N−1 — the
+    # catalogue a customer's brownfield run has. False keeps WP30 §2.7's measurement as it is.
+    cumulative_schema: bool = False
+
+
+class EvalCase(BaseModel):
+    """One golden eval case. ``input_document``/``source_schema``/``profiling`` are resolved
+    to absolute paths (relative paths in ``dataset.yml`` are taken relative to the file
+    itself) for a committed case; a ``generate`` case leaves them unset until
+    :func:`materialize_case` synthesises them. Exactly one of ``input_document`` / ``generate``
+    must be given."""
+
+    name: str
+    input_document: Path | None = None
+    source_schema: Path | None = None
+    profiling: Path | None = None
+    # WP23 brownfield: the logical model of the vault this case EXTENDS (a dv_model.yml).
+    # Unset = greenfield, which is every pre-WP23 case.
+    existing: Path | None = None
+    # WP47: earlier chain steps' declared schemas, set by the chain runner, never by a file.
+    extra_source_schemas: list[Path] = Field(default_factory=list)
+    generate: GenerateSpec | None = None
+    # WP30 §2.7: an ordered chain of other cases, each extending the previous one's output.
+    chain: ChainSpec | None = None
+    golden: GoldenModel
+    expectations: Expectations = Field(default_factory=Expectations)
+    # How the WP9 mapping scorers judge this case (WP14). "concept" (default) is the
+    # name-aligned WP9/WP9.2 behaviour (bank/messy_insurance). "column" is the scale mode:
+    # pair-based mapping_coverage + false_friend_hits, with the concept-coupled scorers
+    # reported-only (and non-gateable — enforced in load_eval_case).
+    mapping_match: Literal["concept", "column"] = "concept"
+
+    @model_validator(mode="after")
+    def _exactly_one_input_source(self) -> "EvalCase":
+        declared = [
+            name
+            for name, value in (
+                ("input_document", self.input_document),
+                ("generate", self.generate),
+                ("chain", self.chain),
+            )
+            if value is not None
+        ]
+        if len(declared) != 1:
+            raise ValueError(
+                "provide exactly one of 'input_document' (committed case), 'generate' "
+                f"(synthesised case) or 'chain' (WP30 chained case); got {declared or 'none'}"
+            )
+        if self.generate is not None and (
+            self.source_schema is not None or self.profiling is not None
+        ):
+            raise ValueError(
+                "a 'generate' case must not also declare 'source_schema'/'profiling' "
+                "(they are synthesised)"
+            )
+        if self.chain is not None and (
+            self.source_schema is not None
+            or self.profiling is not None
+            or self.existing is not None
+        ):
+            raise ValueError(
+                "a 'chain' case must not declare 'source_schema'/'profiling'/'existing' — "
+                "each step supplies its own inputs, and the existing model of every step "
+                "after the first is the PREVIOUS step's output"
+            )
+        return self
+
+
+def _resolve_existing(base: Path, candidate: Path, field: str, source: Path) -> Path:
+    """Resolve ``candidate`` against ``base`` and require it to exist (attributable)."""
+    resolved = (base / candidate).resolve()
+    if not resolved.is_file():
+        raise ValueError(f"{source}: {field} '{candidate}' does not exist (resolved to {resolved})")
+    return resolved
+
+
+def load_eval_case(path: Path) -> EvalCase:
+    """Load one ``dataset.yml`` into a typed :class:`EvalCase`.
+
+    Raises ``FileNotFoundError`` if the file is missing and a clear ``ValueError`` naming
+    the file and the problem for malformed YAML, an invalid case, or a dangling
+    ``input_document``/``source_schema`` reference."""
+    raw = path.read_text(encoding="utf-8")
+    try:
+        document: Any = yaml.safe_load(raw)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"{path}: not valid YAML ({exc})") from exc
+
+    if not isinstance(document, dict):
+        raise ValueError(
+            f"{path}: expected a mapping with name/input_document/golden, "
+            f"got {type(document).__name__}"
+        )
+    try:
+        case = EvalCase.model_validate(document)
+    except ValidationError as exc:
+        raise ValueError(f"{path}: invalid eval case: {exc}") from exc
+
+    # A column-mode case must not gate a concept-coupled mapping scorer: those measure naming
+    # alignment, not mapping quality, and are reported-only at scale (WP14 §2.4). Fail loudly
+    # (house loader style: name the file, the field, and why) rather than silently gate a
+    # score that cannot mean what the author intends.
+    if case.mapping_match == "column":
+        gated = sorted(set(case.expectations.min_scores) & _CONCEPT_COUPLED_SCORERS)
+        if gated:
+            raise ValueError(
+                f"{path}: mapping_match='column' must not gate concept-coupled scorer(s) "
+                f"{gated} in expectations.min_scores — they are reported-only at scale "
+                f"(WP14); gate 'mapping_coverage'/'false_friend_hits' instead"
+            )
+
+    # A scorer with nothing to check reports a vacuous 1.0 (construct_f1 with an empty
+    # golden model, driving_key_accuracy with no golden driving key). That number must not
+    # be gateable: the gate would pass on absence of evidence. Same loud-loader contract as
+    # above — name the file, the field, and why.
+    golden = case.golden
+    vacuous: list[str] = []
+    if not (golden.hubs or golden.links or golden.satellites):
+        vacuous.append("construct_f1")
+    if not any(link.driving_key for link in golden.links):
+        vacuous.append("driving_key_accuracy")
+    # WP23: the preservation scorer has nothing to preserve on a greenfield case. A WP30
+    # chained case IS an extension case even though it declares no `existing` — every step
+    # after the first extends the previous step's output, and `score_chain` scores
+    # preservation per step. Without this the guard would reject exactly the case the
+    # scorer's gate exists for.
+    if case.existing is None and case.chain is None:
+        vacuous.append("existing_construct_preservation")
+    gated_vacuous = sorted(set(case.expectations.min_scores) & set(vacuous))
+    if gated_vacuous:
+        raise ValueError(
+            f"{path}: expectations.min_scores gates {gated_vacuous}, but the golden "
+            f"declares nothing for it — the scorer reports a vacuous 1.0, so the gate "
+            f"would pass on absence of evidence; declare the golden constructs/driving "
+            f"keys or drop the gate"
+        )
+
+    # A chained case (WP30 §2.7) has no inputs of its own — every step supplies its own, and
+    # the steps must exist as cases. Checked here so a typo in `steps` is an attributable
+    # load-time error rather than a mid-chain surprise after the first step has been paid for.
+    if case.chain is not None:
+        for step in case.chain.steps:
+            step_file = path.parent.parent / step / DATASET_FILENAME
+            if not step_file.is_file():
+                raise ValueError(
+                    f"{path}: chain step '{step}' has no case (expected {step_file})"
+                )
+        if len(set(case.chain.steps)) != len(case.chain.steps):
+            raise ValueError(f"{path}: chain steps must be distinct; got {case.chain.steps}")
+
+    # A generated case leaves the input paths unset; they are synthesised by
+    # materialize_case(). A committed case resolves them to existing files now.
+    if case.generate is None and case.chain is None:
+        assert case.input_document is not None  # guaranteed by the model validator
+        case.input_document = _resolve_existing(
+            path.parent, case.input_document, "input_document", path
+        )
+        if case.source_schema is not None:
+            case.source_schema = _resolve_existing(
+                path.parent, case.source_schema, "source_schema", path
+            )
+        if case.profiling is not None:
+            case.profiling = _resolve_existing(path.parent, case.profiling, "profiling", path)
+    if case.existing is not None:
+        case.existing = _resolve_existing(path.parent, case.existing, "existing", path)
+    return case
+
+
+def materialize_case(case: EvalCase, workdir: Path) -> tuple[EvalCase, Path | None]:
+    """Resolve a case to concrete input files, synthesising a ``generate`` case on demand.
+
+    For a committed case this is a near no-op: it returns the case unchanged plus the path to
+    its shipped ``golden_mapping.yml`` (or ``None`` if it ships none). For a WP13 ``generate``
+    case it runs :func:`eval.scale.generate.write_landscape` into ``workdir`` and returns a
+    copy of the case bound to the synthesised ``requirements.md``/``source_schema.yml``/
+    ``profiling.yml`` plus the synthesised ``golden_mapping.yml``. Deterministic: the same
+    ``(tables, seed)`` yields byte-identical inputs (WP13 §2)."""
+    if case.generate is None:
+        golden = DATASETS_ROOT / case.name / GOLDEN_MAPPING_FILENAME
+        return case, (golden if golden.is_file() else None)
+
+    # Lazy import: keeps the loader light and the eval → src dependency direction explicit.
+    from eval.scale.generate import generate_landscape, write_landscape
+
+    landscape = generate_landscape(case.generate.tables, case.generate.seed)
+    files = write_landscape(landscape, workdir)
+    resolved = case.model_copy(
+        update={
+            "input_document": files["requirements"],
+            "source_schema": files["source_schema"],
+            "profiling": files["profiling"],
+        }
+    )
+    return resolved, files["golden_mapping"]
+
+
+def load_all_cases(root: Path = DATASETS_ROOT) -> list[EvalCase]:
+    """Load every ``<root>/<dir>/dataset.yml``, sorted by directory name.
+
+    Case names must be unique (they key result directories and LangSmith datasets)."""
+    cases: list[EvalCase] = []
+    seen: dict[str, Path] = {}
+    for directory in sorted(p for p in root.iterdir() if p.is_dir()):
+        dataset = directory / DATASET_FILENAME
+        if not dataset.is_file():
+            continue
+        case = load_eval_case(dataset)
+        if case.name in seen:
+            raise ValueError(
+                f"{dataset}: duplicate case name '{case.name}' (already used by {seen[case.name]})"
+            )
+        seen[case.name] = dataset
+        cases.append(case)
+    return cases

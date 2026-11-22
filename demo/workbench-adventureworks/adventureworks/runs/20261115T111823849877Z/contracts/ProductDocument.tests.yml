@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_ProductDocument
+  columns:
+  - name: PRODUCTID
+    tests:
+    - unique
+    - not_null
+  - name: DOCUMENTNODE
+    tests:
+    - unique
+    - not_null

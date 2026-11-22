@@ -1,0 +1,88 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+.coverage
+.coverage.*
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# uv
+.uv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets
+.env
+.env.local
+*.key
+*.pem
+
+# LangGraph state
+.langgraph_api/
+checkpoints/
+
+# Logs and traces
+*.log
+logs/
+traces/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Generated outputs
+output/
+generated_dbt/
+_fortbildung
+
+# Scratch / local helper files (converted PDFs/DOCX, study-set text dumps)
+_tmp/
+output*/
+
+# Eval harness: per-run JSON results, LLM transcripts, ablation comparisons (WP6/15/16)
+eval/results/
+
+# Per-run checkpoints and LLM transcripts (WP15) — never publishable: they carry the raw
+# requirements/source text. Belt-and-braces for output dirs outside the patterns above.
+.vault-agent/
+**/.vault-agent/
+
+# Workbench project roots (C14, 2026-10-22): a run holds requirements, contracts and models — a
+# user's data, never the repo's. Start the workbench with a root outside the repo. The one shipped
+# demo, demo/workbench-adventureworks/, keeps each run's state.json (the Model view reads it) and
+# nothing a parse or build adds there.
+workbench/
+workbench-demo*/
+!demo/workbench-adventureworks/**/.vault-agent/
+demo/workbench-adventureworks/**/.vault-agent/*
+!demo/workbench-adventureworks/**/.vault-agent/state.json
+demo/workbench-adventureworks/**/dbt_packages/
+demo/workbench-adventureworks/**/target/
+demo/workbench-adventureworks/**/package-lock.yml
+
+# The workbench frontend bundle (WP67): built from frontend/, shipped in the wheel as an artifact
+src/vault_agent/ui/static/
+frontend/node_modules/
+
+# A second environment for the Databricks extra (conflicts with demo; WP72)
+.venv-databricks/

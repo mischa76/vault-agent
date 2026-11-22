@@ -1,0 +1,157 @@
+[
+  {
+    "columns": [
+      {
+        "comment": "Nationale Kundennummer / national customer ID, as issued by the core banking system.",
+        "name": "partn_nr",
+        "type": "varchar"
+      },
+      {
+        "comment": "Name des Partners.",
+        "name": "partn_name",
+        "type": "varchar"
+      },
+      {
+        "comment": "Kunde seit.",
+        "name": "partn_seit",
+        "type": "date"
+      }
+    ],
+    "table": "vic_partner"
+  },
+  {
+    "columns": [
+      {
+        "comment": "Technischer Schlüssel des Ansprechpartners.",
+        "name": "kontakt_id",
+        "type": "varchar"
+      },
+      {
+        "comment": "Name der Kontaktperson.",
+        "name": "kontakt_name",
+        "type": "varchar"
+      },
+      {
+        "comment": "Funktion im Unternehmen, z.B. Geschäftsführer.",
+        "name": "kontakt_funktion",
+        "type": "varchar"
+      },
+      {
+        "comment": "FK auf vic_partner.partn_nr — der Firmenkunde, bei dem diese Person arbeitet.",
+        "name": "partn_nr",
+        "type": "varchar"
+      }
+    ],
+    "table": "vic_kontakt"
+  },
+  {
+    "columns": [
+      {
+        "comment": "Schlüssel des Vertragspartners (nicht identisch mit der Kundennummer).",
+        "name": "vp_nummer",
+        "type": "varchar"
+      },
+      {
+        "comment": "Bezeichnung des Vertragspartners, z.B. eine Rückversicherung.",
+        "name": "vp_bezeichnung",
+        "type": "varchar"
+      },
+      {
+        "comment": "Rolle im Vertrag.",
+        "name": "vp_rolle",
+        "type": "varchar"
+      }
+    ],
+    "table": "vic_vertragspartner"
+  },
+  {
+    "columns": [
+      {
+        "comment": "CRM-interner GUID; Primärschlüssel im CRM.",
+        "name": "crm_guid",
+        "type": "varchar"
+      },
+      {
+        "comment": "Anzeigename im CRM.",
+        "name": "crm_anzeigename",
+        "type": "varchar"
+      },
+      {
+        "comment": "Marketingsegment.",
+        "name": "segment",
+        "type": "varchar"
+      }
+    ],
+    "table": "crm_kunde"
+  },
+  {
+    "columns": [
+      {
+        "comment": "FK auf crm_kunde.crm_guid.",
+        "name": "crm_guid",
+        "type": "varchar"
+      },
+      {
+        "comment": "Entspricht der nationalen Kundennummer — Zuordnungstabelle, gepflegt durch die Migration.",
+        "name": "partn_nr",
+        "type": "varchar"
+      }
+    ],
+    "table": "crm_xref_partner"
+  },
+  {
+    "columns": [
+      {
+        "comment": "Kontonummer / account number.",
+        "name": "konto_nr",
+        "type": "varchar"
+      },
+      {
+        "comment": "Kontoart.",
+        "name": "konto_art",
+        "type": "varchar"
+      }
+    ],
+    "table": "vic_konto"
+  },
+  {
+    "columns": [
+      {
+        "comment": "Vertragsnummer.",
+        "name": "vertrag_nr",
+        "type": "varchar"
+      },
+      {
+        "comment": "Vertragsbeginn.",
+        "name": "vertrag_beginn",
+        "type": "date"
+      },
+      {
+        "comment": "FK auf vic_vertragspartner.vp_nummer.",
+        "name": "vp_nummer",
+        "type": "varchar"
+      }
+    ],
+    "table": "vic_vertrag"
+  },
+  {
+    "columns": [
+      {
+        "comment": "Nummer aus dem Altsystem; Format wie die Kundennummer.",
+        "name": "alt_nr",
+        "type": "varchar"
+      },
+      {
+        "comment": "Bezeichnung im Altsystem.",
+        "name": "alt_bezeichnung",
+        "type": "varchar"
+      },
+      {
+        "comment": "Datum der Übernahme.",
+        "name": "uebernahme_datum",
+        "type": "date"
+      }
+    ],
+    "table": "vic_migration_altbestand"
+  }
+]

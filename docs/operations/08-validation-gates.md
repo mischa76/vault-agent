@@ -1,0 +1,154 @@
+# 8. Validation gates reference
+
+Derived from `validator.py`, which is the source of truth for both the set and its size.
+This page deliberately states no total: a count in prose has been wrong here more than
+once. To list the current codes:
+
+```bash
+rg -o 'E_[A-Z0-9_]+|W_[A-Z0-9_]+' src/vault_agent/agents/validator.py | sort -u
+```
+
+If that list and this page disagree, the list wins — and the page is the thing to fix.
+
+## 8.1 How to read a gate
+
+An **`E_` error** blocks: inside the run it feeds the re-model loop (the modeler
+retries with errors as feedback), and one that survives the loop blocks finalization
+at the checkpoint. A **`W_` warning** advises: it appears in the review queue (as a
+*disclosure*, chapter 7.3) and the report, never blocks, and is *not* fed back to the
+modeler. An **`I_` info** record (WP43) is neither: it stays in the validation report and the
+scorers count it, but the review queue derives no item from it. The dividing philosophy:
+a gate fails only what is **provable** from the model or artifacts alone; heuristic
+suspicions — however strong — warn. Codes are stable identifiers: scripts and humans
+match on the code, never on message text.
+
+## 8.2 Catalogue
+
+### Model & artifact integrity
+
+| Code | Meaning · typical fix |
+|------|----------------------|
+| `E_NO_HUBS` | The model has no hubs — nothing to validate. Usually a requirements document the parser could not extract entities from; check the document and the trace. |
+| `E_DUP_NAME` | Two constructs share one name. Naming collision in the modeler's proposal; re-model usually clears it. |
+| `E_BAD_NAME` | A construct name is not `hub_`/`link_`/`sat_` + lowercase snake_case. The name becomes a dbt model name *and* a file on disk, so a space, an uppercase letter or a path separator is caught here rather than at build time or in the writer (which refuses, never renames). Steered by the `construct_naming` rule. |
+| `E_MISSING_COLUMN` | A generated construct lacks a DV-required column (hash key, load datetime, record source, hashdiff). Guards the generator's own output — seeing it indicates a generator bug, not a modeling error. |
+
+### Hubs & business keys
+
+| Code | Meaning · typical fix |
+|------|----------------------|
+| `E_HUB_NO_BK` | Hub without a business key. The concept isn't identifiable; the requirements likely describe an attribute cluster, not an entity. |
+| `E_DUP_HUB` | Same business key on the same source entity in ≥2 hubs — one concept modelled twice. Merge to exactly one hub per business key. |
+| `E_HUB_HK_COLLISION` | Hubs share a source entity but differ in business key: they would derive the same `X_HK` column and staging model, silently cross-binding keys (diagram in 2.4). Split the source entities or unify the key. |
+| `E_HUB_DUP_FEED` | A multi-source hub declares the same (table, column) feed twice. Each `HubSource` must be distinct. |
+| `E_HUB_COMPOSITE_UNSUPPORTED` | WP45: a hub with a composite key (`business_key_columns`, two or more) is multi-source, or takes part in a link with a role, an alias, or a translation that does not project the hub's whole key. Those shapes need per-column mechanisms that do not exist yet; the gate refuses rather than staging from the first column. Take the hub unqualified, model it single-source, or key it on one column. **Since WP93 (2026-10-26)** a translation over the hub's key columns — all of them, in the hub's order — is admitted: one LEFT JOIN through the referenced relation projects every column (9.3). A plain composite hub — its stage, its satellites, an unqualified link participation — is generated and built (PostgreSQL, 2026-10-04). |
+| `E_HUB_PAYLOAD_UNREAD` | WP54 (2026-10-07): a hub of this increment is built from a declared table whose payload columns no satellite of the model reads — the vault would silently drop them (the eighth chain lost `TransactionHistory`'s and `PurchaseOrderDetail`'s descriptive columns with only `W_HUB_NO_SAT`, a disclosure, to show for it). Payload = the table's columns minus the hub's key, the table's own foreign-key columns and the columns other tables' foreign keys reference (identifiers, whoever holds them); a satellite on any parent — a link satellite included — that reads the table satisfies the gate, even partially. The remedy (`rules.hub_payload_remedy`) names the columns and the parent: the hub, or for a relationship table the link that reads it. Grounded runs only; pre-existing hubs are not judged. No memory: adding the satellite passes. |
+| `E_HUB_KEY_NOT_AS_DECIDED` | WP125 (2026-11-14, ADR-0021): a hub of this run is keyed on another column than the key **decided** for its table. The decision is taken before the modeler runs, from the key agent's candidates and the catalogue's declared unique keys (`rules/key_decision.py`; chapter 7.7), and given to the modeler; the gate is the guarantee. The measured case (C63): `hub_product` on `ProductID`, the generated primary key, against `REQ-001` and a candidate score of 0.95 for `ProductNumber` — replayed, the stored first attempt of the twenty-third chain's production step is refused on six hubs. The remedy names the decided key and says that relations referencing the table by the old key stay as they are (staging translates the reference, ADR-0013). A multi-source hub is judged on its feed from the decided table; hubs of the vault being extended are not judged. Inert without a declared schema and for every table the rule decides nothing about. |
+| `W_HUB_ON_TECHNICAL_KEY` | WP125: a hub of this run is keyed on its table's technical primary key — an integer or GUID key the source system made up — because the table declares no natural key, or because a human chose it at the resolution checkpoint (the message carries the reason). A disclosure: the hub loads correctly and identifies a row in this source system only, so a second source of the same concept cannot be integrated by key. |
+| `W_HUB_NO_SAT` | Hub has no satellite — no descriptive data captured. Legitimate for pure reference hubs; otherwise attributes went missing. |
+| `W_UNTRACED_CONSTRUCT` | WP109 (C6, 2026-10-31): a hub, link or satellite of this run cites no requirement (`requirement_ids` empty) while requirements were parsed. A disclosure, never an error. The links the ratified-proposal appliers build are exempt — recognised by the appliers' own naming, not by text — because a link built from the catalogue has nothing to cite; an existing vault's constructs are not this run's. On every kept chain the 5.5 modeler cites, so the row is a guard for the next model release and for hand-edited models. |
+| `W_LINK_OPTIONAL_PARTICIPANT` | The shape of `E_LINK_OPTIONAL_PARTICIPANT` when nothing says whether the column can be NULL — no `nullable` in the catalogue (every catalogue before WP94; `vault-agent source-schema` writes it since WP98, and the derived AdventureWorks cases carry it since WP103, 2026-10-31, so there the gate is the error), no profile. Same remedy, advisory: the modeler may follow it, the run goes on. |
+| `W_BK_COLLISION_RISK` | Different source entities share one business-key name across hubs. Confirm whether a collision code (source differentiation) is needed before values from different systems merge. |
+
+### Links, roles & driving keys
+
+| Code | Meaning · typical fix |
+|------|----------------------|
+| `E_LINK_TOO_FEW_HUBS` | Link connects <2 hub participations. A one-sided "relationship" is usually a satellite in disguise. |
+| `E_LINK_UNKNOWN_HUB` | Link references a hub that doesn't exist in the model. |
+| `E_LINK_DUP_ROLE` | The same hub participates twice with the same (or no) role. Qualify each repeated participation with a distinct role (payer/counterparty). |
+| `E_LINK_OPTIONAL_PARTICIPANT` | WP94 (C30, 2026-10-26): a link of three or more participations takes a hub whose key column types cannot hold a zero key (not integer or character — a `timestamp`, say; `rules.null_safe_type`) through a relation column the catalogue declares `nullable` or a profile shows NULLs in. AutomateDV's link macro drops every row with a NULL foreign-key hash, so such a row loses all its other relationships (`link_sales_order`: 17 489 of 31 465 orders, WP93's measurement). The remedy (`rules.optional_participant_remedy`) names the link of its own — `link_<anchor>_<hub>` between the hub bound to the relation the link reads and that hub — and the big link keeps its other participants; the modeler applies it in the re-model loop, the gate creates nothing. Untyped columns are no evidence; a column declared not nullable, or profiled without NULLs, raises nothing. |
+| `E_DRIVING_KEY_NOT_IN_LINK` | The declared driving key names participations the link doesn't have (role-aware: `hub:role` must match an actual participation). |
+| `E_TXNLINK_NO_TIMESTAMP` | Transactional link without an event timestamp — `t_link` needs it to order events. |
+| `E_LINK_KEY_NOT_IN_SOURCE` | A participation aliases a physical column to the hub's key (`source_key_column`, WP34) that the bound relation does not declare. An **error** where its grounded neighbours are warnings: a missing business key can mean a partial schema, but an alias is an explicit claim that *this relation calls the hub's key THIS*, which staging turns into a rename. Wrong, it fails the build or hashes a same-named column meaning something else into a link over live history. Checked against the relation the link's staging binds to, or the whole schema when none binds. **WP36:** for a *translated* participation (`key_translation`) the same gate demands the surrogate on the referencing relation and, when the referenced relation is declared in the run, the join column and every projected key column on it (WP93: all of a composite key) — a translation that joins on a column that is not there is refused before generation. |
+| `E_LINK_KEY_WRONG_COLUMN` | An unqualified participation is hashed from the hub's key column in the link's relation, while that relation declares its foreign key into this hub on a **different** column and none on the hashed one — so the hashed column is some other key carrying the hub's key name. The stage builds and the link joins the wrong entity, with no error. The foreign key is resolved to its hub by the link proposer's rule (`resolve_fk_target`). Fix: read the link from a relation that carries the hub's key under its own name, or leave the participation out; an alias is decided at the link checkpoint (extension runs), never by the modeler. Grounded runs with declared foreign keys only; role-qualified and already repaired participations, and a hashed column the relation lacks, are out of scope. Added 2026-09-15 after a paid chain hashed `hub_person` from `BusinessEntityContact.BusinessEntityID` — the organisation. Since WP41 (the same day) a ratified key license for the declared column repairs the participation with that alias before this gate runs, in greenfield runs as well; the gate remains for a declined license. Since WP42 (2026-09-16) the relation is no longer found by the link's name alone but by `rules.resolve_link_relation` — name first, else the one relation whose offer covers the link's participations — so the gate also sees links whose name never matched any table. Replayed over six chains that is 3 new refusals, all `link_store_sales_representative`: `hub_sales_representative` hashed from `Store.BusinessEntityID`, which `Store` declares as a key into `BusinessEntity`, while the same table declares the sales representative's key as `SalesPersonID`. Since WP50 the issue carries a remedy when the checkpoint already decided the key: if the column the relation declares as this hub's key is a *ratified* key resolving (translated) to another hub, and the hub is built from the table that key references, the hub is the second hub of that entity — the remedy says to take the participation from the ratified hub, hang the hub's satellites there as a subtype feed and not build the hub, and retires it by shape (WP49). Without a ratified key the message stands alone. |
+| `E_LINK_TRANSLATION_UNRATIFIED` | A participation carries a surrogate→natural-key translation (`key_translation`, WP36) that no **ratified** link proposal produced. Translations are decided by a human at the checkpoint; the modeler is not shown the field, and if one arrives anyway — a hand edit, a model that guessed — the run refuses it. Added 2026-09-12 after a paid production step returned 9 of 23 links with modeler-authored translations. |
+| `W_LINK_REDUNDANT_GRAIN` | Two links connect the same participations with the same type: likely one unit of work modelled twice, or a grain error. |
+
+### Satellites & splitting
+
+| Code | Meaning · typical fix |
+|------|----------------------|
+| `E_SAT_UNKNOWN_PARENT` | Satellite parent is neither a known hub nor link. |
+| `E_SAT_NO_PAYLOAD` | Satellite with no attributes. Empty payload means nothing to historise — drop it or find its attributes. |
+| `E_SAT_DUP_ATTR` | Two attribute labels (or an attribute and a CDK label) normalise to the same column — the warehouse would reject the duplicate (example in 2.4). The modeler's CDK backstop repairs the common case before this gate. |
+| `E_SAT_ATTR_OVERLAP` | The same attribute appears in several satellites of one parent **that draw payload from the same source relation** — one column of one relation would be historised twice. Matched on the *normalised* label, like `E_SAT_DUP_ATTR`: "Customer ID" in one satellite and `customer_id` in another are one column on that parent. Assign each attribute to exactly one satellite. **Narrowed by ADR-0012 (2026-07-30):** before that it fired on *any* repeated label, which made the canonical per-entity-history shape (two satellites, each with its own `source_table`) unmodellable; that case is now `W_SAT_ATTR_OVERLAP_CROSS_SOURCE`. Since WP48 the issue carries a remedy (`rules.satellite_attribute_remedy`): an existing satellite keeps the attribute, else the first by name, the others retire it — a re-emitted copy loses the attribute again (backstop `retired_reemitted`, a disclosure; the column lives in the keeping satellite). An inherited pair retires nothing. |
+| `E_MASAT_NO_CDK` | Multi-active satellite without a child dependent key — concurrent rows would be indistinguishable. |
+| `W_SAT_WIDE` | More than 30 attributes: a smell for mixed rates of change / sources / classifications. Consider splitting along the four axes (2.2). |
+| `W_SAT_ATTR_OVERLAP_CROSS_SOURCE` | The same attribute label appears in several satellites of one parent, but they are fed by **different** source relations (ADR-0012) — so they are different columns of different tables, each projected once from its own staging model, and nothing collides. Reported rather than blocking because it is still worth a look: two records of one business measure at different grain (a current value plus its history table) look exactly like this. The message names each satellite's relation. |
+| `W_MASAT_SHARED_GRAIN` | Multi-active satellite without its own `source_table` — sharing the parent's staging assumes equal grain, which multi-active data rarely has. Declare the finer-grained relation or confirm the shared source. |
+| `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` | Satellite declares a `source_table` that is **not one of its multi-source parent's feeds**. Naming a feed is fine and is the canonical shape (ADR-0011): the satellite binds to that source system and is generated once. Naming anything else is an error, because a finer-grain relation *under* one feed cannot say which feed it belongs to. The message lists the available feeds. *Narrowed by ADR-0011 (2026-07-29); WP24 originally rejected every `source_table` on a multi-source hub. Since WP75 (2026-10-17) „multi-source“ means two or more feeds: a hub written with a single `HubSource` has no feed ambiguity, and a satellite on its own relation under it is generated as the single-source shape (its own stage, the hub's key hashed from the feed's column) — the nineteenth chain's step 3 had gone red on two history satellites under such a hub, with the WP56 inference re-setting the relation the remedy dropped.* |
+| `E_SAT_TRANSLATION_UNRATIFIED` | A satellite carries a surrogate→natural-key translation (`key_translation`, WP38) that no **ratified subtype feed** produced. Only the applier sets it, from a ratified same-as whose join the source schema declares; the modeler is not shown the field. The satellite mirror of `E_LINK_TRANSLATION_UNRATIFIED`. Since WP40 a ratified key license or link proposal is provenance too, including a link satellite's per-participation translations. |
+| `E_SAT_KEY_NOT_IN_SOURCE` | A satellite with a declared `source_table` is read from a relation that lacks the column(s) its parent's hash key is computed from — the parent hub's key, or every participation key of a parent link — so its stage would fail at `dbt build`. For a translated satellite (WP38) the column checked is the surrogate its view joins on. Grounded runs and declared relations only; effectivity satellites and multi-source feeds are out of scope. Built for translated satellites 2026-09-14, widened to all 2026-09-15 after a paid chain passed every gate with one that could not build. For a link parent each participation's column comes from `rules.satellite_participation_column`: a translation's surrogate, an alias a ratified key set (WP41), or the participation's own — role-prefixed — column. Since WP46 the issue carries a remedy (`rules.satellite_key_remedy`): the hubs and links whose key the relation *does* carry, as re-parent candidates, else „drop it" — and it retires the satellite's shape (name, parent, relation): an unchanged copy in a later attempt is dropped into one `retired_orphan` decision instead of a red gate; a re-parented one passes and faces the gate again. |
+
+### Effectivity
+
+| Code | Meaning · typical fix |
+|------|----------------------|
+| `E_EFFSAT_DATES` | Effectivity satellite must carry exactly two date attributes (start, end); more or fewer can't be generated. |
+| `E_EFFSAT_DATE_ORDER` | The two dates are recognisably reversed (read positionally as start/end — example in 2.4). Swap them. |
+| `E_EFFSAT_NO_DRIVING_KEY` | The parent link declares no driving key — end-dating is undefined without knowing which side stays fixed. |
+| `E_EFFSAT_PARENT_NOT_LINK` | Effectivity satellite on a hub: active periods describe relationships; hang it off the link. |
+| `W_EFFSAT_DATE_ORDER_UNVERIFIED` | The date tokens don't match the known from/to vocabulary, so order can't be verified either way. Confirm manually — a heuristic non-match never hard-fails. |
+| `W_SAT_MAYBE_EFFECTIVITY` | A *standard* satellite on a link carries a from/to date pair — probably a mis-modelled effectivity satellite. Re-model with `sat_type=effectivity` and the link's driving key, or confirm it's genuine payload. |
+
+### Grounding (only with a declared source schema)
+
+All four are warnings by design — a declared schema may be partial, so an unmatched
+name is a prompt to verify, not proof of error.
+
+| Code | Meaning · typical fix |
+|------|----------------------|
+| `W_BK_NOT_IN_SOURCE` | A hub's business key matches no declared column. |
+| `W_HUBSOURCE_BK_NOT_IN_SOURCE` | A multi-source feed's physical key column isn't in the schema. |
+| `W_ROLE_BK_NOT_IN_SOURCE` | A role-qualified participation expects a role-prefixed source column (e.g. `COUNTERPARTY_ACCOUNT_NUMBER`) that isn't declared — self-referencing raw tables carry each participation as its own column. Since WP41 silent on a participation a ratified key repaired (alias or translation): its key is read from the declared column the role names, not from the role-prefixed one. Since WP42 the repair reaches links whose name misses their relation as well, which took the warning from 18 to 5 over the six replayed chains; what remains sits on links that no relation binds (reason `none`, e.g. `link_employee_manager`) or that more than one fits (reason `ambiguous`, e.g. `link_product_size_unit`). |
+| `W_ATTR_NOT_IN_SOURCE` | A satellite attribute matches no declared column. |
+| `E_STAGE_COLUMN_NOT_IN_SOURCE` | WP73 (2026-10-17): a staging model bound to a *declared* relation hashes or derives a column that relation does not declare — the stage would fail at `dbt build` (`UNRESOLVED_COLUMN`), and until WP72 stage 3 built a chain on Databricks nothing had ever said so: 13 link stagings over four steps read `EmployeePayHistory`, `Store` or `Vendor` for keys those tables do not carry. The generalisation of `E_SAT_KEY_NOT_IN_SOURCE` to every construct, read from the staging metadata the code generator stores; a stage that reads through a translation view is judged against its relation plus what the view projects (WP132, 2026-11-15 — until then it was skipped, and the demo's bill of materials shipped a stage PostgreSQL refused), inferred bindings are not judged (they are disclosed as `source_binding`). The same check sits in `bind_sources` itself, where the mapper's re-bind — which runs *after* this validator — would otherwise re-introduce the defect: a refused override falls back to the inferred relation with a `binding_rejected` decision. |
+| `E_SAT_GRAIN_NOT_UNIQUE` | WP85 (2026-10-22): a satellite of this increment whose key — its parent-hash columns mapped back through derived columns, plus its child-dependent key — does not cover any primary or unique key its relation declares (`SourceTable.primary_key` / `unique_keys`). Such a satellite holds several rows per key and load date and re-inserts on every load: a recorded bill-of-materials satellite added +195 rows per build (C13). The remedy names the missing key columns as a child-dependent key (multi-active) or a parent whose key covers the grain. A link's stage is resolved here as the mapper's re-bind will (offer, ratified proposal); relations without declared keys, effectivity and pre-existing satellites are not judged. A stage that reads through a translation view is judged since WP133 (2026-11-15): a translated key stands for the relation's referencing column, which each join of the stage's `key_translation` names as `reads`; a translation stored without it is not judged. A stage bound at sign-off, after this validator, is judged by the same function when the binding is made (WP134, 2026-11-16): a binding that fails is refused there (7.5), not reported here. |
+
+In every case: either the model names something the source truly doesn't have (fix the
+model or map it in ratification), or the schema declaration is incomplete (complete
+it).
+
+### Extension mode (only with `run --existing`)
+
+Inert on a greenfield run. These compare the merged model against the vault that
+already exists, and they all defend one promise: an extension adds, it never migrates.
+What the existing vault has, it keeps — because the alternative is a rename or a
+backfill against tables that hold history.
+
+| Code | Meaning · typical fix |
+|------|----------------------|
+| `E_EXISTING_REMOVED` | An existing hub, link or satellite is absent from the extended model. An extension run must never drop what the vault already contains. |
+| `E_EXISTING_BK_CHANGED` | An existing hub's business key **or source entity** changed (compared normalised). The key is what every stored hash was derived from, so changing it is a migration, not an extension. |
+| `E_EXISTING_GRAIN_CHANGED` | An existing link's grain — the multiset of its participations, roles included — or its driving key changed. Those define the hash key of every stored row. |
+| `E_EXISTING_SAT_RESHAPED` | An existing satellite changed parent, type, child dependent key, source table or attribute set. **Growth counts too:** a new attribute on a satellite with history is a backfill, so new attributes belong in a NEW satellite on the same parent. |
+| `I_EXISTING_EXTENDED` | Information, not a problem (severity `info`; was the warning `W_EXISTING_EXTENDED` until WP43, 2026-10-03): an existing hub gained source feeds (named in the message), or this run added a new construct. It is the extension's inventory in the validation report; the review queue does not list it — read the Extension section or `extension-diff.md`, which show the same delta as a table. |
+
+The delta is also reported outside the gates: `extension-diff.md` and the report's
+Extension section attribute which generated files a pre-existing construct's SQL
+actually changed in — see 6.7.
+
+## 8.3 Gates vs. backstops vs. steering
+
+The boundary that chapter 11.4 operationalises: **gates are the product** — the
+deterministic, auditable proof that an output conforms, kept regardless of how good
+models get, and never ablated. **Backstops** and **steering rules** are
+model-compensation: they exist because a current model makes a specific mistake, they
+announce themselves when they fire (trace events, 10.4), and they are re-tested — and
+potentially deleted — on every model release. Deleting a backstop is a reversible
+experiment precisely because its gate stays behind it.
+
+| Backstop | Repairs | Gate behind it |
+|----------|---------|----------------|
+| `attributes_without_cdk` (modeler) | CDK also listed as payload | `E_SAT_DUP_ATTR` |
+| `fk_demotion` (source mapper) | A key's FK occurrence mistaken for a second source | — (mapping quality; honest `unresolved` is the fallback) |
+| `effsat_two_attributes` (code generator) | Effectivity satellite with ≠2 attributes reaching generation | `E_EFFSAT_DATES` |
+| `retired_reemitted` (modeler, WP44/WP46/WP48/WP49/WP50/WP51) | A later attempt re-emits a hub the collision remedy retired — by name **or by shape** (same source entity, same key, any name; WP49) — with its dependents, a satellite in the shape the key gate refused (same parent, same relation), or an attribute the overlap remedy retired on a satellite; dropped again — a dropped hub's satellites and link participations move to the twin the remedy kept (WP51, `retired_reparented`, a disclosure), a refused satellite moves to the one candidate parent its remedy named (WP52, same disclosure), a dependent without a twin or candidate is a decision, a dropped attribute a disclosure | `E_HUB_HK_COLLISION`, `E_SAT_KEY_NOT_IN_SOURCE`, `E_SAT_ATTR_OVERLAP`, `E_LINK_KEY_WRONG_COLUMN` |
+| `one_hub_link_collapsed` (modeler, WP55) | A link with exactly one known hub is not a relationship but a feed of that hub (the eighth chain's quota-history link on `hub_employee`, 2026-10-07). The parser collapses it: satellites on it that declare a `source_table` move to the hub unchanged (`link_collapsed`, a disclosure per satellite); one without a relation is dropped as before; the link itself is dropped without a `dropped_record`. The key gates judge the moved satellite afresh on the hub. | the parser's ≥ 2-hubs rule (a drop) |
+| `satellite_relation_inferred` (modeler, WP56) | A satellite without a `source_table` whose attributes (and dependent child keys) are all columns of exactly one declared table of the increment reads that table — read from the schema, not guessed (the ninth chain dropped `sat_email_address_detail` for want of a relation `EmailAddress` determined, 2026-10-08). On a collapsed one-hub link the satellite moves with the inferred relation; on a hub parent only a relation other than the hub's own is set (the hub's own stays implicit, so existing models render byte-identically); link satellites are untouched. `relation_inferred`, a disclosure per satellite. A lone `ModifiedDate` qualifies every table and infers nothing. | the key gates on the inferred relation |
+| `link_off_hub_stage` (modeler, WP135) | A new link has the base of a single-source hub — one staging model for both — while a relation of the increment offers its participations and no relation the hub is built from does (`link_product_subcategory` beside `hub_product_subcategory`: the hub reads `ProductSubcategory`, the link `Product`). The link is renamed after its hubs in participation order, a role after its hub (`link_product_product_subcategory`), its satellites follow (`link_renamed`, a disclosure). Not renamed: a link of the vault being extended, a name already taken or one that is again a hub's base | WP73's refusal at binding (`binding_rejected`, a decision) |
+| `composite_key_split` (modeler, WP45) | The modeler wrote a composite key as `A + B` with no `business_key_columns`; when every part is a declared column of the hub's relation, the parts become the typed columns | `E_SAT_KEY_NOT_IN_SOURCE`, `W_BK_NOT_IN_SOURCE` |
+
+The full inventory with evidence and verdicts lives in
+`docs/architecture/steering-ledger.md`.

@@ -1,0 +1,345 @@
+"""Unit tests for the DV2.0 Modeler agent.
+
+The LLM call is stubbed via the ``DVModelExtractor`` protocol so these tests run in CI
+without an Anthropic API key (``asyncio_mode = auto`` runs the async tests directly).
+"""
+import json
+from typing import Any
+
+from vault_agent.agents.dv2_modeler import Dv2ModelerAgent
+from vault_agent.rules.dv2_rules import DV_MODELING_RULES
+from vault_agent.state import (
+    BusinessKeyCandidate,
+    ParsedRequirement,
+    SourceTable,
+    ValidationIssue,
+    ValidationReport,
+    VaultAgentState,
+)
+
+
+class StubExtractor:
+    """Returns a canned payload and records how it was called."""
+
+    def __init__(self, payload: dict[str, Any]) -> None:
+        self.payload = payload
+        self.calls: list[tuple[str, str]] = []
+
+    async def model(self, *, system_prompt: str, payload_json: str) -> dict[str, Any]:
+        self.calls.append((system_prompt, payload_json))
+        return self.payload
+
+
+def _state() -> VaultAgentState:
+    return VaultAgentState(
+        requirements=[
+            ParsedRequirement(id="REQ-001", text="A customer can open accounts.",
+                              category="functional", actor="customer", action="open",
+                              obj="account"),
+            ParsedRequirement(id="REQ-009", text="A customer has a name.",
+                              category="business-rule"),
+        ],
+        business_keys=[
+            BusinessKeyCandidate(entity="customer", field="national customer ID",
+                                 score=0.95, rationale="REQ-007"),
+            BusinessKeyCandidate(entity="account", field="account number",
+                                 score=0.95, rationale="REQ-004"),
+        ],
+    )
+
+
+def _valid_payload() -> dict[str, Any]:
+    return {
+        "hubs": [
+            {"name": "hub_customer", "business_key": "national customer ID",
+             "source_entity": "customer", "description": "The customer.",
+             "requirement_ids": ["REQ-007"]},
+            {"name": "hub_account", "business_key": "account number",
+             "source_entity": "account", "description": "The account.",
+             "requirement_ids": ["REQ-004"]},
+        ],
+        "links": [
+            {"name": "link_account_customer", "connected_hubs": ["hub_account", "hub_customer"],
+             "description": "Account ownership.", "requirement_ids": ["REQ-001"]},
+        ],
+        "satellites": [
+            {"name": "sat_customer_details", "parent": "hub_customer",
+             "attributes": ["name", "date of birth"], "description": "Customer attributes.",
+             "requirement_ids": ["REQ-009"]},
+        ],
+    }
+
+
+async def test_builds_model_from_requirements_and_keys() -> None:
+    stub = StubExtractor(_valid_payload())
+    agent = Dv2ModelerAgent(extractor=stub)
+
+    result = await agent.run(_state())
+
+    assert [h.name for h in result.dv_model.hubs] == ["hub_customer", "hub_account"]
+    assert [lk.name for lk in result.dv_model.links] == ["link_account_customer"]
+    assert [s.name for s in result.dv_model.satellites] == ["sat_customer_details"]
+    assert result.dv_model.hubs[0].business_key == "national customer ID"
+    assert not result.flags
+
+    # Modelling rules injected; both input arrays handed to the LLM.
+    system_prompt, payload_json = stub.calls[0]
+    assert DV_MODELING_RULES[0].text in system_prompt
+    assert "national customer ID" in payload_json
+    assert "REQ-001" in payload_json
+
+    # Decision recorded. The modeler does not write ADRs — the ADR Author is the sole
+    # writer (L-4), so no draft fragment accumulates here.
+    assert result.decisions[-1] == {
+        "agent": "dv2_modeler", "hubs": 2, "links": 1, "satellites": 1,
+    }
+    assert result.adrs == []
+    assert result.modeling_attempts == 1
+
+
+async def test_dangling_link_is_dropped() -> None:
+    payload = _valid_payload()
+    payload["links"].append(
+        {"name": "link_account_ghost", "connected_hubs": ["hub_account", "hub_ghost"],
+         "description": "dangling", "requirement_ids": []}
+    )
+    stub = StubExtractor(payload)
+    result = await Dv2ModelerAgent(extractor=stub).run(_state())
+
+    assert [lk.name for lk in result.dv_model.links] == ["link_account_customer"]
+    assert any("dropped link 'link_account_ghost'" in e.message for e in result.flags)
+
+
+async def test_link_with_single_known_hub_collapses_into_it() -> None:
+    """Until WP55 (2026-10-07) a one-hub link was a dropped_record; now it is that hub's feed:
+    the link goes, its satellites with a relation move to the hub (none here), and nothing is
+    flagged as dropped — the trace carries the backstop event."""
+    payload = _valid_payload()
+    payload["links"].append(
+        {"name": "link_lonely", "connected_hubs": ["hub_customer"],
+         "description": "only one hub", "requirement_ids": []}
+    )
+    stub = StubExtractor(payload)
+    result = await Dv2ModelerAgent(extractor=stub).run(_state())
+
+    assert "link_lonely" not in [lk.name for lk in result.dv_model.links]
+    assert not any("link_lonely" in e.message for e in result.flags)
+
+
+async def test_dangling_satellite_is_dropped() -> None:
+    payload = _valid_payload()
+    payload["satellites"].append(
+        {"name": "sat_orphan", "parent": "hub_missing", "attributes": ["x"],
+         "description": "orphan", "requirement_ids": []}
+    )
+    stub = StubExtractor(payload)
+    result = await Dv2ModelerAgent(extractor=stub).run(_state())
+
+    assert [s.name for s in result.dv_model.satellites] == ["sat_customer_details"]
+    assert any("dropped satellite 'sat_orphan'" in e.message for e in result.flags)
+
+
+async def test_satellite_on_link_parent_is_kept() -> None:
+    payload = _valid_payload()
+    payload["satellites"].append(
+        {"name": "sat_ownership_effectivity", "parent": "link_account_customer",
+         "attributes": ["valid_from"], "description": "effectivity", "requirement_ids": []}
+    )
+    stub = StubExtractor(payload)
+    result = await Dv2ModelerAgent(extractor=stub).run(_state())
+
+    assert "sat_ownership_effectivity" in [s.name for s in result.dv_model.satellites]
+    assert not result.flags
+
+
+def test_attributes_without_cdk_drops_only_cdk_collisions() -> None:
+    from vault_agent.rules.dv2_rules import attributes_without_cdk
+
+    # Order preserved; only the CDK-colliding attribute goes (casing/spacing normalised);
+    # a genuine attr-vs-attr duplicate is left in place for the validator to flag.
+    assert attributes_without_cdk(
+        ["street", "city", "Address Type", "street"], ["address type"]
+    ) == ["street", "city", "street"]
+    # No CDK → unchanged.
+    assert attributes_without_cdk(["a", "b"], []) == ["a", "b"]
+
+
+async def test_multi_active_cdk_duplicated_in_attributes_is_deduped() -> None:
+    """A multi-active satellite whose child_dependent_key also appears in attributes would
+    trip E_SAT_DUP_ATTR (one column emitted twice); the modeler drops the redundant payload
+    copy — the CDK column still ships via src_cdk — so the sat validates and builds."""
+    payload = _valid_payload()
+    payload["satellites"].append(
+        {"name": "sat_customer_address", "parent": "hub_customer",
+         "attributes": ["street", "city", "address type"], "description": "addresses",
+         "sat_type": "multi_active", "child_dependent_key": ["address type"],
+         "requirement_ids": []}
+    )
+    stub = StubExtractor(payload)
+    result = await Dv2ModelerAgent(extractor=stub).run(_state())
+
+    sat = next(s for s in result.dv_model.satellites if s.name == "sat_customer_address")
+    assert sat.child_dependent_key == ["address type"]  # the CDK stays
+    assert sat.attributes == ["street", "city"]  # its duplicate payload copy is gone
+
+
+async def test_invalid_hub_is_skipped_and_logged() -> None:
+    payload = _valid_payload()
+    payload["hubs"].append({"name": "hub_broken"})  # missing required fields
+    stub = StubExtractor(payload)
+    result = await Dv2ModelerAgent(extractor=stub).run(_state())
+
+    assert "hub_broken" not in [h.name for h in result.dv_model.hubs]
+    assert any("dropped invalid hub" in e.message for e in result.flags)
+
+
+async def test_no_business_keys_short_circuits_without_calling_llm() -> None:
+    stub = StubExtractor(_valid_payload())
+    result = await Dv2ModelerAgent(extractor=stub).run(VaultAgentState())
+
+    assert result.dv_model.hubs == []
+    assert any("no business keys" in e.message for e in result.flags)
+    assert stub.calls == []
+
+
+async def test_no_source_schema_keeps_modeler_prompt_ungrounded() -> None:
+    # Regression guard: no declared schema -> no schema section in the modeler prompt.
+    stub = StubExtractor(_valid_payload())
+    agent = Dv2ModelerAgent(extractor=stub)
+
+    await agent.run(_state())
+
+    system_prompt, _ = stub.calls[0]
+    assert "Known source columns" not in system_prompt
+
+
+async def test_source_schema_is_injected_into_modeler_prompt() -> None:
+    # Phase 2 grounding (ADR-0004): declared columns are rendered into the modeler prompt.
+    stub = StubExtractor(_valid_payload())
+    agent = Dv2ModelerAgent(extractor=stub)
+    state = _state()
+    state.source_schemas = [
+        SourceTable(table="customer", columns=["national_customer_id", "date_of_birth"]),
+    ]
+
+    await agent.run(state)
+
+    system_prompt, _ = stub.calls[0]
+    assert "Known source columns" in system_prompt
+    assert "date_of_birth" in system_prompt
+
+
+async def test_retry_feedback_sends_errors_only_with_three_fields() -> None:
+    """WP3: the re-model payload carries only blocking issues, each reduced to
+    code/construct/message — warnings and the severity field are not sent."""
+    stub = StubExtractor(_valid_payload())
+    agent = Dv2ModelerAgent(extractor=stub)
+    state = _state()
+    state.validation_report = ValidationReport(
+        passed=False,
+        issues=[
+            ValidationIssue(
+                severity="error", code="E_EFF_SAT_NO_DRIVING_KEY",
+                construct="link_account_customer",
+                message="effectivity satellite requires a declared driving key",
+            ),
+            ValidationIssue(
+                severity="warning", code="W_SAT_WIDE",
+                construct="sat_customer_details",
+                message="wide satellite; consider a split",
+            ),
+        ],
+    )
+
+    await agent.run(state)
+
+    _, payload_json = stub.calls[0]
+    payload = json.loads(payload_json)
+    assert payload["previous_validation_issues"] == [
+        {
+            "code": "E_EFF_SAT_NO_DRIVING_KEY",
+            "construct": "link_account_customer",
+            "message": "effectivity satellite requires a declared driving key",
+        }
+    ]
+
+
+async def test_retry_feedback_omitted_when_only_warnings() -> None:
+    """Warnings alone are advisory for humans — they never steer the retry."""
+    stub = StubExtractor(_valid_payload())
+    agent = Dv2ModelerAgent(extractor=stub)
+    state = _state()
+    state.validation_report = ValidationReport(
+        passed=False,
+        issues=[
+            ValidationIssue(
+                severity="warning", code="W_SAT_WIDE",
+                construct="sat_customer_details",
+                message="wide satellite; consider a split",
+            ),
+        ],
+    )
+
+    await agent.run(state)
+
+    _, payload_json = stub.calls[0]
+    assert "previous_validation_issues" not in json.loads(payload_json)
+
+
+def test_tool_schema_exposes_satellite_source_table() -> None:
+    """WP7 §7.1: the modeler's tool schema derives from the pydantic models, so the new
+    Satellite.source_table field must appear automatically for the LLM to fill."""
+    from vault_agent.agents.dv2_modeler import _tool_schema
+
+    sat_schema = _tool_schema()["properties"]["satellites"]["items"]
+    assert "source_table" in sat_schema["properties"]
+    assert any("source_table" in rule.text for rule in DV_MODELING_RULES)
+
+
+# --- WP21 §2.6: a dropped record names the construct it was --------------------------------
+
+
+async def test_dropped_record_carries_its_name_as_asset() -> None:
+    """Every other DROPPED_RECORD flag names its construct; "one hub was invalid" is not
+    something a reviewer can act on."""
+    from vault_agent.state import FlagKind
+
+    payload = _valid_payload()
+    payload["hubs"].append({"name": "hub_broken"})  # missing required fields
+    result = await Dv2ModelerAgent(extractor=StubExtractor(payload)).run(_state())
+
+    [flag] = [f for f in result.flags if f.kind == FlagKind.DROPPED_RECORD]
+    assert flag.asset == "hub_broken"
+
+
+async def test_dropped_record_without_a_usable_name_stays_unattributed() -> None:
+    """A record too broken to carry a name gets no asset — never an invented one."""
+    from vault_agent.state import FlagKind
+
+    payload = _valid_payload()
+    payload["hubs"].append({"business_key": "k", "name": "   "})  # blank name
+    result = await Dv2ModelerAgent(extractor=StubExtractor(payload)).run(_state())
+
+    [flag] = [f for f in result.flags if f.kind == FlagKind.DROPPED_RECORD]
+    assert flag.asset is None
+
+
+# --- WP22 §2.3: the output budget is a deliberate number, not an accident ----------------
+
+
+def test_modeler_output_budget_is_pinned_with_its_rationale() -> None:
+    """The modeler is the one agent that cannot split its output, so this constant IS the
+    scaling strategy — it must not drift silently.
+
+    16384 was a stopgap bounded by the non-streaming transport; WP22 made the shared caller
+    stream (ADR-0010), so the bound is now the model's 128,000-token output limit and the
+    budget covers the ~26k @ 300-tables extrapolation with headroom."""
+    import inspect
+
+    from vault_agent.agents import dv2_modeler
+
+    assert dv2_modeler._MAX_TOKENS == 32768
+    source = inspect.getsource(dv2_modeler)
+    # The rationale must point at the decision record, so the next person raising this
+    # number finds the exit condition (staged modelling) rather than just bumping it again.
+    assert "ADR-0010" in source

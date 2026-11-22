@@ -1,0 +1,593 @@
+"""The FastAPI application (WP66): routes over :class:`ProjectStore` and :class:`RunManager`."""
+from __future__ import annotations
+
+from datetime import date
+from pathlib import Path
+from typing import Annotated, Any
+
+from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field, ValidationError
+
+from vault_agent.config import LLMOptions, source_url_from_environment
+from vault_agent.report import build_model_mermaid, build_report
+from vault_agent.rules.naming import NamingProfile
+from vault_agent.rules.platforms import TargetPlatform
+from vault_agent.state import BusinessVaultOptions, CandidateTier, StageBinding
+from vault_agent.ui.console import ConsoleAnswer, answer
+from vault_agent.ui.graphs import area_views, build_source_mermaid, node_catalogue
+from vault_agent.ui.projects import (
+    FileKind,
+    ProjectConflictError,
+    ProjectError,
+    ProjectNotFoundError,
+    ProjectSettings,
+    ProjectStore,
+)
+from vault_agent.ui.runs import RunConflictError, RunManager
+
+STATIC_DIR = Path(__file__).parent / "static"
+_NO_BUNDLE = """<!doctype html><meta charset="utf-8"><title>vault-agent workbench</title>
+<body style="font-family:system-ui;max-width:40em;margin:4em auto;line-height:1.5">
+<h1>vault-agent workbench</h1>
+<p>The API is up (<a href="/docs">/docs</a>), but the frontend bundle is not built.</p>
+<pre>cd frontend &amp;&amp; npm ci &amp;&amp; npm run build</pre>
+<p>then reload. The build lands in <code>src/vault_agent/ui/static/</code> (WP67 §2.5).</p>
+"""
+
+
+class NewProject(BaseModel):
+    name: str
+
+
+class NewFile(BaseModel):
+    kind: FileKind
+    name: str
+    content: str
+
+
+class StartRun(BaseModel):
+    requirements: str
+    schema_file: str | None = Field(default=None, alias="schema")
+    existing_run: str | None = None
+    # WP82: the CLI's --profiling (a project file of kind `profiling`) and --target-platform.
+    profiling: str | None = None
+    target_platform: TargetPlatform | None = None  # WP113: None = the project's setting
+    # WP113: the CLI's --primary-model / --heavy-model / --anthropic-base-url, per run; None
+    # takes the project's setting, which takes the environment's.
+    primary_model: str | None = None
+    heavy_model: str | None = None
+    anthropic_base_url: str | None = None
+    naming: NamingProfile | None = None  # WP114: the CLI's --naming-profile; None = the project's
+    # WP91: Business Vault options, the CLI's --pit/--as-of-* (validated by the same model).
+    pit: bool = False
+    as_of_start: date | None = None
+    as_of_end: date | None = None
+    as_of_grain: str = "day"
+    bridges: list[str] = Field(default_factory=list)  # WP115: the CLI's repeatable --bridge
+
+    model_config = {"populate_by_name": True}
+
+    def business_vault(self) -> BusinessVaultOptions:
+        return BusinessVaultOptions(
+            pit=self.pit, as_of_start=self.as_of_start, as_of_end=self.as_of_end,
+            as_of_grain=self.as_of_grain,  # type: ignore[arg-type]  # pydantic validates it
+            bridges=list(self.bridges),
+        )
+
+
+class ReadCatalogue(BaseModel):
+    """WP119: the body of `vault-agent source-schema` — the URL never; it is the environment's."""
+
+    schemas: list[str]
+    views: bool = False
+    name: str = "source_schema.yml"
+
+
+class MakeProfile(BaseModel):
+    """WP119: the body of `vault-agent profile`; ``reads_rows`` acknowledges the row read."""
+
+    schemas: list[str]
+    tables: list[str] = Field(default_factory=list)
+    checks: list[str] | None = None
+    sample: int = Field(default=10_000, ge=1)
+    examples: int = Field(default=0, ge=0)
+    name: str = "profiling.yml"
+    reads_rows: bool = False
+
+
+class InferKeys(BaseModel):
+    """WP140: the body of `vault-agent infer-keys` over a schema input of the project;
+    ``reads_rows`` acknowledges the row read. ``name`` unset writes onto the input."""
+
+    schema_file: str = Field(alias="schema")
+    name: str | None = None
+    candidates: CandidateTier = "name"
+    reads_rows: bool = False
+
+
+class ConsoleQuestion(BaseModel):
+    text: str
+
+
+class KeyAnswerBody(BaseModel):
+    """WP125: one answer to a contested hub key — `--key Table=Column[+Column]` and its
+    `--key-reason`."""
+
+    columns: list[str]
+    reason: str | None = None
+
+
+class Decision(BaseModel):
+    accept: bool = False
+    discard: bool = False
+    resolutions: dict[str, str] = Field(default_factory=dict)
+    owners: dict[str, str] = Field(default_factory=dict)
+    links: dict[str, bool] = Field(default_factory=dict)  # WP71: --link / --no-link
+    # WP82: --bind (a stage's relation and column aliases), --map, and the multi-source answers
+    # an edited mappings.review.yml carries (--mappings).
+    bindings: dict[str, StageBinding] = Field(default_factory=dict)
+    mappings: dict[str, str] = Field(default_factory=dict)
+    mapping_sources: dict[str, list[dict[str, str]]] = Field(default_factory=dict)
+    bridges: dict[str, bool] = Field(default_factory=dict)  # WP115: --bridge / --no-bridge
+    # WP125 (ADR-0021): --key / --key-reason, by declared table; unanswered contested keys take
+    # the declared natural key.
+    keys: dict[str, KeyAnswerBody] = Field(default_factory=dict)
+
+
+def create_app(root: Path, static: Path | None = None) -> FastAPI:
+    """The API over ``root``; the frontend bundle under ``static`` (default: the package's
+    ``static/``) is served at ``/`` with a client-route fallback when it exists (WP67 §2.5)."""
+    static = STATIC_DIR if static is None else static
+    store = ProjectStore(root)
+    runs = RunManager(store)
+    app = FastAPI(title="vault-agent workbench", version="0.1")
+
+    def _guard(exc: Exception) -> HTTPException:
+        if isinstance(exc, RunConflictError | ProjectConflictError):
+            return HTTPException(status_code=409, detail=str(exc))
+        if isinstance(exc, ProjectNotFoundError):
+            return HTTPException(status_code=404, detail=str(exc))
+        if isinstance(exc, ProjectError):
+            return HTTPException(status_code=400, detail=str(exc))
+        raise exc
+
+    @app.get("/api/graph")
+    def get_graph() -> dict[str, Any]:
+        return {"nodes": node_catalogue()}
+
+    @app.get("/api/projects")
+    def list_projects() -> list[dict[str, Any]]:
+        return store.list()
+
+    @app.post("/api/projects", status_code=201)
+    def create_project(body: NewProject) -> dict[str, Any]:
+        try:
+            return store.create(body.name)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.get("/api/projects/{project_id}")
+    def get_project(project_id: str) -> dict[str, Any]:
+        try:
+            return {**store.get(project_id), "runs": store.runs(project_id)}
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.get("/api/projects/{project_id}/settings")
+    def get_settings_view(project_id: str) -> dict[str, Any]:
+        """WP113: the stored settings, the effective ones, the environment — never a secret."""
+        try:
+            return store.settings_view(project_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.put("/api/projects/{project_id}/settings")
+    def put_settings(project_id: str, body: ProjectSettings) -> dict[str, Any]:
+        try:
+            store.save_settings(project_id, body)
+            return store.settings_view(project_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.delete("/api/projects/{project_id}")
+    def delete_project(project_id: str) -> dict[str, Any]:
+        """WP112: the folder whole, once its runs are at rest and nothing outside extends them."""
+        try:
+            return runs.delete_project(project_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.delete("/api/projects/{project_id}/files/{name}")
+    def delete_file(project_id: str, name: str) -> dict[str, Any]:
+        """WP112: an input file no run has read."""
+        try:
+            return store.delete_file(project_id, name)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.post("/api/projects/{project_id}/files", status_code=201)
+    def add_file(project_id: str, body: NewFile) -> dict[str, Any]:
+        try:
+            return store.add_file(project_id, body.kind, body.name, body.content)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    # ----- the source database (WP119, C46) -------------------------------------------------
+    # The connection is the process's VAULT_AGENT_SOURCE_URL (ADR-0015: secrets in the operator's
+    # `.env`); no body carries it and no answer carries its password. SQLAlchemy is the
+    # `catalogue` extra, imported here so the workbench runs without it.
+    def _source_url() -> str | None:
+        return source_url_from_environment()
+
+    def _source_status(exc: Exception) -> HTTPException:
+        from vault_agent.profiler import UnknownChecksError, UnknownTablesError
+        from vault_agent.source_schema_reader import (
+            SourceDriverMissingError,
+            SourceUnreachableError,
+            UnknownSchemasError,
+        )
+
+        if isinstance(exc, UnknownSchemasError | UnknownTablesError | UnknownChecksError):
+            return HTTPException(status_code=422, detail=str(exc))
+        if isinstance(exc, SourceDriverMissingError | SourceUnreachableError):
+            return HTTPException(status_code=502, detail=str(exc))
+        raise exc
+
+    def _need_source() -> str:
+        url = _source_url()
+        if url is None:
+            raise HTTPException(
+                status_code=409,
+                detail="no source database: set VAULT_AGENT_SOURCE_URL in the workbench's "
+                       "environment (.env) and restart it",
+            )
+        return url
+
+    @app.get("/api/source")
+    def get_source() -> dict[str, Any]:
+        url = _source_url()
+        if url is None:
+            return {"state": "unset", "url": None, "dialect": None, "schemas": []}
+        try:
+            from vault_agent.source_schema_reader import (
+                SourceDriverMissingError,
+                SourceUnreachableError,
+                catalogue_schemas,
+                hidden_url,
+            )
+        except ModuleNotFoundError as exc:
+            return {"state": "driver_missing", "url": None, "dialect": None, "schemas": [],
+                    "detail": f"{exc.name} — uv sync --extra catalogue (manual 4)"}
+        try:
+            shown = hidden_url(url)
+            dialect: str | None = shown.split(":", 1)[0].split("+", 1)[0]
+        except Exception:  # noqa: BLE001 — an unparseable URL is reported, never echoed
+            return {"state": "unreachable", "url": None, "dialect": None, "schemas": [],
+                    "detail": "VAULT_AGENT_SOURCE_URL is not a SQLAlchemy URL"}
+        try:
+            schemas = catalogue_schemas(url)
+        except SourceDriverMissingError as exc:
+            return {"state": "driver_missing", "url": shown, "dialect": dialect, "schemas": [],
+                    "detail": str(exc)}
+        except SourceUnreachableError as exc:
+            return {"state": "unreachable", "url": shown, "dialect": dialect, "schemas": [],
+                    "detail": str(exc)}
+        return {"state": "ok", "url": shown, "dialect": dialect, "schemas": schemas}
+
+    @app.get("/api/source/tables")
+    def get_source_tables(
+        schema: Annotated[list[str] | None, Query()] = None,
+    ) -> list[dict[str, str]]:
+        url = _need_source()
+        from vault_agent.profiler import select_tables
+        from vault_agent.source_schema_reader import SourceError, checked_schemas, source_engine
+
+        holder: dict[str, Any] = {}
+
+        def available() -> list[str]:
+            import sqlalchemy as sa
+
+            holder["engine"] = source_engine(url)
+            return list(sa.inspect(holder["engine"]).get_schema_names())
+
+        try:
+            named = checked_schemas(url, schema, available, verb="list")
+            pairs, _ = select_tables(holder["engine"], schemas=named, tables=None)
+        except SourceError as exc:
+            raise _source_status(exc) from exc
+        except Exception as exc:  # noqa: BLE001 — a driver's own error, typed by the helper
+            from vault_agent.source_schema_reader import SourceUnreachableError
+
+            raise _source_status(SourceUnreachableError(url, exc)) from exc
+        return [{"schema": s_, "table": t} for s_, t in pairs]
+
+    @app.post("/api/projects/{project_id}/source-schema", status_code=201)
+    def read_catalogue(project_id: str, body: ReadCatalogue) -> dict[str, Any]:
+        try:
+            store.get(project_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        url = _need_source()
+        from vault_agent.source_schema_reader import SourceError, produce_source_schema
+
+        try:
+            produced = produce_source_schema(url, body.schemas, views=body.views)
+        except SourceError as exc:
+            raise _source_status(exc) from exc
+        command = " ".join([
+            "vault-agent source-schema", *(f"--schema {s_}" for s_ in body.schemas),
+            *(["--views"] if body.views else []), f"--out inputs/{body.name}",
+        ])
+        try:
+            entry = store.add_file(project_id, "schema", body.name, produced.text,
+                                   command=command)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        return {"file": entry, "command": command, "warnings": produced.warnings,
+                "summary": {"tables": produced.tables, "columns": produced.columns,
+                            "comments": produced.comments,
+                            "foreign_keys": produced.foreign_keys}}
+
+    @app.post("/api/projects/{project_id}/infer-keys", status_code=201)
+    def infer_project_keys(project_id: str, body: InferKeys) -> dict[str, Any]:
+        """WP140 (C74): `vault-agent infer-keys` over a schema input — the command's file,
+        stored as a schema input. Explicitly invoked, read-only, scoped (ADR-0008 #4)."""
+        try:
+            project = store.get(project_id)
+            path = store.input_path(project_id, body.schema_file)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        kind = next((f["kind"] for f in project["files"] if f["name"] == body.schema_file), None)
+        if kind != "schema":
+            raise HTTPException(
+                status_code=422,
+                detail=f"{body.schema_file} is a {kind or 'stray'} input, not a source schema: "
+                       "keys are inferred for the tables a schema input names",
+            )
+        if not body.reads_rows:
+            raise HTTPException(
+                status_code=422,
+                detail="inferring keys reads rows of the source database: send reads_rows: "
+                       "true to acknowledge it (ADR-0008 #4, manual 6.1)",
+            )
+        url = _need_source()
+        from vault_agent.key_inference import produce_inferred_keys, schema_file_header
+        from vault_agent.source_schema import load_source_schemas
+        from vault_agent.source_schema_reader import SourceError
+
+        try:
+            tables = load_source_schemas(path)
+        except ValueError as exc:  # edited on disk since the store validated it
+            raise HTTPException(status_code=422, detail=f"{body.schema_file}: {exc}") from exc
+        try:
+            produced = produce_inferred_keys(
+                url, tables, schema_file_header(path.read_text(encoding="utf-8")),
+                candidates=body.candidates,
+            )
+        except SourceError as exc:
+            raise _source_status(exc) from exc
+        name = body.name or body.schema_file
+        command = (f"vault-agent infer-keys --source-schema inputs/{body.schema_file} "
+                   f"--candidates {body.candidates} --out inputs/{name}")
+        try:
+            entry = store.add_file(project_id, "schema", name, produced.text, command=command)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        return {"file": entry, "command": command, "refused": produced.refused,
+                "summary": {"tables": produced.tables, "tables_read": produced.tables_read,
+                            "unique": produced.unique, "foreign": produced.foreign}}
+
+    @app.post("/api/projects/{project_id}/profile", status_code=201)
+    def make_profile(project_id: str, body: MakeProfile) -> dict[str, Any]:
+        try:
+            store.get(project_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        if not body.reads_rows:
+            raise HTTPException(
+                status_code=422,
+                detail="profiling reads rows of the source database: send reads_rows: true to "
+                       "acknowledge it (ADR-0008 #4, manual 10.7)",
+            )
+        url = _need_source()
+        from vault_agent.profiler import produce_profiling
+        from vault_agent.source_schema_reader import SourceError
+
+        try:
+            produced = produce_profiling(
+                url, body.schemas, body.tables or None, checks=body.checks,
+                sample=body.sample, examples=body.examples,
+            )
+        except SourceError as exc:
+            raise _source_status(exc) from exc
+        command = " ".join([
+            "vault-agent profile", *(f"--schema {s_}" for s_ in body.schemas),
+            *(f"--table {t}" for t in body.tables),
+            *(f"--check {c}" for c in produced.checks),
+            *([] if produced.checks else ["--check none"]),
+            f"--sample {body.sample}", f"--examples {produced.examples}",
+            f"--out inputs/{body.name}",
+        ])
+        try:
+            entry = store.add_file(project_id, "profiling", body.name, produced.text,
+                                   command=command)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        return {"file": entry, "command": command, "refused": produced.refused,
+                "summary": {"tables": produced.tables, "columns": produced.columns,
+                            "rows": produced.rows, "checks": produced.checks}}
+
+    @app.post("/api/projects/{project_id}/runs", status_code=201)
+    async def start_run(
+        project_id: str, body: StartRun, wait: bool = Query(default=False)
+    ) -> dict[str, Any]:
+        try:
+            business_vault = body.business_vault()
+        except ValidationError as exc:
+            raise HTTPException(status_code=422, detail=exc.errors()[0]["msg"]) from exc
+        try:
+            return await runs.start(
+                project_id, body.requirements, body.schema_file, body.existing_run, wait=wait,
+                business_vault=business_vault,
+                profiling=body.profiling, target_platform=body.target_platform,  # WP82
+                llm=LLMOptions(primary_model=body.primary_model, heavy_model=body.heavy_model,
+                               anthropic_base_url=body.anthropic_base_url),  # WP113
+                naming=body.naming,  # WP114
+            )
+        except (ProjectError, RunConflictError) as exc:
+            raise _guard(exc) from exc
+
+    @app.get("/api/runs/{run_id}")
+    def get_run(run_id: str) -> dict[str, Any]:
+        try:
+            return runs.read(run_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.delete("/api/runs/{run_id}")
+    async def delete_run(run_id: str) -> dict[str, Any]:
+        """WP112: a run at rest, whole; running → cancel first, paused → decide or discard first."""
+        try:
+            return await runs.delete(run_id)
+        except (ProjectError, RunConflictError) as exc:
+            raise _guard(exc) from exc
+
+    @app.get("/api/runs/{run_id}/events")
+    def get_events(run_id: str, after: int = Query(default=0, ge=0)) -> dict[str, Any]:
+        try:
+            return runs.events(run_id, after)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.get("/api/runs/{run_id}/checkpoint")
+    async def get_checkpoint(run_id: str) -> dict[str, Any]:
+        try:
+            return await runs.checkpoint(run_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.post("/api/runs/{run_id}/checkpoint")
+    async def decide(
+        run_id: str, body: Decision, wait: bool = Query(default=False)
+    ) -> dict[str, Any]:
+        try:
+            return await runs.decide(
+                run_id, accept=body.accept, discard=body.discard,
+                resolutions=body.resolutions, owners=body.owners, wait=wait,
+                links=body.links,
+                bindings=body.bindings, mappings=body.mappings,  # WP82
+                mapping_sources=body.mapping_sources,
+                bridges=body.bridges,  # WP115
+                keys={t: a.model_dump() for t, a in body.keys.items()},  # WP125
+            )
+        except (ProjectError, ValueError) as exc:
+            if isinstance(exc, ProjectError):
+                raise _guard(exc) from exc
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    @app.post("/api/runs/{run_id}/cancel")
+    async def cancel(run_id: str) -> dict[str, Any]:
+        """WP69: stop the task; the thread stays and `continue` or `discard` take it from there."""
+        try:
+            return await runs.cancel(run_id)
+        except (ProjectError, RunConflictError) as exc:
+            raise _guard(exc) from exc
+
+    @app.post("/api/runs/{run_id}/continue")
+    async def continue_run(run_id: str, wait: bool = Query(default=False)) -> dict[str, Any]:
+        """WP69: `vault-agent resume --out <run>` on an interrupted or crashed run."""
+        try:
+            return await runs.continue_(run_id, wait=wait)
+        except (ProjectError, RunConflictError) as exc:
+            raise _guard(exc) from exc
+
+    @app.get("/api/runs/{run_id}/artefacts")
+    def list_artefacts(run_id: str) -> list[dict[str, Any]]:
+        try:
+            return runs.artefacts(run_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.get("/api/runs/{run_id}/artefacts/{relative:path}")
+    def get_artefact(run_id: str, relative: str) -> FileResponse:
+        try:
+            return FileResponse(runs.artefact(run_id, relative))
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.get("/api/runs/{run_id}/project")
+    def get_project_check(run_id: str) -> dict[str, Any]:
+        try:
+            return runs.project(run_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.post("/api/runs/{run_id}/parse")
+    async def parse_project(run_id: str) -> dict[str, Any]:
+        try:
+            return await runs.parse(run_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+
+    @app.get("/api/runs/{run_id}/model")
+    async def get_model(run_id: str) -> dict[str, Any]:
+        try:
+            state = await runs.state(run_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        return {
+            "run": run_id,
+            "model": state.dv_model.model_dump(mode="json"),
+            "output_mermaid": build_model_mermaid(state.dv_model),
+            "input_mermaid": build_source_mermaid(state.source_schemas),
+            "areas": area_views(state),  # WP80
+            "existing": (
+                state.existing_model.model_dump(mode="json") if state.existing_model else None
+            ),
+        }
+
+    @app.post("/api/runs/{run_id}/console")
+    async def console(run_id: str, body: ConsoleQuestion) -> dict[str, Any]:
+        """WP68: an explanation from the state; reads only, runs nothing."""
+        try:
+            meta = runs.read(run_id)
+            state = await runs.state(run_id)
+        except ProjectError as exc:
+            if str(exc).startswith("no "):
+                raise _guard(exc) from exc
+            return ConsoleAnswer(
+                f"This session holds no state for run {run_id} ({exc}); its artefacts remain "
+                "readable in the Artefacts tab.", kind="unavailable",
+            ).json()
+        return answer(state, meta, body.text).json()
+
+    @app.get("/api/runs/{run_id}/report", response_class=HTMLResponse)
+    async def get_report(run_id: str) -> str:
+        try:
+            state = await runs.state(run_id)
+        except ProjectError as exc:
+            raise _guard(exc) from exc
+        return build_report(state)
+
+    index = static / "index.html"
+    if (static / "assets").is_dir():
+        app.mount("/assets", StaticFiles(directory=static / "assets"), name="assets")
+
+    @app.get("/{path:path}", response_class=HTMLResponse, include_in_schema=False)
+    def spa(path: str) -> Any:
+        if path.startswith("api/") or path == "api":
+            raise HTTPException(status_code=404)
+        if index.is_file():
+            # WP118 (C43): `static / path` with an absolute `path` *replaces* the base, and `%2F`
+            # arrives as `/` — `GET /%2Fetc%2Fhostname` served the file (2026-11-03). A bundle file
+            # is one whose resolved path lies under the bundle directory; anything else is the SPA.
+            candidate = (static / path).resolve() if path else None
+            inside = candidate is not None and static.resolve() in candidate.parents
+            if candidate is not None and inside and candidate.is_file():
+                return FileResponse(candidate)
+            return FileResponse(index)
+        return HTMLResponse(_NO_BUNDLE)
+
+    return app

@@ -1,0 +1,88 @@
+spec-version: 1.0.0
+name: EmployeeDepartmentHistory
+namespace: source
+dataAssetResourceName: datastore://source/EmployeeDepartmentHistory
+doc: Historical record of the departments and shifts each employee has been assigned
+  to over time, sourced from the EmployeeDepartmentHistory source table. The contract
+  enforces the declared schema, business key and not-null rules; value-level semantics
+  are left for producer/consumer review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the employee (business entity) whose department assignment
+    is recorded; refers to the Employee source entity.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: DepartmentID
+  description: Identifier of the department the employee was assigned to; refers to
+    the Department source entity.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ShiftID
+  description: Identifier of the work shift the employee was assigned to within the
+    department; refers to the Shift source entity.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: StartDate
+  description: Date the employee started working in the department and shift.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EndDate
+  description: Date the employee stopped working in the department and shift; expected
+    to be empty for current assignments.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

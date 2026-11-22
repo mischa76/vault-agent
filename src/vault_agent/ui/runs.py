@@ -1,0 +1,677 @@
+"""Runs are background tasks over the CLI's internals (WP66 §2.2–2.4).
+
+Nothing here decides anything: the task calls ``cli._run_pipeline`` and ``cli._resume_pipeline``
+with what the API received, writes the outputs the CLI writes, and records the CLI invocation
+every action is equivalent to.
+"""
+from __future__ import annotations
+
+import asyncio
+import contextlib
+import json
+import shlex
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import Any, cast
+from uuid import uuid4
+
+import yaml
+
+from vault_agent import cli
+from vault_agent.agents.entity_resolver import pending_resolution_decisions
+from vault_agent.agents.orchestrator import assemble_review_queue
+from vault_agent.bindings import check_stage_bindings, format_bind, pending_stage_bindings
+from vault_agent.config import LLMOptions
+from vault_agent.existing_model import (
+    load_carried_aliases,
+    load_carried_bindings,
+    load_declined_bridges,
+    load_existing_catalogue,
+    load_existing_model,
+    load_existing_naming,
+)
+from vault_agent.link_proposal import pending_link_decisions, proposal_key
+from vault_agent.profiling import load_profiling
+from vault_agent.rules.key_decision import pending_key_decisions
+from vault_agent.rules.naming import NamingProfile
+from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
+from vault_agent.source_schema import load_source_schemas
+from vault_agent.state import (
+    RESOLUTION_SAME_AS,
+    BusinessVaultOptions,
+    StageBinding,
+    VaultAgentState,
+    split_concept_key,
+)
+from vault_agent.ui import project_check
+from vault_agent.ui.projects import ProjectError, ProjectNotFoundError, ProjectStore
+
+TERMINAL = {"finished", "failed", "discarded"}
+# A thread with work in it and nothing running: the CLI's crash path continues or discards it.
+CONTINUABLE = {"interrupted", "crashed"}
+STATE_FILE = "state.json"  # a finished run's state, beside its trace (WP69 §2.3)
+
+
+# The answers `resume --resolve` takes beside a construct name (cli._parse_resolve).
+RESOLUTION_ANSWERS = ("NEW", "same_as_candidate", "unresolved")
+
+
+def _pending_links(state: VaultAgentState) -> list[dict[str, Any]]:
+    """What the CLI prints at the resolution checkpoint for each proposal (WP71 §2.2)."""
+    from vault_agent.state import KeyLicense, LinkProposal
+
+    out = []
+    for p in pending_link_decisions(state.link_proposals):
+        kind = ("license" if isinstance(p, KeyLicense)
+                else "link" if isinstance(p, LinkProposal) else "relationship")
+        out.append({
+            "key": proposal_key(p), "kind": kind, "target": cli._link_target(p),
+            "note": cli._link_category_note(p), "evidence": list(p.evidence),
+            # WP140: what the bulk answer does with it hangs on this (ADR-0018 §4) — a field,
+            # not the note's first words. A relationship table is read from declared keys only.
+            "provenance": (p.provenance if isinstance(p, LinkProposal | KeyLicense)
+                           else "declared"),
+        })
+    return out
+
+
+def _pending_keys(state: VaultAgentState) -> list[dict[str, Any]]:
+    """The contested hub keys as the CLI prints them at the resolution checkpoint (WP125): the
+    table, the default the bulk answer takes, what else could be named, and the evidence."""
+    return [
+        {
+            "table": d.table, "default": list(d.columns), "primary_key": list(d.primary_key),
+            "natural_keys": list(d.natural_keys), "first_choice": d.first_choice,
+            "first_choice_score": d.first_choice_score, "evidence": list(d.evidence),
+        }
+        for d in pending_key_decisions(state)
+    ]
+
+
+def _pending_resolutions(state: VaultAgentState) -> list[dict[str, Any]]:
+    out = []
+    for p in pending_resolution_decisions(state.resolutions):
+        label, entity = split_concept_key(p.concept)
+        claim = (
+            f"equivalent to {p.same_as!r} but keyed differently"
+            if p.resolution == RESOLUTION_SAME_AS else f"IS the existing {p.resolution!r}"
+        ) + cli._subtype_note(p, state)
+        out.append({
+            "concept": p.concept, "label": label, "entity": entity or None, "claim": claim,
+            "category": p.category, "confidence": p.confidence, "evidence": list(p.evidence),
+            # WP142 (C51): what was proposed, as fields — the page offers "keep the proposal"
+            # by name instead of an empty field beside a sentence.
+            "proposed": p.resolution, "same_as": p.same_as,
+        })
+    return out
+
+
+def _pending_bridges(state: VaultAgentState) -> list[dict[str, Any]]:
+    """The proposed bridge paths still unanswered (WP115) — decisions, declined unless answered.
+    WP144: each with the group it belongs to (one decision per link pair and shared hub); a path
+    of the operator's own shape has no pair."""
+    from vault_agent.agents.business_vault_generator import bridge_group, bridge_group_parts
+
+    out = []
+    for p in state.bridge_proposals:
+        if p.ratification_status != "proposed":
+            continue
+        parts = bridge_group_parts(p.path)
+        out.append({
+            "path": p.path, "requirement_ids": list(p.requirement_ids),
+            "evidence": list(p.evidence), "group": bridge_group(p.path),
+            "links": [parts[0], parts[1]] if parts else [], "hub": parts[2] if parts else None,
+        })
+    return out
+
+
+def _existing_hubs(state: VaultAgentState) -> list[str]:
+    """WP142: the hubs of the vault being extended — the only constructs a resolution answer
+    may name (`orchestrator._apply_resolution_decision`); none on a greenfield run."""
+    if state.existing_model is None:
+        return []
+    return sorted(h.name for h in state.existing_model.hubs)
+
+
+class RunConflictError(RuntimeError):
+    """A second run while one is active: the checkpointer is single-slot per process here."""
+
+
+def _owner_spec(asset: str, owner: str) -> str:
+    return f"{asset}={owner}"
+
+
+class RunManager:
+    """One active run per process; states of this session's runs stay in memory."""
+
+    def __init__(self, store: ProjectStore) -> None:
+        self.store = store
+        self._active: str | None = None
+        self._tasks: dict[str, asyncio.Task[None]] = {}
+        self._states: dict[str, VaultAgentState] = {}
+        self._reconcile()
+
+    def _reconcile(self) -> None:
+        """Runs a gone server left at ``running`` (WP69 §2.4): with a thread and a checkpoint
+        database they become ``interrupted`` and continuable, without one ``failed``."""
+        for meta_path in sorted(self.store.root.glob("*/runs/*/run.json")):
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            if meta.get("status") != "running":
+                continue
+            out_dir = meta_path.parent  # WP92: the file's own folder, never the recorded path
+            thread_id = meta.get("thread_id")
+            stamp = datetime.now(UTC).isoformat(timespec="seconds")
+            if thread_id and Path(cli._checkpoint_db(out_dir)).exists():
+                error = "the server stopped while the run was running"
+                cli._write_pending(out_dir, thread_id, self._input_doc(meta),
+                                   phase=cli.PENDING_CRASHED, error=error)
+                meta.update(status="interrupted", error=error, finished=stamp,
+                            cli_equivalents=meta.get("cli_equivalents", [])
+                            + [self._continue_equivalent(out_dir)])
+            else:
+                meta.update(status="failed", finished=stamp,
+                            error="the server stopped before the run was checkpointed")
+            meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+
+    def _input_doc(self, meta: dict[str, Any]) -> Path:
+        try:
+            return self.store.input_path(meta["project"], meta["requirements"])
+        except (ProjectError, KeyError, TypeError):
+            return Path("unknown")
+
+    @staticmethod
+    def _continue_equivalent(out_dir: Path) -> str:
+        return shlex.join(["vault-agent", "resume", "--out", str(out_dir)])
+
+    # ----- run.json ------------------------------------------------------------------------
+    def _meta_path(self, run_id: str) -> Path:
+        project_id, _, stamp = run_id.partition(":")
+        return self.store.run_dir(project_id, stamp) / "run.json"
+
+    def read(self, run_id: str) -> dict[str, Any]:
+        """The run's ``run.json`` — with ``out_dir`` as the store locates the run *now* (WP92
+        §2.1): the file keeps the path recorded at start as a record, but a root that was moved,
+        copied or opened from another working directory would otherwise point at a folder that
+        is not there. The store's place under the root is the one location a run has."""
+        path = self._meta_path(run_id)
+        if not path.is_file():
+            raise ProjectNotFoundError(f"no run {run_id!r}")
+        meta = cast(dict[str, Any], json.loads(path.read_text(encoding="utf-8")))
+        meta["out_dir"] = str(path.parent)
+        return meta
+
+    def _update(self, run_id: str, **fields: Any) -> dict[str, Any]:
+        data = self.read(run_id)
+        data.update(fields)
+        self._meta_path(run_id).write_text(json.dumps(data, indent=2), encoding="utf-8")
+        return data
+
+    def out_dir(self, run_id: str) -> Path:
+        return Path(self.read(run_id)["out_dir"])
+
+    def _llm(self, run_id: str) -> LLMOptions:
+        """WP113: the options recorded at start (`run.json`'s `llm`); older runs: the default."""
+        return cli._pending_llm(self.read(run_id))
+
+    # ----- start -----------------------------------------------------------------------------
+    async def start(
+        self,
+        project_id: str,
+        requirements: str,
+        schema: str | None,
+        existing_run: str | None,
+        *,
+        wait: bool,
+        business_vault: BusinessVaultOptions | None = None,
+        profiling: str | None = None,
+        target_platform: TargetPlatform | None = None,
+        llm: LLMOptions | None = None,
+        naming: NamingProfile | None = None,
+    ) -> dict[str, Any]:
+        business_vault = business_vault or BusinessVaultOptions()
+        if self._active and self.read(self._active)["status"] == "running":
+            raise RunConflictError(f"run {self._active!r} is still running")
+        # WP113 (C3): the project's settings — the platform unless the start names one, the
+        # models and the endpoint always; recorded below and reproduced by the CLI equivalent.
+        project_settings = self.store.settings(project_id)
+        target_platform = (
+            target_platform or project_settings.target_platform or DEFAULT_TARGET_PLATFORM
+        )
+        chosen = project_settings.llm_options()
+        if llm is not None:  # the start body's own values win, field by field
+            chosen = LLMOptions(
+                primary_model=llm.primary_model or chosen.primary_model,
+                heavy_model=llm.heavy_model or chosen.heavy_model,
+                anthropic_base_url=llm.anthropic_base_url or chosen.anthropic_base_url,
+            )
+        llm = chosen
+        # WP114 (C3): the naming profile — the start's, else the project's, else the house style;
+        # an extension keeps its vault's and refuses a different one (the CLI's rule).
+        naming = naming or project_settings.naming_profile()
+        input_doc = self.store.input_path(project_id, requirements)
+        schema_path = self.store.input_path(project_id, schema) if schema else None
+        profiling_path = self.store.input_path(project_id, profiling) if profiling else None  # WP82
+        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
+        run_id = f"{project_id}:{stamp}"
+        thread_id = uuid4().hex  # known before the task starts (WP69 §2.2)
+        out_dir = self.store.run_dir(project_id, stamp, create=True)
+        existing_dir = Path(self.read(existing_run)["out_dir"]) if existing_run else None
+        if existing_dir is not None:
+            inherited = load_existing_naming(existing_dir)
+            if naming.is_default():
+                naming = inherited
+            elif naming != inherited:
+                raise ProjectError(
+                    f"the naming profile differs from the one run {existing_run!r} was generated "
+                    f"with; an extension keeps its vault's names"
+                )
+        equivalent = ["vault-agent", "run", str(input_doc), "--out", str(out_dir)]
+        if schema_path:
+            equivalent += ["--source-schema", str(schema_path)]
+        if profiling_path:  # WP82: the CLI's --profiling
+            equivalent += ["--profiling", str(profiling_path)]
+        if existing_dir:
+            equivalent += ["--existing", str(existing_dir)]
+        if target_platform != DEFAULT_TARGET_PLATFORM:  # WP82: the CLI's --target-platform
+            equivalent += ["--target-platform", target_platform]
+        equivalent += llm.cli_flags()  # WP113
+        if not naming.is_default():  # WP114: the profile as a file the CLI equivalent reads
+            profile_path = out_dir / "naming-profile.yml"
+            profile_path.write_text(yaml.safe_dump(naming.model_dump(), sort_keys=True),
+                                    encoding="utf-8")
+            equivalent += ["--naming-profile", str(profile_path)]
+        if business_vault.enabled:  # WP91, WP115
+            if business_vault.pit:
+                equivalent.append("--pit")
+            for path in business_vault.bridges:
+                equivalent += ["--bridge", path]
+            equivalent += [
+                "--as-of-start", str(business_vault.as_of_start),
+                "--as-of-end", str(business_vault.as_of_end),
+                "--as-of-grain", business_vault.as_of_grain,
+            ]
+        meta = {
+            "id": run_id,
+            "project": project_id,
+            "status": "running",
+            "thread_id": thread_id,
+            "out_dir": str(out_dir),
+            "requirements": requirements,
+            "schema": schema,
+            "existing_run": existing_run,
+            "profiling": profiling,  # WP82
+            "target_platform": target_platform,  # WP82
+            "llm": llm.model_dump(),  # WP113
+            "naming": naming.model_dump(),  # WP114
+            "business_vault": business_vault.model_dump(mode="json"),
+            "started": datetime.now(UTC).isoformat(timespec="seconds"),
+            "finished": None,
+            "error": None,
+            "cli_equivalents": [shlex.join(equivalent)],
+        }
+        (out_dir / "run.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        self._active = run_id
+        self._tasks[run_id] = asyncio.create_task(
+            self._run(run_id, input_doc, out_dir, schema_path, existing_dir, thread_id,
+                      business_vault, profiling_path, target_platform, llm, naming)
+        )
+        if wait:
+            await self._tasks[run_id]
+        return self.read(run_id)
+
+    async def _run(
+        self,
+        run_id: str,
+        input_doc: Path,
+        out_dir: Path,
+        schema_path: Path | None,
+        existing_dir: Path | None,
+        thread_id: str,
+        business_vault: BusinessVaultOptions | None = None,
+        profiling_path: Path | None = None,
+        target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM,
+        llm: LLMOptions | None = None,
+        naming: NamingProfile | None = None,
+    ) -> None:
+        try:
+            schemas = load_source_schemas(schema_path) if schema_path else []
+            existing = load_existing_model(existing_dir) if existing_dir else None
+            state, paused, _thread = await cli._run_pipeline(
+                input_doc, out_dir, schemas,
+                profiling=load_profiling(profiling_path) if profiling_path else None,  # WP82
+                existing_model=existing,
+                existing_source=str(existing_dir) if existing_dir else None,
+                target_platform=target_platform,  # WP82
+                thread_id=thread_id,
+                carried_schemas=load_existing_catalogue(existing_dir) if existing_dir else [],
+                carried_bindings=load_carried_bindings(existing_dir) if existing_dir else {},
+                business_vault=business_vault,  # WP91
+                carried_aliases=load_carried_aliases(existing_dir) if existing_dir else {},  # WP82
+                llm=llm,  # WP113
+                naming=naming,  # WP114
+                declined_bridges=load_declined_bridges(existing_dir) if existing_dir else [],
+            )
+            self._finish(run_id, state, paused, input_doc, thread_id)
+        except asyncio.CancelledError:
+            self._interrupt(run_id, out_dir, thread_id, input_doc)
+            raise
+        except Exception as exc:  # the CLI's rescue has recorded the crash; we record the status
+            self._fail(run_id, exc)
+
+    def _interrupt(self, run_id: str, out_dir: Path, thread_id: str, input_doc: Path) -> None:
+        """A cancelled task is an interrupted thread, as a crash is (WP69 §2.1): the pending
+        pointer the CLI continues from, and the status."""
+        meta = self.read(run_id)
+        cli._write_pending(out_dir, thread_id, input_doc,
+                           phase=cli.PENDING_CRASHED, error="cancelled from the workbench",
+                           llm=cli._pending_llm(meta))
+        self._update(
+            run_id, status="interrupted", error="cancelled from the workbench",
+            finished=datetime.now(UTC).isoformat(timespec="seconds"),
+            cli_equivalents=meta["cli_equivalents"] + [self._continue_equivalent(out_dir)],
+        )
+
+    # ----- cancel / continue (WP69) ----------------------------------------------------------
+    async def cancel(self, run_id: str) -> dict[str, Any]:
+        meta = self.read(run_id)
+        task = self._tasks.get(run_id)
+        if meta["status"] != "running" or task is None or task.done():
+            raise RunConflictError(f"run {run_id!r} is {meta['status']}; nothing to cancel here")
+        task.cancel()
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+        return self.read(run_id)
+
+    async def continue_(self, run_id: str, *, wait: bool) -> dict[str, Any]:
+        meta = self.read(run_id)
+        if meta["status"] not in CONTINUABLE or not meta["thread_id"]:
+            raise ProjectError(f"run {run_id!r} is {meta['status']}, not interrupted or crashed")
+        other = self._active if self._active and self._active != run_id else None
+        if other and self.read(other)["status"] == "running":
+            raise RunConflictError(f"run {self._active!r} is still running")
+        out_dir, thread_id = Path(meta["out_dir"]), meta["thread_id"]
+        self._update(run_id, status="running", error=None)
+        self._states.pop(run_id, None)
+        self._active = run_id
+        input_doc = self._input_doc(meta)
+        self._tasks[run_id] = asyncio.create_task(
+            self._continue(run_id, out_dir, thread_id, input_doc)
+        )
+        if wait:
+            await self._tasks[run_id]
+        return self.read(run_id)
+
+    async def _continue(
+        self, run_id: str, out_dir: Path, thread_id: str, input_doc: Path
+    ) -> None:
+        try:
+            state, paused = await cli._continue_pipeline(out_dir, thread_id, input_doc=input_doc)
+            self._finish(run_id, state, paused, input_doc, thread_id)
+        except asyncio.CancelledError:
+            self._interrupt(run_id, out_dir, thread_id, input_doc)
+            raise
+        except Exception as exc:
+            self._fail(run_id, exc)
+
+    def _finish(
+        self, run_id: str, state: VaultAgentState, paused: bool, input_doc: Path, thread_id: str
+    ) -> None:
+        out_dir = self.out_dir(run_id)
+        cli.write_outputs(state, out_dir)
+        self._states[run_id] = state
+        if paused:
+            cli._write_pending(out_dir, thread_id, input_doc, llm=self._llm(run_id))
+            self._update(run_id, status="paused")
+        else:
+            cli._clear_pending(out_dir)
+            # The final state beside the trace, so a restarted server still serves it (§2.3).
+            (cli._checkpoint_dir(out_dir) / STATE_FILE).write_text(
+                state.model_dump_json(), encoding="utf-8"
+            )
+            self._update(
+                run_id, status="finished",
+                finished=datetime.now(UTC).isoformat(timespec="seconds"),
+            )
+
+    def _fail(self, run_id: str, exc: Exception) -> None:
+        out_dir = self.out_dir(run_id)
+        try:
+            pending = cli._read_pending(out_dir)
+        except ValueError:
+            pending = None
+        crashed = pending is not None and cli._pending_phase(pending) == "crashed"
+        self._update(
+            run_id, status="crashed" if crashed else "failed",
+            error=f"{type(exc).__name__}: {exc}",
+            finished=datetime.now(UTC).isoformat(timespec="seconds"),
+        )
+
+    # ----- state -----------------------------------------------------------------------------
+    async def state(self, run_id: str) -> VaultAgentState:
+        if run_id in self._states:
+            return self._states[run_id]
+        meta = self.read(run_id)
+        if meta["status"] == "paused" and meta["thread_id"]:
+            state = await cli._paused_state(Path(meta["out_dir"]), meta["thread_id"])
+            self._states[run_id] = state
+            return state
+        persisted = cli._checkpoint_dir(Path(meta["out_dir"])) / STATE_FILE
+        if meta["status"] == "finished" and persisted.is_file():
+            state = VaultAgentState.model_validate_json(persisted.read_text(encoding="utf-8"))
+            self._states[run_id] = state
+            return state
+        raise ProjectNotFoundError(
+            f"run {run_id!r} has no state in this session ({meta['status']})"
+        )
+
+    async def checkpoint(self, run_id: str) -> dict[str, Any]:
+        meta = self.read(run_id)
+        if meta["status"] != "paused":
+            raise ProjectError(f"run {run_id!r} is {meta['status']}, not paused")
+        state = await self.state(run_id)
+        queue = assemble_review_queue(state)
+        unresolved = sorted(cli._multi_source_unresolved(state))
+        at_resolution = cli._paused_at_resolution(state)  # the CLI's predicate (WP71 §2.1)
+        return {
+            "run": run_id,
+            "phase": "resolution" if at_resolution else "signoff",
+            "links": _pending_links(state) if at_resolution else [],
+            "resolutions": _pending_resolutions(state) if at_resolution else [],
+            "keys": _pending_keys(state) if at_resolution else [],  # WP125
+            "answers": list(RESOLUTION_ANSWERS),
+            "hubs": _existing_hubs(state) if at_resolution else [],  # WP142
+            "blocked": queue.requires_signoff,
+            "decisions": len(queue.decisions),
+            "disclosures": len(queue.disclosures),
+            "items": [item.model_dump(mode="json") for item in queue.items],
+            # WP82: the stages no rule could bind, with what a binding must say.
+            "bindings": [] if at_resolution else pending_stage_bindings(state),
+            # WP115: the proposed bridge paths — decisions, declined unless answered.
+            "bridges": [] if at_resolution else _pending_bridges(state),
+            "unresolved": [
+                {"concept": c, "evidence": cli._unresolved_evidence(state, c)} for c in unresolved
+            ],
+        }
+
+    # ----- decide ----------------------------------------------------------------------------
+    async def decide(
+        self,
+        run_id: str,
+        *,
+        accept: bool,
+        discard: bool,
+        resolutions: dict[str, str],
+        owners: dict[str, str],
+        wait: bool,
+        links: dict[str, bool] | None = None,
+        bindings: dict[str, StageBinding] | None = None,
+        mappings: dict[str, str] | None = None,
+        mapping_sources: dict[str, list[dict[str, str]]] | None = None,
+        bridges: dict[str, bool] | None = None,
+        keys: dict[str, dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        meta = self.read(run_id)
+        allowed = {"paused"} | (CONTINUABLE if discard else set())
+        if meta["status"] not in allowed or not meta["thread_id"]:
+            raise ProjectError(f"run {run_id!r} is {meta['status']}, not paused")
+        out_dir, thread_id = Path(meta["out_dir"]), meta["thread_id"]
+        equivalent = ["vault-agent", "resume", "--out", str(out_dir)]
+        if discard:
+            equivalent.append("--discard")
+            await cli._discard_pending(out_dir, thread_id)
+            self._states.pop(run_id, None)
+            return self._update(
+                run_id, status="discarded",
+                cli_equivalents=meta["cli_equivalents"] + [shlex.join(equivalent)],
+                finished=datetime.now(UTC).isoformat(timespec="seconds"),
+            )
+        owner_specs = [_owner_spec(asset, owner) for asset, owner in owners.items()]
+        for spec in owner_specs:
+            equivalent += ["--owner", spec]
+            cli._parse_owner(spec)  # the CLI's validation, before anything runs
+        for concept, answer in resolutions.items():
+            equivalent += ["--resolve", f"{concept}={answer}"]
+        for key, build in (links or {}).items():
+            equivalent += ["--link" if build else "--no-link", key]
+        for path, build in (bridges or {}).items():  # WP115: the CLI's --bridge / --no-bridge
+            equivalent += ["--bridge" if build else "--no-bridge", path]
+        for concept, target in (mappings or {}).items():  # WP82: the CLI's --map
+            spec = f"{concept}={target}"
+            cli._parse_map(spec)  # the CLI's validation, before anything runs
+            equivalent += ["--map", spec]
+        state = await self.state(run_id)
+        if bindings:  # WP82: the CLI's --bind, checked against the paused state first
+            errors = check_stage_bindings(state, bindings)
+            if errors:
+                raise ValueError("cannot bind: " + "; ".join(errors))
+            for stage, binding in bindings.items():
+                equivalent += ["--bind", format_bind(stage, binding)]
+        if keys:  # WP125: the CLI's --key / --key-reason, checked against the paused state first
+            answers: dict[str, dict[str, Any]] = {
+                table: {"columns": [str(c) for c in a.get("columns") or []],
+                        "reason": a.get("reason")}
+                for table, a in keys.items()
+            }
+            errors = cli._check_key_answers(state, answers)
+            if errors:
+                raise ValueError("cannot key: " + "; ".join(errors))
+            for table, key_answer in answers.items():
+                columns: list[str] = key_answer["columns"]
+                equivalent += ["--key", f"{table}={'+'.join(columns)}"]
+                if key_answer["reason"]:
+                    equivalent += ["--key-reason", f"{table}={key_answer['reason']}"]
+            keys = answers
+        if accept:
+            equivalent.append("--accept")
+        decision = cli._build_decision(
+            owner_specs, accept, mappings=mappings or None,
+            mapping_sources=mapping_sources or None, resolutions=resolutions or None,
+            links=links or None, bindings=bindings or None, bridges=bridges or None,
+            keys=keys or None,
+        )
+        phase = "resolution" if cli._paused_at_resolution(state) else "signoff"
+        command = shlex.join(equivalent)
+        self._update(
+            run_id, status="running",
+            cli_equivalents=meta["cli_equivalents"] + [command],
+            checkpoints=meta.get("checkpoints", []) + [{"phase": phase, "command": command}],
+        )
+        self._states.pop(run_id, None)
+        self._active = run_id
+        input_doc = self.store.input_path(meta["project"], meta["requirements"])
+        self._tasks[run_id] = asyncio.create_task(
+            self._resume(run_id, out_dir, thread_id, decision, input_doc)
+        )
+        if wait:
+            await self._tasks[run_id]
+        return self.read(run_id)
+
+    async def _resume(
+        self, run_id: str, out_dir: Path, thread_id: str, decision: dict[str, Any], input_doc: Path
+    ) -> None:
+        try:
+            state, paused = await cli._resume_pipeline(
+                out_dir, thread_id, decision, input_doc=input_doc
+            )
+            self._finish(run_id, state, paused, input_doc, thread_id)
+        except Exception as exc:
+            self._fail(run_id, exc)
+
+    # ----- deleting (WP112, C2) --------------------------------------------------------------
+    def _forget(self, run_id: str) -> None:
+        self._tasks.pop(run_id, None)
+        self._states.pop(run_id, None)
+        if self._active == run_id:
+            self._active = None
+
+    async def delete(self, run_id: str) -> dict[str, Any]:
+        """A run at rest goes whole — folder, checkpoint, trace — and the server forgets it.
+        Running: cancel first; paused: decide or discard first; extended by another run: kept."""
+        meta = self.read(run_id)
+        if meta["status"] == "running":
+            raise RunConflictError(f"run {run_id!r} is running; cancel it first")
+        if meta["status"] == "paused":
+            raise RunConflictError(f"run {run_id!r} is paused; decide or discard it first")
+        extenders = self.store.extenders_of(run_id)
+        if extenders:
+            raise RunConflictError(
+                f"run {run_id!r} is kept: run(s) {', '.join(extenders)} extend it"
+            )
+        self.store.delete_run_dir(meta["project"], run_id)
+        self._forget(run_id)
+        return {"deleted": run_id, "project": meta["project"]}
+
+    def delete_project(self, project_id: str) -> dict[str, Any]:
+        """The store's rules, then the manager forgets every run of the project."""
+        result = self.store.delete(project_id)
+        for run_id in [r for r in {*self._tasks, *self._states} if r.startswith(f"{project_id}:")]:
+            self._forget(run_id)
+        if self._active and self._active.startswith(f"{project_id}:"):
+            self._active = None
+        return result
+
+    # ----- evidence --------------------------------------------------------------------------
+    def events(self, run_id: str, after: int) -> dict[str, Any]:
+        meta = self.read(run_id)
+        lines: list[dict[str, Any]] = []
+        if meta["thread_id"]:
+            path = cli._trace_path(Path(meta["out_dir"]), meta["thread_id"])
+            if path.is_file():
+                raw = path.read_text(encoding="utf-8").splitlines()
+                lines = [json.loads(line) for line in raw[after:] if line.strip()]
+        return {"run": run_id, "status": meta["status"], "after": after,
+                "next": after + len(lines), "events": lines}
+
+    def artefacts(self, run_id: str) -> list[dict[str, Any]]:
+        out_dir = self.out_dir(run_id)
+        entries = []
+        for path in sorted(out_dir.rglob("*")):
+            relative = path.relative_to(out_dir)
+            if path.is_file() and ".vault-agent" not in relative.parts:
+                entries.append({"path": str(relative), "bytes": path.stat().st_size})
+        return entries
+
+    def project(self, run_id: str) -> dict[str, Any]:
+        """WP78: does the written project resolve, is dbt here, what did the last parse say."""
+        return {"run": run_id, **project_check.project_check(self.out_dir(run_id))}
+
+    async def parse(self, run_id: str) -> dict[str, Any]:
+        """WP78: `dbt deps` + `dbt parse` on the run's project, keyless, in a worker thread;
+        the typed result persisted in run.json and the command recorded as a CLI equivalent."""
+        out_dir = self.out_dir(run_id)
+        result = await asyncio.to_thread(
+            project_check.dbt_parse, out_dir, project_check.run_command
+        )
+        meta = self.read(run_id)
+        equivalents = list(meta.get("cli_equivalents", []))
+        if result.get("command") and result["command"] not in equivalents:
+            equivalents.append(result["command"])
+        self._update(run_id, parse=result, cli_equivalents=equivalents)
+        return {"run": run_id, **result}
+
+    def artefact(self, run_id: str, relative: str) -> Path:
+        out_dir = self.out_dir(run_id).resolve()
+        path = (out_dir / relative).resolve()
+        if out_dir not in path.parents or not path.is_file():
+            raise ProjectNotFoundError(f"run {run_id!r} has no artefact {relative!r}")
+        return path

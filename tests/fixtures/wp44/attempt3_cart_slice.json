@@ -1,0 +1,72 @@
+{
+  "hubs": [
+    {
+      "name": "hub_shopping_cart",
+      "business_key": "ShoppingCartID",
+      "source_entity": "ShoppingCartItem",
+      "description": "An online shopping cart session; the sole cart-level identifier, with no recorded link to a customer or order.",
+      "requirement_ids": [
+        "REQ-072-2",
+        "REQ-120"
+      ]
+    },
+    {
+      "name": "hub_shopping_cart_item",
+      "business_key": "ShoppingCartItemID",
+      "source_entity": "ShoppingCartItem",
+      "description": "A single item within a shopping cart, identified by its system-generated item identifier.",
+      "requirement_ids": [
+        "REQ-072-2",
+        "REQ-073-2"
+      ]
+    }
+  ],
+  "links": [
+    {
+      "name": "link_shopping_cart_item_cart",
+      "connected_hubs": [
+        "hub_shopping_cart_item",
+        "hub_shopping_cart"
+      ],
+      "description": "Each cart item belongs to exactly one shopping cart.",
+      "requirement_ids": [
+        "REQ-072-2",
+        "REQ-120"
+      ]
+    },
+    {
+      "name": "link_shopping_cart_item_product",
+      "connected_hubs": [
+        "hub_shopping_cart_item",
+        "hub_product"
+      ],
+      "description": "The product for each cart item.",
+      "requirement_ids": [
+        "REQ-073-2",
+        "REQ-074-2",
+        "REQ-120"
+      ]
+    }
+  ],
+  "satellites": [
+    {
+      "name": "sat_shopping_cart_item_detail",
+      "parent": "hub_shopping_cart_item",
+      "attributes": [
+        "Quantity",
+        "DateCreated",
+        "ModifiedDate"
+      ],
+      "description": "Cart item attributes: quantity ordered and the date and time the item was created, for measuring cart activity over time.",
+      "requirement_ids": [
+        "REQ-073-2",
+        "REQ-074-2",
+        "REQ-075-2",
+        "REQ-136",
+        "REQ-147"
+      ],
+      "source_table": "ShoppingCartItem"
+    }
+  ],
+  "_source": "eval/results/adventureworks_incremental/20260917T181755061438Z-run1.trace.jsonl, llm_call index 107 (step 5, modeling attempt 3), cart-related constructs only"
+}

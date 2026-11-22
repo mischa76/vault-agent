@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_PersonCreditCard
+  columns:
+  - name: BUSINESSENTITYID
+    tests:
+    - unique
+    - not_null
+  - name: CREDITCARDID
+    tests:
+    - unique
+    - not_null

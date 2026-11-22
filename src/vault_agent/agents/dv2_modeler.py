@@ -1,0 +1,814 @@
+"""DV2.0 Modeler agent.
+
+Turns the parsed requirements and proposed business keys into a logical Data Vault model
+(hubs, links, satellites) in ``VaultAgentState.dv_model``. This is the pipeline's central
+modelling decision. It does not write to ``VaultAgentState.adrs`` — the ADR Author is the
+sole writer, rendering the finalized ADR from ``state.dv_model`` (which already carries each
+construct's rationale and ``requirement_ids``). Emitting a draft fragment per pass would
+leave stale fragments behind on an exhausted-retry run that never reaches the ADR Author.
+
+The DV2 modelling rules are NOT hard-coded in the prompt: they live in
+``vault_agent.rules.dv2_rules`` and are injected into the system prompt at runtime.
+
+Structured output uses forced Anthropic tool-use with a schema derived from the Hub / Link
+/ Satellite models; the client is constructed lazily so tests run without a key. After
+validation a structural pass drops constructs that dangle (links referencing missing hubs,
+satellites referencing a missing parent).
+"""
+import json
+import logging
+from typing import Any, Protocol
+
+from pydantic import ValidationError
+
+from vault_agent.agents.base import BaseAgent
+from vault_agent.agents.entity_resolver import render_resolution_prompt_section
+from vault_agent.existing_model import render_extension_prompt_section
+from vault_agent.grounding import render_schema_prompt_section
+from vault_agent.llm import TraceEvent, emit_trace
+from vault_agent.rules.dv2_rules import (
+    active_modeling_rules,
+    attributes_without_cdk,
+    hub_key_columns,
+    infer_satellite_relation,
+    normalize_identifier,
+    source_table_on_multi_source_hub,
+)
+from vault_agent.rules.key_decision import given_keys
+from vault_agent.state import DVModel, FlagKind, Hub, Link, Satellite, VaultAgentState
+
+logger = logging.getLogger(__name__)
+
+_TOOL_NAME = "emit_dv_model"
+
+# The modeler emits ONE coherent model, so the truncation-split that carries the
+# requirements parser and the business-key identifier (llm.call_with_truncation_split)
+# does NOT apply here: merging two half-models is a modelling problem, not a dedup one —
+# a link can span the halves, a hub proposed in both must be reconciled, a satellite's
+# parent can sit on the other side. The only lever left is the budget.
+#
+# Measured (2026-07-28, replaying the truncated scale_100 call): 30 source tables need
+# 7,225 output tokens, 100 need 13,889 in an isolated replay and 14,981 in-pipeline —
+# sub-linear (3.3x tables -> ~1.9x tokens), extrapolating to ~26k at 300 tables.
+#
+# 16384 was a STOPGAP bounded by the transport, not by the model (91% utilisation at 100
+# tables). WP22 removed that bound by making ForcedToolCaller stream (ADR-0010), so the
+# ceiling is now the model's: claude-opus-4-8 allows 128,000 output tokens (verified
+# 2026-07-29 against the live Models API, not from memory). For the record, the
+# non-streaming limit was never "roughly 16k" — the installed SDK raises when
+# 3600 * max_tokens / 128_000 > 600, i.e. above 21,333 tokens.
+#
+# 32768 is chosen deliberately rather than taking the model maximum: it clears the
+# 300-table extrapolation with ~26% headroom while keeping a runaway generation's cost
+# bounded (a full 128k burn is ~4x this one). The cap is not a spend — output tokens are
+# billed as generated — so the only thing a lower cap costs is a failed run, and the only
+# thing a higher cap costs is how long a runaway takes to fail.
+#
+# Exit condition (ADR-0010): if a real landscape ever exceeds this, the answer is staged
+# modelling / domain partitioning, NOT another budget bump — a single coherent model that
+# needs more than 32k output tokens is past what one call should carry.
+_MAX_TOKENS = 32768
+
+
+# Fields of the state model the modeler must NEVER see, let alone fill. They are written by
+# exactly one path — a human-ratified, FK-derived link proposal (WP34 §3.4 alias, WP36
+# translation) — and the gates assume that provenance. Measured on 2026-09-12: the moment
+# `LinkHubRef.key_translation` existed, `Link.model_json_schema()` handed its docstring to the
+# modeler and the production step of a paid rerun came back with 9 of 23 links carrying
+# LLM-authored translations AND aliases where the August run had none. The run was aborted.
+_PROPOSER_OWNED_LINK_REF_FIELDS = ("source_key_column", "key_translation")
+_PROPOSER_OWNED_DEFS = ("KeyTranslation",)
+
+
+def _strip_proposer_owned(schema: dict[str, Any]) -> dict[str, Any]:
+    """Remove the proposer-owned fields (and their def) from a pydantic-generated schema."""
+    defs = schema.get("$defs", {})
+    ref = defs.get("LinkHubRef", {})
+    for name in _PROPOSER_OWNED_LINK_REF_FIELDS:
+        ref.get("properties", {}).pop(name, None)
+        if name in ref.get("required", []):
+            ref["required"].remove(name)
+    for name in _PROPOSER_OWNED_DEFS:
+        defs.pop(name, None)
+    return schema
+
+
+_PROPOSER_OWNED_SATELLITE_FIELDS = (
+    "key_translation", "participation_translations", "participation_aliases",
+)
+
+
+def _strip_satellite_owned(schema: dict[str, Any]) -> dict[str, Any]:
+    """WP38: the satellite's translation is the applier's, like the link's (see above)."""
+    properties = schema.get("properties", {})
+    for name in _PROPOSER_OWNED_SATELLITE_FIELDS:
+        properties.pop(name, None)
+        if name in schema.get("required", []):
+            schema["required"].remove(name)
+    defs = schema.get("$defs", {})
+    for name in _PROPOSER_OWNED_DEFS:
+        defs.pop(name, None)
+    if "$defs" in schema and not schema["$defs"]:
+        schema.pop("$defs")
+    return schema
+
+
+def _tool_schema() -> dict[str, Any]:
+    """Wrap the Hub / Link / Satellite schemas as the tool input."""
+    return {
+        "type": "object",
+        "properties": {
+            "hubs": {
+                "type": "array",
+                "items": Hub.model_json_schema(),
+                "description": "One hub per business concept, anchored on a business key.",
+            },
+            "links": {
+                "type": "array",
+                "items": _strip_proposer_owned(Link.model_json_schema()),
+                "description": "One link per relationship between business objects.",
+            },
+            "satellites": {
+                "type": "array",
+                "items": _strip_satellite_owned(Satellite.model_json_schema()),
+                "description": "Descriptive attributes grouped by parent hub or link.",
+            },
+        },
+        "required": ["hubs", "links", "satellites"],
+    }
+
+
+COMPOSITE_KEY_JOINER = " + "
+
+
+def split_composite_key(hub: Hub, state: VaultAgentState) -> bool:
+    """WP45 backstop ``composite_key_split``: the modeler's own notation for a composite key.
+
+    On 2026-09-17 the modeler wrote ``SalesOrderID + SalesOrderDetailID`` and
+    ``CurrencyRateDate + FromCurrencyCode + ToCurrencyCode`` as one ``business_key`` with no
+    ``business_key_columns``. When every ``+``-joined part is a declared column of the hub's own
+    relation (the declared table named like ``source_entity``), the parts become the typed
+    columns and the label stays — a format repair, like ``decoded_field``, never an
+    interpretation: no schema, an undeclared part, or columns already set, and nothing happens.
+    Gates behind it: ``E_SAT_KEY_NOT_IN_SOURCE`` / ``W_BK_NOT_IN_SOURCE``. Returns True when
+    it repaired; one ``backstop`` trace event per repair (WP16)."""
+    if hub.business_key_columns or COMPOSITE_KEY_JOINER not in hub.business_key:
+        return False
+    if not state.source_schemas:
+        return False
+    relation = next(
+        (t for t in state.source_schemas
+         if normalize_identifier(t.table) == normalize_identifier(hub.source_entity)),
+        None,
+    )
+    if relation is None:
+        return False
+    parts = [part.strip() for part in hub.business_key.split(COMPOSITE_KEY_JOINER)]
+    declared = {normalize_identifier(c) for c in relation.column_names}
+    if len(parts) < 2 or not all(part and normalize_identifier(part) in declared for part in parts):
+        return False
+    hub.business_key_columns = parts
+    emit_trace(
+        TraceEvent(
+            kind="backstop",
+            backstop_id="composite_key_split",
+            detail={"hub": hub.name, "columns": parts, "relation": relation.table},
+        )
+    )
+    return True
+
+
+def codes_of(state: VaultAgentState, name: str) -> str:
+    """The gate code(s) whose remedy retired something on ``name`` (presentation only)."""
+    return ", ".join(sorted({r.code for r in state.retired_constructs if r.name == name}))
+
+
+def drop_retired(model: DVModel, state: VaultAgentState) -> DVModel:
+    """WP44: refuse the return of a construct an earlier attempt's remedy retired.
+
+    The re-model loop re-asks for the whole model, and on 2026-09-17 (step 5, attempts 2 → 3)
+    a hub dropped as told came back because the repair lived only in the previous answer.
+    Deterministic and inert when nothing is retired: every retired hub goes, with every link
+    that names it and every satellite whose parent is such a hub or link. The construct itself
+    is a ``retired_reemitted`` flag (the backstop repaired it); a dependent is a
+    ``retired_orphan`` flag, because the payload it carried still needs a home — a modelling
+    decision this rule does not take. One ``backstop`` trace event per fire (WP16)."""
+    retired = {r.name for r in state.retired_constructs if r.kind == "hub"}
+    # WP49: a hub is also retired by its shape — a renamed copy on the same entity with the
+    # same key is the same hub (the third chain, step 5 attempt 3: `hub_person_sales` came back
+    # as `hub_person_customer`). ``retired_shapes`` maps the shape to the name it was retired as.
+    retired_shapes = {
+        (normalize_identifier(r.source_entity), tuple(r.key_columns)): r.name
+        for r in state.retired_constructs
+        if r.kind == "hub" and r.source_entity and r.key_columns
+    }
+    renamed: dict[str, str] = {}
+    entity_of: dict[str, str] = {}
+    for hub in model.hubs:
+        if hub.name in retired:
+            continue
+        shape = (normalize_identifier(hub.source_entity), tuple(hub_key_columns(hub)))
+        if shape in retired_shapes:
+            renamed[hub.name] = retired_shapes[shape]
+            entity_of[hub.name] = hub.source_entity
+    retired = retired | set(renamed)
+    # WP51: the hub the remedy kept in a dropped hub's place; a renamed copy inherits its twin.
+    twin_of: dict[str, str] = {
+        r.name: r.kept_twin for r in state.retired_constructs
+        if r.kind == "hub" and r.kept_twin
+    }
+    for new_name, original in renamed.items():
+        if original in twin_of:
+            twin_of[new_name] = twin_of[original]
+    # WP46: a satellite is retired by shape — (name, parent, relation), compared normalised.
+    retired_sat_shapes = {
+        (r.name, r.parent, normalize_identifier(r.source_table or ""))
+        for r in state.retired_constructs if r.kind == "satellite"
+    }
+    # WP52: the one candidate parent the key remedy named, if any — the satellite's home.
+    sat_home = {
+        (r.name, r.parent, normalize_identifier(r.source_table or "")): r.kept_twin
+        for r in state.retired_constructs if r.kind == "satellite" and r.kept_twin
+    }
+    # WP48: an attribute retired on a satellite — the satellite stays, the column goes.
+    retired_attrs: dict[str, set[str]] = {}
+    for r in state.retired_constructs:
+        if r.kind == "attribute" and r.attribute:
+            retired_attrs.setdefault(r.name, set()).add(normalize_identifier(r.attribute))
+    if not retired and not retired_sat_shapes and not retired_attrs:
+        return model
+    hubs = [hub for hub in model.hubs if hub.name not in retired]
+    reemitted = [hub.name for hub in model.hubs if hub.name in retired]
+    same_shape = [
+        sat for sat in model.satellites
+        if (sat.name, sat.parent, normalize_identifier(sat.source_table or ""))
+        in retired_sat_shapes
+    ]
+    attributes_dropped: list[list[str]] = []
+    for sat in model.satellites:
+        banned = retired_attrs.get(sat.name)
+        if not banned or sat in same_shape:
+            continue
+        dropped_here = [a for a in sat.attributes if normalize_identifier(a) in banned]
+        if not dropped_here:
+            continue
+        sat.attributes = [a for a in sat.attributes if normalize_identifier(a) not in banned]
+        attributes_dropped.extend([sat.name, a] for a in dropped_here)
+        state.flag(
+            "dv2_modeler",
+            f"satellite {sat.name!r} re-emitted attribute(s) {', '.join(dropped_here)} that the "
+            f"{codes_of(state, sat.name)} remedy retired on it; dropped again — the attribute "
+            f"lives in the satellite the remedy kept",
+            kind=FlagKind.RETIRED_REEMITTED,
+            asset=sat.name,
+        )
+    if not reemitted and not same_shape and not attributes_dropped:
+        return model
+    codes = {r.name: r.code for r in state.retired_constructs}
+    for name in reemitted:
+        if name in renamed:
+            original = renamed[name]
+            state.flag(
+                "dv2_modeler",
+                f"hub {name!r} is {original!r} under another name — the same source entity "
+                f"{entity_of[name]!r} and key, retired by the "
+                f"{codes.get(original, 'E_HUB_HK_COLLISION')} remedy in an earlier attempt; "
+                f"dropped again — a retired hub does not come back renamed",
+                kind=FlagKind.RETIRED_REEMITTED,
+                asset=name,
+            )
+            continue
+        state.flag(
+            "dv2_modeler",
+            f"hub {name!r} was retired by the {codes[name]} remedy in an earlier attempt and "
+            f"re-emitted; dropped again — a retired construct does not come back",
+            kind=FlagKind.RETIRED_REEMITTED,
+            asset=name,
+        )
+    orphaned: list[str] = []
+    reparented: list[str] = []
+    live_hubs = {hub.name for hub in hubs}
+
+    def twin_for(name: str) -> str | None:
+        twin = twin_of.get(name)
+        return twin if twin is not None and twin in live_hubs else None
+
+    kept_links: list[Link] = []
+    for link in model.links:
+        named = [ref.hub for ref in link.hub_refs if ref.hub in retired]
+        if named:
+            # WP51: the participation is the twin's — unless the twin already takes part,
+            # which makes the link an entity's link to itself.
+            twins = {name: twin_for(name) for name in named}
+            present = {ref.hub for ref in link.hub_refs if ref.hub not in retired}
+            if all(t is not None and t not in present for t in twins.values()) and len(
+                set(twins.values())
+            ) == len(twins):
+                for ref in link.hub_refs:
+                    if ref.hub in twins:
+                        ref.hub = str(twins[ref.hub])
+                reparented.append(link.name)
+                state.flag(
+                    "dv2_modeler",
+                    f"link {link.name!r} named retired hub(s) {', '.join(named)}; the "
+                    f"participation now reads the kept twin(s) "
+                    f"{', '.join(str(t) for t in twins.values())} — the same entity under the "
+                    f"key the remedy kept",
+                    kind=FlagKind.RETIRED_REPARENTED,
+                    asset=link.name,
+                )
+                kept_links.append(link)
+                continue
+            orphaned.append(link.name)
+            state.flag(
+                "dv2_modeler",
+                f"link {link.name!r} named retired hub(s) {', '.join(named)} and was dropped "
+                f"with them; if the relationship is real, it is a link to the hub keyed on "
+                f"the retired key",
+                kind=FlagKind.RETIRED_ORPHAN,
+                asset=link.name,
+            )
+            continue
+        kept_links.append(link)
+    gone = retired | set(orphaned)
+    kept_sats: list[Satellite] = []
+    for sat in model.satellites:
+        if sat in same_shape:
+            home = sat_home.get(
+                (sat.name, sat.parent, normalize_identifier(sat.source_table or ""))
+            )
+            if home is not None and home in live_hubs:
+                # WP52: the remedy named exactly one parent whose key the relation carries;
+                # the payload moves there instead of into a decision.
+                former = sat.parent
+                sat.parent = home
+                reparented.append(sat.name)
+                state.flag(
+                    "dv2_modeler",
+                    f"satellite {sat.name!r} was re-emitted in the shape the {codes[sat.name]} "
+                    f"gate refused (parent {former!r}, relation {sat.source_table!r}) and "
+                    f"moved to {home!r}, the one parent whose key the relation carries; its "
+                    f"payload ({', '.join(sat.attributes)}) stays",
+                    kind=FlagKind.RETIRED_REPARENTED,
+                    asset=sat.name,
+                )
+                kept_sats.append(sat)
+                continue
+            orphaned.append(sat.name)
+            state.flag(
+                "dv2_modeler",
+                f"satellite {sat.name!r} was re-emitted in the shape the {codes[sat.name]} gate "
+                f"refused (parent {sat.parent!r}, relation {sat.source_table!r}) and dropped; its "
+                f"payload ({', '.join(sat.attributes)}) needs a home — a parent whose key the "
+                f"relation carries, or a relation that carries the parent's key",
+                kind=FlagKind.RETIRED_ORPHAN,
+                asset=sat.name,
+            )
+            continue
+        if sat.parent in retired and twin_for(sat.parent) is not None:
+            # WP51: the satellite describes the entity the twin stands for; it moves there.
+            twin = twin_for(sat.parent)
+            assert twin is not None
+            former = sat.parent
+            sat.parent = twin
+            reparented.append(sat.name)
+            state.flag(
+                "dv2_modeler",
+                f"satellite {sat.name!r} moved from the retired hub {former!r} to its kept twin "
+                f"{twin!r} — the same entity under the key the remedy kept; its payload "
+                f"({', '.join(sat.attributes)}) stays",
+                kind=FlagKind.RETIRED_REPARENTED,
+                asset=sat.name,
+            )
+            kept_sats.append(sat)
+            continue
+        if sat.parent in gone:
+            orphaned.append(sat.name)
+            state.flag(
+                "dv2_modeler",
+                f"satellite {sat.name!r} lost its parent {sat.parent!r} to a retirement; its "
+                f"payload ({', '.join(sat.attributes)}) needs a home — decide where it hangs "
+                f"(on this shape, typically the link between the kept hub and the referenced "
+                f"one, with the retired key as dependent child key)",
+                kind=FlagKind.RETIRED_ORPHAN,
+                asset=sat.name,
+            )
+            continue
+        kept_sats.append(sat)
+    emit_trace(
+        TraceEvent(
+            kind="backstop",
+            backstop_id="retired_reemitted",
+            detail={"retired": reemitted + [sat.name for sat in same_shape],
+                    "orphaned": orphaned, "reparented": reparented,
+                    "attributes_dropped": attributes_dropped},
+        )
+    )
+    return DVModel(hubs=hubs, links=kept_links, satellites=kept_sats)
+
+
+class DVModelExtractor(Protocol):
+    """Turns requirements + business keys into a raw DV model payload.
+
+    Implemented for real by :class:`AnthropicDVModelExtractor`; stubbed in tests.
+    """
+
+    async def model(self, *, system_prompt: str, payload_json: str) -> dict[str, Any]: ...
+
+
+class AnthropicDVModelExtractor:
+    """Default extractor backed by the shared forced-tool-use call path."""
+
+    def __init__(self, model: str | None = None, base_url: str | None = None) -> None:
+        # Imported lazily so importing this module never requires an API key.
+        from vault_agent.config import get_settings
+        from vault_agent.llm import ForcedToolCaller
+
+        # The modeller is the hardest reasoning step; allow the heavy model via config.
+        self._caller = ForcedToolCaller(model or get_settings().heavy_model, base_url=base_url)
+
+    async def model(self, *, system_prompt: str, payload_json: str) -> dict[str, Any]:
+        return await self._caller.call(
+            tool_name=_TOOL_NAME,
+            tool_description="Emit the logical Data Vault model for the inputs.",
+            input_schema=_tool_schema(),
+            system_prompt=system_prompt,
+            user_content=payload_json,
+            max_tokens=_MAX_TOKENS,
+        )
+
+
+class Dv2ModelerAgent(BaseAgent):
+    """Derives a logical Data Vault model from requirements and business keys."""
+
+    prompt_path = "dv2_modeler.md"
+
+    def __init__(self, extractor: DVModelExtractor | None = None) -> None:
+        self._extractor = extractor
+
+    def _get_extractor(self) -> DVModelExtractor:
+        if self._extractor is None:
+            self._extractor = AnthropicDVModelExtractor()
+        return self._extractor
+
+    def _build_system_prompt(self, state: VaultAgentState) -> str:
+        """Load the prompt template, inject the DV2 modelling rules, and (when a source
+        schema is declared) the known source columns to ground attributes (ADR-0004)."""
+        template = self.load_prompt()
+        # WP16: the registry is the single source of the steering lines; active_modeling_rules()
+        # honours the ablation seam (empty in production, so the prompt is byte-identical).
+        rules = "\n".join(f"- {rule.text}" for rule in active_modeling_rules())
+        schema_section = render_schema_prompt_section(state.source_schemas)
+        extension_section = render_extension_prompt_section(state.existing_model)
+        # WP29: only RATIFIED entity resolutions steer, and the renderer returns '' when there
+        # are none — so greenfield, ungrounded and first runs keep a byte-identical prompt.
+        resolution_section = render_resolution_prompt_section(
+            state.resolutions, state.existing_model, state.source_schemas
+        )
+        return (
+            f"{template}\n\n## Data Vault modelling rules to apply\n\n{rules}\n"
+            f"{schema_section}{extension_section}{resolution_section}"
+        )
+
+    async def run(self, state: VaultAgentState) -> VaultAgentState:
+        if not state.business_keys:
+            state.flag(
+                "dv2_modeler",
+                "no business keys in state; run the business key identifier first",
+                severity="error",
+                kind=FlagKind.MISSING_INPUT,
+            )
+            return state
+
+        # Count this modeling pass for the validation retry guard (route_after_validation).
+        state.modeling_attempts += 1
+        logger.info(
+            "modeling attempt %d: %d requirement(s), %d business key(s)",
+            state.modeling_attempts,
+            len(state.requirements),
+            len(state.business_keys),
+        )
+        system_prompt = self._build_system_prompt(state)
+        payload: dict[str, Any] = {
+            "requirements": [req.model_dump() for req in state.requirements],
+            "business_keys": [bk.model_dump() for bk in state.business_keys],
+        }
+        # WP125 (ADR-0021): the keys decided from the requirements and the catalogue's declared
+        # keys are GIVEN — the modeler does not weigh them (C63: it keyed hub_product on
+        # ProductID against a candidate score of 0.95). Absent when nothing is decided, so an
+        # ungrounded or key-less run's payload is byte-identical.
+        decided = given_keys(state)
+        if decided:
+            payload["decided_keys"] = [
+                {"source_entity": d.table, "business_key": list(d.columns), "basis": d.basis}
+                for d in decided
+            ]
+        # On a retry the validator has populated issues; feed the *blocking* ones back
+        # so the model converges instead of repeating the same mistakes. Warnings are
+        # advisory for humans, not steering input — sending them dilutes the correction
+        # signal and costs tokens (WP3). Only the fields the model needs are sent.
+        errors = [
+            issue for issue in state.validation_report.issues if issue.severity == "error"
+        ]
+        if errors:
+            payload["previous_validation_issues"] = [
+                {"code": issue.code, "construct": issue.construct, "message": issue.message}
+                | ({"remedy": issue.remedy} if issue.remedy else {})
+                for issue in errors
+            ]
+            if state.previous_delta is not None:
+                # WP57: the retry is a repair of the modeler's own last attempt, not a new
+                # draft from the same inputs. The tenth chain's step 3 (2026-10-09) lost in
+                # attempt 3 what attempt 2 had fixed, because nothing carried it over.
+                payload["previous_model"] = state.previous_delta.model_dump(
+                    mode="json", exclude_none=True, exclude_defaults=True
+                )
+        if state.retired_constructs:
+            # WP44: the modeler is told what an earlier attempt's remedy retired — data in the
+            # channel the remedy already travels in. The deterministic refusal below is the
+            # guarantee; this is the shortcut.
+            payload["retired_constructs"] = [
+                {"name": r.name, "kind": r.kind, "code": r.code}
+                | ({"source_entity": r.source_entity, "key_columns": list(r.key_columns),
+                    "note": "retired as a shape: no hub on this source entity with this key, "
+                            "under any name"}
+                   if r.kind == "hub" and r.source_entity else {})
+                for r in state.retired_constructs
+            ]
+        payload_json = json.dumps(payload, indent=2)
+        logger.debug("modeling payload: %d chars", len(payload_json))
+        extractor = self._get_extractor()
+        raw = await extractor.model(system_prompt=system_prompt, payload_json=payload_json)
+
+        model = self._validate_model(raw, state)
+        # WP135 backstop `link_off_hub_stage`: before the repair memory and the remembered delta,
+        # so that the memory, a retry's payload and the validator all see one name.
+        from vault_agent.link_proposal import rename_links_off_hub_stages
+
+        for rename in rename_links_off_hub_stages(
+            model, state.existing_model or DVModel(), state
+        ):
+            emit_trace(
+                TraceEvent(
+                    kind="backstop",
+                    backstop_id="link_off_hub_stage",
+                    detail={"link": rename.old, "renamed_to": rename.new, "hub": rename.hub,
+                            "hub_relations": list(rename.hub_relations),
+                            "offered_by": list(rename.offered_by)},
+                )
+            )
+        model = drop_retired(model, state)
+        # WP57: remembered for the next attempt's payload — the delta as emitted and repaired
+        # by the memory, before any merge into an existing vault.
+        state.previous_delta = model.model_copy(deep=True)
+        delta_counts = (len(model.hubs), len(model.links), len(model.satellites))
+        if state.existing_model is not None:
+            # WP23 §2.9: brownfield mode. The model just produced is a DELTA against the
+            # existing vault; merging happens here (the modeler owns dv_model, and graph.py
+            # stays orchestration-only) so everything downstream — code generation,
+            # validation, mapping, the ADR — sees one complete model, as in greenfield.
+            from vault_agent.agents.model_merger import merge_models
+            from vault_agent.link_proposal import (
+                apply_key_licenses,
+                apply_ratified_link_proposals,
+            )
+
+            # WP34: a RATIFIED link proposal joins the delta here — before the merge, so it
+            # goes through merge_models and every validator gate exactly as a modeler-emitted
+            # link does. No privileged route into the model (§3.6). Inert when nothing is
+            # ratified, which is every greenfield run and every extension run whose
+            # checkpoint said no.
+            model = apply_ratified_link_proposals(model, state.existing_model, state)
+            # WP38: a ratified subtype feed puts its translation on the satellites the modeler
+            # hung on the supertype hub from the subtype table — same path, same reason.
+            from vault_agent.subtype_feed import apply_subtype_feeds
+
+            model = apply_subtype_feeds(model, state.existing_model, state)
+            # WP40: ratified keys repair the staging of what the modeler built; nothing new.
+            model = apply_key_licenses(model, state.existing_model, state)
+            model = merge_models(state.existing_model, model, state)
+        elif state.link_proposals.licenses:
+            # WP41: a grounded greenfield run's proposer offers key licenses only; ratified ones
+            # repair the staging of what this call built, against an empty vault. The other
+            # appliers stay extension-only — there is no vault to link, resolve or subtype into.
+            from vault_agent.link_proposal import apply_key_licenses
+
+            model = apply_key_licenses(model, DVModel(), state)
+        state.dv_model = model
+        logger.info(
+            "modeled %d hub(s), %d link(s), %d satellite(s)",
+            len(model.hubs),
+            len(model.links),
+            len(model.satellites),
+        )
+        decision: dict[str, Any] = {
+            "agent": "dv2_modeler",
+            "hubs": len(model.hubs),
+            "links": len(model.links),
+            "satellites": len(model.satellites),
+        }
+        if state.existing_model is not None:
+            # The delta is what this pass actually decided; the totals above include the
+            # existing vault, so recording only those would make an extension run look like
+            # it re-modelled everything.
+            decision["delta"] = {
+                "hubs": delta_counts[0],
+                "links": delta_counts[1],
+                "satellites": delta_counts[2],
+            }
+        state.decisions.append(decision)
+        return state
+
+    def _validate_model(self, raw: dict[str, Any], state: VaultAgentState) -> DVModel:
+        """Validate the raw payload into typed constructs and drop dangling ones."""
+        hubs = self._validate_items(raw.get("hubs", []), Hub, "hub", state)
+        for hub in hubs:
+            split_composite_key(hub, state)
+        links = self._validate_items(raw.get("links", []), Link, "link", state)
+        satellites = self._validate_items(raw.get("satellites", []), Satellite, "satellite", state)
+
+        hub_names = {hub.name for hub in hubs}
+        existing_links: set[str] = set()
+        if state.existing_model is not None:
+            # Brownfield: the delta does not re-emit existing hubs, and the extension prompt
+            # tells the modeler to link to them by exact name — so they ARE known endpoints.
+            # Until 2026-09-14 only the delta's own hubs counted, and every link into the
+            # vault was dropped here, before the merge: 12 of 23 modeler links on the sales
+            # step of `20260913T230429748887Z`. The check predates brownfield mode (2026-07-07);
+            # WP23's merge (2026-07-29) arrived without it being widened.
+            hub_names |= {hub.name for hub in state.existing_model.hubs}
+            existing_links = {link.name for link in state.existing_model.links}
+
+        kept_links: list[Link] = []
+        # WP55: a link with exactly one KNOWN hub is not a relationship but a feed of that hub;
+        # its satellites' home is known. Collapsed here, where the drop used to happen (the
+        # eighth chain, 2026-10-07: a quota-history link on hub_employee, two dropped records).
+        collapsed: dict[str, str] = {}
+        for link in links:
+            missing = [ref.hub for ref in link.hub_refs if ref.hub not in hub_names]
+            if len(link.hub_refs) == 1 and not missing:
+                collapsed[link.name] = link.hub_refs[0].hub
+                continue
+            if len(link.hub_refs) < 2 or missing:
+                state.flag(
+                    "dv2_modeler",
+                    f"dropped link {link.name!r} — must connect >=2 known hubs "
+                    f"(missing: {missing or 'none'}, count: {len(link.hub_refs)})",
+                    kind=FlagKind.DROPPED_RECORD,
+                    asset=link.name,
+                )
+                continue
+            kept_links.append(link)
+
+        valid_parents = hub_names | {link.name for link in kept_links} | existing_links
+        moved: dict[str, list[str]] = {name: [] for name in collapsed}
+
+        def infer_relation(sat: Satellite, path: str, parent_hub: Hub | None) -> bool:
+            # WP56: a relation-less satellite whose attributes are all columns of exactly one
+            # declared table reads that table — read from the schema, not guessed. The ninth
+            # chain dropped `sat_email_address_detail` (EmailAddress, ModifiedDate) for want of
+            # a relation the schema determined.
+            table = infer_satellite_relation(sat, state.source_schemas)
+            if table is None:
+                return False
+            # WP75: the inference asks the gate. A relation E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB
+            # would refuse is not set — the nineteenth chain's step 3 saw the modeler drop a
+            # relation on the gate's word and this backstop put it back, three attempts long.
+            # Withholding repairs nothing, so no backstop event and no flag.
+            candidate = sat.model_copy(update={"source_table": table})
+            if source_table_on_multi_source_hub(candidate, parent_hub):
+                logger.info(
+                    "satellite %r: relation %r determined by the schema but withheld — not a "
+                    "feed of its multi-source parent %r",
+                    sat.name, table, sat.parent,
+                )
+                return False
+            sat.source_table = table
+            state.flag(
+                "dv2_modeler",
+                f"satellite {sat.name!r} declared no relation; its attributes "
+                f"({', '.join(sat.attributes)}) are all columns of exactly one declared table, "
+                f"{table!r}, which it now reads",
+                kind=FlagKind.RELATION_INFERRED,
+                asset=sat.name,
+            )
+            emit_trace(
+                TraceEvent(
+                    kind="backstop",
+                    backstop_id="satellite_relation_inferred",
+                    detail={"satellite": sat.name, "table": table, "path": path},
+                )
+            )
+            return True
+
+        hubs_by_name = {hub.name: hub for hub in hubs}
+        if state.existing_model is not None:
+            hubs_by_name |= {hub.name: hub for hub in state.existing_model.hubs}
+        for sat in satellites:
+            hub_name = collapsed.get(sat.parent)
+            if hub_name is None:
+                continue
+            if not sat.source_table and not infer_relation(
+                sat, "collapse", hubs_by_name.get(hub_name)
+            ):
+                continue  # no relation and none determined: dropped below, not guessed
+            former = sat.parent
+            sat.parent = hub_name
+            moved[former].append(sat.name)
+            state.flag(
+                "dv2_modeler",
+                f"satellite {sat.name!r} sat on {former!r}, a link with the single hub "
+                f"{hub_name!r} — a feed of that hub, not a relationship; moved to {hub_name!r}, "
+                f"read from {sat.source_table!r} as declared",
+                kind=FlagKind.LINK_COLLAPSED,
+                asset=sat.name,
+            )
+        for link_name, hub_name in collapsed.items():
+            emit_trace(
+                TraceEvent(
+                    kind="backstop",
+                    backstop_id="one_hub_link_collapsed",
+                    detail={"link": link_name, "hub": hub_name, "satellites": moved[link_name]},
+                )
+            )
+        kept_satellites: list[Satellite] = []
+        for sat in satellites:
+            if sat.parent not in valid_parents:
+                state.flag(
+                    "dv2_modeler",
+                    f"dropped satellite {sat.name!r} — parent {sat.parent!r} is not a "
+                    f"known hub or link",
+                    kind=FlagKind.DROPPED_RECORD,
+                    asset=sat.name,
+                )
+                continue
+            parent_hub = hubs_by_name.get(sat.parent)
+            if (
+                parent_hub is not None and not sat.source_table
+                and sat.sat_type != "effectivity"
+            ):
+                # WP56 on a hub parent: only a FOREIGN relation is set — the hub's own stays
+                # implicit, so every existing model renders byte-identically.
+                own = {normalize_identifier(parent_hub.source_entity or "")} | {
+                    normalize_identifier(s.source_table)
+                    for s in (parent_hub.sources or [])
+                }
+                table = infer_satellite_relation(sat, state.source_schemas)
+                if table is not None and normalize_identifier(table) not in own:
+                    infer_relation(sat, "hub", parent_hub)
+            # A child_dependent_key also listed among the attributes would duplicate a
+            # satellite column (E_SAT_DUP_ATTR). Drop the redundant payload copy — the CDK
+            # column is emitted via src_cdk regardless — so a multi-active sat the LLM
+            # over-populated still validates. Genuine attr-vs-attr dups are left to the gate.
+            deduped = attributes_without_cdk(sat.attributes, sat.child_dependent_key)
+            if deduped != sat.attributes:
+                removed = [a for a in sat.attributes if a not in deduped]
+                logger.info(
+                    "satellite %r: dropped %d attribute(s) duplicating the "
+                    "child_dependent_key: %s",
+                    sat.name, len(removed), removed,
+                )
+                # WP16 §2.3: a backstop fire is the evidence that the `cdk_not_payload`
+                # steering line is still needed. Counted only when it actually repairs
+                # something — a clean model emits nothing.
+                emit_trace(
+                    TraceEvent(
+                        kind="backstop",
+                        backstop_id="attributes_without_cdk",
+                        detail={
+                            "rule": "cdk_not_payload",
+                            "satellite": sat.name,
+                            "dropped": removed,
+                        },
+                    )
+                )
+                sat.attributes = deduped
+            kept_satellites.append(sat)
+
+        return DVModel(hubs=hubs, links=kept_links, satellites=kept_satellites)
+
+    @staticmethod
+    def _validate_items(
+        records: list[dict[str, Any]],
+        model_cls: type[Hub] | type[Link] | type[Satellite],
+        label: str,
+        state: VaultAgentState,
+    ) -> list[Any]:
+        items: list[Any] = []
+        for record in records:
+            try:
+                items.append(model_cls.model_validate(record))
+            except ValidationError as exc:
+                # Attribute the drop when the record still carries a usable name (WP21 §2.6):
+                # every other DROPPED_RECORD flag names its construct, and a reviewer cannot
+                # act on "one hub was invalid" without knowing which one. A record too broken
+                # to carry a name stays unattributed rather than inventing one.
+                raw_name = record.get("name") if isinstance(record, dict) else None
+                asset = raw_name.strip() if isinstance(raw_name, str) and raw_name.strip() else None
+                state.flag(
+                    "dv2_modeler",
+                    f"dropped invalid {label}: {exc.error_count()} error(s)",
+                    kind=FlagKind.DROPPED_RECORD,
+                    asset=asset,
+                )
+        return items

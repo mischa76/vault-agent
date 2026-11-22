@@ -1,0 +1,74 @@
+spec-version: 1.0.0
+name: BusinessEntityContact
+namespace: source
+dataAssetResourceName: datastore://source/BusinessEntityContact
+doc: Source-to-staging asset linking a business entity to a person who acts as a contact
+  for it, qualified by a contact type. The contract enforces the declared schema and
+  key/not-null constraints; value-level semantics are left for producer/consumer negotiation.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the business entity that the contact relationship belongs
+    to.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: PersonID
+  description: Identifier of the person who serves as the contact for the business
+    entity.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ContactTypeID
+  description: Identifier of the contact type that classifies the role of the person
+    for the business entity.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique identifier (GUID) for the row, as recorded in the source.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source row was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

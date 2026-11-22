@@ -1,0 +1,48 @@
+spec-version: 1.0.0
+name: ContactType
+namespace: source
+dataAssetResourceName: datastore://source/ContactType
+doc: Reference data for contact types (roles a person can hold in relation to a business
+  entity), staged from the source ContactType table. The contract enforces the declared
+  schema, the business key ContactTypeID, and non-null constraints; value-level checks
+  are advisory pending human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ContactTypeID
+  description: Identifier of the contact type; business key of the ContactType asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the contact type (the role description).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

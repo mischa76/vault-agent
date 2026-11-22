@@ -1,0 +1,55 @@
+# A DACH contract-management system plus its CRM module, as extracted for onboarding.
+#
+# Anonymised throughout (ATLAS convention). This extract ships WITHOUT a data dictionary:
+# the source system carries no column documentation, which is common for systems of this
+# age and is the condition a requirements author works under here.
+#
+# This file describes the SOURCE and nothing else: no purpose, no expected answers, and no
+# reference to what any of it might correspond to elsewhere. What this case measures lives
+# in dataset.yml, which a requirements author is not given (WP30 §2.4a).
+source_schemas:
+  - table: vic_partner
+    columns:
+      - {name: partn_nr, type: varchar}
+      - {name: partn_name, type: varchar}
+      - {name: partn_seit, type: date}
+
+  - table: vic_kontakt
+    columns:
+      - {name: kontakt_id, type: varchar}
+      - {name: kontakt_name, type: varchar}
+      - {name: kontakt_funktion, type: varchar}
+      - {name: partn_nr, type: varchar}
+
+  - table: vic_vertragspartner
+    columns:
+      - {name: vp_nummer, type: varchar}
+      - {name: vp_bezeichnung, type: varchar}
+      - {name: vp_rolle, type: varchar}
+
+  - table: crm_kunde
+    columns:
+      - {name: crm_guid, type: varchar}
+      - {name: crm_anzeigename, type: varchar}
+      - {name: segment, type: varchar}
+  - table: crm_xref_partner
+    columns:
+      - {name: crm_guid, type: varchar}
+      - {name: partn_nr, type: varchar}
+
+  - table: vic_konto
+    columns:
+      - {name: konto_nr, type: varchar}
+      - {name: konto_art, type: varchar}
+
+  - table: vic_vertrag
+    columns:
+      - {name: vertrag_nr, type: varchar}
+      - {name: vertrag_beginn, type: date}
+      - {name: vp_nummer, type: varchar}
+
+  - table: vic_migration_altbestand
+    columns:
+      - {name: alt_nr, type: varchar}
+      - {name: alt_bezeichnung, type: varchar}
+      - {name: uebernahme_datum, type: date}

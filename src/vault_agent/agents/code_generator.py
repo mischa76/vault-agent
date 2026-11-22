@@ -1,0 +1,952 @@
+"""Code Generator agent.
+
+Deterministically renders the logical Data Vault model in ``VaultAgentState.dv_model`` into
+AutomateDV-compatible dbt models (plus a machine-readable metadata summary) in
+``VaultAgentState.artifacts``. No LLM is involved: the typed Hub / Link / Satellite
+constructs map 1:1 onto AutomateDV macro arguments (ADR-0003), so generation is
+reproducible and runs in CI without an API key.
+
+The generator is a dispatcher — each construct's type selects the matching AutomateDV
+macro template. Construct types we do not yet template (transactional links,
+effectivity / multi-active satellites) are flagged for human review rather than emitted
+as wrong SQL, so coverage grows by adding (type on the model + a template), never by
+hacking heuristics into the generator.
+"""
+import logging
+from typing import Any
+
+from vault_agent.agents.base import BaseAgent
+from vault_agent.llm import TraceEvent, emit_trace
+from vault_agent.rules.dv2_rules import (
+    canonical_hub_key_column,
+    hub_key_columns,
+    is_composite_key,
+    normalize_identifier,
+    role_fk_column,
+    satellite_feed,
+    single_feed_foreign_relation,
+    source_table_on_multi_source_hub,
+    stage_column_name,
+)
+from vault_agent.rules.naming import DEFAULT_NAMING, NamingProfile
+from vault_agent.state import (
+    BridgeProposal,
+    FlagKind,
+    Hub,
+    HubSource,
+    Link,
+    PipelineFlag,
+    Satellite,
+    VaultAgentState,
+)
+
+logger = logging.getLogger(__name__)
+
+_CONSTRUCT_PREFIXES = ("hub_", "link_", "sat_")
+
+
+def _to_column(label: str) -> str:
+    """Normalise a business label into a SQL identifier (UPPER_SNAKE) — the stage's column for it,
+    which since WP79 carries a trailing underscore when the name is a reserved word (`GROUP_`),
+    so no raw-vault model references an unquoted reserved word."""
+    return stage_column_name(label)
+
+
+def _collision_warnings(labels: list[str], construct: str) -> list[PipelineFlag]:
+    """Warn when two *distinct* labels in one construct collapse to the same identifier.
+
+    ``_to_column`` is lossy (``"customer-id"`` and ``"customer id"`` both become
+    ``CUSTOMER_ID``), so two different source labels can silently overwrite each other in a
+    payload / key list. Generation continues — the point is visibility (L-2)."""
+    seen: dict[str, str] = {}
+    warnings: list[PipelineFlag] = []
+    for label in labels:
+        col = _to_column(label)
+        prior = seen.get(col)
+        if prior is None:
+            seen[col] = label
+        elif prior != label:
+            warnings.append(
+                PipelineFlag(
+                    agent="code_generator",
+                    message=(
+                        f"column-name collision in {construct}: {prior!r} and "
+                        f"{label!r} both map to {col}"
+                    ),
+                    kind=FlagKind.COLUMN_COLLISION,
+                    asset=construct,
+                )
+            )
+    return warnings
+
+
+def _base_name(name: str) -> str:
+    """Strip the hub_/link_/sat_ prefix from a construct name."""
+    for prefix in _CONSTRUCT_PREFIXES:
+        if name.startswith(prefix):
+            return name[len(prefix):]
+    return name
+
+
+def _staging_model(name: str, naming: NamingProfile = DEFAULT_NAMING) -> str:
+    # Mirrors staging_generator._staging_name exactly — one normalisation path for every
+    # staging name (WP20 §2.4); byte-identical for well-formed names (E_BAD_NAME). WP114: the
+    # prefix is the run's profile's (the rule itself: rules.stage_model_name).
+    return naming.staging_prefix + normalize_identifier(_base_name(name)).lower()
+
+
+def _sat_staging_model(sat: Satellite, naming: NamingProfile = DEFAULT_NAMING) -> str:
+    """The staging model feeding a satellite (WP7 §7.1).
+
+    A satellite that declares a ``source_table`` (its rows live in their own, usually
+    finer-grain raw relation) reads its own dedicated ``stg_<sat base>`` model; otherwise
+    it shares the parent's staging model (the pre-WP7 behaviour). Effectivity satellites
+    always read the parent link's staging — their date pair lives in the relationship's
+    own relation — so ``source_table`` is ignored for them."""
+    if sat.source_table and sat.sat_type != "effectivity":
+        return _staging_model(sat.name, naming)
+    return _staging_model(sat.parent, naming)
+
+
+def _sql_list(items: list[str]) -> str:
+    return "[" + ", ".join(f'"{item}"' for item in items) + "]"
+
+
+def _set_block(assignments: list[tuple[str, str]]) -> str:
+    """Render the dbt/Jinja ``{%- set ... -%}`` header lines."""
+    return "".join(f'{{%- set {var} = {value} -%}}\n' for var, value in assignments)
+
+
+def _hub_hashkey(hub: Hub, naming: NamingProfile = DEFAULT_NAMING) -> str:
+    return naming.hashkey(_to_column(hub.source_entity))
+
+
+def _sat_source_name(sat: Satellite, source: HubSource) -> str:
+    """Per-source satellite model name on a multi-source hub (WP10): ``sat_<...>_<source>``.
+
+    The source suffix matches the per-source staging model's, so ``sat_customer_details`` on a
+    hub fed by ``crm_customer`` yields ``sat_customer_details_crm_customer``."""
+    return sat.name + "_" + normalize_identifier(source.source_table).lower()
+
+
+def _link_hashkey(link: Link, naming: NamingProfile = DEFAULT_NAMING) -> str:
+    return naming.hashkey(_to_column(link.name))
+
+
+def _render_hub(
+    hub: Hub, legacy: set[tuple[str, str, str]] | None = None,
+    zero_key_stage: str | None = None, naming: NamingProfile = DEFAULT_NAMING,
+) -> tuple[str, dict[str, Any]]:
+    # WP10: a multi-source hub unions one staging model per feed (AutomateDV's hub macro
+    # accepts source_model as a list — verified against 0.11.4 postgres__hub) and keys off
+    # the canonical column each stage aliases to. Single-source stays a bare string + the
+    # business-key column, byte-identical.
+    if hub.sources:
+        from vault_agent.agents.staging_generator import multi_source_staging_name
+
+        # WP23 §2.6: a grandfathered feed keeps its legacy staging name, so the hub's
+        # source_model list mixes [legacy staging, new per-source stagings]. Its SQL
+        # legitimately changes — the extension diff names that file explicitly.
+        source_models = [
+            multi_source_staging_name(hub, source, legacy, naming) for source in hub.sources
+        ]
+        source_model: str | list[str] = source_models
+        src_nk: str | list[str] = stage_column_name(canonical_hub_key_column(hub))  # WP79
+        source_model_literal = _sql_list(source_models)
+    elif is_composite_key(hub):
+        # WP45: AutomateDV's hub takes src_nk as a list (expand_column_list); the stage hashes
+        # the same list, in the same order, so the key columns and the hash agree by construction.
+        source_model = _staging_model(hub.name, naming)
+        src_nk_list = [stage_column_name(c) for c in hub_key_columns(hub)]  # WP79
+        src_nk = src_nk_list
+        source_model_literal = f'"{source_model}"'
+    else:
+        source_model = _staging_model(hub.name, naming)
+        src_nk = _to_column(hub.business_key)
+        source_model_literal = f'"{source_model}"'
+    if zero_key_stage is not None:
+        # WP86: the zero-key rows join the hub as one more source, after the real ones.
+        source_model = [
+            *(source_model if isinstance(source_model, list) else [source_model]), zero_key_stage
+        ]
+        source_model_literal = _sql_list(source_model)
+    src_nk_literal = _sql_list(src_nk) if isinstance(src_nk, list) else f'"{src_nk}"'
+    meta: dict[str, Any] = {
+        "source_model": source_model,
+        "src_pk": _hub_hashkey(hub, naming),
+        "src_nk": src_nk,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
+    }
+    sql = (
+        "{{ config(materialized='incremental') }}\n\n"
+        + _set_block(
+            [
+                ("source_model", source_model_literal),
+                ("src_pk", f'"{meta["src_pk"]}"'),
+                ("src_nk", src_nk_literal),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
+            ]
+        )
+        + "\n{{ automate_dv.hub(src_pk=src_pk, src_nk=src_nk, src_ldts=src_ldts,\n"
+        + "                   src_source=src_source, source_model=source_model) }}\n"
+    )
+    return sql, meta
+
+
+def apply_zero_key_hubs(state: VaultAgentState, zero_key_hubs: dict[str, str]) -> None:
+    """WP86: re-render every hub with or without its zero-key stage, after a staging pass. Called
+    by the code generator and by the mapper's re-bind — link stages are bound by offer only in the
+    re-bind, so the set of zero-keyed hubs is final only there."""
+    from vault_agent.agents.staging_generator import legacy_feeds
+
+    legacy = legacy_feeds(state.existing_model, state.carried_bindings)  # WP101
+    hub_metadata = state.artifacts.automatedv_yaml.setdefault("hubs", {})
+    for hub in state.dv_model.hubs:
+        if hub.name not in state.artifacts.dbt_models:
+            continue
+        sql, meta = _render_hub(hub, legacy, zero_key_hubs.get(hub.name), state.naming)
+        state.artifacts.dbt_models[hub.name] = sql
+        hub_metadata[hub.name] = meta
+
+
+def _link_src_fk(link: Link, hub_hashkeys: dict[str, str]) -> list[str]:
+    """The link's FK hash-key columns, role-qualified per participation (ADR-0009).
+
+    Unqualified refs return the bare hub hash key (byte-identical to the pre-role output);
+    a role-qualified ref (a hub participating twice) gets a distinct role-prefixed column."""
+    return [role_fk_column(hub_hashkeys[ref.hub], ref.role) for ref in link.hub_refs]
+
+
+def _render_link(
+    link: Link, hub_hashkeys: dict[str, str], naming: NamingProfile = DEFAULT_NAMING
+) -> tuple[str, dict[str, Any]]:
+    src_fk = _link_src_fk(link, hub_hashkeys)
+    meta: dict[str, Any] = {
+        "source_model": _staging_model(link.name, naming),
+        "src_pk": _link_hashkey(link, naming),
+        "src_fk": src_fk,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
+    }
+    sql = (
+        "{{ config(materialized='incremental') }}\n\n"
+        + _set_block(
+            [
+                ("source_model", f'"{meta["source_model"]}"'),
+                ("src_pk", f'"{meta["src_pk"]}"'),
+                ("src_fk", _sql_list(src_fk)),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
+            ]
+        )
+        + "\n{{ automate_dv.link(src_pk=src_pk, src_fk=src_fk, src_ldts=src_ldts,\n"
+        + "                    src_source=src_source, source_model=source_model) }}\n"
+    )
+    return sql, meta
+
+
+def _render_sat(
+    sat: Satellite, parent_hashkey: str, source_model: str | None = None,
+    naming: NamingProfile = DEFAULT_NAMING,
+) -> tuple[str, dict[str, Any]]:
+    payload = [_to_column(attr) for attr in sat.attributes]
+    # The hashdiff name is derived from the ORIGINAL satellite base so it matches the column
+    # each staging computes — including a per-source staging (WP10), where ``source_model`` is
+    # overridden but the hashdiff column keeps the shared name.
+    src_hashdiff = naming.hashdiff(_to_column(_base_name(sat.name)))
+    meta: dict[str, Any] = {
+        "source_model": source_model or _sat_staging_model(sat, naming),
+        "src_pk": parent_hashkey,
+        "src_hashdiff": src_hashdiff,
+        "src_payload": payload,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
+    }
+    sql = (
+        "{{ config(materialized='incremental') }}\n\n"
+        + _set_block(
+            [
+                ("source_model", f'"{meta["source_model"]}"'),
+                ("src_pk", f'"{parent_hashkey}"'),
+                ("src_hashdiff", f'"{src_hashdiff}"'),
+                ("src_payload", _sql_list(payload)),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
+            ]
+        )
+        + "\n{{ automate_dv.sat(src_pk=src_pk, src_hashdiff=src_hashdiff, "
+        + "src_payload=src_payload,\n"
+        + "                   src_ldts=src_ldts, src_source=src_source, "
+        + "source_model=source_model) }}\n"
+    )
+    return sql, meta
+
+
+def _render_nh_link(
+    link: Link, hub_hashkeys: dict[str, str], naming: NamingProfile = DEFAULT_NAMING
+) -> tuple[str, dict[str, Any]]:
+    """Render a transactional (non-historized) link. Caller guarantees event_timestamp.
+
+    Uses AutomateDV's ``t_link`` macro (the transactional/non-historized link — verified
+    against AutomateDV 0.11.4, which has no ``nh_link``). ``src_extra_columns`` is passed as
+    ``none``: the macro requires the argument but the generator models transaction data as
+    ``src_payload``, not extra pass-through columns."""
+    src_fk = _link_src_fk(link, hub_hashkeys)
+    payload = [_to_column(col) for col in link.payload]
+    src_eff = _to_column(link.event_timestamp or "")
+    meta: dict[str, Any] = {
+        "source_model": _staging_model(link.name, naming),
+        "src_pk": _link_hashkey(link, naming),
+        "src_fk": src_fk,
+        "src_payload": payload,
+        "src_eff": src_eff,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
+    }
+    sql = (
+        "{{ config(materialized='incremental') }}\n\n"
+        + _set_block(
+            [
+                ("source_model", f'"{meta["source_model"]}"'),
+                ("src_pk", f'"{meta["src_pk"]}"'),
+                ("src_fk", _sql_list(src_fk)),
+                ("src_payload", _sql_list(payload)),
+                ("src_eff", f'"{src_eff}"'),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
+            ]
+        )
+        + "\n{{ automate_dv.t_link(src_pk=src_pk, src_fk=src_fk, src_payload=src_payload,\n"
+        + "                      src_extra_columns=none,\n"
+        + "                      src_eff=src_eff, src_ldts=src_ldts, "
+        + "src_source=src_source, source_model=source_model) }}\n"
+    )
+    return sql, meta
+
+
+def _render_ma_sat(
+    sat: Satellite, parent_hashkey: str, source_model: str | None = None,
+    naming: NamingProfile = DEFAULT_NAMING,
+) -> tuple[str, dict[str, Any]]:
+    payload = [_to_column(attr) for attr in sat.attributes]
+    cdk = [_to_column(key) for key in sat.child_dependent_key]
+    src_hashdiff = naming.hashdiff(_to_column(_base_name(sat.name)))
+    meta: dict[str, Any] = {
+        # WP84: a feed-bound satellite reads its feed's staging, as `_render_sat` does.
+        "source_model": source_model or _sat_staging_model(sat, naming),
+        "src_pk": parent_hashkey,
+        "src_cdk": cdk,
+        "src_hashdiff": src_hashdiff,
+        "src_payload": payload,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
+    }
+    sql = (
+        "{{ config(materialized='incremental') }}\n\n"
+        + _set_block(
+            [
+                ("source_model", f'"{meta["source_model"]}"'),
+                ("src_pk", f'"{parent_hashkey}"'),
+                ("src_cdk", _sql_list(cdk)),
+                ("src_hashdiff", f'"{src_hashdiff}"'),
+                ("src_payload", _sql_list(payload)),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
+            ]
+        )
+        + "\n{{ automate_dv.ma_sat(src_pk=src_pk, src_cdk=src_cdk, "
+        + "src_hashdiff=src_hashdiff,\n"
+        + "                      src_payload=src_payload, src_ldts=src_ldts, "
+        + "src_source=src_source, source_model=source_model) }}\n"
+    )
+    return sql, meta
+
+
+def _render_eff_sat(
+    sat: Satellite, link_hashkey: str, driving_fks: list[str], secondary_fks: list[str],
+    naming: NamingProfile = DEFAULT_NAMING,
+) -> tuple[str, dict[str, Any]]:
+    dates = [_to_column(attr) for attr in sat.attributes]
+    start_date, end_date = dates[0], dates[1]
+    # src_eff must be a DEDICATED effectivity column, distinct from src_start_date /
+    # src_end_date / src_ldts: AutomateDV's incremental eff_sat SQL projects src_eff
+    # separately, so reusing the start-date column makes Postgres reject the query with
+    # "column ... specified more than once". The eff_sat parent's staging supplies this
+    # column carrying the start-date value (see EFFECTIVITY_APPLIED_COLUMN).
+    eff_column = naming.applied_column
+    # AutomateDV's src_dfk takes a bare key for a single driving hub, a list for several
+    # — mirror how src_fk / src_cdk are rendered elsewhere.
+    single_driver = len(driving_fks) == 1
+    src_dfk: str | list[str] = driving_fks[0] if single_driver else driving_fks
+    dfk_render = f'"{driving_fks[0]}"' if single_driver else _sql_list(driving_fks)
+    meta: dict[str, Any] = {
+        "source_model": _staging_model(sat.parent, naming),
+        "src_pk": link_hashkey,
+        "src_dfk": src_dfk,
+        "src_sfk": secondary_fks,
+        "src_start_date": start_date,
+        "src_end_date": end_date,
+        "src_eff": eff_column,
+        "src_ldts": naming.load_datetime_column,
+        "src_source": naming.record_source_column,
+    }
+    # Enable AutomateDV's auto end-dating: closing a superseded relationship when a driving
+    # key's partner changes is the defining behaviour of an effectivity satellite. The macro
+    # gates it on the model config `is_auto_end_dating` (default false), so without this the
+    # generated eff_sat would be insert-only and never end-date.
+    sql = (
+        "{{ config(materialized='incremental', is_auto_end_dating=true) }}\n\n"
+        + _set_block(
+            [
+                ("source_model", f'"{meta["source_model"]}"'),
+                ("src_pk", f'"{link_hashkey}"'),
+                ("src_dfk", dfk_render),
+                ("src_sfk", _sql_list(secondary_fks)),
+                ("src_start_date", f'"{start_date}"'),
+                ("src_end_date", f'"{end_date}"'),
+                ("src_eff", f'"{eff_column}"'),
+                ("src_ldts", f'"{naming.load_datetime_column}"'),
+                ("src_source", f'"{naming.record_source_column}"'),
+            ]
+        )
+        + "\n{{ automate_dv.eff_sat(src_pk=src_pk, src_dfk=src_dfk, src_sfk=src_sfk,\n"
+        + "                       src_start_date=src_start_date, src_end_date=src_end_date,\n"
+        + "                       src_eff=src_eff, src_ldts=src_ldts, "
+        + "src_source=src_source, source_model=source_model) }}\n"
+    )
+    return sql, meta
+
+
+# WP124 (C62): what a generated README says when the project has an effectivity satellite.
+EFFECTIVITY_README = """
+## Effectivity satellites: load in load order
+
+AutomateDV's effectivity satellite closes a relationship when its driving key's partner
+changes, judged against the rows already loaded — it assumes batches arrive **in load
+order**. Loaded out of order (a later snapshot before an earlier one), a driving key can end
+up with two open relationships and a record whose end precedes its start, without an error.
+`tests/<satellite>__one_open_per_driving_key.sql` and `tests/<satellite>__end_after_start.sql`
+fail `dbt build` when that happened; rebuild the satellite with `--full-refresh` and load the
+batches in order.
+"""
+
+
+def effectivity_load_order_tests(satellites: dict[str, dict[str, Any]]) -> dict[str, str]:
+    """WP124 (C62): two singular dbt tests per effectivity satellite (one carrying ``src_dfk``),
+    keyed by their path in the project. The first fails when a driving key holds more than one
+    open relationship — the latest row per relationship, open by AutomateDV's own definition
+    (``eff_sat``: the end date's day equals ``max_datetime()``'s); the second when a record ends
+    before it starts. Other satellites give nothing."""
+    tests: dict[str, str] = {}
+    for name, meta in sorted(satellites.items()):
+        if "src_dfk" not in meta:
+            continue
+        driving = meta["src_dfk"] if isinstance(meta["src_dfk"], list) else [meta["src_dfk"]]
+        keys = ", ".join(str(k) for k in driving)
+        pk, ldts = meta["src_pk"], meta["src_ldts"]
+        start, end = meta["src_start_date"], meta["src_end_date"]
+        ref = f"{{{{ ref('{name}') }}}}"
+        is_open = f"{{{{ automate_dv.cast_date('{end}') }}}} = {{{{ open_end }}}}"
+        tests[f"tests/{name}__one_open_per_driving_key.sql"] = (
+            f"-- Generated by vault-agent (WP124): a driving key of {name} holds at most one\n"
+            "-- open relationship. Fails after batches were loaded out of order (README).\n"
+            "{%- set open_end = automate_dv.cast_date(automate_dv.cast_datetime("
+            "automate_dv.max_datetime(), as_string=true)) %}\n"
+            "with latest as (\n"
+            f"    select *, row_number() over (partition by {pk} order by {ldts} desc)"
+            " as vault_agent_rank\n"
+            f"    from {ref}\n"
+            "), open_now as (\n"
+            f"    select {keys} from latest\n"
+            f"    where vault_agent_rank = 1 and {is_open}\n"
+            ")\n"
+            f"select {keys}, count(*) as open_relationships\n"
+            "from open_now\n"
+            f"group by {keys}\n"
+            "having count(*) > 1\n"
+        )
+        tests[f"tests/{name}__end_after_start.sql"] = (
+            f"-- Generated by vault-agent (WP124): no record of {name} ends before it starts.\n"
+            f"select * from {ref}\n"
+            f"where {end} < {start}\n"
+        )
+    return tests
+
+
+def bridge_proposal_flags(proposals: list[BridgeProposal]) -> list[PipelineFlag]:
+    """One ``bridge_proposed`` decision per group that still has an unanswered path, in proposal
+    order (WP144, C53 option (a): the group is the link pair and the hub they share; its paths
+    differ in their ends only). The asset is the group; the answer is still by path — the
+    message names every pending one. WP115 raised one decision per path."""
+    from vault_agent.agents.business_vault_generator import bridge_group, bridge_group_parts
+
+    groups: dict[str, list[BridgeProposal]] = {}
+    for p in proposals:
+        if p.ratification_status == "proposed":
+            groups.setdefault(bridge_group(p.path), []).append(p)
+    flags: list[PipelineFlag] = []
+    for group, pending in groups.items():
+        parts = bridge_group_parts(pending[0].path)
+        what = (
+            f"a bridge over {parts[0]} and {parts[1]} through {parts[2]} proposed"
+            if parts is not None else f"bridge along {pending[0].path} proposed"
+        )
+        paths = "; ".join(f'"{p.path}"' for p in pending)
+        ends = (
+            f"{len(pending)} paths that differ in their ends: {paths}" if len(pending) > 1
+            else f"path {paths}"
+        )
+        flags.append(PipelineFlag(
+            agent="code_generator",
+            message=(
+                f"{what}: {'; '.join(pending[0].evidence)} — {ends}. Build one with "
+                "`resume --bridge \"<path>\"`, decline one with `--no-bridge`; unanswered at "
+                "--accept every path is declined (ADR-0007: Business Vault logic is "
+                "human-ratified)"
+            ),
+            kind=FlagKind.BRIDGE_PROPOSED,
+            asset=group,
+        ))
+    return flags
+
+
+class CodeGeneratorAgent(BaseAgent):
+    """Renders the Data Vault model into AutomateDV-compatible dbt models."""
+
+    async def run(self, state: VaultAgentState) -> VaultAgentState:
+        # WP108 (C8): this agent's flags describe the model it is given. A re-model attempt
+        # hands it a new one, so an earlier run's flags — its own, staging's, the zero-key
+        # hubs' and the Business Vault's, all raised under this name — are dropped first and
+        # re-derived below. 19 of 19 generator flags of three kept chains were first-attempt
+        # gaps the second attempt had repaired, each still a review decision.
+        state.flags = [f for f in state.flags if f.agent != "code_generator"]
+        model = state.dv_model
+        if not model.hubs:
+            state.flag(
+                "code_generator",
+                "no hubs in dv_model; run the DV2.0 modeler first",
+                severity="error",
+                kind=FlagKind.MISSING_INPUT,
+            )
+            return state
+
+        logger.info(
+            "generating dbt models: %d hub(s), %d link(s), %d satellite(s)",
+            len(model.hubs),
+            len(model.links),
+            len(model.satellites),
+        )
+        naming = state.naming  # WP114: the run's naming profile, read once
+        hub_hashkeys = {hub.name: _hub_hashkey(hub, naming) for hub in model.hubs}
+        hub_by_name = {hub.name: hub for hub in model.hubs}
+        # WP23 §2.6 grandfathering: feeds and satellites the extended vault already had.
+        # Both are EMPTY on a greenfield run, which is what keeps its output identical.
+        from vault_agent.agents.staging_generator import legacy_feed_of, legacy_feeds
+
+        legacy = legacy_feeds(state.existing_model, state.carried_bindings)  # WP101
+        existing_sats = (
+            {sat.name for sat in state.existing_model.satellites}
+            if state.existing_model is not None
+            else set()
+        )
+        parent_hashkeys: dict[str, str] = dict(hub_hashkeys)
+        # link name -> the hub hashkeys it connects, in declared order. Membership marks a
+        # parent as a generated link (eff_sat must hang off one).
+        link_fks: dict[str, list[str]] = {}
+        # link name -> driving / secondary hub hashkeys, split per link.driving_key (the
+        # declared end-dating side). Populated only when driving_key is set; eff_sat uses it.
+        link_driving_fks: dict[str, list[str]] = {}
+        link_secondary_fks: dict[str, list[str]] = {}
+
+        dbt_models: dict[str, str] = {}
+        metadata: dict[str, dict[str, Any]] = {"hubs": {}, "links": {}, "satellites": {}}
+
+        for hub in model.hubs:
+            sql, meta = _render_hub(hub, legacy, naming=naming)
+            dbt_models[hub.name] = sql
+            metadata["hubs"][hub.name] = meta
+
+        for link in model.links:
+            missing = [ref.hub for ref in link.hub_refs if ref.hub not in hub_hashkeys]
+            if missing:
+                state.flag(
+                    "code_generator",
+                    f"link {link.name!r} references unknown hubs {missing}; skipped",
+                    kind=FlagKind.GENERATION_GAP,
+                    asset=link.name,
+                )
+                continue
+            if link.link_type == "transactional":
+                if link.event_timestamp is None:
+                    state.flag(
+                        "code_generator",
+                        f"transactional link {link.name!r} has no event_timestamp; "
+                        f"cannot generate automate_dv.t_link, flagged for human review",
+                        kind=FlagKind.GENERATION_GAP,
+                        asset=link.name,
+                    )
+                    continue
+                state.flags.extend(_collision_warnings(link.payload, link.name))
+                sql, meta = _render_nh_link(link, hub_hashkeys, naming)
+            else:
+                sql, meta = _render_link(link, hub_hashkeys, naming)
+            dbt_models[link.name] = sql
+            metadata["links"][link.name] = meta
+            parent_hashkeys[link.name] = _link_hashkey(link)
+            link_fks[link.name] = _link_src_fk(link, hub_hashkeys)
+            if link.driving_key:
+                # Driving keys as declared (resolved to their role-qualified refs);
+                # secondaries = the remaining participations. Both are role-qualified FK
+                # columns, so an eff_sat end-dates by the exact participation named — and a
+                # plain-string link produces the same columns as before (role None).
+                driving_refs = link.resolve_driving_refs()
+                driving_keys = {(ref.hub, ref.role) for ref in driving_refs}
+                link_driving_fks[link.name] = [
+                    role_fk_column(hub_hashkeys[ref.hub], ref.role)
+                    for ref in driving_refs
+                    if ref.hub in hub_hashkeys
+                ]
+                link_secondary_fks[link.name] = [
+                    role_fk_column(hub_hashkeys[ref.hub], ref.role)
+                    for ref in link.hub_refs
+                    if (ref.hub, ref.role) not in driving_keys
+                ]
+
+        for sat in model.satellites:
+            parent_hub = hub_by_name.get(sat.parent)
+            # WP75: a satellite on its own relation under a ONE-feed hub is the single-source
+            # shape (WP7 §7.1) — rendered below by _render_satellite against its own stage,
+            # never split across "all" feeds and never refused as feed-ambiguous.
+            if (
+                parent_hub is not None and parent_hub.sources
+                and not single_feed_foreign_relation(sat, parent_hub)
+            ):
+                bound_feed = satellite_feed(sat, parent_hub)
+                if bound_feed is not None:
+                    # ADR-0011: the satellite NAMES one of the hub's feeds, so it belongs to
+                    # that source system alone — the DV2.0-canonical one-satellite-per-source
+                    # shape. Rendered ONCE (no per-source suffix: there is only one) against
+                    # that feed's staging, via the same naming the hub itself uses for it, so
+                    # a grandfathered legacy feed keeps its unsuffixed name (WP23 §2.6).
+                    # No type restriction here: the restriction below belongs to the SPLIT, and a
+                    # satellite bound to one feed is an ordinary satellite of its type (WP84).
+                    from vault_agent.agents.staging_generator import multi_source_staging_name
+
+                    state.flags.extend(
+                        _collision_warnings(sat.attributes + sat.child_dependent_key, sat.name)
+                    )
+                    feed_stage = multi_source_staging_name(parent_hub, bound_feed, legacy, naming)
+                    if sat.sat_type == "multi_active":
+                        # WP84 (C11): the type decides the template here too. Before, every
+                        # feed-bound satellite was a plain `sat`, and a multi-active one lost its
+                        # child-dependent key and re-inserted on every run.
+                        if not sat.child_dependent_key:
+                            state.flag(
+                                "code_generator",
+                                f"multi-active satellite {sat.name!r} has no child_dependent_key; "
+                                f"cannot generate automate_dv.ma_sat, flagged for human review",
+                                kind=FlagKind.GENERATION_GAP,
+                                asset=sat.name,
+                            )
+                            continue
+                        sql, meta = _render_ma_sat(
+                            sat, parent_hashkeys[sat.parent], source_model=feed_stage, naming=naming
+                        )
+                    else:
+                        sql, meta = _render_sat(
+                            sat, parent_hashkeys[sat.parent], source_model=feed_stage, naming=naming
+                        )
+                    dbt_models[sat.name] = sql
+                    metadata["satellites"][sat.name] = meta
+                    continue
+                # WP10: split a satellite on a multi-source hub into one per source, each
+                # reading its own staging model (record_source distinguishes the feeds, so
+                # value harmonisation stays downstream — spike Q6). Only standard sats split.
+                if sat.sat_type != "standard":
+                    state.flag(
+                        "code_generator",
+                        f"satellite {sat.name!r} of type {sat.sat_type!r} on multi-source hub "
+                        f"{sat.parent!r} is not supported; flagged for human review",
+                        kind=FlagKind.GENERATION_GAP,
+                        asset=sat.name,
+                    )
+                    continue
+                if source_table_on_multi_source_hub(sat, parent_hub):
+                    # ADR-0011 row 3: the named table is not a feed of this hub. The
+                    # validator gates it upstream; this stays as defense in depth (the
+                    # WP24 pattern), and the staging generator asks the same helper.
+                    feeds = ", ".join(s.source_table for s in parent_hub.sources)
+                    state.flag(
+                        "code_generator",
+                        f"satellite {sat.name!r} declares source_table "
+                        f"{sat.source_table!r}, which is not one of the feeds of its "
+                        f"multi-source parent {sat.parent!r} ({feeds}); a finer-grain "
+                        f"relation under one feed cannot say which feed it belongs to "
+                        f"(ADR-0011), so this is flagged for human review",
+                        kind=FlagKind.GENERATION_GAP,
+                        asset=sat.name,
+                    )
+                    continue
+                if sat.name in existing_sats:
+                    # WP23 §2.6: an EXISTING satellite is never split when its hub gains a
+                    # feed. Splitting would rename a materialised model holding history —
+                    # the destructive migration this track refuses. It keeps its name and
+                    # its binding to the legacy staging; only NEW satellites on this hub
+                    # follow the WP10 per-source shape against the new feeds.
+                    # WP101 (C34): that staging is named through the same helper the staging
+                    # generator uses for the legacy feed — the bare `stg_<entity>` was still
+                    # emitted here on the step after next, when the feed had lost its
+                    # grandfathering and nothing rendered that name. No identifiable legacy
+                    # feed: flagged, not guessed, and not rendered.
+                    from vault_agent.agents.staging_generator import (
+                        _staging_name,
+                        multi_source_staging_name,
+                    )
+
+                    feed = legacy_feed_of(parent_hub, legacy)
+                    if feed is None:
+                        state.flag(
+                            "code_generator",
+                            f"existing satellite {sat.name!r} read the legacy staging model "
+                            f"of hub {sat.parent!r}, which this step cannot identify among the "
+                            f"hub's feeds (the carried catalogue binds no "
+                            f"'{_staging_name(sat.parent, naming)}'); rendering it against a feed "
+                            f"would "
+                            f"guess and splitting it would rename a materialised model, so it "
+                            f"is flagged for human review",
+                            kind=FlagKind.GENERATION_GAP,
+                            asset=sat.name,
+                        )
+                        continue
+                    state.flags.extend(
+                        _collision_warnings(sat.attributes + sat.child_dependent_key, sat.name)
+                    )
+                    sql, meta = _render_sat(
+                        sat, parent_hashkeys[sat.parent],
+                        source_model=multi_source_staging_name(parent_hub, feed, legacy, naming),
+                        naming=naming,
+                    )
+                    dbt_models[sat.name] = sql
+                    metadata["satellites"][sat.name] = meta
+                    continue
+                from vault_agent.agents.staging_generator import multi_source_staging_name
+
+                # Parity with _render_satellite (WP21 §2.5): the per-source branch renders
+                # the same column set, so it owes the same collision visibility — once for
+                # the satellite, not once per feed (the labels are identical across feeds).
+                state.flags.extend(
+                    _collision_warnings(sat.attributes + sat.child_dependent_key, sat.name)
+                )
+                for source in parent_hub.sources:
+                    per_name = _sat_source_name(sat, source)
+                    staging_model = multi_source_staging_name(parent_hub, source, legacy, naming)
+                    sql, meta = _render_sat(
+                        sat, parent_hashkeys[sat.parent], source_model=staging_model, naming=naming
+                    )
+                    dbt_models[per_name] = sql
+                    metadata["satellites"][per_name] = meta
+                continue
+            rendered = self._render_satellite(
+                sat, parent_hashkeys, link_fks, link_driving_fks, link_secondary_fks, state
+            )
+            if rendered is None:
+                continue
+            sql, meta = rendered
+            dbt_models[sat.name] = sql
+            metadata["satellites"][sat.name] = meta
+
+        state.artifacts.dbt_models = dbt_models
+        state.artifacts.automatedv_yaml = metadata
+
+        # Staging pass (own module): the stage models computing every HK/HASHDIFF above,
+        # plus the dbt project scaffolding that makes the output runnable. Imported lazily
+        # to keep the module dependency one-directional (staging imports our helpers).
+        from vault_agent.agents.staging_generator import build_staging
+        from vault_agent.link_proposal import link_binding_reasons
+
+        # Contracts (drafted upstream by the data-contract agent) pin seed column
+        # types for matching staging sources (WP7 §7.3).
+        staging = build_staging(
+            model, state.source_schemas, contracts=state.artifacts.contracts,
+            existing=state.existing_model, target_platform=state.target_platform,
+            binding_reasons=link_binding_reasons(state),  # WP47
+            carried=state.carried_schemas,  # WP74
+            carried_bindings=state.carried_bindings,  # WP77
+            business_vault=state.business_vault,  # WP91
+            ratified_bindings=state.ratified_bindings,  # WP82
+            carried_aliases=state.carried_aliases,  # WP82
+            naming=naming,  # WP114
+        )
+        state.artifacts.staging_models = staging.models
+        state.artifacts.scaffolding = staging.scaffolding
+        # WP124 (C62): an effectivity satellite needs batches in load order — said in the README and
+        # checked by two generated tests each; a project without one is unchanged.
+        load_order_tests = effectivity_load_order_tests(metadata["satellites"])
+        if load_order_tests:
+            scaffolding = dict(staging.scaffolding)
+            scaffolding.update(load_order_tests)
+            scaffolding["README.md"] = scaffolding["README.md"] + EFFECTIVITY_README
+            state.artifacts.scaffolding = scaffolding
+        metadata["staging"] = staging.metadata
+        state.flags.extend(staging.flags)
+        apply_zero_key_hubs(state, staging.zero_key_hubs)  # WP86
+
+        # WP91 (ADR-0016): the Business Vault — a PIT per eligible hub — rendered from the
+        # metadata above, so its key and load-date columns are the raw vault's by construction.
+        from vault_agent.agents.business_vault_generator import (
+            build_business_vault,
+            propose_bridge_paths,
+        )
+
+        # WP115: bridge paths proposed from the model's own citations while the Business Vault
+        # is on — decisions at sign-off; an earlier attempt's answers for the same path carry.
+        previous = {p.path: p for p in state.bridge_proposals}
+        proposals = (  # WP122: what earlier increments declined is not proposed again
+            propose_bridge_paths(model, state.declined_bridges)
+            if state.business_vault.enabled else []
+        )
+        for proposal in proposals:
+            if proposal.path in previous:
+                proposal.ratification_status = previous[proposal.path].ratification_status
+        state.bridge_proposals = proposals + [
+            p for p in previous.values()
+            if p.origin == "operator" and p.path not in {q.path for q in proposals}
+        ]
+        ratified = [p.path for p in state.bridge_proposals if p.ratification_status == "accepted"]
+        business = build_business_vault(model, metadata, state.business_vault, bridges=ratified)
+        state.artifacts.business_vault_models = business.models
+        if business.metadata:
+            metadata["pit"] = business.metadata
+        if business.bridge_metadata:
+            metadata["bridge"] = business.bridge_metadata
+        state.flags.extend(business.flags)
+        state.flags.extend(bridge_proposal_flags(state.bridge_proposals))
+
+        if state.existing_model is not None:
+            # WP23 §2.7: computed here because file-change attribution needs the freshly
+            # rendered artifacts AND a regeneration of the existing model — both async,
+            # both this agent's business. write_outputs and the report only render it.
+            from dataclasses import asdict
+
+            from vault_agent.extension_diff import build_extension_diff
+
+            state.artifacts.extension_diff = asdict(await build_extension_diff(state))
+
+        logger.info(
+            "generated %d raw-vault + %d staging model(s), %d scaffolding file(s)",
+            len(dbt_models),
+            len(staging.models),
+            len(staging.scaffolding),
+        )
+        state.decisions.append(
+            {
+                "agent": "code_generator",
+                "models_generated": len(dbt_models),
+                "hubs": len(metadata["hubs"]),
+                "links": len(metadata["links"]),
+                "satellites": len(metadata["satellites"]),
+                "staging_models": len(staging.models),
+                "scaffolding_files": len(staging.scaffolding),
+            }
+        )
+        return state
+
+    @staticmethod
+    def _render_satellite(
+        sat: Satellite,
+        parent_hashkeys: dict[str, str],
+        link_fks: dict[str, list[str]],
+        link_driving_fks: dict[str, list[str]],
+        link_secondary_fks: dict[str, list[str]],
+        state: VaultAgentState,
+    ) -> tuple[str, dict[str, Any]] | None:
+        """Dispatch a satellite to the template for its type; flag what can't be generated."""
+        if sat.parent not in parent_hashkeys:
+            state.flag(
+                "code_generator",
+                f"satellite {sat.name!r} has parent {sat.parent!r} with no generated "
+                f"hub/link; skipped",
+                kind=FlagKind.GENERATION_GAP,
+                asset=sat.name,
+            )
+            return None
+
+        # Surface colliding labels across the satellite's full column set (payload plus any
+        # child-dependent key) — visibility only, generation still proceeds.
+        state.flags.extend(
+            _collision_warnings(sat.attributes + sat.child_dependent_key, sat.name)
+        )
+
+        if sat.sat_type == "standard":
+            return _render_sat(sat, parent_hashkeys[sat.parent], naming=state.naming)
+
+        if sat.sat_type == "multi_active":
+            if not sat.child_dependent_key:
+                state.flag(
+                    "code_generator",
+                    f"multi-active satellite {sat.name!r} has no child_dependent_key; "
+                    f"cannot generate automate_dv.ma_sat, flagged for human review",
+                    kind=FlagKind.GENERATION_GAP,
+                    asset=sat.name,
+                )
+                return None
+            return _render_ma_sat(sat, parent_hashkeys[sat.parent], naming=state.naming)
+
+        # effectivity
+        if sat.parent not in link_fks:
+            state.flag(
+                "code_generator",
+                f"effectivity satellite {sat.name!r} must hang off a generated link; "
+                f"parent {sat.parent!r} is not one, flagged for human review",
+                kind=FlagKind.GENERATION_GAP,
+                asset=sat.name,
+            )
+            return None
+        # Aligned with the validator's E_EFFSAT_DATES gate: exactly two date attributes,
+        # (start, end). Accepting >= 2 and silently using the first two would drop payload.
+        if len(sat.attributes) != 2:
+            # WP16 §2.3: the rejection is the `effsat_two_dates` steering line's backstop.
+            # The GENERATION_GAP flag stays the human-review channel; the event adds the
+            # counting channel that says whether the steering still needs help.
+            emit_trace(
+                TraceEvent(
+                    kind="backstop",
+                    backstop_id="effsat_two_attributes",
+                    detail={
+                        "rule": "effsat_two_dates",
+                        "satellite": sat.name,
+                        "attributes": list(sat.attributes),
+                    },
+                )
+            )
+            state.flag(
+                "code_generator",
+                f"effectivity satellite {sat.name!r} needs start and end date "
+                f"attributes; flagged for human review",
+                kind=FlagKind.GENERATION_GAP,
+                asset=sat.name,
+            )
+            return None
+        # The eff_sat end-dates by the link's declared driving key, never by whichever hub
+        # happens to come first. The validator gate (E_EFFSAT_NO_DRIVING_KEY) should already
+        # block an empty driving key, but the generator is an independent stage: flag and
+        # skip rather than silently fall back to the first hub.
+        driving_fks = link_driving_fks.get(sat.parent, [])
+        if not driving_fks:
+            state.flag(
+                "code_generator",
+                f"effectivity satellite {sat.name!r} on link {sat.parent!r} has no "
+                f"driving_key; cannot end-date by driving key, flagged for human review",
+                kind=FlagKind.GENERATION_GAP,
+                asset=sat.name,
+            )
+            return None
+        return _render_eff_sat(
+            sat,
+            parent_hashkeys[sat.parent],
+            driving_fks,
+            link_secondary_fks.get(sat.parent, []),
+            naming=state.naming,
+        )

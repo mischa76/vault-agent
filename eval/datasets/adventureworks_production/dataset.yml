@@ -1,0 +1,25 @@
+# WP30 subject-area case — Microsoft AdventureWorks (MIT, see ../adventureworks/NOTICE).
+#
+# The schema, its boundaries and its column documentation come from someone else; the
+# requirements were authored by a BLINDED agent that read ONLY this case's source_schema.yml
+# and nothing else in this repository (WP30 section 2.4a). Blinding was by instruction, and
+# is evidenced by the authoring agent making exactly one tool call (that single Read) -- it
+# was not enforced by a sandbox, and this file says so rather than overclaiming it.
+#
+# Gated on the structural scorers only (section 2.5). No golden DV model ships: a hand-authored
+# one would re-import our own modelling opinion, which is what this instrument excludes.
+# validation_gate is REPORTED, not gated -- an independent schema may legitimately trip gates
+# we have never exercised, and that is a finding to record rather than a gate to weaken.
+#
+# What this case does NOT test: cryptic legacy naming. Names here are clean English. It
+# complements messy_insurance; it does not replace it.
+name: adventureworks_production
+input_document: requirements.md
+source_schema: source_schema.yml
+golden: {}
+mapping_match: column
+expectations:
+  min_scores:
+    mapping_coverage: 0.8
+    false_friend_hits: 1.0
+    pipeline_health: 1.0

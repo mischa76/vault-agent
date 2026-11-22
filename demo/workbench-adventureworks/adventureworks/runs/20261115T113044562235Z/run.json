@@ -1,0 +1,51 @@
+{
+  "id": "adventureworks:20261115T113044562235Z",
+  "project": "adventureworks",
+  "status": "finished",
+  "thread_id": "e34646727af04b0bbf70c7a0ccf95398",
+  "out_dir": "demo/workbench-adventureworks/adventureworks/runs/20261115T113044562235Z",
+  "requirements": "sales_requirements.md",
+  "schema": "sales_source_schema.yml",
+  "existing_run": "adventureworks:20261115T112757570638Z",
+  "profiling": null,
+  "target_platform": "postgres",
+  "llm": {
+    "primary_model": null,
+    "heavy_model": null,
+    "anthropic_base_url": null
+  },
+  "naming": {
+    "staging_prefix": "stg_",
+    "hashkey_suffix": "_HK",
+    "hashdiff_suffix": "_HASHDIFF",
+    "load_datetime": "LOAD_DATETIME",
+    "record_source": "RECORD_SOURCE",
+    "applied_dts": "APPLIED_DTS",
+    "technical_case": "upper"
+  },
+  "business_vault": {
+    "pit": false,
+    "bridges": [],
+    "as_of_start": null,
+    "as_of_end": null,
+    "as_of_grain": "day"
+  },
+  "started": "2026-11-15T11:30:44+00:00",
+  "finished": "2026-11-15T11:37:12+00:00",
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run demo/workbench-adventureworks/adventureworks/inputs/sales_requirements.md --out demo/workbench-adventureworks/adventureworks/runs/20261115T113044562235Z --source-schema demo/workbench-adventureworks/adventureworks/inputs/sales_source_schema.yml --existing demo/workbench-adventureworks/adventureworks/runs/20261115T112757570638Z",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T113044562235Z --accept",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T113044562235Z --owner 'CountryRegionCurrency=John Doe <john.doe@acme.com>' --owner 'CreditCard=John Doe <john.doe@acme.com>' --owner 'Currency=John Doe <john.doe@acme.com>' --owner 'CurrencyRate=John Doe <john.doe@acme.com>' --owner 'Customer=John Doe <john.doe@acme.com>' --owner 'PersonCreditCard=John Doe <john.doe@acme.com>' --owner 'SalesOrderDetail=John Doe <john.doe@acme.com>' --owner 'SalesOrderHeader=John Doe <john.doe@acme.com>' --owner 'SalesOrderHeaderSalesReason=John Doe <john.doe@acme.com>' --owner 'SalesPerson=John Doe <john.doe@acme.com>' --owner 'SalesPersonQuotaHistory=John Doe <john.doe@acme.com>' --owner 'SalesReason=John Doe <john.doe@acme.com>' --owner 'SalesTaxRate=John Doe <john.doe@acme.com>' --owner 'SalesTerritory=John Doe <john.doe@acme.com>' --owner 'SalesTerritoryHistory=John Doe <john.doe@acme.com>' --owner 'ShoppingCartItem=John Doe <john.doe@acme.com>' --owner 'SpecialOffer=John Doe <john.doe@acme.com>' --owner 'SpecialOfferProduct=John Doe <john.doe@acme.com>' --owner 'Store=John Doe <john.doe@acme.com>' --accept"
+  ],
+  "checkpoints": [
+    {
+      "phase": "resolution",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T113044562235Z --accept"
+    },
+    {
+      "phase": "signoff",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T113044562235Z --owner 'CountryRegionCurrency=John Doe <john.doe@acme.com>' --owner 'CreditCard=John Doe <john.doe@acme.com>' --owner 'Currency=John Doe <john.doe@acme.com>' --owner 'CurrencyRate=John Doe <john.doe@acme.com>' --owner 'Customer=John Doe <john.doe@acme.com>' --owner 'PersonCreditCard=John Doe <john.doe@acme.com>' --owner 'SalesOrderDetail=John Doe <john.doe@acme.com>' --owner 'SalesOrderHeader=John Doe <john.doe@acme.com>' --owner 'SalesOrderHeaderSalesReason=John Doe <john.doe@acme.com>' --owner 'SalesPerson=John Doe <john.doe@acme.com>' --owner 'SalesPersonQuotaHistory=John Doe <john.doe@acme.com>' --owner 'SalesReason=John Doe <john.doe@acme.com>' --owner 'SalesTaxRate=John Doe <john.doe@acme.com>' --owner 'SalesTerritory=John Doe <john.doe@acme.com>' --owner 'SalesTerritoryHistory=John Doe <john.doe@acme.com>' --owner 'ShoppingCartItem=John Doe <john.doe@acme.com>' --owner 'SpecialOffer=John Doe <john.doe@acme.com>' --owner 'SpecialOfferProduct=John Doe <john.doe@acme.com>' --owner 'Store=John Doe <john.doe@acme.com>' --accept"
+    }
+  ]
+}

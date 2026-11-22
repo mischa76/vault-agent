@@ -1,0 +1,109 @@
+# Contributing to vault-agent
+
+Thanks for taking the time. This project has a few conventions that are unusual enough to be
+worth stating up front — they exist because of specific things that went wrong.
+
+This repository is the published part of the project. A pull request here is read and, if taken,
+applied to the working repository by hand; it appears here with the next publication. Identifiers
+like `WP140` or `C74` in code, tests and documents are internal work-package and backlog numbers.
+
+MIT licensed. By contributing you agree your work ships under the same terms.
+
+## Getting set up
+
+```bash
+uv sync --extra dev --extra ui --extra catalogue   # Python 3.12+ — what CI installs; mypy needs `catalogue` (SQLAlchemy's types); add --extra eval, --extra demo or --extra demo-databricks as needed
+uv run pytest                # must pass with NO Anthropic API key set — and none reachable:
+#   mv .env .env.off; env -u ANTHROPIC_API_KEY uv run pytest; mv .env.off .env
+#   (an `.env` key hid the one keyed test from CI, 2026-11-02; an EMPTY variable is not the
+#   same as an unset one — two tests tell them apart)
+```
+
+The suite is **keyless by design**. Every LLM call sits behind an injectable seam, and the
+deterministic core of each agent is tested without a key. If your change makes the suite need an
+API key, the change is wrong, not the suite.
+
+## Definition of done
+
+Three commands, all green, before you open a PR:
+
+```bash
+uv run pytest
+uv run ruff check .
+uv run mypy                  # bare — see below
+```
+
+**Never pass a path to mypy.** An explicit path overrides `pyproject.toml`'s
+`files = ["src/vault_agent", "eval"]`, which silently skips `eval/` — the code the quality gates
+lean on. CI runs the bare form on purpose; your local check should be the same statement.
+
+## Read these before a substantial change
+
+1. [`docs/README.md`](docs/README.md) — the guide to the documentation, and
+   [`docs/status.md`](docs/status.md) — what is verified and what is not.
+2. The relevant ADR. Decisions are recorded in `docs/architecture/adrs/`; if your change argues
+   against one, that is a new ADR, not a quiet edit.
+
+## Conventions that will come up
+
+**Data Vault rules live in `src/vault_agent/rules/`, never in a prompt.** Prompts steer; rules
+are the source of truth. Anything a validator gate or generator needs to know goes in `rules/`,
+behind a named helper — and every call site asks that helper rather than re-deriving its answer.
+
+**A gate refuses, a backstop repairs.** A deterministic `E_` gate blocks before generation and
+feeds the re-model loop; a backstop silently fixes model output and emits telemetry so we can
+tell whether it is still needed. New prompt steering is registered in the steering registry and
+recorded in [`docs/architecture/steering-ledger.md`](docs/architecture/steering-ledger.md) with
+its evidence — otherwise nobody can answer "does the next model still need this?".
+
+**Branch on typed fields, never on message text.** `FlagKind`, `ValidationIssue.code`, the
+confidence category. Substring matching over human-readable messages has produced real bugs here.
+
+**Verify against the installed library, not from memory.** If you use a macro, signature or flag
+of AutomateDV, LangGraph, dbt or the Anthropic SDK, read the installed package first and cite
+what you read in the PR. A macro name that does not exist looks perfectly plausible in review.
+
+**Write the guard before the change.** If a change must leave existing output untouched, commit
+the byte-identity fixture first, then change. Deliberately updating a fixture is fine — same
+commit, reason in the message. Several fixtures exist for exactly this
+(`tests/fixtures/staging_ungrounded_baseline/`, `tests/fixtures/steering/`, the greenfield
+inertness manifest).
+
+**No new framework without an ADR**, and don't bypass AutomateDV by hand-writing dbt models.
+
+## Say what you verified
+
+The most valuable habit in this repo, and the one most often skipped. Distinguish:
+
+- **verified-live** — it ran end to end against the real thing (a real Anthropic API call, a real
+  PostgreSQL build). Name the evidence: `dbt build --full-refresh` PASS counts, the trace file,
+  the eval scores.
+- **keyless-only** — covered by the offline suite, never run against the real API.
+- **not-measured** — you believe it works and did not check.
+
+A PR that says "keyless-only" is welcome. A PR that implies live verification it did not do is
+the problem. If you change a **rendered dbt template**, the honest evidence is a real Postgres
+build; `demo/bank_postgres/` and `demo/mapping_postgres/` exist so you do not have to invent one.
+The Databricks target (`--target-platform databricks`) is built on a real workspace (operations
+manual 9.6) — a change to its dialect in `rules/platforms.py` is keyless-only until such a build
+is repeated, and must say so.
+
+Live runs cost real money. Before paying for another one, read the traces under
+`.vault-agent/traces/` and the stored results in `eval/results/` — three ~$5 runs once found
+serially what a single trace audit already contained.
+
+## Pull requests
+
+- Branch off `main`; PRs run the CI job above.
+- Commit subjects follow `type(scope): summary` — `feat(wp30)`, `fix(wp33)`, `docs(scale)`,
+  `perf(data_contract)`. The body is where the reasoning goes: what was wrong before, what you
+  deliberately did not do, what is verified and how.
+
+## Releases
+
+A release is a tag `X.Y.Z` — no `v` prefix. The version has **one** source, `pyproject.toml`;
+`__version__`, `uv.lock`, `CHANGELOG.md` and the tag must agree with it, and
+`tests/test_release.py` fails when they do not. Below 1.0 the minor version moves on new capability
+or an output-changing correction and the patch version on fixes and dependency work; what 1.0
+waits for is in [`docs/status.md`](docs/status.md). A published tag is never moved — a wrong one
+gets a correcting patch release and a CHANGELOG note, as 0.9.0 did.

@@ -1,0 +1,113 @@
+spec-version: 1.0.0
+name: Vendor
+namespace: source
+dataAssetResourceName: datastore://source/Vendor
+doc: Vendor master data from the purchasing source, one record per vendor (supplier),
+  identified by BusinessEntityID. The contract enforces the declared schema, business
+  key uniqueness and non-null key; value-level semantics are advisory pending producer/consumer
+  review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Unique identifier of the vendor business entity; business key of the
+    Vendor asset.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: AccountNumber
+  description: Vendor account number assigned by the purchasing organization.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Name
+  description: Name of the vendor (company).
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CreditRating
+  description: Credit rating assigned to the vendor. Allowed value set and scale are
+    not specified in requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: PreferredVendorStatus
+  description: Indicator of whether the vendor is a preferred vendor. Representation
+    not specified in requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: boolean
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ActiveFlag
+  description: Indicator of whether the vendor record is currently active. Representation
+    not specified in requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: boolean
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: PurchasingWebServiceURL
+  description: URL of the vendor's purchasing web service; may be absent for vendors
+    without one.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the vendor record was last modified in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

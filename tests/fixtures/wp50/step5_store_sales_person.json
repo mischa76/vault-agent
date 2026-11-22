@@ -1,0 +1,189 @@
+{
+  "hubs": [
+    {
+      "business_key": "BusinessEntityID",
+      "business_key_columns": [],
+      "description": "The company-wide party register: the umbrella concept covering every customer, vendor and employee, identified by a single business entity number that is unique across all parties and used as the integration key into sales, purchasing and HR.",
+      "name": "hub_business_entity",
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-003",
+        "REQ-004"
+      ],
+      "source_entity": "BusinessEntity",
+      "sources": []
+    },
+    {
+      "business_key": "NationalIDNumber",
+      "business_key_columns": [],
+      "description": "An employee of the business, uniquely and consistently identified by their national identification number, the strongest natural business identifier for a person in the HR domain.",
+      "name": "hub_employee",
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002"
+      ],
+      "source_entity": "Employee",
+      "sources": []
+    },
+    {
+      "business_key": "BusinessEntityID",
+      "business_key_columns": [],
+      "description": "A reseller store identified by its business entity reference. Keyed differently from the enterprise hub_business_entity and modelled as its own hub per ratified human decision (REQ-009).",
+      "name": "hub_store",
+      "requirement_ids": [
+        "REQ-004",
+        "REQ-009"
+      ],
+      "source_entity": "Store",
+      "sources": []
+    },
+    {
+      "business_key": "BusinessEntityID",
+      "business_key_columns": [],
+      "description": "A sales representative identified by their business entity reference, which is also their employee reference. Keyed differently from the enterprise hub_business_entity and modelled as its own hub per ratified human decision (REQ-056).",
+      "name": "hub_sales_person",
+      "requirement_ids": [
+        "REQ-056"
+      ],
+      "source_entity": "SalesPerson",
+      "sources": []
+    }
+  ],
+  "links": [
+    {
+      "connected_hubs": [
+        {
+          "hub": "hub_store",
+          "key_translation": null,
+          "role": null,
+          "source_key_column": null
+        },
+        {
+          "hub": "hub_sales_person",
+          "key_translation": null,
+          "role": null,
+          "source_key_column": null
+        }
+      ],
+      "description": "The sales representative assigned to serve each reseller store; a store is served by exactly one representative who may serve many stores (REQ-010, REQ-113). The representative participation is read from a relation carrying hub_sales_person's own key; aliasing of Store's foreign key is decided at the link checkpoint.",
+      "driving_key": [],
+      "event_timestamp": null,
+      "link_type": "standard",
+      "name": "link_store_sales_person",
+      "payload": [],
+      "requirement_ids": [
+        "REQ-010",
+        "REQ-113",
+        "REQ-146"
+      ],
+      "unit_of_work": null
+    },
+    {
+      "connected_hubs": [
+        {
+          "hub": "hub_store",
+          "key_translation": null,
+          "role": null,
+          "source_key_column": null
+        },
+        {
+          "hub": "hub_employee",
+          "key_translation": {
+            "natural_key_column": "NATIONALIDNUMBER",
+            "referencing_column": "SalesPersonID",
+            "surrogate_column": "BusinessEntityID",
+            "through_schema": "HumanResources",
+            "through_table": "Employee"
+          },
+          "role": null,
+          "source_key_column": null
+        }
+      ],
+      "description": "Declared foreign key Store.SalesPersonID references NATIONALIDNUMBER; ratified from the source catalogue (WP34).",
+      "driving_key": [],
+      "event_timestamp": null,
+      "link_type": "standard",
+      "name": "link_store_employee",
+      "payload": [],
+      "requirement_ids": [],
+      "unit_of_work": null
+    }
+  ],
+  "satellites": [
+    {
+      "attributes": [
+        "SalesQuota",
+        "Bonus",
+        "CommissionPct"
+      ],
+      "child_dependent_key": [],
+      "description": "The current remuneration terms for a representative: current quota figure, bonus and commission percentage; access-restricted remuneration data (REQ-058, REQ-059, REQ-060, REQ-126, REQ-158).",
+      "key_translation": null,
+      "name": "sat_sales_person_remuneration",
+      "parent": "hub_sales_person",
+      "participation_aliases": {},
+      "participation_translations": {},
+      "requirement_ids": [
+        "REQ-058",
+        "REQ-059",
+        "REQ-060",
+        "REQ-063",
+        "REQ-126",
+        "REQ-139",
+        "REQ-158"
+      ],
+      "sat_type": "standard",
+      "source_table": null,
+      "split_rationale": "Split by data classification (access-restricted remuneration) from operational running totals."
+    },
+    {
+      "attributes": [
+        "SalesYTD",
+        "SalesLastYear",
+        "ModifiedDate"
+      ],
+      "child_dependent_key": [],
+      "description": "The operationally maintained running sales totals (year-to-date and previous year) for a representative, retained for reconciliation (REQ-061, REQ-062, REQ-064, REQ-154).",
+      "key_translation": null,
+      "name": "sat_sales_person_running_totals",
+      "parent": "hub_sales_person",
+      "participation_aliases": {},
+      "participation_translations": {},
+      "requirement_ids": [
+        "REQ-061",
+        "REQ-062",
+        "REQ-064",
+        "REQ-136",
+        "REQ-154"
+      ],
+      "sat_type": "standard",
+      "source_table": null,
+      "split_rationale": "Operational running totals separated from remuneration terms by sensitivity and rate of change."
+    },
+    {
+      "attributes": [
+        "SalesQuota"
+      ],
+      "child_dependent_key": [
+        "QuotaDate"
+      ],
+      "description": "The full history of sales quotas per representative, each row the quota amount in force from a quota date (REQ-123, REQ-124, REQ-125).",
+      "key_translation": null,
+      "name": "sat_sales_person_quota_history",
+      "parent": "hub_sales_person",
+      "participation_aliases": {},
+      "participation_translations": {},
+      "requirement_ids": [
+        "REQ-123",
+        "REQ-124",
+        "REQ-125",
+        "REQ-126"
+      ],
+      "sat_type": "multi_active",
+      "source_table": "SalesPersonQuotaHistory",
+      "split_rationale": "Dated quota history at finer grain than the representative, with several rows valid over time distinguished by quota date."
+    }
+  ],
+  "_source": "eval/results/adventureworks_incremental/20261005T234048650821Z-step5-adventureworks_sales-run1.dv_model.yml (the Store / SalesPerson / Employee shape)"
+}

@@ -1,0 +1,255 @@
+# 7. The HITL checkpoint
+
+## 7.1 Why the pipeline pauses
+
+The checkpoint is where assist-not-decide becomes mechanical. Two things — and only
+these two — **block** finalization (`requires_signoff`): a validation *error* that
+survived the re-model loop, and a data contract whose owner is still the placeholder
+(nobody accountable for a source asset). Everything else in the review queue —
+validation warnings, mapping gaps, inferred staging bindings, truncation notices — is
+**advisory**: the pipeline tells you honestly what it could not determine and proceeds
+once you sign off. Since WP108 (2026-10-31) the generator's and the merger's items describe
+the model that reached you: both re-derive their flags on every run, so a gap an earlier
+modeler attempt had and the next attempt repaired is not in the queue (on three kept chains
+every such item was one of those). A mapping gap, in particular, is not a defect; it is the mapper
+refusing to force-fit a source onto a concept that has none (often correctly pointing
+at Business Vault scope).
+
+## 7.2 Run lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> Running: vault-agent run
+    Running --> Finalized: checkpoint clean<br/>(no blocking items)
+    Running --> Paused: interrupt()<br/>requires_signoff
+    Paused --> Running: resume with decision<br/>(flags or interactive prompt)
+    Paused --> Paused: abort / skip-all / Ctrl-C<br/>(checkpoint + pending.json kept)
+    Running --> Failed: modeling attempts exhausted<br/>or pipeline error
+    Finalized --> [*]: artifacts written,<br/>checkpoint thread pruned
+    Failed --> [*]: artifacts-so-far + report
+```
+
+A pause is durable: the graph state is checkpointed to disk, the process can exit, and
+`resume` reattaches to the same thread whenever you are ready. Aborting an interactive
+session never loses anything — `pending.json` and the checkpoint survive every path
+except successful finalization.
+
+## 7.3 Reading the review queue
+
+The queue appears in three places, always with identical content: the console at pause
+time, `review-queue.md`, and the report's review section. Every item carries a **role**
+(WP43): a **decision** needs an answer from you before the model is agreed — assign an
+owner, accept or discard, ratify a mapping, a resolution, a license or a translation, fix
+the model; a **disclosure** states what the pipeline assumed, inferred, dropped or
+declined — reading it is review, there is nothing to answer. The status line counts both
+(`3 decision(s), 40 disclosure(s)`); the first number is the one to plan with.
+
+The queue lists **every decision before every disclosure**; within a role, blocking-first
+— validation errors and unassigned owners, then validation warnings, then advisory flags.
+Repetitive items of one shape (more than 3 of the same kind, e.g. 38 undetermined
+contract-field types; validation warnings of one code) collapse into one summarised line
+with samples; the counts still reflect the underlying items, so a count higher than the
+visible lines is aggregation, not loss. Translations never collapse: each is a join
+through another relation and a decision in its own right (ADR-0013).
+
+The role comes from typed fields only — the item's kind, the issue's severity, the flag's
+`FlagKind` — never from message text; a flag kind the table does not know is a decision,
+so nothing unclassified is ever folded away. A flag's typed *reason* can override its kind's
+role (WP47): an inferred staging binding with reason `ambiguous` — two or more declared
+relations offer the link's participations — is a decision; with reason `none` (nothing declares
+the relation) or `shared` (the stage is a hub's) it stays a disclosure. An `info` record of the
+validator (the extension inventory, `I_EXISTING_EXTENDED`) is not a queue item at all; chapter 8.
+
+## 7.4 Answering interactively
+
+In a terminal, the checkpoint answers itself in place: a paused `run` (or a flag-less
+`resume`) walks the actionable items — prompting a name/email for each unassigned
+contract owner and a `TABLE.COLUMN` for each single-source unresolved mapping — then
+asks for the accept confirmation and finalizes in-process. Malformed answers re-prompt;
+skipping an item leaves it for a later resume.
+
+Two deliberate limits. The prompt offers exactly what the resume flags offer — nothing
+more — so anything you can do interactively is scriptable, and vice versa
+(capability parity; the outputs are byte-identical between the two paths). And
+**multi-source keys are never prompted**: a key whose candidates span two source
+systems is listed with a pointer to `resume --mappings`, because that decision needs
+the full evidence in front of you, not a one-line answer. Auto-detection: interactive
+only when stdin and stdout are TTYs; `--interactive`/`--no-interactive` overrides.
+
+## 7.5 Answering with flags
+
+```bash
+vault-agent resume --owner "customer=Jane Doe <jane@bank.example>" \
+                   --owner "account=BI Team <bi@bank.example>" \
+                   --map "partner number=VICTOR_PARTNER.PARTN_NR" \
+                   --accept
+```
+
+| Flag | Repeatable | Effect |
+|------|-----------|--------|
+| `--owner "asset=Name <email>"` | yes | Assigns the contract owner; prunes exactly that asset's owner flag |
+| `--map "concept=TABLE.COLUMN"` | yes | Ratifies/overrides one mapping |
+| `--mappings <file>` | no | Ratifies an edited `mappings.review.yml` wholesale |
+| `--bind "STAGE=RELATION"` / `--bind "STAGE=RELATION(STAGE_COLUMN=column, …)"` | yes | Binds a staging model no rule could (`source_binding` or `binding_rejected` in the review queue) to a declared relation, with aliases where the relation carries a key under another name — what a hand-made view said until WP82. Checked before anything resumes: the relation must carry every column the stage hashes after the aliases, else the flag is refused with the columns named. Since WP134 the binding is judged as the validator would have judged the stage had it been bound: a stage that reads through a translation view is asked for what it reads from the relation (its other keys and each join's referencing column, not the keys the view projects), and a relation whose declared unique key a satellite on the stage does not cover is refused with the gate's code (`E_SAT_GRAIN_NOT_UNIQUE`, 8) — leave the stage unbound and provide a relation unique on the satellite's key, or run again with the satellite multi-active. The binding and its aliases travel to the next increment with the catalogue |
+| `--link "Table.Column"` | yes | Builds one link proposed from a declared foreign key (WP34); for a key license (WP40) allows the repair it licenses; for a proposal **inferred from data** (WP99) the only way to build it — `--accept` declines those |
+| `--no-link "Table.Column"` | yes | Declines one proposed link; wins over `--link` for the same one |
+| `--bridge "<path>"` | yes | WP115: builds one proposed bridge path (`hub,link,hub[,link,hub…]`, a role as `hub:role`; 9.7) — or names one the run did not propose, if the model parses it and the run has as-of bounds. Unanswered proposals are **declined** at `--accept`: a bridge is Business Vault logic the human ratifies (ADR-0007), never a default |
+| `--no-bridge "<path>"` | yes | Declines one proposed bridge path; wins over `--bridge` for the same one |
+| `--link "Table.*"` / `--no-link "Table.*"` | yes | Ratifies or declines the **relationship-table** link proposed for a whole table (WP37) — one decision per table, not per key |
+| `--key "Table=Column"` / `--key "Table=Column+Column"` | yes | WP125 (ADR-0021): keys the hub built from one declared table where the key is **contested** (below). A declared natural key needs nothing more; the technical primary key, or columns the source does not declare unique, need `--key-reason`. Checked before anything resumes — an unknown table or column, or a missing reason, is refused and nothing is applied |
+| `--key-reason "Table=why"` | yes | The reason for a `--key` answer that is not a declared natural key; recorded in the proposed ADR and in the `W_HUB_ON_TECHNICAL_KEY` disclosure. Without its `--key` it is a usage error |
+| `--resolve "concept=answer"` | yes | Ratifies one entity resolution (WP29): `answer` is an existing construct's name, `NEW`, `same_as_candidate` or `unresolved` |
+| `--resolutions <file>` | no | Ratifies an edited `resolutions.review.yml` wholesale (WP29) |
+| `--accept` | — | Signs off and proceeds past the checkpoint; ratifies every pending proposal and license whose key the catalogue **declares**, and declines (`overridden`, on the record) every one **inferred from data** that no `--link` named (WP99, ADR-0018 §4) |
+
+A link proposal's note names its category. `declared_fk_same_name` and
+`declared_fk_renamed` are WP34's two: the referencing column is, or is renamed to, the hub's
+key. **`declared_fk_translated` (WP36, ADR-0013) is different in kind**: the source references
+a *surrogate* (`ShoppingCartItem.ProductID`) while the hub is keyed on the *natural* key
+(`ProductNumber`), and the note says so — `ProductID → PRODUCTNUMBER through
+Production.Product`. Ratifying it builds a link whose staging **joins through** the
+referenced relation (9.3); the review queue discloses one `link_translation` item per such
+link, grouped by the key it translates to — the hub, the relation joined through and the natural
+key (WP116; until then every item was its own decision, 60 of them on the C1 experiment's
+drafted arm for 21 relations). **Since WP128 a translation over a declared foreign key is a
+disclosure and nothing more**: the catalogue declares the join, a human licensed the key at
+this pause, and the generated tests refuse an unmatched reference at build time. **One decision
+per translated key remains** where something is left to confirm — the key was *inferred from
+data* (ADR-0018), or the relation carries a column of the hub key's name that the translation
+does not read (a homonym, WP89); the flag carries that as a typed marker (`confirm`).
+Since WP39 the join may end one table further: a key into a table that has no hub of its own
+(`SalesOrderHeader.SalesPersonID → SalesPerson`), whose key is itself a declared foreign key
+(`SalesPerson.BusinessEntityID → Employee`), is translated through that end table, and the
+evidence names the table in between. The nearest hub always decides: if `SalesPerson` has a hub,
+the key goes there.
+
+**`relationship_table` (WP37) is a proposal for a whole table, keyed `Table.*`.** A declared
+table with two or more single-column foreign keys and no hub of its own — `ProductVendor`,
+`PersonCreditCard`, `SpecialOfferProduct` — *is* the link between the tables it references,
+and the rendering names every participation: resolved ones by hub, translated ones marked, and
+*(Vendor, pending)* for a key into a table of this same increment, which has a hub only after
+the modeler runs. The applier resolves pending participations against the merged model — by
+the referenced table's hub, whatever the modeler named it (`hub_sales_representative` built
+from `SalesPerson` counts) — and builds the link **only if the table itself got no hub**; a
+hubbed table is covered by its per-key proposals, which stay listed beside the table one.
+A participation the merged model cannot resolve, or two that merge onto one hub, yields a
+`link_relationship_incomplete` review item and no link: a link with a missing participation
+has a different grain, and a wrong grain over history is a migration.
+
+**A same-as resolution whose join is declared is a subtype feed (WP38).** The resolver may say a
+new concept is *equivalent to an existing hub but keyed differently* — `sales representative` and
+`hub_employee`, where `SalesPerson`'s key is a foreign key to `Employee` and `hub_employee` is
+keyed on `NationalIDNumber`. When the schema declares that join, the rendering adds *"a subtype
+feed — accepted, SalesPerson gets no hub and its satellites on hub_employee join
+NATIONALIDNUMBER through Employee"*, and that is what accepting does: no second hub, the
+subtype table's satellites on the supertype hub, staged through a translation view (9.3), one
+`sat_translation` disclosure each, grouped by the key (WP116; no decision over a declared join, WP128). Without a declared join, accepting keeps
+the concept as its own hub, because a join nobody declared is a guess. Since WP39 the feed also covers the
+tables keyed on the subtype's key (`SalesPersonQuotaHistory.BusinessEntityID → SalesPerson`), and
+the rendering names them; a table that merely references the subtype through another column
+(`Store.SalesPersonID`) gets no satellite coverage.
+
+**`declared_fk_pending` (WP40) is a key license, keyed `Table.Column`.** A declared key into a
+table of this same increment that has no hub yet — `ProductInventory.LocationID → Location` —
+cannot be a link proposal, because the hub comes from this run's modeler. The rendering says *no
+hub yet*, and the interactive prompt asks *Allow the key license …?*. Answering yes licenses a
+translation or alias, resolved after modelling, that **repairs** the staging of links and
+satellites the modeler builds from that table; it never builds a link or a hub. `--link`,
+`--no-link` and `--accept` decide it like a link proposal.
+
+**Since WP99, a proposal or license may be inferred from data** (`vault-agent infer-keys`,
+6.1): its note begins *inferred from data, not declared*, its first evidence line carries the
+numbers (rows checked, distinct values on both sides, the candidate tier, the tied key columns of
+equal domain, the wider ones that also contain every value, and — where the inferred target has
+no hub and a tied or wider one has — which key column the proposal was resolved through), and it
+is never bound by the bulk key — `--accept` declines it,
+the interactive prompt defaults to *no* and asks *… (inferred from data, not declared)?*, and
+only `--link` or a *yes* builds it. The eval harness's unattended resume is `--accept`, so a
+measured chain builds nothing from an inference; its `link_proposals.by_provenance` says how
+many were offered.
+
+**In the workbench an inferred key stands apart and unchecked** (WP140, 2026-11-16). The Review
+perspective lists it under *Inferred keys — found in the data, declared nowhere*: declined unless
+checked, and a check is `--link`. Until then it stood among the declared ones with its box
+checked, and was declined all the same — the page sends an answer only for a box someone touched,
+and the bulk answer declines an inference nobody named. The API's entry carries `provenance`
+(`declared` | `inferred`) as a field.
+
+**On a catalogue that declares keys, an inferred offer is a key the catalogue lacks** (WP137,
+2026-11-16). Until then the command inferred, beside every declared key, the next key column
+holding the same values, and declared keys backwards, and a composite key's component was
+offered once declared and once inferred: over one chain on the full AdventureWorks catalogue
+29 inferred offers, 2 of them real. Write the file again with `infer-keys` (6.1) if yours is
+older; the two that remain there are `WorkOrderRouting.productid` and
+`TransactionHistoryArchive.productid`, both to `Product`.
+
+**An inferred licence you accept is a key of its relation from then on** (WP136, 2026-11-16).
+Until then it was resolved, ratified and read by nobody: the binder's offer counted declared
+foreign keys only, so the link it was accepted for stayed unbound. Now the relation offers the
+hub, the link reads the relation and the licence translates — exactly as a key declared in the
+catalogue does; the translation built on it is a decision to confirm at sign-off (WP128). The
+case it was built on: `WorkOrderRouting.ProductID`, a product by the data (67 131 rows, all
+among `Product`'s 504 ids) and by no declaration. A link whose relation lacks such a key says so
+in the review (`link_key_missing`, 9.3).
+
+**Since WP41, key licenses appear in greenfield runs too.** With a declared schema and no
+`--existing` vault, every declared single-column key into another table of the same input is a key
+license, and the resolution checkpoint pauses on them; nothing else is proposed there, and a schema
+without foreign keys never pauses. A license also repairs role-qualified participations: a role
+takes the key when it is its hub's only participation in the link, or the key whose column its role
+names (`component` → `ComponentID`). An unqualified participation beside another of the same hub is
+never repaired — which key it means is not in the catalogue.
+
+**Since WP125, a hub's key is decided before the modeler runs, and a contested one is asked here**
+(ADR-0021). The key agent ranks candidates from the requirements; the source catalogue declares
+keys. `rules/key_decision.py` puts the two together per declared table: where the requirements'
+first choice is a declared unique key that is not technical, that is the key (*agreed*); where the
+primary key is itself a natural key — a code, a character column — it stays (*natural primary
+key*); and the modeler is **given** these keys, it does not weigh them (`E_HUB_KEY_NOT_AS_DECIDED`
+refuses a deviation, 8.2). A key is **contested** when the primary key is technical — a column
+the catalogue says is generated (WP127), an exact numeric or a GUID; the catalogue and the type
+decide, never the column's name —, the table declares a natural key, and the
+requirements did not name it first. The resolution checkpoint pauses on those and prints each with
+its evidence: the requirements' first choice and its score, the declared natural keys, the
+primary key, and any composite unique key. **Unanswered, a contested hub is keyed on the declared
+natural key** — with `--accept`, in the terminal on Enter, and equally when a resume answers
+something else and says nothing about the key; the default is never the technical key. Keying the
+hub on its technical primary key takes `--key "Table=Column"` with `--key-reason`, and the reason
+goes into the proposed ADR. A table without a declared natural key gets no decision — the modeler
+chooses as before, and a hub that lands on a technical primary key is disclosed
+(`W_HUB_ON_TECHNICAL_KEY`). Not asked about: a table whose primary key references another table (a
+subtype — whether it has a hub at all is the resolver's question), a table an existing hub is
+built from (its key stands), and any catalogue that declares no keys. The proposed ADR lists every
+decided key with its basis under *Hub keys decided before modelling*.
+
+**`--accept` ratifies link proposals too.** That matters for unattended runs: an automated
+resume accepts every foreign-key-derived link without anyone reading it. Decline individually
+with `--no-link`, or answer them one by one in the terminal — the interactive prompt offers
+exactly what these flags offer, which is the capability-parity rule, and it defaults to
+building each one because a proposal exists only where the source's own catalogue declares
+the foreign key and an existing hub is keyed on its target.
+
+`apply_human_decision` performs the commit: owners are written onto the contracts,
+ratified mappings promote their concepts (and re-bind the staging layer to the real
+source tables, clearing the inferred-binding flags), and each resolved item's flag is
+pruned by exact asset match. The ADR author then finalizes with your decisions in the
+trail.
+
+## 7.6 Ratifying business↔source mappings
+
+`mappings.review.yml` is the round-trip file. Each proposal carries concept, table,
+column, a confidence **category** — `exact_name` (the column literally matches),
+`comment_grounded` (the deciding signal was a source comment, quoted in evidence),
+`profiled_key` (structural: uniqueness/null profile), `llm_semantic` (judgment call) —
+and its evidence list. Review descending: `exact_name` needs a glance, `llm_semantic`
+deserves scrutiny. `gaps` are concepts with no in-scope source (leave them — they are
+the honest output); `unresolved` need your decision.
+
+To ratify: edit table/column where the proposal is wrong, move an `unresolved` concept
+up into `proposals` with its source, then `resume --mappings <file>`. A genuinely
+multi-source key (the same business key anchored in two systems' entity tables) uses
+the `sources:` form instead — listing one (table, column) per feed — which turns the
+hub into a multi-source hub (2.2) on the next generation. Watch for the one trap the
+categories cannot catch for you: a technical GUID can profile perfectly
+(`profiled_key`) and still not be the business key the requirements mean — the mapper
+is prompted to resist this, but the ratification is where it is decided.

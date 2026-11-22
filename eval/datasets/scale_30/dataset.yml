@@ -1,0 +1,32 @@
+# WP13 scale-hardness case — the committed 30-table step (Charter A).
+#
+# The inputs under inputs/ are the deterministic output of
+#   python -m eval.scale.generate --tables 30 --seed 42
+# (regenerating with the same (tables, seed) reproduces them byte-for-byte; pinned by
+# tests/test_scale_generate.py). The 100/300 steps are NOT committed — their dataset.yml
+# carries a `generate:` block and the runner synthesises the inputs on demand.
+#
+# No golden DV model is asserted (scale is a *measurement* case, not a construct-regression
+# gate): `golden` is empty, so construct_f1 is reported but never gated. The golden business↔
+# source mapping (golden_mapping.yml) is the real ground truth here — a sampled ~30-concept
+# universe (WP9.2 semantics) the mapper is scored against.
+name: scale_30
+input_document: inputs/requirements.md
+source_schema: inputs/source_schema.yml
+profiling: inputs/profiling.yml
+golden: {}
+# Column-based mapping scoring (WP14): the modeler's free-form concept names diverge from the
+# sampled golden vocabulary at scale, so the concept-keyed mapping_accuracy measured naming
+# alignment, not mapping quality (gate failed 3/3 on a healthy pipeline, 2026-07-19 — see
+# scale-test-findings.md Candidate #2). column mode scores the mapper's real job: binding the
+# right physical (table, column) pair.
+mapping_match: column
+expectations:
+  # Loose floors (spike band, not exactness): the run must stay healthy, the mapper must cover
+  # a realistic share of the sampled golden columns, and must not fall for a false friend.
+  # gap_detection/mapping_accuracy are concept-coupled — reported-only here (the loader rejects
+  # gating them in column mode). 100/300 stay ungated (measurement).
+  min_scores:
+    mapping_coverage: 0.8
+    false_friend_hits: 1.0
+    pipeline_health: 1.0

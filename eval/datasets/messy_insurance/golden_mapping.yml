@@ -1,0 +1,206 @@
+# Golden business↔source mapping for the messy_insurance mapping spike (D1).
+#
+# The ground truth the mapping prototypes (spike/) are scored against by the D2 scorers
+# (eval/scorers.py: mapping_accuracy, gap_detection, confidence_calibration). Loaded by the
+# typed loader in eval/mapping.py (WP6 dataset-loader style: attributable ValueError).
+#
+# Concept labels are written as the requirements/model use them (German where the
+# Fachkonzept is German). Matching is STRUCTURAL through rules.normalize_identifier on the
+# concept, table, and column — casing/spacing/punctuation do not matter; "Prämie" and
+# "praemie" both normalise to PRAMIE/PRAEMIE consistently, so keep the spelling stable.
+#
+# The concept list handed to BOTH prototypes is the union of `mappings`, `ambiguous`, and
+# `gaps` concepts (WITHOUT the answers) — see eval/mapping.py:concepts_for_prototype. The
+# prototype must decide table+column for each, or classify it as a gap.
+#
+# ── The §4 traps, by construction ──────────────────────────────────────────────────────
+#  1. Synonym trap      → `ambiguous`: "customer reference" has two legitimate sources
+#                         (VICTOR PARTN_NR vs. CRM ExternalCustomerNo). Either scores.
+#  2. False-friend trap → `false_friends`: VICTOR_PARTNER.KD_NR is a legacy BRANCH code
+#                         despite the KD_ ("Kunde") prefix. NO concept maps to it; a
+#                         proposal targeting it is named as a false-friend hit.
+#  3. Statistics trap   → "partner number" is golden to PARTN_NR, but PARTN_GUID profiles
+#                         FLAWLESSLY (uniqueness 1.0, 0 nulls) while PARTN_NR carries a
+#                         0.2% null wart (profiling.yml). A "pick the cleanest column"
+#                         heuristic wrongly prefers PARTN_GUID — which is golden ONLY for
+#                         the separate "technical partner ID" attribute concept.
+#  4. Genuine gap       → `gaps`: 3 concepts with no in-scope OLTP source (derived KPIs and
+#                         the broker Excel lists, which are NOT in the candidate set).
+#  5. Trivial baseline  → the exact/near-name pairs (Vertragsnummer→VTG_NR, Sparte→SPARTE,
+#                         Währung→Currency, …) are the floor any mechanism must clear.
+
+# ── mappings: concept → exactly one (table, column) ────────────────────────────────────
+mappings:
+  # partner — VICTOR_PARTNER is the operational system of record for partners
+  - concept: "partner number"          # STATISTICS TRAP victim: golden = PARTN_NR, not PARTN_GUID
+    entity: partner
+    source_table: VICTOR_PARTNER
+    source_column: PARTN_NR
+    kind: business_key
+  - concept: "technical partner ID"    # the GUID's legitimate home (an attribute, never the BK)
+    entity: partner
+    source_table: VICTOR_PARTNER
+    source_column: PARTN_GUID
+    kind: attribute
+  - concept: "AHV number"              # persons only, ~42% null — an attribute, not the key
+    entity: partner
+    source_table: VICTOR_PARTNER
+    source_column: AHV_NR
+    kind: attribute
+  - concept: "UID"                     # legal entities only, ~88% null
+    entity: partner
+    source_table: VICTOR_PARTNER
+    source_column: UID_NR
+    kind: attribute
+  - concept: "partner type"            # P = person, F = Firma
+    entity: partner
+    source_table: VICTOR_PARTNER
+    source_column: PARTN_TYP
+    kind: attribute
+  - concept: "partner name"
+    entity: partner
+    source_table: VICTOR_PARTNER
+    source_column: KD_NAME_1
+    kind: attribute
+  - concept: "date of birth"
+    entity: partner
+    source_table: VICTOR_PARTNER
+    source_column: KD_GEBDAT
+    kind: attribute
+  - concept: "street"
+    entity: partner
+    source_table: VICTOR_PARTNER
+    source_column: KD_STRASSE
+    kind: attribute
+  - concept: "postal code"
+    entity: partner
+    source_table: VICTOR_PARTNER
+    source_column: KD_PLZ
+    kind: attribute
+  - concept: "city"
+    entity: partner
+    source_table: VICTOR_PARTNER
+    source_column: KD_ORT
+    kind: attribute
+  # vertrag — VICTOR_VERTRAG
+  - concept: "Vertragsnummer"          # near-name → VTG_NR (trivial baseline)
+    entity: vertrag
+    source_table: VICTOR_VERTRAG
+    source_column: VTG_NR
+    kind: business_key
+  - concept: "Sparte"                  # exact name (trivial baseline)
+    entity: vertrag
+    source_table: VICTOR_VERTRAG
+    source_column: SPARTE
+    kind: attribute
+  - concept: "Vertragsstatus"          # offeriert|aktiv|sistiert|storniert
+    entity: vertrag
+    source_table: VICTOR_VERTRAG
+    source_column: VTG_STATUS
+    kind: attribute
+  - concept: "Prämie"                  # exact-ish → PRAEMIE (trivial baseline)
+    entity: vertrag
+    source_table: VICTOR_VERTRAG
+    source_column: PRAEMIE
+    kind: attribute
+  - concept: "Prämien-gültig-ab"       # the premium-versioning date (doc §3.4)
+    entity: vertrag
+    source_table: VICTOR_VERTRAG
+    source_column: PRAEMIE_AB
+    kind: attribute
+  - concept: "Vertragsbeginn"
+    entity: vertrag
+    source_table: VICTOR_VERTRAG
+    source_column: BEGINN_DAT
+    kind: attribute
+  # schadenfall — CLAIMSPRO_CLAIM
+  - concept: "Schadennummer"           # semantic (not lexical) → ClaimNo
+    entity: schadenfall
+    source_table: CLAIMSPRO_CLAIM
+    source_column: ClaimNo
+    kind: business_key
+  - concept: "Policennummer im Schaden"  # doc §2: claim carries a policy ref in a DIFFERENT format than VTG_NR
+    entity: schadenfall
+    source_table: CLAIMSPRO_CLAIM
+    source_column: PolicyNo
+    kind: attribute
+  - concept: "Meldedatum"
+    entity: schadenfall
+    source_table: CLAIMSPRO_CLAIM
+    source_column: ReportedDate
+    kind: attribute
+  - concept: "Schadenstatus"
+    entity: schadenfall
+    source_table: CLAIMSPRO_CLAIM
+    source_column: ClaimStatus
+    kind: attribute
+  - concept: "Schadensumme"            # → ClaimAmount
+    entity: schadenfall
+    source_table: CLAIMSPRO_CLAIM
+    source_column: ClaimAmount
+    kind: attribute
+  # zahlung — CLAIMSPRO_PAYMENT
+  - concept: "Zahlungsreferenz"        # → PaymentRef
+    entity: zahlung
+    source_table: CLAIMSPRO_PAYMENT
+    source_column: PaymentRef
+    kind: business_key
+  - concept: "Zahlungsbetrag"          # → Amount
+    entity: zahlung
+    source_table: CLAIMSPRO_PAYMENT
+    source_column: Amount
+    kind: attribute
+  - concept: "Währung"                 # exact → Currency (trivial baseline)
+    entity: zahlung
+    source_table: CLAIMSPRO_PAYMENT
+    source_column: Currency
+    kind: attribute
+  - concept: "Valutadatum"             # → ValueDate
+    entity: zahlung
+    source_table: CLAIMSPRO_PAYMENT
+    source_column: ValueDate
+    kind: attribute
+
+# ── ambiguous: legitimate multi-candidate cases — ANY listed candidate scores as correct ─
+ambiguous:
+  # SYNONYM TRAP (§4.1): the doc (§2, §6) says CRM's ExternalCustomerNo *should* correspond
+  # to VICTOR PARTN_NR, but the mapping is only ~70% maintained (profiling: 30% null). Both
+  # are legitimate sources for a cross-system "customer reference"; neither is wrong.
+  - concept: "customer reference"
+    entity: partner
+    candidates:
+      - {table: VICTOR_PARTNER, column: PARTN_NR}
+      - {table: CRM_ACCOUNT, column: ExternalCustomerNo}
+
+# ── gaps: concepts with NO legitimate in-scope source (born downstream / out of candidate set) ─
+gaps:
+  # GENUINE GAP (§4.4): derived KPIs with no OLTP origin → Business Vault / marts (ADR-0007).
+  - concept: "Schadenquote je Partner"
+    reason: >-
+      Derived KPI (claims ratio per partner); no OLTP column. Belongs to the Business Vault /
+      Information layer per ADR-0007, not the Raw Vault. Force-fitting it to any source column
+      is the worst failure mode.
+  - concept: "Cross-Selling-Quote"
+    reason: >-
+      Reporting KPI named in the requirements' goals (§1); computed downstream, no source column.
+  # Broker/commission data lives ONLY in the "Vertriebs-Excellisten" (§2, §3.7), which are NOT
+  # part of the machine-ingestible candidate set (precondition (b)/(c) unmet for them) → gap.
+  - concept: "Provision je Vertrag und Vermittler"
+    reason: >-
+      Commission per contract/broker; source is the brokers' Excel lists, which are not in the
+      declared candidate set (no VICTOR/CRM/ClaimsPro column). Out-of-scope source, not derivable.
+  - concept: "Maklercode"
+    reason: >-
+      Broker code; same broker Excel-list origin, absent from the candidate set. Gap until that
+      source is brought in scope and profiled.
+
+# ── false_friends: columns a lexical matcher is tempted by, but which NO concept maps to ──
+false_friends:
+  # FALSE-FRIEND TRAP (§4.2): KD_ is the "Kunde" (customer) prefix, so a name-similarity
+  # matcher reads KD_NR as "Kundennummer" (customer number). It is a legacy branch-office
+  # code (31 distinct values in profiling.yml, documented in the schema comment). Mapping any
+  # concept to it is an error the scorer names as a false-friend hit.
+  - {table: VICTOR_PARTNER, column: KD_NR, note: "legacy branch code, not a customer number"}
+  # AccountId profiles as a flawless key (uniqueness 1.0, 0 nulls) but is a CRM-internal
+  # technical surrogate — a second statistics-trap distractor; no business concept maps to it.
+  - {table: CRM_ACCOUNT, column: AccountId, note: "Salesforce-internal surrogate, not a business key"}

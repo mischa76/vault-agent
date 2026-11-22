@@ -1,0 +1,417 @@
+# 9. From output to warehouse
+
+## 9.1 The generated project
+
+A finalized run's output directory *is* a dbt project: models (staging + raw vault),
+`dbt_project.yml` (staging as views, raw vault incremental, seeds unquoted),
+`packages.yml` (AutomateDV, pinned), and a generated `README.md` documenting how to run
+exactly this output. You supply two things: the **raw data** — either as dbt seeds
+(CSVs matching the expected columns documented in `models/staging/sources.yml`) or as
+real tables when the run was grounded with physical locations — and a
+**`profiles.yml`** with your warehouse connection.
+For AdventureWorks the repository loads the raw tables itself (WP110, 2026-10-31):
+`uv run python -m eval.adventureworks.load_postgres --url postgresql://… [--csv-dir DIR] [--replace]`
+fetches Microsoft's 68 CSVs into a cache and loads them under the schemas the generated
+`sources.yml` names, columns lowercase, `load_datetime` and `record_source` added, the foreign
+keys last — 759 239 rows in about half a minute on a local PostgreSQL.
+
+## 9.2 Build workflow
+
+```mermaid
+flowchart LR
+    classDef step fill:#dbeafe,stroke:#1d4ed8,color:#111827
+    classDef opt fill:#f3f4f6,stroke:#6b7280,color:#111827,stroke-dasharray: 5 5
+
+    A["dbt deps<br/>(AutomateDV, pinned)"]:::step
+    B["dbt seed<br/>(only seed-based runs)"]:::opt
+    C["dbt build --full-refresh<br/>initial load"]:::step
+    D["dbt build<br/>incremental re-run (idempotent)"]:::step
+    E["snapshot loads<br/>(eff_sat end-dating)"]:::opt
+
+    A --> B --> C --> D --> E
+```
+
+`dbt build --full-refresh` is the canonical first command: it seeds (where
+applicable), builds staging and raw vault, and runs the generated tests in one pass.
+The acceptance signal that matters operationally is the **incremental re-run**: a
+second plain `dbt build` must be idempotent — no duplicate rows, no changed end-dates.
+If a re-run changes row counts, something is wrong (usually staging binding or key
+hashing), regardless of how green the first build was. PASS counts vary with the
+model; the demos' READMEs record their expected values as dated reference points.
+
+## 9.3 Source binding forms
+
+How a staging model references its raw relation tells you how much the run knew about
+your sources — recognisable in `models/staging/*.sql` and `sources.yml`:
+
+**Inferred** (`raw_<base>`): no declared source table matched, so the generator named
+the conventional relation and flagged it (`SOURCE_BINDING`, advisory; `BINDING_REJECTED`, a
+decision, when WP73 refused a relation lacking a hashed column). Seed-based builds use this
+form as a bare name; the flag is your review prompt, never a silent guess. **In a project that
+addresses its declared inputs through `source()` blocks, every inferred relation is declared
+under one more block, `inferred`, with `schema: "{{ target.schema }}"` (WP76, 2026-10-17)** —
+AutomateDV turns a bare name into a `ref()`, and one unresolvable `ref()` had made a whole
+chain project unparseable. The project now parses; a build fails exactly on the inferred
+stages until you provide each relation as a table or view of that name in the target schema
+(or a seed, which lands there too).
+
+**Declared, bare-name**: a grounded run matched a declared table *without*
+schema/database — the staging references the table name directly and `sources.yml`
+documents the expected raw interface. This deliberately keeps the seed-compatible
+pattern (a dbt source without a schema property would default its schema to the
+source name and break it).
+Only stages of this form and the seed world's bare names make the project carry a `seeds:`
+block with the contract-pinned column types (WP107, 2026-10-31); a project whose stages all
+read `source()` relations has none, and dbt stops warning about paths that apply to nothing.
+
+**`source()` mapping form**: the declared table carried `schema`/`database`, so
+staging binds via dbt's `source()` and `sources.yml` becomes a real source definition
+(one block per distinct database/schema). No seeds involved — dbt reads your actual
+raw tables. Ratifying mappings at the checkpoint (7.6) upgrades bindings to this form
+and clears the inferred-binding flags.
+
+**Carried binding** (WP77, 2026-10-17): a brownfield run keeps the declared binding an earlier
+increment made for a stage — `stage_bindings` in `metadata/source_catalogue.yml`, keyed by stage
+model — unless a ratified mapping, a ratified proposal or a human's binding (7.7) says otherwise;
+WP73's column check still applies and a refused carried binding is a `binding_rejected` decision.
+Before WP77 a link bound by offer in one step inferred in the next, because the offer tier sees
+only the increment's tables (the twentieth chain lost 24 of 34). **Since WP105 (2026-10-31) the
+offer and the evidence tier never overrule a carried binding either**: the link's relation
+resolution answers the carried binding first, at every call site, so a later increment's only
+offer cannot re-point a stage an earlier step bound with the evidence in hand — the twenty-third
+chain's step 4 had re-pointed two product→unit-measure stages from `Product` to `ProductVendor`
+and loaded the vendor's purchasing unit as the product's size unit, every gate green.
+Since WP106 (2026-10-31) the catalogue also carries each table's primary key, unique keys and
+foreign keys, so a carried relation is judged like one of the increment, and the eval harness
+carries `stage_aliases` between steps as the CLI does.
+
+**Translation model** (WP36, ADR-0013): a link ratified from a foreign key that references a
+surrogate while the hub is keyed on the natural key gets a second staging model,
+`stg_<link>_via_<relation>` — a view that LEFT JOINs the referencing relation to the
+referenced one on the surrogate and projects the natural key under the hub's canonical
+column name — every column of it for a hub keyed on several (WP93, 2026-10-26: one LEFT JOIN,
+the columns projected in the hub's order, the link's hash taken over them exactly as the hub's own
+stage does). The link's ordinary `stage` model reads that view instead of the raw relation;
+its hashes are unchanged. Every row of the referencing relation survives the join; an
+unmatched surrogate becomes a NULL key that the model's own `schema.yml` refuses at
+`dbt build` (`not_null` on each projected column where the surrogate is not NULL,
+`relationships` from the surrogate to the referenced relation). A NULL surrogate is a NULL
+participant, not a dangling reference (WP93): the row loads, and when the surrogate and the
+projected key are both of null-safe types the participation is zero-keyed like any other (WP83,
+WP86). The translation is therefore visible SQL and a failing test, never a hidden mapping. When the referencing relation carries a column of the natural key's name that
+means something else (`SalesOrderHeader.AccountNumber`, a financial account), the key is projected
+as `<KEY>_VIA_<RELATION>` (`ACCOUNTNUMBER_VIA_CUSTOMER`) and the relation's own column stays payload
+(WP89, 2026-10-23); when two translations of one stage project the same key name — two hubs keyed on their `Name` in one link — the second and every later one is projected apart the same way (`NAME`, `NAME_VIA_SHIFT`; WP100, 2026-10-30). A view joining several relations whose full `_via_…_and_…` name would exceed the platform's identifier limit (PostgreSQL 63, Databricks 255 — `rules/platforms.py`) is named `stg_<link>_via_<n>_<digest>` instead, the joined relations still listed in its header; any other staging name over the limit is flagged (WP102, 2026-10-31). `metadata/automatedv.yml` records it under the link's staging entry as
+`key_translation`, one entry per join. Where even that short form would not fit — the stage's own name leaves fewer than 13 characters — the view keeps as much of the stage's name as fits and the digest covers the whole name (`stg_business_entity_sales_territory_assignment_det_via_1_d45f39`, 63 characters); the stage's own name is never cut (WP129, 2026-11-15). Since WP39 the join may go one table further than the relation the foreign key names — when that relation has no hub and its key is itself a declared foreign key — and the view is still one LEFT JOIN, to the end table. **Built on PostgreSQL since 2026-09-13** (`demo/fk_links_postgres`); that first build fixed the view's `schema.yml` (not valid YAML before) and the case of two translations in one link (one view, one LEFT JOIN each, `_via_<a>_and_<b>`).
+
+**Relationship-table link** (WP37): a link ratified for a whole table (`Table.*`, 7.5) is
+named `link_<table>` and its stage binds to *that* table — the one relation that carries every
+participation's key — through the same override path a ratified mapping uses, so no
+`SOURCE_BINDING` flag is raised for it. Translated participations read their translation
+views as above. Built on PostgreSQL in the same demo since 2026-09-13.
+
+**A role's column by rule** (WP95, 2026-10-26): a role-qualified participation with no declared
+source column is staged under `<ROLE>_<KEY>` (`SALES_PERSON_BUSINESSENTITYID`), a column no
+relation carries. Before WP73 judges a candidate relation, the stage reads that column from the
+relation's single-column foreign key that resolves to the participation's hub — one key and one
+participation pair outright; several pair by the column the role names (`sales_person` →
+`SalesPersonID`), unique both ways, and the last participation with the last column. An alias the
+modeler invented (`StoreID` on `Store`) counts as none and is replaced. What the rule derived is
+listed as `role_columns` in `metadata/automatedv.yml` beside the human's `ratified_columns`, and
+both travel in the catalogue as `stage_aliases`. What it cannot derive — a relation without
+foreign keys, two unnamed keys for two roles — stays the sign-off's (`--bind`, 7.5).
+
+**Link bound by its offer** (WP42): a link the modeler named freely — `link_bom` from
+`BillOfMaterials` — matches no table by name. When exactly one declared relation offers all its
+participations (`rules.resolve_link_relation`, reason `offer`; see `E_LINK_KEY_WRONG_COLUMN` in
+chapter 8), its stage binds to that relation through the same override path, so no
+`SOURCE_BINDING` flag is raised. An ambiguous or unbindable link keeps the inferred `raw_<base>`
+and its flag, which since WP47 carries the typed reason: `ambiguous` (two or more relations offer
+the participations — a review decision), `none` (nothing declares the relation), `shared` (the
+stage is a hub's). A chain step that receives the catalogue of the steps before it (the
+`adventureworks_incremental_cumulative` eval case) binds most of what the per-domain chain can
+only infer. Like the name rule, it applies on every run, to the links of a vault being extended
+as well — staging is re-derived each time, so a brownfield run over the same vault and schema
+stages them as the run that built them did. One case keeps its binding on purpose: a link whose
+stage a hub shares by name (`link_vendor_business_entity` beside `hub_vendor_business_entity`),
+where the hub's binding decides. Built on PostgreSQL in the same
+demo since 2026-09-17.
+
+**A link on a hub's stage that reads another relation is renamed** (WP135, 2026-11-16). A stage is
+named after its construct's base, so `link_product_subcategory` and `hub_product_subcategory` are
+staged by one model. That is right while both read one relation and cannot build when they read
+two: the hub is built from `ProductSubcategory`, the link's participations are offered by
+`Product` alone, the hub's binding was refused for the link's column and both ended on an
+inferred relation (60 links over 36 stored chains). The modeler's backstop `link_off_hub_stage`
+(chapter 8) renames such a link of the increment after its hubs — `link_product_product_subcategory`,
+a role after its hub — when a relation of the increment offers its participations and none the hub
+is built from does; its satellites follow, the rename is a `link_renamed` disclosure. The link
+then has a stage of its own, bound by its offer. A name already taken is not taken twice: nothing
+is renamed and the refusal stands. Links of a vault being extended keep their names.
+
+**A new hub named after the concept is bound to the table its model names** (WP136, 2026-11-16).
+`hub_work_order_operation` is built from `WorkOrderRouting` (`source_entity`); the name rule
+binds nothing, and such a hub used to get its relation from the mapper's proposal — after the
+validator, and for a composite key's label (`work_order_operation` names no column) not at all.
+A single-source hub of the increment whose model names exactly one table of the increment is now
+bound to it when staging is generated, as the last tier (after a sign-off binding, an override,
+a carried binding and the name rule), under the same column check. Bound before the validator,
+its satellites are grain-judged in the attempt (8.2, `E_SAT_GRAIN_NOT_UNIQUE`) instead of bound
+behind the gate. A hub of a vault being extended keeps the binding it carries.
+
+**A link that takes a hub no key leads to** (WP136). The modeler takes `hub_product` into the
+link over `WorkOrderRouting` because the table carries `ProductID`; the catalogue declares no
+foreign key there, so no relation offers the link and its stage reads an inferred relation (one
+such link in each of the 36 stored chains). Nothing binds on the name — a wrong join loads wrong
+keys with every gate green. The review names what is missing instead: a `link_key_missing`
+disclosure says which relation offers the link's other participations, which hub it has no key
+into, and which of its columns is named like that hub's primary key. Two ways to supply the key:
+declare the foreign key in the source schema, or run `vault-agent infer-keys` (6.1) and accept
+the inferred key at the resolution checkpoint (7) — the link then binds and is translated like
+any other. Told only when exactly one relation is pointed at; a tie tells nothing.
+
+**Link bound by evidence** (WP90, 2026-10-23): when two or more relations offer a link's
+participations, the catalogue may still single one out — first the relation that declares
+**every** attribute of the link's satellites (reason `payload`; a generic column such as
+`ModifiedDate` decides nothing), else the one whose primary key the participations cover (reason
+`key`; a single-source hub of the link built from the relation covers it whole —
+`Customer.CustomerID` for `hub_customer` keyed on `AccountNumber`). The pick is declined when it
+lacks a column a participation names explicitly, because staging would refuse it. The stage binds
+through the override path like an offer, and every such binding is a `link_binding_evidence`
+review decision naming the chosen relation and its rivals — in place of the `ambiguous` decision.
+Measured on a hand-built Sales vault: four of the five links bound by hand bind exactly to the
+hand views' relations, built PASS=407 without those four views.
+
+**Subtype feed** (WP38): a satellite on a hub keyed on the natural key, read from a table keyed
+on the supertype's surrogate — `sat_sales_person_details` on `hub_employee` from `SalesPerson` —
+has its dedicated stage read `stg_<satellite>_via_<relation>`: the same translation view and the
+same data-time tests. It arises only from a ratified same-as whose join the schema declares
+(7.5). Since WP39 also a table keyed on the subtype's key (`SalesPersonQuotaHistory`). Built on
+PostgreSQL since 2026-09-14 (`demo/fk_links_postgres`).
+
+**Key-license repair** (WP40): a link or satellite the modeler built from a relation that lacks a
+participation's key gets that participation's translation, or alias, from a ratified key license
+or link proposal. The link's stage and a link satellite's stage then read one view with one LEFT
+JOIN per translated participation (`stg_product_inventory_via_product_and_location`). Nothing is
+built that the modeler did not build. Built on PostgreSQL since 2026-09-15. A link that takes one hub twice
+pairs each role with the key its name is contained in (`component` → `ComponentID`); a participation
+without a role then reads the one ratified key the roles leave, when the relation carries the hub's key
+under no name of its own (WP131, 2026-11-15 — the assembly of a bill of materials; before, it got no key
+and the stage could not build). Two keys left, or a role still without its key, pair nothing: the binding
+is then refused and the stage disclosed (`binding_rejected`, WP132).
+
+**Role columns** (WP41): a role-qualified participation stops demanding `ROLE_<key>` from its
+relation once a ratified key pairs with it. A same-named key is derived into the role column
+(`ORGANISATION_BUSINESSENTITYID` from `BUSINESSENTITYID`), a renamed key the same way
+(`BUSINESSENTITYID` from `PERSONID`), and a translation projects under the role column
+(`r1.PRODUCTNUMBER as ASSEMBLY_PRODUCTNUMBER`), so two roles of one hub through one table stay two
+columns with their own `not_null` tests. AutomateDV computes derived columns together from the source
+row, so both derivations read source values. Link satellites read from their own table get the same,
+per participation. Built on PostgreSQL since 2026-09-15 (`demo/fk_links_postgres`, `PASS=103`).
+
+**Reserved-word columns** (WP79, 2026-10-18): a source column named like a reserved word —
+`SalesTerritory.Group`, `ProductProductPhoto.Primary` — is escaped in the stage through
+AutomateDV's own mechanism (a derived column `GROUP_` with `source_column: 'group'` and
+`escape: true`, the physical spelling the platform folds to: lower on PostgreSQL, upper on
+Snowflake, as declared on Databricks), and every raw-vault reference names the alias `GROUP_`.
+The list is PostgreSQL's 101 reserved keywords (`rules.RESERVED_COLUMN_WORDS`, from
+`pg_get_keywords()`), the strictest of the platforms; a project without such columns renders as
+before. Before WP79 the same project built on Databricks and failed on PostgreSQL with `syntax
+error at or near "group"` — six views and their sixteen dependants on the twenty-first chain.
+
+## 9.4 Incremental behaviour & effectivity end-dating
+
+The generated effectivity satellite closes superseded relationships: AutomateDV's
+auto-end-dating is enabled, driven by a dedicated `APPLIED_DTS` column that staging
+derives from the business start date — so a superseded row is closed to the
+*successor's business date*, not to a load timestamp. The bank demo's Phase B2 shows
+the canonical two-batch pattern: after loading a transfer snapshot, the account's
+first ownership row is end-dated to the new owner's start (2026-04-01) and the new row
+stays open — and stays that way on re-runs.
+
+**Hashdiffs keep the letter case (WP123, 2026-11-10).** AutomateDV upper-cases every hash input by default
+(`hash_content_casing`, one switch for keys and hashdiffs alike), so a change of case only (`gold` → `Gold`) used to
+leave the satellite untouched and its newest value stale. Each column a hashdiff reads is now first derived in the
+stage as the hex of its trimmed UTF-8 bytes (`<COL>__CS`; PostgreSQL `ENCODE(CONVERT_TO(…, 'UTF8'), 'hex')`,
+Databricks `HEX(…)`); AutomateDV hashes those as before. **Hash keys are unchanged** — business keys stay
+case-insensitive. **Upgrading an existing vault:** every hashdiff changes once, so the first load after regenerating
+inserts one new row per key into every satellite (same values, new hashdiff) — expected, not a change in the data;
+rebuild with `--full-refresh` instead if the history may be reloaded. Two neighbouring behaviours of AutomateDV,
+measured on vault-agent's output (`eval/automatedv/`, C60): a late row (stamped before the satellite's newest load)
+is inserted with its own load date — there is no high-water mark — but one equal to the newest version is not
+recorded, and one equal to the version before it adds a second identical version. **The effectivity satellite needs
+batches in load order:** loaded in reverse, the bank demo's ACC-503 ends with two open owners (C62). **Since WP124**
+a generated project with an effectivity satellite says so in its README and carries two tests per such satellite,
+`tests/<satellite>__one_open_per_driving_key.sql` and `tests/<satellite>__end_after_start.sql`, which fail
+`dbt build` after an out-of-order load; repair by rebuilding the satellite with `--full-refresh` and loading in order.
+
+Multi-active satellites read their own finer-grained staging (their declared
+`source_table`), with the parent's hash key joining every row back to the hub.
+Multi-source hubs union their per-source staging models into one hub — the same key
+value produces an *identical* hash key in every feed's stage and in the hub, which is
+the property to spot-check after a first multi-source build (one row per key,
+satellites split by record source).
+
+A hub with a **composite key** (WP45, `business_key_columns`) hashes every key column, in
+the declared order, into one hash key — AutomateDV's list form of `hashed_columns` — and its
+`src_nk` is the same list; satellites on it and links it takes part in hash the same list from
+their own relations. Spot-check after a first build: one hub row per distinct column tuple,
+every satellite and link row joining it (`demo/fk_links_postgres`, `hub_currency_rate`).
+
+A **composite foreign key** (WP46) is read per component, one table further: when the
+referenced table declares a single-column key on a component onward (`SalesOrderDetail.
+(SpecialOfferID, ProductID) → SpecialOfferProduct`, whose `ProductID → Product`), the component
+is a key into that table and licenses the same translations a declared single key would —
+the line satellite reaches `hub_product`'s natural key through `Product`. A component with no
+onward key stays a typed `composite_key` skip naming it (`demo/fk_links_postgres`,
+`link_sales_order_line`).
+
+## 9.5 The demos as reference runs
+
+All three demos build a real Postgres vault **without an API key** (deterministic build
+scripts through the real code generator) and serve as regression anchors — re-run them
+after any upgrade (AutomateDV bump, dbt bump, generator change):
+
+`demo/bank_postgres/` — the ungrounded baseline: seed-based, inferred bindings,
+hand-authored staging for the two-phase end-dating demo, self-referencing transfer
+link with role-qualified FKs. Its README's runbook and Findings section double as a
+worked example of everything in 9.2–9.4.
+
+`demo/bank_databricks/` — the bank demo's twin on Databricks (WP72): same SQL, seeds and
+tests, seed types in the Databricks dialect, connection from the environment, its own
+`.venv-databricks`. Its README has the runbook; the build was recorded on 2026-10-16.
+
+`demo/mapping_postgres/` — the grounded contrast: declared enriched schema plus a
+ratified mapping, staging bound to real business-named tables, **zero**
+inferred-binding flags. Same model, different knowledge — comparing the two staging
+layers side by side is the fastest way to internalise 9.3.
+
+`demo/fk_links_postgres/` — the FK-derived links: a surrogate→natural-key translation
+(WP36, ADR-0013) and a three-way relationship-table link with two translated
+participations (WP37), proposed from declared foreign keys, ratified, applied and
+generated by the pipeline's own functions. Its translation views carry the `not_null` /
+`relationships` tests that are the data-time gate; its README shows the gate failing on
+an orphan surrogate.
+
+## 9.6 Platform notes
+
+The vault SQL is platform-neutral: every physical difference is AutomateDV's, dispatched
+per adapter inside the package. What the generator itself knows per platform is the seed
+column types it writes when a contract pins a staging source's types (WP7), and the
+profile hint in the generated README. That knowledge lives in one place,
+`rules/platforms.py`; `--target-platform` (6.2) selects it, and the choice is persisted
+with the run so a resume keeps it.
+
+**PostgreSQL** — the default, and the first platform **verified end-to-end** including the
+output of real runs (Databricks followed in WP72, below) (PostgreSQL 16, pinned AutomateDV, the demos in 9.5). The convention worth knowing is casing — every
+identifier stays *unquoted* (seeds set `quote_columns: false`), so UPPER_SNAKE names fold
+consistently.
+
+**Databricks** — selectable since WP35 (2026-09-11); **verified on the bank demo since
+2026-10-16** (WP72 stage 1: `demo/bank_databricks/` on a Free Edition serverless warehouse,
+dbt-databricks 1.12.5, `PASS=36`, idempotent, end-dating closes, `BALANCE` intact) **and for a
+real run's output since the same day** (WP72 stage 2: the person step generated with
+`--target-platform databricks`, the 13 AdventureWorks tables in `workspace.person`, `PASS=48`,
+every hub equal to its source's distinct keys — 2026-10-16); **the five-step
+chain's increments are built there too** (WP72 stage 3, the same day: 37 of 39 hubs, 32 of 51
+links, 92 of 96 satellites across the 68 AdventureWorks tables — nothing failed for a platform
+reason; what did not build is 13 mis-bound staging views and 10 ungrounded ones, the
+generator's, see the log). A generated `sources.yml`'s `schema:` resolves under the profile's
+`catalog:` with no mapping. **Two things to know before building a chain's output anywhere:** an
+output written before WP74 (2026-10-17) declares only its own increment's sources and re-renders
+the earlier constructs' staging ungrounded — build each step's new models there, or regenerate
+once; from WP74 on the source catalogue travels with the model and the project parses whole
+(`project_self_contained` in the eval). And the Free Edition's Unity Catalog quotas: **100 tables per
+schema and 500 per metastore, views counted as tables, enforced on an estimate** (the per-schema
+limit let `vault_aw` reach 276 objects before it struck; Databricks mails at 85 % and 100 %). A whole
+AdventureWorks vault with its staging views exceeds the per-schema quota on its own — split staging
+and raw vault into two target schemas there (`+schema:` per model path in `dbt_project.yml`), and drop
+earlier builds before a new one (2026-10-17) — **always, before every build:** the quota counts
+replacing a view as creating one, so a `--full-refresh` into a schema already above the limit fails whole
+(142 refusals, PASS=0, 2026-10-17); staging alone needs two schemas (145 views). **Dropping does not free
+the metastore quota:** dropped tables and views stay counted for their seven-day UNDROP retention, and
+every `CREATE OR REPLACE VIEW` leaves a dropped copy (`SHOW TABLES DROPPED IN <schema>` shows them), so
+the 500 is a budget of creations per week — one whole AdventureWorks vault (340 objects) beside the 83
+source and demo objects; a second build in the same week is refused with „estimated count: 754“ while
+`information_schema` counts 83 (2026-10-18). Probe with one `CREATE TABLE` first. dbt-databricks without a `unique_key` merges `on FALSE`, i.e. appends,
+so no incremental-strategy setting is generated. Selecting it changes two things — seed types use the native spellings
+(`string` instead of `varchar`, which needs a length there; `decimal(38,18)` instead of
+`numeric`, whose platform default `DECIMAL(10,0)` would silently truncate fractions) and
+the README names the adapter (`dbt-databricks`, `uv sync --extra demo-databricks`) and
+the profile shape. Every macro the generated project calls has a Databricks implementation
+in the pinned AutomateDV, checked by a test that reads the installed package. On the first
+build there, run the demo checklist (build green, incremental idempotent, end-dating
+closes) and two Databricks-specific checks: that a plain `dbt build` appends rather than
+merges (dbt-databricks defaults to `merge`; without a `unique_key` it should insert every
+row — unverified), and that a `number` column loads with its fractions intact, which is
+the defect this dialect exists to prevent.
+
+**Snowflake, BigQuery, MS SQL Server** — supported by the AutomateDV backend, no profile of
+their own yet: they run under the default platform, i.e. with Postgres-spelled seed types,
+which those platforms accept. Not covered by the project's own verification; treat the
+demo checklist as the acceptance test and expect platform-specific casing/quoting to be
+the first thing to check. A profile is added when someone verifies one.
+
+## 9.7 Business Vault: point-in-time tables and bridges (WP91, WP115, ADR-0016)
+
+Opt-in — `--pit` and/or `--bridge PATH`, with `--as-of-start D1 --as-of-end D2 [--as-of-grain day|month]`,
+or the same fields on the workbench's run start. The project then gains `models/business_vault/`:
+
+- **`as_of_dates`** — the spine every PIT and bridge reads, `dbt_utils.date_spine` over the operator's
+  bounds (start inclusive, end exclusive), one `AS_OF_DATE` per grain. Both bounds are required: a PIT
+  is a cross join of hub keys and as-of dates, and nothing in the inputs says what it should span.
+- **`pit_<hub base>`** — one per hub with **two or more descriptive satellites** (standard or
+  multi-active, parent = the hub; effectivity and link satellites are not a hub's payload). A row
+  is the hub's hash key, `AS_OF_DATE`, and per satellite model `<SAT>_PK` and `<SAT>_LDTS`: the
+  satellite's latest load at or before the as-of date. Plain SQL — one grouped LEFT JOIN per
+  satellite — materialised `table` and rebuilt whole on every run; no `automate_dv.pit()`, which
+  AutomateDV 0.11.4 deprecates as „not currently fit-for-purpose".
+- **Ghost entries are AutomateDV ghost records.** The project sets `enable_ghost_records: true`, so
+  every standard satellite carries AutomateDV's ghost row (key `binary_ghost`, load date
+  `1900-01-01`, `RECORD_SOURCE = 'AUTOMATE_DV_SYSTEM'`), and a PIT entry with no satellite row
+  carries exactly those values (`automate_dv.binary_ghost`, `automate_dv.date_ghost` — the
+  package's own helpers, so the two agree on every platform). A join from the PIT to a standard
+  satellite on (`<SAT>_PK`, `<SAT>_LDTS`) therefore finds one row for every entry. AutomateDV has
+  **no ghost record for a multi-active satellite**: a ghost entry of such a satellite joins nothing
+  — the model's header names them; join those LEFT. The hubs' `-1`/`-2` zero-key rows (WP86) are a
+  different thing: unknown or not-applicable business keys in links, not PIT ghosts.
+- `metadata/automatedv.yml` records each PIT under `pit:` (hub, key, spine, satellites with their
+  key and load-date columns); the review lists one `pit_generated` disclosure per PIT — a PIT is
+  deterministic from the model, nothing to decide (ADR-0007's reading).
+- Turning PITs on adds one ghost row per standard satellite to a vault built without them; the
+  second build is idempotent again. `packages.yml` declares `dbt_utils` (the version AutomateDV
+  already resolves) only then.
+
+- **`bridge_<hub bases>`** (WP115) — one per **path**, `hub,link,hub[,link,hub…]`: hubs and links
+  alternating, a role-qualified participation as `hub:role` (the first hub's role names its
+  participation in the first link, every later hub's the one in the link just walked; a middle hub
+  leaves by the next link's remaining participation). A row is the first hub's hash key,
+  `AS_OF_DATE`, and per link its hash key and the far participation's FK column — one row per path
+  instance **valid at the date**: by the link's effectivity satellite where the model has one (its
+  latest row at the date, start <= date < end) and by the link's load date otherwise; the model's
+  header says which. Inner joins: a key with no valid path on a date has no row (a PIT keeps every
+  key, a bridge every path). Two ways to a path: **named at start** (`--bridge`, repeatable; the
+  workbench's `bridges`), or **proposed and ratified** — the run proposes one path per pair of links
+  that cite the same requirement and share a hub (deterministic from the model's own citations, no
+  prompt), each a `bridge_proposed` **decision** at sign-off: `resume --bridge "<path>"` builds it,
+  `--no-bridge` declines it, the interactive prompt defaults to no, and an unanswered proposal is
+  declined at `--accept` — Business Vault logic is human-ratified (ADR-0007), never built by default.
+  A `resume --bridge` with a path no proposal carried builds it too, if the model parses it (a run
+  without as-of bounds cannot: start it with them). **Since WP122** a path that ends on the participation it
+  starts from is not proposed. **Since WP144 the decision is per link pair and shared hub**, not per path: the
+  paths of one pair differ only in their ends, the `bridge_proposed` item names them all, and the answer is
+  still by path — name the one whose ends you want (`--bridge "<path>"`; the prompt asks which by number), leave
+  the pair and every path of it is declined. On the stored chain of 2026-11-15 that is 22 decisions where one
+  per path was 174. A declined path is written to `metadata/bridge_decisions.yml` (`declined:`,
+  only when there is one); an extension (`--existing`, the workbench's base run) reads it and does not propose
+  those paths again — name one with `--bridge` to build it after all, and it leaves the list. The bridges are rendered at sign-off from the
+  raw vault's own metadata, so the written project holds them; `metadata/automatedv.yml` records
+  each under `bridge:` (path, spine, steps with their validity source and columns); one
+  `bridge_generated` disclosure per bridge.
+
+Not generated yet: an incremental PIT or bridge, per-hub PIT selection, PITs over link satellites,
+a path that crosses a link twice. Verified by a keyless `dbt build` on PostgreSQL: the PIT against
+a hand-built AdventureWorks vault (2026-10-23, WP91), the bridges against the bank
+demo's seeds — every as-of date's pairs equal the effectivity rows' validity and the seed's own
+dates, the second build idempotent (2026-10-31, WP115); Databricks not built.
+

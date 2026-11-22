@@ -1,0 +1,232 @@
+# Profiling evidence for the messy_insurance mapping spike (D1).
+#
+# ADR-0008 #4: profiling is a PRE-STEP artifact, not a runtime capability — produced ahead
+# of time (sanitised extract / metadata export), never by the agent logging into a source.
+# This file models exactly that hand-off: one block per source table, per-column statistics
+# the mapping may use as evidence.
+#
+# Hand-authored for the spike with PLAUSIBLE values (no real data). The §4 traps are
+# deliberately reflected in the numbers, because the whole point of ADR-0008's
+# "statistics establish structure, not intent" is that profiling ALONE is not enough:
+#   * PARTN_GUID profiles as a FLAWLESS key (uniqueness 1.0, 0 nulls) but is NOT the
+#     business key — the statistics trap.
+#   * PARTN_NR, the real business key, carries a realistic minor wart (0.2% nulls from a
+#     legacy migration) — so a "pick the cleanest column" heuristic would wrongly prefer
+#     PARTN_GUID.
+#   * KD_NR (the false-friend branch code) profiles as low-cardinality — here statistics
+#     DO save you, if you look.
+#   * ExternalCustomerNo is only ~70% populated — the synonym candidate is visibly partial.
+#
+# example_values are sanitised/synthetic. uniqueness_ratio = distinct_count / non_null_count.
+tables:
+  - table: VICTOR_PARTNER
+    row_count: 2000000
+    columns:
+      - name: PARTN_NR
+        uniqueness_ratio: 0.9998
+        null_ratio: 0.002
+        distinct_count: 1992016
+        example_values: ["P000012345", "P0000999812", "P0004410077"]
+      - name: PARTN_GUID
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 2000000
+        example_values:
+          ["a1f4c9e0-1111-4b2a-9c33-000000000001", "b2e5daf1-2222-4c3b-8d44-000000000002"]
+      - name: KD_NR
+        uniqueness_ratio: 0.0000155
+        null_ratio: 0.01
+        distinct_count: 31
+        example_values: ["01", "07", "12", "31"]
+      - name: AHV_NR
+        uniqueness_ratio: 0.999
+        null_ratio: 0.42
+        distinct_count: 1160000
+        example_values: ["756.1234.5678.97", "756.9999.1111.02"]
+      - name: UID_NR
+        uniqueness_ratio: 0.998
+        null_ratio: 0.88
+        distinct_count: 239500
+        example_values: ["CHE-123.456.789", "CHE-999.888.777"]
+      - name: PARTN_TYP
+        uniqueness_ratio: 0.000001
+        null_ratio: 0.0
+        distinct_count: 2
+        example_values: ["P", "F"]
+      - name: KD_NAME_1
+        uniqueness_ratio: 0.61
+        null_ratio: 0.001
+        distinct_count: 1218000
+        example_values: ["Muster", "Beispiel AG", "Example Trust"]
+      - name: KD_NAME_2
+        uniqueness_ratio: 0.30
+        null_ratio: 0.72
+        distinct_count: 168000
+        example_values: ["c/o Treuhand", "z.Hd. Buchhaltung"]
+      - name: KD_GEBDAT
+        uniqueness_ratio: 0.012
+        null_ratio: 0.31
+        distinct_count: 16600
+        example_values: ["1971-04-12", "1988-11-30"]
+      - name: KD_STRASSE
+        uniqueness_ratio: 0.38
+        null_ratio: 0.03
+        distinct_count: 736000
+        example_values: ["Bahnhofstrasse 1", "Musterweg 12"]
+      - name: KD_PLZ
+        uniqueness_ratio: 0.0016
+        null_ratio: 0.03
+        distinct_count: 3100
+        example_values: ["8001", "3011", "6900"]
+      - name: KD_ORT
+        uniqueness_ratio: 0.0009
+        null_ratio: 0.03
+        distinct_count: 1750
+        example_values: ["Zürich", "Bern", "Lugano"]
+      - name: MUT_DAT
+        uniqueness_ratio: 0.44
+        null_ratio: 0.0
+        distinct_count: 880000
+        example_values: ["2026-06-30T02:14:05", "2026-07-01T02:09:41"]
+  - table: VICTOR_VERTRAG
+    row_count: 3500000
+    columns:
+      - name: VTG_NR
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 3500000
+        example_values: ["V00000012345", "V00003410099"]
+      - name: PARTN_NR
+        uniqueness_ratio: 0.57
+        null_ratio: 0.0
+        distinct_count: 1995000
+        example_values: ["P000012345", "P0004410077"]
+      - name: SPARTE
+        uniqueness_ratio: 0.0000034
+        null_ratio: 0.0
+        distinct_count: 12
+        example_values: ["HR", "MFH", "LEBEN", "KRAN"]
+      - name: VTG_STATUS
+        uniqueness_ratio: 0.0000011
+        null_ratio: 0.0
+        distinct_count: 4
+        example_values: ["offeriert", "aktiv", "sistiert", "storniert"]
+      - name: PRAEMIE
+        uniqueness_ratio: 0.09
+        null_ratio: 0.001
+        distinct_count: 315000
+        example_values: ["840.00", "1250.50", "99.90"]
+      - name: PRAEMIE_AB
+        uniqueness_ratio: 0.0009
+        null_ratio: 0.02
+        distinct_count: 3200
+        example_values: ["2026-01-01", "2025-07-01"]
+      - name: BEGINN_DAT
+        uniqueness_ratio: 0.003
+        null_ratio: 0.0
+        distinct_count: 10800
+        example_values: ["2019-04-01", "2023-10-15"]
+      - name: MUT_DAT
+        uniqueness_ratio: 0.51
+        null_ratio: 0.0
+        distinct_count: 1785000
+        example_values: ["2026-06-30T02:20:11", "2026-07-01T02:18:03"]
+  - table: CRM_ACCOUNT
+    row_count: 2350000
+    columns:
+      - name: AccountId
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 2350000
+        example_values: ["001AB0000012xyzAAA", "001AB0000099pqrBBB"]
+      - name: ExternalCustomerNo
+        uniqueness_ratio: 0.9995
+        null_ratio: 0.30
+        distinct_count: 1644500
+        example_values: ["P000012345", "P0000999812"]
+      - name: Name
+        uniqueness_ratio: 0.64
+        null_ratio: 0.0
+        distinct_count: 1504000
+        example_values: ["Muster", "Beispiel AG"]
+      - name: BillingStreet
+        uniqueness_ratio: 0.41
+        null_ratio: 0.08
+        distinct_count: 795000
+        example_values: ["Bahnhofstrasse 1", "Musterweg 12"]
+      - name: BillingPostalCode
+        uniqueness_ratio: 0.0014
+        null_ratio: 0.08
+        distinct_count: 3100
+        example_values: ["8001", "3011"]
+      - name: BillingCity
+        uniqueness_ratio: 0.0008
+        null_ratio: 0.08
+        distinct_count: 1750
+        example_values: ["Zürich", "Bern"]
+      - name: LastModifiedDate
+        uniqueness_ratio: 0.62
+        null_ratio: 0.0
+        distinct_count: 1457000
+        example_values: ["2026-07-01T09:14:00", "2026-07-02T11:41:23"]
+  - table: CLAIMSPRO_CLAIM
+    row_count: 640000
+    columns:
+      - name: ClaimNo
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 640000
+        example_values: ["SCH-2026-000123", "SCH-2026-004410"]
+      - name: PolicyNo
+        uniqueness_ratio: 0.51
+        null_ratio: 0.004
+        distinct_count: 326000
+        example_values: ["POL-00000012345", "POL-00003410099"]
+      - name: ReportedDate
+        uniqueness_ratio: 0.006
+        null_ratio: 0.0
+        distinct_count: 3900
+        example_values: ["2026-05-02", "2026-06-18"]
+      - name: ClaimStatus
+        uniqueness_ratio: 0.0000078
+        null_ratio: 0.0
+        distinct_count: 5
+        example_values: ["offen", "in Bearbeitung", "bezahlt", "abgelehnt"]
+      - name: ClaimAmount
+        uniqueness_ratio: 0.22
+        null_ratio: 0.02
+        distinct_count: 140000
+        example_values: ["1200.00", "5400.50", "89000.00"]
+  - table: CLAIMSPRO_PAYMENT
+    row_count: 910000
+    columns:
+      - name: PaymentRef
+        uniqueness_ratio: 1.0
+        null_ratio: 0.0
+        distinct_count: 910000
+        example_values: ["PAY-2026-0000123", "PAY-2026-0044100"]
+      - name: ClaimNo
+        uniqueness_ratio: 0.70
+        null_ratio: 0.0
+        distinct_count: 637000
+        example_values: ["SCH-2026-000123", "SCH-2026-004410"]
+      - name: Amount
+        uniqueness_ratio: 0.19
+        null_ratio: 0.0
+        distinct_count: 173000
+        example_values: ["1200.00", "5400.50"]
+      - name: Currency
+        uniqueness_ratio: 0.0000044
+        null_ratio: 0.0
+        distinct_count: 4
+        example_values: ["CHF", "EUR", "USD"]
+      - name: ValueDate
+        uniqueness_ratio: 0.006
+        null_ratio: 0.01
+        distinct_count: 4100
+        example_values: ["2026-05-10", "2026-06-25"]
+      - name: PayeePartnerNo
+        uniqueness_ratio: 0.63
+        null_ratio: 0.05
+        distinct_count: 540000
+        example_values: ["P000012345", "P0004410077"]

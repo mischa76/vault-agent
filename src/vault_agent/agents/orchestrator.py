@@ -1,0 +1,1079 @@
+"""Orchestrator agent (ADR-0002, ADR-0006).
+
+Two deterministic responsibilities, no LLM:
+
+1. **Planning entry node.** Runs first in the graph (``START -> orchestrator -> …``). It
+   validates the run's inputs and records a typed :class:`~vault_agent.state.ExecutionPlan`
+   on the state, so the trace shows the planned stages, declared inputs, and whether
+   source-schema grounding is active.
+
+2. **Human-in-the-loop checkpoint.** :func:`assemble_review_queue` derives a categorized
+   :class:`HumanReviewQueue` from a finished run — the validation issues, contracts still
+   awaiting an owner, and the agents' review flags. Per ADR-0006 this deterministic queue is
+   surfaced to the human (CLI / file) and, when it blocks sign-off, the
+   :class:`HumanCheckpointAgent` pauses the graph on a live LangGraph ``interrupt()`` until a
+   human resumes with their decision. Everything before ``interrupt()`` must stay
+   pure/idempotent because the node re-executes from the top on resume —
+   :func:`assemble_review_queue` is pure, so re-assembling the queue is safe.
+
+Being deterministic, the whole agent is unit-tested without an API key.
+"""
+import logging
+from typing import Any, Literal
+
+from langgraph.types import interrupt
+from pydantic import BaseModel, Field
+
+from vault_agent.agents.base import BaseAgent
+from vault_agent.link_proposal import proposal_key
+from vault_agent.models.contract import ContractOwner
+from vault_agent.rules.dv2_rules import normalize_identifier
+from vault_agent.state import (
+    RESOLUTION_CLASSES,
+    RESOLUTION_SAME_AS,
+    RESOLUTION_UNRESOLVED,
+    ExecutionPlan,
+    FlagKind,
+    Hub,
+    HubSource,
+    KeyAnswer,
+    KeyLicense,
+    LinkProposal,
+    PipelineFlag,
+    Proposal,
+    RelationshipLinkProposal,
+    VaultAgentState,
+    concept_ref_matches,
+    match_concept_refs,
+    resolve_concept_ref,
+    split_concept_key,
+)
+
+logger = logging.getLogger(__name__)
+
+ReviewKind = Literal[
+    "contract_owner", "validation_error", "validation_warning", "review_flag"
+]
+
+# WP43: every review item is one of two things. A *decision* needs an answer from the human
+# before the model is agreed (assign, accept/discard, ratify, fix); a *disclosure* is
+# provenance — what the pipeline assumed, inferred, dropped or declined. Reading it is review;
+# there is nothing to answer at the checkpoint. The count the human cares about is decisions.
+ReviewRole = Literal["decision", "disclosure"]
+
+# The role of an advisory-flag item, by its typed ``kind`` (never by message text). A kind
+# missing here is a DECISION: an unclassified item must never be hidden behind the fold —
+# the conservative default costs a line, not a wrong model. The guard
+# ``test_role_table_classifies_every_declared_flag_kind`` forces every new FlagKind to be
+# classified here explicitly.
+REVIEW_FLAG_ROLES: dict[str, ReviewRole] = {
+    FlagKind.MISSING_INPUT: "disclosure",  # a stage ran without its upstream: operational
+    FlagKind.DROPPED_RECORD: "disclosure",  # an invalid record was dropped, not guessed at
+    FlagKind.COLUMN_COLLISION: "decision",  # two labels, one identifier: rename
+    FlagKind.GENERATION_GAP: "decision",  # could not be generated: do it by hand
+    FlagKind.UNDETERMINED_TYPE: "decision",  # the contract field needs a type
+    FlagKind.NO_SOURCE_SCHEMA: "disclosure",  # the contract was inferred from prose
+    FlagKind.SOURCE_BINDING: "disclosure",  # the staging relation was inferred (spec §5)
+    FlagKind.INPUT_TRUNCATED: "disclosure",  # size guard
+    FlagKind.INPUT_SEGMENTED: "disclosure",  # size guard
+    FlagKind.MAPPING_GAP: "disclosure",  # no in-scope source; belongs downstream (WP9)
+    FlagKind.MAPPING_UNRESOLVED: "decision",  # the human ratifies the mapping
+    FlagKind.EXTENSION_CONFLICT: "decision",  # the merger refused a re-statement
+    FlagKind.RESOLUTION_UNRESOLVED: "decision",  # existing construct or new? ratify
+    FlagKind.RESOLUTION_SAME_AS: "decision",  # asserted equivalent: ratify
+    # WP116: a translation stands under a ratification the gates enforce; the per-construct flag
+    # is provenance (a disclosure, grouped by its key) and the decision is one per key —
+    # synthesised in assemble_review_queue. A flag without its key stays a decision (flag_role).
+    FlagKind.LINK_TRANSLATION: "disclosure",
+    FlagKind.SAT_TRANSLATION: "disclosure",
+    FlagKind.LINK_RELATIONSHIP_INCOMPLETE: "decision",
+    FlagKind.LINK_PROPOSAL_SKIPPED: "disclosure",  # the proposer declined; nothing to answer
+    FlagKind.RETIRED_REEMITTED: "disclosure",  # WP44: the backstop repaired it
+    FlagKind.RETIRED_ORPHAN: "decision",  # WP44: a dependent's payload needs a home
+    FlagKind.RETIRED_REPARENTED: "disclosure",  # WP51: the payload found its home, the twin
+    FlagKind.LINK_COLLAPSED: "disclosure",  # WP55: a one-hub link's satellite moved to the hub
+    FlagKind.LINK_RENAMED: "disclosure",  # WP135: renamed off a hub's stage, deterministically
+    FlagKind.LINK_KEY_MISSING: "disclosure",  # WP136: which key the link's relation lacks
+    FlagKind.RELATION_INFERRED: "disclosure",  # WP56: the schema named a satellite's relation
+    FlagKind.BINDING_REJECTED: "decision",  # WP73: the relation lacks a hashed column; map it
+    FlagKind.LINK_BINDING_EVIDENCE: "decision",  # WP90: bound by evidence, in place of ambiguous
+    FlagKind.PIT_GENERATED: "disclosure",  # WP91: deterministic from the model (ADR-0016)
+    FlagKind.BRIDGE_PROPOSED: "decision",  # WP115: a path the human ratifies (ADR-0007)
+    FlagKind.BRIDGE_GENERATED: "disclosure",  # WP115: rendered along a named or ratified path
+    FlagKind.REQUIREMENTS_UNREVIEWED: "decision",  # WP117: a draft nobody corrected (ADR-0019)
+    FlagKind.GENERIC: "decision",  # untyped work, not provenance
+}
+_DEFAULT_ROLE: ReviewRole = "decision"
+# WP47: a typed reason can override the kind's role. An ambiguous binding — several declared
+# relations offer the link's participations — is a question only a human can answer.
+REVIEW_FLAG_REASON_ROLES: dict[tuple[str, str], ReviewRole] = {
+    (FlagKind.SOURCE_BINDING, "ambiguous"): "decision",
+}
+
+
+def flag_role(flag: PipelineFlag) -> ReviewRole:
+    """The role of a flag's review item: typed severity first, then (kind, reason), then kind."""
+    if flag.severity == "error":
+        return "decision"
+    if flag.reason is not None and (flag.kind, flag.reason) in REVIEW_FLAG_REASON_ROLES:
+        return REVIEW_FLAG_REASON_ROLES[(flag.kind, flag.reason)]
+    if flag.kind in TRANSLATION_KINDS and flag.reason is None:
+        return "decision"  # WP116: a translation flag that names no key is never hidden
+    return REVIEW_FLAG_ROLES.get(flag.kind, _DEFAULT_ROLE)
+
+
+# WP116: the two kinds whose decision is one per translated key (the flag's typed reason).
+TRANSLATION_KINDS: frozenset[str] = frozenset({FlagKind.LINK_TRANSLATION, FlagKind.SAT_TRANSLATION})
+TRANSLATION_GROUP_PREFIX = "translation:"
+TRANSLATION_KEY_GROUP = "translation-key"
+
+
+def flag_group(flag: PipelineFlag) -> str:
+    """The render-time group of a flag's item: by kind, except a translation flag, which groups
+    by its key so that only constructs translating to the same key fold together (WP116)."""
+    if flag.kind in TRANSLATION_KINDS and flag.reason is not None:
+        return TRANSLATION_GROUP_PREFIX + flag.reason
+    return REVIEW_FLAG_GROUPS.get(flag.kind, _DEFAULT_GROUP)
+
+
+def _translation_key_decisions(flags: list[PipelineFlag]) -> list["ReviewItem"]:
+    """WP116 (spec §2.1): one decision per translated key, in first-appearance order — the
+    hub, the relation the join goes through and the natural key it projects, with the
+    constructs that translate to it listed in the detail. The confirmation of the generated
+    translation model, asked once; the per-construct flags are its disclosures."""
+    by_key: dict[str, list[PipelineFlag]] = {}
+    for flag in flags:
+        if flag.kind in TRANSLATION_KINDS and flag.reason is not None:
+            by_key.setdefault(flag.reason, []).append(flag)
+    items: list[ReviewItem] = []
+    for key, members in by_key.items():
+        # WP128 (ADR-0013's note of 2026-11-14): a key whose every translation joins through
+        # a DECLARED foreign key is fully determined by the catalogue and the decided key, and
+        # a human licensed it at the resolution checkpoint — nothing is left to confirm. The
+        # decision remains where a flag says so: an inferred key, a homonym.
+        if not any(member.confirm for member in members):
+            continue
+        hub, _, through_and_key = key.partition("=")
+        through, _, natural = through_and_key.partition(".")
+        constructs = [m.asset or "?" for m in members]
+        items.append(ReviewItem(
+            kind="review_flag",
+            summary=(
+                f"{members[0].agent}: {len(members)} construct(s) translate to {hub}'s key "
+                f"{natural} by joining through {through} — confirm the translation model once"
+            ),
+            detail=f"key {key}; constructs: " + ", ".join(constructs),
+            source=_collapsed_source_flags(members),
+            group=TRANSLATION_KEY_GROUP,
+            asset=key,
+            role="decision",
+        ))
+    return items
+
+
+def _collapsed_source_flags(flags: list[PipelineFlag]) -> str:
+    sources = {f.agent for f in flags}
+    return sources.pop() if len(sources) == 1 else "multiple agents"
+
+# Stable categories for routine, repetitive advisory ``review_flag`` items, keyed by the
+# flag's typed ``kind`` (never by message text). Used only to *aggregate* identical-shape
+# flags at render time (finding #3) so they don't bury the substantive items. Flags whose
+# kind is not listed here fall into ``"other"`` and are always rendered individually.
+REVIEW_FLAG_GROUPS: dict[str, str] = {
+    FlagKind.UNDETERMINED_TYPE: "undetermined-type",
+    FlagKind.NO_SOURCE_SCHEMA: "no-source-schema",
+    FlagKind.SOURCE_BINDING: "source-binding",
+    FlagKind.MAPPING_GAP: "mapping-gap",
+    FlagKind.MAPPING_UNRESOLVED: "mapping-unresolved",
+    FlagKind.RESOLUTION_UNRESOLVED: "resolution-unresolved",
+    FlagKind.RESOLUTION_SAME_AS: "resolution-same-as",
+    # WP34: a run over a real landscape declines many more foreign keys than it proposes for
+    # (22 skips against 16 proposals on AdventureWorks), almost all of them the same shape —
+    # a reference to a table this vault has not hubbed. Rendered individually they would bury
+    # the substantive items on exactly the axis §6 says must fall.
+    FlagKind.LINK_PROPOSAL_SKIPPED: "link-proposal-skipped",
+    FlagKind.RETIRED_REEMITTED: "retired-reemitted",  # WP44: repetitive by nature
+    FlagKind.RETIRED_REPARENTED: "retired-reparented",  # WP51
+    FlagKind.LINK_COLLAPSED: "link-collapsed",  # WP55
+    FlagKind.RELATION_INFERRED: "relation-inferred",  # WP56
+    FlagKind.BINDING_REJECTED: "binding-rejected",  # WP73
+    FlagKind.LINK_BINDING_EVIDENCE: "link-binding-evidence",  # WP90
+    FlagKind.PIT_GENERATED: "pit-generated",  # WP91
+    FlagKind.BRIDGE_PROPOSED: "bridge-proposed",  # WP115
+    FlagKind.BRIDGE_GENERATED: "bridge-generated",  # WP115
+    # WP36/WP38 kept the two translation kinds out of this table on purpose (ADR-0013 §3);
+    # since WP116 they group by their KEY (flag_group), not by kind, so only constructs that
+    # translate to the same key fold together, under one decision per key.
+}
+_DEFAULT_GROUP = "other"
+# Above this many items in one group, the renderers collapse it to a single summarised line.
+AGGREGATE_THRESHOLD = 3
+
+# Human-readable noun phrase per aggregatable group, for the collapsed summary line.
+_GROUP_LABELS: dict[str, str] = {
+    "undetermined-type": "undetermined field type",
+    "no-source-schema": "contract(s) without a source schema",
+    "source-binding": "inferred staging source binding(s)",
+    "mapping-gap": "concept(s) with no in-scope source (coverage gap)",
+    "mapping-unresolved": "concept(s) with an unresolved source mapping",
+    "resolution-unresolved": "concept(s) not resolved against the existing vault",
+    "resolution-same-as": "same-as candidate(s) — equivalent but differently keyed",
+    "link-proposal-skipped": "declined foreign key(s) — no hub for the referenced table",
+    "retired-reemitted": "retired construct(s) re-emitted and dropped again",
+    "retired-reparented": "dependent(s) of a retired hub moved to its kept twin",
+    "link-collapsed": "satellite(s) of a link with one hub moved to that hub",
+    "relation-inferred": "satellite relation(s) read from the one table carrying every attribute",
+}
+
+
+def _group_label(group: str) -> str:
+    """The noun phrase of a collapsed line; a translation group names its key (WP116)."""
+    if group.startswith(TRANSLATION_GROUP_PREFIX):
+        key = group[len(TRANSLATION_GROUP_PREFIX):]
+        hub, _, rest = key.partition("=")
+        through, _, natural = rest.partition(".")
+        return f"construct(s) translating to {hub}'s key {natural} through {through}"
+    return _GROUP_LABELS.get(group, group)
+
+
+def _sample_term(item: "ReviewItem") -> str:
+    """A short representative term for a collapsed line: the flag's typed asset."""
+    return item.asset or item.summary
+
+
+def _sample_phrase(members: list["ReviewItem"], limit: int = 2) -> str:
+    terms = [_sample_term(member) for member in members[:limit]]
+    suffix = ", …" if len(members) > limit else ""
+    return ", ".join(terms) + suffix
+
+
+class ReviewItem(BaseModel):
+    """One thing a human must look at before the model/contracts are considered agreed."""
+
+    kind: ReviewKind
+    summary: str
+    detail: str = ""
+    source: str = ""  # the agent / construct the item originates from
+    group: str = _DEFAULT_GROUP  # advisory-flag category, for render-time aggregation
+    asset: str | None = None  # the affected asset/construct, carried from the typed flag
+    # WP43. Defaults to the conservative role: an item built without one is never hidden.
+    role: ReviewRole = "decision"
+
+
+class HumanReviewQueue(BaseModel):
+    """The categorized checkpoint payload derived from a finished run."""
+
+    items: list[ReviewItem] = Field(default_factory=list)
+
+    @property
+    def requires_signoff(self) -> bool:
+        """True when something blocks agreement: a hard validation error or an unassigned
+        contract owner. Warnings and advisory flags inform review but do not block."""
+        return any(
+            item.kind in ("validation_error", "contract_owner") for item in self.items
+        )
+
+    @property
+    def decisions(self) -> list[ReviewItem]:
+        """The items that need an answer (WP43) — the count a reviewer should plan with."""
+        return [item for item in self.items if item.role == "decision"]
+
+    @property
+    def disclosures(self) -> list[ReviewItem]:
+        """The items that state what was assumed, inferred, dropped or declined (WP43)."""
+        return [item for item in self.items if item.role == "disclosure"]
+
+    def by_kind(self) -> dict[str, list[ReviewItem]]:
+        grouped: dict[str, list[ReviewItem]] = {}
+        for item in self.items:
+            grouped.setdefault(item.kind, []).append(item)
+        return grouped
+
+
+def assemble_review_queue(state: VaultAgentState) -> HumanReviewQueue:
+    """Build the human-review checkpoint from a finished run's state (deterministic)."""
+    items: list[ReviewItem] = []
+
+    # Validation issues — severity maps to a blocking error (a decision) vs an advisory
+    # warning (a disclosure, grouped by its code so repeats collapse at render time).
+    # Severity "info" is a record the validator keeps, never a review item (WP43).
+    for issue in state.validation_report.issues:
+        if issue.severity == "info":
+            continue
+        code = issue.code or "issue"
+        construct = issue.construct or "model"
+        is_error = issue.severity == "error"
+        items.append(
+            ReviewItem(
+                kind="validation_error" if is_error else "validation_warning",
+                summary=f"{code} on {construct}",
+                detail=issue.message,
+                source="validator",
+                asset=construct,
+                group=_DEFAULT_GROUP if is_error else code,
+                role="decision" if is_error else "disclosure",
+            )
+        )
+
+    # Contracts still carrying the placeholder owner — a required human assignment.
+    for contract in state.artifacts.contracts:
+        owner = contract.get("owner") or {}
+        if owner.get("name") == ContractOwner.PLACEHOLDER_NAME:
+            name = str(contract.get("name", "<unnamed>"))
+            items.append(
+                ReviewItem(
+                    kind="contract_owner",
+                    summary=f"Assign an owner for contract {name!r}",
+                    detail="The agent never invents an owner; assign one before agreeing "
+                    "the contract.",
+                    source="data_contract",
+                    # WP67: the contract's name as the typed field, so a UI can offer the
+                    # owner input per contract without reading the summary text.
+                    asset=name,
+                    role="decision",
+                )
+            )
+
+    # Remaining advisory flags. The owner concern is already a structured contract_owner
+    # item above, so drop those flags (matched on their typed kind, never on message text)
+    # to avoid listing the same thing twice.
+    # WP116: the translated keys this run's constructs join to — one decision each, before
+    # the per-construct flags that disclose them.
+    items.extend(_translation_key_decisions(state.flags))
+    for flag in state.flags:
+        if flag.kind == FlagKind.OWNER_PLACEHOLDER:
+            continue
+        items.append(
+            ReviewItem(
+                kind="review_flag",
+                summary=str(flag),
+                source=flag.agent,
+                group=flag_group(flag),
+                asset=flag.asset,
+                role=flag_role(flag),
+            )
+        )
+
+    return HumanReviewQueue(items=items)
+
+
+# Single owner of the review-queue *presentation knowledge* (WP5 §5.1): the heading per
+# kind and the stable blocking-first order. Both renderers — render_review_queue_md here
+# and the CLI's rich-console _print_checkpoint — import these, so they can never drift.
+KIND_HEADINGS: dict[str, str] = {
+    "validation_error": "Validation errors (block agreement)",
+    "contract_owner": "Contract owners to assign (block agreement)",
+    "validation_warning": "Validation warnings (advisory)",
+    "review_flag": "Review flags (advisory)",
+}
+# Stable presentation order: blocking concerns first, advisory last.
+KIND_ORDER: tuple[str, ...] = (
+    "validation_error",
+    "contract_owner",
+    "validation_warning",
+    "review_flag",
+)
+# WP43: the roles partition the queue and order it — every decision before every disclosure;
+# within a role the kinds keep KIND_ORDER. The three renderers read this one layout.
+ROLE_HEADINGS: dict[str, str] = {
+    "decision": "Decisions",
+    "disclosure": "Disclosures (no answer needed)",
+}
+ROLE_ORDER: tuple[ReviewRole, ...] = ("decision", "disclosure")
+
+
+def review_queue_layout(
+    queue: HumanReviewQueue,
+) -> list[tuple[ReviewRole, str, list[ReviewItem]]]:
+    """The display order of a queue: ``(role, kind, items)`` per non-empty section, decisions
+    first, kinds in KIND_ORDER, each section already aggregated for display. The single owner
+    of the layout — markdown, console and HTML render exactly this list."""
+    layout: list[tuple[ReviewRole, str, list[ReviewItem]]] = []
+    for role in ROLE_ORDER:
+        grouped: dict[str, list[ReviewItem]] = {}
+        for item in queue.items:
+            if item.role == role:
+                grouped.setdefault(item.kind, []).append(item)
+        for kind in KIND_ORDER:
+            group = grouped.get(kind)
+            if group:
+                layout.append((role, kind, aggregate_review_flags(group)))
+    return layout
+
+
+def status_line(queue: HumanReviewQueue) -> str:
+    """``requires sign-off — 3 decision(s), 40 disclosure(s)``; one wording for three renderers."""
+    verdict = "requires sign-off" if queue.requires_signoff else "advisory only"
+    return (
+        f"{verdict} — {len(queue.decisions)} decision(s), "
+        f"{len(queue.disclosures)} disclosure(s)"
+    )
+
+
+def _collapsed_source(members: list[ReviewItem]) -> str:
+    """The agent a collapsed line is attributed to: the members' one source, or "multiple
+    agents" when they disagree (honest attribution beats a plausible single name)."""
+    sources = {item.source for item in members}
+    return sources.pop() if len(sources) == 1 else "multiple agents"
+
+
+def aggregate_review_flags(flags: list[ReviewItem]) -> list[ReviewItem]:
+    """Collapse repetitive items of one group for display (finding #3).
+
+    A group with more than :data:`AGGREGATE_THRESHOLD` items becomes one summarised
+    ``ReviewItem`` (count + a short sample); smaller groups and the catch-all ``"other"``
+    pass through individually. Presentation only — no data is lost, the per-item detail still
+    lives in the artifacts (e.g. the contracts). Groups render in first-appearance order.
+
+    Since WP43 this applies to both roles and to validation warnings, whose group is their
+    code (the label is then the code itself); the collapsed item keeps the members' kind and
+    role, so it renders under the heading its members would have."""
+    by_group: dict[str, list[ReviewItem]] = {}
+    for item in flags:
+        by_group.setdefault(item.group, []).append(item)
+
+    collapsed: list[ReviewItem] = []
+    for group, members in by_group.items():
+        if group != _DEFAULT_GROUP and len(members) > AGGREGATE_THRESHOLD:
+            label = _group_label(group)
+            collapsed.append(
+                ReviewItem(
+                    kind=members[0].kind,
+                    summary=f"{len(members)}× {label}",
+                    detail=f"e.g. {_sample_phrase(members)} — review before agreeing",
+                    # Derived from the members, never hardcoded (WP21 §2.3): the collapsed
+                    # groups come from three different agents (contracts from data_contract,
+                    # source bindings from code_generator, mappings from source_mapper), and
+                    # naming the wrong one sends a reviewer to the wrong artifact.
+                    source=_collapsed_source(members),
+                    group=group,
+                    role=members[0].role,
+                )
+            )
+        else:
+            collapsed.extend(members)
+    return collapsed
+
+
+def render_review_queue_md(queue: HumanReviewQueue) -> str:
+    """Render the queue as a Markdown checkpoint document (one artifact per run)."""
+    lines = ["# Human-in-the-loop checkpoint", ""]
+    if not queue.items:
+        lines.append("No items require human review. ✅")
+        return "\n".join(lines) + "\n"
+
+    lines.append(f"**Status:** {status_line(queue)}.")
+    lines.append("")
+    current_role: str | None = None
+    for role, kind, group in review_queue_layout(queue):
+        if role != current_role:
+            lines.extend([f"## {ROLE_HEADINGS[role]}", ""])
+            current_role = role
+        lines.append(f"### {KIND_HEADINGS[kind]}")
+        lines.append("")
+        for item in group:
+            line = f"- **{item.summary}**"
+            if item.detail:
+                line += f" — {item.detail}"
+            if item.source:
+                line += f" _({item.source})_"
+            lines.append(line)
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+class OrchestratorAgent(BaseAgent):
+    """Deterministic planning entry node; also owns the review-queue helpers above."""
+
+    def __init__(self, planned_stages: list[str] | None = None) -> None:
+        # The downstream stages this run will execute, injected by the graph so the plan
+        # tracks the real pipeline without this module importing graph (no import cycle).
+        self._planned_stages = planned_stages or []
+
+    async def run(self, state: VaultAgentState) -> VaultAgentState:
+        notes: list[str] = []
+        if not state.input_documents:
+            notes.append(
+                "no input documents declared; downstream parsing will produce nothing"
+            )
+            state.flag(
+                "orchestrator",
+                "no input documents declared",
+                severity="error",
+                kind=FlagKind.MISSING_INPUT,
+            )
+
+        plan = ExecutionPlan(
+            stages=list(self._planned_stages),
+            input_documents=len(state.input_documents),
+            grounded=bool(state.source_schemas),
+            extending=state.existing_model is not None,
+            notes=notes,
+        )
+        state.plan = plan
+        logger.info(
+            "planned %d stage(s), %d input document(s), grounding %s",
+            len(plan.stages),
+            plan.input_documents,
+            "on" if plan.grounded else "off",
+        )
+        state.decisions.append(
+            {
+                "agent": "orchestrator",
+                "stages": len(plan.stages),
+                "inputs": plan.input_documents,
+                "grounded": plan.grounded,
+            }
+        )
+        return state
+
+
+def apply_human_decision(state: VaultAgentState, decision: Any) -> list[str]:
+    """Apply a human's sign-off decision to the state, returning the assets re-owned.
+
+    ``decision`` is whatever the resume supplied, expected as
+    ``{"owners": {asset: {"name": ..., "email": ...}}, "accept": bool}``. Owners are written
+    onto the matching contracts, and the now-resolved placeholder-owner review flags are
+    pruned — matched on the flag's typed kind and *exact* asset name, so assigning
+    ``customer`` never prunes the still-unresolved flag for ``customer_address``.
+    Deterministic and pure (no interrupt), so it is unit-tested directly."""
+    owners = decision.get("owners", {}) if isinstance(decision, dict) else {}
+    assigned: list[str] = []
+    for contract in state.artifacts.contracts:
+        name = contract.get("name")
+        proposed = owners.get(name) if isinstance(owners, dict) else None
+        if name and isinstance(proposed, dict) and proposed.get("name"):
+            contract["owner"] = {
+                "name": proposed["name"],
+                "email": proposed.get("email"),
+            }
+            assigned.append(str(name))
+
+    if assigned:
+        resolved = set(assigned)
+        state.flags = [
+            flag
+            for flag in state.flags
+            if not (flag.kind == FlagKind.OWNER_PLACEHOLDER and flag.asset in resolved)
+        ]
+
+    # WP82: bind the stages a human bound at sign-off (relation and aliases); re-binds staging.
+    _apply_binding_decision(state, decision.get("bindings") if isinstance(decision, dict) else None)
+    # WP9: ratify / override business↔source mappings, then re-bind staging to them.
+    mappings = decision.get("mappings", {}) if isinstance(decision, dict) else {}
+    accept = bool(decision.get("accept")) if isinstance(decision, dict) else False
+    _apply_mapping_decision(state, mappings if isinstance(mappings, dict) else {}, accept)
+    # WP10: resolve a multi-candidate key into a multi-source hub (Hub.sources).
+    sources = decision.get("mapping_sources", {}) if isinstance(decision, dict) else {}
+    _apply_mapping_sources(state, sources if isinstance(sources, dict) else {})
+    # WP29: ratify entity resolutions (only a ratified one ever steers the modeler).
+    resolutions = decision.get("resolutions", {}) if isinstance(decision, dict) else {}
+    _apply_resolution_decision(
+        state, resolutions if isinstance(resolutions, dict) else {}, accept
+    )
+    # WP115: ratify or decline the proposed bridge paths, then render the ratified ones.
+    bridges = decision.get("bridges", {}) if isinstance(decision, dict) else {}
+    _apply_bridge_decision(state, bridges if isinstance(bridges, dict) else {}, accept)
+    return assigned
+
+
+def _apply_bridge_decision(state: VaultAgentState, answers: dict[str, Any], accept: bool) -> None:
+    """WP115 (spec §2.2, §2.4): ``{path: build it}`` over the proposals; a path answered yes that
+    no proposal carries is the operator's own (parsed against the model, skipped with a warning
+    when it does not parse); at ``accept`` every unanswered proposal is declined — a bridge is
+    Business Vault logic and is never built by default (ADR-0007). Then the Business Vault is
+    re-rendered from the artifacts' own metadata, so the written project holds the bridges."""
+    if not answers and not state.bridge_proposals:
+        return
+    from vault_agent.agents.business_vault_generator import parse_bridge_path
+    from vault_agent.state import BridgeProposal
+
+    by_path = {p.path: p for p in state.bridge_proposals}
+    changed = False
+    for path, build in answers.items():
+        proposal = by_path.get(path)
+        if proposal is not None:
+            proposal.ratification_status = "accepted" if build else "overridden"
+            changed = True
+        elif build:
+            if not state.business_vault.enabled:
+                logger.warning(
+                    "bridge %r ignored — the run has no as-of bounds; start it with "
+                    "--as-of-start/--as-of-end (and --bridge) to generate bridges", path,
+                )
+                continue
+            try:
+                parse_bridge_path(path, state.dv_model)
+            except ValueError as exc:
+                logger.warning("bridge ignored — %s", exc)
+                continue
+            proposal = BridgeProposal(path=path, evidence=["named by the operator at sign-off"],
+                                      ratification_status="accepted", origin="operator")
+            state.bridge_proposals.append(proposal)
+            by_path[path] = proposal
+            changed = True
+    if accept:
+        for proposal in state.bridge_proposals:
+            if proposal.ratification_status == "proposed":
+                proposal.ratification_status = "overridden"
+                changed = True
+    if changed:
+        rebuild_business_vault(state)
+
+
+def rebuild_business_vault(state: VaultAgentState) -> None:
+    """WP115: re-render the Business Vault — the PITs as they were, the bridges along the named
+    and the ratified paths — from the raw vault's own metadata; its flags are replaced, not
+    stacked, and a decided proposal's ``bridge_proposed`` flag goes with the decision."""
+    from vault_agent.agents.business_vault_generator import build_business_vault
+    from vault_agent.agents.code_generator import bridge_proposal_flags
+
+    metadata = state.artifacts.automatedv_yaml
+    if not metadata.get("hubs"):
+        return  # no raw vault was generated; nothing to render a bridge over
+    ratified = [p.path for p in state.bridge_proposals if p.ratification_status == "accepted"]
+    business = build_business_vault(
+        state.dv_model, metadata, state.business_vault, bridges=ratified
+    )
+    known = set(ratified) | set(state.business_vault.bridges)
+    replaced = {FlagKind.PIT_GENERATED, FlagKind.BRIDGE_GENERATED, FlagKind.BRIDGE_PROPOSED}
+    state.flags = [
+        f for f in state.flags
+        if f.kind not in replaced
+        and not (f.kind == FlagKind.GENERATION_GAP and f.agent == "code_generator"
+                 and f.asset in known)
+    ]
+    state.artifacts.business_vault_models = business.models
+    metadata.pop("pit", None)
+    metadata.pop("bridge", None)
+    if business.metadata:
+        metadata["pit"] = business.metadata
+    if business.bridge_metadata:
+        metadata["bridge"] = business.bridge_metadata
+    state.flags.extend(business.flags)
+    state.flags.extend(bridge_proposal_flags(state.bridge_proposals))
+
+
+def _apply_binding_decision(state: VaultAgentState, raw: Any) -> None:
+    """WP82: ``{stage: {"relation": R, "columns": {STAGE_COLUMN: column}}}`` — the stages a human
+    bound at sign-off. A decision, not a proposal: applied whether or not the human accepts, last
+    among the binding rules (``build_staging``), and re-binding staging as a mapping does. Every
+    path checks the bindings before resuming (CLI, API, prompt); an entry that still fails the
+    check here is skipped with a warning and its stage keeps its flag — never a guess."""
+    from vault_agent.bindings import check_stage_bindings, coerce_bindings
+
+    bindings = coerce_bindings(raw)
+    if not bindings:
+        return
+    errors = check_stage_bindings(state, bindings)
+    failed = {message.split(":", 1)[0] for message in errors}
+    for message in errors:
+        logger.warning("stage binding ignored — %s", message)
+    accepted = {stage: b for stage, b in bindings.items() if stage not in failed}
+    if not accepted:
+        return
+    state.ratified_bindings.update(accepted)
+    from vault_agent.agents.source_mapper import rebind_staging
+
+    rebind_staging(state)
+
+
+def apply_resolution_decision(state: VaultAgentState, decision: Any) -> list[str]:
+    """Apply a human's ratification at the RESOLUTION checkpoint, returning decided concepts.
+
+    The sign-off checkpoint ratifies resolutions as one part of a larger decision
+    (:func:`apply_human_decision`); the resolution checkpoint has only this to apply, and it
+    applies it before the modeler runs — which is the whole point of that checkpoint existing
+    (WP29 §2.5 addendum, 2026-08-01). Both read the SAME keys of the SAME payload
+    (``resolutions``, ``accept``), so ``resume --resolve`` / ``--resolutions`` / ``--accept``
+    mean exactly one thing wherever the run happens to be paused."""
+    resolutions = decision.get("resolutions", {}) if isinstance(decision, dict) else {}
+    accept = bool(decision.get("accept")) if isinstance(decision, dict) else False
+    _apply_resolution_decision(
+        state, resolutions if isinstance(resolutions, dict) else {}, accept
+    )
+    return [
+        p.concept for p in state.resolutions.proposals if p.ratification_status != "proposed"
+    ]
+
+
+def apply_link_decision(state: VaultAgentState, decision: Any) -> list[str]:
+    """Apply a human's ratification of WP34 link proposals; returns the keys decided.
+
+    ``decision["links"]`` is ``{"<Table>.<Column>": bool}`` — accept or reject one proposal —
+    and ``accept`` ratifies every proposal still pending, the same bulk key the resolution
+    half already honours so one ``--accept`` means one thing at this checkpoint.
+
+    A rejected proposal is marked ``overridden`` rather than deleted: the run's record should
+    show that a link was offered and declined, which is the difference between a model that
+    considered a relationship and one that never saw it.
+
+    Note what ``accept`` implies for an UNATTENDED run: the eval chain resumes with
+    ``accept: True``, so a measured arm-B run ratifies every FK-derived proposal without a
+    human reading it. That is the same configuration `adventureworks_incremental` already
+    discloses for mappings, and any writeup must say so rather than imply review happened.
+    """
+    links = decision.get("links", {}) if isinstance(decision, dict) else {}
+    accept = bool(decision.get("accept")) if isinstance(decision, dict) else False
+    if not isinstance(links, dict):
+        links = {}
+
+    decided: list[str] = []
+    # WP37: relationship-table proposals decide by `Table.*`, otherwise identically.
+    decidable: list[LinkProposal | RelationshipLinkProposal | KeyLicense] = [
+        *state.link_proposals.proposals, *state.link_proposals.relationships,
+        *state.link_proposals.licenses,  # WP40: key licenses, same `Table.Column` handle
+    ]
+    for proposal in decidable:
+        if proposal.ratification_status != "proposed":
+            continue
+        key = proposal_key(proposal)
+        if key in links:
+            proposal.ratification_status = "accepted" if links[key] else "overridden"
+            decided.append(key)
+        elif accept:
+            # WP99 (ADR-0018 §4): an inferred proposal or licence is never bound by the bulk
+            # key — it is declined on the record, and built only when a human names it above.
+            inferred = (
+                isinstance(proposal, LinkProposal | KeyLicense)
+                and proposal.provenance == "inferred"
+            )
+            proposal.ratification_status = "overridden" if inferred else "accepted"
+            decided.append(key)
+    return decided
+
+
+def apply_key_decision(state: VaultAgentState, decision: Any) -> list[str]:
+    """Apply a human's answers to the contested hub keys (WP125, ADR-0021); returns the tables
+    decided, in the catalogue's spelling.
+
+    ``decision["keys"]`` is ``{"<Table>": {"columns": [...], "reason": str | None}}``. An
+    answer that :func:`rules.key_decision.check_key_answer` refuses is not applied — the CLI
+    and the workbench refuse it before anything resumes; this is the same check on the path
+    that has no such front door. **Every key still contested afterwards takes its default, the
+    declared natural key** — with ``accept`` and without it: the human saw the question at
+    this pause, and a resume that answers something else must not leave the key to the
+    modeler's discretion again, which is the defect this decision exists to close. The default
+    is never the technical key."""
+    from vault_agent.rules.key_decision import (
+        canonical_answer,
+        check_key_answer,
+        pending_key_decisions,
+    )
+
+    answers = decision.get("keys", {}) if isinstance(decision, dict) else {}
+    if not isinstance(answers, dict):
+        answers = {}
+    decided: list[str] = []
+    for name, answer in answers.items():
+        if not isinstance(answer, dict):
+            continue
+        columns = [str(c) for c in answer.get("columns") or []]
+        reason = answer.get("reason")
+        reason = str(reason).strip() if isinstance(reason, str) and reason.strip() else None
+        error = check_key_answer(state, str(name), columns, reason)
+        if error is not None:
+            logger.warning("key answer ignored — %s", error.message)
+            continue
+        table, spelled = canonical_answer(state, str(name), columns)
+        state.key_answers[table] = KeyAnswer(columns=spelled, reason=reason)
+        decided.append(table)
+    for pending in pending_key_decisions(state):
+        state.key_answers[pending.table] = KeyAnswer(
+            columns=list(pending.columns), by_default=True
+        )
+        decided.append(pending.table)
+    return decided
+
+
+def _apply_resolution_decision(
+    state: VaultAgentState, overrides: dict[str, Any], accept: bool
+) -> None:
+    """Apply a human's entity-resolution ratification (WP29 §2.5).
+
+    ``overrides`` is ``{concept: "<construct name>" | NEW | same_as_candidate | unresolved}``;
+    ``accept`` ratifies everything still ``proposed``. A ratified merge is what later steers
+    the modeler by name, so this is the only place a merge ever becomes real — and it happens
+    because a human said so, never because the model was confident.
+
+    An override naming a construct that does not exist is refused rather than applied: the
+    same safety property the resolver's own post-validation enforces, applied to the human
+    path so a typo cannot invent a hub either. The concept's flag is pruned only when the
+    decision actually resolved it.
+
+    The merge target must be a **hub**, not merely an existing construct (review of PR #16).
+    Business keys anchor hubs; resolving a concept onto a satellite or a link would tell the
+    modeler to attach a business key to a payload table, and the earlier check — existence,
+    not hub-ness — let a typo landing on a satellite name through the very guard whose stated
+    purpose is that a typo cannot invent a hub."""
+    known_hubs = (
+        {h.name for h in state.existing_model.hubs}
+        if state.existing_model is not None
+        else set()
+    )
+    by_concept = {p.concept: p for p in state.resolutions.proposals}
+    for concept, answer in overrides.items():
+        if not isinstance(answer, str) or not answer.strip():
+            continue
+        answer = answer.strip()
+        if answer not in RESOLUTION_CLASSES and answer not in known_hubs:
+            logger.warning(
+                "resolution override %r names %r, which is not a HUB of the existing "
+                "vault; ignored", concept, answer,
+            )
+            continue
+        proposal = by_concept.get(concept)
+        if proposal is None:
+            # Address by the key, else by a label unique among the proposals (the WP32 rule).
+            # Ambiguity is REPORTED, not dropped — the mapping side's precedent, a few lines
+            # below: resolve_concept_ref returns None for "several matches" and for "none"
+            # alike, so without this the human's override vanishes with no sign it was read.
+            candidates = [split_concept_key(p.concept) for p in state.resolutions.proposals]
+            matches = match_concept_refs(concept, candidates)
+            if len(matches) > 1:
+                logger.warning(
+                    "resolution override %r matches %d concepts; ignored — address one by "
+                    "its key", concept, len(matches),
+                )
+                continue
+            index = resolve_concept_ref(concept, candidates)
+            proposal = state.resolutions.proposals[index] if index is not None else None
+        if proposal is None:
+            continue
+        proposal.resolution = answer
+        proposal.ratification_status = "overridden"
+        if answer != RESOLUTION_SAME_AS:
+            proposal.same_as = None
+        proposal.evidence = [*proposal.evidence, "human ratification"]
+        # Same condition as the accept branch below, and for the same reason the docstring
+        # gives: overriding TO `unresolved` does not resolve anything, so the concept must
+        # keep its flag and stay visible in the review queue.
+        if answer != RESOLUTION_UNRESOLVED:
+            _prune_resolution_flags(state, proposal.concept)
+
+    if accept:
+        for proposal in state.resolutions.proposals:
+            if proposal.ratification_status == "proposed":
+                proposal.ratification_status = "accepted"
+                if proposal.resolution != RESOLUTION_UNRESOLVED:
+                    _prune_resolution_flags(state, proposal.concept)
+
+
+def _prune_resolution_flags(state: VaultAgentState, concept: str) -> None:
+    """Drop the resolution flags of a concept a human has now decided (exact asset match)."""
+    kinds = (FlagKind.RESOLUTION_UNRESOLVED, FlagKind.RESOLUTION_SAME_AS)
+    state.flags = [
+        f for f in state.flags if not (f.kind in kinds and f.asset == concept)
+    ]
+
+
+def _resolve_hub_for_concept(state: VaultAgentState, given: str) -> Hub | None:
+    """The hub a human's concept reference names, via the one WP32 matching rule.
+
+    A bare business-key label is honoured only when exactly one hub carries it; when several
+    do, the reference is genuinely ambiguous and is ignored rather than applied to an arbitrary
+    one of them (the defect WP32 fixed was doing exactly that, silently)."""
+    index = resolve_concept_ref(
+        given, [(h.business_key, h.source_entity) for h in state.dv_model.hubs]
+    )
+    return state.dv_model.hubs[index] if index is not None else None
+
+
+def _prune_concept(
+    state: VaultAgentState, concept: str, entity: str | None, *, label_unique: bool,
+    kinds: tuple[str, ...],
+) -> None:
+    """Drop a ratified concept from ``unresolved``/``gaps`` and prune its flags (WP32).
+
+    Entries and flag assets are concept KEYS since WP32, but a checkpoint written before it —
+    or a hand-edited file — holds bare labels, so both are matched through
+    :func:`concept_ref_matches`: the key always, the label only where it is unique. Without
+    the uniqueness condition, ratifying one of three concepts labelled ``Name`` would clear
+    its two siblings' entries as well."""
+    def stale(ref: str) -> bool:
+        return concept_ref_matches(ref, concept, entity, label_unique=label_unique)
+
+    state.mappings.unresolved = [u for u in state.mappings.unresolved if not stale(u)]
+    state.mappings.gaps = [g for g in state.mappings.gaps if not stale(g)]
+    state.flags = [
+        f
+        for f in state.flags
+        if not (f.kind in kinds and f.asset and stale(f.asset))
+    ]
+
+
+def _apply_mapping_sources(
+    state: VaultAgentState, sources_by_concept: dict[str, Any]
+) -> None:
+    """Resolve ratified multi-source key feeds into ``Hub.sources`` (WP10 §2.4).
+
+    For each concept the human resolved with a ``sources:`` list, set the matching hub's
+    ``sources``, drop the concept from ``unresolved`` and prune its flag. A subsequent
+    generation renders the hub as multi-source; regeneration of an already-emitted run is a
+    fresh run, not an in-place resume rewrite."""
+    for concept, feeds in sources_by_concept.items():
+        if not isinstance(feeds, list) or not feeds:
+            continue
+        hub = _resolve_hub_for_concept(state, concept)
+        if hub is None:
+            continue
+        hub.sources = [
+            HubSource(source_table=str(f["table"]), business_key_column=str(f["column"]))
+            for f in feeds
+            if isinstance(f, dict) and f.get("table") and f.get("column")
+        ]
+        label_unique = (
+            sum(
+                1
+                for h in state.dv_model.hubs
+                if normalize_identifier(h.business_key)
+                == normalize_identifier(hub.business_key)
+            )
+            == 1
+        )
+        _prune_concept(
+            state, hub.business_key, hub.source_entity, label_unique=label_unique,
+            kinds=(FlagKind.MAPPING_UNRESOLVED,),
+        )
+
+
+def _apply_mapping_decision(
+    state: VaultAgentState, overrides: dict[str, Any], accept: bool
+) -> None:
+    """Apply a human's mapping ratification (WP9 §5): ``{concept: "TABLE.COLUMN"}`` overrides
+    plus a global ``accept``. Overrides update/promote a proposal (from unresolved/gap),
+    mark it ``overridden``, and prune its mapping flag; ``accept`` marks every still-proposed
+    proposal ``accepted``. Any change re-binds staging so it reads the ratified source."""
+    changed = False
+    for concept, target in overrides.items():
+        if not isinstance(target, str) or "." not in target:
+            continue
+        table, column = target.rsplit(".", 1)
+        # WP32: resolve against the run's WHOLE concept universe — proposals plus the
+        # unresolved and gap entries — not just the proposals. Ambiguity is a property of the
+        # run: a bare "Name" that happens to be unique among the proposals may still name any
+        # of three unresolved concepts, and choosing one of them is the defect being fixed.
+        universe: list[tuple[str, str | None]] = [
+            (p.concept, p.entity) for p in state.mappings.proposals
+        ] + [
+            split_concept_key(entry)
+            for entry in list(state.mappings.unresolved) + list(state.mappings.gaps)
+        ]
+        matches = match_concept_refs(concept, universe)
+        if len(matches) > 1:
+            # Genuinely ambiguous: refuse rather than guess. The concept keeps its flag, so
+            # the human sees it again with the key to address it by.
+            logger.warning(
+                "mapping override %r matches %d concepts; ignored — address one by its key",
+                concept, len(matches),
+            )
+            continue
+        index = matches[0] if matches and matches[0] < len(state.mappings.proposals) else None
+        if index is not None:
+            existing = state.mappings.proposals[index]
+            existing.table, existing.column = table.strip(), column.strip()
+            existing.ratification_status = "overridden"
+            label, entity = existing.concept, existing.entity
+        elif matches:
+            # Resolved to an unresolved/gap entry: promote it, keeping ITS identity rather
+            # than whatever form the human typed.
+            label, entity = universe[matches[0]]
+            state.mappings.proposals.append(
+                Proposal(
+                    concept=label,
+                    entity=entity,
+                    table=table.strip(),
+                    column=column.strip(),
+                    confidence=1.0,
+                    evidence=["human override"],
+                    ratification_status="overridden",
+                )
+            )
+        else:
+            # Promoting an unresolved concept / gap: split the reference so the new proposal
+            # records the entity it belongs to (WP32) instead of losing it. A bare label
+            # yields entity=None, i.e. exactly the pre-WP32 shape.
+            label, entity = split_concept_key(concept)
+            state.mappings.proposals.append(
+                Proposal(
+                    concept=label,
+                    entity=entity,
+                    table=table.strip(),
+                    column=column.strip(),
+                    confidence=1.0,
+                    evidence=["human override"],
+                    ratification_status="overridden",
+                )
+            )
+        label_unique = (
+            sum(
+                1
+                for p in state.mappings.proposals
+                if normalize_identifier(p.concept) == normalize_identifier(label)
+            )
+            == 1
+        )
+        _prune_concept(
+            state, label, entity, label_unique=label_unique,
+            kinds=(FlagKind.MAPPING_UNRESOLVED, FlagKind.MAPPING_GAP),
+        )
+        changed = True
+
+    if accept:
+        for proposal in state.mappings.proposals:
+            if proposal.ratification_status == "proposed":
+                proposal.ratification_status = "accepted"
+                changed = True
+
+    if changed:
+        from vault_agent.agents.source_mapper import rebind_staging
+
+        rebind_staging(state)
+
+
+class HumanCheckpointAgent(BaseAgent):
+    """Human-in-the-loop gate (ADR-0006). On the validated path it assembles the review
+    queue and, when something blocks agreement, pauses the graph with LangGraph's
+    ``interrupt()`` until a human resumes with their decision. When nothing blocks it passes
+    straight through. Requires the graph to be compiled with a checkpointer.
+
+    Everything before ``interrupt()`` must stay pure/idempotent: on resume the node
+    re-executes from the top, so queue assembly (and logging) runs again —
+    :func:`assemble_review_queue` is pure, which makes that safe."""
+
+    async def run(self, state: VaultAgentState) -> VaultAgentState:
+        queue = assemble_review_queue(state)
+        logger.info(
+            "human checkpoint: %d review item(s), requires sign-off: %s",
+            len(queue.items),
+            queue.requires_signoff,
+        )
+        if not queue.requires_signoff:
+            state.decisions.append(
+                {"agent": "human_checkpoint", "interrupted": False, "assigned": []}
+            )
+            return state
+
+        # Everything above interrupt() re-executes on resume, so it must stay
+        # pure/idempotent — no state mutation before this line.
+        decision = interrupt(
+            {
+                "review_queue": queue.model_dump(),
+                "instructions": (
+                    "Assign owners for the listed contracts and/or accept to proceed; "
+                    "resume with vault-agent resume."
+                ),
+            }
+        )
+        assigned = apply_human_decision(state, decision)
+        state.decisions.append(
+            {
+                "agent": "human_checkpoint",
+                "interrupted": True,
+                "assigned": assigned,
+                "accepted": bool(decision.get("accept"))
+                if isinstance(decision, dict)
+                else False,
+            }
+        )
+        return state

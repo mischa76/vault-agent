@@ -1,0 +1,171 @@
+spec-version: 1.0.0
+name: PurchaseOrderHeader
+namespace: source
+dataAssetResourceName: datastore://source/PurchaseOrderHeader
+doc: Purchase order header records from the source system, one row per purchase order,
+  covering vendor, employee, ship method, order/ship dates and monetary totals. The
+  contract enforces the declared schema, business key and not-null rules; value-level
+  semantics are minimal pending producer/consumer review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: PurchaseOrderID
+  description: Unique identifier of the purchase order (business key).
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: RevisionNumber
+  description: Revision number tracking changes to the purchase order.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Status
+  description: Status code of the purchase order. Allowed values are not specified
+    in the requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EmployeeID
+  description: Identifier of the employee who created the purchase order.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: VendorID
+  description: Identifier of the vendor the purchase order was placed with; corresponds
+    to the vendor's BusinessEntityID.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ShipMethodID
+  description: Identifier of the shipping method used for the purchase order.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: OrderDate
+  description: Date the purchase order was created.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ShipDate
+  description: Expected or actual ship date for the purchase order; may be absent
+    until shipped.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: SubTotal
+  description: Order subtotal prior to tax and freight.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: TaxAmt
+  description: Tax amount on the purchase order.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Freight
+  description: Shipping/freight cost for the purchase order.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: TotalDue
+  description: Total amount due to the vendor, including tax and freight.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

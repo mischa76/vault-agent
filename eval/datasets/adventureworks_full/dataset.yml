@@ -1,0 +1,21 @@
+# WP30 ARM A -- the whole landscape in ONE pass (68 tables, ~131 KB of requirements).
+#
+# The requirements are the five blinded subject-area documents concatenated UNEDITED. They
+# are deliberately not rewritten into one narrative: editing them would undo the section 2.4a
+# blinding (the editor sees all five plus the rest of the project) and would make the two arms
+# differ in their INPUT as well as their method, confounding the comparison this WP exists to
+# run. Arm A gets exactly the text arm B gets, all at once.
+#
+# Compared against adventureworks_incremental on review load, unresolved rate, validation,
+# construct counts and cost (section 2.6). The prediction and its falsifying outcome are recorded
+# in the spec BEFORE the first run.
+name: adventureworks_full
+input_document: requirements.md
+source_schema: source_schema.yml
+golden: {}
+mapping_match: column
+expectations:
+  min_scores:
+    mapping_coverage: 0.8
+    false_friend_hits: 1.0
+    pipeline_health: 1.0

@@ -1,0 +1,51 @@
+{
+  "id": "adventureworks:20261115T111823849877Z",
+  "project": "adventureworks",
+  "status": "finished",
+  "thread_id": "f3367e80533848caac0fe867cb9733c3",
+  "out_dir": "demo/workbench-adventureworks/adventureworks/runs/20261115T111823849877Z",
+  "requirements": "production_requirements.md",
+  "schema": "production_source_schema.yml",
+  "existing_run": "adventureworks:20261115T111446973899Z",
+  "profiling": null,
+  "target_platform": "postgres",
+  "llm": {
+    "primary_model": null,
+    "heavy_model": null,
+    "anthropic_base_url": null
+  },
+  "naming": {
+    "staging_prefix": "stg_",
+    "hashkey_suffix": "_HK",
+    "hashdiff_suffix": "_HASHDIFF",
+    "load_datetime": "LOAD_DATETIME",
+    "record_source": "RECORD_SOURCE",
+    "applied_dts": "APPLIED_DTS",
+    "technical_case": "upper"
+  },
+  "business_vault": {
+    "pit": false,
+    "bridges": [],
+    "as_of_start": null,
+    "as_of_end": null,
+    "as_of_grain": "day"
+  },
+  "started": "2026-11-15T11:18:23+00:00",
+  "finished": "2026-11-15T11:27:47+00:00",
+  "error": null,
+  "cli_equivalents": [
+    "vault-agent run demo/workbench-adventureworks/adventureworks/inputs/production_requirements.md --out demo/workbench-adventureworks/adventureworks/runs/20261115T111823849877Z --source-schema demo/workbench-adventureworks/adventureworks/inputs/production_source_schema.yml --existing demo/workbench-adventureworks/adventureworks/runs/20261115T111446973899Z",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T111823849877Z --accept",
+    "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T111823849877Z --owner 'BillOfMaterials=John Doe <john.doe@acme.com>' --owner 'Culture=John Doe <john.doe@acme.com>' --owner 'Document=John Doe <john.doe@acme.com>' --owner 'Illustration=John Doe <john.doe@acme.com>' --owner 'Location=John Doe <john.doe@acme.com>' --owner 'Product=John Doe <john.doe@acme.com>' --owner 'ProductCategory=John Doe <john.doe@acme.com>' --owner 'ProductCostHistory=John Doe <john.doe@acme.com>' --owner 'ProductDescription=John Doe <john.doe@acme.com>' --owner 'ProductDocument=John Doe <john.doe@acme.com>' --owner 'ProductInventory=John Doe <john.doe@acme.com>' --owner 'ProductListPriceHistory=John Doe <john.doe@acme.com>' --owner 'ProductModel=John Doe <john.doe@acme.com>' --owner 'ProductModelIllustration=John Doe <john.doe@acme.com>' --owner 'ProductModelProductDescriptionCulture=John Doe <john.doe@acme.com>' --owner 'ProductPhoto=John Doe <john.doe@acme.com>' --owner 'ProductProductPhoto=John Doe <john.doe@acme.com>' --owner 'ProductReview=John Doe <john.doe@acme.com>' --owner 'ProductSubcategory=John Doe <john.doe@acme.com>' --owner 'ScrapReason=John Doe <john.doe@acme.com>' --owner 'TransactionHistory=John Doe <john.doe@acme.com>' --owner 'TransactionHistoryArchive=John Doe <john.doe@acme.com>' --owner 'UnitMeasure=John Doe <john.doe@acme.com>' --owner 'WorkOrder=John Doe <john.doe@acme.com>' --owner 'WorkOrderRouting=John Doe <john.doe@acme.com>' --accept"
+  ],
+  "checkpoints": [
+    {
+      "phase": "resolution",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T111823849877Z --accept"
+    },
+    {
+      "phase": "signoff",
+      "command": "vault-agent resume --out demo/workbench-adventureworks/adventureworks/runs/20261115T111823849877Z --owner 'BillOfMaterials=John Doe <john.doe@acme.com>' --owner 'Culture=John Doe <john.doe@acme.com>' --owner 'Document=John Doe <john.doe@acme.com>' --owner 'Illustration=John Doe <john.doe@acme.com>' --owner 'Location=John Doe <john.doe@acme.com>' --owner 'Product=John Doe <john.doe@acme.com>' --owner 'ProductCategory=John Doe <john.doe@acme.com>' --owner 'ProductCostHistory=John Doe <john.doe@acme.com>' --owner 'ProductDescription=John Doe <john.doe@acme.com>' --owner 'ProductDocument=John Doe <john.doe@acme.com>' --owner 'ProductInventory=John Doe <john.doe@acme.com>' --owner 'ProductListPriceHistory=John Doe <john.doe@acme.com>' --owner 'ProductModel=John Doe <john.doe@acme.com>' --owner 'ProductModelIllustration=John Doe <john.doe@acme.com>' --owner 'ProductModelProductDescriptionCulture=John Doe <john.doe@acme.com>' --owner 'ProductPhoto=John Doe <john.doe@acme.com>' --owner 'ProductProductPhoto=John Doe <john.doe@acme.com>' --owner 'ProductReview=John Doe <john.doe@acme.com>' --owner 'ProductSubcategory=John Doe <john.doe@acme.com>' --owner 'ScrapReason=John Doe <john.doe@acme.com>' --owner 'TransactionHistory=John Doe <john.doe@acme.com>' --owner 'TransactionHistoryArchive=John Doe <john.doe@acme.com>' --owner 'UnitMeasure=John Doe <john.doe@acme.com>' --owner 'WorkOrder=John Doe <john.doe@acme.com>' --owner 'WorkOrderRouting=John Doe <john.doe@acme.com>' --accept"
+    }
+  ]
+}

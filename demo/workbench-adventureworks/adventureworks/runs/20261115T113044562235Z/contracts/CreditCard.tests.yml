@@ -1,0 +1,12 @@
+version: 2
+models:
+- name: stg_CreditCard
+  columns:
+  - name: CREDITCARDID
+    tests:
+    - unique
+    - not_null
+  - name: CARDNUMBER
+    tests:
+    - unique
+    - not_null

@@ -1,0 +1,20 @@
+version: 2
+models:
+- name: stg_BusinessEntityAddress
+  columns:
+  - name: BUSINESSENTITYID
+    tests:
+    - unique
+    - not_null
+  - name: ADDRESSID
+    tests:
+    - unique
+    - not_null
+  - name: ADDRESSTYPEID
+    tests:
+    - unique
+    - not_null
+  - name: ROWGUID
+    tests:
+    - unique
+    - not_null

@@ -1,0 +1,38 @@
+# Loose case: the grounded "messy" ATLAS-DWH reality test (German Fachkonzept +
+# deliberately mismatching legacy source schema). This case exists primarily to catch
+# review-queue / grounding regressions, not to demand a precise model — the document is
+# intentionally incomplete and contradictory, so scores here are informational and no
+# min_scores gate is set.
+#
+# Golden-choice notes (all conservative):
+# - hub_partner's business key is the partner number (VICTOR PARTN_NR, which the CRM's
+#   ExternalCustomerNo *should* map to). AHV-Nummer/UID are only partially populated and
+#   the technical GUID is an open question in the document itself (§6) — genuinely
+#   ambiguous, so the one key both source systems carry is golden.
+# - Only the two uncontroversial relationships are golden (partner–Vertrag,
+#   Vertrag–Schadenfall). Payments, broker/commission, and the §4 multi-role
+#   participations are unresolved in the document and therefore not golden.
+# - sat_partner_adresse is a *standard* satellite: §3.2 asks for address history
+#   ("welche Adresse zu einem Datum gültig war"), not concurrent multi-activity.
+# - Construct names follow the document's German domain language (hub_vertrag,
+#   hub_schadenfall); an English-naming run will lose name matches — accepted, since
+#   this case is not gated.
+name: messy_insurance
+input_document: ../../../examples/inputs/messy_insurance_requirements.md
+source_schema: ../../../examples/inputs/messy_insurance_source_schema.yml
+golden:
+  hubs:
+    - {name: hub_partner, business_key: partner number}
+    - {name: hub_vertrag, business_key: Vertragsnummer}
+    - {name: hub_schadenfall, business_key: Schadennummer}
+  links:
+    - {name: link_partner_vertrag, connected_hubs: [hub_partner, hub_vertrag]}
+    - {name: link_vertrag_schadenfall, connected_hubs: [hub_vertrag, hub_schadenfall]}
+  satellites:
+    - {name: sat_partner_details, parent: hub_partner, sat_type: standard}
+    - {name: sat_partner_adresse, parent: hub_partner, sat_type: standard}
+    - {name: sat_vertrag_details, parent: hub_vertrag, sat_type: standard}
+    - {name: sat_schadenfall_details, parent: hub_schadenfall, sat_type: standard}
+expectations:
+  validation_passed: true
+  max_validation_warnings: 25

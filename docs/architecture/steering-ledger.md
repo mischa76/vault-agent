@@ -1,0 +1,106 @@
+# Steering ledger — which prompt rules the harness still needs
+
+Status: living document · Owner: maintainer · Introduced by WP16 (2026-07-22) · Defaults since WP62 (2026-10-09): Sonnet 5.5 / Opus 5.5 in the auto tool-call mode; the rows' „model last tested“ stay as measured
+
+## Why this file exists
+
+Parts of this harness exist because *the models of the day failed*. The CDK "key column, not
+payload" line landed only after LLM steering failed 4/4 on `health_insurance` **even with the
+validation error fed back**, and it needed a deterministic backstop
+(`rules.attributes_without_cdk`) on top. WP9.1 added the FK-demotion backstop. The effectivity
+two-dates line has a generator-side rejection behind it.
+
+That is correct belt-and-braces engineering — but it is **model-compensation**, and until WP16
+nothing could answer *"does the next model still need this?"*. Harnesses that only ever grow
+are harnesses nobody re-reads (Karpathy, *LOOPS.md* rule VIII: delete the harness). This ledger
+is where that question gets an evidenced answer, one row per rule.
+
+**Scope boundary.** The **validator gates are the product**, not model-compensation: an
+enterprise DV2.0 tool owes its users deterministic, auditable `E_`/`W_` gates regardless of how
+good the model is. Nothing here proposes deleting a gate, and `eval.ablate` cannot ablate one.
+The measurable, potentially deletable surface is exactly two things:
+
+1. **prompt steering lines** — `rules.DV_MODELING_RULES` (`SteeringRule` registry), and
+2. **pre-gate backstops** — deterministic repairs of LLM output *before* validation.
+
+## The release protocol
+
+Run this **on any model bump** (`config.heavy_model` / `primary_model` change, or a candidate
+model probe). It is manual pre-release discipline, exactly like the eval gate — deliberately
+not wired into CI.
+
+1. Pick the matrix: **gated cases × rules that have a `backstop`** first — that is the cheap,
+   high-signal subset (a backstop fire is an unambiguous "still needed"). Widen only if those
+   come back clean.
+2. Per cell, at least **3 repeats per arm**:
+   ```bash
+   uv run python -m eval.ablate --case health_insurance --drop cdk_not_payload --repeat 3
+   uv run python -m eval.ablate --case bank --drop unit_of_work --model <candidate-model>
+   ```
+   Each invocation writes a comparison JSON under `eval/results/ablation/` (git-ignored) plus
+   one LLM transcript per run (WP15) — read the transcript before believing a surprising
+   result.
+3. Verdict per row:
+   - **any backstop fire in the dropped arm** → `keep`. The rule is still doing work.
+   - **zero backstop fires AND no gated-score regression across N ≥ 3 repeats** →
+     `candidate-delete`. A *human* then decides — read the `origin` column first: it records
+     what the rule cost to learn.
+   - anything in between (score noise, new validation error codes) → `keep`, and note why.
+4. Deleting, when a human agrees:
+   - deleting **prompt text** is cheap and trivially revertible — do it, record the date.
+   - deleting a **backstop** requires the matching ablation evidence *and* keeping its
+     `E_`-gate, which is what catches the failure if the deletion turns out to be wrong.
+5. Update the row: model tested, date, the two arms' numbers, verdict.
+
+## Ledger
+
+Rule ids are `rules.dv2_rules.DV_MODELING_RULES[*].id` — the code is the source of truth; if
+this table and the registry disagree, the registry wins.
+
+| rule id | backstop | model last tested | ablation result (baseline → dropped) | verdict |
+| --- | --- | --- | --- | --- |
+| `cdk_not_payload` | `attributes_without_cdk` | **opus-5-5 (modeler), sonnet-4-6 (primary), auto tool choice, 2026-10-09**; before: sonnet-tier, 2026-07-16 (pre-instrument) | `health_insurance` × 3 per arm on Opus 5.5: baseline 0 fires, construct_f1 0.774; dropped **3 fires** (`attributes_without_cdk` in every repeat), construct_f1 0.714; gates held in both arms (`eval/results/ablation/health_insurance-cdk_not_payload-20261009T163833281467Z.json`). Earlier: steering **alone** failed 4/4 on `health_insurance` (E_SAT_DUP_ATTR), the backstop landed on top | **keep** — the dropped arm needed its backstop on 5.5 as on every model before |
+| `effsat_two_dates` | `effsat_two_attributes` | **opus-5-5 (modeler), sonnet-4-6 (primary), auto tool choice, 2026-10-09** | `bank` × 3 per arm on Opus 5.5: 0 backstop fires in both arms — every run of both arms emitted `sat_account_customer_effectivity` with exactly two attributes (the shape occurred, nothing to repair); construct_f1 0.722 → 0.667, above the 0.5 gate; mapping_accuracy 1.0 both (`eval/results/ablation/bank-effsat_two_dates-20261009T164611963558Z.json`) | **keep — decided 2026-10-09** on a candidate-delete by the protocol (zero fires, gated minimums held): the line stays for now; it costs ≈ 40 cached tokens in 9 modeler calls per chain (< 0.001 USD at the 5.5 prices) and the generator-side rejection (`effsat_two_attributes`) stays regardless; on Opus 4.8 not yet ablated |
+| `repair_not_redraft` | — (measure: construct carry-over between attempts, from the trace) | opus-4-8, 2026-10-09 (pre-instrument) | not yet ablated; the tenth chain's step 3 carried 0 of 2 fixed satellites from attempt 2 into attempt 3 without it | keep, measure on the eleventh chain |
+| `one_hub_per_key` | — | — | not yet ablated | keep |
+| `hub_no_attributes` | — | — | not yet ablated | keep |
+| `link_per_relationship` | — | — | not yet ablated | keep |
+| `link_no_attributes` | — | — | not yet ablated | keep |
+| `attributes_in_satellites` | — | — | not yet ablated | keep |
+| `satellite_split_axes` | — | — | not yet ablated | keep |
+| `no_object_link_confusion` | — | — | not yet ablated | keep |
+| `unit_of_work` | — | — | not yet ablated | keep |
+| `degenerate_attributes` | — | — | not yet ablated | keep |
+| `effsat_driving_key` | — | — | not yet ablated | keep |
+| `masat_source_table` | — | — | not yet ablated | keep |
+| `bk_collision_code` | — | — | not yet ablated | keep |
+| `role_qualified_participation` | — | — | not yet ablated | keep |
+| `construct_naming` | — (gated by `E_BAD_NAME`) | — | not yet ablated; added WP20 (2026-07-28) so a deterministic naming formality never burns a modeling retry — the gate, not the steering, is the guarantee | keep |
+| `attribute_one_satellite` | — (gated by `E_SAT_ATTR_OVERLAP`) | — | not yet ablated; added WP31/ADR-0012 (2026-07-30) after AdventureWorks `Sales` duplicated `ModifiedDate` across two satellites of ONE relation. Deliberately `backstop=None`: choosing *which* satellite keeps a duplicated column is a modelling decision, not a deterministic repair, so the gate refuses and the re-model loop fixes it. Its effectiveness is measurable directly — the WP31 §4.3 live `sales` run is the first datapoint, and the honest outcome if the loop still fails is a finding, not a weakened gate. **First datapoint (2026-07-30):** the `ModifiedDate` duplication did NOT recur and the run passed in one modeler attempt. Favourable, but **n=1 cannot separate a steering effect from sampling variance** — this is one datapoint, not a demonstrated effect. Ablate on `adventureworks_sales` before treating it as established. | keep |
+| `preserved_reference_is_a_link` | — (no deterministic repair exists) | `claude-opus-4-8` (the modeler's heavy model), 2026-08-09 — a live A/B, **not** `eval.ablate` | WP30.1 (2026-08-09): arm B built **0 of 37** links spanning two domains; arm A built 16 of them from the same landscape. It invented `hub_sales_representative` where `hub_employee` stood in the vault inventory — the prompt already said *"never re-invent or rename a concept that already exists"*. The FK was in the schema, the requirement was explicit (§1.2 "Out of scope but referenced": *"these references must be preserved so the sales information can later be joined to those areas"*), and a resolver merge for `employee::EmployeeID -> hub_employee` was ratified at step 4. All four present, still zero links. **Corrected 2026-08-10 — the rule has since RUN, and did nothing.** Not an ablation but its inverse: one arm-B repeat without the rule, one with it, everything else identical. Links spanning two domains **0 → 0**; total links 37 → 40, hubs 44 → 45, `hub_sales_representative` still invented, review items 456 → 489. Two later runs reached 2 cross-domain links by rewriting the extension section instead — those do **not** rescue this row: the register changed at the same time and the rule alone had already scored 0. WP30.3's promoted-targets change measured worse and was reverted (2026-08-10); this rule was not part of that revert and is still in the registry. | **keep — UNEVIDENCED IN BOTH DIRECTIONS** (corrected 2026-09-14). The 0 → 0 below was read through a parser that dropped every modeler link into the existing vault (2026-09-14, since fixed); the recorded arm-B chains show the modeler emitting 15–38 such links per chain. The rule's effect is unmeasured, not negative. *Earlier text:* (corrected 2026-08-10, was *unmeasured*). It now has evidence *against* it, not for it. Deliberately **not** `candidate-delete`: that verdict needs N ≥ 3 ablation repeats and this is a single live A/B against the rule's own target metric. Kept because it harmed nothing measurable — but it must not sit in the registry looking effective. Re-test only if the link deficit returns to the prompt lever; the recorded next move is a deterministic FK-derived link proposal instead. |
+| `decided_key_is_given` | — (gated by `E_HUB_KEY_NOT_AS_DECIDED`) | — | not yet ablated; added WP125/ADR-0021 (2026-11-14) after the twenty-third chain's modeler keyed `hub_product` on `ProductID` in its first attempt against a candidate score of 0.95 for `ProductNumber` (C63). The gate is the guarantee; the line tells the modeler that the `decided_keys` of its input are given, so the decision does not cost an attempt | keep |
+| `reference_attaches_by_translation` | — (the appliers `apply_key_licenses` / `apply_subtype_feeds` set the translation; gated by `E_SAT_KEY_NOT_IN_SOURCE`) | — | not yet ablated; added WP125/ADR-0021 (2026-11-14): the modeler's stated reason for the surrogate was that every referencing relation carries only the id — `masat_source_table` demands the parent's key column in the relation and nothing said that ADR-0013's translation attaches it. Evidence that the shape works unprompted: the drafted arm of 2026-10-30 (`hub_product` on `ProductNumber`, 51 translated participations, gates green) | keep |
+| ~~`no_source_table_on_multi_source_hub`~~ **DELETED 2026-07-29** | — | measured ineffective: 0/3 live `bank_extension` runs prevented the shape | Lived less than a day. Added WP23 to steer the modeler away from `source_table` on a multi-source hub; the model kept emitting it because the shape is the correct answer to REQ-107, not a misreading. ADR-0011 then blessed the form (feed-naming binds the satellite to that feed), so the rule contradicted the product and was deleted by WP28. **The evidence is the point**: an ineffective rule whose target turned out to be legitimate — exactly the LOOPS rule-VIII case the ledger exists to catch, and the first entry retired on measurement rather than taste. | deleted (WP28) |
+
+### Inventoried but not mechanically ablatable (v1)
+
+The source mapper's steering lives in `src/vault_agent/prompts/source_mapper.md`, not in the
+DV rules registry — it is mapping heuristics, not Data Vault canon, so it stays with its
+prompt. It is listed here so the inventory is complete; ablating it means editing the prompt
+file by hand and re-running `eval.run` on `messy_insurance`.
+
+| prompt rule | backstop | evidence | verdict |
+| --- | --- | --- | --- |
+| FK-occurrence is not a second source — map to the entity-anchor table (source_mapper.md) | `fk_demotion` (`source_mapper._post_validate`) | WP9.1 (2026-07-13): without it, live `messy_insurance` mapping_accuracy sat at 0.870; with prompt + backstop, 0.972 mean over 5 repeats | keep — manual ablation only |
+| Defer only across *different* source systems (source_mapper.md) | — (honest `unresolved`) | WP9.1; over-broad deferral was the failure it fixed | keep — manual ablation only |
+| Re-model feedback carries a `remedy` that names the hub to drop (`rules.hub_collision_remedy`, `ValidationIssue.remedy`, one prompt sentence in dv2_modeler.md) | — (gated by `E_HUB_HK_COLLISION`; the remedy is deterministic, the compliance is the model's) | 2026-09-13: three paid chain steps exhausted the loop on the diagnosis alone (`hub_vendor` beside `hub_vendor_business_entity`, both business-key candidates hubbed). Keyless replay over the recorded first attempts (`eval/replay_collision_remedy.py`): every collision of the day gets a remedy that names the surrogate-keyed hub. **First live datapoint, run `20260913T153801752650Z` (Opus 4.8): 3 of 3 remedies followed at the next attempt** (`hub_employee_business_entity`, `hub_vendor_business_entity`, `hub_shopping_cart` dropped as told); the vendor step still failed because the WP37 applier re-used its attempt-1 resolution (fixed `dea6857`, not steering). Second chain `20260913T230429748887Z`: 1 of 1 followed (`hub_employee_business_entity`), every gate green. Two chains, 4/4. Third chain `20260914T213855724138Z`: 2 of 2 followed (`hub_vendor_business_entity`, `hub_shopping_cart_item`). Three chains, 6/6; ablate before calling it established. | keep — 6/6 live, three chains |
+| A ratified same-as whose join is declared tells the modeler "IS hub_X … satellites on hub_X with `source_table: T`, do not create a hub" (`entity_resolver.render_resolution_prompt_section`, WP38) | `subtype_feed.apply_subtype_feeds` sets the translation; gated by `E_SAT_TRANSLATION_UNRATIFIED` | 2026-09-14: replaces "model it as its OWN hub" for exactly that case, which built `hub_sales_representative` in every AdventureWorks chain since 2026-08-09. Keyless and Postgres demo; **first live datapoint 2026-09-15** (`20260914T213855724138Z`): the sentence reached the sales modeler (re-rendered from the persisted vault and recorded resolver answer) and was followed — no hub for `SalesPerson`, two satellites on `hub_employee` with `source_table: SalesPerson`, both translated. It also hung a two-hop table's satellite on the hub, which the sentence says is not joined. n=1. | keep — followed once live |
+
+## Reading the evidence
+
+- **Backstop fires** per run land in each eval result JSON's `metrics.backstop_fires`
+  (`{backstop_id: n}`) and in both arms of an ablation comparison. A backstop only fires when
+  it *actually repairs something*, so `{}` across repeats is a real signal, not silence.
+- **Transcripts** (WP15) sit next to the results as `*.trace.jsonl`. Before recording a
+  verdict, grep the dropped arm's transcript for the modeler call and look at what the model
+  actually emitted — a score delta without a mechanism is a hunch.

@@ -1,0 +1,86 @@
+spec-version: 1.0.0
+name: CreditCard
+namespace: source
+dataAssetResourceName: datastore://source/CreditCard
+doc: Source-to-staging asset for credit card records from the Sales schema. Each record
+  describes a payment card (type, number, expiration month and year) and when it was
+  last modified. The contract enforces the declared schema, primary key and not-null
+  rules; value-level semantics are only flagged where requirements support them. Ownership
+  and agreement status are to be resolved at the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: CreditCardID
+  description: Unique identifier for a credit card record.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CardType
+  description: The type or brand of the credit card.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CardNumber
+  description: The credit card number. This is sensitive payment data and should be
+    reviewed for handling and masking requirements.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ExpMonth
+  description: Expiration month of the credit card.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ExpYear
+  description: Expiration year of the credit card.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

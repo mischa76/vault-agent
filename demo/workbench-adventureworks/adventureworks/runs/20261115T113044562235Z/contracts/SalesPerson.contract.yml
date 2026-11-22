@@ -1,0 +1,123 @@
+spec-version: 1.0.0
+name: SalesPerson
+namespace: source
+dataAssetResourceName: datastore://source/SalesPerson
+doc: Sales representatives (salespeople) with their assigned sales territory, quota,
+  bonus, commission percentage and sales totals, staged from the source SalesPerson
+  table. The contract enforces the declared schema, business key and not-null constraints;
+  no value-level thresholds are stated in the requirements.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the business entity (person) that is the salesperson;
+    business key of the asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: TerritoryID
+  description: Identifier of the sales territory currently assigned to the salesperson,
+    if any.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: SalesQuota
+  description: Projected yearly sales quota for the salesperson.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Bonus
+  description: Bonus amount due to the salesperson.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CommissionPct
+  description: Commission percentage received by the salesperson on sales.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: SalesYTD
+  description: Sales total of the salesperson year to date.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: SalesLastYear
+  description: Sales total of the salesperson in the previous year.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) used for replication/row identification
+    in the source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source row was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

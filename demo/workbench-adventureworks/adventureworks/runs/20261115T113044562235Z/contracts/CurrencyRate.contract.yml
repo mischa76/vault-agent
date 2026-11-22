@@ -1,0 +1,95 @@
+spec-version: 1.0.0
+name: CurrencyRate
+namespace: source
+dataAssetResourceName: datastore://source/CurrencyRate
+doc: Exchange rate between two currencies for a given date, staged from the Sales.CurrencyRate
+  source table. The contract enforces the declared schema and the business key (CurrencyRateID);
+  value-level semantics are advisory pending producer/consumer review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: CurrencyRateID
+  description: Unique identifier for a currency rate record (source surrogate key).
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: CurrencyRateDate
+  description: Date and time the exchange rate was obtained.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: FromCurrencyCode
+  description: Source currency code the exchange rate converts from; refers to Currency.CurrencyCode.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ToCurrencyCode
+  description: Target currency code the exchange rate converts to; refers to Currency.CurrencyCode.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: AverageRate
+  description: Average exchange rate for the day.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EndOfDayRate
+  description: Final exchange rate for the day.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

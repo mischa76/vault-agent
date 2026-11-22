@@ -1,0 +1,8 @@
+version: 2
+models:
+- name: stg_SpecialOfferProduct
+  columns:
+  - name: SPECIALOFFERID
+    tests:
+    - unique
+    - not_null

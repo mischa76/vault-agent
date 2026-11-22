@@ -1,0 +1,398 @@
+"""Loader for a previously generated vault's logical model (WP23 §2.1, brownfield mode).
+
+Brownfield mode extends an existing vault instead of modelling into an empty target. The
+existing model is an INPUT, not a discovery: ``run --existing <dir|file>`` reads the
+``metadata/dv_model.yml`` a previous run wrote (:data:`DV_MODEL_FILENAME`) and hands it to
+the pipeline as ``state.existing_model``.
+
+Why not ``automatedv.yml``: the charter's §3.1 first guess was to round-trip the rendered
+AutomateDV metadata, which every run already writes. It cannot work — that file is the
+*rendered macro* view (source_model, src_pk, src_nk, …) and has no descriptions,
+requirement_ids, ``sat_type``, driving keys, ``source_table`` or ``Hub.sources``.
+Reconstructing a DVModel from it would silently invent the fields it lost, which is exactly
+what this project does not do. So the logical dump became its own output and this loader
+reads that; a pre-WP23 output directory is an attributable error telling the user to
+regenerate once, never a guess.
+
+Errors follow the house loader style (:mod:`vault_agent.source_schema`): every failure names
+the file and the problem, so a wrong ``--existing`` costs a message rather than a traceback
+or, worse, a plausible-looking wrong model.
+"""
+from pathlib import Path
+from typing import Any
+
+import yaml
+from pydantic import ValidationError
+
+from vault_agent.rules.naming import NamingProfile
+from vault_agent.state import DVModel, SourceColumn
+
+# The logical model a run writes under its output ``metadata/`` directory, and the file a
+# later extension run reads back. One definition, imported by the writer and the loader.
+DV_MODEL_FILENAME = "dv_model.yml"
+# WP74: the declared tables a run's stages bound to, this increment's and every carried one,
+# in the `source_schemas:` shape the house loader reads; foreign keys are not carried (the
+# catalogue binds, it never proposes). Written beside the model, read by `--existing`.
+SOURCE_CATALOGUE_FILENAME = "source_catalogue.yml"
+# WP114: the naming profile a vault was generated under, written only when it is not the
+# house style; an extension adopts it (`load_existing_naming`).
+NAMING_FILENAME = "naming.yml"
+# WP122 (C53): the bridge paths this vault declined, beside the model — written only when any were.
+BRIDGE_DECISIONS_FILENAME = "bridge_decisions.yml"
+
+
+def load_existing_model(path: Path) -> DVModel | None:
+    """Load the logical model of a previously generated vault.
+
+    ``path`` is either an output directory (``metadata/dv_model.yml`` is read inside it) or
+    the YAML file itself. Returns ``None`` for an empty/``null`` document — the ADR-0004
+    inertness convention, so an empty file means "greenfield" rather than an error.
+
+    Raises ``ValueError`` naming the file and the problem for: a missing path, a directory
+    without the file (the pre-WP23 case, with the fix in the message), unreadable or
+    malformed YAML, a document that is not a mapping, and a mapping that does not validate
+    as a :class:`~vault_agent.state.DVModel`.
+    """
+    source = _resolve(path)
+    try:
+        raw = source.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise ValueError(f"{source}: could not be read ({exc})") from exc
+    try:
+        document: Any = yaml.safe_load(raw)
+    except yaml.YAMLError as exc:
+        raise ValueError(f"{source}: not valid YAML ({exc})") from exc
+
+    if document is None:
+        return None  # empty file: inert, same convention as an empty source schema
+    if not isinstance(document, dict):
+        raise ValueError(
+            f"{source}: expected a mapping with hubs/links/satellites keys, got "
+            f"{type(document).__name__}"
+        )
+    try:
+        model = DVModel.model_validate(document)
+    except ValidationError as exc:
+        raise ValueError(f"{source}: not a valid Data Vault model ({exc})") from exc
+
+    if not (model.hubs or model.links or model.satellites):
+        return None  # a model with no constructs is the same as no model
+    return model
+
+
+def existing_construct_names(existing: DVModel | None) -> set[str]:
+    """The constructs of the vault being extended — not this run's (WP23). One reading for the
+    validator's gates and the sign-off's judgement of a binding (WP134)."""
+    if existing is None:
+        return set()
+    return (
+        {hub.name for hub in existing.hubs}
+        | {link.name for link in existing.links}
+        | {sat.name for sat in existing.satellites}
+    )
+
+
+def _resolve(path: Path) -> Path:
+    """The YAML file to read, from a directory or a direct file path."""
+    if not path.exists():
+        raise ValueError(f"{path}: no such file or directory")
+    if path.is_dir():
+        candidate = path / "metadata" / DV_MODEL_FILENAME
+        if not candidate.is_file():
+            raise ValueError(
+                f"{path}: not a vault-agent output directory carrying "
+                f"metadata/{DV_MODEL_FILENAME}. Outputs generated before this file existed "
+                f"cannot be extended — regenerate that vault once with the current version "
+                f"(the generator is deterministic, so the regenerated project is identical), "
+                f"then point --existing at the new output"
+            )
+        return candidate
+    return path
+
+
+def render_extension_prompt_section(existing: DVModel | None) -> str:
+    """Render the existing vault as a modeler prompt section; ``''`` when greenfield.
+
+    Mirrors :func:`vault_agent.grounding.render_schema_prompt_section`: returning ``''``
+    keeps the system prompt byte-identical for a greenfield run, which is what makes the
+    WP16 steering fixture and prompt caching unaffected by this WP.
+
+    The inventory is deliberately COMPACT — names, keys, grain, types — not a full dump.
+    The modeler needs to recognise what exists and attach to it; it does not need the
+    existing descriptions or requirement traces, and sending them would cost tokens on
+    every extension run to no benefit.
+
+    **The register was rewritten in WP30.2, and the reason is measured**
+    (2026-08-09). This section used to open with "IMMUTABLE … a migration this agent never
+    performs" and close with "Emit ONLY the delta … Do NOT re-emit" — every sentence a
+    prohibition. Arm B then built **0 of 37** links spanning two domains where arm A built 16
+    from the same landscape, and invented a local hub for a concept this very inventory listed
+    by name. The instruction to do otherwise was present at five levels — the schema's foreign
+    key, the requirements text, this section's own "attach by their exact names", a ratified
+    resolver merge, and finally an explicit steering rule that changed nothing.
+
+    The rules did not change; only which of them the text leads with. Two things are genuinely
+    fixed — an existing construct is never renamed or re-keyed, and an existing satellite's
+    payload never grows — and they are still stated, at the end, as the two exceptions they
+    are. What comes first now is what the section is actually for: these hubs are endpoints,
+    and a link to one changes nothing about it."""
+    if existing is None:
+        return ""
+    lines = [
+        "## The vault you are extending — these hubs are yours to build against",
+        "",
+        "Each construct below already exists and is a CONNECTION POINT for what you are adding"
+        " now. Building a link to one of these hubs does not change that hub — it is a new"
+        " construct, and it is the main thing this section exists for.",
+        "",
+    ]
+    for hub in existing.hubs:
+        feeds = (
+            f"; fed by {', '.join(s.source_table for s in hub.sources)}"
+            if hub.sources
+            else ""
+        )
+        lines.append(f"- hub **{hub.name}** — business key `{hub.business_key}`{feeds}")
+    for link in existing.links:
+        grain = ", ".join(
+            ref.hub if ref.role is None else f"{ref.hub}:{ref.role}" for ref in link.hub_refs
+        )
+        driving = f"; driving key {', '.join(link.driving_key)}" if link.driving_key else ""
+        lines.append(f"- link **{link.name}** — connects {grain}{driving}")
+    for sat in existing.satellites:
+        lines.append(f"- satellite **{sat.name}** — {sat.sat_type}, on {sat.parent}")
+    lines += [
+        "",
+        "Wherever this increment's requirements reference something one of those hubs already "
+        "holds — a foreign key, a concept the requirements call maintained elsewhere, any "
+        "reference they say must be preserved so the areas can be joined later — model that "
+        "reference as a LINK to that hub, by its exact name. Nobody adds those links in a "
+        "later increment; if you do not build them now, the vault simply never has them.",
+        "",
+        "Emit what does not exist yet:",
+        "",
+        "1. NEW hubs, links and satellites — INCLUDING links whose participants are hubs "
+        "listed above, and links between an existing hub and one you are adding now. Use the "
+        "exact names above; never re-invent or rename a concept that already exists.",
+        "2. An existing hub RE-STATED BY NAME carrying only its ADDITIONAL `sources` "
+        "entries, when a new source system feeds a concept the vault already models.",
+        "",
+        "Two things are fixed, and only two. An existing construct is never renamed, re-keyed "
+        "or re-shaped — that is a migration this agent does not perform. And an existing "
+        "satellite's payload never grows: if new attributes belong to a concern an existing "
+        "satellite already covers, put them in a NEW satellite on the same parent, because "
+        "every stored row would otherwise need backfilling. Beyond those two, do not re-emit "
+        "an existing link or satellite unchanged — there is nothing to gain from restating it.",
+    ]
+    return "\n" + "\n".join(lines) + "\n"
+
+
+def _column_entry(column: SourceColumn) -> str | dict[str, Any]:
+    """A bare name when nothing else is known; else name, type and (WP94) nullability."""
+    if not column.type and column.nullable is None:
+        return column.name
+    entry: dict[str, Any] = {"name": column.name}
+    if column.type:
+        entry["type"] = column.type
+    if column.nullable is not None:
+        entry["nullable"] = column.nullable
+    return entry
+
+
+def dump_source_catalogue(
+    tables: list[Any],
+    bindings: dict[str, str] | None = None,
+    aliases: dict[str, dict[str, str]] | None = None,
+) -> str:
+    """Render the source catalogue (WP74): table, schema, database, the declared columns (with
+    their types where declared, WP83) and the declared keys (WP106),
+    deduplicated by (schema, table), first occurrence wins — so a caller passes the
+    increment's tables before the carried ones. ``bindings`` (WP77) adds ``stage_bindings``:
+    every staging model's declared relation, so the next increment keeps a binding its own
+    resolution cannot re-derive (the offer tier and the proposals see only the increment)."""
+    seen: set[tuple[str | None, str]] = set()
+    entries: list[dict[str, Any]] = []
+    for table in tables:
+        key = (table.schema_name, table.table)
+        if key in seen:
+            continue
+        seen.add(key)
+        # WP83: a column keeps its declared type, so a later increment's zero-key rule can read
+        # it; an untyped column stays a bare name — untyped catalogues are byte-identical.
+        columns: list[Any] = [
+            _column_entry(c) for c in table.column_refs
+        ]
+        entry: dict[str, Any] = {"table": table.table, "columns": columns}
+        if table.schema_name is not None:
+            entry["schema"] = table.schema_name
+        if table.database is not None:
+            entry["database"] = table.database
+        # WP106 (C41): the declared keys, in the house shape and the derivation's order, only where
+        # declared — a relation carried without them could not be judged by WP95's role derivation
+        # at binding time (the twenty-third chain's step 5). The loader is the house-format reader.
+        if table.foreign_keys:
+            entry["foreign_keys"] = [
+                {k: v for k, v in fk.model_dump().items() if v is not None}
+                for fk in table.foreign_keys
+            ]
+        if table.primary_key:
+            entry["primary_key"] = list(table.primary_key)
+        if table.unique_keys:
+            entry["unique_keys"] = [list(k) for k in table.unique_keys]
+        entries.append(entry)
+    document: dict[str, Any] = {"source_schemas": entries}
+    if bindings:
+        document["stage_bindings"] = dict(sorted(bindings.items()))
+    if aliases:
+        # WP82: the aliases a human ratified with a binding, so the next increment can apply
+        # them with it — the relation alone would be refused for the aliased column.
+        document["stage_aliases"] = {
+            stage: dict(columns) for stage, columns in sorted(aliases.items()) if columns
+        }
+    return yaml.safe_dump(document, sort_keys=False, allow_unicode=True)
+
+
+def stage_bindings(staging_metadata: dict[str, Any]) -> dict[str, str]:
+    """WP77: ``{stage model: relation}`` for every stage whose binding is declared, read from the
+    staging metadata the code generator stores (``artifacts.automatedv_yaml["staging"]``) —
+    after the mapper's re-bind, so a binding a human ratified travels too. The relation, never
+    the translation view: the metadata keeps ``source_model`` as the relation (mapping form
+    ``{block: relation}`` or bare)."""
+    out: dict[str, str] = {}
+    for name, meta in staging_metadata.items():
+        if not isinstance(meta, dict) or meta.get("source_binding") != "declared":
+            continue
+        source = meta.get("source_model")
+        if isinstance(source, dict):
+            values = [str(v) for v in source.values()]
+            if len(values) != 1:
+                continue
+            out[name] = values[0]
+        elif isinstance(source, str) and source:
+            out[name] = source
+    return out
+
+
+def stage_aliases(staging_metadata: dict[str, Any]) -> dict[str, dict[str, str]]:
+    """WP82: ``{stage model: {STAGE_COLUMN: relation_column}}`` for every declared stage whose
+    binding a human ratified with aliases (``ratified_columns`` in the staging metadata) — and,
+    since WP95, the role columns the binding rule derived (``role_columns``)."""
+    out: dict[str, dict[str, str]] = {}
+    for name, meta in staging_metadata.items():
+        if not isinstance(meta, dict) or meta.get("source_binding") != "declared":
+            continue
+        columns: dict[str, str] = {}
+        for key in ("role_columns", "ratified_columns"):  # WP95 rule-derived, WP82 typed wins
+            value = meta.get(key)
+            if isinstance(value, dict):
+                columns.update({str(k): str(v) for k, v in value.items()})
+        if columns:
+            out[name] = columns
+    return out
+
+
+def load_carried_aliases(path: Path) -> dict[str, dict[str, str]]:
+    """WP82: the ``stage_aliases`` of an existing output's catalogue, ``{}`` when the output
+    predates WP82 or ``path`` does not exist. Same path rule as ``load_existing_catalogue``."""
+    candidate = _catalogue_path(path)
+    if not candidate.is_file():
+        return {}
+    document: Any = yaml.safe_load(candidate.read_text(encoding="utf-8"))
+    if not isinstance(document, dict):
+        return {}
+    aliases = document.get("stage_aliases")
+    if not isinstance(aliases, dict):
+        return {}
+    return {
+        str(stage): {str(k): str(v) for k, v in columns.items()}
+        for stage, columns in aliases.items() if isinstance(columns, dict)
+    }
+
+
+def load_existing_naming(path: Path) -> NamingProfile:
+    """WP114: the profile an existing output was generated under — ``metadata/naming.yml``
+    beside its model, the house style when the file is absent (every output before WP114 and
+    every default run). ``path`` is the output directory, the model file or the catalogue, as
+    for the other loaders. A malformed file is an attributable ``ValueError``."""
+    from vault_agent.rules.naming import NamingProfile
+
+    base = path.parent if path.is_file() else path
+    meta_dir = base if base.name == "metadata" else base / "metadata"
+    candidate = meta_dir / NAMING_FILENAME
+    if not candidate.is_file():
+        return NamingProfile()
+    try:
+        document: Any = yaml.safe_load(candidate.read_text(encoding="utf-8"))
+        return NamingProfile.model_validate(document or {})
+    except (yaml.YAMLError, ValueError) as exc:
+        raise ValueError(f"{candidate}: not a naming profile ({exc})") from exc
+
+
+def declined_bridge_paths(state: Any) -> list[str]:
+    """WP122: the paths to record as declined — the ones carried in plus this run's declined
+    proposals, less any path this run built (an operator may name a declined path after all)."""
+    built = {p.path for p in state.bridge_proposals if p.ratification_status == "accepted"}
+    built |= set(state.business_vault.bridges)
+    declined = set(state.declined_bridges) | {
+        p.path for p in state.bridge_proposals if p.ratification_status == "overridden"
+    }
+    return sorted(declined - built)
+
+
+def load_declined_bridges(path: Path) -> list[str]:
+    """WP122: the declined bridge paths of an existing output — ``bridge_decisions.yml`` beside
+    its model, ``[]`` when absent (every output before WP122, and every output that declined
+    nothing). ``path`` is the output directory, the model file or the metadata directory, as for
+    ``load_existing_naming``. A malformed file is an attributable ``ValueError``."""
+    base = path.parent if path.is_file() else path
+    meta_dir = base if base.name == "metadata" else base / "metadata"
+    candidate = meta_dir / BRIDGE_DECISIONS_FILENAME
+    if not candidate.is_file():
+        return []
+    try:
+        document: Any = yaml.safe_load(candidate.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise ValueError(f"{candidate}: not YAML ({exc})") from exc
+    declined = (document or {}).get("declined") if isinstance(document or {}, dict) else None
+    if declined is None:
+        return []
+    if not isinstance(declined, list):
+        raise ValueError(f"{candidate}: `declined` must be a list of bridge paths")
+    return sorted(str(p) for p in declined)
+
+
+def _catalogue_path(path: Path) -> Path:
+    if path.is_file():
+        # `--existing` may name the model file itself (metadata/dv_model.yml): the catalogue
+        # is its sibling, unless the file given is the catalogue.
+        return path if path.name == SOURCE_CATALOGUE_FILENAME else (
+            path.parent / SOURCE_CATALOGUE_FILENAME
+        )
+    return path / "metadata" / SOURCE_CATALOGUE_FILENAME
+
+
+def load_carried_bindings(path: Path) -> dict[str, str]:
+    """WP77: the ``stage_bindings`` of an existing output's catalogue, ``{}`` when the output
+    predates WP77 or ``path`` does not exist. Same path rule as ``load_existing_catalogue``."""
+    candidate = _catalogue_path(path)
+    if not candidate.is_file():
+        return {}
+    document: Any = yaml.safe_load(candidate.read_text(encoding="utf-8"))
+    if not isinstance(document, dict):
+        return {}
+    bindings = document.get("stage_bindings")
+    if not isinstance(bindings, dict):
+        return {}
+    return {str(k): str(v) for k, v in bindings.items()}
+
+
+def load_existing_catalogue(path: Path) -> list[Any]:
+    """The source catalogue beside an existing output's model, or ``[]`` when the output
+    predates WP74 or ``path`` does not exist (an older `--existing` keeps working, degraded as
+    before). ``path`` is the output directory or the catalogue file itself."""
+    from vault_agent.source_schema import load_source_schemas
+
+    candidate = _catalogue_path(path)
+    if not candidate.is_file():
+        return []
+    return list(load_source_schemas(candidate))

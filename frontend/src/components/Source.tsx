@@ -1,0 +1,206 @@
+import { useEffect, useState } from "react";
+import { api, ApiError } from "../api";
+import type { ProjectFile, SourceView } from "../types";
+import { Button, ErrorNote, Pill, Section } from "./ui";
+
+// WP119 (C46): the source database — `vault-agent source-schema` and `vault-agent profile` from the
+// workbench; since WP140 `vault-agent infer-keys` as well. The connection is the workbench's VAULT_AGENT_SOURCE_URL (ADR-0015: secrets stay in
+// `.env`); this section never sees a password, it shows the URL as the server hides it.
+const CHECKS = ["range", "lengths", "patterns", "examples"] as const;
+type Check = (typeof CHECKS)[number];
+
+// WP119 follow-up (C50 option c): the files are named after the chosen schemas, so a brownfield
+// chain's steps (`person_…`, `production_…`) never replace an earlier step's input; a typed name wins.
+const stem = (schemas: string[]) => schemas.map((s) => s.toLowerCase()).join("_");
+const defaultName = (schemas: string[], kind: "source_schema" | "profiling") =>
+  schemas.length ? `${stem(schemas)}_${kind}.yml` : `${kind}.yml`;
+
+// `onProduced` hands the stored input to the run form, which selects it as an upload is selected.
+// `files` are the project's inputs: keys are inferred for the tables one of its schema inputs names (WP140).
+export function SourceSection({ projectId, files = [], onChanged, onProduced, busy }: {
+  projectId: string; files?: ProjectFile[]; onChanged: () => void; onProduced?: (file: ProjectFile) => void; busy: boolean;
+}) {
+  const [view, setView] = useState<SourceView | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [schemas, setSchemas] = useState<string[]>([]);
+  const [views, setViews] = useState(false);
+  const [tables, setTables] = useState<{ schema: string; table: string }[]>([]);
+  const [chosenTables, setChosenTables] = useState<string[]>([]);
+  const [checks, setChecks] = useState<Check[]>(["range", "lengths", "patterns"]);
+  const [sample, setSample] = useState(10000);
+  const [working, setWorking] = useState(false);
+  const [result, setResult] = useState<{ command: string; note: string } | null>(null);
+  const [catalogueName, setCatalogueName] = useState<string | null>(null); // null = follow the schemas
+  const [profileName, setProfileName] = useState<string | null>(null);
+  const catalogueFile = catalogueName ?? defaultName(schemas, "source_schema");
+  const profileFile = profileName ?? defaultName(schemas, "profiling");
+  // WP140 (C74): `vault-agent infer-keys`. The schema input added last is the one a catalogue read
+  // just wrote; the file is written onto its input unless another name is typed.
+  const schemaFiles = files.filter((f) => f.kind === "schema").map((f) => f.name);
+  const [keysFrom, setKeysFrom] = useState<string | null>(null); // null = the input added last
+  const [keysName, setKeysName] = useState<string | null>(null); // null = onto the input
+  const keysSource = keysFrom !== null && schemaFiles.includes(keysFrom) ? keysFrom : (schemaFiles[schemaFiles.length - 1] ?? "");
+  const keysFile = keysName ?? keysSource;
+
+  useEffect(() => {
+    let live = true;
+    api.source().then((v) => { if (live) setView(v); })
+      .catch((e) => { if (live) setError(e instanceof ApiError ? e.detail : String(e)); });
+    return () => { live = false; };
+  }, []);
+
+  useEffect(() => {
+    let live = true;
+    setChosenTables([]);
+    if (schemas.length === 0) { setTables([]); return; }
+    api.sourceTables(schemas).then((t) => { if (live) setTables(t); })
+      .catch((e) => { if (live) setError(e instanceof ApiError ? e.detail : String(e)); });
+    return () => { live = false; };
+  }, [schemas]);
+
+  const toggle = <T,>(list: T[], item: T) => (list.includes(item) ? list.filter((x) => x !== item) : [...list, item]);
+
+  async function act(action: () => Promise<{ command: string; note: string; file: ProjectFile }>) {
+    setError(null); setResult(null); setWorking(true);
+    try {
+      const done = await action();
+      setResult(done);
+      onProduced?.(done.file);
+      onChanged();
+    } catch (e) {
+      setError(e instanceof ApiError ? e.detail : String(e));
+    } finally {
+      setWorking(false);
+    }
+  }
+
+  function readCatalogue() {
+    void act(async () => {
+      const r = await api.readCatalogue(projectId, { schemas, views, name: catalogueFile });
+      const s = r.summary;
+      return { command: r.command, file: r.file, note: `${r.file.name}: ${s.tables} tables, ${s.columns} columns, ${s.foreign_keys} foreign keys — metadata only` };
+    });
+  }
+
+  function makeProfile() {
+    const scope = chosenTables.length ? `${chosenTables.length} table(s)` : `every table of ${schemas.join(", ")}`;
+    const values = checks.includes("examples") ? " The examples check writes column values into the file." : "";
+    if (!window.confirm(`Profiling reads rows of the source database: ${scope}, counts over all rows, shapes from a sample of ${sample}.${values} Continue?`)) return;
+    void act(async () => {
+      const r = await api.makeProfile(projectId, {
+        schemas, tables: chosenTables, checks: checks.length ? checks : ["none"], sample,
+        examples: checks.includes("examples") ? 3 : 0, reads_rows: true, name: profileFile,
+      });
+      const s = r.summary;
+      const refused = r.refused.length ? `; refused by the database: ${r.refused.join("; ")}` : "";
+      return { command: r.command, file: r.file, note: `${r.file.name}: ${s.tables} tables, ${s.columns} columns, ${s.rows} rows counted${refused}` };
+    });
+  }
+
+  function inferKeys() {
+    if (!window.confirm(`Inferring keys reads rows of the source database: every table ${keysSource} names is counted over all rows, and candidate columns are compared across tables. Nothing is written to the source. Continue?`)) return;
+    void act(async () => {
+      const r = await api.inferKeys(projectId, { schema: keysSource, name: keysFile, candidates: "name", reads_rows: true });
+      const s = r.summary;
+      const refused = r.refused.length ? `; left out: ${r.refused.join("; ")}` : "";
+      return { command: r.command, file: r.file, note: `${r.file.name}: ${s.tables_read} of ${s.tables} tables read, ${s.unique} inferred unique keys, ${s.foreign} inferred foreign keys — inferences, not declarations: the resolution checkpoint asks about each${refused}` };
+    });
+  }
+
+  const tone = view?.state === "ok" ? "ok" : view?.state === "unset" ? "line" : "warn";
+  return (
+    <Section title="Source" aside={view ? <Pill tone={tone}>source: {view.state === "unset" ? "not set" : view.state}</Pill> : null}>
+      <ErrorNote error={error} />
+      {view === null ? null : view.state === "unset" ? (
+        <p className="text-sm text-ink-dim">No source database: set <code className="font-mono text-xs">VAULT_AGENT_SOURCE_URL</code> in
+          the workbench's <code className="font-mono text-xs">.env</code> and restart it — the password stays there, never in the browser or a project (ADR-0015).</p>
+      ) : view.state !== "ok" ? (
+        <p className="text-sm text-ink-dim"><code className="font-mono text-xs">{view.url ?? "VAULT_AGENT_SOURCE_URL"}</code>: {view.detail}</p>
+      ) : (
+        <div className="grid gap-3 text-sm">
+          <p className="text-xs text-ink-faint">connection <code className="font-mono">{view.url}</code> — from the workbench's environment</p>
+          <fieldset className="grid gap-1">
+            <legend className="text-xs text-ink-faint">schemas</legend>
+            <div className="flex flex-wrap gap-3">
+              {view.schemas.map((s) => (
+                <label key={s} className="flex items-center gap-1.5">
+                  <input type="checkbox" aria-label={`schema ${s}`} checked={schemas.includes(s)} onChange={() => setSchemas(toggle(schemas, s))} />
+                  <span className="font-mono text-xs">{s}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-1.5 text-xs text-ink-dim">
+              <input type="checkbox" aria-label="views" checked={views} onChange={() => setViews(!views)} /> views as well
+            </label>
+            <input aria-label="catalogue file name" value={catalogueFile} onChange={(e) => setCatalogueName(e.target.value)}
+              className="w-64 rounded-md border border-line bg-pane-2 px-2 py-1 font-mono text-xs" />
+            <Button kind="add" onClick={readCatalogue} disabled={busy || working || schemas.length === 0 || !catalogueFile.trim()}>read catalogue</Button>
+            <span className="text-xs text-ink-faint">metadata only — becomes a schema input; a file of the same name is replaced</span>
+          </div>
+          <details>
+            <summary className="cursor-pointer text-xs text-ink-faint">profile — reads rows; tables {chosenTables.length ? chosenTables.length : "all"}, checks {checks.join(", ") || "none"}</summary>
+            <div className="mt-2 grid gap-3">
+              {tables.length ? (
+                <div className="flex max-h-40 flex-wrap gap-3 overflow-auto">
+                  {tables.map(({ schema, table }) => {
+                    const name = `${schema}.${table}`;
+                    return (
+                      <label key={name} className="flex items-center gap-1.5">
+                        <input type="checkbox" aria-label={`table ${name}`} checked={chosenTables.includes(name)} onChange={() => setChosenTables(toggle(chosenTables, name))} />
+                        <span className="font-mono text-xs">{name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : <p className="text-xs text-ink-faint">choose a schema to list its tables; none chosen profiles every table</p>}
+              <div className="flex flex-wrap items-center gap-3">
+                {CHECKS.map((c) => (
+                  <label key={c} className="flex items-center gap-1.5 text-xs">
+                    <input type="checkbox" aria-label={`check ${c}`} checked={checks.includes(c)} onChange={() => setChecks(toggle(checks, c))} />
+                    {c}{c === "examples" ? <span className="text-warn"> (writes values)</span> : null}
+                  </label>
+                ))}
+                <label className="flex items-center gap-1.5 text-xs">
+                  sample
+                  <input type="number" min={1} aria-label="sample" value={sample} onChange={(e) => setSample(Math.max(1, Number(e.target.value) || 1))}
+                    className="w-24 rounded-md border border-line bg-pane-2 px-2 py-1 font-mono text-xs" />
+                </label>
+              </div>
+              <div className="flex items-center gap-3">
+                <input aria-label="profile file name" value={profileFile} onChange={(e) => setProfileName(e.target.value)}
+                  className="w-64 rounded-md border border-line bg-pane-2 px-2 py-1 font-mono text-xs" />
+                <Button kind="add" onClick={makeProfile} disabled={busy || working || schemas.length === 0 || !profileFile.trim()}>make profile</Button>
+                <span className="text-xs text-ink-faint">counts over all rows; becomes a profiling input; a file of the same name is replaced</span>
+              </div>
+            </div>
+          </details>
+          <details>
+            <summary className="cursor-pointer text-xs text-ink-faint">infer keys — reads rows; for a source that declares no foreign key where its data holds one</summary>
+            <div className="mt-2 grid gap-2">
+              <p className="text-xs text-ink-dim">Finds unique columns, and columns whose every value occurs in a key column of another table, for the tables a schema input names — and writes them beside the declared keys. An inference is not a declaration: the resolution checkpoint lists each one unchecked, and nothing is built on it without a yes there.</p>
+              <div className="flex flex-wrap items-center gap-3">
+                <select aria-label="schema file" value={keysSource} onChange={(e) => setKeysFrom(e.target.value)}
+                  className="rounded-md border border-line bg-pane-2 px-2 py-1 font-mono text-xs">
+                  {schemaFiles.map((n) => <option key={n} value={n}>{n}</option>)}
+                </select>
+                <input aria-label="inferred file name" value={keysFile} onChange={(e) => setKeysName(e.target.value)}
+                  className="w-64 rounded-md border border-line bg-pane-2 px-2 py-1 font-mono text-xs" />
+                <Button kind="add" onClick={inferKeys} disabled={busy || working || !keysSource || !keysFile.trim()}>infer keys</Button>
+                <span className="text-xs text-ink-faint">{schemaFiles.length ? "counts over all rows; becomes a schema input; a file of the same name is replaced" : "read the catalogue or attach a schema first"}</span>
+              </div>
+            </div>
+          </details>
+          {working ? <p className="text-xs text-ink-faint">reading the source database…</p> : null}
+          {result ? (
+            <div className="text-xs">
+              <p className="text-ink-dim">{result.note}</p>
+              <p className="mt-1 font-mono text-ink-faint">$ {result.command}</p>
+            </div>
+          ) : null}
+        </div>
+      )}
+    </Section>
+  );
+}

@@ -1,0 +1,8 @@
+version: 2
+models:
+- name: stg_PurchaseOrderHeader
+  columns:
+  - name: EMPLOYEEID
+    tests:
+    - unique
+    - not_null

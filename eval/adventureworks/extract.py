@@ -1,0 +1,300 @@
+"""Parse the AdventureWorks OLTP install script into a structured schema extract (WP30 §2.1).
+
+The extract is the CHECKED-IN instrument: `derive.py` builds every case asset from it, so the
+cases are reproducible without the 330 KB upstream SQL and without network access. This module
+is the one-time (re-runnable) bridge from Microsoft's DDL to that extract.
+
+Everything here is transcription, never interpretation — the point of WP30 is that the schema,
+its boundaries and its documentation come from somebody else. In particular:
+
+* table and column descriptions are taken VERBATIM from ``sp_addextendedproperty`` and are never
+  authored, extended or paraphrased (WP30 §2.3 as amended 2026-07-29);
+* the five schemas are the subject areas, exactly as shipped (§2.2);
+* natural keys are read from Microsoft's own ``AK_*`` unique indexes rather than chosen by us —
+  which is what makes the golden mappings defensible rather than our modelling opinion.
+
+Usage (the upstream file is not checked in; fetch it, then run this):
+
+    curl -sSLO https://raw.githubusercontent.com/microsoft/sql-server-samples/master/\\
+samples/databases/adventure-works/oltp-install-script/instawdb.sql
+    python -m eval.adventureworks.extract --sql instawdb.sql \\
+        --out eval/datasets/adventureworks/schema_extract.json
+
+AdventureWorks is MIT licensed (Microsoft); see the NOTICE file beside the extract.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+from dataclasses import asdict, dataclass, field
+from pathlib import Path
+from typing import Any
+
+# The five OLTP subject areas. `dbo` holds AWBuildVersion/DatabaseLog/ErrorLog — infrastructure,
+# not business content — and is excluded. That is the ONLY exclusion, and it is not a boundary
+# judgement: those tables model the sample database itself, not Adventure Works Cycles.
+BUSINESS_SCHEMAS = ("HumanResources", "Person", "Production", "Purchasing", "Sales")
+
+_TABLE_RE = re.compile(
+    r"CREATE TABLE \[(?P<schema>\w+)\]\.\[(?P<table>\w+)\]\((?P<body>.*?)\n\) ON ",
+    re.S,
+)
+# The type is USUALLY bracketed (`[varchar](50)`, `[dbo].[Flag]`) but not always: `rowguid`
+# is declared as bare `uniqueidentifier ROWGUIDCOL`. Accepting only the bracketed form silently
+# dropped exactly the columns worth most here — a perfectly unique technical GUID beside the
+# real business key is the GUID-shadow trap this instrument gets for free.
+# A type argument may itself be bracketed — XML columns carry a schema collection, as in
+# `[XML]([Person].[AdditionalContactInfoSchemaCollection])` — and `rest` must not require
+# leading whitespace, because `[nvarchar](3850),` puts the comma flush against the type.
+# Both mistakes dropped descriptive payload columns (Demographics, AdditionalContactInfo,
+# Comments), which would have quietly shrunk the satellites this instrument is meant to test.
+_COLUMN_RE = re.compile(
+    r"^\s*\[(?P<name>\w+)\]\s+(?P<type>(?:\[[\w\]\[.]+\]|\w+)(?:\(\s*[\w,\s\[\].]+\s*\))?)"
+    r"(?P<rest>.*)?$"
+)
+# WP64 (2026-10-10): the script's own alias types — `CREATE TYPE [Name] FROM nvarchar(50) NULL;`
+# — six of them, which 42 columns are declared with. Transcribed so the derivation can resolve
+# a column's alias to the base type the same script defines; the column keeps the alias here.
+_TYPE_RE = re.compile(
+    r"^\s*CREATE TYPE \[(?P<name>\w+)\] FROM (?P<base>\w+(?:\(\s*\d+\s*\))?)"
+    r"\s+(?P<null>NOT NULL|NULL)\s*;",
+    re.M,
+)
+# Positional form: N'MS_Description', N'<text>', N'SCHEMA', [s], N'TABLE', [t] [, N'COLUMN', [c]]
+_DESC_RE = re.compile(
+    r"sp_addextendedproperty\] N'MS_Description', N'(?P<desc>(?:[^']|'')*)', "
+    r"N'SCHEMA', \[(?P<schema>\w+)\], N'TABLE', \[(?P<table>\w+)\]"
+    r"(?:, N'COLUMN', \[(?P<column>\w+)\])?"
+)
+_PK_RE = re.compile(
+    # WP85: the install script writes `WITH CHECK ADD` for every primary key (71 statements);
+    # the bare `ADD` this expected matched none, so no table had a primary key until 2026-10-22.
+    r"ALTER TABLE \[(?P<schema>\w+)\]\.\[(?P<table>\w+)\] (?:WITH CHECK )?ADD\s+"
+    r"CONSTRAINT \[PK_\w+\] "
+    r"PRIMARY KEY \w+\s*\((?P<cols>.*?)\)",
+    re.S,
+)
+_AK_RE = re.compile(
+    # WP85: `CLUSTERED`/`NONCLUSTERED` too — `AK_BillOfMaterials_ProductAssemblyID_ComponentID_
+    # StartDate` is a unique clustered index and was missed.
+    r"CREATE UNIQUE (?:(?:NON)?CLUSTERED )?INDEX \[(?P<name>AK_\w+)\] ON "
+    r"\[(?P<schema>\w+)\]\.\[(?P<table>\w+)\]"
+    r"\((?P<cols>.*?)\)",
+    re.S,
+)
+# Two stages, on purpose. instawdb.sql adds SEVERAL constraints per statement
+# (`ADD CONSTRAINT [FK_a] ..., CONSTRAINT [FK_b] ...;`); a single regex anchored on
+# `ALTER TABLE ... ADD CONSTRAINT` matched only the first of each and silently dropped 44 of
+# the 90 foreign keys (found 2026-09-12 — every relationship table lost its second key).
+_ALTER_ADD_RE = re.compile(
+    r"ALTER TABLE \[(?P<schema>\w+)\]\.\[(?P<table>\w+)\] ADD\s+(?P<body>.*?);", re.S
+)
+_FK_RE = re.compile(
+    r"CONSTRAINT \[FK_\w+\]\s+FOREIGN KEY\s*\((?P<cols>.*?)\)\s*REFERENCES "
+    r"\[(?P<ref_schema>\w+)\]\.\[(?P<ref_table>\w+)\]\s*\((?P<ref_cols>.*?)\)",
+    re.S,
+)
+
+
+@dataclass
+class Column:
+    name: str
+    type: str
+    nullable: bool
+    identity: bool
+    description: str | None = None
+
+
+@dataclass
+class Table:
+    schema: str
+    name: str
+    description: str | None = None
+    columns: list[Column] = field(default_factory=list)
+    primary_key: list[str] = field(default_factory=list)
+    # Microsoft's own natural-key declarations. `rowguid` ones are technical surrogates and are
+    # kept, flagged, because they are a real GUID-shadow trap: a perfectly unique column sitting
+    # next to the true business key (the trap class messy_insurance had to synthesise).
+    alternate_keys: list[dict[str, Any]] = field(default_factory=list)
+    foreign_keys: list[dict[str, Any]] = field(default_factory=list)
+    # WP110 (C23): the script's BULK INSERT options for the table's CSV — field and row
+    # terminator (`0x0a` normalised to a line feed) and code page — read by the data loader.
+    bulk_insert: dict[str, str] | None = None
+
+
+_BULK_RE = re.compile(
+    r"BULK INSERT \[(?P<schema>\w+)\]\.\[(?P<table>\w+)\]"
+    r"[^;]*?WITH\s*\((?P<options>[^;]*?)\);",
+    re.S,
+)
+_OPTION_RE = re.compile(
+    r"(?P<key>FIELDTERMINATOR|ROWTERMINATOR|CODEPAGE)\s*=\s*'(?P<value>[^']*)'"
+)
+
+
+def _terminator(raw: str) -> str:
+    """The script's spelling of a terminator as the bytes it means: `\\t`, `\\n`, `0x0a`."""
+    value = raw.replace("\\t", "\t").replace("\\n", "\n")
+    if value.lower().startswith("0x"):
+        value = bytes.fromhex(value[2:]).decode("ascii")
+    return value
+
+
+def parse_bulk_insert_options(sql: str) -> dict[tuple[str, str], dict[str, str]]:
+    """WP110: ``{(schema, table): {field_terminator, row_terminator, codepage}}`` from every
+    ``BULK INSERT … WITH (…)`` of the install script. Transcribed, not interpreted."""
+    out: dict[tuple[str, str], dict[str, str]] = {}
+    for match in _BULK_RE.finditer(sql):
+        options = {
+            m.group("key"): m.group("value")
+            for m in _OPTION_RE.finditer(match.group("options"))
+        }
+        out[(match.group("schema"), match.group("table"))] = {
+            "field_terminator": _terminator(options.get("FIELDTERMINATOR", "\t")),
+            "row_terminator": _terminator(options.get("ROWTERMINATOR", "\n")),
+            "codepage": options.get("CODEPAGE", ""),
+        }
+    return out
+
+
+def _names(raw: str) -> list[str]:
+    # WP85: a `--` line comment is not a column — the script comments `[ProductCategoryID]` out of
+    # PK_SalesPersonQuotaHistory, and reading it made a key of a column the table does not have.
+    return re.findall(r"\[(\w+)\]", re.sub(r"--[^\n]*", "", raw))
+
+
+def _clean(text: str) -> str:
+    """Un-escape the SQL string literal. Verbatim otherwise — no rewrapping, no paraphrase."""
+    return text.replace("''", "'").strip()
+
+
+def _parse_columns(body: str) -> list[Column]:
+    columns: list[Column] = []
+    for line in body.split("\n"):
+        stripped = line.strip()
+        if not stripped or stripped.startswith(("CONSTRAINT", ")", "--")):
+            continue
+        match = _COLUMN_RE.match(line)
+        if not match:
+            continue
+        rest = match.group("rest") or ""
+        columns.append(
+            Column(
+                name=match.group("name"),
+                type=match.group("type").replace("[", "").replace("]", ""),
+                nullable="NOT NULL" not in rest.upper(),
+                identity="IDENTITY" in rest.upper(),
+            )
+        )
+    return columns
+
+
+def parse(sql: str) -> list[Table]:
+    """Parse the install script into the business-schema tables, in DDL order."""
+    tables: dict[tuple[str, str], Table] = {}
+    for match in _TABLE_RE.finditer(sql):
+        schema, name = match.group("schema"), match.group("table")
+        if schema not in BUSINESS_SCHEMAS:
+            continue
+        tables[(schema, name)] = Table(
+            schema=schema, name=name, columns=_parse_columns(match.group("body"))
+        )
+
+    for match in _DESC_RE.finditer(sql):
+        key = (match.group("schema"), match.group("table"))
+        table = tables.get(key)
+        if table is None:
+            continue
+        text = _clean(match.group("desc"))
+        column = match.group("column")
+        if column is None:
+            table.description = text
+            continue
+        for col in table.columns:
+            if col.name == column:
+                col.description = text
+                break
+
+    for match in _PK_RE.finditer(sql):
+        table = tables.get((match.group("schema"), match.group("table")))
+        if table is not None:
+            table.primary_key = _names(match.group("cols"))
+
+    for match in _AK_RE.finditer(sql):
+        table = tables.get((match.group("schema"), match.group("table")))
+        if table is None:
+            continue
+        cols = _names(match.group("cols"))
+        table.alternate_keys.append(
+            {"name": match.group("name"), "columns": cols,
+             "technical_guid": cols == ["rowguid"]}
+        )
+
+    for statement in _ALTER_ADD_RE.finditer(sql):
+        table = tables.get((statement.group("schema"), statement.group("table")))
+        if table is None:
+            continue
+        for match in _FK_RE.finditer(statement.group("body")):
+            table.foreign_keys.append({
+                "columns": _names(match.group("cols")),
+                "references_schema": match.group("ref_schema"),
+                "references_table": match.group("ref_table"),
+                "references_columns": _names(match.group("ref_cols")),
+            })
+
+    return list(tables.values())
+
+
+def parse_user_defined_types(sql: str) -> dict[str, dict[str, Any]]:
+    """The script's alias types, by name: base type and nullability (WP64)."""
+    return {
+        m.group("name"): {"base_type": m.group("base"), "nullable": m.group("null") == "NULL"}
+        for m in sorted(_TYPE_RE.finditer(sql), key=lambda m: m.group("name"))
+    }
+
+
+def build_extract(sql: str) -> dict[str, Any]:
+    """The checked-in artifact: deterministic, sorted, no timestamps."""
+    tables = parse(sql)
+    options = parse_bulk_insert_options(sql)  # WP110
+    for table in tables:
+        table.bulk_insert = options.get((table.schema, table.name))
+    return {
+        "source": (
+            "microsoft/sql-server-samples — samples/databases/adventure-works/"
+            "oltp-install-script/instawdb.sql (MIT, see NOTICE)"
+        ),
+        "schemas": list(BUSINESS_SCHEMAS),
+        "tables": [
+            asdict(t) for t in sorted(tables, key=lambda t: (t.schema, t.name))
+        ],
+        "user_defined_types": parse_user_defined_types(sql),
+    }
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--sql", type=Path, required=True, help="path to instawdb.sql")
+    parser.add_argument("--out", type=Path, required=True, help="path to the JSON extract")
+    args = parser.parse_args()
+
+    extract = build_extract(args.sql.read_text(encoding="utf-8", errors="replace"))
+    args.out.parent.mkdir(parents=True, exist_ok=True)
+    args.out.write_text(
+        json.dumps(extract, indent=2, sort_keys=True, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
+
+    tables = extract["tables"]
+    described = sum(1 for t in tables for c in t["columns"] if c["description"])
+    total = sum(len(t["columns"]) for t in tables)
+    print(f"{len(tables)} tables, {total} columns, {described} with a verbatim description")
+    for schema in BUSINESS_SCHEMAS:
+        n = sum(1 for t in tables if t["schema"] == schema)
+        print(f"  {schema:16} {n:>3} tables")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

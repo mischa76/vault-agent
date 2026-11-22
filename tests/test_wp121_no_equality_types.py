@@ -1,0 +1,112 @@
+"""WP121 (C54) — a payload column whose type has no equality is staged as text. Committed before
+the change, failing. The shape is the twenty-fifth chain's: `HumanResources.JobCandidate.Resume` is
+`xml`, and AutomateDV's satellite merges its ghost record by `UNION`, which PostgreSQL refuses for
+`xml` (spec §1)."""
+from __future__ import annotations
+
+from typing import Any
+
+import pytest
+import yaml
+
+from vault_agent.agents.staging_generator import build_staging
+from vault_agent.rules.dv2_rules import NO_EQUALITY_TYPES, lacks_equality
+from vault_agent.rules.platforms import platform_profile
+from vault_agent.state import DVModel, SourceTable
+
+
+def _cols(*pairs: tuple[str, str]) -> list[dict[str, str]]:
+    return [{"name": name, "type": type_} for name, type_ in pairs]
+
+
+def _candidate(resume_type: str) -> SourceTable:
+    return SourceTable(table="JobCandidate", schema="HumanResources", columns=_cols(
+        ("JobCandidateID", "integer"), ("Resume", resume_type), ("ModifiedDate", "timestamp"),
+    ))
+
+
+def _model() -> DVModel:
+    return DVModel.model_validate({
+        "hubs": [{"name": "hub_job_candidate", "business_key": "JobCandidateID",
+                  "source_entity": "JobCandidate", "description": "a candidate"}],
+        "links": [],
+        "satellites": [{"name": "sat_job_candidate_details", "parent": "hub_job_candidate",
+                        "attributes": ["Resume", "ModifiedDate"], "source_table": "JobCandidate",
+                        "description": "the resume"}],
+    })
+
+
+def _stage_yaml(sql: str) -> dict[str, Any]:
+    block = sql.split("{%- set yaml_metadata -%}")[1].split("{%- endset -%}")[0]
+    loaded: dict[str, Any] = yaml.safe_load(block)
+    return loaded
+
+
+def _stage(resume_type: str, platform: str = "postgres") -> tuple[str, dict[str, Any]]:
+    tables = [_candidate(resume_type)]
+    result = build_staging(_model(), tables, target_platform=platform)  # type: ignore[arg-type]
+    # the satellite's own stage: it hashes the hashdiff and feeds the satellite (the hub's stage
+    # reads the same relation and is cast the same way — every bound stage of it selects the column)
+    return result.models["stg_job_candidate_details"], result.metadata["stg_job_candidate_details"]
+
+
+# ── T1: the rule reads the measured types, nothing else ────────────────────────────────────
+@pytest.mark.parametrize("declared", [
+    "xml", "XML", " json ", "point", "line", "lseg", "box", "path", "polygon", "circle",
+])
+def test_types_without_equality(declared: str) -> None:
+    assert lacks_equality(declared)
+
+
+@pytest.mark.parametrize("declared", [
+    "jsonb", "text", "varchar(50)", "character varying(4000)", "integer", "uuid", "bytea", "", "AS",
+])
+def test_types_with_equality_or_unknown(declared: str) -> None:
+    assert not lacks_equality(declared)
+
+
+def test_the_set_is_the_measured_nine() -> None:
+    assert frozenset(
+        {"xml", "json", "point", "line", "lseg", "box", "path", "polygon", "circle"}
+    ) == NO_EQUALITY_TYPES
+
+
+# ── T2: PostgreSQL — the stage derives the column as text, the hashdiff still names it ─────
+def test_an_xml_payload_is_derived_as_text_on_postgres() -> None:
+    sql, meta = _stage("xml")
+    stage = _stage_yaml(sql)
+    assert stage["derived_columns"]["RESUME"] == "CAST(RESUME AS text)"
+    assert "derived_columns=metadata_dict['derived_columns']" in sql
+    hashdiff = next(v for v in stage["hashed_columns"].values() if isinstance(v, dict))
+    # WP123: the hashdiff reads the case-preserving column
+    assert "RESUME__CS" in hashdiff["columns"]
+    assert meta["derived_columns"]["RESUME"] == "CAST(RESUME AS text)"
+
+
+# ── T3: Databricks — its unbounded character type, never AutomateDV's VARCHAR(255) ─────────
+def test_the_cast_uses_the_platforms_unbounded_text_type() -> None:
+    assert platform_profile("postgres").text_type == "text"
+    assert platform_profile("databricks").text_type == "string"
+    sql, _ = _stage("xml", platform="databricks")
+    assert _stage_yaml(sql)["derived_columns"]["RESUME"] == "CAST(RESUME AS string)"
+
+
+# ── T4: byte-identity — a relation without such a type renders as before ───────────────────
+def test_a_character_payload_gets_no_derived_column() -> None:
+    sql, meta = _stage("character varying(4000)")
+    # no cast: RESUME is not derived; WP123's hex columns are the only derived ones
+    assert "RESUME" not in _stage_yaml(sql)["derived_columns"]
+    assert all(name.endswith("__CS") for name in meta["derived_columns"])
+
+
+# ── T5: a relation the catalogue does not declare has no types, so nothing is cast ──────────
+def test_a_relation_without_declared_types_is_not_cast() -> None:
+    other = SourceTable(table="Department", schema="HumanResources",
+                        columns=_cols(("DepartmentID", "integer")))
+    result = build_staging(_model(), [other], target_platform="postgres")
+    # the hub's stage finds no declared relation: inferred
+    assert result.metadata["stg_job_candidate"]["source_binding"] == "inferred"
+    # the satellite's stage binds verbatim to its source_table, which the catalogue lacks
+    for name in ("stg_job_candidate", "stg_job_candidate_details"):
+        derived = _stage_yaml(result.models[name]).get("derived_columns") or {}
+        assert "RESUME" not in derived, name  # no cast (WP123's hex columns aside)

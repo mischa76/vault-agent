@@ -1,0 +1,57 @@
+# Enriched source schema for the bank toy domain (ADR-0008 precondition (c) shape).
+#
+# Richer than examples/inputs/bank_source_schema.yml: every column carries a `type` and,
+# where the source ships documentation, a `comment`. This is the substrate the WP9
+# SourceMapperAgent consumes (with examples/inputs/bank_profiling.yml) to propose the
+# business↔source mapping on a *grounded + profiled* run:
+#
+#   vault-agent run examples/inputs/bank_account_requirements.md \
+#     --source-schema examples/inputs/bank_source_schema_enriched.yml \
+#     --profiling     examples/inputs/bank_profiling.yml \
+#     --out output
+#
+# The bank is the easy / high-floor case (eval/datasets/bank/golden_mapping.yml): the
+# physical column names are already business-named, so the mapper resolves every concept by
+# exact_name. No schema/database is declared on any table — the staging binds to bare
+# relation names (seed-friendly, the demo/bank_postgres pattern; WP7 §7.2), so a ratified
+# single-source run builds against seeds named `customer` / `account` / `account_customer`.
+source_schemas:
+  - table: customer
+    columns:
+      - name: national_customer_id
+        type: varchar(11)
+        comment: "National customer identifier (AHV-style) — the enterprise business key for a customer."
+      - name: bank_customer_reference
+        type: varchar(12)
+        comment: "Bank-internal customer reference; operational, not the enterprise key."
+      - name: customer_name
+        type: varchar(120)
+        comment: "Full legal name of the customer."
+      - name: date_of_birth
+        type: date
+        comment: "Customer date of birth."
+  - table: account
+    columns:
+      - name: account_number
+        type: varchar(20)
+        comment: "IBAN-style account number — the business key for an account."
+      - name: balance
+        type: numeric(18,2)
+        comment: "Current account balance in the account currency."
+      - name: status
+        type: varchar(16)
+        comment: "Account lifecycle status (e.g. OPEN, DORMANT, CLOSED)."
+  - table: account_customer
+    columns:
+      - name: account_number
+        type: varchar(20)
+        comment: "FK to account.account_number — the account side of the ownership relationship."
+      - name: national_customer_id
+        type: varchar(11)
+        comment: "FK to customer.national_customer_id — the customer side of the ownership relationship."
+      - name: effective_from
+        type: timestamp
+        comment: "Business-effective start of this ownership relationship (drives the effectivity satellite)."
+      - name: effective_to
+        type: timestamp
+        comment: "Business-effective end of this ownership relationship; open when null."

@@ -1,0 +1,162 @@
+#!/usr/bin/env python
+"""Generate the bank demo's raw-vault dbt models from the *real* CodeGeneratorAgent.
+
+This ties the runnable end-to-end PoC (demo/bank_postgres) to the system's actual output: it
+constructs a fixed, hand-checked bank ``DVModel`` (no LLM, no API key) and feeds it to the
+same ``CodeGeneratorAgent`` the pipeline uses, then writes every emitted model to
+``models/raw_vault/<name>.sql``. The vault SQL is therefore generated, never hand-written
+(AutomateDV is never bypassed — a rule of this project).
+
+Running it is idempotent: same model in, byte-identical SQL out. Run with
+``uv run python demo/bank_postgres/build_vault_models.py`` (or from this directory).
+"""
+from __future__ import annotations
+
+import asyncio
+from pathlib import Path
+
+from vault_agent.agents.code_generator import CodeGeneratorAgent
+from vault_agent.rules.platforms import DEFAULT_TARGET_PLATFORM, TargetPlatform
+from vault_agent.state import DVModel, Hub, Link, LinkHubRef, Satellite, VaultAgentState
+
+# Where the generated raw-vault models land — resolved from this file, not the cwd, so the
+# script works both from the repo root and from inside demo/bank_postgres/.
+RAW_VAULT_DIR = Path(__file__).parent / "models" / "raw_vault"
+
+
+def build_bank_dv_model() -> DVModel:
+    """The fixed bank DV model (spec §3). Construct names and columns are exact: the
+    generator derives physical names from them (UPPER_SNAKE + the rules/ suffixes), so the
+    staging models and seeds are written to match this model, not the other way round."""
+    hubs = [
+        Hub(
+            name="hub_customer",
+            business_key="national customer ID",
+            source_entity="customer",
+            description="A bank customer, anchored on the national customer ID.",
+        ),
+        Hub(
+            name="hub_account",
+            business_key="account number",
+            source_entity="account",
+            description="A bank account, anchored on the bank-issued account number.",
+        ),
+    ]
+    links = [
+        Link(
+            name="link_account_customer",
+            # Order fixes src_fk = [ACCOUNT_HK, CUSTOMER_HK] (spec §3).
+            connected_hubs=["hub_account", "hub_customer"],
+            description="Ownership of an account by a customer (one owner at a time).",
+            link_type="standard",
+            # The account is the fixed side; the owning customer rotates over time, so the
+            # effectivity satellite end-dates by the account.
+            driving_key=["hub_account"],
+            unit_of_work="One account is owned by exactly one customer at any point in time.",
+        ),
+    ]
+    satellites = [
+        Satellite(
+            name="sat_customer_details",
+            parent="hub_customer",
+            attributes=["customer name", "date of birth"],
+            description="Descriptive customer attributes.",
+            sat_type="standard",
+        ),
+        Satellite(
+            name="sat_account_details",
+            parent="hub_account",
+            attributes=["balance", "status"],
+            description="Descriptive account attributes that change over time.",
+            sat_type="standard",
+        ),
+        Satellite(
+            name="sat_account_customer_eff",
+            parent="link_account_customer",
+            # Order matters: start date first, end date second (spec §3).
+            attributes=["effective from", "effective to"],
+            description="Active period of the account-customer ownership relationship.",
+            sat_type="effectivity",
+        ),
+    ]
+    return DVModel(hubs=hubs, links=links, satellites=satellites)
+
+
+def build_bank_dv_model_with_transfer() -> DVModel:
+    """The bank model plus a self-referencing transactional ``link_transfer`` (ADR-0009/WP8).
+
+    A transfer connects ``hub_account`` twice — the paying account (unqualified) and the
+    ``counterparty`` account — so the same hub participates in two roles. The generator
+    role-qualifies the second FK (``COUNTERPARTY_ACCOUNT_HK`` vs ``ACCOUNT_HK``) from the
+    role-prefixed staging business-key column (``COUNTERPARTY_ACCOUNT_NUMBER``). The plain
+    constructs are reused verbatim from :func:`build_bank_dv_model`, so the byte-identity
+    guards on that model (tests/test_agents/test_staging_regression.py, the demo guardrail)
+    keep proving backward compatibility (acceptance criterion #1)."""
+    model = build_bank_dv_model()
+    model.links.append(
+        Link(
+            name="link_transfer",
+            connected_hubs=[
+                "hub_account",  # the paying account (unqualified)
+                LinkHubRef(hub="hub_account", role="counterparty"),  # the counterparty
+            ],
+            description="A money transfer from one account to a counterparty account.",
+            link_type="transactional",
+            payload=["amount", "currency"],
+            event_timestamp="transfer timestamp",
+            unit_of_work="One transfer moves money from an account to a counterparty "
+            "account at a point in time.",
+        )
+    )
+    return model
+
+
+async def generate_models(
+    model: DVModel, target_platform: TargetPlatform = DEFAULT_TARGET_PLATFORM
+) -> VaultAgentState:
+    """Run the real code generator over the fixed model. ``target_platform`` (WP35) is
+    what the Databricks output fixture is captured with; the demo itself stays Postgres."""
+    state = VaultAgentState(dv_model=model, target_platform=target_platform)
+    return await CodeGeneratorAgent().run(state)
+
+
+def write_models(state: VaultAgentState, out_dir: Path = RAW_VAULT_DIR) -> list[Path]:
+    """Write each generated dbt model to out_dir/<name>.sql; return the paths written."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    written: list[Path] = []
+    for name, sql in sorted(state.artifacts.dbt_models.items()):
+        path = out_dir / f"{name}.sql"
+        path.write_text(sql, encoding="utf-8")
+        written.append(path)
+    return written
+
+
+def main() -> None:
+    # The runnable demo includes the self-referencing link_transfer (WP8); the plain
+    # build_bank_dv_model() stays the byte-identity baseline for the regression guards.
+    model = build_bank_dv_model_with_transfer()
+    state = asyncio.run(generate_models(model))
+
+    written = write_models(state)
+    meta = state.artifacts.automatedv_yaml
+    print(f"Generated {len(written)} raw-vault models into {RAW_VAULT_DIR}:")
+    for path in written:
+        print(f"  - {path.name}")
+    print(
+        "Summary: "
+        f"{len(meta.get('hubs', {}))} hub(s), "
+        f"{len(meta.get('links', {}))} link(s), "
+        f"{len(meta.get('satellites', {}))} satellite(s)."
+    )
+    # Surface generator flags. Ungrounded, the staging generator infers raw_* source
+    # bindings and flags them (advisory) — expected for this demo, which ships those seeds.
+    if state.flags:
+        print("\nGenerator flags:")
+        for flag in state.flags:
+            print(f"  ! [{flag.severity}] {flag}")
+    else:
+        print("No generator flags.")
+
+
+if __name__ == "__main__":
+    main()

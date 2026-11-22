@@ -1,0 +1,51 @@
+spec-version: 1.0.0
+name: ProductModelIllustration
+namespace: source
+dataAssetResourceName: datastore://source/ProductModelIllustration
+doc: Association between product models and illustrations (cross-reference/link of
+  ProductModel to Illustration) staged from the source. The contract enforces the
+  presence and schema of the two reference keys and the modification timestamp; ownership
+  and agreement are to be confirmed at the human-in-the-loop checkpoint.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: ProductModelID
+  description: Identifier of the product model that the illustration is associated
+    with; references ProductModel.ProductModelID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: IllustrationID
+  description: Identifier of the illustration associated with the product model; references
+    Illustration.IllustrationID.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time when the association record was last modified in the
+    source.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

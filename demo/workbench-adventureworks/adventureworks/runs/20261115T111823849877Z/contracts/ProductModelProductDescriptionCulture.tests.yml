@@ -1,0 +1,16 @@
+version: 2
+models:
+- name: stg_ProductModelProductDescriptionCulture
+  columns:
+  - name: PRODUCTMODELID
+    tests:
+    - unique
+    - not_null
+  - name: PRODUCTDESCRIPTIONID
+    tests:
+    - unique
+    - not_null
+  - name: CULTUREID
+    tests:
+    - unique
+    - not_null

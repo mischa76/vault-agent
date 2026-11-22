@@ -1,0 +1,16 @@
+version: 2
+models:
+- name: stg_WorkOrder
+  columns:
+  - name: WORKORDERID
+    tests:
+    - unique
+    - not_null
+  - name: PRODUCTID
+    tests:
+    - unique
+    - not_null
+  - name: SCRAPREASONID
+    tests:
+    - unique
+    - not_null

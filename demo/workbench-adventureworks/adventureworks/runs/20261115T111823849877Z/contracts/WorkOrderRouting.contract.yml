@@ -1,0 +1,165 @@
+spec-version: 1.0.0
+name: WorkOrderRouting
+namespace: source
+dataAssetResourceName: datastore://source/WorkOrderRouting
+doc: Routing (manufacturing operation) records for work orders, describing each operation
+  step performed at a location for a product, with scheduled vs. actual dates, resource
+  hours and planned vs. actual cost. The contract enforces the declared schema and
+  business keys; value-level constraints are not yet specified by requirements and
+  are left for human review.
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: WorkOrderID
+  description: Identifier of the work order this routing operation belongs to; references
+    the WorkOrder asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ProductID
+  description: Identifier of the product being manufactured in this routing operation;
+    references the Product asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: OperationSequence
+  description: Sequence number of the manufacturing operation within the work order's
+    routing.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: LocationID
+  description: Identifier of the manufacturing location where the operation is performed;
+    references the Location asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ScheduledStartDate
+  description: Planned start date/time of the routing operation.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ScheduledEndDate
+  description: Planned end date/time of the routing operation.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ActualStartDate
+  description: Actual start date/time of the routing operation; may be absent if the
+    operation has not started.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ActualEndDate
+  description: Actual end date/time of the routing operation; may be absent if the
+    operation has not finished.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ActualResourceHrs
+  description: Number of actual resource hours used for the operation; may be absent
+    until the operation is performed.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: PlannedCost
+  description: Estimated cost planned for the routing operation.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ActualCost
+  description: Actual cost incurred by the routing operation; may be absent until
+    the operation is completed.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: number
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date/time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

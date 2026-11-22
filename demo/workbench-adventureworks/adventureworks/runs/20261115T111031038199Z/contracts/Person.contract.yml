@@ -1,0 +1,174 @@
+spec-version: 1.0.0
+name: Person
+namespace: source
+dataAssetResourceName: datastore://source/Person
+doc: 'Staging contract for the Person source table: one row per person (individual)
+  record, identified by BusinessEntityID. Enforces the declared schema, primary key
+  and not-null rules; value-level semantics are minimal because no requirements specify
+  thresholds. Ownership and agreement are to be settled at the human-in-the-loop checkpoint.'
+owner:
+  name: John Doe
+  email: john.doe@acme.com
+schema:
+- name: BusinessEntityID
+  description: Identifier of the business entity that this person record represents;
+    business key of the Person asset.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: integer
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: PersonType
+  description: Code classifying the type of person (for example employee, customer,
+    contact). Allowed values are not specified in the requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: NameStyle
+  description: Flag indicating how the name is written/ordered (for example 0 = western
+    style, 1 = eastern style). Exact encoding not confirmed by requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: boolean
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Title
+  description: Courtesy title of the person (for example Mr., Ms.). Optional.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: FirstName
+  description: Given name of the person.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: MiddleName
+  description: Middle name or initial of the person. Optional.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: LastName
+  description: Family name of the person.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Suffix
+  description: Name suffix of the person (for example Jr., Sr.). Optional.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: EmailPromotion
+  description: Indicator of the person's email promotion preference. Encoding of values
+    not specified in requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: integer
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: AdditionalContactInfo
+  description: Additional contact information for the person, in a semi-structured
+    format. Format not specified in requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: Demographics
+  description: Demographic information about the person, in a semi-structured format.
+    Format not specified in requirements.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: rowguid
+  description: Globally unique row identifier (GUID) assigned in the source system.
+  examples: []
+  constraints:
+    primaryKey: true
+    data_type: string
+    enum: []
+    is_nullable: false
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard
+- name: ModifiedDate
+  description: Date and time the source record was last modified.
+  examples: []
+  constraints:
+    primaryKey: false
+    data_type: string
+    enum: []
+    is_nullable: true
+    is_updatable: true
+    precision: null
+  semantics: []
+  failure_mode: hard

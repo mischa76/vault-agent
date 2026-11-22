@@ -1,0 +1,85 @@
+# 12. Troubleshooting & FAQ
+
+## 12.1 Pipeline failures
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `LLMCallError: … response truncated at max_tokens=…` ending the run | A tool payload exceeded its output budget and could not be split further. The requirements parser, business-key identifier, entity resolver, source mapper and contract enricher halve their input on a truncation (up to 16 parts, 6.1), so this ends a run only on an indivisible unit (a single line of a document that alone overflows 8 192 output tokens) or past 16 parts; the modeler does not split (budget 32 768). A truncation the trace shows *followed* by more calls of the same tool is not this — see `INPUT_SEGMENTED`. | Check the trace for which tool; give a long line structure (headings, blank lines), split the document into two runs' inputs, or file it — the per-call budgets are code constants. |
+| `Pipeline failed: … 400 …` mid-run (often `credit balance`) | Non-retryable API error — exhausted Anthropic credit is the classic. Deliberately not retried. | Top up / fix the key; the run is on disk — a *paused* run resumes, a failed one re-runs (contracts/prompts are cached, but LLM stages re-execute). The trace's `llm_error` event names the failing call. |
+| Run ends failed after *attempt 3/3* | The model couldn't produce a gate-clean model within the retry budget. | Read `report.html` + the review queue: recurring `E_` codes point at the requirements (ambiguous entities, relationship soup). Improve the document or ground with a schema; chapter 8 has per-code guidance. |
+| `E_HUB_COMPOSITE_UNSUPPORTED` | A composite-keyed hub is multi-source or takes part in a link with a role, alias or translation (WP45). | Take the hub unqualified in the link, model it single-source, or key it on one column; the plain composite shape builds. |
+| `retired_orphan` decision(s) in the review queue | A hub the collision remedy retired came back in a later attempt and was dropped again (WP44); the satellite or link that hung on it lost its parent. | Decide where its payload hangs — typically the link between the kept hub and the referenced one, with the retired key as dependent child key. The hub itself needs nothing: the backstop and the gate behind it already agree. |
+| `INPUT_SEGMENTED` advisory flag (*„did not fit one model response and was extracted over N segment(s)“*) | An agent's answer outgrew its output budget; the input was halved at structural boundaries and the parts merged (6.1). The trace shows one `llm_error` (`max_tokens`) and then the parts' calls — the run went on. | Nothing to answer. At sign-off look over what that agent produced for gaps or doubles near a section boundary; a document that segments in many parts reads better with clearer sections. |
+| `INPUT_TRUNCATED` advisory flag | Document longer than 400k chars; pipeline continued on the head. | Usually fine for prose docs; for inventory-style docs, split or slim the input. |
+| `Could not load an input file: …` | Malformed `--source-schema`/`--profiling` (the loaders name file and problem). | Fix the named entry; the error is attributable by design — no LLM tokens were spent. |
+| `could not read <doc>: …` error flag | The document exists but is unreadable (non-UTF-8 text, corrupt PDF/`.docx`). | The file was skipped, not fatal: re-save it as UTF-8 / repair the document. A single-document run then has nothing to parse and fails attributably. |
+| Rate-limit / 5xx / connection noise in `--debug` logs | Transient API failures, including a connection dropped while the answer streams (`httpx.ReadError`). | Nothing — retried 3× automatically; only exhaustion surfaces as `LLMCallError`. Each wait is logged at INFO with its length and where it came from: a server `Retry-After` header wins (capped at 60 s), otherwise exponential backoff with equal jitter so parallel runs stop colliding. |
+
+## 12.2 Checkpoint & resume issues
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `No unfinished run found under <out>/` | Nothing paused or crashed there: wrong `--out`, already finalized, or `.vault-agent/` deleted. | Point `--out` at the run's output dir; check for `pending.json` under `<out>/.vault-agent/`. |
+| `Cannot read the unfinished-run pointer: …` | `pending.json` exists but is truncated, not JSON, or has no `thread_id` (usually a hand-edit or an interrupted write). | Repair the file, or delete it to abandon the run — the next `run` into that directory prunes the orphaned checkpoint thread. `--discard` cannot help here: it reads the same pointer. |
+| `--existing`: `not a vault-agent output directory carrying metadata/dv_model.yml` | That output predates the logical-model dump (6.7). | Regenerate that vault once with the current version — the generator is deterministic, so the project is identical — then point `--existing` at the new output. |
+| `E_SAT_SOURCE_TABLE_ON_MULTI_SOURCE_HUB` | The satellite's `source_table` names a table that is not one of its multi-source parent's feeds — two or more since WP75 (ADR-0011). | Name one of the feeds the message lists, to bind the satellite to that source system; or drop `source_table` if the attributes come from every feed. A finer-grain relation under one feed is not expressible today. |
+| Extension run: many `I_EXISTING_EXTENDED` records in the validation report | By design — one `info` record per legitimate addition (a warning `W_EXISTING_EXTENDED` before WP43). They are not review items. | Nothing; read `extension-diff.md` or the report's Extension section as the changelog of the increment. |
+| Pipeline failed mid-run — is the LLM work lost? | No (WP17): the crash writes a `crashed` `pending.json` and the artifacts-so-far. | `vault-agent resume --out <dir>` continues at the failed node; `--discard` throws the run away. |
+| `The run failed again: …` on resume | A deterministic failure (corrupt input, a bug) repeats on every continuation. | Read the named error and the trace (chapter 10); fix the cause, or `resume --discard` and start over. |
+| `resume` prints instructions instead of prompting | Non-TTY (pipe, CI) with no decision flags. | Use the flags (7.5) or force `--interactive` in a real terminal. |
+| Paused run's `report.html` looks incomplete | By design — it shows the pending state. | Resume; finalization overwrites it. |
+| Aborted the interactive prompt — is anything lost? | No: abort/skip/Ctrl-C keep `pending.json` and the checkpoint thread. | Resume again anytime. |
+| Exit code 3, `The model did not validate after 3 modeling attempt(s)` | The re-model budget was exhausted with validation errors remaining; the run paused at the checkpoint for your decision (WP25). | Read the errors in `review-queue.md` / `report.html`. Fix the requirements or source schema and re-run; or `resume --accept` to keep the model for diagnosis (the ADR records that it was accepted over its errors); or `resume --discard`. |
+| `resume --accept` succeeded but the command still exits 3 | By design: accepting does not make an invalid model valid, and the artifacts carry the known errors. | Nothing — treat exit 3 as "not deployable". A wrapper script should branch on it, not on the console text. |
+
+## 12.3 dbt build failures
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| Duplicate source table in `sources.yml` compilation error | Outputs generated before the 2026-07-14 dedup fix could list a relation twice. | Regenerate with the current version; the generator now merges by relation. |
+| `column "…" specified more than once` on the eff_sat | Historic bug class, fixed via the dedicated `APPLIED_DTS` column. On current outputs this indicates a hand-edited staging model. | Regenerate; don't hand-edit staging (see FAQ). |
+| Relation `raw_…` not found (at build; since WP76 a grounded project parses regardless, the `inferred` source block declares it in the target schema) | Inferred binding (9.3) but no seed/table of that name. | Load seeds matching `sources.yml`'s expected columns, or ground + ratify so staging binds to your real tables. |
+| Case/quoting errors on Postgres | An identifier got quoted somewhere — the whole pattern relies on unquoted UPPER_SNAKE folding. | Keep `quote_columns: false`; don't quote identifiers in hand-supplied seeds/tables. |
+| Everything green, but incremental re-run changes counts | Not acceptable (9.2) — usually wrong staging grain or key duplication in the raw data. | Compare the first duplicated construct's staging against its source grain; check `W_MASAT_SHARED_GRAIN`-style advisories from the run. |
+| AutomateDV version conflict on `dbt deps` | Version drift vs. the generated pin. | Keep the pin; bump only deliberately and re-run both demos as the regression gate. |
+| `uv sync --extra demo --extra demo-databricks` refuses: extras conflict | By design (`tool.uv.conflicts`): the Postgres demo is verified on dbt-core 1.9, the Databricks adapter needs 1.11 for a patched `thrift`. | Sync one extra at a time; a second checkout or `uv run --extra …` per demo if you need both. |
+| `Invalid value for '--target-platform'` | The name is not a `TargetPlatform` member (`rules/platforms.py`). | Use a listed platform; other AutomateDV platforms run under the default (9.6). The error is a usage error — no LLM tokens were spent. |
+| On Databricks, seeded numbers lose their fractions | The project was generated for the default platform, so `dbt_project.yml` types a contract `number` as bare `numeric`, which Databricks reads as `DECIMAL(10,0)`. | Re-run with `--target-platform databricks` (deterministic, same model); the seed type becomes `decimal(38,18)` (9.6). Seeds already loaded must be rebuilt with `--full-refresh`. |
+
+## 12.4 Environment issues
+
+WSL performance: repo and venv belong on ext4, not `/mnt/c` (4.1). Missing extras
+show up as import errors for dbt (`--extra demo`, or `--extra demo-databricks` for the
+Databricks adapter) or langsmith (`--extra eval`) — `uv sync` with the right extra fixes
+them. Postgres auth failures are almost always
+`profiles.yml` (host/port/role) rather than the generated project; the demos bundle a
+working profile to compare against.
+
+## 12.5 FAQ
+
+**Can I run anything without an API key?** Everything except the LLM stages: the whole
+test suite, both Postgres demos end-to-end, report/staging regeneration from a fixed
+model, `--help`. `run`/`resume` and live evals need the key.
+
+**Are warnings failures?** No. `W_` codes and advisory flags never block; they are the
+pipeline being honest about what deserves your eyes (7.1). A run with 8 warnings and
+no errors finalizes on `--accept`.
+
+**Can I edit the generated SQL?** You can, but don't: regenerate instead. Hand edits
+are lost on the next run, bypass the gates, and detach the output from its ADR trail.
+The right lever is upstream — the requirements document, the schema declaration, or
+the mapping ratification.
+
+**Why did two runs on the same document differ?** The LLM stages are not
+deterministic; the *deterministic* half (validation verdicts, generation from a given
+model, the report) is. Judge a run by its gates and review queue, not by identity with
+yesterday's run — and pin important models via the golden-dataset pattern (chapter 11)
+if you need regression guarantees.
+
+**How do I add a second source system for an existing hub?** Declare both systems in
+the source schema, run grounded; a genuinely multi-source key lands in `unresolved`
+with both candidates, and ratifying the `sources:` form (7.6) makes the hub
+multi-source on the next generation.
+
+**Where did my paused run go after a reboot?** Nowhere — it is on disk. `vault-agent
+resume --out <dir>` from any shell.

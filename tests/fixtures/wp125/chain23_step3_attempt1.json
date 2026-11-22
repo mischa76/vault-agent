@@ -1,0 +1,311 @@
+{
+  "_provenance": "The modeler's first attempt on the production step of the twenty-third chain (eval/results/adventureworks_incremental/20261031T032606335763Z-run1.trace.jsonl, emit_dv_model at 2026-10-31T03:38:00Z, claude-opus-5-5): the ranked business key candidates it was given and the hubs it emitted. Copied for WP125's replay guard; eval/results is not versioned.",
+  "business_keys": [
+    {
+      "entity": "product",
+      "field": "ProductNumber",
+      "score": 0.95,
+      "rationale": "REQ-002 explicitly states the product number is unique and is the natural business key used day to day; REQ-001 requires unambiguous identification. Stable, unique, business-recognised."
+    },
+    {
+      "entity": "product",
+      "field": "ProductID",
+      "score": 0.15,
+      "rationale": "System-generated surrogate in the operational system; REQ-055-3 says technical identifiers without business meaning should not surface in reporting. Weak business key, though used as FK in other sources."
+    },
+    {
+      "entity": "product",
+      "field": "Name",
+      "score": 0.05,
+      "rationale": "REQ-004 states the product name is not guaranteed unique and must not be relied on to identify a product."
+    },
+    {
+      "entity": "product category",
+      "field": "Name",
+      "score": 0.75,
+      "rationale": "REQ-030 says a product category must be identifiable by its name (description); REQ-029 defines it as the top level of the hierarchy."
+    },
+    {
+      "entity": "product category",
+      "field": "ProductCategoryID",
+      "score": 0.15,
+      "rationale": "System-generated surrogate; weak business key (REQ-055-3)."
+    },
+    {
+      "entity": "product subcategory",
+      "field": "Name",
+      "score": 0.7,
+      "rationale": "REQ-031 says a product subcategory must be identifiable by its name; it belongs to exactly one category (REQ-032)."
+    },
+    {
+      "entity": "product subcategory",
+      "field": "ProductSubcategoryID",
+      "score": 0.15,
+      "rationale": "System-generated surrogate; weak business key (REQ-055-3)."
+    },
+    {
+      "entity": "product model",
+      "field": "Name",
+      "score": 0.75,
+      "rationale": "REQ-036 states the business must be able to identify a product model by its name; shared by several products (REQ-037)."
+    },
+    {
+      "entity": "product model",
+      "field": "ProductModelID",
+      "score": 0.15,
+      "rationale": "System-generated surrogate; weak business key (REQ-055-3)."
+    },
+    {
+      "entity": "culture",
+      "field": "CultureID",
+      "score": 0.9,
+      "rationale": "REQ-044 states each culture is identified by a short culture code; this is a business-recognised, stable code (not a generated number)."
+    },
+    {
+      "entity": "unit of measure",
+      "field": "UnitMeasureCode",
+      "score": 0.9,
+      "rationale": "REQ-093 states each unit of measure is identified by a short code; stable and business-recognised, used across quantity, size and weight (REQ-094)."
+    },
+    {
+      "entity": "location",
+      "field": "Name",
+      "score": 0.7,
+      "rationale": "REQ-001-2 states each manufacturing location is identified by a name (shop floors and work centres)."
+    },
+    {
+      "entity": "location",
+      "field": "LocationID",
+      "score": 0.15,
+      "rationale": "System-generated surrogate; weak business key (REQ-055-3)."
+    },
+    {
+      "entity": "work order",
+      "field": "WorkOrderID",
+      "score": 0.7,
+      "rationale": "REQ-019-2 requires each work order to be uniquely identifiable; WorkOrderID is the only listed identifier, and the business raises and refers to work orders (REQ-018-2, REQ-007-3), though it is system-assigned."
+    },
+    {
+      "entity": "scrap reason",
+      "field": "Name",
+      "score": 0.55,
+      "rationale": "REQ-026-2 says scrap reasons are a standard list each carrying a failure description; the name is the business-recognised value, though uniqueness is not explicitly stated."
+    },
+    {
+      "entity": "scrap reason",
+      "field": "ScrapReasonID",
+      "score": 0.15,
+      "rationale": "System-generated surrogate; weak business key (REQ-055-3)."
+    },
+    {
+      "entity": "inventory transaction",
+      "field": "TransactionID",
+      "score": 0.75,
+      "rationale": "REQ-001-3 requires each inventory transaction to be identified uniquely; TransactionID is the only identifier, though system-generated. The same ID exists in live and archive stores (REQ-018-3, REQ-022-3)."
+    },
+    {
+      "entity": "product review",
+      "field": "ProductReviewID",
+      "score": 0.55,
+      "rationale": "REQ-024-3 requires identifying each review; no natural identifier is stated (reviewer name and e-mail are personal data, REQ-034-3), so the generated ID is the only option."
+    },
+    {
+      "entity": "illustration",
+      "field": "IllustrationID",
+      "score": 0.4,
+      "rationale": "REQ-057 and REQ-058 describe illustrations without a natural identifier; the generated ID is the only identifying source column."
+    },
+    {
+      "entity": "product description",
+      "field": "ProductDescriptionID",
+      "score": 0.4,
+      "rationale": "REQ-043 describes a library of free-text descriptions with no natural key; the generated ID is the only identifier."
+    },
+    {
+      "entity": "product photograph",
+      "field": "ProductPhotoID",
+      "score": 0.4,
+      "rationale": "REQ-049 describes a photograph library with no natural identifier stated; the generated ID is the only identifier."
+    },
+    {
+      "entity": "document",
+      "field": "DocumentNode",
+      "score": 0.6,
+      "rationale": "REQ-060 requires identifying each document in the controlled library, and REQ-062 requires reconstructing the hierarchy; DocumentNode is the hierarchical position identifier. Title is not stated as unique."
+    },
+    {
+      "entity": "document",
+      "field": "rowguid",
+      "score": 0.2,
+      "rationale": "System-generated GUID; weak business key (REQ-055-3)."
+    },
+    {
+      "entity": "engineering change",
+      "field": "ChangeNumber",
+      "score": 0.5,
+      "rationale": "REQ-068 and REQ-069 say each document carries an engineering change approval number and documents trace to the authorising change; recognised by the business, though the change object is not described further."
+    }
+  ],
+  "hubs": [
+    {
+      "name": "hub_product",
+      "business_key": "ProductID",
+      "source_entity": "Product",
+      "description": "Product master concept. Anchored on ProductID because it is the key carried by every product-related source (inventory, work orders, routing, transactions, reviews, history); the business-facing ProductNumber is held as a descriptive attribute.",
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002",
+        "REQ-004"
+      ]
+    },
+    {
+      "name": "hub_product_category",
+      "business_key": "ProductCategoryID",
+      "source_entity": "ProductCategory",
+      "description": "Top level of the merchandising hierarchy (bikes, components, clothing, accessories).",
+      "requirement_ids": [
+        "REQ-029",
+        "REQ-030"
+      ]
+    },
+    {
+      "name": "hub_product_subcategory",
+      "business_key": "ProductSubcategoryID",
+      "source_entity": "ProductSubcategory",
+      "description": "Second level of the product classification hierarchy.",
+      "requirement_ids": [
+        "REQ-029",
+        "REQ-031"
+      ]
+    },
+    {
+      "name": "hub_product_model",
+      "business_key": "ProductModelID",
+      "source_entity": "ProductModel",
+      "description": "Product model shared by several products; holds design, catalogue and manufacturing instruction content.",
+      "requirement_ids": [
+        "REQ-036",
+        "REQ-037",
+        "REQ-039"
+      ]
+    },
+    {
+      "name": "hub_culture",
+      "business_key": "CultureID",
+      "source_entity": "Culture",
+      "description": "Language/locale designation identified by a short culture code.",
+      "requirement_ids": [
+        "REQ-044"
+      ]
+    },
+    {
+      "name": "hub_unit_measure",
+      "business_key": "UnitMeasureCode",
+      "source_entity": "UnitMeasure",
+      "description": "Standard unit of measure identified by a short code, used for BOM quantities, size and weight.",
+      "requirement_ids": [
+        "REQ-093",
+        "REQ-094"
+      ]
+    },
+    {
+      "name": "hub_location",
+      "business_key": "LocationID",
+      "source_entity": "Location",
+      "description": "Manufacturing location / work centre that also holds inventory.",
+      "requirement_ids": [
+        "REQ-001-2",
+        "REQ-006-2"
+      ]
+    },
+    {
+      "name": "hub_work_order",
+      "business_key": "WorkOrderID",
+      "source_entity": "WorkOrder",
+      "description": "Work order raised to manufacture a product.",
+      "requirement_ids": [
+        "REQ-018-2",
+        "REQ-019-2"
+      ]
+    },
+    {
+      "name": "hub_scrap_reason",
+      "business_key": "ScrapReasonID",
+      "source_entity": "ScrapReason",
+      "description": "Standard scrap reason list entry.",
+      "requirement_ids": [
+        "REQ-026-2"
+      ]
+    },
+    {
+      "name": "hub_inventory_transaction",
+      "business_key": "TransactionID",
+      "source_entity": "TransactionHistory",
+      "description": "Inventory transaction, fed from both the live store and the archive so they form one continuous history.",
+      "requirement_ids": [
+        "REQ-001-3",
+        "REQ-017-3",
+        "REQ-018-3",
+        "REQ-019-3",
+        "REQ-022-3"
+      ],
+      "sources": [
+        {
+          "source_table": "TransactionHistory",
+          "business_key_column": "TransactionID"
+        },
+        {
+          "source_table": "TransactionHistoryArchive",
+          "business_key_column": "TransactionID"
+        }
+      ]
+    },
+    {
+      "name": "hub_product_review",
+      "business_key": "ProductReviewID",
+      "source_entity": "ProductReview",
+      "description": "Customer review of a product.",
+      "requirement_ids": [
+        "REQ-023-3",
+        "REQ-024-3"
+      ]
+    },
+    {
+      "name": "hub_illustration",
+      "business_key": "IllustrationID",
+      "source_entity": "Illustration",
+      "description": "Technical illustration used in manufacturing instructions.",
+      "requirement_ids": [
+        "REQ-057"
+      ]
+    },
+    {
+      "name": "hub_product_description",
+      "business_key": "ProductDescriptionID",
+      "source_entity": "ProductDescription",
+      "description": "Free-text marketing description in the description library.",
+      "requirement_ids": [
+        "REQ-043"
+      ]
+    },
+    {
+      "name": "hub_product_photo",
+      "business_key": "ProductPhotoID",
+      "source_entity": "ProductPhoto",
+      "description": "Photograph in the product photograph library.",
+      "requirement_ids": [
+        "REQ-049"
+      ]
+    },
+    {
+      "name": "hub_document",
+      "business_key": "DocumentNode",
+      "source_entity": "Document",
+      "description": "Entry (folder or document) in the controlled document library, identified by its hierarchical node.",
+      "requirement_ids": [
+        "REQ-060",
+        "REQ-062"
+      ]
+    }
+  ]
+}

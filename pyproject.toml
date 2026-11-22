@@ -1,0 +1,120 @@
+[project]
+name = "vault-agent"
+version = "0.12.2"
+description = "Agentic AI for Data Vault 2.0 automation"
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "MIT" }
+authors = [{ name = "Mischa Eismann", email = "va-oss@eismann.consulting" }]
+keywords = ["data-vault", "agentic-ai", "langgraph", "dbt", "automatedv"]
+
+dependencies = [
+    "anthropic>=0.39",
+    "httpx>=0.28",  # the SDK's transport; its TransportError is caught in llm.py
+    "langgraph>=0.2",
+    "langchain-anthropic>=0.2",
+    "pydantic>=2.8",
+    "pydantic-settings>=2.5",
+    "python-dotenv>=1.0",
+    "pyyaml>=6.0",
+    "pypdf>=6.21.4",
+    "python-docx>=1.1",
+    "rich>=13.0",
+    "typer>=0.12",
+    "langgraph-checkpoint-sqlite>=3.1.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=5.0",
+    "ruff>=0.7",
+    "mypy>=1.11",
+    "types-PyYAML>=6.0",
+    "ipykernel>=6.29",
+]
+eval = [
+    "langsmith>=0.1",
+]
+# LLM routes for data residency (docs/architecture/deployment-residency.md): the SDK
+# clients exist in `anthropic` itself; these pull in the provider auth libraries they
+# need at construction. Select with LLM_PROVIDER=bedrock|vertex (config.py).
+bedrock = [
+    "anthropic[bedrock]>=0.39",
+]
+vertex = [
+    "anthropic[vertex]>=0.39",
+]
+# Local Data Vault Durchstich (demo/bank_postgres). dbt + Postgres adapter; pulled in
+# only for the runnable demo so they don't bloat the core package.
+demo = [
+    "dbt-core~=1.9.0",
+    "dbt-postgres~=1.9.0",
+]
+# Databricks target (WP35). dbt-databricks 1.9.x pins dbt-core >=1.8.7,<1.10.14 on Python 3.12,
+# so it shares the 1.9 line the Postgres demo is verified on — no dbt bump involved. Kept as
+# its own extra: it drags in dbt-spark and databricks-sql-connector, which the local demo
+# never needs. Built on a real Databricks workspace since WP72 (2026-10-16: the bank demo, the
+# person step and the whole AdventureWorks chain).
+# Pinned to the 1.12 line on purpose (2026-09-12): its connector (databricks-sql-connector
+# >=4.4.0) is the first that admits thrift >=0.24.0, the version that closes Dependabot
+# alerts 20-22. That drags dbt-core to 1.11, which the Postgres demo must NOT follow until it
+# is re-verified on a real build — so the two extras are declared conflicting below and are
+# never installed together. `uv sync --extra demo` keeps dbt-core 1.9.
+demo-databricks = [
+    "dbt-core~=1.11.0",
+    "dbt-databricks~=1.12.0",
+]
+ui = [
+    "fastapi>=0.115",
+    "uvicorn>=0.30",
+]
+catalogue = [
+    "sqlalchemy>=2.0",
+]
+
+[tool.uv]
+# The two dbt extras pin different dbt-core lines (see the demo-databricks comment) and
+# cannot be resolved into one environment. uv resolves them as separate forks.
+conflicts = [
+    [{ extra = "demo" }, { extra = "demo-databricks" }],
+]
+
+[project.scripts]
+vault-agent = "vault_agent.cli:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/vault_agent"]
+# The frontend bundle is gitignored and built before `uv build` (WP67 §2.5); hatch would
+# otherwise honour the ignore file and leave it out of the wheel.
+artifacts = ["src/vault_agent/ui/static/**"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "SIM"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+ignore_missing_imports = true
+# The eval harness (eval/) is typed and checked alongside the package (WP6): a bare
+# `uv run mypy` covers both. Explicit paths on the command line override this list.
+files = ["src/vault_agent", "eval"]
+
+# WP111 (C19): the floor for the workbench package. CI runs the suite with
+# `--cov=vault_agent.ui`, so this applies to that package alone; a local `uv run pytest`
+# without `--cov` is untouched. 85 = five under the first measurement, rounded down.
+[tool.coverage.report]
+fail_under = 85
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

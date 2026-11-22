@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    # 3.12 is the pinned version (`.python-version`, 2026-11-08); 3.14 keeps the core's coverage on the
+    # newest Python, which CI ran on unpinned until then. setup-uv's `python-version` sets UV_PYTHON,
+    # which overrides `.python-version`. The dbt demo extra stays off both legs (dbt 1.9 breaks on 3.14).
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12", "3.14"]
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9 # v9.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Sync deps
+        # `catalogue` too: `source_schema_reader.py` and `profiler.py` subclass and return SQLAlchemy
+        # types; without the extra mypy strict sees `Any` and fails (red from 2026-10-30 to 2026-11-01).
+        run: uv sync --extra dev --extra ui --extra catalogue
+      - name: Lint
+        run: uv run ruff check .
+      # Bare invocation ON PURPOSE (WP27 §2.1): an explicit path OVERRIDES pyproject's
+      # `files = ["src/vault_agent", "eval"]`, so `mypy src` silently skipped eval/ — the
+      # 2,000+ lines carrying the quality gates everything else leans on. A green CI must
+      # be the same statement as a green local check, not a weaker one.
+      - name: Type-check
+        run: uv run mypy
+      - name: Test
+        # `-rs`: name every skip — CI skips one test more than a local checkout (6 vs 5, 2026-11-03),
+        # and `-q` alone did not say which.
+        run: uv run pytest -q -rs --cov=vault_agent.ui --cov-report=term
+
+  # The frontend's own checks (WP67 §2.6): type-check, Vitest, and a build — the proof the bundle
+  # the Python app serves can be produced from this commit. Node-free Python stays the test job.
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5.0.1
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install
+        run: npm ci --no-audit --no-fund
+      - name: Type-check
+        run: npm run check
+      - name: Test
+        run: npm test
+      - name: Build
+        run: npm run build

@@ -1,0 +1,70 @@
+{
+  "hubs": [
+    {
+      "business_key": "NationalIDNumber",
+      "business_key_columns": [],
+      "description": "An employee of the business, uniquely and consistently identified for all HR reporting. Anchored on the national identification number, the strongest natural business identifier for a person (REQ-002).",
+      "name": "hub_employee",
+      "requirement_ids": [
+        "REQ-001",
+        "REQ-002"
+      ],
+      "source_entity": "Employee",
+      "sources": []
+    }
+  ],
+  "links": [],
+  "satellites": [
+    {
+      "attributes": [
+        "JobTitle",
+        "MaritalStatus",
+        "CurrentFlag",
+        "OrganizationLevel"
+      ],
+      "child_dependent_key": [],
+      "description": "Overwritten, non-sensitive descriptive attributes of an employee whose succession of values the warehouse captures as changes occur: job title, marital status handle, active/inactive flag and hierarchy depth level (REQ-006, REQ-010, REQ-011, REQ-022, REQ-067).",
+      "key_translation": null,
+      "name": "sat_employee_profile",
+      "parent": "hub_employee",
+      "participation_aliases": {},
+      "participation_translations": {},
+      "requirement_ids": [
+        "REQ-006",
+        "REQ-010",
+        "REQ-011",
+        "REQ-014",
+        "REQ-022",
+        "REQ-067"
+      ],
+      "sat_type": "standard",
+      "source_table": "Employee",
+      "split_rationale": "Overwritten non-PII operational attributes grouped together; split from PII (demographics) by data classification and from stable facts (hire date, salaried flag) by rate of change. MaritalStatus is PII-adjacent but recorded here alongside status; see sat_employee_demographics for restricted personal data."
+    },
+    {
+      "attributes": [
+        "BirthDate",
+        "Gender",
+        "MaritalStatus"
+      ],
+      "child_dependent_key": [],
+      "description": "Restricted personal data attributes \u2014 date of birth, gender and marital status \u2014 whose warehouse access must be limited to authorised HR users (REQ-012, REQ-013, REQ-014, REQ-015, REQ-016).",
+      "key_translation": null,
+      "name": "sat_employee_demographics",
+      "parent": "hub_employee",
+      "participation_aliases": {},
+      "participation_translations": {},
+      "requirement_ids": [
+        "REQ-012",
+        "REQ-013",
+        "REQ-014",
+        "REQ-015",
+        "REQ-016"
+      ],
+      "sat_type": "standard",
+      "source_table": "Employee",
+      "split_rationale": "Split out by data classification (PII / sensitivity) so access can be restricted to authorised HR users independently of other employee attributes."
+    }
+  ],
+  "_source": "eval/results/adventureworks_incremental_cumulative/20261005T092147230544Z-step2-adventureworks_humanresources-run1.dv_model.yml (hub_employee and its two MaritalStatus satellites)"
+}
