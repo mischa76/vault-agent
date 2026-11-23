@@ -2,8 +2,8 @@
 
 > **Purpose.** Where Vault-Agent sits relative to existing Data Vault automation and the emerging
 > "LLM-for-Data-Vault" work — what is crowded, what is emerging, and what this project adds.
-> Based on public information; **snapshot: summer 2026**, TurboVault Engine added 2026-10-30 — this space
-> moves fast.
+> Based on public information; **snapshot: summer 2026**, TurboVault Engine added 2026-10-30 and re-read
+> 2026-11-23 — this space moves fast.
 
 ## TL;DR
 
@@ -45,7 +45,7 @@ no public equivalent was found when this page was researched. This is where Vaul
 | **Coalesce** | Source/columns | Column-aware GUI transforms; DV patterns | Proprietary → Snowflake et al. | Commercial | — | Pattern/tests | Production |
 | **biGENIUS-X** | Source metadata | DWA, AI-assisted, metadata-driven | Proprietary, multi-platform | Commercial | — | Built-in | Production (DACH) |
 | **Agnostic Data Labs** | Source-to-target mapping metadata (git-native) | Metadata + template-driven generation; non-opinionated (DV/ELM, Dimensional, Lakehouse) | Template-driven SQL, platform-agnostic | Free, closed-source | — | Metadata/schema validation | New; successor to the long-standing TEAM/VDW OSS line |
-| **TurboVault Engine** (Scalefree, 2026) | A finished Data Vault metamodel (Excel/SQLite/JSON/IRiS workbooks); an MCP server lets a chat client write one | Template-driven generation (Django, Jinja); completeness validation; the modelling itself is left to the connected assistant, no rules in the engine | dbt on datavault4dbt | AGPL-3.0, dual-licensed | `reasoning` free-text field, no record | Completeness rules (hashkey present, two hubs per link) | 0.21.0 on PyPI, pre-MVP by its own rules file; the successor of TurboVault4dbt |
+| **TurboVault Engine** (Scalefree, 2026) | A finished Data Vault metamodel (Excel/SQLite/JSON/IRiS workbooks); an MCP server lets a chat client write one | Template-driven generation (Django, Jinja); completeness validation; the modelling itself is left to the connected assistant, no modelling rules in the engine | dbt on datavault4dbt; SQLMesh on datavault4sqlmesh since 0.23.0 | AGPL-3.0, dual-licensed | `reasoning` free-text field, no record | Completeness and reference checks (hash key named, business key present, two hubs per link, a satellite's parent defined) | 0.24.0 on PyPI (2026-11-13), pre-MVP by its own rules file; the successor of TurboVault4dbt |
 | **AutomateDV / datavault4dbt** | Hand-written staging metadata (YAML) | dbt macros/templates | dbt (you target the platform) | Open source | — | Macro contracts + dbt tests | Production (OSS) |
 | **Academic LLM-for-DV** (MDPI, Preprints 2025) | Source schema / metadata | LLM (ChatGPT) + prompt engineering | Varies / conceptual | Research | — | Validity-coefficient research | Research / PoC |
 | **Vault-Agent** (this project) | **Business requirements documents** (IREB-aligned) | **Multi-agent LLM** (LangGraph), rules-as-code | **AutomateDV / dbt** (open) | **Open source** | **Yes — one proposed ADR per run, each construct traced to its requirements** | **Independent validator gates + self-correcting loop** | Early; see [status and limits](status.md) |
@@ -77,6 +77,21 @@ resolution, data contracts, brownfield, the review queue, the ADR trail) nor on 
 schema is also an interface: a ratified model could be exported into it for datavault4dbt customers
 (decided on 2026-10-31 in [ADR-0020](architecture/adrs/ADR-0020-turbovault-export.md): not now — and, should
 a datavault4dbt customer ask, into its project JSON rather than the MCP schema).
+
+## Update 2026-11-23 — TurboVault Engine at 0.24.0
+
+Re-read at the repository at release 0.24.0 (changelog 2026-11-12), three releases after the reading above.
+**New:** a second output — SQLMesh projects on datavault4sqlmesh beside dbt on datavault4dbt (0.23.0); a
+configurable `dbt_project.yml` and an optional `profiles.yml` (0.22.0); pre-stages, dbt models that prepare a
+table's data for its stage (0.24.0). A model can be exported as JSON, DBML or IRiS workbooks.
+**Unchanged:** the MCP server has the same ten tools, and its generation tool writes dbt. The documented
+validation checks completeness and references — a hash key named, a business key present, two hubs per link,
+a satellite's parent defined, every referenced entity and source column present — and judges no modelling
+choice. The repository's own rules file still places the engine in a pre-MVP phase; licence and the two main
+authors are as before.
+
+The assessment above stands, with one addition at the exit: the generator now serves two frameworks, where
+this project generates for one macro package.
 
 ## Where Vault-Agent differentiates
 
@@ -129,7 +144,7 @@ established tools:
 - [Preprints.org — AI-Powered Data Vault 2.0 Modeling (2025)](https://www.preprints.org/manuscript/202502.2012)
 - [Agnostic Data Labs](https://agnosticdatalabs.com)
 - [dbt Developer Blog — dbt Agent Skills](https://docs.getdbt.com/blog/dbt-agent-skills)
-- [ScalefreeCOM/turbovault-engine — GitHub](https://github.com/ScalefreeCOM/turbovault-engine) (read 2026-10-30)
+- [ScalefreeCOM/turbovault-engine — GitHub](https://github.com/ScalefreeCOM/turbovault-engine) (read 2026-10-30 and 2026-11-23)
 - [turbovault-engine — PyPI](https://pypi.org/project/turbovault-engine/)
 - [Datavault-UK/automate-dv — GitHub](https://github.com/Datavault-UK/automate-dv)
 - [AutomateDV — Platform Support](https://automate-dv.readthedocs.io/en/latest/platform_support/)
