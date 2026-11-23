@@ -1,8 +1,7 @@
 # Competitive Landscape & Differentiation
 
-> **Purpose.** An honest map of where Vault-Agent sits relative to existing Data Vault
-> automation and the emerging "LLM-for-Data-Vault" work — what is already crowded, what is
-> emerging, and where the genuine niche is. Written to keep the project's positioning sharp.
+> **Purpose.** Where Vault-Agent sits relative to existing Data Vault automation and the emerging
+> "LLM-for-Data-Vault" work — what is crowded, what is emerging, and what this project adds.
 > Based on public information; **snapshot: summer 2026**, TurboVault Engine added 2026-10-30 — this space
 > moves fast.
 
@@ -17,24 +16,24 @@ rules**, generates code through the **open AutomateDV/dbt** stack, and documents
 
 ## The space has three layers
 
-**1. Data Vault automation — crowded and mature.** A rearmed commercial category: VaultSpeed,
+**1. Data Vault automation — crowded and mature.** A commercial category with established vendors: VaultSpeed,
 WhereScape (Data Vault Express), Datavault Builder, Coalesce, biGENIUS-X, Agnostic Data Labs
 (Roelant Vos's closed-source successor to his TEAM/VDW open-source line, archived 2026), plus
 open-source dbt packages (AutomateDV, datavault4dbt). These are production-proven and enterprise-supported. Two
 things characterise almost all of them: they start from **source schemas / metadata**, and they
 are **GUI- or template/YAML-driven**, not LLM-driven. DACH relevance is high — several of the
-strongest players are German/Swiss (biGENIUS, Scalefree's ecosystem, the Linstedt-adjacent world).
+strongest players are German or Swiss (biGENIUS, Scalefree and its ecosystem).
 
 **2. LLMs that generate Data Vault models — emerging, mostly academic (2025).** Recent papers
 (e.g. MDPI's *Data Vault* case study; the *AI-Powered Data Vault 2.0 Modeling* preprint) show
 ChatGPT deriving DV models, with formal validity scoring. The idea is "in the air" — but it is
 research/PoC, and again works **from source metadata**, not from requirements documents. Vendors
-are simultaneously bolting "AI-ready" onto their marketing.
+are adding AI features to their products at the same time.
 
 **3. Open-source, agentic, requirements-to-AutomateDV — effectively empty in public.** A
 multi-agent (LangGraph) system that goes from **business requirements** → DV2.0 model → AutomateDV
 /dbt code, with self-correcting validation, data contracts, an ADR trail, and human-in-the-loop:
-no public equivalent surfaced in research. This is Vault-Agent's lane.
+no public equivalent was found when this page was researched. This is where Vault-Agent works.
 
 ## Comparison
 
@@ -49,7 +48,7 @@ no public equivalent surfaced in research. This is Vault-Agent's lane.
 | **TurboVault Engine** (Scalefree, 2026) | A finished Data Vault metamodel (Excel/SQLite/JSON/IRiS workbooks); an MCP server lets a chat client write one | Template-driven generation (Django, Jinja); completeness validation; the modelling itself is left to the connected assistant, no rules in the engine | dbt on datavault4dbt | AGPL-3.0, dual-licensed | `reasoning` free-text field, no record | Completeness rules (hashkey present, two hubs per link) | 0.21.0 on PyPI, pre-MVP by its own rules file; the successor of TurboVault4dbt |
 | **AutomateDV / datavault4dbt** | Hand-written staging metadata (YAML) | dbt macros/templates | dbt (you target the platform) | Open source | — | Macro contracts + dbt tests | Production (OSS) |
 | **Academic LLM-for-DV** (MDPI, Preprints 2025) | Source schema / metadata | LLM (ChatGPT) + prompt engineering | Varies / conceptual | Research | — | Validity-coefficient research | Research / PoC |
-| **Vault-Agent** (this project) | **Business requirements documents** (IREB-aligned) | **Multi-agent LLM** (LangGraph), rules-as-code | **AutomateDV / dbt** (open) | **Open source** | **Yes — ADR per decision** | **Independent validator gates + self-correcting loop** | Early / build-in-public |
+| **Vault-Agent** (this project) | **Business requirements documents** (IREB-aligned) | **Multi-agent LLM** (LangGraph), rules-as-code | **AutomateDV / dbt** (open) | **Open source** | **Yes — one proposed ADR per run, each construct traced to its requirements** | **Independent validator gates + self-correcting loop** | Early; see [status and limits](status.md) |
 
 (Cells left as "—" mean the capability is not a public, advertised feature of that tool, not that
 it is impossible; some vendors are adding AI features quickly.)
@@ -76,8 +75,8 @@ rules — the opposite bet to this project's rules-as-code and measured gates �
 reach are the real competition. It does not compete at the entry (requirements, business-key evidence, entity
 resolution, data contracts, brownfield, the review queue, the ADR trail) nor on measurement. Its MCP import
 schema is also an interface: a ratified model could be exported into it for datavault4dbt customers
-(candidate C32; the 2026-10-04 decision that AutomateDV stays
-the one backend holds until it is lifted).
+(decided on 2026-10-31 in [ADR-0020](architecture/adrs/ADR-0020-turbovault-export.md): not now — and, should
+a datavault4dbt customer ask, into its project JSON rather than the MCP schema).
 
 ## Where Vault-Agent differentiates
 
@@ -86,18 +85,19 @@ Four things that are individually unremarkable but **rare in combination**:
 1. **Requirements → model**, not schema → model. The incumbents start where a source already
    exists; Vault-Agent starts from the *business intent* (IREB-aligned parsing), addressing the
    slow, senior-architect-heavy front of the process.
-2. **Transparent, agentic reasoning.** Every modeling decision becomes an ADR; the validator is an
-   independent gate; the modeler self-corrects against rule violations. This is the opposite of a
-   black-box GUI — it shows *why*, which matters for auditability in regulated DACH industries.
+2. **Transparent, agentic reasoning.** Every run ends in a proposed decision record that traces each
+   construct to the requirements behind it; the validator is an independent gate; the modeler
+   self-corrects against rule violations. The output shows *why* a construct exists, which matters
+   for auditability in regulated DACH industries.
 3. **Open stack, no lock-in.** Generation goes through AutomateDV/dbt, so the output is reviewable
    dbt code in git — reproducible, inspectable, and free of a proprietary runtime.
 4. **Methodology depth + governance.** DV2.0 rules encoded as code (not prompts), data contracts
-   for source-to-staging assets, and a human-in-the-loop checkpoint — positioned for enterprise
-   rigor rather than a demo toy.
+   for source-to-staging assets, and a human-in-the-loop checkpoint.
 
-## Honest limitations (where incumbents win)
+## Limitations — where the established tools are ahead
 
-This matters for credibility — overclaiming is the fastest way to lose a technical audience:
+What has been measured, and what has not, is on the [status page](status.md). Against the
+established tools:
 
 - **Maturity & scale.** VaultSpeed/WhereScape run at billions of rows in production with support
   SLAs; Vault-Agent is an early, single-author project.
@@ -106,18 +106,17 @@ This matters for credibility — overclaiming is the fastest way to lose a techn
 - **Reliability of LLM output.** Agentic data tooling is known to hallucinate (wrong joins, bad
   metadata) — which is exactly why the rules-as-code validator and human-in-the-loop exist, but it
   remains the central risk to manage and prove.
-- **DuckDB caveat.** AutomateDV does not support DuckDB; the local demo runs on Postgres.
 
-## Strategic implications
+## What follows
 
-- The moat is **not** "we automate Data Vault" (done to death) — it is the **requirements entry
-  point + transparency + open stack + methodology rigor**. Tell that story; never "another DV
-  generator."
-- The field is converging (vendor "AI", academic PoCs). **The window favors visible, reproducible
-  artifacts now** — which is the rationale for going public and shipping the end-to-end PoC
-  as the proof point.
-- Likely reality: many consultancies build comparable PoCs **internally and never publish**. The
-  scarcity is in the *public, polished, reproducible* artifact — that scarcity is the opportunity.
+- Automating Data Vault is not the contribution — that exists, and it is mature. The contribution
+  is the combination: **requirements as the entry point, a visible reasoning trail, an open stack
+  and the methodology as code**.
+- The field is converging: vendors add AI features and academic prototypes multiply. What is
+  scarce in public is a reproducible end-to-end example — which is why the demo, its inputs and
+  the measured limits ship with the repository.
+- Comparable prototypes probably exist inside consultancies and are not published; this page can
+  only map what is public.
 
 ## Sources
 
